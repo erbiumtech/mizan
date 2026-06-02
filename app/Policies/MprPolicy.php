@@ -4,7 +4,7 @@ namespace App\Policies;
 
 use App\Models\Mpr;
 use App\Models\User;
-use App\Services\RoleService; // 💡 NEW DECOUPLED ARCHITECTURE: Service import ki
+use App\Services\RoleService; 
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class MprPolicy

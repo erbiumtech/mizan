@@ -35,6 +35,6 @@ class DownloadSingleMprPdf extends Action
 
     public function fields(NovaRequest $request)
     {
-        return []; // Bilkul khali taake bina kisi popup modal ke direct click par download ho
+        return []; 
     }
 }
