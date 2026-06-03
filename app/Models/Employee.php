@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\User;
-use CleaniqueCoders\Profile\Traits\HasProfile;
-use CleaniqueCoders\Profile\Traits\Morphs\Bankable;
+use CleaniqueCoders\Profile\Concerns\HasProfile;
+use \CleaniqueCoders\Profile\Concerns\Bankable;
 
 class Employee extends User
 {

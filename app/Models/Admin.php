@@ -8,6 +8,6 @@ class Admin extends Employee
 {
     public function payrolls()
     {
-        return $this->hasMany(App\Models\Payroll\Payroll::class, 'user_id');
+        return $this->hasMany(Payroll::class, 'user_id');
     }
 }
