@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\OpenPayroll\Setting;
 
 use App\Http\Controllers\Controller;
-use App\Models\OpenPayroll\EarningType;
+use App\Models\Earning\Type;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -41,7 +41,7 @@ class EarningController extends Controller
             'name' => 'required|min:3|max:255',
         ]);
 
-        EarningType::create([
+        Type::create([
             'name'      => $request->name,
             'code'      => Str::kebab($request->name),
             'is_locked' => false,
@@ -72,7 +72,7 @@ class EarningController extends Controller
      */
     public function edit($id)
     {
-        $type = EarningType::findOrFail($id);
+        $type = Type::findOrFail($id);
 
         return view('open-payroll.settings.earning.edit', compact('type'));
     }
@@ -91,7 +91,7 @@ class EarningController extends Controller
             'name' => 'required|min:3|max:255',
         ]);
 
-        EarningType::whereId($id)->update([
+        Type::whereId($id)->update([
             'name'      => $request->name,
             'code'      => Str::kebab($request->name),
             'is_locked' => false,
@@ -111,7 +111,7 @@ class EarningController extends Controller
      */
     public function destroy($id)
     {
-        EarningType::whereId($id)->delete();
+        Type::whereId($id)->delete();
 
         // swal()->success('Setting', 'You have successfully delete a earning type.');
 
