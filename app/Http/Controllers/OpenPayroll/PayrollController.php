@@ -20,7 +20,7 @@ class PayrollController extends Controller
      */
     public function index()
     {
-        $payrolls = \App\Models\OpenPayroll\Payroll::latest()->paginate();
+        $payrolls = \App\Models\Payroll\Payroll::latest()->paginate();
 
         return view('open-payroll.payroll.index', compact('payrolls'));
     }
@@ -50,7 +50,7 @@ class PayrollController extends Controller
             'date'  => 'required',
         ]);
 
-        $payroll = \App\Models\OpenPayroll\Payroll::create($request->only('user_id', 'month', 'year', 'date'));
+        $payroll = \App\Models\Payroll\Payroll::create($request->only('user_id', 'month', 'year', 'date'));
 
         // swal()->success('Payroll', 'You have successfully created a payroll.');
 
@@ -66,7 +66,7 @@ class PayrollController extends Controller
      */
     public function show($id)
     {
-        $payroll = \App\Models\OpenPayroll\Payroll::with('payslips', 'payslips.user')->findByHashSlugOrId($id);
+        $payroll = \App\Models\Payroll\Payroll::with('payslips', 'payslips.user')->findByHashSlugOrId($id);
 
         return view('open-payroll.payroll.show', compact('payroll'));
     }
@@ -103,7 +103,7 @@ class PayrollController extends Controller
      */
     public function destroy($id)
     {
-        $payroll = \App\Models\OpenPayroll\Payroll::whereHashslug($id)->firstOrFail();
+        $payroll = \App\Models\Payroll\Payroll::whereHashslug($id)->firstOrFail();
 
         if ($payroll->is_locked) {
             // swal()->error('Payroll', 'You cannot delete locked payroll.');
