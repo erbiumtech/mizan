@@ -23,7 +23,7 @@ class EarningController extends Controller
      */
     public function create()
     {
-        $types = \App\Models\OpenPayroll\EarningType::all();
+        $types = \App\Models\Earning\EarningType::all();
 
         return view('open-payroll.earnings.create', compact('types'));
     }
@@ -43,8 +43,8 @@ class EarningController extends Controller
             'amount'  => 'required',
         ]);
 
-        $payslip = \App\Models\OpenPayroll\Payslip::with('payroll', 'user')->findByHashSlugOrId($request->payslip);
-        $type    = \App\Models\OpenPayroll\EarningType::find($request->type);
+        $payslip = \App\Models\Payslip\Payslip::with('payroll', 'user')->findByHashSlugOrId($request->payslip);
+        $type    = \App\Models\Earning\Type::find($request->type);
 
         \App\Models\OpenPayroll\Earning::create([
             'user_id'         => $payslip->user_id,
@@ -104,7 +104,7 @@ class EarningController extends Controller
      */
     public function destroy($id)
     {
-        \App\Models\OpenPayroll\Earning::hashslug($id)->delete();
+        \App\Models\Earning\Earning::hashslug($id)->delete();
 
         // swal()->success('Earning', 'You have successfully delete an earning.');
 

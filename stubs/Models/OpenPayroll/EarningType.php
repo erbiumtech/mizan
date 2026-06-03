@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\OpenPayroll;
+namespace App\Models\Earning;
 
 use App\Models\Earning\Type as OPEarningType;
 

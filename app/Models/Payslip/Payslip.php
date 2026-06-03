@@ -2,7 +2,7 @@
 
 namespace App\Models\Payslip;
 
-use App\Models\Earning\Deduction;
+use App\Models\Deduction\Deduction;
 use App\Models\Earning\Earning;
 use Illuminate\Database\Eloquent\Model;
 

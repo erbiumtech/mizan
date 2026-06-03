@@ -23,7 +23,7 @@ class DeductionController extends Controller
      */
     public function create()
     {
-        $types = \App\Models\OpenPayroll\DeductionType::all();
+        $types = \App\Models\Deduction\Type::all();
 
         return view('open-payroll.deductions.create', compact('types'));
     }
@@ -43,10 +43,10 @@ class DeductionController extends Controller
             'amount'  => 'required',
         ]);
 
-        $payslip = \App\Models\OpenPayroll\Payslip::with('payroll', 'user')->findByHashSlugOrId($request->payslip);
-        $type    = \App\Models\OpenPayroll\DeductionType::find($request->type);
+        $payslip = \App\Models\Payslip\Payslip::with('payroll', 'user')->findByHashSlugOrId($request->payslip);
+        $type    = \App\Models\Deduction\Type::find($request->type);
 
-        \App\Models\OpenPayroll\Deduction::create([
+        \App\Models\Deduction\Deduction::create([
             'user_id'           => $payslip->user_id,
             'payroll_id'        => $payslip->payroll_id,
             'payslip_id'        => $payslip->id,
@@ -104,7 +104,7 @@ class DeductionController extends Controller
      */
     public function destroy($id)
     {
-        \App\Models\OpenPayroll\Deduction::hashslug($id)->delete();
+        \App\Models\Deduction\Deduction::hashslug($id)->delete();
 
         // swal()->success('Deduction', 'You have successfully delete an earning.');
 

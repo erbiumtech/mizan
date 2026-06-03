@@ -28,8 +28,8 @@ class PayslipController extends Controller
      */
     public function create()
     {
-        $employees = \App\Models\OpenPayroll\Employee::has('salary')->has('position')->with('salary', 'position')->get();
-        $payrolls  = \App\Models\OpenPayroll\Payroll::whereIsLocked(false)->latest()->get();
+        $employees = \App\Models\Employee::has('salary')->has('position')->with('salary', 'position')->get();
+        $payrolls  = \App\Models\Payroll\Payroll::whereIsLocked(false)->latest()->get();
 
         return view('open-payroll.payslip.create', compact('employees', 'payrolls'));
     }
@@ -49,11 +49,11 @@ class PayslipController extends Controller
             'employees' => 'required',
         ]);
 
-        $payroll = \App\Models\OpenPayroll\Payroll::findByHashSlugOrId($request->payroll);
+        $payroll = \App\Models\Payroll\Payroll::findByHashSlugOrId($request->payroll);
 
         $employees = $request->employees;
         foreach ($employees as $hashslug) {
-            $employee = \App\Models\OpenPayroll\Employee::hashslug($hashslug)->has('salary')->with('salary')->firstOrFail();
+            $employee = \App\Models\Employee::hashslug($hashslug)->has('salary')->with('salary')->firstOrFail();
             $employee->payslips()->updateOrCreate([
                 'payroll_id'   => $payroll->id,
                 'basic_salary' => $employee->salary->amount,
@@ -79,7 +79,7 @@ class PayslipController extends Controller
      */
     public function show($id)
     {
-        $payslip = \App\Models\OpenPayroll\Payslip::whereHashslug($id)->with('payroll', 'earnings', 'earnings.type', 'deductions', 'deductions.type')->firstOrFail();
+        $payslip = \App\Models\Payslip\Payslip::whereHashslug($id)->with('payroll', 'earnings', 'earnings.type', 'deductions', 'deductions.type')->firstOrFail();
 
         return view('open-payroll.payslip.show', compact('payslip'));
     }
@@ -127,7 +127,7 @@ class PayslipController extends Controller
      */
     public function download($id)
     {
-        $payslip = \App\Models\OpenPayroll\Payslip::whereHashslug($id)->firstOrFail();
+        $payslip = \App\Models\Payslip\Payslip::whereHashslug($id)->firstOrFail();
 
         $employee = $payslip->employee;
 
