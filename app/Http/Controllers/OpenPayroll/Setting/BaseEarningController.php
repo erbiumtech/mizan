@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\OpenPayroll\Setting;
 
-use ErbiumTech\OpenPayroll\Contracts\CalculateContract;
-use ErbiumTech\OpenPayroll\Traits\MakeInstance;
+use App\Contracts\CalculateContract;
+use App\Traits\MakeInstance;
 
 class BaseEarningController implements CalculateContract
 {

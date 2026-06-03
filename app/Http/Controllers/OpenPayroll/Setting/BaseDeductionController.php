@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\OpenPayroll\Setting;
 
-use App\Models\OpenPayroll\Deduction;
-use App\Models\OpenPayroll\DeductionType;
+use App\Models\Deduction\Deduction;
+use App\Models\Deduction\Type;
 use Carbon\Carbon;
-use ErbiumTech\OpenPayroll\Contracts\CalculateContract;
-use ErbiumTech\OpenPayroll\Traits\MakeInstance;
+use App\Contracts\CalculateContract;
+use App\Traits\MakeInstance;
 
 class BaseDeductionController implements CalculateContract
 {
@@ -70,7 +70,7 @@ class BaseDeductionController implements CalculateContract
                     $salaryAfterLeave = ((int)$basic_salary - (int)$payable_salary) / 100;
 
                     $unpiadLeaveCode = config('open-payroll.codes.unpaid_leave');
-                    $type = DeductionType::select('id', 'name')->where('code', $unpiadLeaveCode)->first();
+                    $type = Type::select('id', 'name')->where('code', $unpiadLeaveCode)->first();
                     if ($type) $this->addDeduction($this->payslip, $type, $salaryAfterLeave);
                 }
 
@@ -87,7 +87,7 @@ class BaseDeductionController implements CalculateContract
                             $tds = $payable_salary * $tdsCut;
 
                             $tdsCode = config('open-payroll.codes.TDS');
-                            $type = DeductionType::select('id', 'name')->where('code', $tdsCode)->first();
+                            $type = Type::select('id', 'name')->where('code', $tdsCode)->first();
                             if ($type) $this->addDeduction($this->payslip, $type, $tds);
                         }
                     }
@@ -99,7 +99,7 @@ class BaseDeductionController implements CalculateContract
                         $employee_esic = $payable_salary * $employeeESICCut;
 
                         $esicCode = config('open-payroll.codes.ESIC');
-                        $type = DeductionType::select('id', 'name')->where('code', $esicCode)->first();
+                        $type = Type::select('id', 'name')->where('code', $esicCode)->first();
                         if ($type) $this->addDeduction($this->payslip, $type, $employee_esic);
                     }
 
@@ -110,7 +110,7 @@ class BaseDeductionController implements CalculateContract
                         $employee_pf = $pf_amount * $employeePFCut;
 
                         $pfCode = config('open-payroll.codes.PF');
-                        $type = DeductionType::select('id', 'name')->where('code', $pfCode)->first();
+                        $type = Type::select('id', 'name')->where('code', $pfCode)->first();
                         if ($type) $this->addDeduction($this->payslip, $type, $employee_pf);
                     }
 
@@ -121,7 +121,7 @@ class BaseDeductionController implements CalculateContract
                             $professional_tax = $PTCut;
 
                             $ptCode = config('open-payroll.codes.PT');
-                            $type = DeductionType::select('id', 'name')->where('code', $ptCode)->first();
+                            $type = Type::select('id', 'name')->where('code', $ptCode)->first();
                             if ($type) $this->addDeduction($this->payslip, $type, $professional_tax);
                         }
                     }
