@@ -28,9 +28,14 @@ class MPR extends Model
         'mpr_date' => 'date',
     ];
 
-    // MPR belongs to a User (Dropdown connection)
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
     }
 }
