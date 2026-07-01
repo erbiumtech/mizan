@@ -9,32 +9,29 @@ use Laravel\Nova\Http\Requests\NovaRequest;
 
 class User extends Resource
 {
-    // Tumhara User Model link ho gaya
     public static $model = \App\Models\User::class;
-
     public static $title = 'name';
+    public static $search = ['id', 'name', 'email'];
 
-    public static $search = [
-        'id', 'name', 'email',
-    ];
-
-    public function fields(NovaRequest $request)
+    public function fields(NovaRequest $request): array
     {
         return [
-            // 1. ID field (Database se khud hi aye gi)
             ID::make()->sortable(),
-
-            // 2. Name field
-            Text::make('Name')
-                ->sortable()
-                ->rules('required', 'max:255'),
-
-            // 3. Email field (Validation ke sath taake unique rahe)
-            Email::make('Email')
-                ->sortable()
-                ->rules('required', 'email', 'max:255')
-                ->creationRules('unique:users,email')
-                ->updateRules('unique:users,email,{{resourceId}}'),
+            Text::make('Name', 'name')->rules('required'),
+            Email::make('Email', 'email')->rules('required', 'email' , 'unique:users,email'),
         ];
+    }
+
+    public static function afterCreate(NovaRequest $request, $model)
+    {
+        $model->syncRoles(['Employee']);
+
+        \App\Models\Employee::create([
+            'user_id'     => $model->id,
+            'employee_id' => 'EMP-' . $model->id,
+            'rate_per_hour' => 0,
+            'salary'      => 0,
+            'is_active'   => 1,
+        ]);
     }
 }

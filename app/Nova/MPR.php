@@ -4,8 +4,7 @@ namespace App\Nova;
 
 use App\Nova\Actions\DownloadMprPdf;
 use App\Nova\Actions\DownloadSingleMprPdf;
-use App\Services\RoleService;
-use Illuminate\Contracts\Database\Eloquent\Builder; 
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Fields\ID;
@@ -21,10 +20,18 @@ class MPR extends Resource
         return 'MPR';
     }
 
-    // Search kis base par ho
     public static $search = [
         'id',
     ];
+
+    public static function indexQuery(NovaRequest $request, $query): Builder
+    {
+        if ($request->user()->hasRole('Administrator')) {
+            return $query;
+        }
+
+        return $query->where('user_id', $request->user()->id);
+    }
 
     /**
      * Actions defined for the resource.
@@ -32,33 +39,19 @@ class MPR extends Resource
     public function actions(NovaRequest $request)
     {
         return [
-            // 1. Yeh action sirf 3-dots dropdown me individual row par dikhe ga
             (new DownloadSingleMprPdf)
                 ->showInline()
-                ->showOnDetail(),
+                ->showOnDetail()
+                ->canRun(function () {
+                    return true;
+                })->withoutConfirmation(),
 
-            // 2. Yeh action standalone helper ki wajah se sirf TOP HEADER par dikhe ga
             (new DownloadMprPdf)
-                ->standalone(),
+                ->standalone()
+                ->canRun(function () {
+                    return true;
+                }),
         ];
-    }
-
-    /**
-     * Build an "index" query for the given resource.
-     */
-    public static function indexQuery(NovaRequest $request, Builder $query): Builder
-    {
-        $user = $request->user();
-
-        if ($user) {
-            $roleService = new RoleService;
-
-            if (!$roleService->isAdmin($user)) {
-                return $query->where('user_id', $user->id);
-            }
-        }
-
-        return $query;
     }
 
     /**
@@ -67,15 +60,13 @@ class MPR extends Resource
     public function fields(NovaRequest $request)
     {
         return [
-            // ID: Sirf listing aur detail par dikhe gi, database se khud aye gi
+
             ID::make()->sortable(),
 
-            // 1. Users Dropdown (Har page par dikhe ga, listing par user ka name show kare ga)
             BelongsTo::make('User', 'user', User::class)
                 ->sortable()
                 ->rules('required'),
 
-            // 2. Date Picker (Listing, Create aur Edit par show hoga)
             Date::make('Date', 'mpr_date')
                 ->sortable()
                 ->rules('required')
@@ -89,7 +80,7 @@ class MPR extends Resource
             // 3. Feedback Rich Text Editor
             Trix::make('Feedback', 'feedback')
                 ->rules('required')
-                ->hideFromIndex() // Listing se hide kiya taake table clean rahe
+                ->hideFromIndex()
                 ->withFiles('public', 'Mpr'),
 
             // 4. Topics & Scope Rich Text Editor
@@ -107,7 +98,7 @@ class MPR extends Resource
             // 6. Employee Request Rich Text Editor
             Trix::make('Employee Request', 'employee_request')
                 ->rules('required')
-                ->hideFromIndex() // Isko optional rakh sakte hain
+                ->hideFromIndex()
                 ->withFiles('public', 'Mpr'),
 
             // 7. Next Mpr Goal Rich Text Editor

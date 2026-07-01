@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Traits\HasRoles;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasRoles, HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
         'name',
@@ -31,7 +33,6 @@ class User extends Authenticatable
         ];
     }
 
-    // Yeh event user create hone se just pehle chalay ga
     protected static function booted()
     {
         static::creating(function ($user) {
@@ -39,10 +40,5 @@ class User extends Authenticatable
                 $user->password = Hash::make('password');
             }
         });
-    }
-
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class, 'user_role');
     }
 }

@@ -4,56 +4,39 @@ namespace App\Policies;
 
 use App\Models\Mpr;
 use App\Models\User;
-use App\Services\RoleService; 
-use Illuminate\Auth\Access\HandlesAuthorization;
 
 class MprPolicy
 {
-    use HandlesAuthorization;
-
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('MPRView');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Mpr $mpr): bool
     {
-        $roleService = new RoleService();
+        if (!$user->hasPermissionTo('MPRView')) {
+            return false;
+        }
 
-        return $roleService->isAdmin($user) || $mpr->user_id === $user->id;
+        if ($user->hasRole('Administrator')) {
+            return true;
+        }
+
+        return $mpr->user_id === $user->id;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        $roleService = new RoleService();
-
-        return $roleService->isAdmin($user);
+        return $user->hasPermissionTo('MPRCreate');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Mpr $mpr): bool
     {
-        $roleService = new RoleService();
-        return $roleService->isAdmin($user);
+        return $user->hasPermissionTo('MPRUpdate');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Mpr $mpr): bool
     {
-        $roleService = new RoleService();
-        return $roleService->isAdmin($user);
+        return $user->hasPermissionTo('MPRDelete');
     }
 }

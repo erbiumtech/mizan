@@ -36,7 +36,6 @@
             padding: 0 !important;
         }
 
-        /* Har page k top pr barabar space banane k liye native spacer */
         .header-space {
             height: 10mm;
         }
@@ -71,7 +70,6 @@
             font-size: 14px !important;
         }
 
-        /* 💡 FIX: Internal padding tight kar di taake box ke andar upar/neeche ki faltu space khatam ho jaye */
         .content-box {
             border: 1px solid #475569 !important;
             padding: 8px 14px !important; /* Top/Bottom 8px aur Left/Right 14px kiya */

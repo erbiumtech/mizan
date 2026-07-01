@@ -46,7 +46,6 @@ class MprPdfService
         $userName = $user->name;
         $fileName = Str::studly($userName).'_'.time().'.pdf';
 
-        // Selected user ke latest 2 entries database se uthao
         $mprRecords = Mpr::where('user_id', $userId)
             ->orderBy('id', 'desc')
             ->take(2)
@@ -56,16 +55,13 @@ class MprPdfService
             return ['empty' => true];
         }
 
-        // Agar user ka sirf (1) hi record database me hai
         if ($mprRecords->count() === 1) {
             $singleMpr = $mprRecords->first()->toArray();
             $cleanFields = $this->mapMprFields($singleMpr, $userName);
 
-            // Kisi problem ke bina isko normal single mode me switch karwa do portrait layout ke sath
             $pdfOutput = Pdf::view('pdfs.mpr-report', [
                 'mode' => 'single',
                 'reportFields' => $cleanFields,
-                // 💡 FIX: Passed labels here too
                 'contentLabels' => $this->getContentLabels(),
             ])
                 ->format('a4')
@@ -74,7 +70,6 @@ class MprPdfService
             return ['pdf' => $pdfOutput, 'file_name' => $fileName, 'empty' => false];
         }
 
-        // CASE B: Agar 2 ya 2 se zyada records hain, to proper comparison side-by-side chalega
         $latestMpr = $mprRecords->first()->toArray();
         $previousMpr = $mprRecords->get(1)->toArray();
 
@@ -89,7 +84,7 @@ class MprPdfService
             'contentLabels' => $this->getContentLabels(),
         ])
             ->format('a4')
-            ->landscape(); // Landscape wide screen dual-table ke liye
+            ->landscape();
 
         return ['pdf' => $pdfOutput, 'file_name' => $fileName, 'empty' => false];
     }
@@ -121,7 +116,7 @@ class MprPdfService
     }
 
     /**
-     * 💡 Centralized Dynamic Labels Generator
+     * Centralized Dynamic Labels Generator
      * This keeps the View 100% clean of raw PHP logical mapping blocks.
      */
     private function getContentLabels(): array
