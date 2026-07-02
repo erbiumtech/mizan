@@ -54,7 +54,8 @@ class Employee extends Resource
                         'Office Boy' => 'Office Boy',
                     ])
                 ->displayUsingLabels()
-                ->rules('required'),
+                ->rules('required')
+                ->hideFromIndex(),
 
             Select::make('Department', 'department')
                 ->options([
@@ -62,7 +63,9 @@ class Employee extends Resource
                         'Office Staff' => 'Office Staff',
                     ])
                 ->displayUsingLabels()
-                ->rules('required'),
+                ->rules('required')
+                ->hideFromIndex(),
+                
             Date::make('Date of Joining', 'date_of_joining')->hideFromIndex(),
             Text::make('NIC', 'nic')->hideFromIndex(),
             Text::make('Bank Name', 'bank_name')->hideFromIndex(),

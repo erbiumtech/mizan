@@ -10,6 +10,7 @@ use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class Payslip extends Resource
@@ -38,7 +39,7 @@ class Payslip extends Resource
             ID::make()->sortable()->hideFromIndex(),
 
             BelongsTo::make('Employee', 'employee', Employee::class)->sortable()->rules('required'),
-            Text::make('Pay Period', 'pay_period')->rules('required')->help('E.g., June 2026'),
+            Date::make('Pay Period', 'pay_period')->hideFromIndex(),
 
             Number::make('Total Working Days', 'total_working_days')->min(0)->default(0)->hideFromIndex(),
             Number::make('Paid Days', 'paid_days')->min(0)->default(0)->hideFromIndex(),
