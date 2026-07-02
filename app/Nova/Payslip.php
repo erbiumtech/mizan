@@ -2,15 +2,16 @@
 
 namespace App\Nova;
 
+use App\Models\EmployeeSetting;
 use App\Nova\Actions\DownloadPayslip;
 use App\Services\PayslipService;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Laravel\Nova\Fields\BelongsTo;
+use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
-use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\Date;
+use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class Payslip extends Resource
@@ -38,7 +39,30 @@ class Payslip extends Resource
         return [
             ID::make()->sortable()->hideFromIndex(),
 
-            BelongsTo::make('Employee', 'employee', Employee::class)->sortable()->rules('required'),
+            // 1. Employee Select
+            BelongsTo::make('Employee', 'employee', Employee::class)
+                ->rules('required'),
+
+            Select::make('Version', 'version_id')
+                ->options([])
+                ->dependsOn(
+                    ['employee'],
+                    function (Select $field, NovaRequest $request, $formData) {
+                        $employeeId = $formData->employee;
+
+                        if ($employeeId) {
+                            $options = EmployeeSetting::where('employee_id', $employeeId)
+                                ->pluck('version_id', 'id')
+                                ->toArray();
+
+                            $field->options($options);
+                        } else {
+                            $field->options([]);
+                        }
+                    }
+                )
+                ->rules('required'),
+
             Date::make('Pay Period', 'pay_period')->hideFromIndex(),
 
             Number::make('Total Working Days', 'total_working_days')->min(0)->default(0)->hideFromIndex(),
