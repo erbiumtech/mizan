@@ -2,21 +2,31 @@
 
 namespace App\Nova;
 
+// use App\Models\EmployeeSetting;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
+use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class EmployeeSetting extends Resource
 {
     public static $model = \App\Models\EmployeeSetting::class;
-    public static $title = 'id';
-    public static $search = ['id'];
+
+    // Dropdown mein version dikhane ke liye version_id/multiple_settings use karenge
+    public static $title = 'version_id';
+
+    public static $search = ['id', 'version_id'];
 
     public function fields(NovaRequest $request)
     {
         return [
             ID::make()->sortable(),
+
+            // Read-only field for the setting version (e.g., 21, 22)
+            Text::make('Setting ID', 'version_id')
+                ->readonly()
+                ->hideWhenCreating(),
 
             BelongsTo::make('Employee', 'employee', Employee::class)
                 ->sortable()
@@ -43,5 +53,18 @@ class EmployeeSetting extends Resource
             Number::make('Meal Deduction', 'meal_deduction')->step(0.01)->default(0)->hideFromIndex(),
             Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)->default(0)->hideFromIndex(),
         ];
+    }
+
+    public static function fill(NovaRequest $request, $model): array
+    {
+        $results = parent::fill($request, $model);
+        $employee = \App\Models\Employee::find($model->employee_id);
+        if ($employee && empty($model->version_id)) {
+            $numericPart = preg_replace('/[^0-9]/', '', $employee->employee_id);
+            $count = \App\Models\EmployeeSetting::where('employee_id', $model->employee_id)->count();
+            $model->version_id = $numericPart.($count + 1);
+        }
+
+        return $results;
     }
 }
