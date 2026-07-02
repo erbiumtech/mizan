@@ -13,6 +13,7 @@ return new class extends Migration
 {
     Schema::create('salary_slabs', function (Blueprint $table) {
         $table->id();
+        $table->integer('fiscal_year_start');
         $table->decimal('min_amount', 15, 2)->comment('E.g., 600000');
         $table->decimal('max_amount', 15, 2)->nullable()->comment('Null means Above this amount');
         $table->decimal('fixed_tax', 15, 2)->default(0)->comment('E.g., 116000');
