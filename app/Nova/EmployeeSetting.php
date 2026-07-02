@@ -56,15 +56,14 @@ class EmployeeSetting extends Resource
     }
 
     public static function fill(NovaRequest $request, $model): array
-    {
-        $results = parent::fill($request, $model);
-        $employee = \App\Models\Employee::find($model->employee_id);
-        if ($employee && empty($model->version_id)) {
-            $numericPart = preg_replace('/[^0-9]/', '', $employee->employee_id);
-            $count = \App\Models\EmployeeSetting::where('employee_id', $model->employee_id)->count();
-            $model->version_id = $numericPart.($count + 1);
-        }
+{
+    $results = parent::fill($request, $model);
 
-        return $results;
+    if (empty($model->version_id)) {
+        $count = \App\Models\EmployeeSetting::where('employee_id', $model->employee_id)->count();
+        $model->version_id = 'V' . ($count + 1);
     }
+
+    return $results;
+}
 }
