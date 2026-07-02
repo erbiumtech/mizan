@@ -2,23 +2,40 @@
 
 namespace App\Nova;
 
-use Laravel\Nova\Fields\ID;
-use Laravel\Nova\Fields\Text;
+use App\Models\Employee;
+use Illuminate\Validation\Rule;
 use Laravel\Nova\Fields\Email;
+use Laravel\Nova\Fields\ID;
+use Laravel\Nova\Fields\Password;
+use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class User extends Resource
 {
     public static $model = \App\Models\User::class;
+
     public static $title = 'name';
+
     public static $search = ['id', 'name', 'email'];
 
     public function fields(NovaRequest $request): array
     {
         return [
             ID::make()->sortable(),
-            Text::make('Name', 'name')->rules('required'),
-            Email::make('Email', 'email')->rules('required', 'email' , 'unique:users,email'),
+
+            Text::make('Name', 'name')
+                ->rules('required', 'max:255'),
+
+            Email::make('Email', 'email')
+                ->rules('required', 'email', 'max:255')
+                ->creationRules('unique:users,email')
+    // String format mein ignore rule
+                ->updateRules('unique:users,email,{{resourceId}}'),
+
+            Password::make('Password')
+                ->creationRules('required', 'min:8')
+                ->updateRules('nullable', 'min:8')
+                ->hideFromIndex(),
         ];
     }
 
@@ -26,12 +43,12 @@ class User extends Resource
     {
         $model->syncRoles(['Employee']);
 
-        \App\Models\Employee::create([
-            'user_id'     => $model->id,
-            'employee_id' => 'EMP-' . $model->id,
+        Employee::create([
+            'user_id' => $model->id,
+            'employee_id' => 'EMP-'.$model->id,
             'rate_per_hour' => 0,
-            'salary'      => 0,
-            'is_active'   => 1,
+            'salary' => 0,
+            'is_active' => 1,
         ]);
     }
 }
