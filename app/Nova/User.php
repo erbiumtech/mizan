@@ -29,7 +29,6 @@ class User extends Resource
             Email::make('Email', 'email')
                 ->rules('required', 'email', 'max:255')
                 ->creationRules('unique:users,email')
-    // String format mein ignore rule
                 ->updateRules('unique:users,email,{{resourceId}}'),
 
             Password::make('Password')
