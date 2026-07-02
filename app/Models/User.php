@@ -33,12 +33,12 @@ class User extends Authenticatable
         ];
     }
 
-    protected static function booted()
-    {
-        static::creating(function ($user) {
-            if (empty($user->password)) {
-                $user->password = Hash::make('password');
-            }
-        });
-    }
+    // protected static function booted()
+    // {
+    //     static::creating(function ($user) {
+    //         if (empty($user->password)) {
+    //             $user->password = Hash::make('password');
+    //         }
+    //     });
+    // }
 }

@@ -3,7 +3,6 @@
 namespace App\Nova;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Fields\ID;
@@ -28,7 +27,6 @@ class Employee extends Resource
         return $query->where('user_id', $request->user()->id);
     }
 
-
     public static function relatableUsers(NovaRequest $request, $query)
     {
         return $query->whereHas('roles', fn ($q) => $q->where('name', 'Employee'));
@@ -38,16 +36,33 @@ class Employee extends Resource
     {
         return [
             ID::make()->sortable()->canSee(function ($request) {
-            return !$request->user()->hasRole('Administrator || Employee');
-        }),
+                return ! $request->user()->hasRole('Administrator || Employee');
+            }),
             Text::make('Employee ID', 'employee_id')->rules('required'),
             BelongsTo::make('Employee Name', 'user', 'App\Nova\User')->sortable()->readonly(),
             Text::make('Email', 'user.email')->onlyOnIndex(),
 
             Select::make('Status', 'is_active')->options([1 => 'Active', 0 => 'Inactive'])->displayUsingLabels(),
 
-            Text::make('Designation', 'designation')->hideFromIndex(),
-            Text::make('Department', 'department')->hideFromIndex(),
+            Select::make('Designation', 'designation')
+                ->options([
+                        'Senior Full Stack Developer' => 'Senior Full Stack Developer',
+                        'Full Stack Developer' => 'Full Stack Developer',
+                        'Frontend Developer' => 'Frontend Developer',
+                        'Backend Developer' => 'Backend Developer',
+                        'Cook' => 'Cook',
+                        'Office Boy' => 'Office Boy',
+                    ])
+                ->displayUsingLabels()
+                ->rules('required'),
+
+            Select::make('Department', 'department')
+                ->options([
+                        'IT' => 'IT',
+                        'Office Staff' => 'Office Staff',
+                    ])
+                ->displayUsingLabels()
+                ->rules('required'),
             Date::make('Date of Joining', 'date_of_joining')->hideFromIndex(),
             Text::make('NIC', 'nic')->hideFromIndex(),
             Text::make('Bank Name', 'bank_name')->hideFromIndex(),
