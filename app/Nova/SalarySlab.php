@@ -22,6 +22,10 @@ class SalarySlab extends Resource
         return [
             ID::make()->sortable(),
 
+            Number::make('Fiscal Year Start', 'fiscal_year_start')
+            ->rules('required', 'integer', 'min:2000', 'max:2100')
+            ->help('Example: 2026 for fiscal year 2026-2027'),
+
             Number::make('Minimum Amount (Annual)', 'min_amount')
                 ->rules('required', 'numeric', 'min:0')
                 ->help('Annual income starting range, e.g., 600001')
