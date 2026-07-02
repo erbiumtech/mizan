@@ -24,7 +24,6 @@ class Payslip extends Resource
 
     public static function indexQuery(NovaRequest $request, $query): Builder
     {
-
         if ($request->user()->hasRole('Administrator')) {
             return $query;
         }
@@ -39,7 +38,6 @@ class Payslip extends Resource
         return [
             ID::make()->sortable()->hideFromIndex(),
 
-            // 1. Employee Select
             BelongsTo::make('Employee', 'employee', Employee::class)
                 ->rules('required'),
 
@@ -49,12 +47,10 @@ class Payslip extends Resource
                     ['employee'],
                     function (Select $field, NovaRequest $request, $formData) {
                         $employeeId = $formData->employee;
-
                         if ($employeeId) {
                             $options = EmployeeSetting::where('employee_id', $employeeId)
-                                ->pluck('version_id', 'id')
+                                ->pluck('version_id', 'version_id')
                                 ->toArray();
-
                             $field->options($options);
                         } else {
                             $field->options([]);
@@ -70,120 +66,127 @@ class Payslip extends Resource
             Number::make('LOP Days', 'lop_days')->min(0)->default(0)->hideFromIndex(),
             Number::make('Leaves Taken', 'leaves_taken')->min(0)->default(0)->hideFromIndex(),
 
-            // app/Nova/Payslip.php
+            // --- AUTO FIELDS DEPENDING ON VERSION ---
 
-            // Extra Work Hours field
             Number::make('Extra Work Hours', 'extra_work_hours')
-                ->step(0.01)
-                ->default(0)
-                ->readonly()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+                ->step(0.01)->default(0)->readonly()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['extra_work_hours'] ?? 0;
                     }
                 })->hideFromIndex(),
 
-            // Bonus field
             Number::make('Bonus', 'bonus')
-                ->step(0.01)
-                ->default(0)
-                ->readonly()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+                ->step(0.01)->default(0)->readonly()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id, $formData->bonus ?? 0);
                         $field->value = $data['bonus'] ?? 0;
                     }
                 })->hideFromIndex(),
 
-            // --- AUTO FIELDS VIA SERVICE (Corrected using $field->value) ---
-
-            Number::make('Basic Wage', 'basic_wage')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('Basic Wage', 'basic_wage')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['basic_wage'] ?? 0;
                     }
                 }),
 
-            Number::make('Medical Allowance', 'medical_allowance')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('Medical Allowance', 'medical_allowance')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['medical_allowance'] ?? 0;
                     }
                 }),
 
-            Number::make('Device Allowance', 'device_allowance')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('Device Allowance', 'device_allowance')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['device_allowance'] ?? 0;
                     }
                 }),
 
-            Number::make('Petrol Allowance', 'petrol_allowance')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('Petrol Allowance', 'petrol_allowance')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['petrol_allowance'] ?? 0;
                     }
                 }),
 
-            Number::make('Advances', 'advances')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('Advances', 'advances')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['advances'] ?? 0;
                     }
                 }),
 
-            Number::make('Meal Deduction', 'meal_deduction')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('Meal Deduction', 'meal_deduction')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['meal_deduction'] ?? 0;
                     }
                 }),
 
-            Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee);
+            Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id);
                         $field->value = $data['esi_health_insurance'] ?? 0;
                     }
                 }),
 
-            // --- CALCULATED TOTALS & TAX ---
-
-            Number::make('Withholding Tax', 'withholding_tax')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee', 'bonus'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee, $formData->bonus);
+            Number::make('Withholding Tax', 'withholding_tax')->step(0.01)->readonly()
+                ->dependsOn(['version_id', 'bonus', 'pay_period'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id && $formData->pay_period) {
+                        $data = (new PayslipService)->calculateByVersion(
+                            $formData->version_id,
+                            $formData->bonus ?? 0,
+                            0,
+                            $formData->pay_period
+                        );
                         $field->value = $data['withholding_tax'] ?? 0;
                     }
                 }),
 
-            Number::make('Total Earnings', 'total_earnings')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee', 'bonus'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee, $formData->bonus);
+            Number::make('Total Earnings', 'total_earnings')->step(0.01)->readonly()->hideFromIndex()
+                ->dependsOn(['version_id', 'bonus'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id) {
+                        $data = (new PayslipService)->calculateByVersion($formData->version_id, $formData->bonus ?? 0);
                         $field->value = $data['total_earnings'] ?? 0;
                     }
                 }),
 
-            Number::make('Total Deductions', 'total_deductions')->step(0.01)->readonly()->hideWhenUpdating()->hideFromIndex()
-                ->dependsOn(['employee', 'bonus'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee, $formData->bonus);
+            // Total Deductions Field
+            Number::make('Total Deductions', 'total_deductions')->step(0.01)->readonly()
+                ->dependsOn(['version_id', 'bonus', 'pay_period'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id && $formData->pay_period) {
+                        $data = (new PayslipService)->calculateByVersion(
+                            $formData->version_id,
+                            $formData->bonus ?? 0,
+                            0,
+                            $formData->pay_period
+                        );
                         $field->value = $data['total_deductions'] ?? 0;
                     }
                 }),
 
-            Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->hideWhenUpdating()->sortable()
-                ->dependsOn(['employee', 'bonus'], function (Number $field, NovaRequest $request, FormData $formData) {
-                    if ($formData->employee) {
-                        $data = (new PayslipService)->calculatePayslipData($formData->employee, $formData->bonus);
+            // Net Salary Field
+            Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->sortable()
+                ->dependsOn(['version_id', 'bonus', 'pay_period'], function (Number $field, NovaRequest $request, FormData $formData) {
+                    if ($formData->version_id && $formData->pay_period) {
+                        $data = (new PayslipService)->calculateByVersion(
+                            $formData->version_id,
+                            $formData->bonus ?? 0,
+                            0,
+                            $formData->pay_period
+                        );
                         $field->value = $data['net_salary'] ?? 0;
                     }
                 }),

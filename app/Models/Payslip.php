@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Payslip extends Model
 {
     protected $fillable = [
-        'employee_id', 'pay_period', 'total_working_days', 'paid_days', 'lop_days',
+        'employee_id','version_id', 'pay_period', 'total_working_days', 'paid_days', 'lop_days',
         'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'total_earnings',
@@ -25,7 +25,7 @@ class Payslip extends Model
         static::creating(function ($payslip) {
             $service = new PayslipService;
 
-            $calculatedData = $service->calculatePayslipData(
+            $calculatedData = $service->calculateByVersion(
                 $payslip->employee_id,
                 $payslip->bonus,
                 $payslip->extra_work_hours

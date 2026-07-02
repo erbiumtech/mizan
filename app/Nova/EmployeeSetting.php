@@ -13,7 +13,7 @@ class EmployeeSetting extends Resource
 {
     public static $model = \App\Models\EmployeeSetting::class;
 
-    // Dropdown mein version dikhane ke liye version_id/multiple_settings use karenge
+    // For showing version in dropdown we used version_id.
     public static $title = 'version_id';
 
     public static $search = ['id', 'version_id'];
@@ -56,14 +56,14 @@ class EmployeeSetting extends Resource
     }
 
     public static function fill(NovaRequest $request, $model): array
-{
-    $results = parent::fill($request, $model);
+    {
+        $results = parent::fill($request, $model);
 
-    if (empty($model->version_id)) {
-        $count = \App\Models\EmployeeSetting::where('employee_id', $model->employee_id)->count();
-        $model->version_id = 'V' . ($count + 1);
+        if (empty($model->version_id)) {
+            $count = \App\Models\EmployeeSetting::where('employee_id', $model->employee_id)->count();
+            $model->version_id = 'V'.($count + 1);
+        }
+
+        return $results;
     }
-
-    return $results;
-}
 }
