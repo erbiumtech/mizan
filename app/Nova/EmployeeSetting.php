@@ -2,35 +2,42 @@
 
 namespace App\Nova;
 
-// use App\Models\EmployeeSetting;
+use App\Nova\FiscalYear;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
-use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class EmployeeSetting extends Resource
 {
     public static $model = \App\Models\EmployeeSetting::class;
 
-    // For showing version in dropdown we used version_id.
-    public static $title = 'version_id';
+    public static $title = 'id';
 
-    public static $search = ['id', 'version_id'];
+    public static $search = ['id'];
 
     public function fields(NovaRequest $request)
     {
         return [
             ID::make()->sortable(),
 
-            // Read-only field for the setting version (e.g., 21, 22)
-            Text::make('Setting ID', 'version_id')
-                ->readonly()
-                ->hideWhenCreating(),
-
             BelongsTo::make('Employee', 'employee', Employee::class)
                 ->sortable()
                 ->rules('required'),
+
+            Select::make('Month', 'month')->options([
+                'January' => 'January', 'February' => 'February', 'March' => 'March',
+                'April' => 'April', 'May' => 'May', 'June' => 'June',
+                'July' => 'July', 'August' => 'August', 'September' => 'September',
+                'October' => 'October', 'November' => 'November', 'December' => 'December',
+            ])->rules('required'),
+
+            BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
+                ->rules('required')
+                ->relatableQueryUsing(function (NovaRequest $request, $query) {
+                    return $query->where('is_active', true);
+                }),
 
             // --- EARNINGS (Allowances & Extras) ---
             Number::make('Basic Wage', 'basic_wage')->step(0.01)->default(0),
@@ -53,17 +60,5 @@ class EmployeeSetting extends Resource
             Number::make('Meal Deduction', 'meal_deduction')->step(0.01)->default(0)->hideFromIndex(),
             Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)->default(0)->hideFromIndex(),
         ];
-    }
-
-    public static function fill(NovaRequest $request, $model): array
-    {
-        $results = parent::fill($request, $model);
-
-        if (empty($model->version_id)) {
-            $count = \App\Models\EmployeeSetting::where('employee_id', $model->employee_id)->count();
-            $model->version_id = 'V'.($count + 1);
-        }
-
-        return $results;
     }
 }

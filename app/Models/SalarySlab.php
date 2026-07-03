@@ -14,10 +14,8 @@ class SalarySlab extends Model
     ];
 
     // app/Models/SalarySlab.php
-    // app/Models/SalarySlab.php
     public function fiscalYear()
     {
-        // Yahan relation define karna zaroori hai
         return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');
     }
 }
