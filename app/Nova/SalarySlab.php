@@ -5,6 +5,7 @@ namespace App\Nova;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class SalarySlab extends Resource
@@ -22,9 +23,8 @@ class SalarySlab extends Resource
         return [
             ID::make()->sortable(),
 
-            Number::make('Fiscal Year Start', 'fiscal_year_start')
-            ->rules('required', 'integer', 'min:2000', 'max:2100')
-            ->help('Example: 2026 for fiscal year 2026-2027'),
+            BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
+            ->rules('required'),
 
             Number::make('Minimum Amount (Annual)', 'min_amount')
                 ->rules('required', 'numeric', 'min:0')
