@@ -2,10 +2,10 @@
 
 namespace App\Nova;
 
+use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class SalarySlab extends Resource
@@ -15,7 +15,7 @@ class SalarySlab extends Resource
     public static $title = 'id';
 
     public static $search = [
-        'id', 'min_amount', 'max_amount'
+        'id', 'min_amount', 'max_amount',
     ];
 
     public function fields(NovaRequest $request)
@@ -23,8 +23,11 @@ class SalarySlab extends Resource
         return [
             ID::make()->sortable(),
 
-            BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
-            ->rules('required'),
+            BelongsTo::make('Fiscal Year', 'fiscalYear', 'App\Nova\FiscalYear')
+                ->rules('required')
+                ->relatableQueryUsing(function (NovaRequest $request, $query) {
+                    return $query->where('is_active', true);
+                }),
 
             Number::make('Minimum Amount (Annual)', 'min_amount')
                 ->rules('required', 'numeric', 'min:0')
@@ -50,13 +53,29 @@ class SalarySlab extends Resource
                 $max = $this->max_amount ? number_format($this->max_amount) : 'Above';
                 $min = number_format($this->min_amount);
                 $tax = number_format($this->fixed_tax);
+
                 return "PKR {$min} to {$max} ➔ Fixed: PKR {$tax} + {$this->percentage}%";
             })->hideFromIndex(),
         ];
     }
 
-    public function cards(NovaRequest $request) { return []; }
-    public function filters(NovaRequest $request) { return []; }
-    public function lenses(NovaRequest $request) { return []; }
-    public function actions(NovaRequest $request) { return []; }
+    public function cards(NovaRequest $request)
+    {
+        return [];
+    }
+
+    public function filters(NovaRequest $request)
+    {
+        return [];
+    }
+
+    public function lenses(NovaRequest $request)
+    {
+        return [];
+    }
+
+    public function actions(NovaRequest $request)
+    {
+        return [];
+    }
 }
