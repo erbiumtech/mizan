@@ -50,6 +50,11 @@ class PermissionSeeder extends Seeder
             ['name' => 'SalarySlabView', 'group' => 'SalarySlab'],
             ['name' => 'SalarySlabUpdate', 'group' => 'SalarySlab'],
             ['name' => 'SalarySlabDelete', 'group' => 'SalarySlab'],
+
+            ['name' => 'FiscalYearCreate', 'group' => 'FiscalYear'],
+            ['name' => 'FiscalYearView', 'group' => 'FiscalYear'],
+            ['name' => 'FiscalYearUpdate', 'group' => 'FiscalYear'],
+            ['name' => 'FiscalYearDelete', 'group' => 'FiscalYear'],
         ];
 
         foreach ($permissions as $permissionData) {
