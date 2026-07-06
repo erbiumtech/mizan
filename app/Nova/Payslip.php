@@ -27,7 +27,19 @@ class Payslip extends Resource
         return [
             ID::make()->sortable()->hideFromIndex(),
 
-            BelongsTo::make('Employee', 'employee', Employee::class)->rules('required'),
+            BelongsTo::make('Employee', 'employee', Employee::class)
+                ->rules('required', function ($attribute, $value, $fail) use ($request) {
+                    $exists = \App\Models\Payslip::where('employee_id', $value)
+                        ->where('month', $request->month)
+                        ->where('fiscal_year_id', $request->fiscalYear)
+                        
+                        ->where('id', '!=', $request->resourceId)
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('Payslip for this month and fiscal year of this employee is already created. Please update the old one');
+                    }
+                }),
 
             Select::make('Month', 'month')->options([
                 'January' => 'January', 'February' => 'February', 'March' => 'March',

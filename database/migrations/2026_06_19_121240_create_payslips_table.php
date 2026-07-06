@@ -40,7 +40,9 @@ return new class extends Migration
             $table->decimal('total_deductions', 10, 2)->default(0.00);
             $table->decimal('net_salary', 10, 2)->default(0.00);
 
-             $table->string('pdf_path')->nullable();
+            $table->unique(['employee_id', 'month', 'fiscal_year_id'], 'unique_payslip_per_employee');
+
+            $table->string('pdf_path')->nullable();
 
             $table->timestamps();
         });
