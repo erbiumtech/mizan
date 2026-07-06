@@ -62,9 +62,18 @@
             width: 9px;
         }
 
-        .bar-1 { height: 18px; }
-        .bar-2 { height: 26px; }
-        .bar-3 { height: 36px; background-color: #388e3c; }
+        .bar-1 {
+            height: 18px;
+        }
+
+        .bar-2 {
+            height: 26px;
+        }
+
+        .bar-3 {
+            height: 36px;
+            background-color: #388e3c;
+        }
 
         .company-text {
             line-height: 1.1;
@@ -244,7 +253,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top:10px;
+            margin-top: 10px;
             min-height: 160px;
         }
 
@@ -313,7 +322,9 @@
                 </div>
                 <div class="header-right">
                     <div class="address-top">350/A Khayaban-e-Zafar, Lahore</div>
-                    <div class="title">Pay Slip — {{ $data->pay_period }}</div>
+                    <div class="title">
+                        Pay Slip — {{ $data->month }} {{ $data->fiscalYear ? $data->fiscalYear->name : '' }}
+                    </div>
                 </div>
             </div>
 
@@ -322,29 +333,43 @@
             <!-- Employee Info -->
             <div class="info-grid">
                 <div class="info-col">
-                    <div class="info-row"><span class="label">Name</span><span class="value">{{ $data->employee->user->name ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Employee ID</span><span class="value">{{ $data->employee->employee_id ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Designation</span><span class="value">{{ $data->employee->designation ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Department</span><span class="value">{{ $data->employee->department ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Date of Joining</span><span class="value">{{ !empty($data->employee->date_of_joining) ? \Carbon\Carbon::parse($data->employee->date_of_joining)->format('d-m-Y') : '-' }}</span></div>
+                    <div class="info-row"><span class="label">Name</span><span
+                            class="value">{{ $data->employee->user->name ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">Employee ID</span><span
+                            class="value">{{ $data->employee->employee_id ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">Designation</span><span
+                            class="value">{{ $data->employee->designation ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">Department</span><span
+                            class="value">{{ $data->employee->department ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">Date of Joining</span><span
+                            class="value">{{ !empty($data->employee->date_of_joining) ? \Carbon\Carbon::parse($data->employee->date_of_joining)->format('d-m-Y') : '-' }}</span>
+                    </div>
                 </div>
                 <div class="info-col">
-                    <div class="info-row"><span class="label">NIC</span><span class="value">{{ $data->employee->nic ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Bank Name</span><span class="value">{{ $data->employee->bank_name ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Bank A/C No</span><span class="value">{{ $data->employee->bank_account_no ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">IBAN No.</span><span class="value">{{ $data->employee->iban_no ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">NIC</span><span
+                            class="value">{{ $data->employee->nic ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">Bank Name</span><span
+                            class="value">{{ $data->employee->bank_name ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">Bank A/C No</span><span
+                            class="value">{{ $data->employee->bank_account_no ?? '-' }}</span></div>
+                    <div class="info-row"><span class="label">IBAN No.</span><span
+                            class="value">{{ $data->employee->iban_no ?? '-' }}</span></div>
                 </div>
             </div>
 
             <!-- Attendance -->
             <div class="attendance-box">
                 <div class="att-col">
-                    <div class="att-row"><span class="label">Total Working Days</span><span class="att-box">{{ $data->total_working_days ?? 0 }}</span></div>
-                    <div class="att-row"><span class="label">LOP Days</span><span class="att-box">{{ $data->lop_days ?? 0 }}</span></div>
+                    <div class="att-row"><span class="label">Total Working Days</span><span
+                            class="att-box">{{ $data->total_working_days ?? 0 }}</span></div>
+                    <div class="att-row"><span class="label">LOP Days</span><span
+                            class="att-box">{{ $data->lop_days ?? 0 }}</span></div>
                 </div>
                 <div class="att-col">
-                    <div class="att-row"><span class="label">Paid Days</span><span class="att-box">{{ $data->paid_days ?? 0 }}</span></div>
-                    <div class="att-row"><span class="label">Leaves Taken</span><span class="att-box">{{ $data->leaves_taken ?? 0 }}</span></div>
+                    <div class="att-row"><span class="label">Paid Days</span><span
+                            class="att-box">{{ $data->paid_days ?? 0 }}</span></div>
+                    <div class="att-row"><span class="label">Leaves Taken</span><span
+                            class="att-box">{{ $data->leaves_taken ?? 0 }}</span></div>
                 </div>
             </div>
 
@@ -356,18 +381,28 @@
                 </tr>
                 <tr>
                     <td>
-                        <div class="line-item"><span>Basic Wage</span><span>{{ number_format($data->basic_wage, 2) }}</span></div>
-                        <div class="line-item"><span>Medical Allowances</span><span>{{ number_format($data->medical_allowance, 2) }}</span></div>
-                        <div class="line-item"><span>Device Allowances</span><span>{{ number_format($data->device_allowance, 2) }}</span></div>
-                        <div class="line-item"><span>Petrol Allowances</span><span>{{ number_format($data->petrol_allowance, 2) }}</span></div>
-                        <div class="line-item"><span>Extra Work Hours</span><span>{{ number_format($data->extra_work_hours, 2) }}</span></div>
-                        <div class="line-item"><span>Bonus</span><span>{{ number_format($data->bonus, 2) }}</span></div>
+                        <div class="line-item"><span>Basic
+                                Wage</span><span>{{ number_format($data->basic_wage, 2) }}</span></div>
+                        <div class="line-item"><span>Medical
+                                Allowances</span><span>{{ number_format($data->medical_allowance, 2) }}</span></div>
+                        <div class="line-item"><span>Device
+                                Allowances</span><span>{{ number_format($data->device_allowance, 2) }}</span></div>
+                        <div class="line-item"><span>Petrol
+                                Allowances</span><span>{{ number_format($data->petrol_allowance, 2) }}</span></div>
+                        <div class="line-item"><span>Extra Work
+                                Hours</span><span>{{ number_format($data->extra_work_hours, 2) }}</span></div>
+                        <div class="line-item"><span>Bonus</span><span>{{ number_format($data->bonus, 2) }}</span>
+                        </div>
                     </td>
                     <td>
-                        <div class="line-item"><span>Withholding Tax</span><span>{{ number_format($data->withholding_tax, 2) }}</span></div>
-                        <div class="line-item"><span>Advances</span><span>{{ number_format($data->advances, 2) }}</span></div>
-                        <div class="line-item"><span>Meal Deduction</span><span>{{ number_format($data->meal_deduction, 2) }}</span></div>
-                        <div class="line-item"><span>ESI / Health Insurance</span><span>{{ number_format($data->esi_health_insurance, 2) }}</span></div>
+                        <div class="line-item"><span>Withholding
+                                Tax</span><span>{{ number_format($data->withholding_tax, 2) }}</span></div>
+                        <div class="line-item">
+                            <span>Advances</span><span>{{ number_format($data->advances, 2) }}</span></div>
+                        <div class="line-item"><span>Meal
+                                Deduction</span><span>{{ number_format($data->meal_deduction, 2) }}</span></div>
+                        <div class="line-item"><span>ESI / Health
+                                Insurance</span><span>{{ number_format($data->esi_health_insurance, 2) }}</span></div>
                     </td>
                 </tr>
                 <tr>
@@ -394,9 +429,8 @@
             <!-- Signatures -->
             <div class="signatures">
                 <div class="signature-block">
-                    <img src="{{ public_path('storage/signatures/employer_signature1.png') }}"
-                         class="sig-image"
-                         alt="Employer Signature">
+                    <img src="{{ public_path('storage/signatures/employer_signature1.png') }}" class="sig-image"
+                        alt="Employer Signature">
                     <div class="sig-line">Employer Signature</div>
                 </div>
 

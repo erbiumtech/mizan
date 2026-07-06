@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Payslip extends Model
 {
     protected $fillable = [
-        'employee_id', 'pay_period', 'total_working_days', 'paid_days', 'lop_days',
+        'employee_id', 'month', 'fiscal_year_id', 'total_working_days', 'paid_days', 'lop_days',
         'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'total_earnings',
@@ -20,13 +20,21 @@ class Payslip extends Model
         return $this->belongsTo(Employee::class, 'employee_id');
     }
 
+    public function fiscalYear()
+    {
+        return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');
+    }
+
     protected static function booted()
     {
-        static::creating(function ($payslip) {
+        // Helper function for calculation
+        $calculate = function ($payslip) {
             $service = new PayslipService;
 
-            $calculatedData = $service->calculateByVersion(
+            $calculatedData = $service->calculateByParams(
                 $payslip->employee_id,
+                $payslip->month,
+                $payslip->fiscal_year_id,
                 $payslip->bonus,
                 $payslip->extra_work_hours
             );
@@ -46,6 +54,9 @@ class Payslip extends Model
                 $payslip->total_deductions = $calculatedData['total_deductions'];
                 $payslip->net_salary = $calculatedData['net_salary'];
             }
-        });
+        };
+
+        static::creating($calculate);
+        static::updating($calculate);
     }
 }

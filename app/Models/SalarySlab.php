@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SalarySlab extends Model
 {
     protected $fillable = [
+        'fiscal_year_id',
         'min_amount',
         'max_amount',
         'fixed_tax',

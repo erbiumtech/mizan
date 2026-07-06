@@ -22,12 +22,15 @@ class DownloadPayslip extends Action
     {
         $payslip = $models->first();
 
-        $cleanPayPeriod = str_replace([' ', '/', '\\'], '-', $payslip->pay_period);
+        $month = $payslip->month;
+        $yearName = $payslip->fiscalYear ? $payslip->fiscalYear->name : 'Unknown-Year';
+
+        $cleanFileNamePart = $month . '-' . str_replace([' ', '/', '\\'], '-', $yearName);
 
         $customEmpId = $payslip->employee->employee_id;
 
-        // Format: EMP-2-June-2025.pdf
-        $fileName = 'payslips/' . $customEmpId . '-' . $cleanPayPeriod . '.pdf';
+        // Format: EMP-2-January-2026-2027.pdf
+        $fileName = 'payslips/' . $customEmpId . '-' . $cleanFileNamePart . '.pdf';
 
         if (!Storage::disk('public')->exists($fileName)) {
 
@@ -48,7 +51,7 @@ class DownloadPayslip extends Action
 
         $downloadUrl = url(Storage::url($fileName));
 
-        return Action::download($downloadUrl, $customEmpId . '-' . $cleanPayPeriod . '.pdf');
+        return Action::download($downloadUrl, $customEmpId . '-' . $cleanFileNamePart . '.pdf');
     }
 
     public function fields(NovaRequest $request)
