@@ -17,6 +17,9 @@ return new class extends Migration
             // Relation with Employee Table
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
 
+            $table->string('month'); // E.g., 'January'
+            $table->foreignId('fiscal_year_id')->constrained('fiscal_years');
+
             // --- MONTHLY FIXED EARNINGS ---
             $table->decimal('basic_wage', 15, 2)->default(0.00);
             $table->decimal('medical_allowance', 15, 2)->default(0.00);

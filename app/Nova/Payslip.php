@@ -40,49 +40,61 @@ class Payslip extends Resource
                 ->rules('required')
                 ->relatableQueryUsing(fn ($request, $query) => $query->where('is_active', true)),
 
-            Number::make('Total Working Days', 'total_working_days')->min(0)->default(0),
-            Number::make('Paid Days', 'paid_days')->min(0)->default(0),
-            Number::make('LOP Days', 'lop_days')->min(0)->default(0),
-            Number::make('Leaves Taken', 'leaves_taken')->min(0)->default(0),
+            Number::make('Total Working Days', 'total_working_days')->min(0)->default(0)->hideFromIndex(),
+            Number::make('Paid Days', 'paid_days')->min(0)->default(0)->hideFromIndex(),
+            Number::make('LOP Days', 'lop_days')->min(0)->default(0)->hideFromIndex(),
+            Number::make('Leaves Taken', 'leaves_taken')->min(0)->default(0)->hideFromIndex(),
 
             // READONLY FIELDS
             Number::make('Basic Wage', 'basic_wage')->step(0.01)->readonly()
-                ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'basic_wage')),
+                ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'basic_wage'))
+                ->hideFromIndex(),
 
             Number::make('Medical Allowance', 'medical_allowance')->step(0.01)->readonly()
-                ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'medical_allowance')),
+                ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'medical_allowance'))
+                ->hideFromIndex(),
 
             // EDITABLE FIELDS
             Number::make('Device Allowance', 'device_allowance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'device_allowance')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'device_allowance'))
+                ->hideFromIndex(),
 
             Number::make('Petrol Allowance', 'petrol_allowance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'petrol_allowance')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'petrol_allowance'))
+                ->hideFromIndex(),
 
             Number::make('Bonus', 'bonus')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'bonus')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'bonus'))
+                ->hideFromIndex(),
 
             Number::make('Extra Work Hours', 'extra_work_hours')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'extra_work_hours')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'extra_work_hours'))
+                ->hideFromIndex(),
 
             Number::make('Advances', 'advances')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'advances')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'advances'))
+                ->hideFromIndex(),
 
             Number::make('Meal Deduction', 'meal_deduction')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'meal_deduction')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'meal_deduction'))
+                ->hideFromIndex(),
 
             Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'esi_health_insurance')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'esi_health_insurance'))
+                ->hideFromIndex(),
 
             // CALCULATED FIELDS
             Number::make('Withholding Tax', 'withholding_tax')->step(0.01)->readonly()
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'withholding_tax')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'withholding_tax'))
+                ->hideFromIndex(),
 
             Number::make('Total Earnings', 'total_earnings')->step(0.01)->readonly()
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'total_earnings')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'total_earnings'))
+                ->hideFromIndex(),
 
             Number::make('Total Deductions', 'total_deductions')->step(0.01)->readonly()
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'total_deductions')),
+                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'total_deductions'))
+                ->hideFromIndex(),
 
             Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->sortable()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'net_salary')),

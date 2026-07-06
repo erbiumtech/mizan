@@ -13,8 +13,8 @@ return new class extends Migration
             // Relation with Employee
             $table->foreignId('employee_id')->constrained()->onDelete('cascade');
 
-            // Month aur Year (e.g., October 2024)
-            $table->string('pay_period');
+            $table->string('month')->nullable();
+            $table->foreignId('fiscal_year_id')->nullable()->constrained('fiscal_years');
 
             // --- Attendance ---
             $table->integer('total_working_days')->default(0);
@@ -31,10 +31,16 @@ return new class extends Migration
             $table->decimal('bonus', 10, 2)->default(0);
 
             // --- Deductions ---
-            $table->decimal('withholding_tax', 10, 2)->default(0);
+            $table->decimal('withholding_tax', 10, 2)->default(0.00);
             $table->decimal('advances', 10, 2)->default(0);
             $table->decimal('meal_deduction', 10, 2)->default(0);
             $table->decimal('esi_health_insurance', 10, 2)->default(0);
+
+            $table->decimal('total_earnings', 10, 2)->default(0.00);
+            $table->decimal('total_deductions', 10, 2)->default(0.00);
+            $table->decimal('net_salary', 10, 2)->default(0.00);
+
+             $table->string('pdf_path')->nullable();
 
             $table->timestamps();
         });

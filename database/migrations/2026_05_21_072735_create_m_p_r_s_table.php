@@ -20,6 +20,8 @@ return new class extends Migration
             $table->longText('recent_module')->nullable();
             $table->longText('employee_request')->nullable();
             $table->longText('next_mpr_goal')->nullable();
+            $table->text('current_month_learning')->nullable();
+            $table->string('pdf_path')->nullable();
 
             $table->timestamps();
         });
