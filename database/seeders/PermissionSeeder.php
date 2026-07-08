@@ -55,6 +55,11 @@ class PermissionSeeder extends Seeder
             ['name' => 'FiscalYearView', 'group' => 'FiscalYear'],
             ['name' => 'FiscalYearUpdate', 'group' => 'FiscalYear'],
             ['name' => 'FiscalYearDelete', 'group' => 'FiscalYear'],
+
+            ['name' => 'AnnualTaxCreate', 'group' => 'AnnualTax'],
+            ['name' => 'AnnualTaxView', 'group' => 'AnnualTax'],
+            ['name' => 'AnnualTaxUpdate', 'group' => 'AnnualTax'],
+            ['name' => 'AnnualTaxDelete', 'group' => 'AnnualTax'],
         ];
 
         foreach ($permissions as $permissionData) {
