@@ -41,10 +41,10 @@ class EmployeeSetting extends Resource
 
             // --- EARNINGS (Allowances & Extras) ---
             Number::make('Basic Wage', 'basic_wage')->step(0.01)->default(0),
-            Number::make('Medical Allowance', 'medical_allowance')->step(0.01)->default(0)->hideFromIndex(),
+            Number::make('Medical Allowance', 'medical_allowance')->step(0.01)->default(0),
             Number::make('Device Allowance', 'device_allowance')->step(0.01)->default(0)->hideFromIndex(),
             Number::make('Petrol Allowance', 'petrol_allowance')->step(0.01)->default(0)->hideFromIndex(),
-            Number::make('Bonus', 'bonus')->step(0.01)->default(0),
+            Number::make('Bonus', 'bonus')->step(0.01)->default(0)->hideFromIndex(),
             Number::make('Extra Work Hours', 'extra_work_hours')
                 ->step(0.01)
                 ->default(0)
@@ -55,7 +55,8 @@ class EmployeeSetting extends Resource
             Number::make('Advances', 'advances')
                 ->step(0.01)
                 ->default(0)
-                ->help('Advance salary deduction'),
+                ->help('Advance salary deduction')
+                ->hideFromIndex(),
 
             Number::make('Meal Deduction', 'meal_deduction')->step(0.01)->default(0)->hideFromIndex(),
             Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)->default(0)->hideFromIndex(),

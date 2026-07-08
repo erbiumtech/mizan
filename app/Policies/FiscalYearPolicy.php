@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Nova\FiscalYear;
+use App\Models\FiscalYear;
 
 class FiscalYearPolicy
 {
