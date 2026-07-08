@@ -40,11 +40,11 @@ class PayslipService
         'extra_work_hours'     => ((float)$extraWorkHours > 0) ? (float)$extraWorkHours : (float)($setting->extra_work_hours ?? 0),
     ];
 
-    // 3. Earnings Calculate karein (Basic + Allowances + Bonus + Extra Hours)
+    // 3. Earnings Calculate (Basic + Allowances + Bonus + Extra Hours)
     $totalEarningsBase = $data['basic_wage'] + $data['petrol_allowance'] + $data['device_allowance'] + $data['bonus'] + $data['extra_work_hours'];
     $data['total_earnings'] = $totalEarningsBase + $data['medical_allowance'];
 
-    // 4. Tax Calculate karein (Medical allowance ka 10% tax-free rule)
+    // 4. Tax Calculate  (Medical allowance 10% tax-free rule)
     $medicalLimit = $data['total_earnings'] * 0.10;
     $taxableMedical = max(0, $data['medical_allowance'] - $medicalLimit);
     $annualTaxable = ($totalEarningsBase + $taxableMedical) * 12;

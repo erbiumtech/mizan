@@ -11,7 +11,7 @@ class Payslip extends Model
         'employee_id', 'month', 'fiscal_year_id', 'total_working_days', 'paid_days', 'lop_days',
         'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
-        'advances', 'meal_deduction', 'esi_health_insurance', 'total_earnings',
+        'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
         'total_deductions', 'net_salary', 'pdf_path',
     ];
 
@@ -27,7 +27,6 @@ class Payslip extends Model
 
     protected static function booted()
     {
-        // Helper function for calculation
         $calculate = function ($payslip) {
             $service = new PayslipService;
 
@@ -36,7 +35,12 @@ class Payslip extends Model
                 $payslip->month,
                 $payslip->fiscal_year_id,
                 $payslip->bonus,
-                $payslip->extra_work_hours
+                $payslip->extra_work_hours,
+                $payslip->device_allowance,
+                $payslip->petrol_allowance,
+                $payslip->advances,
+                $payslip->meal_deduction,
+                $payslip->esi_health_insurance
             );
 
             if ($calculatedData) {
@@ -58,5 +62,85 @@ class Payslip extends Model
 
         static::creating($calculate);
         static::updating($calculate);
+
+        $syncTax = function ($payslip) {
+            self::calculateAndStoreAnnualTax($payslip->employee_id, $payslip->fiscal_year_id);
+        };
+
+        static::saved($syncTax);
+        static::deleted($syncTax);
+    }
+
+    public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)
+    {
+        $payslips = self::where('employee_id', $employeeId)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->get();
+
+        if ($payslips->isEmpty()) {
+            AnnualTax::where('employee_id', $employeeId)
+                ->where('fiscal_year_id', $fiscalYearId)
+                ->delete();
+            return;
+        }
+
+        $totalActualIncomeYearToDate = 0;
+        $totalNetSalaryYearToDate = 0;
+        $totalPaidTaxYearToDate = 0;
+        $totalMedicalYearToDate = 0;
+        $monthsCount = $payslips->count();
+
+        foreach ($payslips as $p) {
+            $totalActualIncomeYearToDate += (float) ($p->total_earnings ?? 0);
+            $totalNetSalaryYearToDate += (float) ($p->net_salary ?? 0);
+            $totalPaidTaxYearToDate += (float) ($p->withholding_tax ?? 0);
+            $totalMedicalYearToDate += (float) ($p->medical_allowance ?? 0);
+        }
+
+        $avgMonthlyIncome = $monthsCount > 0 ? ($totalActualIncomeYearToDate / $monthsCount) : 0;
+        $annualProjectedIncome = $avgMonthlyIncome * 12;
+
+        // Net salary projected average
+        $avgMonthlyNet = $monthsCount > 0 ? ($totalNetSalaryYearToDate / $monthsCount) : 0;
+        $annualProjectedNetIncome = $avgMonthlyNet * 12;
+
+        $avgMonthlyMedical = $monthsCount > 0 ? ($totalMedicalYearToDate / $monthsCount) : 0;
+        $annualProjectedMedical = $avgMonthlyMedical * 12;
+
+        // FBR Medical Exemption Rule (Annual) for Taxable calculation
+        $annualMedicalLimit = $annualProjectedIncome * 0.10;
+        $annualTaxableMedical = max(0, $annualProjectedMedical - $annualMedicalLimit);
+        $annualNonMedicalBase = $annualProjectedIncome - $annualProjectedMedical;
+
+        $annualTaxableIncome = $annualNonMedicalBase + $annualTaxableMedical;
+
+        $slab = \App\Models\SalarySlab::where('fiscal_year_id', $fiscalYearId)
+            ->where('min_amount', '<=', $annualTaxableIncome)
+            ->where(function ($q) use ($annualTaxableIncome) {
+                $q->where('max_amount', '>=', $annualTaxableIncome)->orWhereNull('max_amount');
+            })->first();
+
+        $annualTotalTax = $slab ? ($slab->fixed_tax + (($annualTaxableIncome - $slab->min_amount) * $slab->percentage / 100)) : 0;
+        $leftoverTax = max(0, $annualTotalTax - $totalPaidTaxYearToDate);
+
+        AnnualTax::updateOrCreate(
+            [
+                'employee_id' => $employeeId,
+                'fiscal_year_id' => $fiscalYearId,
+            ],
+            [
+                'total_annual_income' => round($annualProjectedIncome, 2),
+                'annual_income_tax'   => round($annualTaxableIncome, 2),
+                'total_net_income'    => round($annualProjectedNetIncome, 2),
+                'total_annual_tax'    => round($annualTotalTax, 2),
+                'paid_tax'            => round($totalPaidTaxYearToDate, 2),
+                'leftover_tax'        => round($leftoverTax, 2),
+            ]
+        );
+    }
+
+    public static function syncAnnualTax($employeeId, $fiscalYearId)
+    { 
+        self::calculateAndStoreAnnualTax($employeeId, $fiscalYearId);
     }
 }
