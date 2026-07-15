@@ -30,7 +30,7 @@ class AccountController extends Controller
                 $q->where(fn ($sub) => $sub
                     ->where('code', 'like', "%{$request->search}%")
                     ->orWhere('name', 'like', "%{$request->search}%"));
-            })
+            }) 
             ->orderBy('code')
             ->paginate($request->integer('per_page', 50));
 
