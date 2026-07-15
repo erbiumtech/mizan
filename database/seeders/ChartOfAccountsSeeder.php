@@ -1,0 +1,55 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Account;
+use Illuminate\Database\Seeder;
+
+class ChartOfAccountsSeeder extends Seeder
+{
+    public function run()
+    {
+        // Payroll-oriented default chart. Parents are group headers
+        // (no manual entry); children are the postable leaf accounts.
+        $chart = [
+            ['code' => '1000', 'name' => 'Assets', 'type' => 'asset', 'allow_manual_entry' => false, 'children' => [
+                ['code' => '1100', 'name' => 'Cash / Bank', 'type' => 'asset'],
+                ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
+            ]],
+            ['code' => '2000', 'name' => 'Liabilities', 'type' => 'liability', 'allow_manual_entry' => false, 'children' => [
+                ['code' => '2100', 'name' => 'Income Tax Payable', 'type' => 'liability', 'description' => 'Withholding tax deducted from salaries, payable to FBR'],
+                ['code' => '2200', 'name' => 'ESI / Health Insurance Payable', 'type' => 'liability'],
+                ['code' => '2300', 'name' => 'Salaries Payable', 'type' => 'liability', 'description' => 'Net salaries owed to employees'],
+            ]],
+            ['code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'allow_manual_entry' => false, 'children' => [
+                ['code' => '3100', 'name' => 'Owner Equity', 'type' => 'equity'],
+                ['code' => '3200', 'name' => 'Retained Earnings', 'type' => 'equity'],
+            ]],
+            ['code' => '4000', 'name' => 'Income', 'type' => 'income', 'allow_manual_entry' => false, 'children' => [
+                ['code' => '4100', 'name' => 'Service Revenue', 'type' => 'income'],
+            ]],
+            ['code' => '5000', 'name' => 'Expenses', 'type' => 'expense', 'allow_manual_entry' => false, 'children' => [
+                ['code' => '5100', 'name' => 'Basic Salary Expense', 'type' => 'expense'],
+                ['code' => '5200', 'name' => 'Medical Allowance Expense', 'type' => 'expense'],
+                ['code' => '5300', 'name' => 'Petrol Allowance Expense', 'type' => 'expense'],
+                ['code' => '5400', 'name' => 'Device Allowance Expense', 'type' => 'expense'],
+                ['code' => '5500', 'name' => 'Bonus & Overtime Expense', 'type' => 'expense'],
+                ['code' => '5600', 'name' => 'Meal Expense', 'type' => 'expense'],
+            ]],
+        ];
+
+        foreach ($chart as $parentData) {
+            $children = $parentData['children'];
+            unset($parentData['children']);
+
+            $parent = Account::updateOrCreate(['code' => $parentData['code']], $parentData);
+
+            foreach ($children as $childData) {
+                Account::updateOrCreate(
+                    ['code' => $childData['code']],
+                    $childData + ['parent_id' => $parent->id]
+                );
+            }
+        }
+    }
+}

@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
+use App\Traits\HasComments;
 use App\Services\PayslipService;
 use Illuminate\Database\Eloquent\Model;
 
 class Payslip extends Model
 {
+    use Auditable, HasComments;
+
     protected $fillable = [
         'employee_id', 'month', 'fiscal_year_id', 'total_working_days', 'paid_days', 'lop_days',
         'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
@@ -25,10 +29,15 @@ class Payslip extends Model
         return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');
     }
 
+    public function journalEntries()
+    {
+        return $this->morphMany(JournalEntry::class, 'source');
+    }
+
     protected static function booted()
     {
         $calculate = function ($payslip) {
-            $service = new PayslipService;
+            $service = app(PayslipService::class);
 
             $calculatedData = $service->calculateByParams(
                 $payslip->employee_id,
@@ -69,6 +78,16 @@ class Payslip extends Model
 
         static::saved($syncTax);
         static::deleted($syncTax);
+
+        // Ledger integration: (re)create the payroll journal entry on save,
+        // reverse/remove it on delete.
+        static::saved(function ($payslip) {
+            app(\App\Services\PayrollPostingService::class)->postPayslip($payslip);
+        });
+
+        static::deleted(function ($payslip) {
+            app(\App\Services\PayrollPostingService::class)->unwindForPayslip($payslip);
+        });
     }
 
     public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)
@@ -114,13 +133,8 @@ class Payslip extends Model
 
         $annualTaxableIncome = $annualNonMedicalBase + $annualTaxableMedical;
 
-        $slab = \App\Models\SalarySlab::where('fiscal_year_id', $fiscalYearId)
-            ->where('min_amount', '<=', $annualTaxableIncome)
-            ->where(function ($q) use ($annualTaxableIncome) {
-                $q->where('max_amount', '>=', $annualTaxableIncome)->orWhereNull('max_amount');
-            })->first();
-
-        $annualTotalTax = $slab ? ($slab->fixed_tax + (($annualTaxableIncome - $slab->min_amount) * $slab->percentage / 100)) : 0;
+        $annualTotalTax = app(\App\Services\TaxCalculatorService::class)
+            ->annualTax((float) $annualTaxableIncome, $fiscalYearId);
         $leftoverTax = max(0, $annualTotalTax - $totalPaidTaxYearToDate);
 
         AnnualTax::updateOrCreate(

@@ -5,13 +5,16 @@ namespace App\Services;
 use App\Models\EmployeeSetting;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
-use App\Models\SalarySlab;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class PayslipService
 {
+    public function __construct(private TaxCalculatorService $taxCalculator)
+    {
+    }
+
     /**
      * Calculate payslip data based on employee settings for a specific month and fiscal year using date ranges.
      */
@@ -57,14 +60,7 @@ class PayslipService
         $taxableMedical = max(0, $data['medical_allowance'] - $medicalLimit);
         $annualTaxable = ($totalEarningsBase + $taxableMedical) * 12;
 
-        $slab = SalarySlab::where('fiscal_year_id', $fiscalYearId)
-            ->where('min_amount', '<=', $annualTaxable)
-            ->where(function ($q) use ($annualTaxable) {
-                $q->where('max_amount', '>=', $annualTaxable)->orWhereNull('max_amount');
-            })->first();
-
-        $tax = $slab ? ($slab->fixed_tax + (($annualTaxable - $slab->min_amount) * $slab->percentage / 100)) / 12 : 0;
-        $data['withholding_tax'] = round($tax, 2);
+        $data['withholding_tax'] = $this->taxCalculator->monthlyTax($annualTaxable, $fiscalYearId);
 
         // 5. Total Deductions (Tax + Advances + Meal + ESI)
         $data['total_deductions'] = round($data['withholding_tax'] + $data['advances'] + $data['meal_deduction'] + $data['esi_health_insurance'], 2);

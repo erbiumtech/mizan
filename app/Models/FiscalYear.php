@@ -2,11 +2,20 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class FiscalYear extends Model
 {
-    protected $fillable = ['name', 'is_active'];
+    use Auditable;
+
+    protected $fillable = ['name', 'start_date', 'end_date', 'is_active'];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'is_active' => 'boolean',
+    ];
 
     public function salarySlabs() {
         return $this->hasMany(SalarySlab::class);

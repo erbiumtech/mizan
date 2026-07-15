@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class AnnualTax extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'employee_id', 'fiscal_year_id', 'total_net_income',
         'total_annual_tax', 'paid_tax', 'leftover_tax' , 'annual_income_tax'
