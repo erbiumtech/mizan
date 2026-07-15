@@ -43,8 +43,8 @@ class JournalEntryLine extends Resource
         ];
     }
 
-    public static function authorizedToCreate(\Illuminate\Http\Request $request)
-    {
-        return $request->user()->can('create', \App\Models\JournalEntry::class);
-    }
+    // public static function authorizedToCreate(\Illuminate\Http\Request $request)
+    // {
+    //     return $request->user()->can('create', \App\Models\JournalEntry::class);
+    // }
 }
