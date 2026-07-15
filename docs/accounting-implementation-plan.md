@@ -143,11 +143,49 @@ When a payslip is finalized, `PayslipService` builds and posts a journal entry v
 - **Audit**: rows written on create/update/post/reverse with correct causer; immutability (no update/delete via Nova).
 - **Integration**: payslip entry lines sum to payslip totals; delete/regenerate reverses cleanly.
 
+## Phase 10 — Accounts CRUD API + Chart of Accounts relations
+
+Nova already provides staff CRUD for accounts (Phase 7). This phase adds a REST API
+(following the existing `app/Http/Controllers/Api` + Sanctum pattern) and makes the
+chart's relationships first-class in both API and UI.
+
+1. **`Api\AccountController`** — full CRUD, all routes behind `auth:sanctum` and `AccountPolicy`:
+   - `GET /api/accounts` — flat list; filters: `type`, `is_active`, `parent_id`, `search` (code/name).
+   - `GET /api/accounts/tree` — the chart as a nested tree (parents with recursive `children`), each node carrying `balance` and roll-up `calculated_balance`.
+   - `GET /api/accounts/{account}` — single account **with relations**: `parent`, `children`, latest `lines` (paginated), and `calculated_balance`.
+   - `POST /api/accounts` — create (validation: unique code, valid type, `parent_id` must exist and match `type`).
+   - `PUT /api/accounts/{account}` — update; changing `parent_id` re-validated against cycles (an account cannot become its own descendant).
+   - `DELETE /api/accounts/{account}` — policy rules apply (CEO permission, no lines, no children).
+2. **Form requests + `AccountResource` (JSON resource)** — `StoreAccountRequest` / `UpdateAccountRequest`; resource embeds `parent:code,name`, `children_count`, `lines_count`.
+3. **Model relation hardening** (`Account`):
+   - `descendants()` helper (recursive children) used by the tree endpoint and cycle guard.
+   - `journalEntries()` hasManyThrough via lines — "all entries touching this account".
+   - Scopes: `postable()` (active + leaf + manual), `ofType($type)`, `roots()` (`parent_id` null).
+4. **Nova polish** — Account detail already shows Sub Accounts + Ledger Lines panels; add
+   `parent` column to the index and a type-grouped ordering (`code` asc) so the chart reads
+   as a tree in the list view.
+5. **Tests** — API CRUD happy paths + policy denials (Accountant can create/update but not
+   delete; Employee gets 403), tree endpoint shape, cycle-prevention on reparenting,
+   duplicate-code rejection.
+6. **Seeders — accounts & journal entries demo data**:
+   - **`AccountSeeder`** (extends the Phase 6 `ChartOfAccountsSeeder`): adds common operating
+     accounts beyond payroll — 1300 Accounts Receivable, 1400 Office Equipment,
+     2400 Accounts Payable, 4200 Consulting Revenue, 5700 Rent Expense, 5800 Utilities Expense,
+     5900 Office Supplies — nested under the existing 1000–5000 group headers (idempotent by `code`).
+   - **`JournalEntrySeeder`** — realistic demo entries created **through `JournalEntryService`**
+     (never raw inserts, so numbering/validation/audit all fire), covering every workflow state:
+     a posted month of activity (revenue invoiced, rent + utilities paid, salaries accrual),
+     one entry left `pending_approval`, one `draft`, one `rejected` (with reason), and one
+     posted-then-reversed pair. Approver = seeded Manager user; entries dated across
+     Jul–Sep 2026 so the ledger, running balances, and trial balance have a real spread.
+   - Both registered in `DatabaseSeeder` after `ChartOfAccountsSeeder`; `JournalEntrySeeder`
+     skipped in production (`app()->environment('production')` guard).
+
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 

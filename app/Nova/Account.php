@@ -23,6 +23,15 @@ class Account extends Resource
 
     public static $group = 'Accounting';
 
+    public static function indexQuery(NovaRequest $request, \Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    {
+        if (! $request->orderBy) {
+            $query->reorder('code');
+        }
+
+        return $query;
+    }
+
     public static function label()
     {
         return 'Chart of Accounts';
@@ -59,7 +68,7 @@ class Account extends Resource
                 'credit' => 'warning',
             ])->exceptOnForms(),
 
-            BelongsTo::make('Parent Account', 'parent', Account::class)->nullable()->searchable(),
+            BelongsTo::make('Parent Account', 'parent', Account::class)->nullable()->searchable()->sortable(),
 
             Boolean::make('Active', 'is_active')->sortable()->filterable(),
 
