@@ -276,11 +276,39 @@ Turns the ledger into the two core statements. All figures come from posted
    entries excluded; date-range boundaries inclusive; PDF endpoints return 200 and the
    permission gate blocks Employee.
 
+## Phase 14 — Bank Directory + Salary Bank File (iPayments)
+
+Pays the month's net salaries through Standard Chartered iPayments using a bulk CSV
+(template: `docs/ipayments_csv (002).csv` — 204 comma-delimited columns, UTF-8; `H`
+header row, one `P` row per payment, `T` trailer with count + total).
+
+1. **`banks` table + `Bank` model** — the IBFT bank directory from
+   `docs/IMD CODES IBFT.xlsx`: `bank_code` (IMD code, unique), `bank_name`,
+   `bank_short_code` (HBL/MCB/UBL…), `is_active`; `Auditable`; `employees()` HasMany.
+   **`BankSeeder`** loads all 36 banks (idempotent via `bank_code`).
+2. **Employee additions** — `bank_id` FK (nullOnDelete) + `bank()` BelongsTo replacing
+   free-text bank entry; `address_line_1`/`address_line_2` (the iPayments Payee
+   Address1/Address2 columns). Legacy `bank_name`/`bank_code` strings kept as fallback.
+3. **Nova** — `Bank` resource (CRUD: Bank Code, Bank Name, Bank Short Code, Active,
+   Employees panel) gated by `BankPolicy`; Employee form gains a searchable Bank
+   BelongsTo and the address fields.
+4. **Permissions** — `BankView/Create/Update/Delete`: Accountant manages the directory,
+   CEO/Admin may delete (blocked while employees reference the bank).
+5. **`SalaryBankExportService`** — builds the iPayments CSV for one month's payslips:
+   maps net salary, IBAN (preferred) or account no, IMD bank code via the `bank`
+   relation, addresses, NIC as CNIC beneficiary ID; company-side defaults in
+   `config/ipayments.php` (`IPAYMENTS_*` env vars). Trailer totals must equal the
+   payslip net-salary sum. **Salary Bank File** page under the Nova Reports menu
+   (month + value-date pickers, preview with missing-account warnings, CSV download),
+   gated by `ReportView`.
+6. **Tests** — 204 fields per row, H/P/T structure, trailer count + total match,
+   IBAN preferred over account no, values containing commas sanitized, UTF-8 output.
+
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 

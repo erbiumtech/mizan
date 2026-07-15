@@ -27,6 +27,8 @@ class SalaryBankExportService
         'debit_account' => 9,
         'value_date' => 10,
         'beneficiary_name' => 11,
+        'payee_address_1' => 12,
+        'payee_address_2' => 13,
         'payee_country' => 14,
         'beneficiary_bank_code' => 16,
         'beneficiary_account' => 20,
@@ -50,7 +52,7 @@ class SalaryBankExportService
      */
     public function paymentsForMonth(string $month, FiscalYear $fiscalYear): array
     {
-        $payslips = Payslip::with('employee.user')
+        $payslips = Payslip::with(['employee.user', 'employee.bank'])
             ->where('month', $month)
             ->where('fiscal_year_id', $fiscalYear->id)
             ->get()
@@ -67,8 +69,10 @@ class SalaryBankExportService
                 'employee_code' => $employee->employee_id,
                 'name' => $employee->user->name ?? $employee->employee_id,
                 'account' => $employee->iban_no ?: $employee->bank_account_no,
-                'bank_code' => $employee->bank_code ?? '',
-                'bank_name' => $employee->bank_name ?? '',
+                'bank_code' => $employee->bank?->bank_code ?? $employee->bank_code ?? '',
+                'bank_name' => $employee->bank?->bank_name ?? $employee->bank_name ?? '',
+                'address_1' => $employee->address_line_1 ?? '',
+                'address_2' => $employee->address_line_2 ?? '',
                 'email' => $employee->user->email ?? '',
                 'nic' => $employee->nic ?? '',
                 'phone' => $employee->phone ?? '',
@@ -109,6 +113,8 @@ class SalaryBankExportService
                 'debit_account' => $config['debit_account'],
                 'value_date' => $valueDate,
                 'beneficiary_name' => $payment['name'],
+                'payee_address_1' => $payment['address_1'],
+                'payee_address_2' => $payment['address_2'],
                 'payee_country' => $config['debit_country'],
                 'beneficiary_bank_code' => $payment['bank_code'],
                 'beneficiary_account' => $payment['account'],

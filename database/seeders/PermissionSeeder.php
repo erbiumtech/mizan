@@ -68,6 +68,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'AccountUpdate', 'group' => 'Account'],
             ['name' => 'AccountDelete', 'group' => 'Account'],
             ['name' => 'ReportView', 'group' => 'Report'],
+            ['name' => 'BankView', 'group' => 'Bank'],
+            ['name' => 'BankCreate', 'group' => 'Bank'],
+            ['name' => 'BankUpdate', 'group' => 'Bank'],
+            ['name' => 'BankDelete', 'group' => 'Bank'],
 
             ['name' => 'JournalEntryView', 'group' => 'JournalEntry'],
             ['name' => 'JournalEntryCreate', 'group' => 'JournalEntry'],

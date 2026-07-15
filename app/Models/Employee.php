@@ -14,12 +14,18 @@ class Employee extends Model
     protected $fillable = [
         'user_id', 'employee_id', 'phone', 'gender',
         'is_active', 'designation', 'department',
-        'date_of_joining', 'nic', 'bank_name', 'bank_account_no', 'iban_no'
+        'date_of_joining', 'nic', 'bank_id', 'bank_name', 'bank_account_no', 'iban_no',
+        'address_line_1', 'address_line_2'
     ];
 
     protected $casts = [
         'date_of_joining' => 'date',
     ];
+
+    public function bank()
+    {
+        return $this->belongsTo(Bank::class);
+    }
 
 
     public function setting(): HasOne
