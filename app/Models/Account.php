@@ -47,9 +47,60 @@ class Account extends Model
         return $this->hasMany(Account::class, 'parent_id');
     }
 
+    /**
+     * Children with their own children eager-loaded all the way down
+     * (for the chart-of-accounts tree endpoint).
+     */
+    public function childrenRecursive()
+    {
+        return $this->children()->with('childrenRecursive')->orderBy('code');
+    }
+
     public function lines()
     {
         return $this->hasMany(JournalEntryLine::class);
+    }
+
+    /**
+     * All journal entries that touch this account (through its lines).
+     */
+    public function journalEntries()
+    {
+        return $this->hasManyThrough(
+            JournalEntry::class,
+            JournalEntryLine::class,
+            'account_id',
+            'id',
+            'id',
+            'journal_entry_id'
+        )->distinct();
+    }
+
+    /**
+     * All descendant accounts, depth-first.
+     */
+    public function descendants(): \Illuminate\Support\Collection
+    {
+        return $this->children->flatMap(
+            fn (Account $child) => collect([$child])->merge($child->descendants())
+        );
+    }
+
+    public function scopeRoots($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    public function scopePostable($query)
+    {
+        return $query->where('is_active', true)
+            ->where('allow_manual_entry', true)
+            ->whereDoesntHave('children');
     }
 
     /**

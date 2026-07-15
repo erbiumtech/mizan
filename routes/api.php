@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\MprController;
 use App\Http\Controllers\Api\PayslipController;
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 
 
@@ -22,5 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Payslips Route
     Route::get('/my-payslips', [PayslipController::class, 'index']);
+
+    // Chart of Accounts
+    Route::get('/accounts/tree', [AccountController::class, 'tree']);
+    Route::apiResource('accounts', AccountController::class);
 
 });
