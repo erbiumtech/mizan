@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             ChartOfAccountsSeeder::class,
             AccountSeeder::class,
             JournalEntrySeeder::class,
+            PayslipSeeder::class,
         ]);
 
         // Admin User Creation

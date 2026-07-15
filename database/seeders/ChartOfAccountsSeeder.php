@@ -15,6 +15,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '1000', 'name' => 'Assets', 'type' => 'asset', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '1100', 'name' => 'Cash / Bank', 'type' => 'asset'],
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
+                ['code' => '1500', 'name' => 'Accumulated Depreciation', 'type' => 'asset', 'normal_balance' => 'credit', 'description' => 'Contra-asset: credit-normal'],
             ]],
             ['code' => '2000', 'name' => 'Liabilities', 'type' => 'liability', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '2100', 'name' => 'Income Tax Payable', 'type' => 'liability', 'description' => 'Withholding tax deducted from salaries, payable to FBR'],
@@ -35,6 +36,8 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '5400', 'name' => 'Device Allowance Expense', 'type' => 'expense'],
                 ['code' => '5500', 'name' => 'Bonus & Overtime Expense', 'type' => 'expense'],
                 ['code' => '5600', 'name' => 'Meal Expense', 'type' => 'expense'],
+                ['code' => '5990', 'name' => 'Depreciation Expense', 'type' => 'expense'],
+                ['code' => '5995', 'name' => 'Loss on Asset Disposal', 'type' => 'expense'],
             ]],
         ];
 
