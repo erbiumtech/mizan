@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             AccountSeeder::class,
             JournalEntrySeeder::class,
             PayslipSeeder::class,
+            FixedAssetSeeder::class,
         ]);
 
         // Admin User Creation
