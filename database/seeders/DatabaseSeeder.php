@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             FiscalYearSeeder::class,
             SalarySlabSeeder::class,
             EmployeeSeeder::class,
+            EmployeeSettingSeeder::class,
             ChartOfAccountsSeeder::class,
         ]);
 
