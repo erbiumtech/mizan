@@ -68,10 +68,13 @@ class Employee extends Resource
                 
             Date::make('Date of Joining', 'date_of_joining')->hideFromIndex(),
             Text::make('NIC', 'nic')->hideFromIndex(),
+            \Laravel\Nova\Fields\BelongsTo::make('Bank', 'bank', Bank::class)->nullable()->searchable()->hideFromIndex()->help('Bank directory (IMD codes) for salary bank files'),
             Text::make('Bank Name', 'bank_name')->hideFromIndex(),
             Text::make('Bank A/C No', 'bank_account_no')->hideFromIndex(),
             Text::make('IBAN No', 'iban_no')->hideFromIndex(),
             Text::make('Phone', 'phone')->hideFromIndex(),
+            Text::make('Address Line 1', 'address_line_1')->hideFromIndex(),
+            Text::make('Address Line 2', 'address_line_2')->hideFromIndex(),
             Select::make('Gender', 'gender')->options(['Male' => 'Male', 'Female' => 'Female', 'Other' => 'Other'])->hideFromIndex(),
         ];
     }
