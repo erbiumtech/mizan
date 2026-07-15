@@ -67,6 +67,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'AccountCreate', 'group' => 'Account'],
             ['name' => 'AccountUpdate', 'group' => 'Account'],
             ['name' => 'AccountDelete', 'group' => 'Account'],
+            ['name' => 'ReportView', 'group' => 'Report'],
 
             ['name' => 'JournalEntryView', 'group' => 'JournalEntry'],
             ['name' => 'JournalEntryCreate', 'group' => 'JournalEntry'],
@@ -84,6 +85,14 @@ class PermissionSeeder extends Seeder
             ['name' => 'FixedAssetDelete', 'group' => 'FixedAsset'],
             ['name' => 'FixedAssetDepreciate', 'group' => 'FixedAsset'],
             ['name' => 'FixedAssetDispose', 'group' => 'FixedAsset'],
+
+            ['name' => 'BankStatementView', 'group' => 'BankStatement'],
+            ['name' => 'BankStatementCreate', 'group' => 'BankStatement'],
+            ['name' => 'BankStatementUpdate', 'group' => 'BankStatement'],
+            ['name' => 'BankStatementDelete', 'group' => 'BankStatement'],
+            ['name' => 'BankStatementImport', 'group' => 'BankStatement'],
+            ['name' => 'BankStatementMatch', 'group' => 'BankStatement'],
+            ['name' => 'BankStatementComplete', 'group' => 'BankStatement'],
 
             ['name' => 'CommentCreate', 'group' => 'Comment'],
             ['name' => 'CommentView', 'group' => 'Comment'],

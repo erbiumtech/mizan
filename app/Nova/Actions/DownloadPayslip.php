@@ -42,6 +42,7 @@ class DownloadPayslip extends Action
 
             Pdf::view('pdfs.payslip', ['data' => $payslip])
                ->format('a4')
+            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                ->save($absolutePath);
 
             $payslip->update([

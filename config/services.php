@@ -2,6 +2,11 @@
 
 return [
 
+    'node' => [
+        'binary' => env('NODE_BINARY', 'node'),
+        'npm' => env('NPM_BINARY', 'npm'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

@@ -15,6 +15,8 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '1000', 'name' => 'Assets', 'type' => 'asset', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '1100', 'name' => 'Cash / Bank', 'type' => 'asset'],
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
+                ['code' => '1400', 'name' => 'Office Equipment', 'type' => 'asset', 'description' => 'Fixed assets: computers, furniture, hardware'],
+                ['code' => '1450', 'name' => 'Vehicles', 'type' => 'asset', 'description' => 'Fixed assets: company vehicles'],
                 ['code' => '1500', 'name' => 'Accumulated Depreciation', 'type' => 'asset', 'normal_balance' => 'credit', 'description' => 'Contra-asset: credit-normal'],
             ]],
             ['code' => '2000', 'name' => 'Liabilities', 'type' => 'liability', 'allow_manual_entry' => false, 'children' => [

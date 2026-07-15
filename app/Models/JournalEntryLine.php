@@ -10,12 +10,13 @@ class JournalEntryLine extends Model
     use Auditable;
 
     protected $fillable = [
-        'journal_entry_id', 'account_id', 'debit_amount', 'credit_amount', 'description',
+        'journal_entry_id', 'account_id', 'debit_amount', 'credit_amount', 'description', 'reconciled_at',
     ];
 
     protected $casts = [
         'debit_amount' => 'decimal:2',
         'credit_amount' => 'decimal:2',
+        'reconciled_at' => 'datetime',
     ];
 
     public function journalEntry()
@@ -23,9 +24,32 @@ class JournalEntryLine extends Model
         return $this->belongsTo(JournalEntry::class);
     }
 
+    /**
+     * Signed effect on the account's normal-balance side. For a debit-normal
+     * bank account this is positive for inflows (debits) and negative for
+     * outflows (credits) — matching how bank statement amounts are signed.
+     */
+    public function getSignedAmountAttribute(): float
+    {
+        return round((float) $this->debit_amount - (float) $this->credit_amount, 2);
+    }
+
+    public function isReconciled(): bool
+    {
+        return $this->reconciled_at !== null;
+    }
+
     public function account()
     {
         return $this->belongsTo(Account::class);
+    }
+
+    /**
+     * The bank statement line, if any, that reconciled this ledger line.
+     */
+    public function bankStatementLine()
+    {
+        return $this->hasOne(BankStatementLine::class, 'matched_line_id');
     }
 
     public function getAmountAttribute(): float

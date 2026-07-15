@@ -207,6 +207,14 @@ This phase adds a proper fixed-asset register on top of the engine.
    (Manager/CEO) and **Dispose Asset** action.
 6. **Tests** — straight-line math, fully-depreciated stop, disposal entry balances,
    schedule appears in ledger.
+7. **`FixedAssetSeeder`** — demo asset register: a handful of realistic assets (laptops,
+   office furniture, server hardware, a vehicle) with staggered `purchase_date`s across the
+   active fiscal year, mixed depreciation methods and useful lives, linked to the `1400`
+   asset account. After creating the assets it calls `DepreciationService::runForMonth()`
+   for each elapsed month of the fiscal year so the depreciation schedule, `1500`/`5950`
+   ledgers, and book values carry real data. Idempotent via `firstOrCreate` on `asset_code`
+   (depreciation runs skip months whose entry is already posted for an asset). Registered
+   in `DatabaseSeeder` after `PayslipSeeder`.
 
 ## Phase 12 — Bank Reconciliation (statement import, matching, workflow)
 
@@ -238,11 +246,41 @@ Reconciles the bank statement against the 1100 Cash/Bank ledger.
    completion blocked while unmatched lines remain or balances disagree, reconciled lines
    excluded from re-matching.
 
+## Phase 13 — Financial Reports (Trial Balance + Profit & Loss)
+
+Turns the ledger into the two core statements. All figures come from posted
+`journal_entry_lines` via the services — computed on demand, never stored.
+
+1. **`FinancialReportService`**
+   - `trialBalance($asOfDate, $fiscalYearId)` — thin wrapper over the existing
+     `GeneralLedgerService::trialBalance()`: every account with activity, its debit or
+     credit balance (per `normal_balance`), grouped by account type, with grand totals
+     that must be equal — surfaced as an explicit `balanced` flag.
+   - `profitAndLoss($from, $to, $fiscalYearId)` — revenue accounts (4xxx) minus expense
+     accounts (5xxx) over the period: section per type with account lines and subtotals
+     (Revenue, Expenses — payroll expenses `5000–5900`, depreciation `5950` fall out of
+     the chart naturally), **Net Profit / (Loss)** line. Contra accounts respect
+     `normal_balance`; only `posted` entries count.
+   - Both accept an optional account-range filter and return a serializable DTO/array so
+     Nova, PDF, and API all share one shape.
+2. **Nova UI** — a **Reports** tool (or two Lenses on `Account`) with date-range /
+   fiscal-year filters: Trial Balance page (unbalanced totals highlighted red) and
+   P&L page (sectioned, net profit bolded). Both get a **Download PDF** action via the
+   existing `spatie/laravel-pdf` (same pipeline as payslip PDFs).
+3. **API** — `GET /api/reports/trial-balance?as_of=&fiscal_year_id=` and
+   `GET /api/reports/profit-and-loss?from=&to=` (Sanctum + `ReportView` permission).
+4. **Permissions** — `ReportView` added to `PermissionSeeder`; granted to Accountant,
+   Manager, CEO, Administrator (not Employee).
+5. **Tests** — trial balance totals equal after seeded payroll + depreciation entries;
+   P&L net profit equals revenue minus expenses for a seeded period; draft/pending
+   entries excluded; date-range boundaries inclusive; PDF endpoints return 200 and the
+   permission gate blocks Employee.
+
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 
