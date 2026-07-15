@@ -43,6 +43,7 @@ class EmployeeSeeder extends Seeder
                 ['user_id' => $user->id],
                 [
                     'employee_id' => 'EMP-' . $user->id,
+                    'gender' => 'Male',
                     'is_active' => 1,
                 ]
             );

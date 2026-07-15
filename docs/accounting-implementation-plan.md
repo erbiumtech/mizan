@@ -99,6 +99,9 @@
 - **`PermissionSeeder`** also adds: `PayslipViewOwn`, `CommentCreate`, `CommentViewOwn` (Employee), `CommentView/Resolve` (Accountant/Manager/CEO/Administrator).
 - Policies `AccountPolicy`, `JournalEntryPolicy` (`approve()` checks Manager/CEO role **and** approver ≠ creator), `ActivityLogPolicy`, `CommentPolicy` (employee may comment only on own payslips; may edit/delete own comment until staff replies) — following the existing `PayslipPolicy` pattern.
 - **Update `PayslipPolicy`**: `view()` allows Employee role when `payslip->employee->user_id === $user->id` (own payslips only).
+- **Demo/staff seed data**:
+  - `EmployeeSeeder` — creates the staff users (Employee role) and their employee records.
+  - `EmployeeSettingSeeder` — gives every employee a salary setting for the active fiscal year, basic wages spread evenly across **200,000 – 450,000** (rounded to the nearest 1,000), medical allowance at 10% of basic, petrol 13,500, device 5,000. Idempotent via `updateOrCreate` per employee + fiscal year.
 
 ## Phase 7 — Nova UI
 
