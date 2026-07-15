@@ -29,6 +29,7 @@ class RoleSeeder extends Seeder
         $accountantRole->syncPermissions([
             'AccountView', 'AccountCreate', 'AccountUpdate',
             'JournalEntryView', 'JournalEntryCreate', 'JournalEntryUpdate', 'JournalEntrySubmit',
+            'FixedAssetView', 'FixedAssetCreate', 'FixedAssetUpdate',
             'CommentView', 'CommentCreate', 'CommentResolve',
             'ActivityLogView',
         ]);
@@ -36,12 +37,13 @@ class RoleSeeder extends Seeder
         // Manager: everything the Accountant has + approve/reject/post/reverse.
         $managerPermissions = array_merge($accountantRole->permissions->pluck('name')->all(), [
             'JournalEntryApprove', 'JournalEntryReject', 'JournalEntryPost', 'JournalEntryReverse',
+            'FixedAssetDepreciate', 'FixedAssetDispose',
         ]);
         $managerRole = Role::firstOrCreate(['name' => 'Manager']);
         $managerRole->syncPermissions($managerPermissions);
 
         // CEO: same approval powers as Manager + account deletion.
         $ceoRole = Role::firstOrCreate(['name' => 'CEO']);
-        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete']));
+        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete']));
     }
 }

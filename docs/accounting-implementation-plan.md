@@ -102,6 +102,7 @@
 - **Demo/staff seed data**:
   - `EmployeeSeeder` — creates the staff users (Employee role) and their employee records.
   - `EmployeeSettingSeeder` — gives every employee a salary setting for the active fiscal year, basic wages spread evenly across **200,000 – 450,000** (rounded to the nearest 1,000), medical allowance at 10% of basic, petrol 13,500, device 5,000. Idempotent via `updateOrCreate` per employee + fiscal year.
+  - `PayslipSeeder` — generates payslips for **every employee for each elapsed month of the active fiscal year** (up to the previous month). Sets only the input fields (`employee_id`, `month`, `fiscal_year_id`, working/paid days, occasional bonus/extra hours/advances for realism) and lets the existing `Payslip::booted()` hook drive `PayslipService::calculateByParams()` so earnings, tax, and net salary are computed exactly as in production — no hand-rolled math in the seeder. Idempotent via `firstOrCreate` per employee + month + fiscal year (skips existing slips so regenerated data isn't clobbered). Registered in `DatabaseSeeder` after `EmployeeSettingSeeder` (requires employees, settings, salary slabs, and the active fiscal year); once Phase 8 lands, seeded payslips also exercise the payroll journal-entry posting path.
 
 ## Phase 7 — Nova UI
 
@@ -181,11 +182,67 @@ chart's relationships first-class in both API and UI.
    - Both registered in `DatabaseSeeder` after `ChartOfAccountsSeeder`; `JournalEntrySeeder`
      skipped in production (`app()->environment('production')` guard).
 
+## Phase 11 — Fixed Assets (register + depreciation)
+
+The `Account` Nova resource already exists (Phase 7: hierarchy, badges, ledger lines panel).
+This phase adds a proper fixed-asset register on top of the engine.
+
+1. **Migration `fixed_assets`** — `name`, `asset_code` (unique), `account_id` FK (asset account,
+   e.g. 1400 Office Equipment), `purchase_date`, `purchase_cost` decimal(15,2),
+   `depreciation_method` enum(`straight_line|declining_balance`), `useful_life_months`,
+   `salvage_value`, `accumulated_depreciation` (cached), `status` enum(`active|fully_depreciated|disposed`),
+   `disposed_at`, nullable `journal_entry_id` (purchase entry link), timestamps.
+2. **Chart additions** (`ChartOfAccountsSeeder`): `1500` Accumulated Depreciation (asset, contra —
+   credit-normal via explicit `normal_balance`), `5950` Depreciation Expense.
+3. **`FixedAsset` model** — `Auditable`; `account()`, `depreciationEntries()` (morph source);
+   `monthlyDepreciation()` (straight-line: (cost − salvage) / life; declining: rate × book value),
+   `bookValue()` accessor (cost − accumulated).
+4. **`DepreciationService`** — `runForMonth(FiscalYear $fy, string $month)`: for each active asset,
+   builds a journal entry via `JournalEntryService` (debit 5950, credit 1500), links it via the
+   `source` morph, updates `accumulated_depreciation`, flips status when fully depreciated.
+   `dispose(FixedAsset $asset)` books the disposal (write off cost vs accumulated + gain/loss).
+   Entries follow the same approval workflow (pending unless auto-post flag).
+5. **Nova `FixedAsset` resource** — asset register with book-value column, status badge,
+   depreciation schedule panel (its journal entries), **Run Monthly Depreciation** action
+   (Manager/CEO) and **Dispose Asset** action.
+6. **Tests** — straight-line math, fully-depreciated stop, disposal entry balances,
+   schedule appears in ledger.
+
+## Phase 12 — Bank Reconciliation (statement import, matching, workflow)
+
+Reconciles the bank statement against the 1100 Cash/Bank ledger.
+
+1. **Migrations**:
+   - `bank_statements` — `account_id` FK (bank account), `statement_date`, `opening_balance`,
+     `closing_balance`, `status` enum(`draft|in_progress|completed`), `completed_by`/`completed_at`.
+   - `bank_statement_lines` — `bank_statement_id` FK, `transaction_date`, `description`,
+     `reference`, `amount` (signed), `matched_line_id` nullable FK → `journal_entry_lines`,
+     `match_status` enum(`unmatched|auto_matched|manually_matched|excluded`).
+2. **`BankReconciliationService`**:
+   - `import(array $rows, BankStatement $statement)` — CSV rows → statement lines.
+   - `autoMatch(BankStatement $statement)` — match unreconciled ledger lines on the bank account
+     by exact amount + date within ±3 days, then by amount + reference contains entry number;
+     one-to-one only, ties left unmatched for manual review.
+   - `match(line, ledgerLine)` / `unmatch(line)` — manual override, policy-gated.
+   - `complete(BankStatement $statement, User $user)` — allowed only when every line is matched
+     or excluded **and** closing balance equals ledger balance as of statement date
+     (via `GeneralLedgerService`); stamps completed, locks lines from unmatching.
+   - Reconciled ledger lines get `reconciled_at` (new nullable column on `journal_entry_lines`)
+     so they are excluded from future auto-matching.
+3. **Workflow & permissions** — `BankStatementImport/Match/Complete` permissions:
+   Accountant imports and matches; Manager/CEO completes. All actions audit-logged.
+4. **Nova resources** — `BankStatement` (status badge, lines panel, progress: matched/total,
+   **Auto-Match** + **Complete Reconciliation** actions), `BankStatementLine` (match status badge,
+   **Match/Unmatch/Exclude** inline actions showing candidate ledger lines).
+5. **Tests** — import shape, auto-match exact/date-window/ambiguous-tie cases, manual match/unmatch,
+   completion blocked while unmatched lines remain or balances disagree, reconciled lines
+   excluded from re-matching.
+
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 

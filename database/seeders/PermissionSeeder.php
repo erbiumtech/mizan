@@ -78,6 +78,13 @@ class PermissionSeeder extends Seeder
             ['name' => 'JournalEntryPost', 'group' => 'JournalEntry'],
             ['name' => 'JournalEntryReverse', 'group' => 'JournalEntry'],
 
+            ['name' => 'FixedAssetView', 'group' => 'FixedAsset'],
+            ['name' => 'FixedAssetCreate', 'group' => 'FixedAsset'],
+            ['name' => 'FixedAssetUpdate', 'group' => 'FixedAsset'],
+            ['name' => 'FixedAssetDelete', 'group' => 'FixedAsset'],
+            ['name' => 'FixedAssetDepreciate', 'group' => 'FixedAsset'],
+            ['name' => 'FixedAssetDispose', 'group' => 'FixedAsset'],
+
             ['name' => 'CommentCreate', 'group' => 'Comment'],
             ['name' => 'CommentView', 'group' => 'Comment'],
             ['name' => 'CommentResolve', 'group' => 'Comment'],
