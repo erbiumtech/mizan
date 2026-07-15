@@ -2,12 +2,12 @@
 
 namespace App\Nova;
 
-use App\Nova\FiscalYear;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
-use Laravel\Nova\Fields\Select;
+use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Carbon\Carbon;
 
 class EmployeeSetting extends Resource
 {
@@ -26,18 +26,28 @@ class EmployeeSetting extends Resource
                 ->sortable()
                 ->rules('required'),
 
-            Select::make('Month', 'month')->options([
-                'January' => 'January', 'February' => 'February', 'March' => 'March',
-                'April' => 'April', 'May' => 'May', 'June' => 'June',
-                'July' => 'July', 'August' => 'August', 'September' => 'September',
-                'October' => 'October', 'November' => 'November', 'December' => 'December',
-            ])->rules('required'),
-
             BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
                 ->rules('required')
                 ->relatableQueryUsing(function (NovaRequest $request, $query) {
                     return $query->where('is_active', true);
                 }),
+
+            Date::make('Start Date', 'start_date')
+                ->rules('required')
+                ->default(function ($request) {
+                    return Carbon::today()->toDateString();
+                })
+                ->displayUsing(function ($value) {
+                    return $value ? Carbon::parse($value)->format('m/Y') : '-';
+                })
+                ->sortable(),
+
+            Date::make('End Date', 'end_date')
+                ->nullable()
+                ->displayUsing(function ($value) {
+                    return $value ? Carbon::parse($value)->format('m/Y') : '-';
+                })
+                ->sortable(),
 
             // --- EARNINGS (Allowances & Extras) ---
             Number::make('Basic Wage', 'basic_wage')->step(0.01)->default(0),

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Payslip;
 use App\Models\Employee;
+use App\Models\FiscalYear;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class PayslipController extends Controller
 {
@@ -23,13 +25,18 @@ class PayslipController extends Controller
         }
 
         $payslips = Payslip::where('employee_id', $employee->id)
+                           ->with('fiscalYear') 
                            ->orderBy('id', 'desc')
                            ->get()
                            ->map(function ($payslip) use ($employee) {
 
                                $cleanPayPeriod = str_replace([' ', '/', '\\'], '-', $payslip->pay_period);
 
-                               $fileName = 'payslips/' . $employee->employee_id . '-' . $cleanPayPeriod . '.pdf';
+                               $fyName = $payslip->fiscalYear ? str_replace(['/', '\\'], '-', $payslip->fiscalYear->name) : '';
+
+                               $fileName = $fyName
+                                   ? 'payslips/' . $employee->employee_id . '-' . $fyName . '-' . $cleanPayPeriod . '.pdf'
+                                   : 'payslips/' . $employee->employee_id . '-' . $cleanPayPeriod . '.pdf';
 
                                if (!Storage::disk('public')->exists($fileName)) {
 
