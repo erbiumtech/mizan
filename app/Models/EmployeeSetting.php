@@ -49,7 +49,19 @@ class EmployeeSetting extends Model
 
             if ($previousSetting) {
                 $newStart = Carbon::parse($setting->start_date);
-                $previousSetting->end_date = $newStart->copy()->subMonth()->endOfMonth()->toDateString();
+
+                $calculatedEnd = $newStart->copy()->subMonth()->endOfMonth();
+
+                $prevStart = Carbon::parse($previousSetting->start_date);
+                $maxFiscalYearEndYear = $prevStart->month >= 7 ? $prevStart->year + 1 : $prevStart->year;
+                $maxFiscalYearEndDate = Carbon::create($maxFiscalYearEndYear, 6, 30);
+
+                if ($calculatedEnd->gt($maxFiscalYearEndDate)) {
+                    $previousSetting->end_date = $maxFiscalYearEndDate->toDateString();
+                } else {
+                    $previousSetting->end_date = $calculatedEnd->toDateString();
+                }
+
                 $previousSetting->save();
             }
         });
@@ -76,7 +88,7 @@ class EmployeeSetting extends Model
         }
 
         $targetCarbon = Carbon::parse($date);
-        $targetMonthNum = $targetCarbon->month; 
+        $targetMonthNum = $targetCarbon->month;
 
         $targetActualYear = ($targetMonthNum >= 7 && $targetMonthNum <= 12) ? $startYear : $endYear;
 

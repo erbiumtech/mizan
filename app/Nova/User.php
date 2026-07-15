@@ -45,8 +45,6 @@ class User extends Resource
         Employee::create([
             'user_id' => $model->id,
             'employee_id' => 'EMP-'.$model->id,
-            'rate_per_hour' => 0,
-            'salary' => 0,
             'is_active' => 1,
         ]);
     }
