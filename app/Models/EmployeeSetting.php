@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeeSetting extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'employee_id', 'fiscal_year_id', 'start_date', 'end_date', 'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance',

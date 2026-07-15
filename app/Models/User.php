@@ -7,12 +7,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use App\Traits\Auditable;
 use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasRoles, HasFactory, Notifiable, HasApiTokens;
+    use HasRoles, HasFactory, Notifiable, HasApiTokens, Auditable;
+
+    public function getActivitylogOptions(): \Spatie\Activitylog\Support\LogOptions
+    {
+        return \Spatie\Activitylog\Support\LogOptions::defaults()
+            ->logOnly(['name', 'status', 'email'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('User');
+    }
 
     protected $fillable = [
         'name',

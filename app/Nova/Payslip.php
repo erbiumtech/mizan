@@ -7,6 +7,7 @@ use App\Services\PayslipService;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Fields\ID;
+use Laravel\Nova\Fields\MorphMany;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Http\Requests\NovaRequest;
@@ -110,13 +111,29 @@ class Payslip extends Resource
 
             Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->sortable()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'net_salary')),
+
+            MorphMany::make('Comments', 'comments', Comment::class),
         ];
+    }
+
+    /**
+     * Employees see only their own payslips; staff see all.
+     */
+    public static function indexQuery(NovaRequest $request, \Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    {
+        $user = $request->user();
+
+        if ($user->hasRole('Employee') && ! $user->hasAnyRole(['Administrator', 'Accountant', 'Manager', 'CEO'])) {
+            $query->whereHas('employee', fn ($q) => $q->where('user_id', $user->id));
+        }
+
+        return $query;
     }
 
     protected function updateCalculatedFields($field, FormData $formData, $key)
     {
         if ($formData->employee && $formData->month && $formData->fiscalYear) {
-            $data = (new PayslipService)->calculateByParams(
+            $data = app(PayslipService::class)->calculateByParams(
                 $formData->employee,
                 $formData->month,
                 $formData->fiscalYear,

@@ -60,6 +60,27 @@ class PermissionSeeder extends Seeder
             ['name' => 'AnnualTaxView', 'group' => 'AnnualTax'],
             ['name' => 'AnnualTaxUpdate', 'group' => 'AnnualTax'],
             ['name' => 'AnnualTaxDelete', 'group' => 'AnnualTax'],
+
+            ['name' => 'ActivityLogView', 'group' => 'ActivityLog'],
+
+            ['name' => 'AccountView', 'group' => 'Account'],
+            ['name' => 'AccountCreate', 'group' => 'Account'],
+            ['name' => 'AccountUpdate', 'group' => 'Account'],
+            ['name' => 'AccountDelete', 'group' => 'Account'],
+
+            ['name' => 'JournalEntryView', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryCreate', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryUpdate', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryDelete', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntrySubmit', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryApprove', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryReject', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryPost', 'group' => 'JournalEntry'],
+            ['name' => 'JournalEntryReverse', 'group' => 'JournalEntry'],
+
+            ['name' => 'CommentCreate', 'group' => 'Comment'],
+            ['name' => 'CommentView', 'group' => 'Comment'],
+            ['name' => 'CommentResolve', 'group' => 'Comment'],
         ];
 
         foreach ($permissions as $permissionData) {
