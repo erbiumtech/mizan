@@ -45,6 +45,6 @@ class JournalEntryLine extends Resource
 
     public static function authorizedToCreate(\Illuminate\Http\Request $request)
     {
-        return $request->user()->can('create', \App\Models\JournalEntry::class);
+        return $request->user()?->can('create', \App\Models\JournalEntry::class) ?? false;
     }
 }
