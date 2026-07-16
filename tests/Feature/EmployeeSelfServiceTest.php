@@ -129,6 +129,25 @@ class EmployeeSelfServiceTest extends AccountingTestCase
         $this->assertSame(0, EmployeeChangeRequest::count());
     }
 
+    public function test_submitting_request_notifies_approvers_not_requester(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $ceo = $this->makeUser('CEO', 'ceo-notify@test.local');
+
+        $this->actingAs($this->employeeUser);
+        $this->employee->update(['nic' => '66666-6666666-6']);
+
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            [$this->manager, $ceo],
+            \App\Notifications\EmployeeChangeRequestSubmitted::class
+        );
+        \Illuminate\Support\Facades\Notification::assertNotSentTo(
+            $this->employeeUser,
+            \App\Notifications\EmployeeChangeRequestSubmitted::class
+        );
+    }
+
     public function test_employee_cannot_sneak_non_allowed_fields(): void
     {
         $this->actingAs($this->employeeUser);
