@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             EmployeeSeeder::class,
             EmployeeSettingSeeder::class,
             ChartOfAccountsSeeder::class,
+            TransactionTypeSeeder::class,
             AccountSeeder::class,
             JournalEntrySeeder::class,
             PayslipSeeder::class,

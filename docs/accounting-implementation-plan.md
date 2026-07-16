@@ -304,11 +304,86 @@ header row, one `P` row per payment, `T` trailer with count + total).
 6. **Tests** — 204 fields per row, H/P/T structure, trailer count + total match,
    IBAN preferred over account no, values containing commas sanitized, UTF-8 output.
 
+## Phase 15 — Transaction Types, Company Bank Accounts + Generalized Bank Payments
+
+Categorizes money movement (rent, food, salary, utilities…), models the company's
+own bank accounts (each earmarked for a purpose), and generalizes the Phase 14 salary
+export into a bank payment file that can also pay non-employees (office rent to the
+landlord, food vendors) with the iPayments Payment Type chosen per transaction.
+
+1. **`transaction_types` table + `TransactionType` model** — `name` (unique: Salary,
+   Rent, Food, Utilities, Fuel, Office Supplies, Equipment, Tax Payment, Miscellaneous),
+   `code` (slug), `account_id` FK → default expense/liability account in the chart
+   (e.g. Rent → `5700 Rent Expense`, Food → `5600 Meal Expense`), `description`,
+   `is_active`; `Auditable`.
+   - **Chart additions** (`ChartOfAccountsSeeder`): `5700` Rent Expense,
+     `5750` Utilities Expense, `5800` Fuel & Travel Expense, `5850` Office Supplies
+     Expense (Food/Meals already exists as `5600`).
+   - **`TransactionTypeSeeder`** — the types above mapped to their default accounts;
+     idempotent via `code`.
+   - Nullable `transaction_type_id` FK on `journal_entries` — set explicitly on manual
+     entries and by services (payroll posting → Salary, depreciation → Equipment);
+     enables per-category filtering and a spend-by-type report slice later.
+2. **`company_bank_accounts` table + `CompanyBankAccount` model** — the firm's own
+   accounts that bulk payments debit from: `bank_id` FK (Phase 14 directory), `title`,
+   `account_no`, `iban`, **`account_type`** — a `transaction_type_id` FK (an account
+   earmarked for Salary, Rent, or Food payments), `is_default` (per type),
+   `is_active`; `Auditable`.
+   - **iPayments integration**: `SalaryBankExportService` resolves the debit account
+     from the default *Salary* company bank account (fallback: `IPAYMENTS_DEBIT_ACCOUNT`
+     env). Future rent/food payment files reuse the same resolution by type.
+3. **Nova** — `TransactionType` resource (name, code, default account BelongsTo, badge
+   for active) and `CompanyBankAccount` resource (bank BelongsTo, masked account no,
+   type Select from transaction types, default toggle); `JournalEntry` form gains an
+   optional Transaction Type select.
+4. **Permissions** — `TransactionTypeView/Create/Update/Delete` and
+   `CompanyBankAccountView/Create/Update/Delete`; Accountant view/create/update,
+   CEO/Admin delete. Deletion blocked while journal entries (type) or payment files
+   (account) reference them.
+5. **`beneficiaries` table + `Beneficiary` model** — payees who are **not employees**
+   (office landlord, caterer, utility vendors) but must be paid through the same bank
+   file: `name`, `bank_id` FK (Phase 14 directory), `account_no`, `iban`,
+   `id_type`/`id_number` (CNIC or NTN), `address_line_1/2`, `email`, `phone`,
+   `transaction_type_id` FK (what we usually pay them for — Rent, Food…),
+   **`payment_type`** enum (`IBFT|BT|ACH|RTGS|LBC`, default per beneficiary),
+   `is_active`; `Auditable`. Nova CRUD (`BeneficiaryView/Create/Update/Delete`
+   permissions, Accountant manages).
+6. **`payments` table + `Payment` model** — one bank-file row-to-be: `payable`
+   morph (**Employee or Beneficiary**), `transaction_type_id`, `amount`,
+   `reference`/`details` ("Office Rent July 2026"), `value_date`,
+   **`payment_type`** (resolved per transaction: beneficiary default → override
+   allowed; auto-suggest **RTGS** ≥ 1,000,000, **BT** when beneficiary bank =
+   debiting bank, else **IBFT**), `company_bank_account_id` FK (debit side, defaults
+   to the type's earmarked account), `status` enum (`draft|approved|exported|paid`),
+   nullable `journal_entry_id` (books debit expense-account-of-type / credit bank on
+   approval); `Auditable`. Salary payments are generated from payslips (one Payment
+   per payslip, payable = Employee, type = Salary); other payments entered manually
+   in Nova ("pay office rent to the landlord").
+7. **`BankPaymentExportService`** (generalizes Phase 14's `SalaryBankExportService`) —
+   builds one iPayments file from a set of `Payment` rows filtered by month +
+   transaction type(s): the **Payment Type column (col 2) comes from each payment's
+   `payment_type`**, not a global config; debit account (col 9) from each payment's
+   company bank account; beneficiary columns from the Employee or Beneficiary record
+   (name, bank IMD code, account/IBAN, CNIC/NTN with matching ID type, addresses,
+   contact). H/T rows unchanged; T total = sum of included payments. Marks exported
+   payments `exported`.
+8. **Nova/UI** — `Beneficiary` and `Payment` resources; the **Salary Bank File**
+   page becomes **Bank Payment File**: month + transaction-type filter (Salary only,
+   Rent only, or combined), per-row Payment Type shown and editable while `draft`,
+   preview totals per type, CSV download.
+9. **Tests** — non-employee beneficiary (landlord) exports correctly alongside
+   salaries; payment-type resolution rules (RTGS threshold, same-bank BT, IBFT
+   default, manual override wins); debit account follows transaction type; exported
+   rows keep 204 columns; status transitions draft → exported.
+10. **Other tests** — seeder idempotency; default-account mapping; only one default
+   company account per type (enforced on save); salary export debits the Salary
+   account; journal entries filterable by type.
+
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File) → 15 (Transaction Types + Company Bank Accounts)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 
