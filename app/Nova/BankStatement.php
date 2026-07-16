@@ -7,7 +7,7 @@ use App\Nova\Actions\CompleteReconciliation;
 use App\Nova\Actions\ImportStatementLines;
 use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\BelongsTo;
-use Laravel\Nova\Fields\Currency;
+use App\Nova\Fields\Currency;
 use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\HasMany;

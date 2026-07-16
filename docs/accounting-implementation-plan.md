@@ -540,11 +540,111 @@ file**.
    salaries and restores the float; second replenish call for the same month is
    rejected; overdrawn float blocked.
 
+## Phase 19 — Inventory (stock tracking + FIFO / LIFO / average-cost + COGS posting)
+
+Stock on hand valued by a configurable method, with every movement booking a
+balanced journal entry automatically.
+
+1. **Chart additions** (`ChartOfAccountsSeeder`): `1300` Inventory (asset),
+   `4200` Sales Revenue (income), `5050` Cost of Goods Sold (expense).
+2. **Migrations**
+   - `products` — `sku` (unique), `name`, `description`, `unit` (pcs/kg/…),
+     **`valuation_method`** enum (`fifo|lifo|average`), `reorder_level`,
+     `inventory_account_id` / `cogs_account_id` / `revenue_account_id` FKs
+     (default 1300/5050/4200), `is_active`.
+   - `stock_movements` — `product_id` FK, `type` enum (`purchase|sale|adjustment`),
+     `quantity` (signed), `unit_cost` (purchases/adjustments), `unit_price` (sales),
+     `movement_date`, `reference`, nullable `journal_entry_id`, nullable
+     `source_type`/`source_id` morphs (an invoice line owns its movement),
+     `remaining_quantity` (per-lot tracker for FIFO/LIFO consumption), timestamps.
+3. **`InventoryValuationService`** — the costing engine, pure and testable:
+   - `costOfSale(Product, qty)` — consumes purchase lots by the product's method:
+     **FIFO** (oldest lots first), **LIFO** (newest first) — decrementing
+     `remaining_quantity` per lot — or **average cost** (running weighted average of
+     on-hand stock, no lot consumption).
+   - `onHand(Product)` / `stockValue(Product)` — quantity and value as of a date;
+     value must always reconcile with the `1300` ledger.
+4. **`InventoryService`** — movements + automatic postings via `JournalEntryService`
+   (system-posted like depreciation):
+   - `purchase(product, qty, unitCost, date)` — movement + entry: debit `1300`,
+     credit `1100` Cash/Bank (or `2400` Accounts Payable when invoice-linked).
+   - `sale(product, qty, unitPrice, date)` — two balanced legs in one entry:
+     revenue (debit `1100`/receivable, credit `4200` at price) and **COGS**
+     (debit `5050`, credit `1300` at the valuation-engine cost).
+   - `adjust(product, qty, reason)` — write-off/count corrections (debit `5050` or
+     credit as appropriate). Negative-stock guarded.
+5. **Nova UI** — `Product` resource (SKU, valuation method badge, on-hand qty,
+   stock value, reorder warning) with **Receive Stock** / **Record Sale** /
+   **Adjust Stock** actions; `StockMovement` resource (read-only, links to its
+   journal entry); low-stock dashboard metric.
+6. **Permissions** — `ProductView/Create/Update/Delete`, `StockMove` (Accountant+),
+   `StockAdjust` (Manager/CEO). Product deletion blocked while movements exist.
+7. **`InventorySeeder`** — demo products (laptops, cables, paper, toner) across all
+   three valuation methods, with a purchase/sale history through elapsed months so
+   FIFO vs LIFO vs average produce visibly different COGS; registered in
+   `DatabaseSeeder` after `PettyCashSeeder`. Idempotent via `sku`.
+8. **Tests** — FIFO consumes oldest lot; LIFO newest; average recomputes on each
+   purchase; COGS entry balances and hits 5050/1300; stock value reconciles with the
+   1300 ledger; negative stock blocked; each method's textbook example verified.
+
+## Phase 20 — Invoices (customer & supplier invoicing + ledger posting)
+
+Line-item invoicing on both sides (sell to customers, buy from suppliers), posting
+balanced entries and driving inventory movements.
+
+1. **Chart additions**: `1250` Accounts Receivable (asset), `2400` Accounts Payable
+   (liability, if not present), `4300` Other Income kept for non-product lines.
+2. **Migrations**
+   - `contacts` — unified customer/supplier directory: `name`, `kind` enum
+     (`customer|supplier|both`), `email`, `phone`, `address_line_1/2`, `ntn`/`cnic`,
+     `bank_id` FK nullable (pay suppliers through the Phase 15 payment flow),
+     `is_active`.
+   - `invoices` — `invoice_number` unique (`INV-YYYY-NNNNNN` sales /
+     `BILL-YYYY-NNNNNN` purchases), `kind` enum (`sale|purchase`), `contact_id` FK,
+     `invoice_date`, `due_date`, `status` enum (`draft|issued|partially_paid|paid|void`),
+     `subtotal`, `tax_amount`, `total`, `amount_paid`, `memo`,
+     nullable `journal_entry_id`, `fiscal_year_id` FK.
+   - `invoice_lines` — `invoice_id` FK cascade, nullable `product_id` FK (service
+     lines allowed), `description`, `quantity`, `unit_price`, `line_total`,
+     nullable `account_id` override (non-product lines post here).
+3. **`InvoiceService`**
+   - `issue(Invoice)` — validates lines sum to totals, then posts one balanced entry:
+     **sale**: debit `1250` A/R (total), credit `4200` per product line / line-account
+     override, credit `2100` for tax; product lines also fire
+     `InventoryService::sale()` so COGS books at the same time.
+     **purchase**: debit `1300` (product lines, creating purchase lots) or expense
+     account per line, debit tax, credit `2400` A/P.
+   - `recordPayment(Invoice, amount, date)` — debit `1100` / credit `1250` (sales)
+     or debit `2400` / credit `1100` (purchases); supplier payments can instead
+     create a Phase 15 `Payment` (payable = supplier contact via morph) so they ride
+     the bank payment file; status transitions to `partially_paid`/`paid`.
+   - `void(Invoice)` — reverses the posting entry (and inventory movements) via the
+     reversing-entry mechanism; only Manager/CEO.
+   - Aging helpers: `outstandingReceivables()` / `outstandingPayables()` grouped by
+     30/60/90 buckets for a future report.
+4. **Nova UI** — `Contact` resource (kind badge, invoices panel); `Invoice` resource
+   with inline `InvoiceLine` HasMany (product picker auto-fills price/description),
+   status badge, **Issue**, **Record Payment** (amount prompt), **Void** actions,
+   PDF download via the existing spatie/laravel-pdf pipeline; unpaid-invoices
+   dashboard metric.
+5. **Permissions** — `ContactView/Create/Update/Delete`,
+   `InvoiceView/Create/Update/Issue/Pay/Void` (Accountant creates/issues/pays;
+   Manager/CEO void; Employee none).
+6. **Seeders** — `ContactSeeder` (a few customers incl. "4sure AG", suppliers for
+   the inventory products) and `InvoiceSeeder` (issued + paid sales invoices and
+   supplier bills across elapsed months, driving the Phase 19 purchase lots and
+   sales so the A/R, A/P, revenue, COGS, and inventory ledgers all carry consistent
+   demo data); registered after `InventorySeeder`. Idempotent via `invoice_number`.
+7. **Tests** — issue posts balanced entries on both kinds; product sale books COGS
+   via the product's valuation method; payment transitions and amounts; void
+   reverses ledger + stock; totals validation rejects mismatched lines; aging
+   buckets; seeder idempotency.
+
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File) → 15 (Transaction Types + Company Bank Accounts) → 16 (Account Register) → 17 (GnuCash Import) → 18 (Petty Cash Book)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File) → 15 (Transaction Types + Company Bank Accounts) → 16 (Account Register) → 17 (GnuCash Import) → 18 (Petty Cash Book) → 19 (Inventory) → 20 (Invoices)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 
