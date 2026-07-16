@@ -75,8 +75,8 @@ form, and a Material top app bar + navigation drawer for the header.
    route-model-bound by slug) rendering published pages only; 404 on drafts.
    Existing `/` redirect to `/nova` moves to `/cpi` only when the site is
    disabled via a `site.enabled` config flag (default on).
-7. **Seeder** — `SiteContentSeeder`: default settings (company name from
-   `config('app.name')`, placeholder logo, socials) and the Home + About page
+7. **Seeder** — `SiteContentSeeder`: default settings (company name
+   **ErbiumTech**, placeholder logo, socials) and the Home + About page
    rows. Idempotent via `key` / `slug`.
 8. **Tests** — settings cache round-trip; published page renders; draft 404s;
    only `WebsiteManage` holders can edit (policy).
@@ -213,7 +213,8 @@ and Tailwind 4 is already configured.
   `WebsiteManage` goes to Manager/CEO (Admin has everything); the role can
   be added later by attaching the two website permissions.
 
-## Open questions
+- **Placeholder branding, company name "ErbiumTech"** — seeders ship the
+  ErbiumTech name with neutral placeholder logo, colors, and copy; real brand
+  assets swap in later through Site Settings in Nova (no code changes).
 
-1. Is there brand material (logo, colors, copy) to seed, or should seeders
-   ship neutral placeholders? Plan assumes placeholders until provided.
+No open questions remain — the plan is ready to build.
