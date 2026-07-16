@@ -34,6 +34,9 @@ class RoleSeeder extends Seeder
             'CompanyBankAccountView', 'CompanyBankAccountCreate', 'CompanyBankAccountUpdate',
             'BeneficiaryView', 'BeneficiaryCreate', 'BeneficiaryUpdate',
             'PaymentView', 'PaymentCreate', 'PaymentUpdate', 'PaymentDelete',
+            'RegisterPost',
+            'GnuCashImport',
+            'PettyCashView', 'PettyCashCreate',
             'JournalEntryView', 'JournalEntryCreate', 'JournalEntryUpdate', 'JournalEntrySubmit',
             'FixedAssetView', 'FixedAssetCreate', 'FixedAssetUpdate',
             'BankStatementView', 'BankStatementCreate', 'BankStatementUpdate', 'BankStatementImport', 'BankStatementMatch',
@@ -44,6 +47,7 @@ class RoleSeeder extends Seeder
         // Manager: everything the Accountant has + approve/reject/post/reverse.
         $managerPermissions = array_merge($accountantRole->permissions->pluck('name')->all(), [
             'JournalEntryApprove', 'JournalEntryReject', 'JournalEntryPost', 'JournalEntryReverse',
+            'PettyCashReplenish',
             'FixedAssetDepreciate', 'FixedAssetDispose',
             'BankStatementComplete',
         ]);

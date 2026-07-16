@@ -88,6 +88,11 @@ class PermissionSeeder extends Seeder
             ['name' => 'PaymentCreate', 'group' => 'Payment'],
             ['name' => 'PaymentUpdate', 'group' => 'Payment'],
             ['name' => 'PaymentDelete', 'group' => 'Payment'],
+            ['name' => 'RegisterPost', 'group' => 'Register'],
+            ['name' => 'GnuCashImport', 'group' => 'Import'],
+            ['name' => 'PettyCashView', 'group' => 'PettyCash'],
+            ['name' => 'PettyCashCreate', 'group' => 'PettyCash'],
+            ['name' => 'PettyCashReplenish', 'group' => 'PettyCash'],
 
             ['name' => 'JournalEntryView', 'group' => 'JournalEntry'],
             ['name' => 'JournalEntryCreate', 'group' => 'JournalEntry'],

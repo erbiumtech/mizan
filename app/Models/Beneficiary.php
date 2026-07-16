@@ -12,11 +12,12 @@ class Beneficiary extends Model
     protected $fillable = [
         'name', 'bank_id', 'account_no', 'iban', 'id_type', 'id_number',
         'address_line_1', 'address_line_2', 'email', 'phone',
-        'transaction_type_id', 'payment_type', 'is_active',
+        'transaction_type_id', 'payment_type', 'is_petty_cash_custodian', 'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_petty_cash_custodian' => 'boolean',
     ];
 
     public function bank()
