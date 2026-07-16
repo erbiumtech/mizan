@@ -14,6 +14,7 @@ class ChartOfAccountsSeeder extends Seeder
         $chart = [
             ['code' => '1000', 'name' => 'Assets', 'type' => 'asset', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '1100', 'name' => 'Cash / Bank', 'type' => 'asset'],
+                ['code' => '1150', 'name' => 'Petty Cash', 'type' => 'asset', 'description' => 'Imprest petty cash box'],
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
                 ['code' => '1400', 'name' => 'Office Equipment', 'type' => 'asset', 'description' => 'Fixed assets: computers, furniture, hardware'],
                 ['code' => '1450', 'name' => 'Vehicles', 'type' => 'asset', 'description' => 'Fixed assets: company vehicles'],
@@ -42,6 +43,7 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '5750', 'name' => 'Utilities Expense', 'type' => 'expense'],
                 ['code' => '5800', 'name' => 'Fuel & Travel Expense', 'type' => 'expense'],
                 ['code' => '5850', 'name' => 'Office Supplies Expense', 'type' => 'expense'],
+                ['code' => '5860', 'name' => 'Cleaning Expense', 'type' => 'expense'],
                 ['code' => '5990', 'name' => 'Depreciation Expense', 'type' => 'expense'],
                 ['code' => '5995', 'name' => 'Loss on Asset Disposal', 'type' => 'expense'],
             ]],

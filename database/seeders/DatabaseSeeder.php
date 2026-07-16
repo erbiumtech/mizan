@@ -23,10 +23,13 @@ class DatabaseSeeder extends Seeder
             EmployeeSettingSeeder::class,
             ChartOfAccountsSeeder::class,
             TransactionTypeSeeder::class,
+            CompanyBankAccountSeeder::class,
+            BeneficiarySeeder::class,
             AccountSeeder::class,
             JournalEntrySeeder::class,
             PayslipSeeder::class,
             FixedAssetSeeder::class,
+            PettyCashSeeder::class,
         ]);
 
         // Admin User Creation

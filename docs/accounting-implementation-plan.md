@@ -371,19 +371,180 @@ landlord, food vendors) with the iPayments Payment Type chosen per transaction.
    page becomes **Bank Payment File**: month + transaction-type filter (Salary only,
    Rent only, or combined), per-row Payment Type shown and editable while `draft`,
    preview totals per type, CSV download.
-9. **Tests** — non-employee beneficiary (landlord) exports correctly alongside
+9. **Demo seed data** — registered in `DatabaseSeeder` after `BankSeeder` +
+   `TransactionTypeSeeder`:
+   - **`CompanyBankAccountSeeder`** — the company's operating accounts: a default
+     *Salary* account (SCB, `IPAYMENTS_DEBIT_ACCOUNT`-style number), a *Rent* account
+     and a general *Miscellaneous* account, each linked to its bank (Phase 14
+     directory) and transaction type, `is_default` set. Idempotent via
+     `updateOrCreate` on `account_no`.
+   - **`BeneficiarySeeder`** — realistic non-employee payees: office landlord (Rent,
+     CNIC, IBAN, address), caterer (Food), internet/utility provider (Utilities, NTN),
+     fuel station (Fuel) — each with bank from the directory and a sensible default
+     payment type. Idempotent via `firstOrCreate` on `name`.
+10. **Tests** — non-employee beneficiary (landlord) exports correctly alongside
    salaries; payment-type resolution rules (RTGS threshold, same-bank BT, IBFT
    default, manual override wins); debit account follows transaction type; exported
    rows keep 204 columns; status transitions draft → exported.
-10. **Other tests** — seeder idempotency; default-account mapping; only one default
+11. **Other tests** — seeder idempotency; default-account mapping; only one default
    company account per type (enforced on save); salary export debits the Salary
    account; journal entries filterable by type.
+
+## Phase 16 — Account Register (GnuCash-style single-screen transaction entry)
+
+Modeled on the checking-account register screenshot (`docs/` reference): one UI where
+**all** day-to-day transactions are entered against a bank/cash account — bills,
+utilities, dining, salaries, rent, income — each row a Date / Num / Description /
+**Transfer** (counter-account) / Debit / Credit line with a **running balance**.
+
+1. **Register page** (Blade, linked from the Nova sidebar like the Reports pages) —
+   one register per debit-side account:
+   - **Account tabs** across the top (like GnuCash's "Accounts | Checking Account"):
+     one tab per active `CompanyBankAccount` (backed by `1100 Cash/Bank` or its own
+     GL sub-account) — selecting a tab shows that account's register.
+   - **Ledger table** from `GeneralLedgerService::accountLedger()`: date, entry number
+     (Num), description/memo, Transfer column showing the *other* account of the entry
+     as a `Type:Account` path (e.g. `Expenses:Utilities:Electric` ≈
+     `expense → 5750 Utilities`), debit, credit, **running balance**; date-range filter.
+   - **Quick-add row pinned at the bottom**: date (defaults today), description,
+     **Transfer select** — searchable, grouped by account type and showing the
+     hierarchy path, defaulting from the chosen transaction type — amount entered in
+     either the Debit or Credit column (money-in vs money-out of the bank account),
+     optional transaction type tag (auto-inferred from the transfer account's
+     `transaction_types` mapping when unique).
+2. **`RegisterEntryService`** — turns one register row into a balanced 2-line journal
+   entry via `JournalEntryService`: credit bank / debit transfer account for money-out,
+   inverse for money-in; stamps `transaction_type_id`; entries are **auto-approved and
+   posted** (same treatment as depreciation's system entries) so the running balance
+   updates immediately — full multi-line entries still go through the JournalEntry
+   workflow for anything the quick row can't express.
+3. **Permissions** — reuse `JournalEntryCreate` for adding rows; a new
+   `RegisterPost` permission gates the auto-post shortcut (Accountant+); the page
+   itself requires `JournalEntryView`.
+4. **Niceties** — keyboard-first entry (Enter saves and starts the next row),
+   duplicate-last-row action, per-row link to the underlying journal entry in Nova,
+   reconciled flag column (`R`) fed by Phase 12's `reconciled_at`.
+5. **Tests** — money-out row books credit-bank/debit-expense and running balance
+   drops; money-in (income) row is the inverse; transfer select excludes
+   non-postable accounts; auto-post requires `RegisterPost`; register totals agree
+   with `GeneralLedgerService` for the same range.
+
+## Phase 17 — GnuCash Import (CSV)
+
+Migrates existing GnuCash books into the engine using GnuCash's own CSV exports
+(File → Export): **Account Tree to CSV**, **Transactions to CSV**, and
+**Active Register to CSV**.
+
+1. **`GnuCashImportService`** with one importer per export format:
+   - `importAccountTree(rows)` — GnuCash account-tree CSV (`Type, Full Account Name,
+     Name, Code, Description, …, Hidden, Placeholder`): maps GnuCash types to our
+     enum (ASSET/BANK/CASH → asset, CREDIT/LIABILITY → liability, INCOME → income,
+     EXPENSE → expense, EQUITY → equity), builds the `parent_id` hierarchy from the
+     colon-separated *Full Account Name* (`Expenses:Utilities:Electric`), creates
+     missing parents as non-postable placeholders, assigns codes (uses GnuCash's code
+     when present, else next free code in the type's range), `Placeholder` →
+     `allow_manual_entry = false`. Idempotent: match on full name path, then code.
+   - `importTransactions(rows)` — GnuCash transactions CSV (multi-row per
+     transaction: `Date, Transaction ID, Number, Description, …, Full Account Name,
+     Amount Num., Rate/Price…`): groups rows by *Transaction ID* into one
+     `JournalEntry` (memo = Description, `entry_date` = Date, reference = Number),
+     each split row becomes a line (positive amount → debit, negative → credit on
+     that account); validates each group balances before creating via
+     `JournalEntryService`; entries are imported as **approved + posted** (they are
+     historical facts), tagged `entry_type = general` and source-marked as
+     `gnucash-import`. Idempotent via a `gnucash_id` column (new nullable string on
+     `journal_entries`, unique) storing the Transaction ID.
+   - `importActiveRegister(rows)` — the single-account register export (Date, Num,
+     Description, Transfer, R, Debit, Credit): the target account is chosen at
+     upload; each row books a 2-line entry against the *Transfer* account (resolved
+     by full name path, auto-created via `importAccountTree` rules when missing) —
+     reuses Phase 16's `RegisterEntryService`; `R = y` sets `reconciled_at`.
+2. **Duplicate & error handling** — dry-run mode returns a preview (rows parsed,
+   accounts to create, entries to book, duplicates skipped, unbalanced groups
+   rejected with row numbers); nothing writes until confirmed. All writes in one DB
+   transaction per file.
+3. **UI** — **GnuCash Import** page under the Nova sidebar (same Blade pattern):
+   upload CSV + import-kind select (auto-detected from the header row), dry-run
+   preview table, Confirm Import button; per-import activity-log event with counts.
+   Gated by a new `GnuCashImport` permission (Administrator + Accountant).
+4. **Config/notes** — GnuCash amounts are signed decimals with locale separators
+   (`1,385,022.98`) — parser strips thousands separators; dates accepted as
+   `dd/mm/yyyy` and `yyyy-mm-dd`. Multi-currency rows rejected with a clear error
+   (engine is single-currency PKR).
+5. **Tests** — account-tree hierarchy import (3-level path), type mapping, transaction
+   grouping balances, signed-amount to debit/credit conversion, register import with
+   auto-created transfer account, duplicate `gnucash_id` skipped on re-import,
+   dry-run writes nothing, unbalanced group rejected.
+
+## Phase 18 — Petty Cash Book (imprest system)
+
+Classic two-sided petty cash book (per the reference sheet): a *Received* side for
+float top-ups, a *Paid* side where every voucher is analyzed into a column per
+expense category (Cleaning, Stationery, Travel…), the month closed with a **c/d
+balance carried down**, and the float restored by a month-end **replenishment paid
+from a company bank account to the petty-cash custodian through the salary bank
+file**.
+
+1. **Chart + custodian**
+   - New account `1150 Petty Cash` (asset) in `ChartOfAccountsSeeder`.
+   - New transaction type `petty-cash-replenishment` (mapped to `1150`).
+   - The **custodian is a `Beneficiary`** (Phase 15) flagged via new
+     `is_petty_cash_custodian` boolean — their bank details receive the monthly
+     top-up alongside salaries.
+   - `config/petty_cash.php`: `float_amount` (the imprest, e.g. 4,000) and custodian
+     defaults.
+2. **`petty_cash_vouchers` table + model** — one Paid-side row each: `voucher_no`
+   (auto `PCV-YYYY-NNNN`), `date`, `details`, `amount`,
+   `transaction_type_id` (the analysis column: Cleaning → new type, Stationery →
+   Office Supplies, Travel → Fuel/Travel…), nullable `receipt_path` (photo of the
+   chit), `journal_entry_id`; `Auditable`. Saving books a posted 2-line entry —
+   debit the type's expense account, credit `1150` — via `RegisterEntryService`
+   (Phase 16 treatment: system-posted).
+3. **`PettyCashService`**
+   - `bookVoucher(data)` — creates voucher + entry (validates float not overdrawn).
+   - `monthSummary($month)` — the book layout: received (b/d + top-ups), paid rows
+     with one column per transaction type used, per-column totals, **c/d closing
+     balance** = received − paid (the ledger `1150` balance must agree).
+   - `replenish($month)` — month-end close: amount = float − closing balance
+     (restores the imprest). Creates a **`Payment`** (Phase 15): payable = custodian
+     Beneficiary, type = `petty-cash-replenishment`, **debits the company bank
+     account** (the type's earmarked account or the Salary default), details
+     "Petty cash replenishment {month}". The payment rides in the month's **bank
+     payment file with the salaries**; on approval it books debit `1150` / credit
+     `1100`. Idempotent — one replenishment per month.
+4. **UI** — **Petty Cash Book** page (Nova sidebar, Blade pattern): month picker;
+   two-sided layout exactly like the reference — left Received (b/d, top-ups),
+   right Paid with dynamic analysis columns and totals row; c/d line; **Add
+   Voucher** quick-row; **Replenish Month** button (Manager/CEO) showing the
+   computed top-up before confirming. Nova `PettyCashVoucher` resource for
+   browsing/receipt uploads.
+5. **Permissions** — `PettyCashView/Create` (Accountant+), `PettyCashReplenish`
+   (Manager/CEO). Vouchers immutable once their month is replenished.
+6. **Demo seed data** — registered in `DatabaseSeeder` after `BeneficiarySeeder` +
+   `PayslipSeeder`:
+   - **`BeneficiarySeeder` addition** — an "Office Boy / Petty Cash Custodian"
+     beneficiary (`is_petty_cash_custodian = true`) with bank details from the
+     directory, so the replenishment payment has somewhere to land.
+   - **`PettyCashSeeder`** — for each elapsed month of the active fiscal year:
+     an opening float top-up (4,000), then a handful of dated vouchers spread
+     across the month mirroring the reference sheet (Cleaning 1,000 · Stationery
+     1,000 · Travel 500 · Cleaning 1,000), booked through
+     `PettyCashService::bookVoucher()` so the `1150` ledger entries are real;
+     closed months are then replenished via `PettyCashService::replenish()` so
+     the demo bank payment file shows the custodian's top-up next to salaries and
+     the new month opens with the correct b/d. Idempotent: skips a month that
+     already has vouchers; deterministic amounts (no randomness).
+7. **Tests** — voucher books debit-expense/credit-1150; column totals and c/d match
+   the reference sheet's math (4,000 received, 3,500 paid, 500 c/d, 3,500
+   replenished); replenishment Payment lands in the bank payment file next to
+   salaries and restores the float; second replenish call for the same month is
+   rejected; overdrawn float blocked.
 
 ---
 
 ## Build order & scope
 
-**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File) → 15 (Transaction Types + Company Bank Accounts)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
+**1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File) → 15 (Transaction Types + Company Bank Accounts) → 16 (Account Register) → 17 (GnuCash Import) → 18 (Petty Cash Book)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
 ## Open decision
 

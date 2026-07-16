@@ -32,6 +32,9 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     \Laravel\Nova\Menu\MenuItem::externalLink('Trial Balance', url('/reports/trial-balance')),
                     \Laravel\Nova\Menu\MenuItem::externalLink('Profit & Loss', url('/reports/profit-and-loss')),
                     \Laravel\Nova\Menu\MenuItem::externalLink('Bank Payment File', url('/reports/bank-payment-file')),
+                    \Laravel\Nova\Menu\MenuItem::externalLink('Account Register', url('/reports/register')),
+                    \Laravel\Nova\Menu\MenuItem::externalLink('GnuCash Import', url('/reports/gnucash-import')),
+                    \Laravel\Nova\Menu\MenuItem::externalLink('Petty Cash Book', url('/reports/petty-cash')),
                 ])->icon('document-chart-bar')->collapsable()
                   ->canSee(fn ($req) => (bool) $req->user()?->can('ReportView'))
             );

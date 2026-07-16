@@ -23,6 +23,8 @@ class TransactionTypeSeeder extends Seeder
             ['code' => 'office-supplies', 'name' => 'Office Supplies', 'account_code' => '5850', 'description' => 'Stationery & consumables'],
             ['code' => 'equipment', 'name' => 'Equipment', 'account_code' => '1400', 'description' => 'Fixed asset purchases'],
             ['code' => 'tax-payment', 'name' => 'Tax Payment', 'account_code' => '2100', 'description' => 'FBR withholding tax remittance'],
+            ['code' => 'cleaning', 'name' => 'Cleaning', 'account_code' => '5860', 'description' => 'Cleaning & janitorial'],
+            ['code' => 'petty-cash-replenishment', 'name' => 'Petty Cash Replenishment', 'account_code' => '1150', 'description' => 'Restores the petty cash imprest'],
             ['code' => 'miscellaneous', 'name' => 'Miscellaneous', 'account_code' => null, 'description' => 'Everything else'],
         ];
 
