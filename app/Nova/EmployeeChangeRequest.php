@@ -38,6 +38,19 @@ class EmployeeChangeRequest extends Resource
     }
 
     /**
+     * Sidebar item with a pending-count badge for approvers.
+     */
+    public function menu(\Illuminate\Http\Request $request)
+    {
+        return parent::menu($request)->withBadgeIf(
+            fn () => (string) \App\Models\EmployeeChangeRequest::where('status', \App\Models\EmployeeChangeRequest::STATUS_PENDING)->count(),
+            'warning',
+            fn () => ($request->user()?->can('EmployeeChangeApprove') ?? false)
+                && \App\Models\EmployeeChangeRequest::where('status', \App\Models\EmployeeChangeRequest::STATUS_PENDING)->exists()
+        );
+    }
+
+    /**
      * Approvers see every request; employees only their own.
      */
     public static function indexQuery(NovaRequest $request, $query): Builder
