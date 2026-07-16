@@ -205,11 +205,15 @@ and Tailwind 4 is already configured.
 - Content is **publish-flag driven** (draft/published) rather than full
   versioning/scheduling; can be added later if editors need it.
 
+## Confirmed (2026-07-16)
+
+- **Same domain, `/` is the home page** — the current `/` → `/nova` redirect
+  is replaced by the site home; staff reach the admin at `/cpi` directly.
+- **No dedicated Content Editor role for the first release** —
+  `WebsiteManage` goes to Manager/CEO (Admin has everything); the role can
+  be added later by attaching the two website permissions.
+
 ## Open questions
 
-1. Should the site live at `/` of this same domain, or a separate domain
-   pointing at the same app (route by host)? Plan assumes `/` here.
-2. Is there brand material (logo, colors, copy) to seed, or should seeders
-   ship neutral placeholders? Plan assumes placeholders.
-3. Do you want a dedicated "Content Editor" role now, or is Manager/CEO/Admin
-   enough for the first release? Plan assumes the latter.
+1. Is there brand material (logo, colors, copy) to seed, or should seeders
+   ship neutral placeholders? Plan assumes placeholders until provided.
