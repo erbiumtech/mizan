@@ -50,6 +50,7 @@ class Employee extends Resource
                         'Full Stack Developer' => 'Full Stack Developer',
                         'Frontend Developer' => 'Frontend Developer',
                         'Backend Developer' => 'Backend Developer',
+                        'Secretary' => 'Secretary',
                         'Cook' => 'Cook',
                         'Office Boy' => 'Office Boy',
                     ])
@@ -65,11 +66,25 @@ class Employee extends Resource
                 ->displayUsingLabels()
                 ->rules('required')
                 ->hideFromIndex(),
-                
+
             Date::make('Date of Joining', 'date_of_joining')->hideFromIndex(),
             Text::make('NIC', 'nic')->hideFromIndex(),
-            \Laravel\Nova\Fields\BelongsTo::make('Bank', 'bank', Bank::class)->nullable()->searchable()->hideFromIndex()->help('Bank directory (IMD codes) for salary bank files'),
-            Text::make('Bank Name', 'bank_name')->hideFromIndex(),
+
+            // Bank Select Field
+            BelongsTo::make('Bank', 'bank', Bank::class)
+                ->nullable()
+                ->searchable()
+                ->hideFromIndex()
+                ->help('Bank directory for salary bank files'),
+
+            Text::make('Bank Code', 'bank_code')
+                ->readonly()
+                ->exceptOnForms(),
+
+            Text::make('Bank Short Code', 'bank_short_code')
+                ->readonly()
+                ->exceptOnForms(),
+
             Text::make('Bank A/C No', 'bank_account_no')->hideFromIndex(),
             Text::make('IBAN No', 'iban_no')->hideFromIndex(),
             Text::make('Phone', 'phone')->hideFromIndex(),
