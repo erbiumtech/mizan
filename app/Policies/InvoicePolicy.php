@@ -32,4 +32,15 @@ class InvoicePolicy
     {
         return $user->hasPermissionTo('InvoiceVoid') && $invoice->isDraft();
     }
+
+    /**
+     * Issued invoices are not updatable, but Issue / Record Payment /
+     * Void actions must still run; each action gates its own permission.
+     */
+    public function runAction(User $user, Invoice $invoice): bool
+    {
+        return $user->hasPermissionTo('InvoiceIssue')
+            || $user->hasPermissionTo('InvoicePay')
+            || $user->hasPermissionTo('InvoiceVoid');
+    }
 }

@@ -28,6 +28,15 @@ class EmployeeChangeRequestPolicy
         return false;
     }
 
+    /**
+     * Nova falls back to update() for running actions unless this
+     * exists; requests are immutable but approvers may Approve/Reject.
+     */
+    public function runAction(User $user, EmployeeChangeRequest $changeRequest): bool
+    {
+        return $user->can('EmployeeChangeApprove');
+    }
+
     public function delete(User $user, EmployeeChangeRequest $changeRequest): bool
     {
         return $user->hasRole('Administrator');
