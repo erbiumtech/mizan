@@ -18,6 +18,22 @@ class Employee extends Resource
 
     public static $search = ['employee_id'];
 
+    /**
+     * Shown wherever an Employee is referenced (BelongsTo dropdowns, links).
+     */
+    public function title(): string
+    {
+        return $this->employee_id.' - '.($this->user?->name ?? '');
+    }
+
+    /**
+     * Search by employee code and by the linked user's name.
+     */
+    public static function searchableColumns(): array
+    {
+        return ['employee_id', new \Laravel\Nova\Query\Search\SearchableRelation('user', 'name')];
+    }
+
     public static function indexQuery(NovaRequest $request, $query): Builder
     {
         if ($request->user()->hasRole('Administrator')) {

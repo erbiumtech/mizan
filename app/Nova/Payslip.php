@@ -29,6 +29,7 @@ class Payslip extends Resource
             ID::make()->sortable()->hideFromIndex(),
 
             BelongsTo::make('Employee', 'employee', Employee::class)
+                ->searchable()
                 ->rules('required', function ($attribute, $value, $fail) use ($request) {
                     $exists = \App\Models\Payslip::where('employee_id', $value)
                         ->where('month', $request->month)
