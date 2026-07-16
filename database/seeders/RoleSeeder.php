@@ -37,6 +37,7 @@ class RoleSeeder extends Seeder
             'RegisterPost',
             'GnuCashImport',
             'PettyCashView', 'PettyCashCreate',
+            'ProductView', 'ProductCreate', 'ProductUpdate', 'StockMove',
             'JournalEntryView', 'JournalEntryCreate', 'JournalEntryUpdate', 'JournalEntrySubmit',
             'FixedAssetView', 'FixedAssetCreate', 'FixedAssetUpdate',
             'BankStatementView', 'BankStatementCreate', 'BankStatementUpdate', 'BankStatementImport', 'BankStatementMatch',
@@ -48,6 +49,7 @@ class RoleSeeder extends Seeder
         $managerPermissions = array_merge($accountantRole->permissions->pluck('name')->all(), [
             'JournalEntryApprove', 'JournalEntryReject', 'JournalEntryPost', 'JournalEntryReverse',
             'PettyCashReplenish',
+            'StockAdjust',
             'FixedAssetDepreciate', 'FixedAssetDispose',
             'BankStatementComplete',
         ]);
@@ -56,6 +58,6 @@ class RoleSeeder extends Seeder
 
         // CEO: same approval powers as Manager + account deletion.
         $ceoRole = Role::firstOrCreate(['name' => 'CEO']);
-        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete']));
+        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete']));
     }
 }

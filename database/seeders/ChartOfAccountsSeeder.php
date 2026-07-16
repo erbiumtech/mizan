@@ -16,6 +16,7 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '1100', 'name' => 'Cash / Bank', 'type' => 'asset'],
                 ['code' => '1150', 'name' => 'Petty Cash', 'type' => 'asset', 'description' => 'Imprest petty cash box'],
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
+                ['code' => '1300', 'name' => 'Inventory', 'type' => 'asset', 'description' => 'Stock on hand at cost'],
                 ['code' => '1400', 'name' => 'Office Equipment', 'type' => 'asset', 'description' => 'Fixed assets: computers, furniture, hardware'],
                 ['code' => '1450', 'name' => 'Vehicles', 'type' => 'asset', 'description' => 'Fixed assets: company vehicles'],
                 ['code' => '1500', 'name' => 'Accumulated Depreciation', 'type' => 'asset', 'normal_balance' => 'credit', 'description' => 'Contra-asset: credit-normal'],
@@ -31,8 +32,10 @@ class ChartOfAccountsSeeder extends Seeder
             ]],
             ['code' => '4000', 'name' => 'Income', 'type' => 'income', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '4100', 'name' => 'Service Revenue', 'type' => 'income'],
+                ['code' => '4200', 'name' => 'Sales Revenue', 'type' => 'income', 'description' => 'Product sales'],
             ]],
             ['code' => '5000', 'name' => 'Expenses', 'type' => 'expense', 'allow_manual_entry' => false, 'children' => [
+                ['code' => '5050', 'name' => 'Cost of Goods Sold', 'type' => 'expense', 'description' => 'Inventory cost of product sales'],
                 ['code' => '5100', 'name' => 'Basic Salary Expense', 'type' => 'expense'],
                 ['code' => '5200', 'name' => 'Medical Allowance Expense', 'type' => 'expense'],
                 ['code' => '5300', 'name' => 'Petrol Allowance Expense', 'type' => 'expense'],
