@@ -53,6 +53,18 @@ class Payslip extends Model
             'employee_rejection_reason' => $status === self::REVIEW_REJECTED ? $reason : null,
         ]);
 
+        if ($status === self::REVIEW_REJECTED) {
+            $staff = User::permission('PayslipUpdate')
+                ->where('id', '!=', $this->employee?->user_id)
+                ->where('status', 1)
+                ->get();
+
+            \Illuminate\Support\Facades\Notification::send(
+                $staff,
+                new \App\Notifications\PayslipRejected($this)
+            );
+        }
+
         return $this;
     }
 

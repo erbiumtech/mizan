@@ -110,6 +110,36 @@ class PayslipReviewTest extends AccountingTestCase
         $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'changed my mind');
     }
 
+    public function test_rejection_notifies_payslip_staff_not_the_employee(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $accountant = $this->makeUser('Accountant', 'acct-notify@test.local');
+        $manager = $this->makeUser('Manager', 'mgr-ps-notify@test.local');
+
+        $payslip = $this->makePayslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Wrong deductions');
+
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            [$accountant, $manager],
+            \App\Notifications\PayslipRejected::class
+        );
+        \Illuminate\Support\Facades\Notification::assertNotSentTo(
+            $this->employeeUser,
+            \App\Notifications\PayslipRejected::class
+        );
+    }
+
+    public function test_acceptance_sends_no_notification(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $this->makeUser('Accountant', 'acct-quiet@test.local');
+        $this->makePayslip()->recordEmployeeReview(Payslip::REVIEW_ACCEPTED);
+
+        \Illuminate\Support\Facades\Notification::assertNothingSent();
+    }
+
     public function test_owner_can_run_review_actions_others_cannot(): void
     {
         $payslip = $this->makePayslip();
