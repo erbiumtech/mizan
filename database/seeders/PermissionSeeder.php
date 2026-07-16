@@ -62,6 +62,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'AnnualTaxDelete', 'group' => 'AnnualTax'],
 
             ['name' => 'ActivityLogView', 'group' => 'ActivityLog'],
+            ['name' => 'EmployeeChangeApprove', 'group' => 'Employee'],
 
             ['name' => 'AccountView', 'group' => 'Account'],
             ['name' => 'AccountCreate', 'group' => 'Account'],
