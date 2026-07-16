@@ -50,15 +50,29 @@ class Employee extends Resource
 
     public function fields(NovaRequest $request): array
     {
+        // Employees editing their own record may only change contact and
+        // bank details; employment fields stay admin-only.
+        $adminOnly = fn ($request) => ! $request->user()->hasRole('Administrator');
+
         return [
             ID::make()->sortable()->canSee(function ($request) {
-                return ! $request->user()->hasRole('Administrator || Employee');
+                return $request->user()->hasRole('Administrator');
             }),
-            Text::make('Employee ID', 'employee_id')->rules('required'),
+            Text::make('Employee ID', 'employee_id')->rules('required')->readonly($adminOnly),
             BelongsTo::make('Employee Name', 'user', 'App\Nova\User')->sortable()->readonly(),
-            Text::make('Email', 'user.email')->onlyOnIndex(),
 
-            Select::make('Status', 'is_active')->options([1 => 'Active', 0 => 'Inactive'])->displayUsingLabels(),
+            Text::make('Email', 'email')
+                ->resolveUsing(fn () => $this->user?->email)
+                ->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
+                    $model->user?->update(['email' => $request->input($requestAttribute)]);
+                })
+                ->rules('required', 'email', function ($attribute, $value, $fail) {
+                    if (\App\Models\User::where('email', $value)->where('id', '!=', $this->user?->id)->exists()) {
+                        $fail('The email is already taken.');
+                    }
+                }),
+
+            Select::make('Status', 'is_active')->options([1 => 'Active', 0 => 'Inactive'])->displayUsingLabels()->readonly($adminOnly),
 
             Select::make('Designation', 'designation')
                 ->options([
@@ -72,6 +86,7 @@ class Employee extends Resource
                     ])
                 ->displayUsingLabels()
                 ->rules('required')
+                ->readonly($adminOnly)
                 ->hideFromIndex(),
 
             Select::make('Department', 'department')
@@ -81,10 +96,11 @@ class Employee extends Resource
                     ])
                 ->displayUsingLabels()
                 ->rules('required')
+                ->readonly($adminOnly)
                 ->hideFromIndex(),
 
-            Date::make('Date of Joining', 'date_of_joining')->hideFromIndex(),
-            Text::make('NIC', 'nic')->hideFromIndex(),
+            Date::make('Date of Joining', 'date_of_joining')->readonly($adminOnly)->hideFromIndex(),
+            Text::make('NIC', 'nic')->readonly($adminOnly)->hideFromIndex(),
 
             // Bank Select Field
             BelongsTo::make('Bank', 'bank', Bank::class)
