@@ -100,8 +100,9 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     public function tools(): array
     {
         return [
-        \Sereny\NovaPermissions\NovaPermissions::make(),
-    ];
+            \Sereny\NovaPermissions\NovaPermissions::make()
+                ->canSee(fn ($request) => (bool) $request->user()?->can('viewAnyRole')),
+        ];
     }
 
     /**
