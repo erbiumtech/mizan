@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
+
+class Product extends Model
+{
+    use Auditable;
+
+    public const METHOD_FIFO = 'fifo';
+    public const METHOD_LIFO = 'lifo';
+    public const METHOD_AVERAGE = 'average';
+
+    protected $fillable = [
+        'sku', 'name', 'description', 'unit', 'valuation_method', 'reorder_level',
+        'inventory_account_id', 'cogs_account_id', 'revenue_account_id', 'is_active',
+    ];
+
+    protected $casts = [
+        'reorder_level' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
+
+    public function movements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function inventoryAccount()
+    {
+        return $this->belongsTo(Account::class, 'inventory_account_id');
+    }
+
+    public function cogsAccount()
+    {
+        return $this->belongsTo(Account::class, 'cogs_account_id');
+    }
+
+    public function revenueAccount()
+    {
+        return $this->belongsTo(Account::class, 'revenue_account_id');
+    }
+}

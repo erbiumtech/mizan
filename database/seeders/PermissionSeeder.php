@@ -93,6 +93,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'PettyCashView', 'group' => 'PettyCash'],
             ['name' => 'PettyCashCreate', 'group' => 'PettyCash'],
             ['name' => 'PettyCashReplenish', 'group' => 'PettyCash'],
+            ['name' => 'ProductView', 'group' => 'Inventory'],
+            ['name' => 'ProductCreate', 'group' => 'Inventory'],
+            ['name' => 'ProductUpdate', 'group' => 'Inventory'],
+            ['name' => 'ProductDelete', 'group' => 'Inventory'],
+            ['name' => 'StockMove', 'group' => 'Inventory'],
+            ['name' => 'StockAdjust', 'group' => 'Inventory'],
 
             ['name' => 'JournalEntryView', 'group' => 'JournalEntry'],
             ['name' => 'JournalEntryCreate', 'group' => 'JournalEntry'],

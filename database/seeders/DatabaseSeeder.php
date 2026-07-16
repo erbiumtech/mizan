@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             PayslipSeeder::class,
             FixedAssetSeeder::class,
             PettyCashSeeder::class,
+            InventorySeeder::class,
         ]);
 
         // Admin User Creation
