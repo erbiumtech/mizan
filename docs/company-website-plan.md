@@ -1,7 +1,7 @@
 # Company Website — implementation plan
 
 A public marketing site for the software house (team, services, products,
-about, contact) built with **Livewire 3 + Blade + Tailwind 4** (Tailwind is
+about, contact) built with **Livewire 4 + Blade + Tailwind 4** (Tailwind is
 already wired via Vite; Livewire is one composer install), with **all content
 managed from Nova** the same way the accounting module is: models + migrations
 + Nova resources + policies + permissions + seeders + tests.
@@ -23,11 +23,17 @@ filled/outlined buttons with ripple, floating-label inputs on the contact
 form, and a Material top app bar + navigation drawer for the header.
 
 **Phase W0 — stack setup**:
-- `composer require livewire/livewire:^3.0`; `@livewireStyles` /
-  `@livewireScripts` in the site layout; `app/Livewire/Site/` namespace for
-  the page components. Full-page components are registered as routes
-  (`Route::get('/team', Team::class)`), so there are no separate controllers
-  for the public site.
+- `composer require livewire/livewire:^4.0`; `@livewireStyles` /
+  `@livewireScripts` in the site layout. Livewire 4's **single-file
+  components** keep each page's PHP + Blade together under
+  `resources/views/components/site/⁠*.blade.php` (fall back to classes in
+  `app/Livewire/Site/` for anything with heavy logic, e.g. the contact
+  form object). Full-page components are registered as routes
+  (`Route::livewire('/team', 'site.team')`), so there are no separate
+  controllers for the public site. If Livewire 4 is still pre-stable at
+  build time, pin `^3.6` — everything in this plan works on both; v4's
+  islands/lazy-loading are a bonus for the screenshot-heavy product pages,
+  not a dependency.
 - `npm i @material-tailwind/html material-symbols`; extend the Tailwind
   config with the Material Tailwind plugin and a Material 3 color palette
   (primary/secondary/surface tokens as CSS variables so brand colors are
@@ -184,7 +190,7 @@ and Tailwind 4 is already configured.
   roles, and the audit log; deployment stays one artifact.
 - **`showcase_products`** table name to avoid colliding with the inventory
   `products` table from accounting Phase 19.
-- **Livewire 3 + Blade + Tailwind server-rendered pages** (no Vue/React SPA)
+- **Livewire 4 + Blade + Tailwind server-rendered pages** (no Vue/React SPA)
   — SEO-friendly HTML with interactivity (filters, contact form, carousel)
   handled server-side; no custom JavaScript to maintain, and consistent with
   the Laravel-first codebase.
