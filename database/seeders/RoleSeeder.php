@@ -53,6 +53,7 @@ class RoleSeeder extends Seeder
             'PettyCashReplenish',
             'StockAdjust',
             'InvoiceVoid',
+            'EmployeeChangeApprove',
             'FixedAssetDepreciate', 'FixedAssetDispose',
             'BankStatementComplete',
         ]);
