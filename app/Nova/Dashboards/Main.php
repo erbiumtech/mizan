@@ -3,6 +3,7 @@
 namespace App\Nova\Dashboards;
 
 use App\Nova\Metrics\LowStockProducts;
+use App\Nova\Metrics\UnpaidInvoices;
 use Laravel\Nova\Cards\Help;
 use Laravel\Nova\Dashboards\Main as Dashboard;
 
@@ -17,6 +18,7 @@ class Main extends Dashboard
     {
         return [
             (new LowStockProducts)->canSee(fn ($request) => (bool) $request->user()?->can('ProductView')),
+            (new UnpaidInvoices)->canSee(fn ($request) => (bool) $request->user()?->can('InvoiceView')),
             new Help,
         ];
     }

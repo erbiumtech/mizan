@@ -16,6 +16,7 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '1100', 'name' => 'Cash / Bank', 'type' => 'asset'],
                 ['code' => '1150', 'name' => 'Petty Cash', 'type' => 'asset', 'description' => 'Imprest petty cash box'],
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
+                ['code' => '1250', 'name' => 'Accounts Receivable', 'type' => 'asset', 'description' => 'Amounts owed by customers on issued invoices'],
                 ['code' => '1300', 'name' => 'Inventory', 'type' => 'asset', 'description' => 'Stock on hand at cost'],
                 ['code' => '1400', 'name' => 'Office Equipment', 'type' => 'asset', 'description' => 'Fixed assets: computers, furniture, hardware'],
                 ['code' => '1450', 'name' => 'Vehicles', 'type' => 'asset', 'description' => 'Fixed assets: company vehicles'],
@@ -23,8 +24,10 @@ class ChartOfAccountsSeeder extends Seeder
             ]],
             ['code' => '2000', 'name' => 'Liabilities', 'type' => 'liability', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '2100', 'name' => 'Income Tax Payable', 'type' => 'liability', 'description' => 'Withholding tax deducted from salaries, payable to FBR'],
+                ['code' => '2150', 'name' => 'Sales Tax Payable', 'type' => 'liability', 'description' => 'Sales tax on invoices (output less input)'],
                 ['code' => '2200', 'name' => 'ESI / Health Insurance Payable', 'type' => 'liability'],
                 ['code' => '2300', 'name' => 'Salaries Payable', 'type' => 'liability', 'description' => 'Net salaries owed to employees'],
+                ['code' => '2400', 'name' => 'Accounts Payable', 'type' => 'liability', 'description' => 'Amounts owed to suppliers on bills'],
             ]],
             ['code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '3100', 'name' => 'Owner Equity', 'type' => 'equity'],
@@ -33,6 +36,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '4000', 'name' => 'Income', 'type' => 'income', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '4100', 'name' => 'Service Revenue', 'type' => 'income'],
                 ['code' => '4200', 'name' => 'Sales Revenue', 'type' => 'income', 'description' => 'Product sales'],
+                ['code' => '4300', 'name' => 'Other Income', 'type' => 'income', 'description' => 'Non-product invoice lines'],
             ]],
             ['code' => '5000', 'name' => 'Expenses', 'type' => 'expense', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '5050', 'name' => 'Cost of Goods Sold', 'type' => 'expense', 'description' => 'Inventory cost of product sales'],

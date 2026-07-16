@@ -20,4 +20,5 @@ Route::middleware(['auth'])->prefix('reports')->group(function () {
     Route::post('/petty-cash/voucher', [\App\Http\Controllers\PettyCashController::class, 'storeVoucher'])->name('petty-cash.voucher');
     Route::post('/petty-cash/topup', [\App\Http\Controllers\PettyCashController::class, 'topUp'])->name('petty-cash.topup');
     Route::post('/petty-cash/replenish', [\App\Http\Controllers\PettyCashController::class, 'replenish'])->name('petty-cash.replenish');
+    Route::get('/invoice/{invoice}/pdf', \App\Http\Controllers\InvoicePdfController::class)->name('invoice.pdf');
 });
