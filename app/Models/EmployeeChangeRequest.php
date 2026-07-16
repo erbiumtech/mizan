@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Notifications\EmployeeChangeRequestSubmitted;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
 class EmployeeChangeRequest extends Model
@@ -28,6 +30,18 @@ class EmployeeChangeRequest extends Model
         'original_values' => 'array',
         'reviewed_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::created(function (EmployeeChangeRequest $request) {
+            $approvers = User::permission('EmployeeChangeApprove')
+                ->where('id', '!=', $request->requested_by)
+                ->where('status', 1)
+                ->get();
+
+            Notification::send($approvers, new EmployeeChangeRequestSubmitted($request));
+        });
+    }
 
     public function employee()
     {
