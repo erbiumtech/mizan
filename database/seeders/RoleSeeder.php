@@ -38,6 +38,7 @@ class RoleSeeder extends Seeder
             'GnuCashImport',
             'PettyCashView', 'PettyCashCreate',
             'ProductView', 'ProductCreate', 'ProductUpdate', 'StockMove',
+            'PayslipView', 'PayslipCreate', 'PayslipUpdate',
             'ContactView', 'ContactCreate', 'ContactUpdate',
             'InvoiceView', 'InvoiceCreate', 'InvoiceUpdate', 'InvoiceIssue', 'InvoicePay',
             'JournalEntryView', 'JournalEntryCreate', 'JournalEntryUpdate', 'JournalEntrySubmit',

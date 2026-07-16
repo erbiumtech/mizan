@@ -47,4 +47,15 @@ class PayslipPolicy
     {
         return $user->hasPermissionTo('PayslipDelete');
     }
+
+    /**
+     * Without this Nova falls back to update() for actions; the owning
+     * employee must be able to run Accept/Reject (and Download) on
+     * their own payslip.
+     */
+    public function runAction(User $user, Payslip $payslip): bool
+    {
+        return $user->hasPermissionTo('PayslipUpdate')
+            || ($payslip->employee && $payslip->employee->user_id === $user->id);
+    }
 }
