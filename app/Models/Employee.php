@@ -14,7 +14,7 @@ class Employee extends Model
     protected $fillable = [
         'user_id', 'employee_id', 'phone', 'gender',
         'is_active', 'designation', 'department',
-        'date_of_joining', 'nic', 'bank_id', 'bank_name', 'bank_account_no', 'iban_no',
+        'date_of_joining', 'nic', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2'
     ];
 
@@ -22,11 +22,26 @@ class Employee extends Model
         'date_of_joining' => 'date',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($employee) {
+            if ($employee->bank_id) {
+                $bank = Bank::find($employee->bank_id);
+                if ($bank) {
+                    $employee->bank_code = $bank->bank_code;
+                    $employee->bank_short_code = $bank->bank_short_code;
+                }
+            } else {
+                $employee->bank_code = null;
+                $employee->bank_short_code = null;
+            }
+        });
+    }
+
     public function bank()
     {
         return $this->belongsTo(Bank::class);
     }
-
 
     public function setting(): HasOne
     {
