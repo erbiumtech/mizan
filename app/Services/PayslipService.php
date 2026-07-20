@@ -56,10 +56,12 @@ class PayslipService
         $data['total_earnings'] = $totalEarningsBase + $data['medical_allowance'];
 
         // 4. Tax Calculate  (Medical allowance 10% tax-free rule)
-        $medicalLimit = $data['total_earnings'] * 0.10;
+        $medicalLimit = ($data['total_earnings'] * 0.10);
+        Log::debug("Total Earnings : {$data['total_earnings']}");
+        Log::debug("Total Earnings Base :". ($data['total_earnings'] * 0.10));
         $taxableMedical = max(0, $data['medical_allowance'] - $medicalLimit);
         $annualTaxable = ($totalEarningsBase + $taxableMedical) * 12;
-
+        Log::debug("Annual Taxable Income : {$annualTaxable}");
         $data['withholding_tax'] = $this->taxCalculator->monthlyTax($annualTaxable, $fiscalYearId);
 
         // 5. Total Deductions (Tax + Advances + Meal + ESI)

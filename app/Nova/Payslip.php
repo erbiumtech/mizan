@@ -22,8 +22,16 @@ class Payslip extends Resource
 
     public function fields(NovaRequest $request)
     {
-        // Saari editable fields jo calculation effect karti hain
-        $calcDeps = ['employee', 'month', 'fiscalYear', 'bonus', 'extra_work_hours', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance'];
+        // The three selectors that prefill everything. Editable inputs depend
+        // ONLY on these — never on themselves or each other — otherwise each
+        // keystroke re-syncs every input, each rewrites its own value, and Nova
+        // loops the creation-fields request endlessly.
+        $selectors = ['employee', 'month', 'fiscalYear'];
+
+        // The readonly totals must react to every input. They are safe to
+        // depend on the full set because their own values are not in the list,
+        // so recalculating them can't retrigger a sync.
+        $calcDeps = array_merge($selectors, ['bonus', 'extra_work_hours', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance']);
 
         return [
             ID::make()->sortable()->hideFromIndex(),
@@ -68,33 +76,35 @@ class Payslip extends Resource
                 ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'medical_allowance'))
                 ->hideFromIndex(),
 
-            // EDITABLE FIELDS
+            // EDITABLE FIELDS — prefilled from the employee setting when the
+            // selection changes, then freely editable. They depend on the
+            // selectors only, so editing them never re-syncs themselves.
             Number::make('Device Allowance', 'device_allowance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'device_allowance'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'device_allowance'))
                 ->hideFromIndex(),
 
             Number::make('Petrol Allowance', 'petrol_allowance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'petrol_allowance'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'petrol_allowance'))
                 ->hideFromIndex(),
 
             Number::make('Bonus', 'bonus')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'bonus'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'bonus'))
                 ->hideFromIndex(),
 
             Number::make('Extra Work Hours', 'extra_work_hours')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'extra_work_hours'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'extra_work_hours'))
                 ->hideFromIndex(),
 
             Number::make('Advances', 'advances')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'advances'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'advances'))
                 ->hideFromIndex(),
 
             Number::make('Meal Deduction', 'meal_deduction')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'meal_deduction'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'meal_deduction'))
                 ->hideFromIndex(),
 
             Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'esi_health_insurance'))
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'esi_health_insurance'))
                 ->hideFromIndex(),
 
             // CALCULATED FIELDS
