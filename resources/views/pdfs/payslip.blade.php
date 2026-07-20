@@ -430,7 +430,7 @@
             <!-- Signatures -->
             <div class="signatures">
                 <div class="signature-block">
-                    <img src="{{ public_path('storage/signatures/employer_signature1.png') }}" class="sig-image"
+                    <img src="{{ public_path('signatures/employer_signature1.png') }}" class="sig-image"
                         alt="Employer Signature">
                     <div class="sig-line">Employer Signature</div>
                 </div>
