@@ -3,7 +3,7 @@
 namespace App\Nova;
 
 use Laravel\Nova\Fields\BelongsTo;
-use Laravel\Nova\Fields\Currency;
+use App\Nova\Fields\Currency;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
@@ -43,8 +43,8 @@ class JournalEntryLine extends Resource
         ];
     }
 
-    // public static function authorizedToCreate(\Illuminate\Http\Request $request)
-    // {
-    //     return $request->user()->can('create', \App\Models\JournalEntry::class);
-    // }
+    public static function authorizedToCreate(\Illuminate\Http\Request $request)
+    {
+        return $request->user()?->can('create', \App\Models\JournalEntry::class) ?? false;
+    }
 }

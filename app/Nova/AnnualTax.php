@@ -21,6 +21,7 @@ class AnnualTax extends Resource
             ID::make()->sortable(),
 
             BelongsTo::make('Employee', 'employee', Employee::class)
+                ->searchable()
                 ->rules('required', function ($attribute, $value, $fail) use ($request) {
                     $exists = \App\Models\AnnualTax::where('employee_id', $value)
                         ->where('fiscal_year_id', $request->fiscalYear)

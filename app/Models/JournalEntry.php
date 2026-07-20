@@ -19,8 +19,13 @@ class JournalEntry extends Model
         'entry_number', 'entry_date', 'reference', 'memo', 'entry_type',
         'status', 'approved_by', 'approved_at', 'rejection_reason',
         'is_posted', 'posted_at', 'created_by', 'fiscal_year_id',
-        'source_type', 'source_id',
+        'source_type', 'source_id', 'transaction_type_id', 'gnucash_id',
     ];
+
+    public function transactionType()
+    {
+        return $this->belongsTo(TransactionType::class);
+    }
 
     protected $casts = [
         'entry_date' => 'date',

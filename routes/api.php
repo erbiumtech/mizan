@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\MprController;
 use App\Http\Controllers\Api\PayslipController;
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\AuthController;
 
 
@@ -23,6 +24,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Payslips Route
     Route::get('/my-payslips', [PayslipController::class, 'index']);
+
+    // Financial Reports
+    Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance']);
+    Route::get('/reports/profit-and-loss', [ReportController::class, 'profitAndLoss']);
 
     // Chart of Accounts
     Route::get('/accounts/tree', [AccountController::class, 'tree']);

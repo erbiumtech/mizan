@@ -23,6 +23,7 @@ class EmployeeSetting extends Resource
             ID::make()->sortable(),
 
             BelongsTo::make('Employee', 'employee', Employee::class)
+                ->searchable()
                 ->sortable()
                 ->rules('required'),
 
