@@ -10,26 +10,51 @@ class SalarySlabSeeder extends Seeder
 {
     public function run()
     {
-        $fiscalYear = FiscalYear::where('name', '2026-2027')->first()
-            ?? FiscalYear::where('is_active', true)->first();
-        $fyId = $fiscalYear ? $fiscalYear->id : 1;
+        // ==========================================
+        // 1. Fiscal Year 2025-2026 Slabs
+        // ==========================================
+        $fy2025 = FiscalYear::where('name', '2025-2026')->first();
 
-        // FBR salaried-person slabs (Finance Act 2025, per salary_tax.xlsx Rate sheet).
-        // min_amount is the "exceeding" threshold: tax = fixed_tax + percentage% of (income - min_amount).
-        $slabs = [
-            ['min_amount' => 0,       'max_amount' => 600000,  'fixed_tax' => 0,      'percentage' => 0],
-            ['min_amount' => 600000,  'max_amount' => 1200000, 'fixed_tax' => 0,      'percentage' => 1],
-            ['min_amount' => 1200000, 'max_amount' => 2200000, 'fixed_tax' => 6000,   'percentage' => 11],
-            ['min_amount' => 2200000, 'max_amount' => 3200000, 'fixed_tax' => 116000, 'percentage' => 23],
-            ['min_amount' => 3200000, 'max_amount' => 4100000, 'fixed_tax' => 346000, 'percentage' => 30],
-            ['min_amount' => 4100000, 'max_amount' => null,    'fixed_tax' => 616000, 'percentage' => 35],
-        ];
+        if ($fy2025) {
+            $slabs2025 = [
+                ['min_amount' => 0,       'max_amount' => 600000,  'fixed_tax' => 0,      'percentage' => 0],
+                ['min_amount' => 600001,  'max_amount' => 1200000, 'fixed_tax' => 0,      'percentage' => 1],
+                ['min_amount' => 1200001, 'max_amount' => 2200000, 'fixed_tax' => 6000,  'percentage' => 11],
+                ['min_amount' => 2200001, 'max_amount' => 3200000, 'fixed_tax' => 116000, 'percentage' => 23],
+                ['min_amount' => 3200001, 'max_amount' => 4100000, 'fixed_tax' => 346000, 'percentage' => 30],
+                ['min_amount' => 4100001, 'max_amount' => null,    'fixed_tax' => 616000, 'percentage' => 35],
+            ];
 
-        // Replace stale slabs (old thresholds/rates) for this fiscal year.
-        SalarySlab::where('fiscal_year_id', $fyId)->delete();
+            SalarySlab::where('fiscal_year_id', $fy2025->id)->delete();
 
-        foreach ($slabs as $slab) {
-            SalarySlab::create($slab + ['fiscal_year_id' => $fyId]);
+            foreach ($slabs2025 as $slab) {
+                SalarySlab::create($slab + ['fiscal_year_id' => $fy2025->id]);
+            }
+        }
+
+
+        // ==========================================
+        // 2. Fiscal Year 2026-2027 Slabs
+        // ==========================================
+        $fy2026 = FiscalYear::where('name', '2026-2027')->first();
+
+        if ($fy2026) {
+            $slabs2026 = [
+                ['min_amount' => 0,       'max_amount' => 600000,  'fixed_tax' => 0,      'percentage' => 0],
+                ['min_amount' => 600001,  'max_amount' => 1200000, 'fixed_tax' => 0,      'percentage' => 1],
+                ['min_amount' => 1200001, 'max_amount' => 2200000, 'fixed_tax' => 6000,   'percentage' => 11],
+                ['min_amount' => 2200001, 'max_amount' => 3200000, 'fixed_tax' => 116000, 'percentage' => 20],
+                ['min_amount' => 3200001, 'max_amount' => 4100000, 'fixed_tax' => 316000, 'percentage' => 25],
+                ['min_amount' => 4100001, 'max_amount' => 5600000,    'fixed_tax' => 541000, 'percentage' => 29],
+                ['min_amount' => 5600001, 'max_amount' => 7000000,    'fixed_tax' => 976000, 'percentage' => 32],
+                ['min_amount' => 7000001, 'max_amount' => 50000000,    'fixed_tax' => 1424000, 'percentage' => 35],
+            ];
+
+            SalarySlab::where('fiscal_year_id', $fy2026->id)->delete();
+
+            foreach ($slabs2026 as $slab) {
+                SalarySlab::create($slab + ['fiscal_year_id' => $fy2026->id]);
+            }
         }
     }
 }
