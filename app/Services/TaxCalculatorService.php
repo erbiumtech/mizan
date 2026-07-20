@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SalarySlab;
+use Illuminate\Support\Facades\Log;
 
 class TaxCalculatorService
 {
@@ -26,6 +27,10 @@ class TaxCalculatorService
             })
             ->orderByDesc('min_amount')
             ->first();
+
+        Log::debug("Calculating annual tax for income {$annualTaxable} in fiscal year {$fiscalYearId}: found slab", [
+            'slab' => $slab ? $slab->toArray() : null,
+        ]);
 
         if (! $slab) {
             return 0.0;

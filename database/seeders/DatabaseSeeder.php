@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
             BeneficiarySeeder::class,
             AccountSeeder::class,
             JournalEntrySeeder::class,
-            PayslipSeeder::class,
+//            PayslipSeeder::class,
             FixedAssetSeeder::class,
             PettyCashSeeder::class,
             InventorySeeder::class,
