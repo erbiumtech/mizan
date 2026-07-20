@@ -11,13 +11,62 @@ class Payslip extends Model
 {
     use Auditable, HasComments;
 
+    public const REVIEW_PENDING = 'pending';
+    public const REVIEW_ACCEPTED = 'accepted';
+    public const REVIEW_REJECTED = 'rejected';
+
     protected $fillable = [
         'employee_id', 'month', 'fiscal_year_id', 'total_working_days', 'paid_days', 'lop_days',
         'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
         'total_deductions', 'net_salary', 'pdf_path',
+        'employee_review', 'employee_reviewed_at', 'employee_rejection_reason',
     ];
+
+    protected $casts = [
+        'employee_reviewed_at' => 'datetime',
+    ];
+
+    public function isPendingReview(): bool
+    {
+        return ($this->employee_review ?? self::REVIEW_PENDING) === self::REVIEW_PENDING;
+    }
+
+    /**
+     * Employee acknowledgement of the payslip. Rejection is advisory:
+     * it records the objection for the accounts team but blocks nothing.
+     */
+    public function recordEmployeeReview(string $status, ?string $reason = null): self
+    {
+        if (! in_array($status, [self::REVIEW_ACCEPTED, self::REVIEW_REJECTED])) {
+            throw new \InvalidArgumentException("Invalid review status {$status}.");
+        }
+
+        if (! $this->isPendingReview()) {
+            throw new \InvalidArgumentException("Payslip has already been reviewed ({$this->employee_review}).");
+        }
+
+        $this->update([
+            'employee_review' => $status,
+            'employee_reviewed_at' => now(),
+            'employee_rejection_reason' => $status === self::REVIEW_REJECTED ? $reason : null,
+        ]);
+
+        if ($status === self::REVIEW_REJECTED) {
+            $staff = User::permission('PayslipUpdate')
+                ->where('id', '!=', $this->employee?->user_id)
+                ->where('status', 1)
+                ->get();
+
+            \Illuminate\Support\Facades\Notification::send(
+                $staff,
+                new \App\Notifications\PayslipRejected($this)
+            );
+        }
+
+        return $this;
+    }
 
     public function employee()
     {
@@ -37,6 +86,12 @@ class Payslip extends Model
     protected static function booted()
     {
         $calculate = function ($payslip) {
+            // Employee accept/reject only touches review columns; the
+            // figures and ledger posting must stay as issued.
+            if ($payslip->exists && static::isReviewOnlyChange($payslip->getDirty())) {
+                return;
+            }
+
             $service = app(PayslipService::class);
 
             $calculatedData = $service->calculateByParams(
@@ -76,18 +131,34 @@ class Payslip extends Model
             self::calculateAndStoreAnnualTax($payslip->employee_id, $payslip->fiscal_year_id);
         };
 
-        static::saved($syncTax);
+        static::saved(function ($payslip) use ($syncTax) {
+            if (! static::isReviewOnlyChange($payslip->getChanges())) {
+                $syncTax($payslip);
+            }
+        });
         static::deleted($syncTax);
 
         // Ledger integration: (re)create the payroll journal entry on save,
         // reverse/remove it on delete.
         static::saved(function ($payslip) {
-            app(\App\Services\PayrollPostingService::class)->postPayslip($payslip);
+            if (! static::isReviewOnlyChange($payslip->getChanges())) {
+                app(\App\Services\PayrollPostingService::class)->postPayslip($payslip);
+            }
         });
 
         static::deleted(function ($payslip) {
             app(\App\Services\PayrollPostingService::class)->unwindForPayslip($payslip);
         });
+    }
+
+    protected static function isReviewOnlyChange(array $dirty): bool
+    {
+        unset($dirty['updated_at']);
+
+        return $dirty !== []
+            && array_diff_key($dirty, array_flip([
+                'employee_review', 'employee_reviewed_at', 'employee_rejection_reason',
+            ])) === [];
     }
 
     public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)

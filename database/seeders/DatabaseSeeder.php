@@ -18,11 +18,21 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             FiscalYearSeeder::class,
             SalarySlabSeeder::class,
+            BankSeeder::class,
             EmployeeSeeder::class,
             EmployeeSettingSeeder::class,
             ChartOfAccountsSeeder::class,
+            TransactionTypeSeeder::class,
+            CompanyBankAccountSeeder::class,
+            BeneficiarySeeder::class,
             AccountSeeder::class,
             JournalEntrySeeder::class,
+            PayslipSeeder::class,
+            FixedAssetSeeder::class,
+            PettyCashSeeder::class,
+            InventorySeeder::class,
+            ContactSeeder::class,
+            InvoiceSeeder::class,
         ]);
 
         // Admin User Creation

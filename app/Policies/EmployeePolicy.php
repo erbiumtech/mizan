@@ -31,7 +31,13 @@ class EmployeePolicy
 
     public function update(User $user, Employee $employee)
     {
-        return $user->hasRole('Administrator');
+        if ($user->hasRole('Administrator')) {
+            return true;
+        }
+
+        // Employees may edit their own record; the Nova resource locks
+        // employment fields so only contact and bank details are writable.
+        return $user->id === $employee->user_id;
     }
 
     public function delete(User $user, Employee $employee)

@@ -29,6 +29,7 @@ class Payslip extends Resource
             ID::make()->sortable()->hideFromIndex(),
 
             BelongsTo::make('Employee', 'employee', Employee::class)
+                ->searchable()
                 ->rules('required', function ($attribute, $value, $fail) use ($request) {
                     $exists = \App\Models\Payslip::where('employee_id', $value)
                         ->where('month', $request->month)
@@ -112,6 +113,18 @@ class Payslip extends Resource
             Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->sortable()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'net_salary')),
 
+            \Laravel\Nova\Fields\Badge::make('Employee Review', 'employee_review')
+                ->map([
+                    'pending' => 'warning',
+                    'accepted' => 'success',
+                    'rejected' => 'danger',
+                ])
+                ->sortable()
+                ->exceptOnForms(),
+
+            \Laravel\Nova\Fields\DateTime::make('Reviewed At', 'employee_reviewed_at')->onlyOnDetail(),
+            \Laravel\Nova\Fields\Text::make('Rejection Reason', 'employee_rejection_reason')->onlyOnDetail(),
+
             MorphMany::make('Comments', 'comments', Comment::class),
         ];
     }
@@ -156,6 +169,8 @@ class Payslip extends Resource
     {
         return [
             (new DownloadPayslip)->showOnTableRow()->withoutConfirmation(),
+            new Actions\AcceptPayslip,
+            new Actions\RejectPayslip,
         ];
     }
 }

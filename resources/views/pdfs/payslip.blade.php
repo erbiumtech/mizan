@@ -349,7 +349,7 @@
                     <div class="info-row"><span class="label">NIC</span><span
                             class="value">{{ $data->employee->nic ?? '-' }}</span></div>
                     <div class="info-row"><span class="label">Bank Name</span><span
-                            class="value">{{ $data->employee->bank_name ?? '-' }}</span></div>
+                            class="value">{{ $data->employee->bank->bank_name ?? '-' }}</span></div>
                     <div class="info-row"><span class="label">Bank A/C No</span><span
                             class="value">{{ $data->employee->bank_account_no ?? '-' }}</span></div>
                     <div class="info-row"><span class="label">IBAN No.</span><span
@@ -398,7 +398,8 @@
                         <div class="line-item"><span>Withholding
                                 Tax</span><span>{{ number_format($data->withholding_tax, 2) }}</span></div>
                         <div class="line-item">
-                            <span>Advances</span><span>{{ number_format($data->advances, 2) }}</span></div>
+                            <span>Advances</span><span>{{ number_format($data->advances, 2) }}</span>
+                        </div>
                         <div class="line-item"><span>Meal
                                 Deduction</span><span>{{ number_format($data->meal_deduction, 2) }}</span></div>
                         <div class="line-item"><span>ESI / Health
@@ -429,7 +430,7 @@
             <!-- Signatures -->
             <div class="signatures">
                 <div class="signature-block">
-                    <img src="{{ public_path('storage/signatures/employer_signature1.png') }}" class="sig-image"
+                    <img src="{{ public_path('signatures/employer_signature1.png') }}" class="sig-image"
                         alt="Employer Signature">
                     <div class="sig-line">Employer Signature</div>
                 </div>

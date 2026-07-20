@@ -17,9 +17,13 @@ class CreateEmployeesTable extends Migration
             $table->string('department')->nullable();
             $table->date('date_of_joining')->nullable();
             $table->string('nic')->nullable();
-            $table->string('bank_name')->nullable();
+            $table->foreignId('bank_id')->nullable(); // FK added in create_banks_table (banks migrates later)
+            $table->string('bank_code')->nullable()->comment('Beneficiary bank code / SWIFT / IMD for bank payment files');
+            $table->string('bank_short_code')->nullable();
             $table->string('bank_account_no')->nullable();
             $table->string('iban_no')->nullable();
+            $table->string('address_line_1')->nullable();
+            $table->string('address_line_2')->nullable();
             $table->enum('gender', ['Male', 'Female']);
             $table->boolean('is_active')->default(true); // Status
             $table->timestamps();
