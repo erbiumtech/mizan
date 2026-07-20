@@ -36,7 +36,7 @@
 <body>
 <div class="report">
     @unless($pdf)
-        <a class="back" href="{{ url('/nova') }}">&larr; Back to Nova</a>
+        <a class="back" href="{{ config('nova.path') }}">&larr; Back to Nova</a>
     @endunless
     @yield('content')
 </div>
