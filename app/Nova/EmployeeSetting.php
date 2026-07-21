@@ -8,6 +8,9 @@ use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Carbon\Carbon;
+use App\Nova\Filters\EmployeeFilter;
+use App\Nova\Filters\FiscalYearFilter;
+use \Illuminate\Contracts\Database\Eloquent\Builder;
 
 class EmployeeSetting extends Resource
 {
@@ -15,7 +18,37 @@ class EmployeeSetting extends Resource
 
     public static $title = 'id';
 
-    public static $search = ['id'];
+    // Global search configuration for EmployeeSetting
+    public static function searchableColumns(): array
+    {
+        return [
+            'id',
+            new \Laravel\Nova\Query\Search\SearchableRelation('employee', 'employee_id'),
+            new \Laravel\Nova\Query\Search\SearchableRelation('employee.user', 'name'),
+            new \Laravel\Nova\Query\Search\SearchableRelation('fiscalYear', 'name'),
+        ];
+    }
+
+    public static function indexQuery(NovaRequest $request, $query): Builder
+    {
+        // Handle Search across Employee ID, User Name, and Fiscal Year Name
+        if ($search = $request->search) {
+            $query->where(function ($q) use ($search) {
+                $q->orWhere('id', 'like', "%{$search}%")
+                  ->orWhereHas('employee', function ($empQuery) use ($search) {
+                      $empQuery->where('employee_id', 'like', "%{$search}%")
+                               ->orWhereHas('user', function ($userQuery) use ($search) {
+                                   $userQuery->where('name', 'like', "%{$search}%");
+                               });
+                  })
+                  ->orWhereHas('fiscalYear', function ($fyQuery) use ($search) {
+                      $fyQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        return $query;
+    }
 
     public function fields(NovaRequest $request)
     {
@@ -29,6 +62,7 @@ class EmployeeSetting extends Resource
 
             BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
                 ->rules('required')
+                ->searchable()
                 ->relatableQueryUsing(function (NovaRequest $request, $query) {
                     return $query->where('is_active', true);
                 }),
@@ -73,4 +107,12 @@ class EmployeeSetting extends Resource
             Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)->default(0)->hideFromIndex(),
         ];
     }
+    public function filters(NovaRequest $request)
+    {
+        return [
+            new EmployeeFilter,
+            new FiscalYearFilter,
+        ];
+    }
+
 }

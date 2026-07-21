@@ -7,6 +7,7 @@ use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use App\Nova\Filters\FiscalYearFilter;
 
 class SalarySlab extends Resource
 {
@@ -15,7 +16,7 @@ class SalarySlab extends Resource
     public static $title = 'id';
 
     public static $search = [
-        'id', 'min_amount', 'max_amount',
+        'id', 'fiscalYear.name'
     ];
 
     public function fields(NovaRequest $request)
@@ -66,7 +67,9 @@ class SalarySlab extends Resource
 
     public function filters(NovaRequest $request)
     {
-        return [];
+        return [
+            new FiscalYearFilter(),
+        ];
     }
 
     public function lenses(NovaRequest $request)

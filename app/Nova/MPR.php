@@ -10,6 +10,7 @@ use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Trix;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use App\Nova\Filters\UserNameFilter;
 
 class MPR extends Resource
 {
@@ -22,6 +23,7 @@ class MPR extends Resource
 
     public static $search = [
         'id',
+        'user.name'
     ];
 
     public static function indexQuery(NovaRequest $request, $query): Builder
@@ -112,6 +114,13 @@ class MPR extends Resource
                 ->rules('required')
                 ->hideFromIndex()
                 ->withFiles('public', 'Mpr'),
+        ];
+    }
+
+    public function filters(NovaRequest $request)
+    {
+        return [
+            new UserNameFilter,
         ];
     }
 }
