@@ -9,6 +9,8 @@ use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use App\Nova\Filters\EmployeeNameFilter;
+use App\Nova\Filters\EmployeeEmailFilter;
 
 class Employee extends Resource
 {
@@ -133,6 +135,14 @@ class Employee extends Resource
             Select::make('Gender', 'gender')->options(['Male' => 'Male', 'Female' => 'Female', 'Other' => 'Other'])->hideFromIndex(),
 
             \Laravel\Nova\Fields\HasMany::make('Change Requests', 'changeRequests', EmployeeChangeRequest::class),
+        ];
+    }
+
+    public function filters(NovaRequest $request)
+    {
+        return [
+            new EmployeeNameFilter(),
+            new EmployeeEmailFilter(),
         ];
     }
 }

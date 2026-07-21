@@ -3,7 +3,8 @@
 namespace App\Nova;
 
 use App\Models\Employee;
-use Illuminate\Validation\Rule;
+use App\Nova\Filters\UserEmailFilter;
+use App\Nova\Filters\UserNameFilter;
 use Laravel\Nova\Fields\Email;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Password;
@@ -47,5 +48,13 @@ class User extends Resource
             'employee_id' => 'EMP-'.$model->id,
             'is_active' => 1,
         ]);
+    }
+
+    public function filters(NovaRequest $request)
+    {
+        return [
+            new UserNameFilter,
+            new UserEmailFilter,
+        ];
     }
 }

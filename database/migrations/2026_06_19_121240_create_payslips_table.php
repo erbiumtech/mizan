@@ -16,11 +16,11 @@ return new class extends Migration
             $table->string('month')->nullable();
             $table->foreignId('fiscal_year_id')->nullable()->constrained('fiscal_years');
 
-            // --- Attendance ---
-            $table->integer('total_working_days')->default(0);
-            $table->integer('paid_days')->default(0);
-            $table->integer('lop_days')->default(0);
-            $table->integer('leaves_taken')->default(0);
+            // --- Attendance (Changed to decimal for flexibility/pasting) ---
+            $table->decimal('total_working_days', 8, 2)->default(0);
+            $table->decimal('paid_days', 8, 2)->default(0);
+            $table->decimal('lop_days', 8, 2)->default(0);
+            $table->decimal('leaves_taken', 8, 2)->default(0);
 
             // --- Earnings ---
             $table->decimal('basic_wage', 10, 2)->default(0);
