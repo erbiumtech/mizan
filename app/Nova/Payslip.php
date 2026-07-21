@@ -3,14 +3,22 @@
 namespace App\Nova;
 
 use App\Nova\Actions\DownloadPayslip;
+use App\Nova\Filters\EmployeeFilter;
+use App\Nova\Filters\FiscalYearFilter;
+use App\Nova\Filters\MonthFilter;
 use App\Services\PayslipService;
+use Illuminate\Contracts\Database\Eloquent\Builder;
+use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\BelongsTo;
+use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\MorphMany;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Select;
+use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Query\Search\SearchableRelation;
 
 class Payslip extends Resource
 {
@@ -18,7 +26,17 @@ class Payslip extends Resource
 
     public static $title = 'id';
 
-    public static $search = ['id'];
+    // Global search columns definition
+    public static function searchableColumns(): array
+    {
+        return [
+            'id',
+            'month',
+            new SearchableRelation('employee', 'employee_id'),
+            new SearchableRelation('employee.user', 'name'),
+            new SearchableRelation('fiscalYear', 'name'),
+        ];
+    }
 
     public function fields(NovaRequest $request)
     {
@@ -34,7 +52,6 @@ class Payslip extends Resource
                     $exists = \App\Models\Payslip::where('employee_id', $value)
                         ->where('month', $request->month)
                         ->where('fiscal_year_id', $request->fiscalYear)
-                        
                         ->where('id', '!=', $request->resourceId)
                         ->exists();
 
@@ -52,6 +69,7 @@ class Payslip extends Resource
 
             BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
                 ->rules('required')
+                ->searchable()
                 ->relatableQueryUsing(fn ($request, $query) => $query->where('is_active', true)),
 
             Number::make('Total Working Days', 'total_working_days')->min(0)->default(0)->hideFromIndex(),
@@ -113,7 +131,7 @@ class Payslip extends Resource
             Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->sortable()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'net_salary')),
 
-            \Laravel\Nova\Fields\Badge::make('Employee Review', 'employee_review')
+            Badge::make('Employee Review', 'employee_review')
                 ->map([
                     'pending' => 'warning',
                     'accepted' => 'success',
@@ -122,22 +140,39 @@ class Payslip extends Resource
                 ->sortable()
                 ->exceptOnForms(),
 
-            \Laravel\Nova\Fields\DateTime::make('Reviewed At', 'employee_reviewed_at')->onlyOnDetail(),
-            \Laravel\Nova\Fields\Text::make('Rejection Reason', 'employee_rejection_reason')->onlyOnDetail(),
+            DateTime::make('Reviewed At', 'employee_reviewed_at')->onlyOnDetail(),
+            Text::make('Rejection Reason', 'employee_rejection_reason')->onlyOnDetail(),
 
             MorphMany::make('Comments', 'comments', Comment::class),
         ];
     }
 
     /**
-     * Employees see only their own payslips; staff see all.
+     * Employees see only their own payslips; staff see all. Also handle custom relationship searching.
      */
-    public static function indexQuery(NovaRequest $request, \Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
         $user = $request->user();
 
         if ($user->hasRole('Employee') && ! $user->hasAnyRole(['Administrator', 'Accountant', 'Manager', 'CEO'])) {
             $query->whereHas('employee', fn ($q) => $q->where('user_id', $user->id));
+        }
+
+        // Handle Search across Employee ID, User Name, and Fiscal Year Name
+        if ($search = $request->search) {
+            $query->where(function ($q) use ($search) {
+                $q->orWhere('id', 'like', "%{$search}%")
+                    ->orWhere('month', 'like', "%{$search}%")
+                    ->orWhereHas('employee', function ($empQuery) use ($search) {
+                        $empQuery->where('employee_id', 'like', "%{$search}%")
+                            ->orWhereHas('user', function ($userQuery) use ($search) {
+                                $userQuery->where('name', 'like', "%{$search}%");
+                            });
+                    })
+                    ->orWhereHas('fiscalYear', function ($fyQuery) use ($search) {
+                        $fyQuery->where('name', 'like', "%{$search}%");
+                    });
+            });
         }
 
         return $query;
@@ -171,6 +206,15 @@ class Payslip extends Resource
             (new DownloadPayslip)->showOnTableRow()->withoutConfirmation(),
             new Actions\AcceptPayslip,
             new Actions\RejectPayslip,
+        ];
+    }
+
+    public function filters(NovaRequest $request)
+    {
+        return [
+            new EmployeeFilter,
+            new MonthFilter,
+            new FiscalYearFilter,
         ];
     }
 }

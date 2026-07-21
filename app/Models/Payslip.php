@@ -73,6 +73,11 @@ class Payslip extends Model
         return $this->belongsTo(Employee::class, 'employee_id');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id');
+    }
+
     public function fiscalYear()
     {
         return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');

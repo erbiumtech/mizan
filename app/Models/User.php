@@ -2,22 +2,22 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
-use App\Traits\Auditable;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasRoles, HasFactory, Notifiable, HasApiTokens, Auditable;
+    use Auditable, HasApiTokens, HasFactory, HasRoles, Notifiable;
 
-    public function getActivitylogOptions(): \Spatie\Activitylog\Support\LogOptions
+    public function getActivitylogOptions(): LogOptions
     {
-        return \Spatie\Activitylog\Support\LogOptions::defaults()
+        return LogOptions::defaults()
             ->logOnly(['name', 'status', 'email'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges()
@@ -51,4 +51,9 @@ class User extends Authenticatable
     //         }
     //     });
     // }
+
+    public function mprs()
+    {
+        return $this->hasMany(MPR::class, 'user_id');
+    }
 }
