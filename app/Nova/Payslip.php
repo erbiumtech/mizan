@@ -14,7 +14,6 @@ use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\MorphMany;
-use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
@@ -41,7 +40,9 @@ class Payslip extends Resource
     public function fields(NovaRequest $request)
     {
         // Saari editable fields jo calculation effect karti hain
-        $calcDeps = ['employee', 'month', 'fiscalYear', 'bonus', 'extra_work_hours', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance'];
+        $selectors = ['employee', 'month', 'fiscalYear'];
+
+        $calcDeps = array_merge($selectors, ['bonus', 'extra_work_hours', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance']);
 
         return [
             ID::make()->sortable()->hideFromIndex(),
@@ -72,63 +73,86 @@ class Payslip extends Resource
                 ->searchable()
                 ->relatableQueryUsing(fn ($request, $query) => $query->where('is_active', true)),
 
-            Number::make('Total Working Days', 'total_working_days')->min(0)->default(0)->hideFromIndex(),
-            Number::make('Paid Days', 'paid_days')->min(0)->default(0)->hideFromIndex(),
-            Number::make('LOP Days', 'lop_days')->min(0)->default(0)->hideFromIndex(),
-            Number::make('Leaves Taken', 'leaves_taken')->min(0)->default(0)->hideFromIndex(),
+            // --- ATTENDANCE (Text fields with numeric validation) ---
+            Text::make('Total Working Days', 'total_working_days')
+                ->rules('required', 'numeric', 'min:0')
+                ->default(0)
+                ->hideFromIndex(),
+
+            Text::make('Paid Days', 'paid_days')
+                ->rules('required', 'numeric', 'min:0')
+                ->default(0)
+                ->hideFromIndex(),
+
+            Text::make('LOP Days', 'lop_days')
+                ->rules('required', 'numeric', 'min:0')
+                ->default(0)
+                ->hideFromIndex(),
+
+            Text::make('Leaves Taken', 'leaves_taken')
+                ->rules('required', 'numeric', 'min:0')
+                ->default(0)
+                ->hideFromIndex(),
 
             // READONLY FIELDS
-            Number::make('Basic Wage', 'basic_wage')->step(0.01)->readonly()
+            Text::make('Basic Wage', 'basic_wage')->readonly()
                 ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'basic_wage'))
                 ->hideFromIndex(),
 
-            Number::make('Medical Allowance', 'medical_allowance')->step(0.01)->readonly()
+            Text::make('Medical Allowance', 'medical_allowance')->readonly()
                 ->dependsOn(['employee', 'month', 'fiscalYear'], fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'medical_allowance'))
                 ->hideFromIndex(),
 
-            // EDITABLE FIELDS
-            Number::make('Device Allowance', 'device_allowance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'device_allowance'))
+            // EDITABLE FIELDS (Text fields with numeric validation)
+            Text::make('Device Allowance', 'device_allowance')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'device_allowance'))
                 ->hideFromIndex(),
 
-            Number::make('Petrol Allowance', 'petrol_allowance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'petrol_allowance'))
+            Text::make('Petrol Allowance', 'petrol_allowance')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'petrol_allowance'))
                 ->hideFromIndex(),
 
-            Number::make('Bonus', 'bonus')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'bonus'))
+            Text::make('Bonus', 'bonus')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'bonus'))
                 ->hideFromIndex(),
 
-            Number::make('Extra Work Hours', 'extra_work_hours')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'extra_work_hours'))
+            Text::make('Extra Work Hours', 'extra_work_hours')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'extra_work_hours'))
                 ->hideFromIndex(),
 
-            Number::make('Advances', 'advances')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'advances'))
+            Text::make('Advances', 'advances')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'advances'))
                 ->hideFromIndex(),
 
-            Number::make('Meal Deduction', 'meal_deduction')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'meal_deduction'))
+            Text::make('Meal Deduction', 'meal_deduction')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'meal_deduction'))
                 ->hideFromIndex(),
 
-            Number::make('ESI / Health Insurance', 'esi_health_insurance')->step(0.01)
-                ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'esi_health_insurance'))
+            Text::make('ESI / Health Insurance', 'esi_health_insurance')
+                ->rules('nullable', 'numeric', 'min:0')
+                ->dependsOn($selectors, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'esi_health_insurance'))
                 ->hideFromIndex(),
 
             // CALCULATED FIELDS
-            Number::make('Withholding Tax', 'withholding_tax')->step(0.01)->readonly()
+            Text::make('Withholding Tax', 'withholding_tax')->readonly()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'withholding_tax'))
                 ->hideFromIndex(),
 
-            Number::make('Total Earnings', 'total_earnings')->step(0.01)->readonly()
+            Text::make('Total Earnings', 'total_earnings')->readonly()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'total_earnings'))
                 ->hideFromIndex(),
 
-            Number::make('Total Deductions', 'total_deductions')->step(0.01)->readonly()
+            Text::make('Total Deductions', 'total_deductions')->readonly()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'total_deductions'))
                 ->hideFromIndex(),
 
-            Number::make('Net Salary', 'net_salary')->step(0.01)->readonly()->sortable()
+            Text::make('Net Salary', 'net_salary')->readonly()->sortable()
                 ->dependsOn($calcDeps, fn ($f, $r, $d) => $this->updateCalculatedFields($f, $d, 'net_salary')),
 
             Badge::make('Employee Review', 'employee_review')
