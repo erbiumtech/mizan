@@ -39,28 +39,53 @@ class PayslipService
             return array_fill_keys(['basic_wage', 'medical_allowance', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance', 'bonus', 'extra_work_hours', 'total_earnings', 'withholding_tax', 'total_deductions', 'net_salary'], 0);
         }
 
-        $data = [
+       $data = [
             'basic_wage'           => (float) $setting->basic_wage,
             'medical_allowance'    => (float) $setting->medical_allowance,
-            'device_allowance'     => ((float)$deviceAllowance > 0) ? (float)$deviceAllowance : (float)$setting->device_allowance,
-            'petrol_allowance'     => ((float)$petrolAllowance > 0) ? (float)$petrolAllowance : (float)$setting->petrol_allowance,
-            'advances'             => ((float)$advances > 0) ? (float)$advances : (float)$setting->advances,
-            'meal_deduction'       => ((float)$mealDeduction > 0) ? (float)$mealDeduction : (float)$setting->meal_deduction,
-            'esi_health_insurance' => ((float)$esiInsurance > 0) ? (float)$esiInsurance : (float)$setting->esi_health_insurance,
-            'bonus'                => ((float)$bonus > 0) ? (float)$bonus : (float)($setting->bonus ?? 0),
-            'extra_work_hours'     => ((float)$extraWorkHours > 0) ? (float)$extraWorkHours : (float)($setting->extra_work_hours ?? 0),
+            'device_allowance'     => ($deviceAllowance !== null && $deviceAllowance !== '') ? (float)$deviceAllowance : (float)$setting->device_allowance,
+            'petrol_allowance'     => ($petrolAllowance !== null && $petrolAllowance !== '') ? (float)$petrolAllowance : (float)$setting->petrol_allowance,
+            'advances'             => ($advances !== null && $advances !== '') ? (float)$advances : (float)$setting->advances,
+            'meal_deduction'       => ($mealDeduction !== null && $mealDeduction !== '') ? (float)$mealDeduction : (float)$setting->meal_deduction,
+            'esi_health_insurance' => ($esiInsurance !== null && $esiInsurance !== '') ? (float)$esiInsurance : (float)$setting->esi_health_insurance,
+            'bonus'                => ($bonus !== null && $bonus !== '') ? (float)$bonus : (float)($setting->bonus ?? 0),
+            'extra_work_hours'     => ($extraWorkHours !== null && $extraWorkHours !== '') ? (float)$extraWorkHours : (float)($setting->extra_work_hours ?? 0),
         ];
 
-        // 3. Earnings Calculate (Basic + Allowances + Bonus + Extra Hours)
+        // 3. Current Month Total Earnings Base
         $totalEarningsBase = $data['basic_wage'] + $data['petrol_allowance'] + $data['device_allowance'] + $data['bonus'] + $data['extra_work_hours'];
         $data['total_earnings'] = $totalEarningsBase + $data['medical_allowance'];
 
-        // 4. Tax Calculate  (Medical allowance 10% tax-free rule)
-        $medicalLimit = $data['total_earnings'] * 0.10;
-        $taxableMedical = max(0, $data['medical_allowance'] - $medicalLimit);
-        $annualTaxable = ($totalEarningsBase + $taxableMedical) * 12;
+        // 1. Pehle se bani hui payslips ki actual earnings ka sum (Pechle guzar chuke mahino ka actual data)
+        $previousEarningsSum = Payslip::where('employee_id', $employeeId)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->where('month', '!=', $month)
+            ->sum('total_earnings');
 
-        $data['withholding_tax'] = $this->taxCalculator->monthlyTax($annualTaxable, $fiscalYearId);
+        $completedMonthsCount = Payslip::where('employee_id', $employeeId)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->where('month', '!=', $month)
+            ->count();
+
+        // Baqaya kitne mahine rehte hain saal mein
+        $remainingMonths = max(0, 12 - ($completedMonthsCount + 1));
+
+        // 2. Projection mein sirf Basic Wage ko remaining months se multiply karein (Allowances ko nahi!)
+        $projectedRemainingBasic = $data['basic_wage'] * $remainingMonths;
+
+        // Total Annual Taxable Income Before Medical = (Pechli actual earnings) + (Current month ki total earnings) + (Aage ke mahino ki sirf basic wage)
+        $annualEarningsBeforeMedical = $previousEarningsSum + $totalEarningsBase + $projectedRemainingBasic;
+
+        $annualMedical = $data['medical_allowance'] * 12;
+
+        // Medical limit based on 10% of total annual earnings
+        $medicalLimit = ($annualEarningsBeforeMedical + $annualMedical) * 0.10;
+        $taxableMedicalAnnual = max(0, $annualMedical - $medicalLimit);
+
+        $annualTaxableIncome = $annualEarningsBeforeMedical + $taxableMedicalAnnual;
+
+        // Annual tax nikal kar monthly (`withholding_tax`) mein convert karna
+        $totalAnnualTax = $this->taxCalculator->annualTax($annualTaxableIncome, $fiscalYearId);
+        $data['withholding_tax'] = round($totalAnnualTax / 12, 2);
 
         // 5. Total Deductions (Tax + Advances + Meal + ESI)
         $data['total_deductions'] = round($data['withholding_tax'] + $data['advances'] + $data['meal_deduction'] + $data['esi_health_insurance'], 2);
