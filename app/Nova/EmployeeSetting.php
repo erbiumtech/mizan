@@ -62,7 +62,6 @@ class EmployeeSetting extends Resource
 
             BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
                 ->rules('required')
-                ->searchable()
                 ->relatableQueryUsing(function (NovaRequest $request, $query) {
                     return $query->where('is_active', true);
                 }),

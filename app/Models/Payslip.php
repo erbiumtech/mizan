@@ -6,6 +6,7 @@ use App\Traits\Auditable;
 use App\Traits\HasComments;
 use App\Services\PayslipService;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Payslip extends Model
 {
@@ -166,7 +167,7 @@ class Payslip extends Model
             ])) === [];
     }
 
-    public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)
+   public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)
     {
         $payslips = self::where('employee_id', $employeeId)
             ->where('fiscal_year_id', $fiscalYearId)
@@ -182,32 +183,61 @@ class Payslip extends Model
         $totalActualIncomeYearToDate = 0;
         $totalNetSalaryYearToDate = 0;
         $totalPaidTaxYearToDate = 0;
-        $totalMedicalYearToDate = 0;
         $monthsCount = $payslips->count();
 
         foreach ($payslips as $p) {
             $totalActualIncomeYearToDate += (float) ($p->total_earnings ?? 0);
             $totalNetSalaryYearToDate += (float) ($p->net_salary ?? 0);
             $totalPaidTaxYearToDate += (float) ($p->withholding_tax ?? 0);
-            $totalMedicalYearToDate += (float) ($p->medical_allowance ?? 0);
         }
 
-        $avgMonthlyIncome = $monthsCount > 0 ? ($totalActualIncomeYearToDate / $monthsCount) : 0;
-        $annualProjectedIncome = $avgMonthlyIncome * 12;
+        $allSettings = EmployeeSetting::where('employee_id', $employeeId)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->get();
+
+        $annualTotalEarnings = 0;
+        $completedMonths = $payslips->pluck('month')->toArray();
+
+        if ($allSettings->isNotEmpty()) {
+            foreach ($allSettings as $empSetting) {
+                $sMonthlyTotal = (float)$empSetting->basic_wage
+                                 + (float)$empSetting->medical_allowance
+                                 + (float)$empSetting->petrol_allowance
+                                 + (float)$empSetting->device_allowance
+                                 + (float)($empSetting->bonus ?? 0)
+                                 + (float)($empSetting->extra_work_hours ?? 0);
+
+                $sStart = Carbon::parse($empSetting->start_date);
+                $sEnd = Carbon::parse($empSetting->end_date);
+
+                $currentPeriodCursor = $sStart->copy();
+                while ($currentPeriodCursor <= $sEnd) {
+                    $mName = $currentPeriodCursor->format('F');
+
+                    $matchedPayslip = $payslips->firstWhere('month', $mName);
+                    if ($matchedPayslip) {
+                        $annualTotalEarnings += (float)$matchedPayslip->total_earnings;
+                    } else {
+                        $annualTotalEarnings += $sMonthlyTotal;
+                    }
+
+                    $currentPeriodCursor->addMonth();
+                }
+            }
+        } else {
+            $avgMonthlyIncome = $monthsCount > 0 ? ($totalActualIncomeYearToDate / $monthsCount) : 0;
+            $remainingMonths = max(0, 12 - $monthsCount);
+            $annualTotalEarnings = $totalActualIncomeYearToDate + ($avgMonthlyIncome * $remainingMonths);
+        }
 
         // Net salary projected average
         $avgMonthlyNet = $monthsCount > 0 ? ($totalNetSalaryYearToDate / $monthsCount) : 0;
         $annualProjectedNetIncome = $avgMonthlyNet * 12;
 
-        $avgMonthlyMedical = $monthsCount > 0 ? ($totalMedicalYearToDate / $monthsCount) : 0;
-        $annualProjectedMedical = $avgMonthlyMedical * 12;
+        $medicalExemption = $annualTotalEarnings * 0.10;
 
-        // FBR Medical Exemption Rule (Annual) for Taxable calculation
-        $annualMedicalLimit = $annualProjectedIncome * 0.10;
-        $annualTaxableMedical = max(0, $annualProjectedMedical - $annualMedicalLimit);
-        $annualNonMedicalBase = $annualProjectedIncome - $annualProjectedMedical;
-
-        $annualTaxableIncome = $annualNonMedicalBase + $annualTaxableMedical;
+        // Annual Taxable Income = Total Earnings - 10% Exemption Cut (Exact 3,720,600 banta hai)
+        $annualTaxableIncome = max(0, $annualTotalEarnings - $medicalExemption);
 
         $annualTotalTax = app(\App\Services\TaxCalculatorService::class)
             ->annualTax((float) $annualTaxableIncome, $fiscalYearId);
@@ -219,7 +249,7 @@ class Payslip extends Model
                 'fiscal_year_id' => $fiscalYearId,
             ],
             [
-                'total_annual_income' => round($annualProjectedIncome, 2),
+                'total_annual_income' => round($annualTotalEarnings, 2),
                 'annual_income_tax'   => round($annualTaxableIncome, 2),
                 'total_net_income'    => round($annualProjectedNetIncome, 2),
                 'total_annual_tax'    => round($annualTotalTax, 2),
@@ -230,7 +260,7 @@ class Payslip extends Model
     }
 
     public static function syncAnnualTax($employeeId, $fiscalYearId)
-    { 
+    {
         self::calculateAndStoreAnnualTax($employeeId, $fiscalYearId);
     }
 }
