@@ -70,7 +70,6 @@ class Payslip extends Resource
 
             BelongsTo::make('Fiscal Year', 'fiscalYear', FiscalYear::class)
                 ->rules('required')
-                ->searchable()
                 ->relatableQueryUsing(fn ($request, $query) => $query->where('is_active', true)),
 
             // --- ATTENDANCE (Text fields with numeric validation) ---
