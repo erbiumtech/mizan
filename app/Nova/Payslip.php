@@ -23,6 +23,8 @@ class Payslip extends Resource
 {
     public static $model = \App\Models\Payslip::class;
 
+    public static $group = 'Payslip';
+
     public static $title = 'id';
 
     // Global search columns definition

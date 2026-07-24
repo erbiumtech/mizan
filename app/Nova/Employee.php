@@ -18,6 +18,8 @@ class Employee extends Resource
 
     public static $title = 'employee_id';
 
+    public static $group = 'Employee';
+
     public static $search = ['employee_id'];
 
     /**

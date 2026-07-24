@@ -16,6 +16,8 @@ class EmployeeSetting extends Resource
 {
     public static $model = \App\Models\EmployeeSetting::class;
 
+    public static $group = 'Employee';
+
     public static $title = 'id';
 
     // Global search configuration for EmployeeSetting
