@@ -15,6 +15,8 @@ class User extends Resource
 {
     public static $model = \App\Models\User::class;
 
+    public static $group = 'User';
+
     public static $title = 'name';
 
     public static $search = ['id', 'name', 'email'];

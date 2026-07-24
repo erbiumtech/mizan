@@ -16,6 +16,8 @@ class MPR extends Resource
 {
     public static $model = \App\Models\MPR::class;
 
+    public static $group = 'MPR';
+
     public static function label()
     {
         return 'MPR';

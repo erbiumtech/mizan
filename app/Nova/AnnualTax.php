@@ -14,6 +14,8 @@ class AnnualTax extends Resource
 {
     public static $model = \App\Models\AnnualTax::class;
 
+    public static $group = 'Taxes';
+
     public static $title = 'id';
 
     // Global search configuration for AnnualTax

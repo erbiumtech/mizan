@@ -13,6 +13,8 @@ class SalarySlab extends Resource
 {
     public static $model = \App\Models\SalarySlab::class;
 
+    public static $group = 'Salary Slab & Fiscal Year';
+
     public static $title = 'id';
 
     public static $search = [

@@ -19,7 +19,7 @@ class EmployeeChangeRequest extends Resource
 
     public static $search = ['id'];
 
-    public static $group = 'Employees';
+    public static $group = 'Employee';
 
     // Requests are created by editing your own Employee record.
     public static function authorizedToCreate(\Illuminate\Http\Request $request): bool

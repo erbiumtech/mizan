@@ -8,6 +8,8 @@ use Laravel\Nova\Http\Requests\NovaRequest;
 class FiscalYear extends Resource
 {
     public static $model = \App\Models\FiscalYear::class;
+
+    public static $group = 'Salary Slab & Fiscal Year';
     public static $title = 'name';
     public static $search = ['name'];
 
