@@ -16,4 +16,23 @@ class EditUser extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    /**
+     * Pre-fill the (per-current-company) roles multi-select from the user's
+     * current-team role assignments.
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['roles'] = $this->record->roles()->pluck('name')->all();
+
+        return $data;
+    }
+
+    /**
+     * Sync roles for the current company (spatie teams honours the active team id).
+     */
+    protected function afterSave(): void
+    {
+        $this->record->syncRoles($this->data['roles'] ?? []);
+    }
 }

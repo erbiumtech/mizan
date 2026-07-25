@@ -59,6 +59,31 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return $this->companies()->whereKey($tenant->getKey())->exists();
     }
 
+    /**
+     * Whether this user may create new companies — i.e. is an Administrator in
+     * at least one of the companies they belong to. Roles are per-company
+     * (spatie teams), so we check each company's team context.
+     */
+    public function canCreateCompanies(): bool
+    {
+        $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+        $previous = $registrar->getPermissionsTeamId();
+
+        try {
+            foreach ($this->companies as $company) {
+                $registrar->setPermissionsTeamId($company->getKey());
+
+                if ($this->fresh()->hasRole('Administrator')) {
+                    return true;
+                }
+            }
+
+            return false;
+        } finally {
+            $registrar->setPermissionsTeamId($previous);
+        }
+    }
+
     use Auditable, HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     public function getActivitylogOptions(): LogOptions

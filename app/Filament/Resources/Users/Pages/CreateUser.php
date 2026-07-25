@@ -18,7 +18,9 @@ class CreateUser extends CreateRecord
     {
         $user = $this->record;
 
-        $user->syncRoles(['Employee']);
+        // Roles chosen on the form (for the current company); default to Employee.
+        $roles = array_filter((array) ($this->data['roles'] ?? []));
+        $user->syncRoles($roles ?: ['Employee']);
 
         Employee::create([
             'user_id' => $user->id,
