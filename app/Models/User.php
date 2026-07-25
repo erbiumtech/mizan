@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,8 +13,18 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
+    /**
+     * Determine whether the user can access the given Filament panel.
+     * Only active accounts (status = 1) may sign in — mirrors the legacy
+     * status-based login rule that previously lived in NovaAuthService.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return (int) $this->status === 1;
+    }
+
     use Auditable, HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     public function getActivitylogOptions(): LogOptions
