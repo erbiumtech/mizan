@@ -7,8 +7,8 @@ use App\Models\Company;
 use App\Models\User;
 use App\Multitenancy\CompanyProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\File;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CompanyProvisioningTest extends TestCase
@@ -40,7 +40,8 @@ class CompanyProvisioningTest extends TestCase
 
     public function test_provisioning_creates_isolated_seeded_tenant_and_attaches_owner(): void
     {
-        Role::create(['name' => 'Administrator', 'guard_name' => 'web']);
+        // Global permissions must exist; provisioning creates the per-company roles.
+        $this->seed(PermissionSeeder::class);
         $owner = User::factory()->create();
 
         $company = app(CompanyProvisioner::class)->provision(
@@ -57,9 +58,11 @@ class CompanyProvisioningTest extends TestCase
         $this->assertGreaterThan(0, Account::count());
         Company::forgetCurrent();
 
-        // Owner is a member with the Administrator role.
+        // Owner is a member with the Administrator role in this company's team.
         $this->assertTrue($company->users()->where('users.id', $owner->id)->exists());
-        $this->assertTrue($owner->hasRole('Administrator'));
+        $company->makeCurrent();
+        $this->assertTrue($owner->fresh()->hasRole('Administrator'));
+        Company::forgetCurrent();
 
         // Baseline data did not leak into the landlord/default database.
         $default = config('database.default');

@@ -4,13 +4,13 @@ namespace App\Multitenancy;
 
 use App\Models\Company;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Database\Seeders\TenantBaselineSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use RuntimeException;
-use Spatie\Permission\Models\Role;
 
 /**
  * Provisions a brand-new company: creates the landlord record, creates and
@@ -19,7 +19,7 @@ use Spatie\Permission\Models\Role;
  */
 class CompanyProvisioner
 {
-    public function provision(string $name, ?string $slug = null, ?User $creator = null): Company
+    public function provision(string $name, ?string $slug = null, ?User $creator = null, bool $seedBaseline = true): Company
     {
         $connection = $this->tenantConnectionName();
 
@@ -49,16 +49,23 @@ class CompanyProvisioner
                 '--force' => true,
             ]);
 
-            Artisan::call('db:seed', [
-                '--class' => TenantBaselineSeeder::class,
-                '--force' => true,
-            ]);
+            if ($seedBaseline) {
+                Artisan::call('db:seed', [
+                    '--class' => TenantBaselineSeeder::class,
+                    '--force' => true,
+                ]);
+            }
+
+            // The tenant is current, so the permission team id is this company:
+            // seed the company's own set of roles and attach the creator as its
+            // Administrator — all scoped to this company's team.
+            (new RoleSeeder)->run();
+
+            if ($creator) {
+                $this->attachCreator($company, $creator);
+            }
         } finally {
             Company::forgetCurrent();
-        }
-
-        if ($creator) {
-            $this->attachCreator($company, $creator);
         }
 
         return $company;
@@ -70,9 +77,7 @@ class CompanyProvisioner
             $company->users()->attach($creator->getKey());
         }
 
-        if (Role::where('name', 'Administrator')->exists()) {
-            $creator->assignRole('Administrator');
-        }
+        $creator->assignRole('Administrator');
     }
 
     protected function createDatabase(Company $company, string $connection): void
