@@ -39,6 +39,7 @@ return [
         \Spatie\Multitenancy\Tasks\PrefixCacheTask::class,
         \Spatie\Multitenancy\Tasks\SwitchTenantDatabaseTask::class,
         \App\Multitenancy\Tasks\SetPermissionsTeamIdTask::class,
+        \App\Multitenancy\Tasks\SwitchTenantFilesystemTask::class,
     ],
 
     /*
@@ -54,7 +55,7 @@ return [
      * will be automatically set on the job. When the job is executed, the set
      * tenant on the job will be made current.
      */
-    'queues_are_tenant_aware_by_default' => false,
+    'queues_are_tenant_aware_by_default' => env('QUEUES_TENANT_AWARE_BY_DEFAULT', true),
 
     /*
      * The connection name to reach the tenant database.

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Employee;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
 use Filament\Widgets\ChartWidget;
@@ -33,15 +34,28 @@ class PayrollByEmployeeChart extends ChartWidget
     {
         $fiscalYearId = FiscalYear::where('is_active', true)->value('id');
 
-        $totals = Payslip::query()
-            ->when($fiscalYearId, fn ($q) => $q->where('payslips.fiscal_year_id', $fiscalYearId))
-            ->join('employees', 'employees.id', '=', 'payslips.employee_id')
-            ->join('users', 'users.id', '=', 'employees.user_id')
-            ->selectRaw('users.name as employee_name, SUM(payslips.net_salary) as total')
-            ->groupBy('users.name')
-            ->orderByDesc('total')
-            ->pluck('total', 'employee_name')
-            ->map(fn ($v) => round((float) $v, 2));
+        // Aggregate within the tenant database only. `users` lives in the
+        // landlord database, so we resolve employee names via the Eloquent
+        // relationship (a separate query on the users connection) instead of
+        // a cross-connection SQL JOIN.
+        $totalsByEmployee = Payslip::query()
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
+            ->selectRaw('employee_id, SUM(net_salary) as total')
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+
+        $employees = Employee::with('user')
+            ->whereIn('id', $totalsByEmployee->keys()->all())
+            ->get()
+            ->keyBy('id');
+
+        $totals = $totalsByEmployee
+            ->mapWithKeys(function ($total, $employeeId) use ($employees) {
+                $name = $employees->get($employeeId)?->user?->name ?? "Employee #{$employeeId}";
+
+                return [$name => round((float) $total, 2)];
+            })
+            ->sortDesc();
 
         return [
             'datasets' => [

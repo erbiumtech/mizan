@@ -11,7 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use Spatie\Activitylog\Models\Activity;
+use App\Models\ActivityLog as Activity;
 use UnitEnum;
 
 class ActivityLogResource extends Resource

@@ -246,6 +246,6 @@ class PayslipsTable
             $payslip->update(['pdf_path' => $fileName]);
         }
 
-        return url(Storage::url($fileName));
+        return Storage::disk('public')->url($fileName);
     }
 }
