@@ -34,6 +34,11 @@ class FilamentResourcesSmokeTest extends TestCase
 
         $failures = [];
         foreach ($resources as $resource) {
+            // Skip resources gated to roles the test user doesn't hold (e.g. admin-only).
+            if (method_exists($resource, 'canAccess') && ! $resource::canAccess()) {
+                continue;
+            }
+
             $pages = $resource::getPages();
             foreach (['index', 'create'] as $key) {
                 if (! isset($pages[$key])) {
