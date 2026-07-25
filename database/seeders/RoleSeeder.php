@@ -5,13 +5,18 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
 {
     public function run()
     {
-        $adminRole = Role::firstOrCreate(['name' => 'Administrator']);
-        $employeeRole = Role::firstOrCreate(['name' => 'Employee']);
+        // Roles are per-company (spatie teams). Scope creation to the current
+        // team so each company gets its own set instead of reusing another's.
+        $teamId = app(PermissionRegistrar::class)->getPermissionsTeamId();
+
+        $adminRole = Role::firstOrCreate(['name' => 'Administrator', 'company_id' => $teamId]);
+        $employeeRole = Role::firstOrCreate(['name' => 'Employee', 'company_id' => $teamId]);
 
         // Admin have all the permissions
         $adminRole->syncPermissions(Permission::all());
@@ -25,7 +30,7 @@ class RoleSeeder extends Seeder
 
         // Accounting roles with segregation of duties:
         // Accountant records entries but cannot approve or post.
-        $accountantRole = Role::firstOrCreate(['name' => 'Accountant']);
+        $accountantRole = Role::firstOrCreate(['name' => 'Accountant', 'company_id' => $teamId]);
         $accountantRole->syncPermissions([
             'AccountView', 'AccountCreate', 'AccountUpdate',
             'ReportView',
@@ -58,11 +63,11 @@ class RoleSeeder extends Seeder
             'FixedAssetDepreciate', 'FixedAssetDispose',
             'BankStatementComplete',
         ]);
-        $managerRole = Role::firstOrCreate(['name' => 'Manager']);
+        $managerRole = Role::firstOrCreate(['name' => 'Manager', 'company_id' => $teamId]);
         $managerRole->syncPermissions($managerPermissions);
 
         // CEO: same approval powers as Manager + account deletion.
-        $ceoRole = Role::firstOrCreate(['name' => 'CEO']);
+        $ceoRole = Role::firstOrCreate(['name' => 'CEO', 'company_id' => $teamId]);
         $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete']));
     }
 }
