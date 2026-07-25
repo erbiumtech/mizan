@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 class Invoice extends Model
@@ -11,12 +11,17 @@ class Invoice extends Model
     use Auditable;
 
     public const KIND_SALE = 'sale';
+
     public const KIND_PURCHASE = 'purchase';
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_ISSUED = 'issued';
+
     public const STATUS_PARTIALLY_PAID = 'partially_paid';
+
     public const STATUS_PAID = 'paid';
+
     public const STATUS_VOID = 'void';
 
     protected $fillable = [

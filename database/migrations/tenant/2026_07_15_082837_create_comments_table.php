@@ -11,11 +11,11 @@ return new class extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->morphs('commentable');
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('user_id')->index(); // soft ref -> landlord users
             $table->text('body');
             $table->foreignId('parent_id')->nullable()->constrained('comments')->cascadeOnDelete();
             $table->timestamp('resolved_at')->nullable();
-            $table->foreignId('resolved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('resolved_by')->nullable()->index(); // soft ref -> landlord users
             $table->timestamps();
         });
     }

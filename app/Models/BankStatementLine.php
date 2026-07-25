@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class BankStatementLine extends Model
 {
     use Auditable;
 
     public const STATUS_UNMATCHED = 'unmatched';
+
     public const STATUS_AUTO_MATCHED = 'auto_matched';
+
     public const STATUS_MANUALLY_MATCHED = 'manually_matched';
+
     public const STATUS_EXCLUDED = 'excluded';
 
     protected $fillable = [

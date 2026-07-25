@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
     use Auditable;
 
     public const METHOD_FIFO = 'fifo';
+
     public const METHOD_LIFO = 'lifo';
+
     public const METHOD_AVERAGE = 'average';
 
     protected $fillable = [

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class FiscalYear extends Model
 {
@@ -17,7 +17,8 @@ class FiscalYear extends Model
         'is_active' => 'boolean',
     ];
 
-    public function salarySlabs() {
+    public function salarySlabs()
+    {
         return $this->hasMany(SalarySlab::class);
     }
 }

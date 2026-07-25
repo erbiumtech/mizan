@@ -2,18 +2,24 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
+use App\Notifications\PayslipRejected;
+use App\Services\PayrollPostingService;
+use App\Services\PayslipService;
+use App\Services\TaxCalculatorService;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
-use App\Services\PayslipService;
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Notification;
 
 class Payslip extends Model
 {
     use Auditable, HasComments;
 
     public const REVIEW_PENDING = 'pending';
+
     public const REVIEW_ACCEPTED = 'accepted';
+
     public const REVIEW_REJECTED = 'rejected';
 
     protected $fillable = [
@@ -60,9 +66,9 @@ class Payslip extends Model
                 ->where('status', 1)
                 ->get();
 
-            \Illuminate\Support\Facades\Notification::send(
+            Notification::send(
                 $staff,
-                new \App\Notifications\PayslipRejected($this)
+                new PayslipRejected($this)
             );
         }
 
@@ -148,12 +154,12 @@ class Payslip extends Model
         // reverse/remove it on delete.
         static::saved(function ($payslip) {
             if (! static::isReviewOnlyChange($payslip->getChanges())) {
-                app(\App\Services\PayrollPostingService::class)->postPayslip($payslip);
+                app(PayrollPostingService::class)->postPayslip($payslip);
             }
         });
 
         static::deleted(function ($payslip) {
-            app(\App\Services\PayrollPostingService::class)->unwindForPayslip($payslip);
+            app(PayrollPostingService::class)->unwindForPayslip($payslip);
         });
     }
 
@@ -167,7 +173,7 @@ class Payslip extends Model
             ])) === [];
     }
 
-   public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)
+    public static function calculateAndStoreAnnualTax($employeeId, $fiscalYearId)
     {
         $payslips = self::where('employee_id', $employeeId)
             ->where('fiscal_year_id', $fiscalYearId)
@@ -177,6 +183,7 @@ class Payslip extends Model
             AnnualTax::where('employee_id', $employeeId)
                 ->where('fiscal_year_id', $fiscalYearId)
                 ->delete();
+
             return;
         }
 
@@ -200,12 +207,12 @@ class Payslip extends Model
 
         if ($allSettings->isNotEmpty()) {
             foreach ($allSettings as $empSetting) {
-                $sMonthlyTotal = (float)$empSetting->basic_wage
-                                 + (float)$empSetting->medical_allowance
-                                 + (float)$empSetting->petrol_allowance
-                                 + (float)$empSetting->device_allowance
-                                 + (float)($empSetting->bonus ?? 0)
-                                 + (float)($empSetting->extra_work_hours ?? 0);
+                $sMonthlyTotal = (float) $empSetting->basic_wage
+                                 + (float) $empSetting->medical_allowance
+                                 + (float) $empSetting->petrol_allowance
+                                 + (float) $empSetting->device_allowance
+                                 + (float) ($empSetting->bonus ?? 0)
+                                 + (float) ($empSetting->extra_work_hours ?? 0);
 
                 $sStart = Carbon::parse($empSetting->start_date);
                 $sEnd = Carbon::parse($empSetting->end_date);
@@ -216,7 +223,7 @@ class Payslip extends Model
 
                     $matchedPayslip = $payslips->firstWhere('month', $mName);
                     if ($matchedPayslip) {
-                        $annualTotalEarnings += (float)$matchedPayslip->total_earnings;
+                        $annualTotalEarnings += (float) $matchedPayslip->total_earnings;
                     } else {
                         $annualTotalEarnings += $sMonthlyTotal;
                     }
@@ -239,7 +246,7 @@ class Payslip extends Model
         // Annual Taxable Income = Total Earnings - 10% Exemption Cut (Exact 3,720,600 banta hai)
         $annualTaxableIncome = max(0, $annualTotalEarnings - $medicalExemption);
 
-        $annualTotalTax = app(\App\Services\TaxCalculatorService::class)
+        $annualTotalTax = app(TaxCalculatorService::class)
             ->annualTax((float) $annualTaxableIncome, $fiscalYearId);
         $leftoverTax = max(0, $annualTotalTax - $totalPaidTaxYearToDate);
 
@@ -250,11 +257,11 @@ class Payslip extends Model
             ],
             [
                 'total_annual_income' => round($annualTotalEarnings, 2),
-                'annual_income_tax'   => round($annualTaxableIncome, 2),
-                'total_net_income'    => round($annualProjectedNetIncome, 2),
-                'total_annual_tax'    => round($annualTotalTax, 2),
-                'paid_tax'            => round($totalPaidTaxYearToDate, 2),
-                'leftover_tax'        => round($leftoverTax, 2),
+                'annual_income_tax' => round($annualTaxableIncome, 2),
+                'total_net_income' => round($annualProjectedNetIncome, 2),
+                'total_annual_tax' => round($annualTotalTax, 2),
+                'paid_tax' => round($totalPaidTaxYearToDate, 2),
+                'leftover_tax' => round($leftoverTax, 2),
             ]
         );
     }

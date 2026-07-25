@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class FixedAsset extends Model
 {
     use Auditable;
 
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_FULLY_DEPRECIATED = 'fully_depreciated';
+
     public const STATUS_DISPOSED = 'disposed';
 
     protected $fillable = [

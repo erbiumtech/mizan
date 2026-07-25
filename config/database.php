@@ -42,6 +42,28 @@ return [
             'synchronous' => null,
         ],
 
+        /*
+         * The default connection (sqlite/mysql above) doubles as the central
+         * "landlord" database — it holds the tenant registry (companies),
+         * users + auth, and the spatie permission tables. (Spatie's
+         * `landlord_database_connection_name` is null, i.e. "use default".)
+         *
+         * Per-tenant database. The `database` value below is only a placeholder —
+         * Spatie's SwitchTenantDatabaseTask overwrites it per request with the
+         * current company's own database (one sqlite file / mysql schema per company).
+         */
+        'tenant' => [
+            'driver' => env('TENANT_DB_DRIVER', 'sqlite'),
+            'url' => env('TENANT_DB_URL'),
+            'host' => env('TENANT_DB_HOST', '127.0.0.1'),
+            'port' => env('TENANT_DB_PORT', '3306'),
+            'database' => env('TENANT_DB_DATABASE', database_path('tenants/placeholder.sqlite')),
+            'username' => env('TENANT_DB_USERNAME', 'root'),
+            'password' => env('TENANT_DB_PASSWORD', ''),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

@@ -92,7 +92,7 @@ class SalaryBankExportService
             ? Carbon::parse($valueDate)->format('d/m/Y')
             : now()->format('d/m/Y');
 
-        $config = config('ipayments');
+        $config = setting('ipayments');
 
         $rows = [];
 

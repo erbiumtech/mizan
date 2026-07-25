@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
     use Auditable;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_EXPORTED = 'exported';
+
     public const STATUS_PAID = 'paid';
 
     public const RTGS_THRESHOLD = 1000000;

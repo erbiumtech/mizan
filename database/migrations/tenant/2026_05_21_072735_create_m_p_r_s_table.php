@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('mprs', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->index(); // soft ref -> landlord users
 
             $table->date('mpr_date')->nullable();
 

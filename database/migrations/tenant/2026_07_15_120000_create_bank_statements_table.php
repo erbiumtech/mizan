@@ -16,7 +16,7 @@ return new class extends Migration
             $table->decimal('opening_balance', 15, 2)->default(0);
             $table->decimal('closing_balance', 15, 2)->default(0);
             $table->enum('status', ['draft', 'in_progress', 'completed'])->default('draft');
-            $table->foreignId('completed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('completed_by')->nullable()->index(); // soft ref -> landlord users
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
 
