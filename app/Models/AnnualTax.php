@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class AnnualTax extends Model
 {
@@ -11,7 +11,7 @@ class AnnualTax extends Model
 
     protected $fillable = [
         'employee_id', 'fiscal_year_id', 'total_annual_income', 'total_net_income',
-        'total_annual_tax', 'paid_tax', 'leftover_tax' , 'annual_income_tax'
+        'total_annual_tax', 'paid_tax', 'leftover_tax', 'annual_income_tax',
     ];
 
     public function employee()

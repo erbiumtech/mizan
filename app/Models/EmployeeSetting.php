@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 
 class EmployeeSetting extends Model
 {
@@ -34,7 +34,7 @@ class EmployeeSetting extends Model
     protected static function booted()
     {
         $setDefaultEndDate = function ($setting) {
-            if (empty($setting->end_date) && !empty($setting->start_date)) {
+            if (empty($setting->end_date) && ! empty($setting->start_date)) {
                 $start = Carbon::parse($setting->start_date);
                 $year = $start->month >= 7 ? $start->year + 1 : $start->year;
                 $setting->end_date = Carbon::create($year, 6, 30)->toDateString();

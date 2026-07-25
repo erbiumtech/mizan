@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class Contact extends Model
 {
     use Auditable;
 
     public const KIND_CUSTOMER = 'customer';
+
     public const KIND_SUPPLIER = 'supplier';
+
     public const KIND_BOTH = 'both';
 
     protected $fillable = [

@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Tenancy\RegisterCompany;
+use App\Models\Company;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -25,6 +27,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->tenant(Company::class, slugAttribute: 'slug')
+            ->tenantRegistration(RegisterCompany::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->colors([

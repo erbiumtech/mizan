@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Notifications\EmployeeChangeRequestSubmitted;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
@@ -11,7 +11,9 @@ use InvalidArgumentException;
 class EmployeeChangeRequest extends Model
 {
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     /** Employee-editable attributes; user_* keys write to the linked user. */

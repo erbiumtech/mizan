@@ -2,17 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class JournalEntry extends Model
 {
     use Auditable;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PENDING = 'pending_approval';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_POSTED = 'posted';
 
     protected $fillable = [
@@ -50,7 +55,7 @@ class JournalEntry extends Model
     public static function nextEntryNumber($entryDate = null): string
     {
         $year = $entryDate
-            ? \Carbon\Carbon::parse($entryDate)->year
+            ? Carbon::parse($entryDate)->year
             : now()->year;
 
         $lastEntry = static::where('entry_number', 'like', "JE-{$year}-%")

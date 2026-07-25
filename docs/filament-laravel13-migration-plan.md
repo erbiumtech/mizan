@@ -1,6 +1,6 @@
-# Migration Plan: Nova → Filament + Laravel 12 → 13
+# Migration Plan: Nova → Filament + Laravel 12 → 13 + Multi-Tenancy
 
-**Status:** In progress
+**Status:** Phases 0–4 done. Phase 5 (multi-tenancy) planned.
 **Created:** 2026-07-25
 **Branch:** `filament`
 
@@ -105,7 +105,49 @@ Batches: Accounting · Payroll · Banking · Inventory · Reports. Source of tru
 
 ---
 
-## Notes & risks
+## Phase 5 — Multi-Tenancy (database-per-tenant)
+
+Turn the current single-tenant accounting/payroll app into a multi-company SaaS where each company's data lives in its **own database**, one login can belong to **many companies** and switch between them, and a user's **role is scoped per company**.
+
+### Decisions (confirmed)
+
+- **Isolation:** **Database-per-tenant** via `spatie/laravel-multitenancy`. A central *landlord* DB holds the tenant registry + auth; each company gets its own database provisioned on creation.
+- **Users:** **Central users + membership.** Users live in the landlord DB; a `company_user` pivot records which companies each user may access. One login → many companies.
+- **Tenant identification:** **In-app switcher** using **Filament path-based tenancy** (`/admin/{company}`). No DNS/subdomains. The resolved Filament tenant drives the spatie DB connection swap for the request.
+- **Roles/permissions:** **Per-company** via `spatie/laravel-permission` **teams** (`team_id` = company id), stored in the landlord DB alongside users. A user can be Accountant in one company and Manager in another.
+
+### Architecture
+
+**Landlord (central) connection** — holds cross-company data:
+- `companies` (the tenant model; `name`, `slug`, `database` name, status). `Company extends Spatie\Multitenancy\Models\Tenant`.
+- `users` (moved to landlord connection), `password_reset_tokens`, sessions/jobs meta.
+- `company_user` membership pivot (also the Filament `HasTenants` relationship).
+- spatie permission tables (`roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`) with **`teams = true`** and `team_foreign_key = company_id`.
+
+**Tenant connection** — one DB per company, holds the whole domain (all 27 models): accounts, journal entries/lines, fiscal years, employees, employee settings/change requests, payslips, annual taxes, salary slabs, invoices/lines, payments, beneficiaries, contacts, products, stock movements, fixed assets, banks, company bank accounts, transaction types, petty cash vouchers, bank statements/lines, MPR, comments — plus a new per-tenant `settings` table.
+
+**Request flow:** login (landlord guard) → Filament resolves `/admin/{company}` to a `Company` and checks membership → a panel tenancy middleware calls `$company->makeCurrent()` (spatie swaps the `tenant` connection) and sets `PermissionRegistrar::setPermissionsTeamId($company->id)` → all domain models (tenant connection) + policies now operate on that company only.
+
+### Sub-phases / todos
+
+- [x] **5.1 Install & configure** — installed `spatie/laravel-multitenancy` v4.1. Published `config/multitenancy.php` + `config/permission.php`. Added a switchable **`tenant`** connection to `config/database.php` (the default connection doubles as the *landlord*, per spatie's `landlord_database_connection_name = null`; SQLite → one file per company under `database/tenants/`). Configured `tenant_model = App\Models\Company`, `tenant_database_connection_name = tenant`, and switch tasks (PrefixCache + SwitchTenantDatabase + `SetPermissionsTeamIdTask`, created in 5.3–5.4). Set permission `team_foreign_key = company_id`. **`queues_are_tenant_aware_by_default` temporarily set to `false`** — spatie's default (`true`) made every queued notification demand a current tenant and broke the suite; re-enabled properly in 5.7. Baseline restored (122 tests, 0 errors).
+- [~] **5.2 Landlord schema & models** — *in progress.* Done: `companies` + `company_user` migrations (landlord); `App\Models\Company` extends spatie `Tenant` (slug route key, `users()` membership); `User implements HasTenants` (`companies()`, `getTenants()`, `canAccessTenant()`); `CompanyFactory`; `CompanyMembershipTest` (green). **Remaining:** enable spatie `teams` with the `company_id` pivot columns + a default team context (deferred — coupled to the data migration in 5.8 to keep the baseline green), and set explicit landlord connection on permission models for the MySQL/split-DB case.
+- [x] **5.3 Partition migrations** — split the existing 34 migrations into `database/migrations/landlord` (8: auth/permissions/companies/activity_log/personal_access_tokens) and `database/migrations/tenant` (28: all domain tables). Added `App\Models\TenantModel` (abstract base applying `UsesTenantConnection`) and codemod'd the 25 domain models to alias-import it as `Model` (zero class-body edits). `AppServiceProvider::boot()` registers the landlord path always and the tenant path only under `testing` (single-DB test mode via `TENANT_DATABASE_CONNECTION=""`). Cross-DB `users` FKs in tenant tables downgraded to `->index()` soft refs (users lives in the landlord DB). **Runtime switch proven** by `TenantDatabaseIsolationTest` — two companies on two SQLite files, each with an isolated `banks` table, no leakage into the default/landlord connection. Baseline green (125 tests, 0 errors).
+- [x] **5.4 spatie ↔ Filament integration** — enabled `->tenant(Company::class, slugAttribute: 'slug')` on `AdminPanelProvider`; all panel routes are now `admin/{tenant:slug}/…` with Filament's built-in tenant switcher menu. Because isolation is at the **database** level, Filament's row-level tenant scoping is turned off globally via `Resource::scopeToTenant(false)` in `AppServiceProvider`. A `SyncSpatieTenant` listener on Filament's `TenantSet` event bridges the resolved Filament tenant to spatie: in production it calls `$company->makeCurrent()` (switch DB + cache prefix + permission team id); in the single-DB test env (no dedicated tenant connection) it only scopes the permission team id, leaving the shared test database untouched. Smoke tests updated via a `Tests\Concerns\InteractsWithTenant` trait that sets a current tenant. Baseline green (125 tests, 0 errors).
+- [x] **5.5 Company provisioning** — `App\Multitenancy\CompanyProvisioner` creates the landlord `Company` record, creates + migrates an isolated tenant database (SQLite file per company, or `CREATE DATABASE` for MySQL/PgSQL), seeds baseline reference data via a new `TenantBaselineSeeder` (FiscalYear, Chart of Accounts, TransactionTypes, SalarySlabs, Banks) while the tenant is current, and attaches the creating user as an Administrator member. Exposed two ways: a `companies:create {name} {--slug} {--owner}` console command and a Filament self-service `RegisterCompany` page wired via `->tenantRegistration()` (route `admin/new`). Proven by `CompanyProvisioningTest` (isolated seeded DB + owner attachment + no leakage). Baseline green (126 tests, 0 errors).
+- [x] **5.6 Per-tenant settings** — per-tenant `settings` table (tenant connection; `key` unique + json `value`), `App\Models\Setting` (extends `TenantModel`), and `App\Support\TenantSettings` accessor (singleton; per-tenant cache keyed by `Company::current()`; **falls back to `config()` when no override**, so behavior is unchanged for un-provisioned/single-DB test runs). Added a `setting($key, $default)` helper (autoloaded via `composer.json` `files`). Wired all 4 config call sites to `setting()`: `accounting.auto_post_payroll` + `accounting.payroll_accounts` (`PayrollPostingService`), `petty_cash.float_amount` (`PettyCashService`), `ipayments` (`SalaryBankExportService` + `BankPaymentExportService`). Added a Filament `CompanySettings` page (nav group **Settings**, Administrator-only) editing float/auto-post/payroll-account-codes/iPayments per company. Verified by `TenantSettingsTest` (fallback/override/array/bool/service) + `CompanySettingsPageTest` (render/save/gate). Baseline: 126 passed, only the 5 known pre-existing failures.
+- [ ] **5.7 Tenant-aware infrastructure** — make queues/jobs tenant-aware (spatie job middleware so queued work runs against the right DB), prefix cache keys per tenant, suffix storage/`filesystems` paths per tenant (petty-cash receipts, GnuCash import files, PDFs), and scope the activity log per tenant. Verify the PDF/report/import services operate on the tenant connection.
+- [ ] **5.8 Data migration for the existing company** — provision the first `Company` ("default"), move the current single-DB dataset into its tenant DB, and backfill membership + per-company role assignments for existing users. Provide a repeatable migration script.
+- [ ] **5.9 Tests** — data-isolation tests (data created in Company A is invisible in Company B), membership gating (`canAccessTenant`), per-company role resolution (same user, different permissions per company), provisioning (new company gets seeded + isolated), and updated test harness that boots a landlord DB + at least one tenant DB under `RefreshDatabase`.
+
+### Notes & risks (Phase 5)
+
+- **Filament tenancy is built for single-DB relations**; here the `Company` + membership live in the *landlord* DB while domain data lives per-tenant. This works because Filament only needs `getTenants()`/slug resolution from the central `Company` model — but every domain relationship must resolve on the tenant connection (watch cross-connection eager loads/joins).
+- **Test harness is the biggest lift:** `RefreshDatabase` must migrate two connections and create a throwaway tenant DB per test. Existing 122 tests + all seeders assume one DB and will need a tenancy-aware base test case.
+- **SQLite dev:** database-per-tenant = one file per company; ensure the switch task points the `tenant` connection at the right file and that `:memory:` isn't shared across tenants in tests.
+- **Migrations split is irreversible-ish:** partitioning the 34 migrations must preserve FK order within each connection; cross-connection FKs (e.g. domain rows referencing `users.id`) become soft references (no DB-level FK) since users are in another DB.
+- **Queues/schedule/PDF (Browsershot):** any out-of-request execution loses the current tenant — must be re-established from the job payload.
+- Keep it behind the existing test baseline (122 passed, 5 known pre-existing failures) at every sub-phase.
 
 - Nova and Filament share no code; Phase 3 is the bulk of the effort and parallelizes cleanly by domain (can be run as a multi-agent workflow).
 - Verify sereny permission tables' shape before assuming a clean spatie mapping.
@@ -116,4 +158,7 @@ Batches: Accounting · Payroll · Banking · Inventory · Reports. Source of tru
 - Laravel 13 — https://laravel-news.com/laravel-13
 - Filament v3→v4 upgrade — https://filamentexamples.com/tutorial/filament-v3-v4-upgrade
 - Filament version support policy — https://filamentphp.com/docs/5.x/introduction/version-support-policy
+- Filament multi-tenancy — https://filamentphp.com/docs/5.x/users/tenancy
+- spatie/laravel-multitenancy — https://spatie.be/docs/laravel-multitenancy
+- spatie/laravel-permission teams — https://spatie.be/docs/laravel-permission/v6/basic-usage/teams-permissions
 

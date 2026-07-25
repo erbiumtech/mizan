@@ -81,7 +81,7 @@ class PayrollPostingService
 
         $this->journalEntryService->submitForApproval($entry);
 
-        if (config('accounting.auto_post_payroll')) {
+        if (setting('accounting.auto_post_payroll')) {
             $entry->update([
                 'status' => JournalEntry::STATUS_APPROVED,
                 'approved_at' => now(),
@@ -117,7 +117,7 @@ class PayrollPostingService
 
     protected function accountId(string $key): int
     {
-        $code = config("accounting.payroll_accounts.{$key}");
+        $code = data_get(setting('accounting.payroll_accounts'), $key);
         $account = Account::where('code', $code)->first();
 
         if (! $account) {

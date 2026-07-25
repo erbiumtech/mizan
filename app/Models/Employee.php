@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -15,7 +15,7 @@ class Employee extends Model
         'user_id', 'employee_id', 'phone', 'gender',
         'is_active', 'designation', 'department',
         'date_of_joining', 'nic', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
-        'address_line_1', 'address_line_2'
+        'address_line_1', 'address_line_2',
     ];
 
     protected $casts = [

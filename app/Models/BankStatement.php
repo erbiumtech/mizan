@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 
 class BankStatement extends Model
 {
     use Auditable;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_IN_PROGRESS = 'in_progress';
+
     public const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [

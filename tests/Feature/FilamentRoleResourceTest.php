@@ -6,16 +6,17 @@ use App\Filament\Resources\Roles\Pages\CreateRole;
 use App\Filament\Resources\Roles\Pages\EditRole;
 use App\Filament\Resources\Roles\Schemas\RoleForm;
 use App\Models\User;
-use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
 class FilamentRoleResourceTest extends TestCase
 {
+    use InteractsWithTenant;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -23,7 +24,7 @@ class FilamentRoleResourceTest extends TestCase
         parent::setUp();
         Gate::before(fn () => true);
         $this->actingAs(User::factory()->create());
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->setCurrentTenant();
 
         Permission::create(['name' => 'AlphaView', 'group' => 'Alpha', 'guard_name' => 'web']);
         Permission::create(['name' => 'AlphaEdit', 'group' => 'Alpha', 'guard_name' => 'web']);

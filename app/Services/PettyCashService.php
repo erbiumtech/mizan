@@ -32,7 +32,7 @@ class PettyCashService
 
     public function floatAmount(): float
     {
-        return (float) config('petty_cash.float_amount');
+        return (float) setting('petty_cash.float_amount');
     }
 
     public function balanceAsOf(?string $date = null): float

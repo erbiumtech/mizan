@@ -10,7 +10,7 @@ class CreateEmployeesTable extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Link to User
+            $table->foreignId('user_id')->index(); // soft ref -> landlord users
             $table->string('employee_id')->unique();
             $table->string('phone')->nullable();
              $table->string('designation')->nullable();

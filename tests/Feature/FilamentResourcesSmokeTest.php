@@ -7,10 +7,12 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
+use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
 class FilamentResourcesSmokeTest extends TestCase
 {
+    use InteractsWithTenant;
     use RefreshDatabase;
 
     /**
@@ -25,7 +27,7 @@ class FilamentResourcesSmokeTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->setCurrentTenant();
 
         $resources = Filament::getPanel('admin')->getResources();
         $this->assertNotEmpty($resources, 'No Filament resources registered');

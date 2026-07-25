@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class Account extends Model
 {
@@ -79,7 +80,7 @@ class Account extends Model
     /**
      * All descendant accounts, depth-first.
      */
-    public function descendants(): \Illuminate\Support\Collection
+    public function descendants(): Collection
     {
         return $this->children->flatMap(
             fn (Account $child) => collect([$child])->merge($child->descendants())
