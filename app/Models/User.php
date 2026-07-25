@@ -20,6 +20,17 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasTenants
 {
     /**
+     * Users live in the landlord database. Pin the connection so that when a
+     * tenant model (e.g. Employee) eager-loads its `user` relation, the related
+     * query does NOT inherit the tenant connection (Eloquent's default) and
+     * fail with "no such table: users".
+     */
+    public function getConnectionName(): ?string
+    {
+        return config('multitenancy.landlord_database_connection_name') ?: config('database.default');
+    }
+
+    /**
      * Determine whether the user can access the given Filament panel.
      * Only active accounts (status = 1) may sign in — mirrors the legacy
      * status-based login rule that previously lived in NovaAuthService.

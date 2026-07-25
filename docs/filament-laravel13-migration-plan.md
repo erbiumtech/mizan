@@ -1,6 +1,8 @@
 # Migration Plan: Nova → Filament + Laravel 12 → 13 + Multi-Tenancy
 
-**Status:** Phases 0–4 done. Phase 5 (multi-tenancy) planned.
+**Status:** Phases 0–5 done. Full suite green (139 passed, 0 failures).
+
+> **Pre-existing test failures resolved (2026-07-25):** the 5 long-standing failures are fixed. **Tax (×4):** `TaxCalculatorTest` encoded the 2025-2026 salaried slabs but ran against the shared 2026-2027 fiscal year — pointed it at 2025-2026; also fixed an off-by-one in `SalarySlabSeeder` (`min_amount` thresholds were `600001…` but the tax formula subtracts `min_amount`, so they must be the round `600000…` "exceeding" thresholds the service documents). *Salary slabs are per-tenant, so re-seed via `php artisan tenants:artisan "db:seed --class=SalarySlabSeeder --force"` (NOT plain `db:seed`, which has no current company and hits the tenant placeholder DB).* **Audit (×1):** `AuthorizationTest` grabbed the first Account "updated" activity (seeding updates several accounts) — scoped it to the specific subject account + latest.
 **Created:** 2026-07-25
 **Branch:** `filament`
 
