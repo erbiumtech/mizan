@@ -8,7 +8,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 
@@ -20,39 +19,32 @@ use Filament\Tables\Columns\TextColumn;
 class CustomFieldsSchema
 {
     /**
-     * A "Custom Fields" form section, or [] if the model has none.
+     * Custom field form components, rendered inline alongside native fields
+     * (nested under the `custom_fields` state path via dot-notation names).
+     * Returns [] if the model has none.
      *
-     * @return array<int, Section>
+     * @return array<int, mixed>
      */
     public static function form(string $model): array
     {
-        $fields = CustomField::query()->forModel($model)->get();
-
-        if ($fields->isEmpty()) {
-            return [];
-        }
-
-        $components = $fields->map(fn (CustomField $field) => self::formComponent($field))->all();
-
-        return [
-            Section::make('Custom Fields')
-                ->statePath('custom_fields')
-                ->columns(2)
-                ->schema($components),
-        ];
+        return CustomField::query()->forModel($model)->get()
+            ->map(fn (CustomField $field) => self::formComponent($field))
+            ->all();
     }
 
     protected static function formComponent(CustomField $field)
     {
+        $name = 'custom_fields.'.$field->code;
+
         $component = match ($field->type) {
-            'textarea' => Textarea::make($field->code),
-            'number' => TextInput::make($field->code)->numeric(),
-            'date' => DatePicker::make($field->code),
-            'boolean' => Toggle::make($field->code),
-            'select' => Select::make($field->code)
+            'textarea' => Textarea::make($name),
+            'number' => TextInput::make($name)->numeric(),
+            'date' => DatePicker::make($name),
+            'boolean' => Toggle::make($name),
+            'select' => Select::make($name)
                 ->options(collect($field->options ?? [])->mapWithKeys(fn ($o) => [$o => $o])->all())
                 ->native(false),
-            default => TextInput::make($field->code)->maxLength(255),
+            default => TextInput::make($name)->maxLength(255),
         };
 
         $component = $component
@@ -60,6 +52,10 @@ class CustomFieldsSchema
             ->helperText($field->help)
             ->required($field->is_required)
             ->dehydrated(false); // persisted via the page trait, not the model
+
+        if ($field->placeholder && method_exists($component, 'placeholder')) {
+            $component->placeholder($field->placeholder);
+        }
 
         // Per-field validation: min/max as numeric bounds (number) or length (text), plus regex.
         if ($field->min !== null) {
