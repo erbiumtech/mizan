@@ -2,11 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Models\FiscalYear;
 use App\Services\TaxCalculatorService;
 use Tests\AccountingTestCase;
 
 class TaxCalculatorTest extends AccountingTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The expected numbers below encode the 2025-2026 salaried slabs, so
+        // resolve that fiscal year explicitly (the shared base uses 2026-2027).
+        $this->fiscalYear = FiscalYear::where('name', '2025-2026')->firstOrFail();
+    }
+
     private function calc(): TaxCalculatorService
     {
         return app(TaxCalculatorService::class);

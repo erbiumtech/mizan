@@ -123,6 +123,9 @@ class AuthorizationTest extends AccountingTestCase
 
         $activity = \Spatie\Activitylog\Models\Activity::where('log_name', 'Account')
             ->where('event', 'updated')
+            ->where('subject_type', Account::class)
+            ->where('subject_id', $account->id)
+            ->latest('id')
             ->firstOrFail();
 
         $changes = $activity->attribute_changes;
