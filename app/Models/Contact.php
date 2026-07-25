@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 
 class Contact extends Model
 {
-    use Auditable;
+    use Auditable, HasCustomFields;
 
     public const KIND_CUSTOMER = 'customer';
 

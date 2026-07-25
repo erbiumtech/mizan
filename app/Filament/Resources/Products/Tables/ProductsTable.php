@@ -71,6 +71,8 @@ class ProductsTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Product::class),
             ])
             ->filters([
                 //

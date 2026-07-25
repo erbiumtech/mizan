@@ -65,6 +65,8 @@ class FixedAssetsTable
                         default => 'gray',
                     })
                     ->sortable(),
+
+                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\FixedAsset::class),
             ])
             ->filters([
                 SelectFilter::make('status')

@@ -34,6 +34,8 @@ class ContactsTable
                     ->label('Active')
                     ->boolean()
                     ->sortable(),
+
+                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Contact::class),
             ])
             ->filters([
                 //

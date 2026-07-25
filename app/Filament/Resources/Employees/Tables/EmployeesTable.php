@@ -44,6 +44,8 @@ class EmployeesTable
 
                 TextColumn::make('bank_short_code')
                     ->searchable(),
+
+                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Employee::class),
             ])
             ->filters([
                 SelectFilter::make('employee_name')

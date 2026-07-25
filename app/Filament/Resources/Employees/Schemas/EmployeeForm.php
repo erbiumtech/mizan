@@ -117,6 +117,8 @@ class EmployeeForm
                         'Female' => 'Female',
                         'Other' => 'Other',
                     ]),
+
+                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Employee::class),
             ]);
     }
 }

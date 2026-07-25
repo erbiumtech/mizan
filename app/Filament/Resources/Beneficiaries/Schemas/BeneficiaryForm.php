@@ -86,6 +86,8 @@ class BeneficiaryForm
                 Toggle::make('is_active')
                     ->label('Active')
                     ->default(true),
+
+                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Beneficiary::class),
             ]);
     }
 }
