@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 
 class Beneficiary extends Model
 {
-    use Auditable;
+    use Auditable, HasCustomFields;
 
     protected $fillable = [
         'name', 'bank_id', 'account_no', 'iban', 'id_type', 'id_number',

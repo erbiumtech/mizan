@@ -72,7 +72,26 @@ Then add the plugin's component to that resource's form / table / infolist (one 
 
 ---
 
-## 5. Phased plan
+## 4b. IMPLEMENTED — in-house native custom fields ✅
+
+The paid Relaticle plugin needs a purchased license + private repo, so we built the **§7 "lite EAV" alternative** natively for our DB-per-tenant model instead. Delivered:
+
+- **Tenant tables** (`database/migrations/tenant/..._create_custom_fields_tables.php`): `custom_fields` (definitions: model_type, code, name, type, options, is_required, help, sort, is_active) + `custom_field_values` (morph to any tenant model, json value). Isolation via the tenant DB — no `tenant_id` column. Applied to existing tenants via `tenants:artisan "migrate --path=database/migrations/tenant --database=tenant --force"`; new companies get them from the provisioner.
+- **Models:** `App\Models\CustomField` + `App\Models\CustomFieldValue` (both extend `TenantModel`). Trait `App\Models\Concerns\HasCustomFields` (morphMany values, `customFieldsData()`, `saveCustomFields()`).
+- **Field types:** text, textarea, number, date, boolean, select — with required + help.
+- **Filament integration:** `App\Filament\Support\CustomFieldsSchema::form()` / `::tableColumns()` build components/columns from definitions (form fields under the `custom_fields` state path, `dehydrated(false)`); `App\Filament\Concerns\InteractsWithCustomFields` page trait hydrates + persists values on Create/Edit.
+- **Admin:** `CustomFieldResource` (Settings nav group, Administrator-only) to manage definitions per model type (`MODELS` allow-list).
+- **Rolled out to 6 models:** `Contact`, `Employee`, `Invoice`, `Product`, `Beneficiary`, `FixedAsset` (model trait + form + table columns + Create/Edit page traits + `getEloquentQuery` eager-load).
+- **Infolist entries:** `CustomFieldsSchema::infolistEntries(Model::class)` for View pages.
+- **Per-field validation:** `min`/`max` (numeric value or text length) + `regex` per definition, applied to the form component and enforced on save.
+- **N+1 fixed:** `customFieldsData()` memoized per instance + reuses eager-loaded `customFieldValues.customField`; definitions cached per (model, company) in a real tenant context. Each opted-in resource eager-loads via `getEloquentQuery()->with('customFieldValues.customField')`.
+- **Tests:** `CustomFieldTest` (define+store, Filament create persists, min-length validation enforced, infolist entries build). Suite: 154 passed.
+
+**Still deferred (lower priority / buy):** field encryption, CSV import/export, conditional visibility (show/hide by another field), the long tail of field types (multi-select, file, rich editor, color), table filtering on custom columns, PDF/report inclusion.
+
+**To opt another model in:** add `use HasCustomFields;` to the model, `...CustomFieldsSchema::form(Model::class)` to its form + `...::tableColumns(Model::class)` to its table, `use InteractsWithCustomFields;` on its Create/Edit pages, and add it to `CustomFieldResource::MODELS`.
+
+## 5. Phased plan (original — for the paid plugin route)
 
 - [ ] **Phase 0 — Licensing & spike.** Acquire license; install in a branch; confirm Tailwind-4 theme builds; read the plugin's model/connection/tenancy internals to confirm we can (a) point its tables at the `tenant` connection and (b) disable row-level tenancy.
 - [ ] **Phase 1 — Tenant wiring.** Relocate migrations to `database/migrations/tenant/`; run via `tenants:artisan`; ensure the plugin's models use the tenant connection (subclass/override if needed); disable its tenant-column scoping. Prove isolation: a field defined in Company A is absent in Company B.

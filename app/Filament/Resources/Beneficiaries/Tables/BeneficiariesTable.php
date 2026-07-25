@@ -37,6 +37,8 @@ class BeneficiariesTable
                     ->label('Active')
                     ->boolean()
                     ->sortable(),
+
+                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Beneficiary::class),
             ])
             ->filters([
                 //

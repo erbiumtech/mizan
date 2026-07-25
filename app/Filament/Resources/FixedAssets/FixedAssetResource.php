@@ -31,6 +31,11 @@ class FixedAssetResource extends Resource
         return ['asset_code', 'name'];
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with('customFieldValues.customField');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return FixedAssetForm::configure($schema);

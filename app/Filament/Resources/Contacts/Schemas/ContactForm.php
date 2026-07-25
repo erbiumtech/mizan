@@ -61,6 +61,8 @@ class ContactForm
 
                 Toggle::make('is_active')
                     ->label('Active'),
+
+                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Contact::class),
             ]);
     }
 }

@@ -61,6 +61,8 @@ class FixedAssetForm
                     ->numeric()
                     ->step(0.01)
                     ->minValue(0),
+
+                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\FixedAsset::class),
             ]);
     }
 }

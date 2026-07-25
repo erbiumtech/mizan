@@ -94,6 +94,8 @@ class InvoicesTable
                 TextColumn::make('journalEntry.entry_number')
                     ->label('Journal Entry')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Invoice::class),
             ])
             ->filters([
                 //

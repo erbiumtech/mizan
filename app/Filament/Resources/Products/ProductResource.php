@@ -31,6 +31,11 @@ class ProductResource extends Resource
         return ['sku', 'name'];
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with('customFieldValues.customField');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ProductForm::configure($schema);

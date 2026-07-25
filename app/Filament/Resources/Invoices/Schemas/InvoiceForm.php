@@ -59,6 +59,8 @@ class InvoiceForm
 
                 Textarea::make('memo')
                     ->nullable(),
+
+                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Invoice::class),
             ]);
     }
 }

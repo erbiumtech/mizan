@@ -75,6 +75,8 @@ class ProductForm
                 Toggle::make('is_active')
                     ->label('Active')
                     ->default(true),
+
+                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Product::class),
             ]);
     }
 }
