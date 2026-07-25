@@ -150,11 +150,12 @@ class PayslipService
     {
         $payslip->load('employee.user');
         $fileName = "payslips/payslip-{$payslip->id}.pdf";
-        $fullPath = storage_path('app/public/'.$fileName);
 
-        if (! file_exists(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
-        }
+        // Route through the `public` disk so per-tenant storage isolation
+        // (SwitchTenantFilesystemTask) applies to the absolute save path.
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        $disk->makeDirectory(dirname($fileName));
+        $fullPath = $disk->path($fileName);
 
         Pdf::view('pdfs.payslip', ['data' => $payslip])
             ->format('a4')

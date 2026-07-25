@@ -77,16 +77,12 @@ class MPRSTable
                     $pdfService = new MprPdfService;
                     $result = $pdfService->generateSingleReport($record->toArray());
 
-                    $directory = storage_path('app/public/Mpr');
-                    if (! file_exists($directory)) {
-                        mkdir($directory, 0755, true);
-                    }
-
-                    $result['pdf']->save(storage_path('app/public/' . $fileName));
+                    Storage::disk('public')->makeDirectory(dirname($fileName));
+                    $result['pdf']->save(Storage::disk('public')->path($fileName));
                     $record->update(['pdf_path' => $fileName]);
                 }
 
-                return redirect()->away(url('storage/' . $fileName));
+                return redirect()->away(Storage::disk('public')->url($fileName));
             });
     }
 
@@ -142,16 +138,12 @@ class MPRSTable
 
                 $userName = $user->name ?? 'User';
                 $cleanName = str_replace([' ', '/', '\\'], '_', $userName);
-                $customFileName = $cleanName . '_Comparison_' . time() . '.pdf';
+                $customFileName = 'Mpr/' . $cleanName . '_Comparison_' . time() . '.pdf';
 
-                $directory = storage_path('app/public/Mpr');
-                if (! file_exists($directory)) {
-                    mkdir($directory, 0755, true);
-                }
+                Storage::disk('public')->makeDirectory('Mpr');
+                $result['pdf']->save(Storage::disk('public')->path($customFileName));
 
-                $result['pdf']->save($directory . '/' . $customFileName);
-
-                return redirect()->away(url('storage/Mpr/' . $customFileName));
+                return redirect()->away(Storage::disk('public')->url($customFileName));
             });
     }
 }
