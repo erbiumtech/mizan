@@ -4,51 +4,97 @@
     @php($account = $this->currentAccount())
     @php($ledger = $this->getLedger())
     @php($from = $this->data['from'] ?? null)
+    @php($rows = collect($ledger['rows']))
+    @php($totalDebit = $rows->sum('debit'))
+    @php($totalCredit = $rows->sum('credit'))
+
+    {{-- Summary stat cards --}}
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <x-reports.stat-card
+            label="Opening Balance"
+            :value="number_format($ledger['opening_balance'], 2)"
+            :color="$ledger['opening_balance'] < 0 ? 'danger' : 'gray'"
+            :help="$from ? 'As of ' . \Carbon\Carbon::parse($from)->format('d/m/Y') : 'Start of ledger'"
+        />
+        <x-reports.stat-card
+            label="Total Debit (in)"
+            :value="number_format($totalDebit, 2)"
+            color="success"
+            :help="$rows->count() . ' entries'"
+        />
+        <x-reports.stat-card
+            label="Total Credit (out)"
+            :value="number_format($totalCredit, 2)"
+            color="danger"
+        />
+        <x-reports.stat-card
+            label="Closing Balance"
+            :value="number_format($ledger['closing_balance'], 2)"
+            :color="$ledger['closing_balance'] < 0 ? 'danger' : 'primary'"
+        />
+    </div>
 
     <x-filament::section>
         <x-slot name="heading">{{ $account->code }} {{ $account->name }}</x-slot>
         <x-slot name="description">GnuCash-style register — every transaction from one screen</x-slot>
+        <x-slot name="headerEnd">
+            <x-filament::badge color="gray">{{ $rows->count() }} {{ \Illuminate\Support\Str::plural('entry', $rows->count()) }}</x-filament::badge>
+        </x-slot>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto rounded-lg ring-1 ring-gray-950/5 dark:ring-white/10">
             <table class="w-full text-sm text-gray-700 dark:text-gray-200">
-                <thead>
-                    <tr class="border-b border-gray-200 dark:border-white/10 text-left">
-                        <th class="py-2 pr-4 font-medium">Date</th>
-                        <th class="py-2 pr-4 font-medium">Num</th>
-                        <th class="py-2 pr-4 font-medium">Description</th>
-                        <th class="py-2 pr-4 font-medium">Transfer</th>
-                        <th class="py-2 pr-4 font-medium">R</th>
-                        <th class="py-2 pl-4 font-medium text-right">Debit</th>
-                        <th class="py-2 pl-4 font-medium text-right">Credit</th>
-                        <th class="py-2 pl-4 font-medium text-right">Balance</th>
+                <thead class="bg-gray-50 dark:bg-white/5">
+                    <tr class="text-left">
+                        <th class="px-3 py-2 font-medium">Date</th>
+                        <th class="px-3 py-2 font-medium">Num</th>
+                        <th class="px-3 py-2 font-medium">Description</th>
+                        <th class="px-3 py-2 font-medium">Transfer</th>
+                        <th class="px-3 py-2 text-center font-medium">R</th>
+                        <th class="px-3 py-2 text-right font-medium">Debit</th>
+                        <th class="px-3 py-2 text-right font-medium">Credit</th>
+                        <th class="px-3 py-2 text-right font-medium">Balance</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                     @if($from)
-                        <tr class="border-b border-gray-100 dark:border-white/5 text-gray-500">
-                            <td colspan="7" class="py-1.5 pr-4">Opening balance</td>
-                            <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($ledger['opening_balance'], 2) }}</td>
+                        <tr class="text-gray-500 dark:text-gray-400">
+                            <td class="px-3 py-2" colspan="7">Opening balance</td>
+                            <td class="px-3 py-2 text-right tabular-nums">{{ number_format($ledger['opening_balance'], 2) }}</td>
                         </tr>
                     @endif
                     @forelse($ledger['rows'] as $row)
-                        <tr class="border-b border-gray-100 dark:border-white/5">
-                            <td class="py-1.5 pr-4">{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
-                            <td class="py-1.5 pr-4">{{ $row['num'] }}</td>
-                            <td class="py-1.5 pr-4">{{ $row['description'] }}</td>
-                            <td class="py-1.5 pr-4">{{ $row['transfer'] }}</td>
-                            <td class="py-1.5 pr-4">{{ $row['reconciled'] }}</td>
-                            <td class="py-1.5 pl-4 text-right tabular-nums">{{ $row['debit'] ? number_format($row['debit'], 2) : '' }}</td>
-                            <td class="py-1.5 pl-4 text-right tabular-nums">{{ $row['credit'] ? number_format($row['credit'], 2) : '' }}</td>
-                            <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($row['balance'], 2) }}</td>
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-white/5">
+                            <td class="whitespace-nowrap px-3 py-2">{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
+                            <td class="px-3 py-2">
+                                @if($row['num'])
+                                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-white/10">{{ $row['num'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2">{{ $row['description'] }}</td>
+                            <td class="px-3 py-2 text-gray-500 dark:text-gray-400">{{ $row['transfer'] }}</td>
+                            <td class="px-3 py-2 text-center">
+                                @if($row['reconciled'] === 'y')
+                                    <x-filament::badge color="success" size="sm">y</x-filament::badge>
+                                @else
+                                    <span class="text-gray-300 dark:text-gray-600">n</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums {{ $row['debit'] ? 'text-success-600 dark:text-success-400' : '' }}">{{ $row['debit'] ? number_format($row['debit'], 2) : '' }}</td>
+                            <td class="px-3 py-2 text-right tabular-nums {{ $row['credit'] ? 'text-danger-600 dark:text-danger-400' : '' }}">{{ $row['credit'] ? number_format($row['credit'], 2) : '' }}</td>
+                            <td class="px-3 py-2 text-right tabular-nums font-medium {{ $row['balance'] < 0 ? 'text-danger-600 dark:text-danger-400' : '' }}">{{ number_format($row['balance'], 2) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="py-1.5 px-2 text-gray-400">No posted transactions in this range.</td></tr>
+                        <tr><td class="px-3 py-6 text-center text-gray-400" colspan="8">No posted transactions in this range.</td></tr>
                     @endforelse
-                    <tr class="border-t-2 border-gray-300 dark:border-white/20 font-bold">
-                        <td colspan="7" class="py-2 pr-4">Closing balance</td>
-                        <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($ledger['closing_balance'], 2) }}</td>
-                    </tr>
                 </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold dark:border-white/10 dark:bg-white/5">
+                        <td class="px-3 py-2" colspan="5">Closing balance</td>
+                        <td class="px-3 py-2 text-right tabular-nums text-success-600 dark:text-success-400">{{ number_format($totalDebit, 2) }}</td>
+                        <td class="px-3 py-2 text-right tabular-nums text-danger-600 dark:text-danger-400">{{ number_format($totalCredit, 2) }}</td>
+                        <td class="px-3 py-2 text-right tabular-nums {{ $ledger['closing_balance'] < 0 ? 'text-danger-600 dark:text-danger-400' : '' }}">{{ number_format($ledger['closing_balance'], 2) }}</td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </x-filament::section>
