@@ -59,6 +59,10 @@ class CustomFieldForm
                 ->helperText('Without delimiters, e.g. ^[A-Z]{3}$')
                 ->visible(fn (callable $get) => in_array($get('type'), ['text', 'textarea'], true)),
 
+            TextInput::make('placeholder')
+                ->helperText('Placeholder shown inside the empty input.')
+                ->visible(fn (callable $get) => in_array($get('type'), ['text', 'textarea', 'number', 'date', 'select'], true)),
+
             Textarea::make('help')->label('Help text')->nullable(),
 
             TextInput::make('sort')->numeric()->default(0),

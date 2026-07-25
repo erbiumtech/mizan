@@ -15,7 +15,7 @@ class CustomField extends Model
 
     protected $fillable = [
         'model_type', 'code', 'name', 'type', 'options', 'is_required',
-        'min', 'max', 'regex', 'help', 'sort', 'is_active',
+        'min', 'max', 'regex', 'help', 'placeholder', 'sort', 'is_active',
     ];
 
     protected $casts = [
