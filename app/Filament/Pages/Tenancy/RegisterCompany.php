@@ -15,6 +15,14 @@ class RegisterCompany extends RegisterTenant
         return 'Register company';
     }
 
+    /**
+     * Only Administrators (of any company they belong to) may create new companies.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->canCreateCompanies() ?? false;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema

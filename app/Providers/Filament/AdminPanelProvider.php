@@ -28,6 +28,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->tenant(Company::class, slugAttribute: 'slug')
+            // Company switcher for users who belong to more than one company.
+            ->tenantMenu()
+            // Admin-only company creation is enforced by RegisterCompany::canView().
             ->tenantRegistration(RegisterCompany::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
@@ -41,6 +44,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
+            // ⌘K command palette (rendered on every panel page).
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::BODY_END,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('@livewire(\App\Filament\Livewire\CommandPalette::class)'),
+            )
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::TOPBAR_END,
+                fn (): string => view('filament.partials.command-palette-trigger')->render(),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
