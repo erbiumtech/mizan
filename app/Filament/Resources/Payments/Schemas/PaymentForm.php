@@ -21,7 +21,9 @@ class PaymentForm
                 MorphToSelect::make('payable')
                     ->types([
                         MorphToSelect\Type::make(Employee::class)
-                            ->titleAttribute('employee_id'),
+                            ->titleAttribute('employee_id')
+                            ->modifyOptionsQueryUsing(fn ($query) => $query->with('user'))
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label),
                         MorphToSelect\Type::make(Beneficiary::class)
                             ->titleAttribute('name'),
                     ])

@@ -4,11 +4,18 @@ namespace App\Policies;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\EmployeeAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class EmployeePolicy
 {
     use HandlesAuthorization;
+
+    /** Own record or a report in the user's downline. */
+    protected function canAccess(User $user, Employee $employee): bool
+    {
+        return app(EmployeeAccess::class)->accessibleEmployeeIds($user)->contains($employee->id);
+    }
 
     public function viewAny(User $user)
     {
@@ -20,7 +27,8 @@ class EmployeePolicy
         if ($user->hasRole('Administrator')) {
             return true;
         }
-        return $user->id === $employee->user_id;
+
+        return $this->canAccess($user, $employee);
     }
 
 
@@ -35,9 +43,9 @@ class EmployeePolicy
             return true;
         }
 
-        // Employees may edit their own record; the Nova resource locks
-        // employment fields so only contact and bank details are writable.
-        return $user->id === $employee->user_id;
+        // Employees may edit their own record; managers may also edit their
+        // reports (downline). Employment fields stay locked for non-admins.
+        return $this->canAccess($user, $employee);
     }
 
     public function delete(User $user, Employee $employee)

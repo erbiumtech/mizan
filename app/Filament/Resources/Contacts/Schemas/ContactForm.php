@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Contacts\Schemas;
 
+use App\Filament\Support\CustomFieldsSchema;
+use App\Models\Contact;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -62,7 +64,7 @@ class ContactForm
                 Toggle::make('is_active')
                     ->label('Active'),
 
-                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Contact::class),
+                ...CustomFieldsSchema::form(Contact::class),
             ]);
     }
 }

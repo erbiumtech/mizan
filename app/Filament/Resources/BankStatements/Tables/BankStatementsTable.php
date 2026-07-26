@@ -56,8 +56,8 @@ class BankStatementsTable
 
                 TextColumn::make('progress')
                     ->label('Progress')
-                    ->state(fn (BankStatement $record): string => $record->lines()->count()
-                        ? "{$record->matchedCount()} / {$record->lines()->count()} matched"
+                    ->state(fn (BankStatement $record): string => ($record->lines_count ?? 0)
+                        ? "{$record->matched_count} / {$record->lines_count} matched"
                         : '—'),
 
                 TextColumn::make('completedBy.name')
@@ -109,7 +109,7 @@ class BankStatementsTable
                     }
                     $s->import($rows, $record);
 
-                    return count($rows) . ' line(s) imported.';
+                    return count($rows).' line(s) imported.';
                 }, 'Import Lines')),
 
             Action::make('autoMatch')
@@ -118,7 +118,7 @@ class BankStatementsTable
                 ->requiresConfirmation()
                 ->modalDescription('Auto-match unmatched statement lines against the ledger (exact amount + date within 3 days, or amount + reference)?')
                 ->visible(fn (BankStatement $record): bool => auth()->user()?->can('match', $record) ?? false)
-                ->action(fn (BankStatement $record) => self::run(fn (BankReconciliationService $s) => 'Auto-matched ' . $s->autoMatch($record) . ' line(s).', 'Auto-Match')),
+                ->action(fn (BankStatement $record) => self::run(fn (BankReconciliationService $s) => 'Auto-matched '.$s->autoMatch($record).' line(s).', 'Auto-Match')),
 
             Action::make('completeReconciliation')
                 ->label('Complete Reconciliation')

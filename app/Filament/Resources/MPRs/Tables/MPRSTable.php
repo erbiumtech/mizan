@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MPRs\Tables;
 use App\Models\MPR;
 use App\Models\User;
 use App\Services\MprPdfService;
+use App\Support\EmployeeAccess;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -39,7 +40,17 @@ class MPRSTable
             ->filters([
                 SelectFilter::make('user_id')
                     ->label('User Name')
-                    ->options(fn (): array => User::pluck('name', 'id')->toArray())
+                    ->options(function (): array {
+                        $user = auth()->user();
+                        $query = User::query();
+
+                        // Non-privileged users only filter within their downline.
+                        if ($user && ! app(EmployeeAccess::class)->isPrivileged($user)) {
+                            $query->whereIn('id', app(EmployeeAccess::class)->accessibleUserIds($user)->all());
+                        }
+
+                        return $query->pluck('name', 'id')->toArray();
+                    })
                     ->searchable(),
             ])
             ->headerActions([
@@ -69,7 +80,7 @@ class MPRSTable
             ->action(function (MPR $record) {
                 $userName = $record->user->name ?? 'User';
                 $cleanName = str_replace([' ', '/', '\\'], '_', $userName);
-                $fileName = 'Mpr/' . $cleanName . '_' . time() . '.pdf';
+                $fileName = 'Mpr/'.$cleanName.'_'.time().'.pdf';
 
                 if ($record->pdf_path && Storage::disk('public')->exists($record->pdf_path)) {
                     $fileName = $record->pdf_path;
@@ -138,7 +149,7 @@ class MPRSTable
 
                 $userName = $user->name ?? 'User';
                 $cleanName = str_replace([' ', '/', '\\'], '_', $userName);
-                $customFileName = 'Mpr/' . $cleanName . '_Comparison_' . time() . '.pdf';
+                $customFileName = 'Mpr/'.$cleanName.'_Comparison_'.time().'.pdf';
 
                 Storage::disk('public')->makeDirectory('Mpr');
                 $result['pdf']->save(Storage::disk('public')->path($customFileName));

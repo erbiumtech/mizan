@@ -75,4 +75,15 @@ class CustomFieldTest extends TestCase
         $entries = \App\Filament\Support\CustomFieldsSchema::infolistEntries(Contact::class);
         $this->assertCount(1, $entries);
     }
+
+    public function test_env_flag_disables_custom_fields(): void
+    {
+        config()->set('custom_fields.enabled', false);
+
+        CustomField::create(['model_type' => Contact::class, 'code' => ' off_field', 'name' => 'Off', 'type' => 'text']);
+
+        $this->assertSame([], \App\Filament\Support\CustomFieldsSchema::form(Contact::class));
+        $this->assertSame([], \App\Filament\Support\CustomFieldsSchema::tableColumns(Contact::class));
+        $this->assertSame([], \App\Filament\Support\CustomFieldsSchema::infolistEntries(Contact::class));
+    }
 }

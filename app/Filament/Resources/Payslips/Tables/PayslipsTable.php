@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Payslips\Tables;
 
 use App\Models\Payslip;
+use App\Support\EmployeeAccess;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -12,10 +13,12 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf;
 
 class PayslipsTable
@@ -23,9 +26,12 @@ class PayslipsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->header(view('filament.tables.saved-views-bar'))
+            ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
             ->columns([
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
+                    ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
                         ->where('payslips.id', 'like', "%{$search}%")
                         ->orWhereHas('employee', fn ($q) => $q
@@ -42,8 +48,54 @@ class PayslipsTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('basic_wage')
+                    ->label('Basic Salary')
+                    ->money('PKR')
+                    ->sortable(),
+
+                TextColumn::make('medical_allowance')
+                    ->label('Medical Allowance')
+                    ->money('PKR')
+                    ->toggleable(),
+
+                TextColumn::make('petrol_allowance')
+                    ->label('Petrol Allowance')
+                    ->money('PKR')
+                    ->toggleable(),
+
+                TextColumn::make('bonus')
+                    ->label('Bonus')
+                    ->money('PKR')
+                    ->toggleable(),
+
+                TextColumn::make('extra_work_hours')
+                    ->label('Extra Work Hours')
+                    ->numeric()
+                    ->toggleable(),
+
+                TextColumn::make('advances')
+                    ->label('Advances')
+                    ->money('PKR')
+                    ->toggleable(),
+
+                TextColumn::make('meal_deduction')
+                    ->label('Meal Deduction')
+                    ->money('PKR')
+                    ->toggleable(),
+
+                TextColumn::make('withholding_tax')
+                    ->label('Withholding Tax')
+                    ->money('PKR')
+                    ->sortable(),
+
+                TextColumn::make('total_deductions')
+                    ->label('Total Deductions')
+                    ->money('PKR')
+                    ->sortable(),
+
                 TextColumn::make('net_salary')
                     ->label('Net Salary')
+                    ->money('PKR')
                     ->sortable(),
 
                 TextColumn::make('employee_review')
@@ -57,10 +109,17 @@ class PayslipsTable
                     })
                     ->sortable(),
             ])
+            ->groups([
+                Group::make('month')->label('Month'),
+                Group::make('fiscalYear.name')->label('Fiscal Year'),
+                Group::make('employee_review')->label('Review Status'),
+            ])
             ->filters([
                 SelectFilter::make('employee_id')
                     ->label('Employee')
-                    ->relationship('employee', 'employee_id')
+                    ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
+                        ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
                     ->preload(),
 
@@ -215,7 +274,10 @@ class PayslipsTable
     protected static function canReview(Payslip $record): bool
     {
         return $record->isPendingReview()
-            && $record->employee?->user_id === auth()->id();
+            && $record->employee_id
+            && app(EmployeeAccess::class)
+                ->accessibleEmployeeIds(auth()->user())
+                ->contains($record->employee_id);
     }
 
     /**
@@ -226,10 +288,10 @@ class PayslipsTable
     {
         $month = $payslip->month;
         $yearName = $payslip->fiscalYear ? $payslip->fiscalYear->name : 'Unknown-Year';
-        $cleanFileNamePart = $month . '-' . str_replace([' ', '/', '\\'], '-', $yearName);
+        $cleanFileNamePart = $month.'-'.str_replace([' ', '/', '\\'], '-', $yearName);
         $customEmpId = $payslip->employee->employee_id;
 
-        $fileName = 'payslips/' . $customEmpId . '-' . $cleanFileNamePart . '.pdf';
+        $fileName = 'payslips/'.$customEmpId.'-'.$cleanFileNamePart.'.pdf';
 
         if (! Storage::disk('public')->exists($fileName)) {
             if (! Storage::disk('public')->exists('payslips')) {
@@ -240,7 +302,7 @@ class PayslipsTable
 
             Pdf::view('pdfs.payslip', ['data' => $payslip])
                 ->format('a4')
-                ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
+                ->withBrowsershot(fn (Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                 ->save($absolutePath);
 
             $payslip->update(['pdf_path' => $fileName]);

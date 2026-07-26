@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AnnualTaxes\Tables;
 
+use App\Support\EmployeeAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,7 @@ class AnnualTaxesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -64,7 +66,9 @@ class AnnualTaxesTable
             ->filters([
                 SelectFilter::make('employee_id')
                     ->label('Employee')
-                    ->relationship('employee', 'employee_id')
+                    ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
+                        ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
                     ->preload(),
 

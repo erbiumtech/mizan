@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EmployeeSettings;
 
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\EmployeeSettings\Pages\CreateEmployeeSetting;
 use App\Filament\Resources\EmployeeSettings\Pages\EditEmployeeSetting;
 use App\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
@@ -13,10 +14,13 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class EmployeeSettingResource extends Resource
 {
+    use ScopesToAccessibleEmployees;
+
     protected static ?string $model = EmployeeSetting::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
@@ -33,6 +37,21 @@ class EmployeeSettingResource extends Resource
             'employee.user.name',
             'fiscalYear.name',
         ];
+    }
+
+    /**
+     * Privileged roles see all settings; everyone else sees their own plus
+     * those of their reporting downline.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('employee_id', static::accessibleEmployeeIds()->all());
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

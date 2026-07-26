@@ -15,7 +15,8 @@ class EmployeeChangeRequestForm
             ->components([
                 Select::make('employee_id')
                     ->label('Employee')
-                    ->relationship('employee', 'id')
+                    ->relationship('employee', 'employee_id', fn ($query) => $query->with('user'))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
                     ->preload()
                     ->disabled(),

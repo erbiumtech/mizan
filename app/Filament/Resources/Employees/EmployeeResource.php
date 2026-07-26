@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Employees;
 
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Filament\Resources\Employees\Pages\ListEmployees;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class EmployeeResource extends Resource
 {
+    use ScopesToAccessibleEmployees;
+
     protected static ?string $model = Employee::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
@@ -34,17 +37,15 @@ class EmployeeResource extends Resource
     }
 
     /**
-     * Nova indexQuery: Administrators see all; everyone else is scoped to
-     * their own user_id.
+     * Privileged roles see all; everyone else sees their own record plus their
+     * reporting downline (managers see their whole subtree).
      */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()->with('customFieldValues.customField');
 
-        $user = auth()->user();
-
-        if ($user && ! $user->hasRole('Administrator')) {
-            $query->where('user_id', $user->id);
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('id', static::accessibleEmployeeIds()->all());
         }
 
         return $query;

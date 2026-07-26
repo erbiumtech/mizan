@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Contacts\Tables;
 
+use App\Filament\Support\CustomFieldsSchema;
+use App\Models\Contact;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -35,7 +37,7 @@ class ContactsTable
                     ->boolean()
                     ->sortable(),
 
-                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Contact::class),
+                ...CustomFieldsSchema::tableColumns(Contact::class),
             ])
             ->filters([
                 //

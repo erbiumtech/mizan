@@ -25,8 +25,17 @@ class CustomFieldsSchema
      *
      * @return array<int, mixed>
      */
+    public static function enabled(): bool
+    {
+        return (bool) config('custom_fields.enabled', true);
+    }
+
     public static function form(string $model): array
     {
+        if (! self::enabled()) {
+            return [];
+        }
+
         return CustomField::query()->forModel($model)->get()
             ->map(fn (CustomField $field) => self::formComponent($field))
             ->all();
@@ -82,6 +91,10 @@ class CustomFieldsSchema
      */
     public static function infolistEntries(string $model): array
     {
+        if (! self::enabled()) {
+            return [];
+        }
+
         return CustomField::query()->forModel($model)->get()
             ->map(function (CustomField $field) {
                 $resolve = fn ($record) => $record->customFieldsData()[$field->code] ?? null;
@@ -107,6 +120,10 @@ class CustomFieldsSchema
      */
     public static function tableColumns(string $model): array
     {
+        if (! self::enabled()) {
+            return [];
+        }
+
         return CustomField::query()->forModel($model)->get()
             ->map(function (CustomField $field) {
                 $key = 'cf_'.$field->code;

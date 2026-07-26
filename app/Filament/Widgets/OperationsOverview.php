@@ -6,7 +6,6 @@ use App\Models\Employee;
 use App\Models\Invoice;
 use App\Models\JournalEntry;
 use App\Models\Product;
-use App\Services\InventoryValuationService;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -18,6 +17,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class OperationsOverview extends StatsOverviewWidget
 {
+    protected static bool $isLazy = true;
+
     protected static ?int $sort = 1;
 
     public static function canView(): bool
@@ -48,22 +49,24 @@ class OperationsOverview extends StatsOverviewWidget
         }
 
         if ($user?->can('InvoiceView')) {
+            // Single aggregate query instead of loading every open invoice.
             $open = Invoice::where('kind', Invoice::KIND_SALE)
                 ->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])
-                ->get();
+                ->selectRaw('COUNT(*) as cnt, COALESCE(SUM(total - amount_paid), 0) as outstanding_total')
+                ->first();
 
             $stats[] = Stat::make(
                 'Unpaid Customer Invoices',
-                'PKR '.number_format(round($open->sum(fn (Invoice $i) => $i->outstanding()), 2), 2)
-            )->description($open->count().' open');
+                'PKR '.number_format(round((float) $open->outstanding_total, 2), 2)
+            )->description(((int) $open->cnt).' open');
         }
 
         if ($user?->can('ProductView')) {
-            $valuation = app(InventoryValuationService::class);
-
+            // On-hand via a single aggregate (withSum) — no per-product query.
             $low = Product::where('is_active', true)
+                ->withSum('movements as on_hand_qty', 'quantity')
                 ->get()
-                ->filter(fn (Product $p) => $valuation->onHand($p) <= (float) $p->reorder_level)
+                ->filter(fn (Product $p) => (float) ($p->on_hand_qty ?? 0) <= (float) $p->reorder_level)
                 ->count();
 
             $stats[] = Stat::make('Products At / Below Reorder Level', $low);

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EmployeeSettings\Schemas;
 
+use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -16,7 +17,9 @@ class EmployeeSettingForm
             ->components([
                 Select::make('employee_id')
                     ->label('Employee')
-                    ->relationship('employee', 'employee_id')
+                    ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
+                        ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
                     ->preload()
                     ->required(),

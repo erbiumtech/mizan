@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MPRs;
 
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\MPRs\Pages\CreateMPR;
 use App\Filament\Resources\MPRs\Pages\EditMPR;
 use App\Filament\Resources\MPRs\Pages\ListMPRS;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class MPRResource extends Resource
 {
+    use ScopesToAccessibleEmployees;
+
     protected static ?string $model = MPR::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
@@ -36,19 +39,18 @@ class MPRResource extends Resource
     }
 
     /**
-     * Nova indexQuery parity: Administrators see all; others are scoped to their own records.
+     * Privileged roles see all MPRs; everyone else sees their own plus those of
+     * their reporting downline. MPR keys on user_id, so filter by user ids.
      */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
-        $user = auth()->user();
-
-        if ($user && $user->hasRole('Administrator')) {
-            return $query;
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('user_id', static::accessibleUserIds()->all());
         }
 
-        return $query->where('user_id', $user?->id);
+        return $query;
     }
 
     public static function form(Schema $schema): Schema
