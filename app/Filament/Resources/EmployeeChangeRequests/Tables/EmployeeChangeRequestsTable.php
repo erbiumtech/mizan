@@ -17,13 +17,15 @@ class EmployeeChangeRequestsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
                     ->sortable(),
 
-                TextColumn::make('employee.id')
+                TextColumn::make('employee.employee_id')
                     ->label('Employee')
+                    ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     ->sortable(),
 
                 TextColumn::make('requester.name')

@@ -6,6 +6,7 @@ use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
@@ -13,9 +14,9 @@ class Employee extends Model
     use Auditable, HasCustomFields;
 
     protected $fillable = [
-        'user_id', 'employee_id', 'phone', 'gender',
+        'user_id', 'manager_id', 'employee_id', 'phone', 'gender',
         'is_active', 'designation', 'department',
-        'date_of_joining', 'nic', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
+        'date_of_joining', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',
     ];
 
@@ -38,6 +39,14 @@ class Employee extends Model
             }
 
             $employee->routeChangesThroughApproval();
+        });
+
+        static::deleting(function ($employee) {
+            // Keep the hierarchy connected when a manager is removed: reparent
+            // their direct reports to the manager's own manager (or detach to
+            // null if they were at the top).
+            self::where('manager_id', $employee->id)
+                ->update(['manager_id' => $employee->manager_id]);
         });
     }
 
@@ -121,6 +130,24 @@ class Employee extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** The employee this one reports to (self-referential; nullable). */
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'manager_id');
+    }
+
+    /** Employees who report directly to this one. */
+    public function directReports(): HasMany
+    {
+        return $this->hasMany(self::class, 'manager_id');
+    }
+
+    /** Display label used in selects/columns: "EMP-1 - John Doe". */
+    public function getDisplayLabelAttribute(): string
+    {
+        return trim($this->employee_id.' - '.($this->user?->name ?? ''), ' -');
     }
 
     public function changeRequests()

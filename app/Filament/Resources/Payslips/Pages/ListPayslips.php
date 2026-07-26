@@ -17,7 +17,7 @@ class ListPayslips extends ListRecords
     {
         return [
             CreateAction::make(),
-            ...$this->savedViewActions(),
+            $this->saveViewAction(),
         ];
     }
 }

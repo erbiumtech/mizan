@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Filament\Support\CustomFieldsSchema;
 use App\Models\Product;
 use App\Services\InventoryService;
-use App\Services\InventoryValuationService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -15,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 
@@ -22,9 +23,8 @@ class ProductsTable
 {
     public static function configure(Table $table): Table
     {
-        $valuation = app(InventoryValuationService::class);
-
         return $table
+            ->header(view('filament.tables.saved-views-bar'))
             ->columns([
                 TextColumn::make('sku')
                     ->label('SKU')
@@ -49,17 +49,17 @@ class ProductsTable
 
                 TextColumn::make('on_hand')
                     ->label('On Hand')
-                    ->state(fn (Product $record): float => $valuation->onHand($record)),
+                    ->state(fn (Product $record): float => round((float) ($record->on_hand_qty ?? 0), 2)),
 
                 TextColumn::make('stock_value')
                     ->label('Stock Value')
                     ->money('PKR')
-                    ->state(fn (Product $record): float => $valuation->stockValue($record)),
+                    ->state(fn (Product $record): float => round((float) ($record->stock_in_value ?? 0) - (float) ($record->stock_out_value ?? 0), 2)),
 
                 TextColumn::make('stock_status')
                     ->label('Stock Status')
                     ->badge()
-                    ->state(fn (Product $record): string => $valuation->onHand($record) <= (float) $record->reorder_level ? 'low' : 'ok')
+                    ->state(fn (Product $record): string => round((float) ($record->on_hand_qty ?? 0), 2) <= (float) $record->reorder_level ? 'low' : 'ok')
                     ->color(fn (string $state): string => $state === 'low' ? 'danger' : 'success'),
 
                 IconColumn::make('is_active')
@@ -72,7 +72,11 @@ class ProductsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Product::class),
+                ...CustomFieldsSchema::tableColumns(Product::class),
+            ])
+            ->groups([
+                Group::make('valuation_method')->label('Valuation Method'),
+                Group::make('is_active')->label('Active'),
             ])
             ->filters([
                 //

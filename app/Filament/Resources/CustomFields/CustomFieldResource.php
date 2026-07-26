@@ -7,7 +7,13 @@ use App\Filament\Resources\CustomFields\Pages\EditCustomField;
 use App\Filament\Resources\CustomFields\Pages\ListCustomFields;
 use App\Filament\Resources\CustomFields\Schemas\CustomFieldForm;
 use App\Filament\Resources\CustomFields\Tables\CustomFieldsTable;
+use App\Models\Beneficiary;
+use App\Models\Contact;
 use App\Models\CustomField;
+use App\Models\Employee;
+use App\Models\FixedAsset;
+use App\Models\Invoice;
+use App\Models\Product;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -19,12 +25,12 @@ class CustomFieldResource extends Resource
 {
     /** Domain models that can have custom fields (extend as more opt in). */
     public const MODELS = [
-        \App\Models\Contact::class => 'Contacts',
-        \App\Models\Employee::class => 'Employees',
-        \App\Models\Invoice::class => 'Invoices',
-        \App\Models\Product::class => 'Products',
-        \App\Models\Beneficiary::class => 'Beneficiaries',
-        \App\Models\FixedAsset::class => 'Fixed Assets',
+        Contact::class => 'Contacts',
+        Employee::class => 'Employees',
+        Invoice::class => 'Invoices',
+        Product::class => 'Products',
+        Beneficiary::class => 'Beneficiaries',
+        FixedAsset::class => 'Fixed Assets',
     ];
 
     protected static ?string $model = CustomField::class;
@@ -35,10 +41,11 @@ class CustomFieldResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    /** Field definitions are an Administrator concern. */
+    /** Field definitions are an Administrator concern, and only when the feature is on. */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('Administrator') ?? false;
+        return config('custom_fields.enabled', true)
+            && (auth()->user()?->hasRole('Administrator') ?? false);
     }
 
     public static function form(Schema $schema): Schema

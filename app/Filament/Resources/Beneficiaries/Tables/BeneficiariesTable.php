@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Beneficiaries\Tables;
 
+use App\Filament\Support\CustomFieldsSchema;
+use App\Models\Beneficiary;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -38,7 +40,7 @@ class BeneficiariesTable
                     ->boolean()
                     ->sortable(),
 
-                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Beneficiary::class),
+                ...CustomFieldsSchema::tableColumns(Beneficiary::class),
             ])
             ->filters([
                 //

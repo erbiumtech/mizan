@@ -20,6 +20,9 @@ class RecordProvider implements PaletteProvider
     /** Records only kick in once the query is meaningful (avoids per-keystroke DB hits). */
     protected const MIN_QUERY_LENGTH = 2;
 
+    /** Stop scanning resources once we have well more than the group cap needs. */
+    protected const MAX_RESULTS = 30;
+
     public function items(string $query): array
     {
         $query = trim($query);
@@ -31,6 +34,12 @@ class RecordProvider implements PaletteProvider
         $items = [];
 
         foreach (Filament::getResources() as $resource) {
+            // The Records group is capped downstream; stop querying more
+            // resources once we already have plenty of matches.
+            if (count($items) >= self::MAX_RESULTS) {
+                break;
+            }
+
             try {
                 if (! $resource::canGloballySearch()) {
                     continue;

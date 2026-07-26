@@ -4,8 +4,8 @@ namespace App\Filament\Resources\TransactionTypes\Schemas;
 
 use App\Models\TransactionType;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 

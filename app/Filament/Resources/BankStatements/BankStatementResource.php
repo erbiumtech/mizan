@@ -9,11 +9,13 @@ use App\Filament\Resources\BankStatements\RelationManagers\LinesRelationManager;
 use App\Filament\Resources\BankStatements\Schemas\BankStatementForm;
 use App\Filament\Resources\BankStatements\Tables\BankStatementsTable;
 use App\Models\BankStatement;
+use App\Models\BankStatementLine;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class BankStatementResource extends Resource
@@ -29,6 +31,19 @@ class BankStatementResource extends Resource
     public static function getGloballySearchableAttributes(): array
     {
         return ['id'];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        // Line + matched counts as aggregates (avoids 3 queries per row).
+        return parent::getEloquentQuery()
+            ->withCount([
+                'lines',
+                'lines as matched_count' => fn ($q) => $q->whereIn('match_status', [
+                    BankStatementLine::STATUS_AUTO_MATCHED,
+                    BankStatementLine::STATUS_MANUALLY_MATCHED,
+                ]),
+            ]);
     }
 
     public static function form(Schema $schema): Schema

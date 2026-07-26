@@ -135,7 +135,7 @@ class BankStatementLinesTable
     }
 
     /**
-     * @return array<\Filament\Forms\Components\Select>
+     * @return array<Select>
      */
     protected static function matchFields(): array
     {

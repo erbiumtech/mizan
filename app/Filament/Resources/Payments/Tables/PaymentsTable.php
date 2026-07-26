@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payments\Tables;
 
+use App\Models\Employee;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Filament\Actions\Action;
@@ -19,6 +20,9 @@ class PaymentsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with([
+                'payable' => fn ($morphTo) => $morphTo->morphWith([Employee::class => ['user']]),
+            ]))
             ->columns([
                 TextColumn::make('payable.name')
                     ->label('Payable')
@@ -90,7 +94,12 @@ class PaymentsTable
             return null;
         }
 
-        return $payable->name ?? $payable->employee_id ?? (string) $payable->getKey();
+        // Employees show "code - name"; beneficiaries show their name.
+        if ($payable instanceof Employee) {
+            return $payable->display_label;
+        }
+
+        return $payable->name ?? (string) $payable->getKey();
     }
 
     /**

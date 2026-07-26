@@ -21,7 +21,9 @@ class SwitchTenantFilesystemTask implements SwitchTenantTask
 
         config([
             'filesystems.disks.public.root' => storage_path('app/public/'.$suffix),
-            'filesystems.disks.public.url' => rtrim(config('app.url'), '/').'/storage/'.$suffix,
+            // Relative URL so it resolves against the current host (dev server,
+            // domain, port) rather than a possibly-mismatched APP_URL.
+            'filesystems.disks.public.url' => '/storage/'.$suffix,
             'filesystems.disks.local.root' => storage_path('app/private/'.$suffix),
         ]);
 
@@ -32,7 +34,7 @@ class SwitchTenantFilesystemTask implements SwitchTenantTask
     {
         config([
             'filesystems.disks.public.root' => storage_path('app/public'),
-            'filesystems.disks.public.url' => rtrim(config('app.url'), '/').'/storage',
+            'filesystems.disks.public.url' => '/storage',
             'filesystems.disks.local.root' => storage_path('app/private'),
         ]);
 

@@ -4,10 +4,10 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\User;
 use Filament\Facades\Filament;
-use Spatie\Permission\Models\Role;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class UserForm

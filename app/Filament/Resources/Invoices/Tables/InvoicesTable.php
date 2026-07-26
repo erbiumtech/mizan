@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Invoices\Tables;
 
+use App\Filament\Support\CustomFieldsSchema;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
 use Filament\Actions\Action;
@@ -10,9 +11,11 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 
@@ -21,6 +24,7 @@ class InvoicesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->header(view('filament.tables.saved-views-bar'))
             ->columns([
                 TextColumn::make('invoice_number')
                     ->label('Number')
@@ -95,7 +99,11 @@ class InvoicesTable
                     ->label('Journal Entry')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Invoice::class),
+                ...CustomFieldsSchema::tableColumns(Invoice::class),
+            ])
+            ->groups([
+                Group::make('status')->label('Status'),
+                Group::make('kind')->label('Kind'),
             ])
             ->filters([
                 //
@@ -177,7 +185,7 @@ class InvoicesTable
     }
 
     /**
-     * @return array<\Filament\Forms\Components\Field>
+     * @return array<Field>
      */
     protected static function paymentFields(): array
     {

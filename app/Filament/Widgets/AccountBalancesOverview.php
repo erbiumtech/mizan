@@ -12,6 +12,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class AccountBalancesOverview extends StatsOverviewWidget
 {
+    protected static bool $isLazy = true;
+
     protected static ?int $sort = 2;
 
     public static function canView(): bool

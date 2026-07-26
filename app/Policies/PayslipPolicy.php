@@ -4,9 +4,17 @@ namespace App\Policies;
 
 use App\Models\Payslip;
 use App\Models\User;
+use App\Support\EmployeeAccess;
 
 class PayslipPolicy
 {
+    /** Own record or a report in the user's downline. */
+    protected function canAccessPayslip(User $user, Payslip $payslip): bool
+    {
+        return $payslip->employee_id
+            && app(EmployeeAccess::class)->accessibleEmployeeIds($user)->contains($payslip->employee_id);
+    }
+
    public function viewAny(User $user): bool
 {
     if (!$user->hasPermissionTo('PayslipView')) {
@@ -30,7 +38,7 @@ class PayslipPolicy
             return true;
         }
 
-        return $payslip->employee && $payslip->employee->user_id === $user->id;
+        return $this->canAccessPayslip($user, $payslip);
     }
 
     public function create(User $user): bool
@@ -56,6 +64,6 @@ class PayslipPolicy
     public function runAction(User $user, Payslip $payslip): bool
     {
         return $user->hasPermissionTo('PayslipUpdate')
-            || ($payslip->employee && $payslip->employee->user_id === $user->id);
+            || $this->canAccessPayslip($user, $payslip);
     }
 }

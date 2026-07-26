@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Invoices\Schemas;
 
+use App\Filament\Support\CustomFieldsSchema;
+use App\Models\Invoice;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class InvoiceForm
@@ -60,7 +62,7 @@ class InvoiceForm
                 Textarea::make('memo')
                     ->nullable(),
 
-                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Invoice::class),
+                ...CustomFieldsSchema::form(Invoice::class),
             ]);
     }
 }

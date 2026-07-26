@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\App\Support\TenantSettings::class);
+        $this->app->singleton(\App\Support\EmployeeAccess::class);
     }
 
     /**
@@ -51,6 +52,11 @@ class AppServiceProvider extends ServiceProvider
             }
         });
         Schema::defaultStringLength(191);
+
+        // Store Livewire temp uploads on a fixed, non-tenant-scoped disk so the
+        // file written during upload is still found when validation runs under a
+        // (possibly different) current tenant. See the `livewire-tmp` disk.
+        config(['livewire.temporary_file_upload.disk' => 'livewire-tmp']);
 
         // Isolation is enforced at the database level (one database per company),
         // so Filament's row-level tenant scoping is disabled — resource queries

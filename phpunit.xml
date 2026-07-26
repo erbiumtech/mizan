@@ -26,6 +26,7 @@
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="TENANT_DATABASE_CONNECTION" value=""/>
         <env name="QUEUES_TENANT_AWARE_BY_DEFAULT" value="false"/>
+        <env name="CUSTOM_FIELDS_ENABLED" value="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

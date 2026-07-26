@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Payslips\Schemas;
 
 use App\Models\Payslip;
 use App\Services\PayslipService;
+use App\Support\EmployeeAccess;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
@@ -39,7 +40,9 @@ class PayslipForm
                 // --- SELECTORS (drive the calculation) ---
                 Select::make('employee_id')
                     ->label('Employee')
-                    ->relationship('employee', 'employee_id')
+                    ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
+                        ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
                     ->preload()
                     ->required()

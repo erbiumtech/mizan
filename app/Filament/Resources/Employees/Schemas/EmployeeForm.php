@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\Employees\Schemas;
 
+use App\Filament\Support\CustomFieldsSchema;
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -84,27 +87,81 @@ class EmployeeForm
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
+                // Reporting line. Only Admins/Managers/CEO may assign it. The
+                // picker excludes the employee themselves and their whole
+                // downline to prevent cycles; a matching validation rule
+                // enforces the same on save.
+                Select::make('manager_id')
+                    ->label('Manager')
+                    ->helperText('The employee this person reports to.')
+                    ->options(function (?Employee $record) {
+                        $exclude = $record
+                            ? app(EmployeeAccess::class)->subtreeEmployeeIds($record->id)->all()
+                            : [];
+
+                        return Employee::query()
+                            ->when($exclude, fn ($q) => $q->whereNotIn('id', $exclude))
+                            ->with('user')
+                            ->get()
+                            ->mapWithKeys(fn (Employee $employee) => [$employee->id => $employee->display_label]);
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->rule(fn (?Employee $record) => function (string $attribute, $value, $fail) use ($record) {
+                        if ($record && $value
+                            && in_array((int) $value, app(EmployeeAccess::class)->subtreeEmployeeIds($record->id)->all(), true)) {
+                            $fail('A manager cannot be the employee themselves or one of their own reports.');
+                        }
+                    })
+                    ->visible(fn (): bool => auth()->user()?->hasAnyRole(['Administrator', 'Manager', 'CEO']) ?? false),
+
                 DatePicker::make('date_of_joining')
                     ->label('Date of Joining'),
 
                 TextInput::make('nic')
-                    ->label('NIC'),
+                    ->label('NIC')
+                    ->required(),
+
+                FileUpload::make('nic_front')
+                    ->label('NIC (Front)')
+                    ->image()
+                    ->disk('public')
+                    ->directory('nic')
+                    ->required()
+                    ->imageEditor()
+                    ->maxSize(4096),
+
+                FileUpload::make('nic_back')
+                    ->label('NIC (Back)')
+                    ->image()
+                    ->disk('public')
+                    ->directory('nic')
+                    ->required()
+                    ->imageEditor()
+                    ->maxSize(4096),
 
                 Select::make('bank_id')
                     ->label('Bank')
                     ->relationship('bank', 'bank_name')
                     ->searchable()
                     ->preload()
-                    ->nullable()
+                    ->required()
                     ->helperText('Bank directory for salary bank files'),
 
                 TextInput::make('bank_account_no')
-                    ->label('Bank A/C No'),
+                    ->label('Bank A/C No')
+                    ->required(),
 
                 TextInput::make('iban_no')
-                    ->label('IBAN No'),
+                    ->label('IBAN No')
+                    ->required(),
 
-                TextInput::make('phone'),
+                TextInput::make('phone')
+                    ->tel()
+                    ->required()
+                    ->unique(table: Employee::class, column: 'phone', ignoreRecord: true)
+                    ->validationMessages(['unique' => 'This phone number is already used by another employee.']),
 
                 TextInput::make('address_line_1'),
 
@@ -118,7 +175,7 @@ class EmployeeForm
                         'Other' => 'Other',
                     ]),
 
-                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Employee::class),
+                ...CustomFieldsSchema::form(Employee::class),
             ]);
     }
 }

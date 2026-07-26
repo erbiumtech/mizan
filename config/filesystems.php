@@ -47,6 +47,18 @@ return [
             'report' => false,
         ],
 
+        // Livewire temporary uploads. Kept on a fixed root that the per-tenant
+        // filesystem switch (SwitchTenantFilesystemTask) never reroutes, so a
+        // temp file written during upload is found again at validation time
+        // regardless of which tenant is current. Final files still land on the
+        // tenant-scoped `public`/`local` disks.
+        'livewire-tmp' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

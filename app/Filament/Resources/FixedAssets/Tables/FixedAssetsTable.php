@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FixedAssets\Tables;
 
+use App\Filament\Support\CustomFieldsSchema;
 use App\Models\FiscalYear;
 use App\Models\FixedAsset;
 use App\Services\DepreciationService;
@@ -66,7 +67,7 @@ class FixedAssetsTable
                     })
                     ->sortable(),
 
-                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\FixedAsset::class),
+                ...CustomFieldsSchema::tableColumns(FixedAsset::class),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -168,7 +169,7 @@ class FixedAssetsTable
                     $booked++;
                 }
             }
-        } catch (\InvalidArgumentException | \Exception $e) {
+        } catch (\InvalidArgumentException|\Exception $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
 
             return;
@@ -190,7 +191,7 @@ class FixedAssetsTable
             foreach ($records as $asset) {
                 $service->dispose($asset);
             }
-        } catch (\InvalidArgumentException | \Exception $e) {
+        } catch (\InvalidArgumentException|\Exception $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
 
             return;

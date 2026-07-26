@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\FixedAssets\Schemas;
 
+use App\Filament\Support\CustomFieldsSchema;
+use App\Models\FixedAsset;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -62,7 +64,7 @@ class FixedAssetForm
                     ->step(0.01)
                     ->minValue(0),
 
-                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\FixedAsset::class),
+                ...CustomFieldsSchema::form(FixedAsset::class),
             ]);
     }
 }

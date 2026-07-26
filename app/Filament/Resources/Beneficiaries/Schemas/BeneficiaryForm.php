@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Beneficiaries\Schemas;
 
+use App\Filament\Support\CustomFieldsSchema;
+use App\Models\Beneficiary;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -87,7 +89,7 @@ class BeneficiaryForm
                     ->label('Active')
                     ->default(true),
 
-                ...\App\Filament\Support\CustomFieldsSchema::form(\App\Models\Beneficiary::class),
+                ...CustomFieldsSchema::form(Beneficiary::class),
             ]);
     }
 }

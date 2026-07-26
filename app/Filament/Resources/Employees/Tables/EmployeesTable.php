@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\Employees\Tables;
 
+use App\Filament\Support\CustomFieldsSchema;
 use App\Models\Employee;
+use App\Support\EmployeeAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class EmployeesTable
 {
@@ -45,13 +48,13 @@ class EmployeesTable
                 TextColumn::make('bank_short_code')
                     ->searchable(),
 
-                ...\App\Filament\Support\CustomFieldsSchema::tableColumns(\App\Models\Employee::class),
+                ...CustomFieldsSchema::tableColumns(Employee::class),
             ])
             ->filters([
                 SelectFilter::make('employee_name')
                     ->label('Employee Name')
                     ->attribute('id')
-                    ->options(fn (): array => Employee::with('user')->get()
+                    ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->name ?? 'Unknown'])
                         ->toArray())
                     ->searchable(),
@@ -59,7 +62,7 @@ class EmployeesTable
                 SelectFilter::make('employee_email')
                     ->label('Employee Email')
                     ->attribute('id')
-                    ->options(fn (): array => Employee::with('user')->get()
+                    ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->email ?? 'No Email'])
                         ->toArray())
                     ->searchable(),
@@ -72,5 +75,15 @@ class EmployeesTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** Employees the current user may filter by (own + downline; all if privileged). */
+    protected static function accessibleEmployees(): Collection
+    {
+        $query = Employee::with('user');
+
+        return app(EmployeeAccess::class)
+            ->scopeAccessibleEmployees($query, auth()->user())
+            ->get();
     }
 }

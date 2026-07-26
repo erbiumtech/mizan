@@ -6,12 +6,12 @@ use App\Filament\Resources\ActivityLogs\Pages\ListActivityLogs;
 use App\Filament\Resources\ActivityLogs\Pages\ViewActivityLog;
 use App\Filament\Resources\ActivityLogs\Schemas\ActivityLogInfolist;
 use App\Filament\Resources\ActivityLogs\Tables\ActivityLogsTable;
+use App\Models\ActivityLog as Activity;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use App\Models\ActivityLog as Activity;
 use UnitEnum;
 
 class ActivityLogResource extends Resource

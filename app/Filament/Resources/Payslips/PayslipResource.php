@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payslips;
 
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\Payslips\Pages\CreatePayslip;
 use App\Filament\Resources\Payslips\Pages\EditPayslip;
 use App\Filament\Resources\Payslips\Pages\ListPayslips;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class PayslipResource extends Resource
 {
+    use ScopesToAccessibleEmployees;
+
     protected static ?string $model = Payslip::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
@@ -41,18 +44,15 @@ class PayslipResource extends Resource
     }
 
     /**
-     * Role-based scoping, mirroring Nova indexQuery(): plain Employees see only
-     * their own payslips; Admin/Accountant/Manager/CEO (and other roles) see all.
+     * Admin/Accountant/Manager/CEO see all payslips; everyone else sees their
+     * own plus those of their reporting downline.
      */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        $user = auth()->user();
 
-        if ($user
-            && $user->hasRole('Employee')
-            && ! $user->hasAnyRole(['Administrator', 'Accountant', 'Manager', 'CEO'])) {
-            $query->whereHas('employee', fn ($q) => $q->where('user_id', $user->id));
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('employee_id', static::accessibleEmployeeIds()->all());
         }
 
         return $query;

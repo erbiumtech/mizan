@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AnnualTaxes\Schemas;
 
 use App\Models\AnnualTax;
 use App\Models\Employee;
+use App\Support\EmployeeAccess;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
@@ -18,8 +19,9 @@ class AnnualTaxForm
             ->components([
                 Select::make('employee_id')
                     ->label('Employee')
-                    ->relationship('employee', 'employee_id')
-                    ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->employee_id.' - '.($record->user?->name ?? ''))
+                    ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
+                        ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
+                    ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->display_label)
                     ->searchable()
                     ->preload()
                     ->required()

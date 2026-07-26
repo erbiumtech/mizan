@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\EmployeeSettings\Tables;
 
 use App\Models\Employee;
+use App\Support\EmployeeAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -16,6 +17,7 @@ class EmployeeSettingsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -24,6 +26,7 @@ class EmployeeSettingsTable
 
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
+                    ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
                         ->whereHas('employee', fn ($q) => $q
                             ->where('employee_id', 'like', "%{$search}%")
@@ -93,10 +96,11 @@ class EmployeeSettingsTable
             ->filters([
                 SelectFilter::make('employee_id')
                     ->label('Employee')
-                    ->options(fn (): array => Employee::with('user')
+                    ->options(fn (): array => app(EmployeeAccess::class)
+                        ->scopeAccessibleEmployees(Employee::with('user'), auth()->user())
                         ->get()
                         ->mapWithKeys(fn ($employee) => [
-                            $employee->id => $employee->employee_id . ' - ' . ($employee->user?->name ?? ''),
+                            $employee->id => $employee->employee_id.' - '.($employee->user?->name ?? ''),
                         ])
                         ->toArray()),
 
