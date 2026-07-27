@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
@@ -21,9 +21,11 @@ class RoleSeeder extends Seeder
         // Admin have all the permissions
         $adminRole->syncPermissions(Permission::all());
 
-        // Employee: own payslips + comments on them
+        // Employee: own payslips, own salary settings (read-only — the resource
+        // scopes rows to own + downline), and comments on them.
         $employeeRole->syncPermissions([
             'PayslipView',
+            'EmployeeSettingView',
             'CommentCreate',
             'CommentView',
         ]);
