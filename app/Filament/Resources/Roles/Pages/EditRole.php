@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Pages;
 
+use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Resources\Roles\Pages\Concerns\SyncsGroupedPermissions;
 use App\Filament\Resources\Roles\RoleResource;
 use App\Filament\Resources\Roles\Schemas\RoleForm;
@@ -10,7 +11,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditRole extends EditRecord
 {
-    use SyncsGroupedPermissions;
+    use RedirectsToIndex, SyncsGroupedPermissions;
 
     protected static string $resource = RoleResource::class;
 

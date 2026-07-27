@@ -2,13 +2,14 @@
 
 namespace App\Filament\Resources\Roles\Pages;
 
+use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Resources\Roles\Pages\Concerns\SyncsGroupedPermissions;
 use App\Filament\Resources\Roles\RoleResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateRole extends CreateRecord
 {
-    use SyncsGroupedPermissions;
+    use RedirectsToIndex, SyncsGroupedPermissions;
 
     protected static string $resource = RoleResource::class;
 

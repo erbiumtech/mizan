@@ -62,9 +62,11 @@ class PayrollByEmployeeChart extends ChartWidget
                 [
                     'label' => 'Net Salary',
                     'data' => $totals->values()->all(),
+                    // Brand greens first (see AdminPanelProvider), then a
+                    // distinguishable spread for the remaining slices.
                     'backgroundColor' => [
-                        '#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#8b5cf6',
-                        '#ec4899', '#14b8a6', '#eab308', '#6366f1', '#f97316',
+                        '#3E894A', '#91BD55', '#D3DA54', '#2F6B3A', '#B8CE6A',
+                        '#1F4E79', '#4F94CD', '#6B7280', '#A78BFA', '#F59E0B',
                     ],
                 ],
             ],
