@@ -14,7 +14,7 @@ class TenantFilesystemTaskTest extends TestCase
     public function test_disk_roots_are_scoped_per_tenant_and_restored(): void
     {
         $company = Company::factory()->create();
-        $task = new SwitchTenantFilesystemTask();
+        $task = new SwitchTenantFilesystemTask;
 
         $task->makeCurrent($company);
 

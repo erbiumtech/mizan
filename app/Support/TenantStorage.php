@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Http\Controllers\TenantFileController;
 use App\Models\Company;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * `storage:link` symlink) is not available on every host, and — more
  * importantly — exposing `storage/app/public` wholesale would let anyone who
  * knows a path fetch another company's payslips. Everything goes through
- * {@see \App\Http\Controllers\TenantFileController} instead, which checks
+ * {@see TenantFileController} instead, which checks
  * membership first.
  */
 class TenantStorage
