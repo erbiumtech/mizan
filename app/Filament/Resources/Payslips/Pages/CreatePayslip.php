@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\Payslips\Pages;
 
+use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Resources\Payslips\PayslipResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePayslip extends CreateRecord
 {
+    use RedirectsToIndex;
+
     protected static string $resource = PayslipResource::class;
 }

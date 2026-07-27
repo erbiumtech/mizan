@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Companies\Pages;
 
+use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Resources\Companies\CompanyResource;
 use App\Models\User;
 use App\Multitenancy\CompanyProvisioner;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateCompany extends CreateRecord
 {
+    use RedirectsToIndex;
+
     protected static string $resource = CompanyResource::class;
 
     /**

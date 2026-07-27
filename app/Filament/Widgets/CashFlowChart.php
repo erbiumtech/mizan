@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
  */
 class CashFlowChart extends ChartWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     protected static ?int $sort = 3;
 
@@ -69,8 +69,8 @@ class CashFlowChart extends ChartWidget
                 [
                     'label' => 'Cash In',
                     'data' => $inData,
-                    'borderColor' => '#22c55e',
-                    'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
+                    'borderColor' => '#3E894A',
+                    'backgroundColor' => 'rgba(62, 137, 74, 0.1)',
                 ],
                 [
                     'label' => 'Cash Out',
