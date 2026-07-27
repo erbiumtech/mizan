@@ -19,7 +19,9 @@ class TenantFilesystemTaskTest extends TestCase
         $task->makeCurrent($company);
 
         $this->assertSame(storage_path('app/public/tenants/'.$company->id), config('filesystems.disks.public.root'));
-        $this->assertStringEndsWith('/storage/tenants/'.$company->id, config('filesystems.disks.public.url'));
+        // Not `/storage/...`: URLs point at the access-checked streaming route,
+        // so no `public/storage` symlink is involved.
+        $this->assertSame('/files/'.$company->id, config('filesystems.disks.public.url'));
         $this->assertSame(storage_path('app/private/tenants/'.$company->id), config('filesystems.disks.local.root'));
 
         $task->forgetCurrent();

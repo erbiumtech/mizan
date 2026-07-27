@@ -23,11 +23,17 @@ class RoleSeeder extends Seeder
 
         // Employee: own payslips, own salary settings (read-only — the resource
         // scopes rows to own + downline), and comments on them.
+        // Projects are a company-wide shared reference: every employee sees all
+        // of them and may add or correct environment data. Deletion and
+        // on-demand health checks stay privileged.
         $employeeRole->syncPermissions([
             'PayslipView',
             'EmployeeSettingView',
             'CommentCreate',
             'CommentView',
+            'ProjectView',
+            'ProjectCreate',
+            'ProjectUpdate',
         ]);
 
         // Accounting roles with segregation of duties:
@@ -46,6 +52,9 @@ class RoleSeeder extends Seeder
             'PettyCashView', 'PettyCashCreate',
             'ProductView', 'ProductCreate', 'ProductUpdate', 'StockMove',
             'PayslipView', 'PayslipCreate', 'PayslipUpdate',
+            // No ProjectHealthCheck: firing an on-demand check makes the server
+            // issue an outbound request, which isn't finance work.
+            'ProjectView', 'ProjectCreate', 'ProjectUpdate',
             'ContactView', 'ContactCreate', 'ContactUpdate',
             'InvoiceView', 'InvoiceCreate', 'InvoiceUpdate', 'InvoiceIssue', 'InvoicePay',
             'JournalEntryView', 'JournalEntryCreate', 'JournalEntryUpdate', 'JournalEntrySubmit',
@@ -64,12 +73,13 @@ class RoleSeeder extends Seeder
             'EmployeeChangeApprove',
             'FixedAssetDepreciate', 'FixedAssetDispose',
             'BankStatementComplete',
+            'ProjectHealthCheck',
         ]);
         $managerRole = Role::firstOrCreate(['name' => 'Manager', 'company_id' => $teamId]);
         $managerRole->syncPermissions($managerPermissions);
 
         // CEO: same approval powers as Manager + account deletion.
         $ceoRole = Role::firstOrCreate(['name' => 'CEO', 'company_id' => $teamId]);
-        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete']));
+        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete', 'ProjectDelete']));
     }
 }

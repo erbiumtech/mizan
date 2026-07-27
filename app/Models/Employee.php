@@ -6,6 +6,7 @@ use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -153,5 +154,42 @@ class Employee extends Model
     public function changeRequests()
     {
         return $this->hasMany(EmployeeChangeRequest::class);
+    }
+
+    /** Projects this employee is (or was) assigned to, with the stint pivot. */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_employee')
+            ->withPivot(['id', 'role', 'allocation_pct', 'from_date', 'to_date'])
+            ->withTimestamps();
+    }
+
+    /** Assignments that have not ended yet. */
+    public function currentProjects(): BelongsToMany
+    {
+        return $this->projects()->where(function ($query) {
+            $query->whereNull('project_employee.to_date')
+                ->orWhereDate('project_employee.to_date', '>=', today()->toDateString());
+        });
+    }
+
+    /** Projects where this employee is the primary manager. */
+    public function managedProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'manager_employee_id');
+    }
+
+    /** Projects where this employee is the secondary manager / stand-in. */
+    public function secondaryProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'secondary_employee_id');
+    }
+
+    /** The employee record of the signed-in user, if they have one. */
+    public static function forUser(?int $userId = null): ?self
+    {
+        $userId ??= auth()->id();
+
+        return $userId ? static::where('user_id', $userId)->first() : null;
     }
 }

@@ -100,6 +100,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'ProductDelete', 'group' => 'Inventory'],
             ['name' => 'StockMove', 'group' => 'Inventory'],
             ['name' => 'StockAdjust', 'group' => 'Inventory'],
+            ['name' => 'ProjectView', 'group' => 'Project'],
+            ['name' => 'ProjectCreate', 'group' => 'Project'],
+            ['name' => 'ProjectUpdate', 'group' => 'Project'],
+            ['name' => 'ProjectDelete', 'group' => 'Project'],
+            ['name' => 'ProjectHealthCheck', 'group' => 'Project'],
+
             ['name' => 'ContactView', 'group' => 'Invoicing'],
             ['name' => 'ContactCreate', 'group' => 'Invoicing'],
             ['name' => 'ContactUpdate', 'group' => 'Invoicing'],
