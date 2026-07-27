@@ -40,6 +40,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return (int) $this->status === 1;
     }
 
+    /** Global super admin — manages companies across all tenants. */
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_super_admin;
+    }
+
     /**
      * Companies (tenants) this user may access.
      */
@@ -51,12 +57,14 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     public function getTenants(Panel $panel): Collection
     {
-        return $this->companies;
+        // Super admins may switch into any company.
+        return $this->isSuperAdmin() ? Company::all() : $this->companies;
     }
 
     public function canAccessTenant(Model $tenant): bool
     {
-        return $this->companies()->whereKey($tenant->getKey())->exists();
+        return $this->isSuperAdmin()
+            || $this->companies()->whereKey($tenant->getKey())->exists();
     }
 
     /**
@@ -66,6 +74,10 @@ class User extends Authenticatable implements FilamentUser, HasTenants
      */
     public function canCreateCompanies(): bool
     {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
         $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
         $previous = $registrar->getPermissionsTeamId();
 
@@ -100,6 +112,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'status',
         'email',
         'password',
+        'is_super_admin',
     ];
 
     protected $hidden = [
@@ -111,6 +124,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     {
         return [
             'password' => 'hashed',
+            'is_super_admin' => 'boolean',
         ];
     }
 

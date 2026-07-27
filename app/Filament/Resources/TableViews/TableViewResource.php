@@ -27,7 +27,7 @@ class TableViewResource extends Resource
     /** Managing all companies' saved views is an Administrator concern. */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('Administrator') ?? false;
+        return auth()->user()?->hasRole('Administrator') || auth()->user()?->isSuperAdmin();
     }
 
     public static function form(Schema $schema): Schema

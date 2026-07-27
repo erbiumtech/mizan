@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\AccountRegister;
 use App\Filament\Pages\BankPaymentFile;
+use App\Filament\Pages\FbrTaxFile;
 use App\Filament\Pages\GnuCashImport;
 use App\Filament\Pages\PettyCashBook;
 use App\Filament\Pages\ProfitAndLoss;
@@ -37,6 +38,7 @@ class FilamentReportPagesSmokeTest extends TestCase
             BankPaymentFile::class,
             AccountRegister::class,
             GnuCashImport::class,
+            FbrTaxFile::class,
         ];
 
         $failures = [];
@@ -67,5 +69,6 @@ class FilamentReportPagesSmokeTest extends TestCase
         $this->assertFalse(BankPaymentFile::canAccess());
         $this->assertFalse(AccountRegister::canAccess());
         $this->assertFalse(GnuCashImport::canAccess());
+        $this->assertFalse(FbrTaxFile::canAccess());
     }
 }

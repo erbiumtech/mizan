@@ -6,6 +6,7 @@ use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -33,6 +34,12 @@ class UserForm
                     ->minLength(8)
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->required(fn (string $operation): bool => $operation === 'create'),
+
+                // Super admin — only a super admin can grant/revoke this.
+                Toggle::make('is_super_admin')
+                    ->label('Super Admin')
+                    ->helperText('Manages all companies and can switch into any tenant.')
+                    ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
 
                 // Company membership (which companies this user can access).
                 Select::make('companies')
