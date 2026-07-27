@@ -5,6 +5,7 @@
     @php($monthValue = $this->selectedMonth()->format('Y-m'))
     @php($totalReceived = $summary['opening_balance'] + $summary['received_total'])
     @php($toReplenish = max(0, $summary['float_amount'] - $summary['closing_balance']))
+    @php($canEditVoucher = $this->editVoucherAction->isVisible())
 
     {{-- Summary stat cards --}}
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -91,7 +92,7 @@
                                 <th class="px-3 py-2 font-medium">Date</th>
                                 <th class="px-3 py-2 font-medium">Voucher</th>
                                 <th class="px-3 py-2 font-medium">Details</th>
-                                <th class="px-3 py-2 text-center font-medium">Attachment</th>
+                                <th class="px-3 py-2 text-center font-medium"><span class="sr-only">Actions</span></th>
                                 <th class="px-3 py-2 text-right font-medium">Total Paid</th>
                                 @foreach($summary['columns'] as $col)
                                     <th class="px-3 py-2 text-right font-medium">{{ $col }}</th>
@@ -106,12 +107,20 @@
                                         <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-white/10">{{ $row['voucher_no'] }}</span>
                                     </td>
                                     <td class="px-3 py-2">{{ $row['details'] }}</td>
-                                    <td class="px-3 py-2 text-center">
-                                        @if(filled($row['receipt_path']))
-                                            {{ ($this->viewReceiptAction)(['voucher' => $row['id']]) }}
-                                        @else
-                                            <span class="text-gray-300 dark:text-gray-600">—</span>
-                                        @endif
+                                    <td class="px-3 py-2">
+                                        <div class="flex items-center justify-center gap-1">
+                                            @if(filled($row['receipt_path']))
+                                                {{ ($this->viewReceiptAction)(['voucher' => $row['id']]) }}
+                                            @endif
+
+                                            @if($canEditVoucher)
+                                                {{ ($this->editVoucherAction)(['voucher' => $row['id']]) }}
+                                            @endif
+
+                                            @if(blank($row['receipt_path']) && ! $canEditVoucher)
+                                                <span class="text-gray-300 dark:text-gray-600">—</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-3 py-2 text-right tabular-nums text-danger-600 dark:text-danger-400">{{ number_format($row['amount'], 2) }}</td>
                                     @foreach($summary['columns'] as $col)

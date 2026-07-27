@@ -8,16 +8,22 @@
     and only for Dompdf — Chrome keeps the original flex layout.
 --}}
 <style>
-    /* The base sheet pins html/body to 210mm and then adds 50px of padding
-       inside it, which overflows Dompdf's A4 content box. Let the page box
-       own the size instead. */
-    @page { margin: 12mm 12mm 10mm 12mm; size: A4; }
+    {{-- The base sheet's `@page { margin: 0 }` is deliberate: the green footer
+         and the dashed header rule bleed to the paper edge. Keep it, and get the
+         inner margins from `.container` as the design intends. --}}
 
+    /* The base sheet pins html/body and the wrapper to 210mm × 297mm; with
+       Dompdf's A4 content box that overflows the page. Let the boxes size
+       themselves and paginate. */
     html, body { width: auto !important; height: auto !important; }
 
     .payslip-wrapper { width: auto !important; height: auto !important; }
 
-    .container { padding: 0 !important; }
+    /* Dompdf implements no `box-sizing`, so the base `width: 100%` plus 50px of
+       side padding overflows by exactly that padding. Width `auto` keeps the
+       padding inside the page instead — narrower than Chrome's 50px so the
+       widest rows still fit. */
+    .container { width: auto !important; padding: 34px 34px 24px 34px !important; }
 
     .header,
     .logo-section,
@@ -71,7 +77,9 @@
 
     /* Dompdf cannot pin an absolutely positioned footer to the page bottom in
        a way that survives pagination; keep it in flow instead. */
-    .footer { position: static !important; width: auto !important; padding: 12px 14px !important; margin-top: 20px !important; font-size: 0 !important; }
+    /* Side padding matches `.container` above so the footer text lines up with
+       the body copy while the green band itself still bleeds to the edge. */
+    .footer { position: static !important; width: auto !important; padding: 12px 34px !important; margin-top: 20px !important; font-size: 0 !important; }
     .footer > div { display: inline-block !important; vertical-align: top !important; width: 49% !important; font-size: 10px !important; }
     .footer-right { text-align: right !important; }
 </style>

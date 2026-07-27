@@ -9,7 +9,10 @@
     to be hidden here.
 --}}
 <style>
-    @page { margin: 12mm; }
+    /* `!important` is load-bearing: Dompdf applies the layout's universal
+       reset (`* { margin: 0 }`) to the page box as well, which silently zeroes
+       these margins and renders the sheet flush to the paper edge. */
+    @page { margin: 12mm !important; }
 
     body { background: #fff !important; padding: 0 !important; }
 
