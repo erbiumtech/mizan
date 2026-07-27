@@ -74,7 +74,6 @@ class EmployeeForm
                         'Cook' => 'Cook',
                         'Office Boy' => 'Office Boy',
                     ])
-                    ->required()
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
@@ -83,7 +82,6 @@ class EmployeeForm
                         'IT' => 'IT',
                         'Office Staff' => 'Office Staff',
                     ])
-                    ->required()
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
@@ -128,6 +126,9 @@ class EmployeeForm
                     ->image()
                     ->disk('public')
                     ->directory('nic')
+                    ->visibility('public')
+                    ->openable()
+                    ->downloadable()
                     ->required()
                     ->imageEditor()
                     ->maxSize(4096),
@@ -137,6 +138,9 @@ class EmployeeForm
                     ->image()
                     ->disk('public')
                     ->directory('nic')
+                    ->visibility('public')
+                    ->openable()
+                    ->downloadable()
                     ->required()
                     ->imageEditor()
                     ->maxSize(4096),
@@ -162,6 +166,11 @@ class EmployeeForm
                     ->required()
                     ->unique(table: Employee::class, column: 'phone', ignoreRecord: true)
                     ->validationMessages(['unique' => 'This phone number is already used by another employee.']),
+
+                TextInput::make('secondary_phone')
+                    ->label('Secondary Phone')
+                    ->tel()
+                    ->nullable(),
 
                 TextInput::make('address_line_1'),
 

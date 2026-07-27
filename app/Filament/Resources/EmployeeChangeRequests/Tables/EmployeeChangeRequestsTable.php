@@ -71,6 +71,15 @@ class EmployeeChangeRequestsTable
                 //
             ])
             ->recordActions([
+                Action::make('viewChanges')
+                    ->label('View Changes')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->modalHeading('Requested Changes')
+                    ->modalContent(fn (EmployeeChangeRequest $record) => view('filament.employee-change-diff', ['record' => $record]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close'),
+
                 Action::make('approve')
                     ->label('Approve')
                     ->icon('heroicon-o-check')
