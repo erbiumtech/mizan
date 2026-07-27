@@ -178,7 +178,7 @@ class EmployeeForm
                 TextInput::make('secondary_phone')
                     ->label('Secondary Phone')
                     ->tel()
-                    ->nullable(),
+                    ->required(),
 
                 TextInput::make('address_line_1'),
 

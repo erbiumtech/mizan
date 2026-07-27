@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Employees\Schemas;
 
+use App\Models\Employee;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -42,6 +43,22 @@ class EmployeeInfolist
                     TextEntry::make('department')->placeholder('—'),
                     TextEntry::make('is_active')->label('Status')->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')->badge()->color(fn ($state) => $state ? 'success' : 'gray'),
                     TextEntry::make('manager.display_label')->label('Manager')->placeholder('—'),
+                ]),
+
+            // "Which projects does this person run" is a different question
+            // from "which are they assigned to" (the Projects relation tab).
+            Section::make('Manages')
+                ->columns(2)
+                ->visible(fn (): bool => auth()->user()?->can('ProjectView') ?? false)
+                ->schema([
+                    TextEntry::make('managedProjects')
+                        ->label('Primary manager of')
+                        ->state(fn (Employee $record): string => $record->managedProjects()
+                            ->pluck('name')->implode(', ') ?: '—'),
+                    TextEntry::make('secondaryProjects')
+                        ->label('Secondary manager of')
+                        ->state(fn (Employee $record): string => $record->secondaryProjects()
+                            ->pluck('name')->implode(', ') ?: '—'),
                 ]),
 
             Section::make('Bank')

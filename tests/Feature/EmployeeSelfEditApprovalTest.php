@@ -27,7 +27,7 @@ class EmployeeSelfEditApprovalTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole(array_unique(['Employee', $role]));
         $emp = Employee::create([
-            'user_id' => $user->id, 'employee_id' => 'EMP-'.$user->id, 'phone' => 'ORIG'.$user->id, 'gender' => 'Male', 'is_active' => 1,
+            'user_id' => $user->id, 'employee_id' => 'EMP-'.$user->id, 'phone' => 'ORIG'.$user->id, 'secondary_phone' => '0301'.$user->id, 'gender' => 'Male', 'is_active' => 1,
             'designation' => 'Cook', 'department' => 'Office Staff',
             'nic' => '12345', 'nic_front' => 'nic/a.png', 'nic_back' => 'nic/b.png',
             'bank_id' => $bank->id, 'bank_account_no' => 'ACC1', 'iban_no' => 'IBAN1',

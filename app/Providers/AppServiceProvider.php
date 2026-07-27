@@ -8,6 +8,7 @@ use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -41,6 +42,12 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('testing')) {
             $this->loadMigrationsFrom(database_path('migrations/tenant'));
         }
+
+        // Routes outside the panel (file downloads, report pages) guard with the
+        // plain `auth` middleware, which redirects guests to a route named
+        // `login`. Only Filament defines a login screen here, so without this a
+        // signed-out visitor gets a 500 instead of the sign-in page.
+        Authenticate::redirectUsing(fn () => route('filament.admin.auth.login'));
 
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);

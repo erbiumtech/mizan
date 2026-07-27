@@ -134,6 +134,7 @@ class EmployeeDualEmailTest extends AccountingTestCase
             'department' => 'IT',
             'gender' => 'Male',
             'phone' => '0300-1111111',
+            'secondary_phone' => '0301-2222222',
             'nic' => '12345-1234567-1',
             'nic_front' => 'nic/front.jpg',
             'nic_back' => 'nic/back.jpg',

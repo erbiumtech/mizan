@@ -65,6 +65,7 @@ class EmployeeResource extends Resource
     {
         return [
             ChangeRequestsRelationManager::class,
+            \App\Filament\Resources\Employees\RelationManagers\ProjectsRelationManager::class,
         ];
     }
 

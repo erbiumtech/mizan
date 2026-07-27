@@ -26,3 +26,21 @@ Schedule::call(function () {
     }
 
 })->everyMinute();
+
+// Project environment monitoring. Runs every minute and dispatches only the
+// environments whose own check_interval_min says they are due, so a per-project
+// interval works without a schedule entry per project.
+//
+// Both of these need `schedule:run` on cron AND a running queue worker
+// (QUEUE_CONNECTION defaults to `database`). Without them health_status stays
+// null and renders as "unknown" — deliberately never as a green tick.
+Schedule::command('projects:check-health')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('projects:check-certificates')
+    ->dailyAt('06:00');
+
+// Retention for the check history (Prunable on ProjectEnvironmentCheck).
+Schedule::command('tenants:artisan', ['model:prune --model=App\\Models\\ProjectEnvironmentCheck'])
+    ->daily();
