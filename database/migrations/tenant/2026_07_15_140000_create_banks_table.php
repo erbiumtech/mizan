@@ -19,7 +19,11 @@ return new class extends Migration
 
         // employees.bank_id is declared in create_employees_table without a
         // constraint because banks migrates later — add the FK here.
-        if (Schema::hasColumn('employees', 'bank_id')) {
+        // hasTable() is checked rather than hasColumn(): bank_id always exists
+        // when the table does, and column introspection needs SQLite's
+        // pragma_table_xinfo() table-valued function, which older SQLite
+        // builds (and builds without virtual table support) do not have.
+        if (Schema::hasTable('employees')) {
             Schema::table('employees', function (Blueprint $table) {
                 $table->foreign('bank_id')->references('id')->on('banks')->nullOnDelete();
             });

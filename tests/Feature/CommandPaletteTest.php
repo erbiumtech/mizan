@@ -62,14 +62,18 @@ class CommandPaletteTest extends TestCase
         $user = User::factory()->create();
         $company->users()->attach($user);
         app(PermissionRegistrar::class)->setPermissionsTeamId($company->id);
-        $user->assignRole('Employee'); // PayslipView only, no UserView/AccountView
+        $user->assignRole('Employee'); // Payslip/EmployeeSetting view only, no UserView/AccountView
 
         $this->actingAs($user);
         $this->setCurrentTenant($company);
 
-        $labels = $this->labels($this->search(''));
-        $this->assertContains('Payslips', $labels);
-        $this->assertNotContains('Users', $labels);
+        // Queried per term rather than off an empty search: the Resources group
+        // is capped at PER_GROUP_LIMIT, so an unfiltered list can drop entries
+        // the role legitimately has.
+        $this->assertContains('Payslips', $this->labels($this->search('payslip')));
+        $this->assertContains('Employee Settings', $this->labels($this->search('employee setting')));
+        $this->assertNotContains('Users', $this->labels($this->search('user')));
+        $this->assertNotContains('Chart Of Accounts', $this->labels($this->search('account')));
     }
 
     public function test_record_search_finds_a_record(): void

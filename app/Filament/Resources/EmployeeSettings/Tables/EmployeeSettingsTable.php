@@ -66,27 +66,27 @@ class EmployeeSettingsTable
                 TextColumn::make('petrol_allowance')
                     ->label('Petrol Allowance')
                     ->numeric()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('bonus')
                     ->label('Bonus')
                     ->numeric()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('extra_work_hours')
                     ->label('Extra Work Hours')
                     ->numeric()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('advances')
-                    ->label('Advances')
-                    ->numeric()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('meal_deduction')
                     ->label('Meal Deduction')
                     ->numeric()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
+
+                TextColumn::make('advances')
+                    ->label('Advances')
+                    ->numeric()
+                    ->toggleable(),
 
                 TextColumn::make('esi_health_insurance')
                     ->label('ESI / Health Insurance')

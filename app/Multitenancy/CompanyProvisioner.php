@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use PDO;
 use RuntimeException;
 
 /**
@@ -28,6 +29,8 @@ class CompanyProvisioner
                 'A dedicated tenant database connection must be configured before provisioning a company.'
             );
         }
+
+        $this->assertConnectionCanMigrate($connection);
 
         $slug = $slug ?: $this->uniqueSlug($name);
 
@@ -69,6 +72,41 @@ class CompanyProvisioner
         }
 
         return $company;
+    }
+
+    /**
+     * Laravel's SQLite schema builder introspects tables with the
+     * pragma_table_xinfo() table-valued function, and rebuilds tables through
+     * it whenever a migration changes a column or adds a foreign key. That
+     * function needs SQLite >= 3.16 built with virtual table support; some
+     * shared hosts ship PHP with an older or trimmed-down SQLite, where
+     * migrating a tenant dies on a bare "near \"(\": syntax error".
+     *
+     * Fail up front with something actionable instead.
+     */
+    protected function assertConnectionCanMigrate(string $connection): void
+    {
+        if (config("database.connections.{$connection}.driver") !== 'sqlite') {
+            return;
+        }
+
+        // Probed on a throwaway in-memory database: the capability belongs to
+        // the pdo_sqlite build, not to the tenant's file (which does not exist
+        // yet at this point).
+        try {
+            $probe = new PDO('sqlite::memory:');
+            $version = (string) $probe->query('select sqlite_version()')->fetchColumn();
+            $probe->query('select 1 from pragma_table_xinfo(\'sqlite_master\', \'main\') limit 1');
+        } catch (\Throwable $e) {
+            throw new RuntimeException(
+                'This server\'s SQLite build cannot run the tenant migrations: it has no '
+                .'pragma_table_xinfo() table-valued function (needs SQLite >= 3.16 built with '
+                .'virtual tables; this one reports '.($version ?? 'unknown').'). '
+                .'Point tenant databases at MySQL instead by setting TENANT_DB_DRIVER=mysql '
+                .'plus TENANT_DB_HOST / TENANT_DB_USERNAME / TENANT_DB_PASSWORD in .env.',
+                previous: $e,
+            );
+        }
     }
 
     protected function attachCreator(Company $company, User $creator): void
