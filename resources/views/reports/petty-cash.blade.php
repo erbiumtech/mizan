@@ -69,12 +69,13 @@
         <div style="overflow-x:auto">
             <table>
                 <thead>
-                <tr><th colspan="{{ 4 + count($summary['columns']) }}" style="text-align:center">Paid</th></tr>
+                <tr><th colspan="{{ 5 + count($summary['columns']) }}" style="text-align:center">Paid</th></tr>
                 <tr>
                     <th>Date</th>
                     <th>Voucher</th>
                     <th>Details</th>
                     <th class="num">Total Paid</th>
+                    <th>Receipt</th>
                     @foreach($summary['columns'] as $col)
                         <th class="num">{{ $col }}</th>
                     @endforeach
@@ -87,21 +88,32 @@
                         <td>{{ $row['voucher_no'] }}</td>
                         <td>{{ $row['details'] }}</td>
                         <td class="num">{{ number_format($row['amount'], 2) }}</td>
+                       <td>
+                            @if(!empty($row['receipt_path']))
+                                <a href="{{ asset('storage/' . $row['receipt_path']) }}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 500;">
+                                    View Receipt
+                                </a>
+                            @else
+                                <span style="color:#cbd5e0">—</span>
+                            @endif
+                        </td>
                         @foreach($summary['columns'] as $col)
                             <td class="num">{{ $row['column'] === $col ? number_format($row['amount'], 2) : '' }}</td>
                         @endforeach
                     </tr>
                 @empty
-                    <tr><td colspan="{{ 4 + count($summary['columns']) }}" style="color:#a0aec0">No vouchers this month.</td></tr>
+                    <tr><td colspan="{{ 5 + count($summary['columns']) }}" style="color:#a0aec0">No vouchers this month.</td></tr>
                 @endforelse
                 <tr class="subtotal">
                     <td colspan="3">c/d (closing balance)</td>
                     <td class="num">{{ number_format($summary['closing_balance'], 2) }}</td>
+                    <td></td>
                     @foreach($summary['columns'] as $col)<td></td>@endforeach
                 </tr>
                 <tr class="grand">
                     <td colspan="3">Totals</td>
                     <td class="num">{{ number_format($summary['paid_total'], 2) }}</td>
+                    <td></td>
                     @foreach($summary['columns'] as $col)
                         <td class="num">{{ number_format($summary['column_totals'][$col] ?? 0, 2) }}</td>
                     @endforeach
@@ -116,10 +128,10 @@
     @endif
 
     @if($canCreate && !$summary['replenished'])
-        <form method="POST" action="{{ route('petty-cash.voucher') }}" style="margin-top:1.5rem;background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem">
+        <form method="POST" action="{{ route('petty-cash.voucher') }}" enctype="multipart/form-data" style="margin-top:1.5rem;background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem">
             @csrf
             <p style="font-weight:600;font-size:.9rem;margin-bottom:.75rem">Add voucher</p>
-            <div style="display:grid;grid-template-columns:140px 1fr 1fr 120px auto;gap:.5rem;align-items:end">
+            <div style="display:grid;grid-template-columns:130px 1fr 1fr 130px 110px auto;gap:.5rem;align-items:end">
                 <div>
                     <label style="display:block;font-size:.7rem;color:#4a5568">Date</label>
                     <input type="date" name="date" value="{{ old('date', now()->toDateString()) }}" required style="width:100%;padding:.4rem;border:1px solid #cbd5e0;border-radius:6px;font-size:.85rem">
@@ -136,6 +148,10 @@
                             <option value="{{ $t->id }}" @selected(old('transaction_type_id') == $t->id)>{{ $t->name }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div>
+                    <label style="display:block;font-size:.7rem;color:#4a5568">Receipt</label>
+                    <input type="file" name="receipt" accept="image/*" style="width:100%;font-size:.75rem">
                 </div>
                 <div>
                     <label style="display:block;font-size:.7rem;color:#4a5568">Amount</label>
