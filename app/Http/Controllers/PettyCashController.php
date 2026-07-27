@@ -41,7 +41,20 @@ class PettyCashController extends Controller
             'details' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'transaction_type_id' => 'required|integer|exists:transaction_types,id',
+            'receipt' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Agar image aayi hai to usay storage/app/public/petty-cash-receipts folder mein save karo
+        if ($request->hasFile('receipt')) {
+            $file = $request->file('receipt');
+            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // File ko exact folder mein store karna
+            $file->storeAs('petty-cash-receipts', $filename, 'public');
+
+            // Database mein path save hoga: petty-cash-receipts/filename.jpg
+            $validated['receipt_path'] = 'petty-cash-receipts/' . $filename;
+        }
 
         try {
             $voucher = $this->pettyCash->bookVoucher($validated);
