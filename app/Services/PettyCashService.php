@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\PettyCashVoucher;
 use App\Models\TransactionType;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -19,9 +20,7 @@ use RuntimeException;
  */
 class PettyCashService
 {
-    public function __construct(private RegisterEntryService $register)
-    {
-    }
+    public function __construct(private RegisterEntryService $register) {}
 
     public function account(): Account
     {
@@ -104,6 +103,93 @@ class PettyCashService
             'receipt_path' => $data['receipt_path'] ?? null,
             'journal_entry_id' => $entry->id,
         ]);
+    }
+
+    /**
+     * Correct a voucher's details/amount (and receipt) while its month is still
+     * open. The posted 2-line entry is adjusted in place rather than reversed:
+     * a reversal would be dated today and surface as a bogus Received row in
+     * the book. Balances are moved by the delta, mirroring JournalEntryService::post().
+     */
+    public function updateVoucher(PettyCashVoucher $voucher, array $data): PettyCashVoucher
+    {
+        if ($this->isMonthReplenished($voucher->date)) {
+            throw new InvalidArgumentException($voucher->date->format('F Y').' is closed — it has already been replenished.');
+        }
+
+        $details = trim((string) $data['details']);
+        $amount = round((float) $data['amount'], 2);
+
+        if ($details === '') {
+            throw new InvalidArgumentException('Details are required.');
+        }
+
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('Amount must be positive.');
+        }
+
+        $delta = round($amount - (float) $voucher->amount, 2);
+
+        if ($delta > $this->balanceAsOf()) {
+            throw new InvalidArgumentException('Petty cash float would be overdrawn (balance: '.number_format($this->balanceAsOf(), 2).').');
+        }
+
+        $entry = $voucher->journalEntry;
+        $lines = $entry?->lines()->get() ?? collect();
+
+        if ($entry) {
+            if ($lines->count() !== 2) {
+                throw new InvalidArgumentException("Entry {$entry->entry_number} is a split — edit it in the journal instead.");
+            }
+
+            if ($lines->contains(fn (JournalEntryLine $line) => $line->reconciled_at !== null)) {
+                throw new InvalidArgumentException("Entry {$entry->entry_number} is reconciled and can no longer be changed.");
+            }
+        }
+
+        DB::transaction(function () use ($voucher, $entry, $lines, $details, $amount, $delta, $data): void {
+            foreach ($lines as $line) {
+                $isDebit = (float) $line->debit_amount > 0;
+
+                if ($delta !== 0.0) {
+                    $account = Account::lockForUpdate()->find($line->account_id);
+                    $sign = ($account->normal_balance === 'debit' ? 1 : -1) * ($isDebit ? 1 : -1);
+
+                    $account->balance = (float) $account->balance + ($sign * $delta);
+                    $account->save();
+                }
+
+                $line->update([
+                    'debit_amount' => $isDebit ? $amount : 0,
+                    'credit_amount' => $isDebit ? 0 : $amount,
+                    'description' => $details,
+                ]);
+            }
+
+            $entry?->update(['memo' => $details]);
+
+            $voucher->update([
+                'details' => $details,
+                'amount' => $amount,
+                'receipt_path' => array_key_exists('receipt_path', $data)
+                    ? ($data['receipt_path'] ?: null)
+                    : $voucher->receipt_path,
+            ]);
+        });
+
+        if ($entry) {
+            activity('PettyCashVoucher')
+                ->performedOn($voucher)
+                ->event('adjusted')
+                ->withProperties([
+                    'voucher_no' => $voucher->voucher_no,
+                    'entry_number' => $entry->entry_number,
+                    'amount_delta' => $delta,
+                ])
+                ->log("Voucher {$voucher->voucher_no} adjusted; entry {$entry->entry_number} restated to ".number_format($amount, 2));
+        }
+
+        return $voucher->refresh();
     }
 
     /**

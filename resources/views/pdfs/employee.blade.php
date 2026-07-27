@@ -13,7 +13,8 @@
     $rows = [
         'Employee ID' => $employee->employee_id,
         'Name' => $employee->user?->name,
-        'Email' => $employee->user?->email,
+        'Company Email' => $employee->user?->email,
+        'Personal Email' => $employee->personal_email,
         'Gender' => $employee->gender,
         'NIC' => $employee->nic,
         'Date of Joining' => optional($employee->date_of_joining)->format('d-m-Y'),

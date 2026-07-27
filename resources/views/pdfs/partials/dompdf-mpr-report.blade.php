@@ -15,24 +15,25 @@
     /* --- base ------------------------------------------------------------ */
     body { font-size: 14px; }
 
-    /* Dompdf resolves no `calc()` and cannot hold a fixed box against the
-       page edge across pages; keep the footer in flow at the end instead. */
+    /* Dompdf honours `position: fixed` (repeating the box on every page) but
+       resolves no `calc()`, so the negative-offset full-bleed width has to be
+       restated. The page box already carries the 15mm side margins. */
     .fixed-print-footer {
-        position: static !important;
         left: 0 !important;
         width: 100% !important;
         height: auto !important;
+        bottom: 6mm !important;
         padding-left: 0 !important;
         padding-bottom: 0 !important;
-        margin-top: 8mm !important;
-
-        /* In flow it can straddle a page break, leaving the address orphaned on
-           a near-empty last page. */
-        page-break-inside: avoid !important;
     }
 
-    /* The footer is in flow now, so the reserved tfoot gap is dead space. */
-    .footer-space { height: 0 !important; }
+    /* The template has no CSS reset, so Dompdf gives each footer line the
+       default 1em paragraph margins and the three-line block balloons to ~18mm.
+       Collapse them, then the tfoot gap that keeps flowing content off the
+       footer can come down from the 32mm Chrome needs. */
+    .fixed-print-footer p { margin: 0 !important; }
+
+    .footer-space { height: 20mm !important; }
 
     /* --- layout: flex / grid --------------------------------------------- */
     .flex, .grid { display: block !important; }
