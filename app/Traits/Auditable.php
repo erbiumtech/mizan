@@ -2,8 +2,8 @@
 
 namespace App\Traits;
 
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
-use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 trait Auditable
 {
@@ -14,7 +14,7 @@ trait Auditable
         return LogOptions::defaults()
             ->logFillable()
             ->logOnlyDirty()
-            ->dontLogEmptyChanges()
+            ->dontSubmitEmptyLogs()
             ->useLogName(class_basename(static::class));
     }
 }
