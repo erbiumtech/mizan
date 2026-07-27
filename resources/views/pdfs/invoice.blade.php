@@ -17,6 +17,10 @@
         .totals .grand { font-weight: bold; border-top: 2px solid #222; }
         .status { text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
     </style>
+
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-invoice')
+    @endif
 </head>
 <body>
     <div class="header">

@@ -18,7 +18,7 @@ class EmployeeChangeRequest extends Model
 
     /** Employee-editable attributes; user_* keys write to the linked user. */
     public const ALLOWED_FIELDS = [
-        'user_name', 'user_email', 'nic', 'date_of_joining', 'phone', 'gender',
+        'user_name', 'user_email', 'personal_email', 'nic', 'date_of_joining', 'phone', 'gender',
         'bank_id', 'bank_account_no', 'iban_no', 'address_line_1', 'address_line_2',
     ];
 

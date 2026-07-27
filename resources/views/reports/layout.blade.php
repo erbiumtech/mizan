@@ -32,6 +32,10 @@
         .back { font-size: .85rem; margin-bottom: 1rem; display: inline-block; color: #4c51bf; text-decoration: none; }
         @media print { body { background: #fff; padding: 0; } .toolbar, .back { display: none; } .report { box-shadow: none; } }
     </style>
+
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-reports')
+    @endif
 </head>
 <body>
 <div class="report">

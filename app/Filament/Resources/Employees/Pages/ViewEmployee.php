@@ -11,8 +11,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Browsershot\Browsershot;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 
 class ViewEmployee extends ViewRecord
 {
@@ -36,7 +35,6 @@ class ViewEmployee extends ViewRecord
 
                     Pdf::view('pdfs.employee', ['employee' => $record->load('user', 'bank', 'manager.user')])
                         ->format('a4')
-                        ->withBrowsershot(fn (Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                         ->save(Storage::disk('public')->path($fileName));
 
                     Notification::make()->title('PDF generated.')->success()->send();

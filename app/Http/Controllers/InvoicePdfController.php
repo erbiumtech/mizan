@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 
 class InvoicePdfController extends Controller
 {

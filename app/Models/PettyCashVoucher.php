@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
+use Illuminate\Support\Facades\Storage;
 
 class PettyCashVoucher extends Model
 {
@@ -29,6 +30,21 @@ class PettyCashVoucher extends Model
                 $voucher->voucher_no = sprintf('PCV-%d-%04d', $year, $next);
             }
         });
+    }
+
+    public function hasReceipt(): bool
+    {
+        return filled($this->receipt_path) && Storage::disk('public')->exists($this->receipt_path);
+    }
+
+    public function receiptUrl(): ?string
+    {
+        return $this->hasReceipt() ? Storage::disk('public')->url($this->receipt_path) : null;
+    }
+
+    public function receiptIsPdf(): bool
+    {
+        return strtolower(pathinfo((string) $this->receipt_path, PATHINFO_EXTENSION)) === 'pdf';
     }
 
     public function transactionType()

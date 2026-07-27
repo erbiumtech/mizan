@@ -50,13 +50,21 @@ class EmployeeForm
                     ->dehydrated()
                     ->afterStateHydrated(fn (TextInput $component, ?Employee $record) => $component->state($record?->user?->name)),
 
+                // The company address is also the login, so it lives on the
+                // linked user; the personal one is a plain employee column.
                 TextInput::make('user_email')
-                    ->label('Email')
+                    ->label('Company Email')
+                    ->helperText('Used to sign in.')
                     ->email()
                     ->required()
                     ->dehydrated()
                     ->afterStateHydrated(fn (TextInput $component, ?Employee $record) => $component->state($record?->user?->email))
                     ->rule(fn (?Employee $record) => Rule::unique(User::class, 'email')->ignore($record?->user_id)),
+
+                TextInput::make('personal_email')
+                    ->label('Personal Email')
+                    ->email()
+                    ->maxLength(255),
 
                 Select::make('is_active')
                     ->label('Status')

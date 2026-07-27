@@ -51,6 +51,10 @@
         .nic-imgs img { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; }
         .cap { color: #6b7280; font-size: 11px; margin-bottom: 4px; }
     </style>
+
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-employee')
+    @endif
 </head>
 <body>
     <h1>Employee Information</h1>

@@ -7,7 +7,7 @@ use App\Models\Mpr;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 
 class MprPdfService
 {
@@ -28,8 +28,7 @@ class MprPdfService
                 'mode' => 'single',
                 'reportFields' => $cleanFields,
                 'contentLabels' => $this->getContentLabels(),
-            ])->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))->portrait(),
+            ])->format('a4')->portrait(),
             'file_name' => $fileName,
         ];
     }
@@ -66,7 +65,6 @@ class MprPdfService
                 'contentLabels' => $this->getContentLabels(),
             ])
                 ->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                 ->portrait();
 
             return ['pdf' => $pdfOutput, 'file_name' => $fileName, 'empty' => false];
@@ -86,7 +84,6 @@ class MprPdfService
             'contentLabels' => $this->getContentLabels(),
         ])
             ->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
             ->landscape();
 
         return ['pdf' => $pdfOutput, 'file_name' => $fileName, 'empty' => false];

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Tenancy\RegisterCompany;
 use App\Models\Company;
 use Filament\Http\Middleware\Authenticate;
@@ -68,6 +69,9 @@ class AdminPanelProvider extends PanelProvider
             ->tenantRegistration(RegisterCompany::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
+            // Self-service password change (user menu → Change Password).
+            // Simple layout: the profile route sits outside the tenant prefix.
+            ->profile(EditProfile::class)
             ->brandName('ErbiumTech')
             ->brandLogo(asset('images/logo.png'))
             ->darkModeBrandLogo(asset('images/logo-dark.png'))

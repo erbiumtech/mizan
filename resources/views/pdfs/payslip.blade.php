@@ -302,6 +302,10 @@
             text-align: right;
         }
     </style>
+
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-payslip')
+    @endif
 </head>
 
 <body>
