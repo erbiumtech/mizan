@@ -47,6 +47,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Permission::class, PermissionPolicy::class);
 
         Gate::before(function ($user, $ability) {
+            // Global super admin bypasses all authorization.
+            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                return true;
+            }
+
             if ($user->hasRole('Administrator') && $ability !== 'create') {
                 return true;
             }

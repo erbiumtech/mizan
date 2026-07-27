@@ -28,7 +28,7 @@ class EmployeeAccess
     /** Whether the user sees all employees (privileged) rather than just their downline. */
     public function isPrivileged(?User $user): bool
     {
-        return $user !== null && $user->hasAnyRole(self::PRIVILEGED_ROLES);
+        return $user !== null && ($user->isSuperAdmin() || $user->hasAnyRole(self::PRIVILEGED_ROLES));
     }
 
     /**

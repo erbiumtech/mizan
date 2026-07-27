@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Payments\Tables;
 
 use App\Models\Employee;
 use App\Models\Payment;
+use App\Services\PaymentDetailsExport;
 use App\Services\PaymentService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -14,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PaymentsTable
 {
@@ -74,6 +76,9 @@ class PaymentsTable
             ->filters([
                 //
             ])
+            ->headerActions([
+                self::exportPaymentDetailsAction(),
+            ])
             ->recordActions([
                 EditAction::make(),
                 self::approveAction(),
@@ -84,6 +89,32 @@ class PaymentsTable
                     self::approveBulkAction(),
                 ]),
             ]);
+    }
+
+    /**
+     * Export the currently-filtered payments to an FBR "Payment Details" XLSX.
+     */
+    protected static function exportPaymentDetailsAction(): Action
+    {
+        return Action::make('exportPaymentDetails')
+            ->label('Export Payment Details')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('gray')
+            ->action(function ($livewire): StreamedResponse {
+                $query = $livewire->getFilteredTableQuery();
+
+                $path = tempnam(sys_get_temp_dir(), 'payment-details-').'.xlsx';
+                app(PaymentDetailsExport::class)->writeToFile($query, $path);
+
+                $fileName = 'Payment Details '.now()->format('Y-m-d').'.xlsx';
+
+                return response()->streamDownload(function () use ($path): void {
+                    readfile($path);
+                    @unlink($path);
+                }, $fileName, [
+                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                ]);
+            });
     }
 
     protected static function payableLabel(Payment $record): ?string

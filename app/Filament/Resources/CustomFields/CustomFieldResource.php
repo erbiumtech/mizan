@@ -45,7 +45,7 @@ class CustomFieldResource extends Resource
     public static function canAccess(): bool
     {
         return config('custom_fields.enabled', true)
-            && (auth()->user()?->hasRole('Administrator') ?? false);
+            && (auth()->user()?->hasRole('Administrator') || auth()->user()?->isSuperAdmin());
     }
 
     public static function form(Schema $schema): Schema
