@@ -1,7 +1,7 @@
 # MPR — Payroll & Accounting System
 
-Internal HR, payroll, and double-entry accounting platform built on **Laravel 12**,
-**Laravel Nova 5**, and **Spatie Permissions** (MySQL, PHP ≥ 8.4).
+Internal HR, payroll, and double-entry accounting platform built on **Laravel 13**,
+**Filament 5**, and **Spatie Permissions** (MySQL, PHP 8.3).
 
 ## Features
 

@@ -40,10 +40,10 @@ class ActivityLogInfolist
                     ->label('Causer')
                     ->state(fn (Activity $record): string => $record->causer?->name ?? 'System'),
 
-                TextEntry::make('attribute_changes')
+                TextEntry::make('changes')
                     ->label('Changes')
                     ->state(fn (Activity $record): string => json_encode(
-                        $record->attribute_changes?->toArray() ?? [],
+                        $record->changes()?->toArray() ?? [],
                         JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
                     )),
 

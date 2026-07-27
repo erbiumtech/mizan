@@ -128,7 +128,7 @@ class AuthorizationTest extends AccountingTestCase
             ->latest('id')
             ->firstOrFail();
 
-        $changes = $activity->attribute_changes;
+        $changes = $activity->changes();
         $this->assertSame('Changed Name', data_get($changes, 'attributes.name'));
         $this->assertSame('Basic Salary Expense', data_get($changes, 'old.name'));
     }
