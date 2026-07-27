@@ -91,6 +91,7 @@
                                 <th class="px-3 py-2 font-medium">Date</th>
                                 <th class="px-3 py-2 font-medium">Voucher</th>
                                 <th class="px-3 py-2 font-medium">Details</th>
+                                <th class="px-3 py-2 text-center font-medium">Attachment</th>
                                 <th class="px-3 py-2 text-right font-medium">Total Paid</th>
                                 @foreach($summary['columns'] as $col)
                                     <th class="px-3 py-2 text-right font-medium">{{ $col }}</th>
@@ -105,23 +106,30 @@
                                         <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-white/10">{{ $row['voucher_no'] }}</span>
                                     </td>
                                     <td class="px-3 py-2">{{ $row['details'] }}</td>
+                                    <td class="px-3 py-2 text-center">
+                                        @if(filled($row['receipt_path']))
+                                            {{ ($this->viewReceiptAction)(['voucher' => $row['id']]) }}
+                                        @else
+                                            <span class="text-gray-300 dark:text-gray-600">—</span>
+                                        @endif
+                                    </td>
                                     <td class="px-3 py-2 text-right tabular-nums text-danger-600 dark:text-danger-400">{{ number_format($row['amount'], 2) }}</td>
                                     @foreach($summary['columns'] as $col)
                                         <td class="px-3 py-2 text-right tabular-nums text-gray-500 dark:text-gray-400">{{ $row['column'] === $col ? number_format($row['amount'], 2) : '' }}</td>
                                     @endforeach
                                 </tr>
                             @empty
-                                <tr><td class="px-3 py-6 text-center text-gray-400" colspan="{{ 4 + count($summary['columns']) }}">No vouchers this month.</td></tr>
+                                <tr><td class="px-3 py-6 text-center text-gray-400" colspan="{{ 5 + count($summary['columns']) }}">No vouchers this month.</td></tr>
                             @endforelse
                         </tbody>
                         <tfoot>
                             <tr class="border-t border-gray-100 text-gray-500 dark:border-white/5 dark:text-gray-400">
-                                <td class="px-3 py-2" colspan="3">c/d (closing balance)</td>
+                                <td class="px-3 py-2" colspan="4">c/d (closing balance)</td>
                                 <td class="px-3 py-2 text-right tabular-nums">{{ number_format($summary['closing_balance'], 2) }}</td>
                                 @foreach($summary['columns'] as $col)<td></td>@endforeach
                             </tr>
                             <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold dark:border-white/10 dark:bg-white/5">
-                                <td class="px-3 py-2" colspan="3">Totals</td>
+                                <td class="px-3 py-2" colspan="4">Totals</td>
                                 <td class="px-3 py-2 text-right tabular-nums">{{ number_format($summary['paid_total'], 2) }}</td>
                                 @foreach($summary['columns'] as $col)
                                     <td class="px-3 py-2 text-right tabular-nums">{{ number_format($summary['column_totals'][$col] ?? 0, 2) }}</td>

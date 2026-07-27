@@ -78,6 +78,10 @@
             font-size: 14px !important;
         }
     </style>
+
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-mpr-report')
+    @endif
 </head>
 <body class="bg-white text-slate-900 antialiased">
 
@@ -134,7 +138,7 @@
 
                         <div class="pt-2 print-avoid-break">
                             <p class="text-base font-bold text-fuchsia-600 flex items-center gap-1">
-                                Thank you 😊
+                                Thank you @if (($pdfEngine ?? null) !== 'dompdf')😊@endif
                             </p>
                         </div>
                     </div>
@@ -208,7 +212,7 @@
 
                         <div class="pt-4 print-avoid-break">
                             <p class="text-sm font-bold text-fuchsia-600 flex items-center gap-1">
-                                Thank you 😊
+                                Thank you @if (($pdfEngine ?? null) !== 'dompdf')😊@endif
                             </p>
                         </div>
                     </div>

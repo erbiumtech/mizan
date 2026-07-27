@@ -2,18 +2,22 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\PettyCashVoucher;
 use App\Models\TransactionType;
 use App\Services\PettyCashService;
 use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
 class PettyCashBook extends Page
@@ -121,11 +125,26 @@ class PettyCashBook extends Page
                     ->minValue(0.01)
                     ->step(0.01)
                     ->required(),
+                FileUpload::make('receipt_path')
+                    ->label('Attachment')
+                    ->helperText('Receipt image or PDF, up to 5 MB.')
+                    ->disk('public')
+                    ->directory('petty-cash-receipts')
+                    ->visibility('public')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'])
+                    ->maxSize(5120)
+                    ->openable()
+                    ->downloadable(),
             ])
             ->action(function (array $data): void {
                 try {
                     $voucher = app(PettyCashService::class)->bookVoucher($data);
                 } catch (\InvalidArgumentException $e) {
+                    // The upload already landed on disk; don't leave it orphaned.
+                    if (filled($data['receipt_path'] ?? null)) {
+                        Storage::disk('public')->delete($data['receipt_path']);
+                    }
+
                     Notification::make()->danger()->title($e->getMessage())->send();
 
                     return;
@@ -135,6 +154,33 @@ class PettyCashBook extends Page
 
                 Notification::make()->success()->title("Voucher {$voucher->voucher_no} booked.")->send();
             });
+    }
+
+    /**
+     * Per-row action on the Paid side: shows the voucher's receipt image or PDF
+     * in a modal. Mounted with ['voucher' => id] from the book table.
+     */
+    public function viewReceiptAction(): Action
+    {
+        return Action::make('viewReceipt')
+            ->label('View attachment')
+            ->icon('heroicon-m-paper-clip')
+            ->iconButton()
+            ->color('gray')
+            ->modalHeading(fn (array $arguments): string => 'Attachment · '
+                .($this->receiptVoucher($arguments)?->voucher_no ?? 'Voucher'))
+            ->modalDescription(fn (array $arguments): ?string => $this->receiptVoucher($arguments)?->details)
+            ->modalWidth(Width::FiveExtraLarge)
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close')
+            ->modalContent(fn (array $arguments) => view('filament.pages.partials.petty-cash-receipt', [
+                'voucher' => $this->receiptVoucher($arguments),
+            ]));
+    }
+
+    protected function receiptVoucher(array $arguments): ?PettyCashVoucher
+    {
+        return PettyCashVoucher::find($arguments['voucher'] ?? null);
     }
 
     protected function topUpAction(): Action

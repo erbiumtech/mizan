@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Payslip;
 use App\Models\Employee;
 use App\Models\FiscalYear;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
@@ -48,7 +48,6 @@ class PayslipController extends Controller
 
                                    Pdf::view('pdfs.payslip', ['data' => $payslip])
                                       ->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                                       ->save($absolutePath);
 
                                    $payslip->update(['pdf_path' => $fileName]);

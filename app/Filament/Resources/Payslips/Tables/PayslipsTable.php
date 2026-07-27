@@ -18,8 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Browsershot\Browsershot;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 
 class PayslipsTable
 {
@@ -302,7 +301,6 @@ class PayslipsTable
 
             Pdf::view('pdfs.payslip', ['data' => $payslip])
                 ->format('a4')
-                ->withBrowsershot(fn (Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                 ->save($absolutePath);
 
             $payslip->update(['pdf_path' => $fileName]);

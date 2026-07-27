@@ -36,8 +36,14 @@ class EmployeesTable
                     ->searchable(),
 
                 TextColumn::make('user.email')
-                    ->label('Email')
+                    ->label('Company Email')
                     ->searchable(),
+
+                TextColumn::make('personal_email')
+                    ->label('Personal Email')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('is_active')
                     ->label('Status')
@@ -61,7 +67,7 @@ class EmployeesTable
                     ->searchable(),
 
                 SelectFilter::make('employee_email')
-                    ->label('Employee Email')
+                    ->label('Company Email')
                     ->attribute('id')
                     ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->email ?? 'No Email'])

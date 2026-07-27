@@ -139,11 +139,13 @@ class PettyCashService
         $columns = $vouchers->pluck('transactionType.name')->unique()->values()->all();
 
         $paidRows = $vouchers->map(fn ($v) => [
+            'id' => $v->id,
             'date' => $v->date->toDateString(),
             'voucher_no' => $v->voucher_no,
             'details' => $v->details,
             'amount' => (float) $v->amount,
             'column' => $v->transactionType->name,
+            'receipt_path' => $v->receipt_path,
         ])->all();
 
         $columnTotals = collect($paidRows)->groupBy('column')->map(fn ($g) => round($g->sum('amount'), 2))->all();

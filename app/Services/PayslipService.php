@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\EmployeeSetting;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -159,7 +159,6 @@ class PayslipService
 
         Pdf::view('pdfs.payslip', ['data' => $payslip])
             ->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
             ->margins(0, 0, 0, 0)
             ->save($fullPath);
 

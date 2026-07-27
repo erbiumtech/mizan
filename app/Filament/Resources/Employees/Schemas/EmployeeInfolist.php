@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Employees\Schemas;
 
-use App\Models\Employee;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -18,7 +17,8 @@ class EmployeeInfolist
                 ->schema([
                     TextEntry::make('employee_id')->label('Employee ID'),
                     TextEntry::make('user.name')->label('Name'),
-                    TextEntry::make('user.email')->label('Email'),
+                    TextEntry::make('user.email')->label('Company Email'),
+                    TextEntry::make('personal_email')->label('Personal Email')->placeholder('—'),
                     TextEntry::make('gender'),
                     TextEntry::make('nic')->label('NIC'),
                     TextEntry::make('date_of_joining')->date(),

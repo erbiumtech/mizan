@@ -14,7 +14,7 @@ class Employee extends Model
     use Auditable, HasCustomFields;
 
     protected $fillable = [
-        'user_id', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'gender',
+        'user_id', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
         'is_active', 'designation', 'department',
         'date_of_joining', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',

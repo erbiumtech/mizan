@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\FinancialReportService;
 use Illuminate\Http\Request;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Support\Pdf\Pdf;
 
 class ReportPageController extends Controller
 {
@@ -26,7 +26,6 @@ class ReportPageController extends Controller
         if (($validated['format'] ?? null) === 'pdf') {
             return Pdf::view('reports.trial-balance', ['report' => $report, 'pdf' => true])
                 ->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                 ->name('trial-balance-'.$report['as_of'].'.pdf');
         }
 
@@ -51,7 +50,6 @@ class ReportPageController extends Controller
         if (($validated['format'] ?? null) === 'pdf') {
             return Pdf::view('reports.profit-and-loss', ['report' => $report, 'pdf' => true])
                 ->format('a4')
-            ->withBrowsershot(fn (\Spatie\Browsershot\Browsershot $b) => $b->setNodeBinary(config('services.node.binary'))->setNpmBinary(config('services.node.npm')))
                 ->name('profit-and-loss-'.$report['to'].'.pdf');
         }
 
