@@ -6,6 +6,8 @@ use App\Listeners\SyncSpatieTenant;
 use App\Policies\ActivityLogPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
+use App\Support\EmployeeAccess;
+use App\Support\TenantSettings;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Illuminate\Auth\Middleware\Authenticate;
@@ -24,8 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Support\TenantSettings::class);
-        $this->app->singleton(\App\Support\EmployeeAccess::class);
+        $this->app->singleton(TenantSettings::class);
+        $this->app->singleton(EmployeeAccess::class);
     }
 
     /**

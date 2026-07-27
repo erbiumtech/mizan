@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;
 use App\Support\TenantStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -123,11 +125,11 @@ class TenantFileDownloadTest extends TestCase
     public function test_the_public_disk_generates_route_urls_for_the_current_tenant(): void
     {
         $company = Company::factory()->create();
-        (new \App\Multitenancy\Tasks\SwitchTenantFilesystemTask)->makeCurrent($company);
+        (new SwitchTenantFilesystemTask)->makeCurrent($company);
 
         $this->assertSame(
             "/files/{$company->id}/payslips/january.pdf",
-            \Illuminate\Support\Facades\Storage::disk('public')->url('payslips/january.pdf'),
+            Storage::disk('public')->url('payslips/january.pdf'),
         );
     }
 }
