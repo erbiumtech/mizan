@@ -33,13 +33,12 @@ class RealCompanySeeder extends Seeder
 
     public function run(): void
     {
-        // CompanySeeder reads these through env(), so set them for this process.
-        putenv('SEED_COMPANY_NAME='.self::COMPANY_NAME);
-        putenv('SEED_COMPANY_SLUG='.self::COMPANY_SLUG);
-        putenv('SEED_ADMIN_EMAIL='.self::SUPER_ADMIN_EMAIL);
-        $_ENV['SEED_COMPANY_NAME'] = self::COMPANY_NAME;
-        $_ENV['SEED_COMPANY_SLUG'] = self::COMPANY_SLUG;
-        $_ENV['SEED_ADMIN_EMAIL'] = self::SUPER_ADMIN_EMAIL;
+        // CompanySeeder reads these from config, so set them for this process.
+        config([
+            'seeding.company_name' => self::COMPANY_NAME,
+            'seeding.company_slug' => self::COMPANY_SLUG,
+            'seeding.admin_email' => self::SUPER_ADMIN_EMAIL,
+        ]);
 
         $creator = User::where('email', DatabaseSeeder::superAdminEmail())->first();
 

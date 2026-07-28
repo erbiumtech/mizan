@@ -12,4 +12,21 @@ return [
     'processing_mode' => env('IPAYMENTS_PROCESSING_MODE', 'ON'),
     'invoice_format' => env('IPAYMENTS_INVOICE_FORMAT', '4'),
     'purpose_of_payment' => env('IPAYMENTS_PURPOSE_CODE', '104'),
+
+    /*
+     * How to recognise a beneficiary who banks with the debiting bank itself.
+     *
+     * Those are intra-bank transfers and the file must carry the plain account
+     * number; every other beneficiary is an inter-bank IBFT and needs the IBAN.
+     * See App\Support\BankFileAccount.
+     *
+     * SCB is not in the IBFT bank directory (BankSeeder lists the banks you
+     * transfer out to), so the match is attempted on the bank's short code, its
+     * name, and the bank identifier inside a Pakistani IBAN — PK36|SCBL|0000…
+     */
+    'own_bank' => [
+        'short_codes' => ['SCB', 'SCBL', 'SCBPL'],
+        'name_contains' => env('IPAYMENTS_OWN_BANK_NAME', 'standard chartered'),
+        'iban_prefix' => env('IPAYMENTS_OWN_BANK_IBAN_PREFIX', 'SCBL'),
+    ],
 ];

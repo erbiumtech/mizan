@@ -20,6 +20,14 @@ class Account extends Model
      */
     public const OPENING_BALANCE_EQUITY_CODE = '3300';
 
+    /**
+     * Where a closed year's profit or loss lands (see FiscalYearClosingService).
+     *
+     * Income and expense accounts measure one period only, so closing a year
+     * zeroes them and rolls the net into this account, which carries forward.
+     */
+    public const RETAINED_EARNINGS_CODE = '3200';
+
     protected $fillable = [
         'code', 'name', 'type', 'normal_balance', 'parent_id',
         'is_active', 'allow_manual_entry', 'description', 'balance',

@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Listeners\SyncSpatieTenant;
+use App\Models\MPR;
 use App\Policies\ActivityLogPolicy;
+use App\Policies\MprPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Support\EmployeeAccess;
@@ -50,6 +52,12 @@ class AppServiceProvider extends ServiceProvider
         // `login`. Only Filament defines a login screen here, so without this a
         // signed-out visitor gets a 500 instead of the sign-in page.
         Authenticate::redirectUsing(fn () => route('filament.admin.auth.login'));
+
+        // Registered explicitly because Laravel's guess does not match the file
+        // name: App\Models\MPR maps to App\Policies\MPRPolicy, but the class is
+        // MprPolicy. A case-insensitive filesystem hides that locally; on Linux
+        // the policy is simply not found and the resource is open to everyone.
+        Gate::policy(MPR::class, MprPolicy::class);
 
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
