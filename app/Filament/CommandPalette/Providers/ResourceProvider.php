@@ -22,7 +22,12 @@ class ResourceProvider implements PaletteProvider
 
         foreach (Filament::getResources() as $resource) {
             try {
-                if (! $resource::canViewAny()) {
+                // `canAccess()`, not `canViewAny()`: a resource may restrict
+                // itself beyond its policy (CompanyResource is super-admin only,
+                // for instance), and that is the same gate the sidebar and the
+                // pages themselves use. Filament's default `canAccess()` falls
+                // through to `canViewAny()`, so this is never weaker.
+                if (! $resource::canAccess()) {
                     continue;
                 }
             } catch (\Throwable) {
