@@ -2,25 +2,24 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\FiscalYear;
+use App\Filament\Concerns\SelectsSalaryMonth;
 use App\Models\Payment;
-use App\Models\Payslip;
 use App\Models\TransactionType;
 use App\Services\BankPaymentExportService;
 use App\Services\PaymentService;
 use BackedEnum;
-use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Collection as BaseCollection;
 use UnitEnum;
 
 class BankPaymentFile extends Page
 {
+    use SelectsSalaryMonth;
+
     protected string $view = 'filament.pages.bank-payment-file';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -40,46 +39,20 @@ class BankPaymentFile extends Page
 
     public function mount(): void
     {
-        $months = $this->months();
-
         $this->form->fill([
-            'month' => $months->last() ?? now()->format('F'),
+            'fiscal_year_id' => $this->defaultFiscalYear()?->id,
+            'month' => $this->defaultMonth(),
             'type' => null,
             'value_date' => now()->toDateString(),
         ]);
     }
 
-    public function fiscalYear(): ?FiscalYear
-    {
-        return FiscalYear::where('is_active', true)->first();
-    }
-
-    public function months(): BaseCollection
-    {
-        $fiscalYear = $this->fiscalYear();
-
-        if (! $fiscalYear) {
-            return collect();
-        }
-
-        return Payslip::where('fiscal_year_id', $fiscalYear->id)
-            ->distinct()
-            ->pluck('month')
-            ->sortBy(fn ($m) => Carbon::parse("{$m} 1, 2000")->month)
-            ->values();
-    }
-
     public function form(Schema $schema): Schema
     {
-        $months = $this->months();
-
         return $schema
             ->components([
-                Select::make('month')
-                    ->label('Salary month')
-                    ->options($months->mapWithKeys(fn ($m) => [$m => $m])->all())
-                    ->native(false)
-                    ->live(),
+                $this->fiscalYearSelect(),
+                $this->monthSelect(),
                 Select::make('type')
                     ->label('Transaction type')
                     ->placeholder('All types')
@@ -93,7 +66,7 @@ class BankPaymentFile extends Page
                     ->live(),
             ])
             ->statePath('data')
-            ->columns(3);
+            ->columns(4);
     }
 
     public function getRows(): Collection

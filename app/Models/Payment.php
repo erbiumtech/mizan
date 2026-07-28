@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\BankFileAccount;
 use App\Traits\Auditable;
 
 class Payment extends Model
@@ -98,7 +99,12 @@ class Payment extends Model
         if ($payable instanceof Employee) {
             return [
                 'name' => $payable->user->name ?? $payable->employee_id,
-                'account' => $payable->iban_no ?: $payable->bank_account_no,
+                'account' => BankFileAccount::value(
+                    $payable->iban_no,
+                    $payable->bank_account_no,
+                    $payable->bank,
+                    $payable->bank_short_code,
+                ),
                 'bank_code' => $payable->bank?->bank_code ?? $payable->bank_code ?? '',
                 'bank_name' => $payable->bank?->bank_name ?? $payable->bank_name ?? '',
                 'email' => $payable->user->email ?? '',
@@ -112,7 +118,11 @@ class Payment extends Model
 
         return [
             'name' => $payable->name ?? '',
-            'account' => $payable->iban ?: $payable->account_no,
+            'account' => BankFileAccount::value(
+                $payable->iban ?? null,
+                $payable->account_no ?? null,
+                $payable->bank ?? null,
+            ),
             'bank_code' => $payable->bank?->bank_code ?? '',
             'bank_name' => $payable->bank?->bank_name ?? '',
             'email' => $payable->email ?? '',
