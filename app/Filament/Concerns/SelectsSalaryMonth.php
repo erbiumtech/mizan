@@ -6,6 +6,7 @@ use App\Models\FiscalYear;
 use App\Models\Payslip;
 use Carbon\Carbon;
 use Filament\Forms\Components\Select;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -82,7 +83,7 @@ trait SelectsSalaryMonth
             return [];
         }
 
-        $counts = Payslip::where('fiscal_year_id', $fiscalYear->id)
+        $counts = $this->monthCountQuery($fiscalYear)
             ->selectRaw('month, COUNT(*) as aggregate')
             ->groupBy('month')
             ->pluck('aggregate', 'month');
@@ -95,9 +96,25 @@ trait SelectsSalaryMonth
                 $month = $date->format('F');
                 $count = (int) ($counts[$month] ?? 0);
 
-                return [$month => $date->format('F Y').($count ? " — {$count} payslips" : '')];
+                return [$month => $date->format('F Y').($count ? " — {$count} {$this->monthCountNoun()}" : '')];
             })
             ->all();
+    }
+
+    /**
+     * The rows the month labels are counted from. Overridden where the page
+     * exports a subset — the FBR file only cares about taxed payslips, so
+     * counting all of them would promise data the export won't contain.
+     */
+    protected function monthCountQuery(FiscalYear $fiscalYear): Builder
+    {
+        return Payslip::where('fiscal_year_id', $fiscalYear->id);
+    }
+
+    /** Plural noun for the count hint in a month label. */
+    protected function monthCountNoun(): string
+    {
+        return 'payslips';
     }
 
     /** The month to start on: the current one if it's in the year, else the first. */
@@ -127,10 +144,10 @@ trait SelectsSalaryMonth
             ->afterStateUpdated(fn () => $this->data['month'] = $this->defaultMonth());
     }
 
-    protected function monthSelect(): Select
+    protected function monthSelect(string $label = 'Salary month'): Select
     {
         return Select::make('month')
-            ->label('Salary month')
+            ->label($label)
             ->options(fn (): array => $this->monthOptions())
             ->selectablePlaceholder(false)
             ->native(false)

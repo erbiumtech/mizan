@@ -4,6 +4,7 @@ namespace App\Filament\Resources\EmployeeSettings\Schemas;
 
 use App\Models\EmployeeSetting;
 use App\Support\EmployeeAccess;
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -45,6 +46,12 @@ class EmployeeSettingForm
                         ->scopeAccessibleEmployees($query->with('user'), Auth::user()))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
+                    // The label shows the user's name, so the search must match it too;
+                    // Filament would otherwise search only the employee_id title attribute.
+                    ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search(
+                        $search,
+                        EmployeeOptions::accessibleScope(),
+                    ))
                     ->preload()
                     ->required()
                     ->disabled($locked)
