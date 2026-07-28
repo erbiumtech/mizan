@@ -65,6 +65,37 @@ class CompanySettings extends Page
         return auth()->user()?->hasRole('Administrator') ?? false;
     }
 
+    /**
+     * A KeyValue field is validated in its raw editing shape — a list of
+     * ['key' => ..., 'value' => ...] rows — not as the associative map it casts
+     * to afterwards. Both shapes are accepted here so the rules below hold
+     * whichever one they are handed.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function keyValueMap(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $map = [];
+
+        foreach ($value as $key => $entry) {
+            if (is_array($entry) && array_key_exists('key', $entry)) {
+                if ($entry['key'] !== null && $entry['key'] !== '') {
+                    $map[$entry['key']] = $entry['value'] ?? null;
+                }
+
+                continue;
+            }
+
+            $map[$key] = $entry;
+        }
+
+        return $map;
+    }
+
     public function mount(): void
     {
         $this->form->fill([
@@ -126,17 +157,21 @@ class CompanySettings extends Page
                             // cannot be undone from this page. Catch it here.
                             ->rule(static function (): callable {
                                 return static function (string $attribute, $value, callable $fail): void {
-                                    if (! is_array($value)) {
-                                        return;
-                                    }
-
                                     // Only scalar entries are account codes; a blank
                                     // one means "fall back to the default".
-                                    $codes = collect($value)
+                                    $codes = collect(self::keyValueMap($value))
                                         ->filter(fn ($code) => is_scalar($code) && trim((string) $code) !== '')
                                         ->map(fn ($code) => trim((string) $code));
 
                                     if ($codes->isEmpty()) {
+                                        return;
+                                    }
+
+                                    // A company whose chart has not been seeded yet
+                                    // would fail on every shipped default, locking
+                                    // the admin out of the whole settings page over
+                                    // values they never typed.
+                                    if (Account::query()->doesntExist()) {
                                         return;
                                     }
 
@@ -161,7 +196,34 @@ class CompanySettings extends Page
                             ->valueLabel('Value')
                             ->addable(false)
                             ->deletable(false)
-                            ->editableKeys(false),
+                            ->editableKeys(false)
+                            ->helperText('Header fields for the salary bank file. A malformed value is only rejected when the file is uploaded to the bank, so it is checked here. Leave one blank to use the shipped default.')
+                            ->rule(static function (): callable {
+                                return static function (string $attribute, $value, callable $fail): void {
+                                    foreach (self::keyValueMap($value) as $field => $entry) {
+                                        // Nested config (the own_bank matching rules)
+                                        // is not editable here and never submitted.
+                                        if (! is_scalar($entry) || trim((string) $entry) === '') {
+                                            continue;
+                                        }
+
+                                        $spec = self::IPAYMENTS_RULES[$field] ?? null;
+
+                                        if ($spec === null) {
+                                            continue;
+                                        }
+
+                                        if (! preg_match($spec['pattern'], trim((string) $entry))) {
+                                            $fail(sprintf(
+                                                '"%s" must be %s — got "%s".',
+                                                $field,
+                                                $spec['expects'],
+                                                $entry,
+                                            ));
+                                        }
+                                    }
+                                };
+                            }),
                     ]),
 
                 Section::make('Public Status Page')
@@ -205,7 +267,9 @@ class CompanySettings extends Page
         $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);
         $settings->set('accounting.auto_post_payroll', (bool) $state['accounting_auto_post_payroll']);
         $settings->set('accounting.payroll_accounts', $state['accounting_payroll_accounts']);
-        $settings->set('ipayments', $state['ipayments']);
+        // Scalars only: the nested own_bank matching rules are not editable here,
+        // and TenantSettings merges them back from config.
+        $settings->set('ipayments', array_filter((array) $state['ipayments'], 'is_scalar'));
         $settings->set('projects.status_page.enabled', (bool) ($state['projects_status_page_enabled'] ?? false));
         $settings->set('projects.status_page.token', $state['projects_status_page_token'] ?: null);
 
