@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AnnualTaxes\Tables;
 
 use App\Support\EmployeeAccess;
+use App\Support\LandlordUserColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -26,10 +27,11 @@ class AnnualTaxesTable
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
                     ->formatStateUsing(fn ($state, $record): string => ($record->employee?->employee_id ?? '').' - '.($record->employee?->user?->name ?? ''))
+                    // Resolved to employee ids first: `users` lives in the
+                    // landlord database, so a whereHas through it would emit a
+                    // cross-database subquery on the tenant connection.
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
-                        ->whereHas('employee', fn ($q) => $q
-                            ->where('employee_id', 'like', "%{$search}%")
-                            ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))))
+                        ->whereIn('employee_id', LandlordUserColumn::employeeIdsMatching($search)))
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')
