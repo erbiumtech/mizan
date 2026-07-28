@@ -6,8 +6,8 @@ use App\Models\Account;
 use App\Models\Company;
 use App\Models\User;
 use App\Multitenancy\CompanyProvisioner;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -36,6 +36,61 @@ class CompanyProvisioningTest extends TestCase
         }
 
         parent::tearDown();
+    }
+
+    /**
+     * `CREATE DATABASE IF NOT EXISTS` would otherwise adopt a leftover schema
+     * and fail deep inside `migrate` on a table an earlier run had created.
+     */
+    public function test_provisioning_refuses_a_tenant_database_that_already_has_data(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        $path = database_path('tenants/stale-co.sqlite');
+        File::ensureDirectoryExists(dirname($path));
+        $this->provisionedFiles[] = $path;
+
+        // A non-empty leftover database at the slug we are about to claim.
+        File::put($path, 'not empty');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/already exists and contains tables/');
+
+        try {
+            app(CompanyProvisioner::class)->provision(name: 'Stale Co', slug: 'stale-co');
+        } finally {
+            // Refused before anything was written.
+            $this->assertDatabaseMissing('companies', ['slug' => 'stale-co']);
+            File::delete($path);
+        }
+    }
+
+    /** A failure part-way through must not leave an orphan company + database. */
+    public function test_a_failed_provision_rolls_back_the_company_and_its_database(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        $path = database_path('tenants/doomed-co.sqlite');
+        $this->provisionedFiles[] = $path;
+
+        // Fails after the database has been created and migrated.
+        $provisioner = new class extends CompanyProvisioner
+        {
+            protected function attachCreator(Company $company, User $creator): void
+            {
+                throw new \RuntimeException('boom');
+            }
+        };
+
+        try {
+            $provisioner->provision(name: 'Doomed Co', slug: 'doomed-co', creator: User::factory()->create());
+            $this->fail('provisioning should have thrown');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('boom', $e->getMessage(), 'the original failure must surface, not a rollback error');
+        }
+
+        $this->assertDatabaseMissing('companies', ['slug' => 'doomed-co']);
+        $this->assertFalse(File::exists($path), 'the tenant database should have been removed');
     }
 
     public function test_provisioning_creates_isolated_seeded_tenant_and_attaches_owner(): void
