@@ -4,6 +4,7 @@ namespace App\Filament\Resources\EmployeeSettings\Tables;
 
 use App\Models\Employee;
 use App\Support\EmployeeAccess;
+use App\Support\LandlordUserColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -27,10 +28,11 @@ class EmployeeSettingsTable
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
                     ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
+                    // Resolved to employee ids first: `users` lives in the
+                    // landlord database, so a whereHas through it would emit a
+                    // cross-database subquery on the tenant connection.
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
-                        ->whereHas('employee', fn ($q) => $q
-                            ->where('employee_id', 'like', "%{$search}%")
-                            ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))))
+                        ->whereIn('employee_id', LandlordUserColumn::employeeIdsMatching($search)))
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')

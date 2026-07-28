@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EmployeeChangeRequests\Schemas;
 
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
@@ -18,6 +19,9 @@ class EmployeeChangeRequestForm
                     ->relationship('employee', 'employee_id', fn ($query) => $query->with('user'))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
+                    // Search the user's name as well as the employee code — the label
+                    // shows both, but Filament searches only the title attribute.
+                    ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                     ->preload()
                     ->disabled(),
 

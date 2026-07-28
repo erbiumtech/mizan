@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\BankPaymentFile;
+use App\Filament\Pages\FbrTaxFile;
 use App\Filament\Pages\SalaryBankFile;
 use App\Models\Employee;
 use App\Models\FiscalYear;
@@ -61,7 +62,7 @@ class SalaryMonthSelectionTest extends AccountingTestCase
 
     public function test_all_twelve_months_are_offered_even_with_no_payslips(): void
     {
-        foreach ([SalaryBankFile::class, BankPaymentFile::class] as $page) {
+        foreach ([SalaryBankFile::class, BankPaymentFile::class, FbrTaxFile::class] as $page) {
             $options = $this->monthOptions($page);
 
             $this->assertCount(12, $options, $page.' should offer a full year');
@@ -137,13 +138,47 @@ class SalaryMonthSelectionTest extends AccountingTestCase
         $expected = FiscalYear::containing(now()->toDateString());
         $this->assertNotNull($expected, 'a seeded year should contain today');
 
-        foreach ([SalaryBankFile::class, BankPaymentFile::class] as $page) {
+        foreach ([SalaryBankFile::class, BankPaymentFile::class, FbrTaxFile::class] as $page) {
             $this->assertSame(
                 $expected->id,
                 Livewire::test($page)->instance()->fiscalYear()->id,
                 $page.' should work in the year containing today'
             );
         }
+    }
+
+    /**
+     * The FBR file exports only payslips with withholding tax, so its month
+     * labels count those rather than every payslip — a month labelled with no
+     * count really does produce an empty file.
+     */
+    public function test_the_fbr_month_labels_count_only_taxed_payslips(): void
+    {
+        $year = FiscalYear::where('name', '2026-2027')->firstOrFail();
+
+        $taxed = $this->payslipFor('October', $year);
+        // Written straight to the column: Payslip recalculates withholding_tax
+        // from the salary settings on every save, so a model update would be
+        // overwritten before it lands.
+        Payslip::whereKey($taxed->id)->update(['withholding_tax' => 5000]);
+        $this->payslipFor('November', $year);   // no tax deducted
+
+        $options = Livewire::test(FbrTaxFile::class)
+            ->set('data.fiscal_year_id', $year->id)
+            ->instance()
+            ->monthOptions();
+
+        $this->assertStringContainsString('1 with tax', $options['October']);
+        $this->assertStringNotContainsString('with tax', $options['November']);
+    }
+
+    public function test_the_fbr_page_offers_a_tax_month_even_with_no_payslips_at_all(): void
+    {
+        $component = Livewire::test(FbrTaxFile::class);
+
+        $this->assertCount(12, $component->instance()->monthOptions());
+        $component->assertSet('data.month', now()->format('F'));
+        $component->assertSuccessful();
     }
 
     public function test_the_default_month_is_the_current_one(): void
