@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Employees\Tables;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Models\Employee;
 use App\Support\EmployeeAccess;
+use App\Support\LandlordUserColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -12,6 +13,7 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class EmployeesTable
@@ -30,20 +32,36 @@ class EmployeesTable
                     ->label('Employee ID')
                     ->searchable(),
 
+                // Name and email live on the landlord `users` table while
+                // employees live in the tenant database, so these cannot use
+                // Filament's relationship search/sort — see LandlordUserColumn.
                 TextColumn::make('user.name')
                     ->label('Employee Name')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => LandlordUserColumn::sort($query, $direction, 'name'))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['name'])),
 
                 TextColumn::make('user.email')
                     ->label('Company Email')
-                    ->searchable(),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['email'])),
 
                 TextColumn::make('personal_email')
                     ->label('Personal Email')
                     ->placeholder('—')
                     ->searchable()
                     ->toggleable(),
+
+                TextColumn::make('date_of_birth')
+                    ->label('Date of Birth')
+                    ->date('d-m-Y')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('secondary_phone')
+                    ->label('Secondary Phone')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('is_active')
                     ->label('Status')

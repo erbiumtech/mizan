@@ -5,13 +5,13 @@ namespace App\Filament\Resources\Employees\Pages;
 use App\Filament\Resources\Employees\EmployeeResource;
 use App\Filament\Resources\Employees\Schemas\EmployeeInfolist;
 use App\Models\Employee;
+use App\Support\Pdf\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
-use App\Support\Pdf\Pdf;
 
 class ViewEmployee extends ViewRecord
 {

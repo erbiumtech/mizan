@@ -22,6 +22,13 @@ class EmployeeInfolist
                     TextEntry::make('personal_email')->label('Personal Email')->placeholder('—'),
                     TextEntry::make('gender'),
                     TextEntry::make('nic')->label('NIC'),
+                    TextEntry::make('date_of_birth')
+                        ->label('Date of Birth')
+                        ->date('d-m-Y')
+                        ->placeholder('—')
+                        ->helperText(fn (Employee $record): ?string => $record->date_of_birth
+                            ? $record->date_of_birth->age.' years old'
+                            : null),
                     TextEntry::make('date_of_joining')->date(),
                     TextEntry::make('phone'),
                     TextEntry::make('secondary_phone')->label('Secondary Phone')->placeholder('—'),

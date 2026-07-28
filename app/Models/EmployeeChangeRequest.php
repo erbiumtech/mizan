@@ -23,9 +23,16 @@ class EmployeeChangeRequest extends Model
     public const TARGET_SETTING = 'employee_setting';
 
     /** Employee-editable attributes; user_* keys write to the linked user. */
+    /**
+     * Fields an employee may request a change to.
+     *
+     * Anything omitted here is silently dropped from a self-service edit — and
+     * if it is the only change, no request is created at all. Adding a personal
+     * detail to the employee form means adding it here too.
+     */
     public const ALLOWED_FIELDS = [
         'user_name', 'user_email', 'personal_email', 'nic', 'nic_front', 'nic_back',
-        'date_of_joining', 'phone', 'gender',
+        'date_of_joining', 'date_of_birth', 'phone', 'secondary_phone', 'gender',
         'bank_id', 'bank_account_no', 'iban_no', 'address_line_1', 'address_line_2',
     ];
 

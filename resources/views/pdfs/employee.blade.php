@@ -17,6 +17,7 @@
         'Personal Email' => $employee->personal_email,
         'Gender' => $employee->gender,
         'NIC' => $employee->nic,
+        'Date of Birth' => optional($employee->date_of_birth)->format('d-m-Y'),
         'Date of Joining' => optional($employee->date_of_joining)->format('d-m-Y'),
         'Phone' => $employee->phone,
         'Secondary Phone' => $employee->secondary_phone,
