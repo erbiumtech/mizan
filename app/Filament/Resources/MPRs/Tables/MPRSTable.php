@@ -6,6 +6,7 @@ use App\Models\MPR;
 use App\Models\User;
 use App\Services\MprPdfService;
 use App\Support\EmployeeAccess;
+use App\Support\LandlordUserColumn;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -15,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
 class MPRSTable
@@ -27,10 +29,12 @@ class MPRSTable
                     ->label('ID')
                     ->sortable(),
 
+                // `users` is a landlord table and MPRs are per-tenant, so the
+                // relationship search/sort cannot be used — see LandlordUserColumn.
                 TextColumn::make('user.name')
                     ->label('User')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => LandlordUserColumn::sort($query, $direction, 'name'))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['name'])),
 
                 TextColumn::make('mpr_date')
                     ->label('Date')

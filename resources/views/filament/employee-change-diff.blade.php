@@ -9,6 +9,11 @@
         'personal_email' => 'Personal Email',
         'nic_front' => 'NIC (Front)',
         'nic_back' => 'NIC (Back)',
+        'nic' => 'NIC',
+        'date_of_birth' => 'Date of Birth',
+        'date_of_joining' => 'Date of Joining',
+        'secondary_phone' => 'Secondary Phone',
+        'iban_no' => 'IBAN',
     ];
     $requested = (array) ($record->requested_changes ?? []);
     $original = (array) ($record->original_values ?? []);

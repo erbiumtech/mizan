@@ -122,6 +122,15 @@ class EmployeeForm
                     })
                     ->visible(fn (): bool => auth()->user()?->hasAnyRole(['Administrator', 'Manager', 'CEO']) ?? false),
 
+                DatePicker::make('date_of_birth')
+                    ->label('Date of Birth')
+                    ->native(false)
+                    ->displayFormat('d-m-Y')
+                    // A birth date in the future or beyond a working lifetime is
+                    // a typo, not a person.
+                    ->maxDate(now()->subYears(14))
+                    ->minDate(now()->subYears(100)),
+
                 DatePicker::make('date_of_joining')
                     ->label('Date of Joining'),
 

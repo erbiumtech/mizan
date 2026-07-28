@@ -6,7 +6,9 @@ use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Filament\Resources\Employees\Pages\ListEmployees;
+use App\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Filament\Resources\Employees\RelationManagers\ChangeRequestsRelationManager;
+use App\Filament\Resources\Employees\RelationManagers\ProjectsRelationManager;
 use App\Filament\Resources\Employees\Schemas\EmployeeForm;
 use App\Filament\Resources\Employees\Tables\EmployeesTable;
 use App\Models\Employee;
@@ -65,7 +67,7 @@ class EmployeeResource extends Resource
     {
         return [
             ChangeRequestsRelationManager::class,
-            \App\Filament\Resources\Employees\RelationManagers\ProjectsRelationManager::class,
+            ProjectsRelationManager::class,
         ];
     }
 
@@ -74,7 +76,7 @@ class EmployeeResource extends Resource
         return [
             'index' => ListEmployees::route('/'),
             'create' => CreateEmployee::route('/create'),
-            'view' => \App\Filament\Resources\Employees\Pages\ViewEmployee::route('/{record}'),
+            'view' => ViewEmployee::route('/{record}'),
             'edit' => EditEmployee::route('/{record}/edit'),
         ];
     }
