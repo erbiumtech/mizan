@@ -33,13 +33,21 @@ class CompanyProvisioner
         $this->assertConnectionCanMigrate($connection);
 
         $slug = $slug ?: $this->uniqueSlug($name);
+        $database = $this->databaseNameFor($slug);
+
+        // Checked before the Company row is written, so a refusal here leaves
+        // nothing behind.
+        $this->assertDatabaseIsUsable($database, $connection);
 
         $company = Company::create([
             'name' => $name,
             'slug' => $slug,
-            'database' => $this->databaseNameFor($slug),
+            'database' => $database,
             'status' => 1,
         ]);
+
+        // Only tear down a database this call brought into existence.
+        $createdDatabase = ! $this->databaseExists($database, $connection);
 
         $this->createDatabase($company, $connection);
 
@@ -67,11 +75,100 @@ class CompanyProvisioner
             if ($creator) {
                 $this->attachCreator($company, $creator);
             }
+        } catch (\Throwable $e) {
+            // Provisioning is several non-transactional steps (MySQL cannot roll
+            // back DDL), so a failure half-way used to leave an orphan Company
+            // row pointing at a half-migrated database. The next attempt then
+            // adopted that database and died on whichever table the previous run
+            // had already created. Undo our own work instead.
+            Company::forgetCurrent();
+            $this->rollBack($company, $connection, $createdDatabase);
+
+            throw $e;
         } finally {
             Company::forgetCurrent();
         }
 
         return $company;
+    }
+
+    /**
+     * Discard a partially provisioned company: the tenant database (only if
+     * this run created it) and the landlord row.
+     *
+     * Best-effort — a failure here must not mask the error that caused it.
+     */
+    protected function rollBack(Company $company, string $connection, bool $dropDatabase): void
+    {
+        try {
+            DB::purge($connection);
+
+            if ($dropDatabase) {
+                if (config("database.connections.{$connection}.driver") === 'sqlite') {
+                    File::delete($company->database);
+                } else {
+                    DB::connection(config('database.default'))
+                        ->statement("DROP DATABASE IF EXISTS `{$company->database}`");
+                }
+            }
+
+            $company->users()->detach();
+            $company->delete();
+        } catch (\Throwable) {
+            // Swallowed on purpose: the caller is about to see the real failure.
+        }
+    }
+
+    /**
+     * Refuse to provision on top of a tenant database that already has tables.
+     *
+     * `CREATE DATABASE IF NOT EXISTS` happily adopts an existing schema, so
+     * without this a leftover database (from a failed run, or from rebuilding
+     * the landlord with `migrate:fresh` while the tenant schemas survived) gets
+     * reused. Its stale `migrations` table then makes `migrate` skip most of the
+     * work and fail on the first table an earlier attempt had created.
+     */
+    protected function assertDatabaseIsUsable(string $database, string $connection): void
+    {
+        if (! $this->databaseExists($database, $connection) || $this->databaseIsEmpty($database, $connection)) {
+            return;
+        }
+
+        $drop = config("database.connections.{$connection}.driver") === 'sqlite'
+            ? "delete the file at {$database}"
+            : "run: DROP DATABASE `{$database}`;";
+
+        throw new RuntimeException(
+            "The tenant database [{$database}] already exists and contains tables, so it is not safe "
+            ."to provision into. If it is left over from a failed attempt, {$drop} and try again. "
+            .'If it holds real data, provision under a different slug instead.'
+        );
+    }
+
+    protected function databaseExists(string $database, string $connection): bool
+    {
+        if (config("database.connections.{$connection}.driver") === 'sqlite') {
+            return File::exists($database);
+        }
+
+        return DB::connection(config('database.default'))->selectOne(
+            'select 1 as found from information_schema.schemata where schema_name = ?',
+            [$database]
+        ) !== null;
+    }
+
+    protected function databaseIsEmpty(string $database, string $connection): bool
+    {
+        if (config("database.connections.{$connection}.driver") === 'sqlite') {
+            return ! File::exists($database) || File::size($database) === 0;
+        }
+
+        $count = DB::connection(config('database.default'))->selectOne(
+            'select count(*) as tables from information_schema.tables where table_schema = ?',
+            [$database]
+        );
+
+        return (int) ($count->tables ?? 0) === 0;
     }
 
     /**
