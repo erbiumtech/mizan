@@ -17,7 +17,10 @@ return new class extends Migration
             $table->unsignedInteger('latency_ms')->nullable();
             $table->string('error')->nullable();
 
-            $table->index(['project_environment_id', 'checked_at']);
+            // Named explicitly: the conventional name Laravel would generate
+            // ("project_environment_checks_project_environment_id_checked_at_index")
+            // is 66 characters, over MySQL's 64-character identifier limit.
+            $table->index(['project_environment_id', 'checked_at'], 'proj_env_checks_env_checked_at_idx');
         });
     }
 
