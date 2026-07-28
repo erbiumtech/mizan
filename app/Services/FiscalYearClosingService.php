@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Account;
 use App\Models\FiscalYear;
 use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\User;
 use InvalidArgumentException;
 
@@ -20,7 +22,10 @@ use InvalidArgumentException;
  */
 class FiscalYearClosingService
 {
-    public function __construct(private FinancialReportService $reports) {}
+    public function __construct(
+        private FinancialReportService $reports,
+        private JournalEntryService $journalEntries,
+    ) {}
 
     /**
      * Reasons this year cannot be closed, in the order worth fixing them.
@@ -93,6 +98,10 @@ class FiscalYearClosingService
             );
         }
 
+        // Before the freeze, not after: the closing entry is dated inside the
+        // period, and posting into a closed year is refused.
+        $closingEntry = $this->postClosingEntry($year, $by);
+
         $year->forceFill([
             'closed_at' => now(),
             'closed_by' => $by->getKey(),
@@ -101,10 +110,139 @@ class FiscalYearClosingService
         activity('FiscalYear')
             ->performedOn($year)
             ->event('closed')
-            ->withProperties(['name' => $year->name])
+            ->withProperties([
+                'name' => $year->name,
+                'closing_entry' => $closingEntry?->entry_number,
+            ])
             ->log("Fiscal year {$year->name} closed");
 
         return $year->refresh();
+    }
+
+    /**
+     * Roll the year's profit or loss into Retained Earnings.
+     *
+     * Income and expense accounts measure a single period, so closing zeroes
+     * every one of them and books the net to Retained Earnings, which carries
+     * forward. Returns null when there was no activity to roll.
+     */
+    protected function postClosingEntry(FiscalYear $year, User $by): ?JournalEntry
+    {
+        if ($existing = $this->closingEntry($year)) {
+            return $existing;
+        }
+
+        $retained = Account::where('code', Account::RETAINED_EARNINGS_CODE)->first();
+
+        if (! $retained) {
+            throw new InvalidArgumentException(
+                'Account '.Account::RETAINED_EARNINGS_CODE.' (Retained Earnings) is missing, '
+                .'so the year\'s profit has nowhere to roll forward to.'
+            );
+        }
+
+        $lines = [];
+        $net = 0.0;
+
+        foreach (Account::whereIn('type', ['income', 'expense'])->orderBy('code')->get() as $account) {
+            $movement = round($this->periodMovement($account, $year), 2);
+
+            if (abs($movement) < 0.005) {
+                continue;
+            }
+
+            // Zeroing an account means posting its balance on the opposite side.
+            // `$movement` is signed on the account's normal side, so a negative
+            // one (a contra movement) flips back again.
+            $normalIsDebit = $account->normal_balance === 'debit';
+            $line = ['account_id' => $account->id, 'description' => 'Close '.$account->code.' '.$account->name];
+
+            if (($normalIsDebit && $movement > 0) || (! $normalIsDebit && $movement < 0)) {
+                $lines[] = $line + ['credit_amount' => abs($movement)];
+            } else {
+                $lines[] = $line + ['debit_amount' => abs($movement)];
+            }
+
+            // Income adds to profit, expense subtracts.
+            $net += $account->type === 'income' ? $movement : -$movement;
+        }
+
+        if ($lines === []) {
+            return null;
+        }
+
+        $net = round($net, 2);
+
+        if (abs($net) >= 0.005) {
+            // Profit is a credit to equity; a loss is a debit.
+            $lines[] = [
+                'account_id' => $retained->id,
+                'description' => $net > 0 ? 'Net profit for '.$year->name : 'Net loss for '.$year->name,
+            ] + ($net > 0 ? ['credit_amount' => $net] : ['debit_amount' => -$net]);
+        }
+
+        $entry = $this->journalEntries->create([
+            'entry_date' => $year->end_date->toDateString(),
+            'entry_type' => 'closing',
+            'memo' => "Year-end close {$year->name}: profit and loss rolled to Retained Earnings",
+            'fiscal_year_id' => $year->getKey(),
+            'source_type' => FiscalYear::class,
+            'source_id' => $year->getKey(),
+        ], $lines);
+
+        $entry->update([
+            'status' => JournalEntry::STATUS_APPROVED,
+            'approved_by' => $by->getKey(),
+            'approved_at' => now(),
+        ]);
+
+        return $this->journalEntries->post($entry);
+    }
+
+    /**
+     * The closing entry currently in force for this year, if any.
+     *
+     * A reversed one does not count. Reversal leaves the original posted (that
+     * is the point — the audit trail keeps both), so without this filter a
+     * close-reopen-close cycle would find the dead entry, skip the roll-forward
+     * and leave the reopened profit sitting in income forever.
+     */
+    public function closingEntry(FiscalYear $year): ?JournalEntry
+    {
+        return JournalEntry::query()
+            ->where('entry_type', 'closing')
+            ->where('source_type', FiscalYear::class)
+            ->where('source_id', $year->getKey())
+            ->where('is_posted', true)
+            ->whereNotExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('journal_entries as reversal')
+                    ->whereColumn('reversal.reference', 'journal_entries.entry_number')
+                    ->where('reversal.entry_type', 'reversing')
+                    ->where('reversal.is_posted', true);
+            })
+            ->latest('id')
+            ->first();
+    }
+
+    /**
+     * Net movement on an account within the year, signed on its normal side.
+     * Only posted entries count.
+     */
+    protected function periodMovement(Account $account, FiscalYear $year): float
+    {
+        $query = JournalEntryLine::query()
+            ->where('account_id', $account->id)
+            ->whereHas('journalEntry', fn ($q) => $q->where('is_posted', true)
+                ->whereDate('entry_date', '>=', $year->start_date->toDateString())
+                ->whereDate('entry_date', '<=', $year->end_date->toDateString()));
+
+        $debits = (float) (clone $query)->sum('debit_amount');
+        $credits = (float) $query->sum('credit_amount');
+
+        return $account->normal_balance === 'debit'
+            ? $debits - $credits
+            : $credits - $debits;
     }
 
     public function reopen(FiscalYear $year, User $by): FiscalYear
@@ -113,12 +251,26 @@ class FiscalYearClosingService
             throw new InvalidArgumentException('The year is not closed.');
         }
 
+        // Unfreeze first, so the reversal is allowed to post into the period.
         $year->forceFill(['closed_at' => null, 'closed_by' => null])->save();
+
+        // Undo the roll-forward too. Leaving it in place would keep income and
+        // expenses at zero while the year is open again, so the reopened period
+        // would report no activity at all.
+        $reversal = null;
+
+        if ($closingEntry = $this->closingEntry($year)) {
+            $reversal = $this->journalEntries->reverse($closingEntry, $by);
+        }
 
         activity('FiscalYear')
             ->performedOn($year)
             ->event('reopened')
-            ->withProperties(['name' => $year->name, 'by' => $by->getKey()])
+            ->withProperties([
+                'name' => $year->name,
+                'by' => $by->getKey(),
+                'reversed_closing_entry' => $reversal?->entry_number,
+            ])
             ->log("Fiscal year {$year->name} reopened");
 
         return $year->refresh();
