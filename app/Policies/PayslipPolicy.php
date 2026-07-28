@@ -15,22 +15,22 @@ class PayslipPolicy
             && app(EmployeeAccess::class)->accessibleEmployeeIds($user)->contains($payslip->employee_id);
     }
 
-   public function viewAny(User $user): bool
-{
-    if (!$user->hasPermissionTo('PayslipView')) {
-        return false;
-    }
+    public function viewAny(User $user): bool
+    {
+        if (! $user->hasPermissionTo('PayslipView')) {
+            return false;
+        }
 
-    if ($user->hasRole('Administrator')) {
+        if ($user->hasRole('Administrator')) {
+            return true;
+        }
+
         return true;
     }
 
-    return true;
-}
-
     public function view(User $user, Payslip $payslip): bool
     {
-        if (!$user->hasPermissionTo('PayslipView')) {
+        if (! $user->hasPermissionTo('PayslipView')) {
             return false;
         }
 

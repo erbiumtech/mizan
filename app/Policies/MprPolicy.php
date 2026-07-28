@@ -14,7 +14,7 @@ class MprPolicy
 
     public function view(User $user, Mpr $mpr): bool
     {
-        if (!$user->hasPermissionTo('MPRView')) {
+        if (! $user->hasPermissionTo('MPRView')) {
             return false;
         }
 

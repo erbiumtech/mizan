@@ -31,7 +31,6 @@ class EmployeePolicy
         return $this->canAccess($user, $employee);
     }
 
-
     public function create(User $user)
     {
         return false;
