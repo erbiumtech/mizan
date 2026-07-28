@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class EmployeeSetting extends Model
 {
@@ -70,8 +71,85 @@ class EmployeeSetting extends Model
         });
 
         static::updating(function ($setting) use ($setDefaultEndDate) {
+            // An edit that has been turned into a change request must not also
+            // write a derived end date.
+            if ($setting->routedToApproval) {
+                return false;
+            }
+
             $setDefaultEndDate($setting);
         });
+
+        static::saving(function (EmployeeSetting $setting) {
+            $setting->routeChangesThroughApproval();
+        });
+    }
+
+    /** True once this instance's edit has been parked as a change request. */
+    public bool $routedToApproval = false;
+
+    /** Set while an approved request is being written, to avoid re-routing it. */
+    protected static bool $skipApprovalRouting = false;
+
+    /**
+     * Run a write that must land directly, skipping the self-service
+     * interception below (used when applying an approved change request).
+     */
+    public static function withoutApprovalRouting(callable $callback): mixed
+    {
+        static::$skipApprovalRouting = true;
+
+        try {
+            return $callback();
+        } finally {
+            static::$skipApprovalRouting = false;
+        }
+    }
+
+    /**
+     * Whether $user editing this row is a self-service edit — the employee the
+     * settings belong to, without a role that can approve on their own.
+     *
+     * Mirrors the same rule on {@see Employee}: privileged roles edit directly.
+     */
+    public function isSelfServiceEditFor(?User $user): bool
+    {
+        return $user !== null
+            && $this->exists
+            && $this->employee?->user_id === $user->id
+            && ! $user->hasAnyRole(['Administrator', 'Manager', 'CEO']);
+    }
+
+    /**
+     * An employee editing their own compensation figures raises a pending
+     * EmployeeChangeRequest instead of changing the row; approvers' edits apply
+     * immediately. Fields outside SETTING_FIELDS are dropped, not requested.
+     */
+    protected function routeChangesThroughApproval(): void
+    {
+        if (static::$skipApprovalRouting || ! $this->isSelfServiceEditFor(Auth::user())) {
+            return;
+        }
+
+        $changes = collect($this->getDirty())->only(EmployeeChangeRequest::SETTING_FIELDS);
+
+        if ($changes->isNotEmpty()) {
+            EmployeeChangeRequest::create([
+                'employee_id' => $this->employee_id,
+                'target_type' => EmployeeChangeRequest::TARGET_SETTING,
+                'target_id' => $this->getKey(),
+                'requested_by' => Auth::id(),
+                'requested_changes' => $changes->all(),
+                'original_values' => $changes->keys()
+                    ->mapWithKeys(fn ($key) => [$key => $this->getRawOriginal($key)])
+                    ->all(),
+            ]);
+        }
+
+        // Leave the row untouched until the request is approved. Also discards
+        // any edit to a field an employee may not request.
+        $this->routedToApproval = true;
+        $this->setRawAttributes($this->getRawOriginal());
     }
 
     public static function getActiveSettingForDate($employeeId, $date, $fiscalYearId = null)

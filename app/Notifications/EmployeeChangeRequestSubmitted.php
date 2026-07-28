@@ -12,9 +12,7 @@ class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public EmployeeChangeRequest $changeRequest)
-    {
-    }
+    public function __construct(public EmployeeChangeRequest $changeRequest) {}
 
     public function via(object $notifiable): array
     {
@@ -26,10 +24,14 @@ class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
         $employeeName = $this->changeRequest->employee->user?->name
             ?? $this->changeRequest->employee->employee_id;
 
+        $target = $this->changeRequest->targetsSetting()
+            ? 'their salary settings'
+            : 'their employee profile';
+
         $mail = (new MailMessage)
             ->subject("Change request #{$this->changeRequest->id} from {$employeeName} awaits approval")
             ->greeting("Hello {$notifiable->name},")
-            ->line("{$employeeName} has requested the following changes to their employee profile:");
+            ->line("{$employeeName} has requested the following changes to {$target}:");
 
         foreach ($this->changeRequest->requested_changes as $field => $value) {
             $original = $this->changeRequest->original_values[$field] ?? '—';

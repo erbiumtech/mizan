@@ -104,14 +104,23 @@ class EmployeeSettingSelfViewTest extends AccountingTestCase
         }
     }
 
-    public function test_employee_cannot_create_or_edit_settings(): void
+    /**
+     * Employees may edit their own settings — the edit becomes a pending change
+     * request rather than a direct write, covered by
+     * {@see EmployeeSettingSelfEditApprovalTest}. Creating and deleting stay
+     * closed to them, as do a colleague's settings.
+     */
+    public function test_employee_can_edit_only_their_own_settings_and_cannot_create_or_delete(): void
     {
         $this->actingAsEmployee();
 
         $this->assertFalse(EmployeeSettingResource::canCreate());
 
         $own = EmployeeSetting::where('employee_id', $this->employee->id)->firstOrFail();
-        $this->assertFalse($this->employee->user->can('update', $own));
+        $this->assertTrue($this->employee->user->can('update', $own));
         $this->assertFalse($this->employee->user->can('delete', $own));
+
+        $theirs = EmployeeSetting::where('employee_id', $this->colleague->id)->firstOrFail();
+        $this->assertFalse($this->employee->user->can('update', $theirs));
     }
 }

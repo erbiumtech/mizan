@@ -28,6 +28,13 @@ class EmployeeChangeRequestsTable
                     ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     ->sortable(),
 
+                TextColumn::make('target_type')
+                    ->label('Changes To')
+                    ->badge()
+                    ->color(fn ($record): string => $record->targetsSetting() ? 'warning' : 'gray')
+                    ->formatStateUsing(fn ($state, $record): string => $record->targetLabel())
+                    ->sortable(),
+
                 TextColumn::make('requester.name')
                     ->label('Requested By'),
 
