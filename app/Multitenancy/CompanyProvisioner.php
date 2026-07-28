@@ -134,14 +134,11 @@ class CompanyProvisioner
             return;
         }
 
-        $drop = config("database.connections.{$connection}.driver") === 'sqlite'
-            ? "delete the file at {$database}"
-            : "run: DROP DATABASE `{$database}`;";
-
         throw new RuntimeException(
             "The tenant database [{$database}] already exists and contains tables, so it is not safe "
-            ."to provision into. If it is left over from a failed attempt, {$drop} and try again. "
-            .'If it holds real data, provision under a different slug instead.'
+            .'to provision into. If it is left over from a failed attempt or from rebuilding the landlord, '
+            ."clear it with:\n\n    php artisan tenant:drop {$database}\n\n"
+            .'and try again. If it holds real data, provision under a different slug instead.'
         );
     }
 
