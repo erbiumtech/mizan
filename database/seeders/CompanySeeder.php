@@ -12,18 +12,33 @@ use Illuminate\Database\Seeder;
  *
  * Provisioning goes through CompanyProvisioner, so this also creates and
  * migrates the company's own tenant database and seeds its baseline reference
- * data. Idempotent: an existing company with the same name is left alone.
+ * data. Idempotent: an existing company with the same slug or name is left alone.
+ *
+ * The defaults are a dummy company. On an installation that already has a real
+ * one, set SEED_COMPANY_NAME and SEED_COMPANY_SLUG in `.env` to its actual
+ * values — otherwise re-seeding matches nothing and provisions a *second*,
+ * dummy company with its own tenant database alongside the real one.
  */
 class CompanySeeder extends Seeder
 {
-    public const string COMPANY_NAME = 'ERBIUMTECH (SMC-PRIVATE) LIMITED';
+    public const string COMPANY_NAME = 'Demo Company (Private) Limited';
 
     /** Stable slug so re-seeding reuses the same tenant database file/schema. */
-    public const string COMPANY_SLUG = 'erbiumtech-smc-private-limited';
+    public const string COMPANY_SLUG = 'demo-company';
 
     public function run(): void
     {
         $this->seed();
+    }
+
+    public static function companyName(): string
+    {
+        return (string) (env('SEED_COMPANY_NAME') ?: self::COMPANY_NAME);
+    }
+
+    public static function companySlug(): string
+    {
+        return (string) (env('SEED_COMPANY_SLUG') ?: self::COMPANY_SLUG);
     }
 
     /**
@@ -32,8 +47,11 @@ class CompanySeeder extends Seeder
      */
     public function seed(?User $creator = null): Company
     {
-        $existing = Company::where('slug', self::COMPANY_SLUG)
-            ->orWhere('name', self::COMPANY_NAME)
+        $name = self::companyName();
+        $slug = self::companySlug();
+
+        $existing = Company::where('slug', $slug)
+            ->orWhere('name', $name)
             ->first();
 
         if ($existing) {
@@ -42,11 +60,11 @@ class CompanySeeder extends Seeder
             return $existing;
         }
 
-        $creator ??= User::where('email', DatabaseSeeder::SUPER_ADMIN_EMAIL)->first();
+        $creator ??= User::where('email', DatabaseSeeder::superAdminEmail())->first();
 
         $company = app(CompanyProvisioner::class)->provision(
-            name: self::COMPANY_NAME,
-            slug: self::COMPANY_SLUG,
+            name: $name,
+            slug: $slug,
             creator: $creator,
         );
 

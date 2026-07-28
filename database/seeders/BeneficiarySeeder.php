@@ -28,7 +28,7 @@ class BeneficiarySeeder extends Seeder
 
         $beneficiaries = [
             [
-                'name' => '[scrubbed]',
+                'name' => 'Mr. Landlord (Office Premises)',
                 'bank_id' => $bank('MCB'),
                 'iban' => 'PK36MUCB0001234567890123',
                 'id_type' => 'CNIC',
@@ -40,7 +40,7 @@ class BeneficiarySeeder extends Seeder
                 'payment_type' => 'IBFT',
             ],
             [
-                'name' => '[scrubbed]',
+                'name' => 'Evergreen Catering Services',
                 'bank_id' => $bank('HBL'),
                 'iban' => 'PK40HABB0009876543210987',
                 'id_type' => 'NTN',
@@ -52,7 +52,7 @@ class BeneficiarySeeder extends Seeder
                 'payment_type' => 'IBFT',
             ],
             [
-                'name' => '[scrubbed]',
+                'name' => 'Skyline Internet (Pvt) Ltd',
                 'bank_id' => $bank('UBL'),
                 'iban' => 'PK62UNIL0112233445566778',
                 'id_type' => 'NTN',
@@ -77,7 +77,7 @@ class BeneficiarySeeder extends Seeder
                 'is_petty_cash_custodian' => true,
             ],
             [
-                'name' => '[scrubbed]',
+                'name' => 'Crescent Fuel Station',
                 'bank_id' => $bank('NBP'),
                 'account_no' => '4455667788990011',
                 'id_type' => 'NTN',

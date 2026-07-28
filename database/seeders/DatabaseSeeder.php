@@ -19,8 +19,23 @@ use Illuminate\Support\Facades\Schema;
  */
 class DatabaseSeeder extends Seeder
 {
-    /** The seeded global super admin. */
-    public const string SUPER_ADMIN_EMAIL = 'admin@erbium.tech';
+    /**
+     * The seeded global super admin — a dummy address by default.
+     *
+     * On an installation that already has a real super admin, set
+     * SEED_ADMIN_EMAIL in `.env` to its address. Otherwise seeding creates a
+     * *second* super-admin account (with the well-known password below) instead
+     * of matching the existing one.
+     */
+    public const string SUPER_ADMIN_EMAIL = 'admin@example.test';
+
+    /** Password given to the seeded admin; dummy data, so intentionally weak. */
+    public const string SUPER_ADMIN_PASSWORD = 'password';
+
+    public static function superAdminEmail(): string
+    {
+        return (string) (env('SEED_ADMIN_EMAIL') ?: self::SUPER_ADMIN_EMAIL);
+    }
 
     /**
      * Domain seeders that write to the current tenant's database.
@@ -55,10 +70,10 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionSeeder::class);
 
         $admin = User::firstOrCreate(
-            ['email' => self::SUPER_ADMIN_EMAIL],
+            ['email' => self::superAdminEmail()],
             [
                 'name' => 'Administrator',
-                'password' => Hash::make('password'),
+                'password' => Hash::make(self::SUPER_ADMIN_PASSWORD),
                 'status' => 1,
             ]
         );

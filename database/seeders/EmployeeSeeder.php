@@ -12,25 +12,37 @@ class EmployeeSeeder extends Seeder
 {
     public function run()
     {
+        // Dummy staff. The real roster lives in
+        // Database\Seeders\Production\RealEmployeeSeeder and is not part of
+        // the default `db:seed` run.
+        //
         // 'role'    — the company role assigned to the user.
         // 'manager' — email of the employee this person reports to (manager_id).
+        //
+        // Addresses use the reserved `example.test` domain, so a stray
+        // notification can never reach a real inbox.
         $employees = [
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => 'Umer Farooq', 'email' => 'ufarooq@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => 'Nadeem Yahya', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Employee
-            ['name' => 'Arooj Fatima', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1], // Employee
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1, 'manager' => '[scrubbed]'], // Employee — reports to [scrubbed]
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1, 'manager' => '[scrubbed]'], // Employee — reports to [scrubbed]
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1, 'manager' => '[scrubbed]'], // Employee — reports to [scrubbed]
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1, 'manager' => '[scrubbed]'], // Employee — reports to [scrubbed]
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1, 'manager' => 'ufarooq@erbium.ch'], // Employee — reports to Umer Farooq
-            ['name' => '[scrubbed]', 'email' => '[scrubbed]', 'role' => 'Employee', 'status' => 1, 'manager' => '[scrubbed]'], // Employee — reports to [scrubbed]
+            // Managers — the first eight have reports pointed at them below.
+            ['name' => 'Ayesha Karim', 'email' => 'ayesha.karim@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Bilal Nawaz', 'email' => 'bilal.nawaz@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Chandni Rao', 'email' => 'chandni.rao@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Danish Iqbal', 'email' => 'danish.iqbal@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Erum Shafiq', 'email' => 'erum.shafiq@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Faraz Siddiqui', 'email' => 'faraz.siddiqui@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Ghazala Munir', 'email' => 'ghazala.munir@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Hassan Raza', 'email' => 'hassan.raza@example.test', 'role' => 'Employee', 'status' => 1],
+
+            // Individual contributors without reports.
+            ['name' => 'Imran Baig', 'email' => 'imran.baig@example.test', 'role' => 'Employee', 'status' => 1],
+            ['name' => 'Javeria Aslam', 'email' => 'javeria.aslam@example.test', 'role' => 'Employee', 'status' => 1],
+
+            // Reporting lines, so the hierarchy scoping has something to walk.
+            ['name' => 'Kamran Sethi', 'email' => 'kamran.sethi@example.test', 'role' => 'Employee', 'status' => 1, 'manager' => 'ghazala.munir@example.test'],
+            ['name' => 'Laiba Qureshi', 'email' => 'laiba.qureshi@example.test', 'role' => 'Employee', 'status' => 1, 'manager' => 'faraz.siddiqui@example.test'],
+            ['name' => 'Moiz Habib', 'email' => 'moiz.habib@example.test', 'role' => 'Employee', 'status' => 1, 'manager' => 'danish.iqbal@example.test'],
+            ['name' => 'Nimra Saleem', 'email' => 'nimra.saleem@example.test', 'role' => 'Employee', 'status' => 1, 'manager' => 'bilal.nawaz@example.test'],
+            ['name' => 'Owais Tariq', 'email' => 'owais.tariq@example.test', 'role' => 'Employee', 'status' => 1, 'manager' => 'hassan.raza@example.test'],
+            ['name' => 'Parisa Yousuf', 'email' => 'parisa.yousuf@example.test', 'role' => 'Employee', 'status' => 1, 'manager' => 'chandni.rao@example.test'],
         ];
 
         /** @var array<string, Employee> $created keyed by email, to resolve managers */

@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\SalarySlab;
 use App\Models\FiscalYear;
+use App\Models\SalarySlab;
+use Illuminate\Database\Seeder;
 
 class SalarySlabSeeder extends Seeder
 {
@@ -31,7 +31,6 @@ class SalarySlabSeeder extends Seeder
                 SalarySlab::create($slab + ['fiscal_year_id' => $fy2025->id]);
             }
         }
-
 
         // ==========================================
         // 2. Fiscal Year 2026-2027 Slabs
