@@ -80,6 +80,9 @@ class RoleSeeder extends Seeder
 
         // CEO: same approval powers as Manager + account deletion.
         $ceoRole = Role::firstOrCreate(['name' => 'CEO', 'company_id' => $teamId]);
+        // Deliberately no JournalEntryDelete: deleting a ledger transaction —
+        // including from the account register — is Administrator-only. The CEO
+        // corrects the books by reversing, which leaves both rows on the ledger.
         $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete', 'ProjectDelete']));
     }
 }

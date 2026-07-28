@@ -10,6 +10,16 @@ class Account extends Model
 {
     use Auditable;
 
+    /**
+     * Counter-account for opening balances (see ChartOfAccountsSeeder).
+     *
+     * Every opening balance credits this account, so once each account's
+     * opening figure has been entered it must net to zero. A non-zero balance
+     * means the book was only half brought onto the system — the trial balance
+     * surfaces it for exactly that reason.
+     */
+    public const OPENING_BALANCE_EQUITY_CODE = '3300';
+
     protected $fillable = [
         'code', 'name', 'type', 'normal_balance', 'parent_id',
         'is_active', 'allow_manual_entry', 'description', 'balance',

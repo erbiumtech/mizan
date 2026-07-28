@@ -108,8 +108,8 @@ than a separate bookkeeping exercise.
 | **Employee** | Own payslips, MPRs and comments; read/edit projects |
 | **Accountant** | Record entries, manage accounts/banks/payments/petty cash — **cannot** approve or post |
 | **Manager** | Accountant + approve/reject/post/reverse, depreciation, petty cash replenishment |
-| **CEO** | Manager + deletions |
-| **Administrator** | Everything |
+| **CEO** | Manager + deletions (accounts, assets, contacts…) — but **not** journal entries |
+| **Administrator** | Everything, including deleting a posted ledger transaction |
 
 ## Stack
 

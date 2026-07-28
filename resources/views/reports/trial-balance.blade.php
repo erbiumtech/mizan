@@ -11,7 +11,25 @@
         @else
             <span class="badge badge-bad">Out of balance</span>
         @endif
+
+        {{-- A book can balance and still be half-migrated: unbalanced opening
+             balances pile up in Opening Balance Equity rather than showing as an
+             imbalance, so it gets its own badge. --}}
+        @if(($obe = $report['opening_balance_equity'] ?? null) && ! $obe['is_clear'])
+            &middot; <span class="badge badge-bad">Opening Balance Equity {{ number_format($obe['balance'], 2) }}</span>
+        @elseif($obe && $obe['in_use'])
+            &middot; <span class="badge badge-ok">Opening balances clear</span>
+        @endif
     </p>
+
+    @if(($report['opening_balance_equity'] ?? null) && ! $report['opening_balance_equity']['is_clear'])
+        <p class="meta" style="color:#742a2a">
+            Account {{ $report['opening_balance_equity']['code'] }} (Opening Balance Equity) still holds
+            {{ number_format($report['opening_balance_equity']['balance'], 2) }}. Every opening balance credits
+            this account, so a leftover means some accounts' opening figures have not been entered yet — the
+            totals below can balance and still be incomplete.
+        </p>
+    @endif
 
     @unless($pdf)
         <form class="toolbar" method="GET">

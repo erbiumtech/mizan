@@ -107,8 +107,8 @@
                                         <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-white/10">{{ $row['voucher_no'] }}</span>
                                     </td>
                                     <td class="px-3 py-2">{{ $row['details'] }}</td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex items-center justify-center gap-1">
+                                    <td class="whitespace-nowrap px-3 py-2 align-middle">
+                                        <div class="inline-flex items-center justify-center gap-0.5">
                                             @if(filled($row['receipt_path']))
                                                 {{ ($this->viewReceiptAction)(['voucher' => $row['id']]) }}
                                             @endif
