@@ -43,13 +43,13 @@
                                 <td class="py-1.5 pr-4">{{ trim((string) $employee?->address_line_1) ?: $city }}</td>
                                 <td class="py-1.5 pr-4">{{ \App\Services\EmployeeWithholdingTaxExport::TAXPAYER_STATUS }}</td>
                                 <td class="py-1.5 pr-4">{{ $businessName }}</td>
-                                <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p->total_earnings, 2) }}</td>
+                                <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p->total_earnings*0.9, 2) }}</td>
                                 <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p->withholding_tax, 2) }}</td>
                             </tr>
                         @endforeach
                         <tr class="border-t-2 border-gray-300 dark:border-white/20 font-bold">
                             <td colspan="7" class="py-2 pr-4">Total ({{ $rows->count() }} employees)</td>
-                            <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($rows->sum('total_earnings'), 2) }}</td>
+                            <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($rows->sum('total_earnings')*0.9, 2) }}</td>
                             <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($rows->sum('withholding_tax'), 2) }}</td>
                         </tr>
                     </tbody>
