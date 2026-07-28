@@ -7,9 +7,7 @@ use App\Models\JournalEntryLine;
 
 class FinancialReportService
 {
-    public function __construct(private GeneralLedgerService $ledger)
-    {
-    }
+    public function __construct(private GeneralLedgerService $ledger) {}
 
     /**
      * Trial balance as of a date, grouped by account type with grand totals.
@@ -36,6 +34,42 @@ class FinancialReportService
             'total_debits' => $report['total_debits'],
             'total_credits' => $report['total_credits'],
             'balanced' => $report['balanced'],
+            'opening_balance_equity' => $this->openingBalanceEquity($report['rows']),
+        ];
+    }
+
+    /**
+     * State of the Opening Balance Equity account.
+     *
+     * A trial balance can be perfectly in balance and still be wrong in a
+     * specific, common way: only some accounts' opening balances were entered.
+     * Because every opening entry credits this one account, the leftover shows
+     * up here rather than as an imbalance. Reporting it separately makes a
+     * half-migrated book visible.
+     *
+     * @param  array<int, array<string, mixed>>  $rows  trial balance rows
+     * @return array{code: string, balance: float, is_clear: bool, in_use: bool}
+     */
+    protected function openingBalanceEquity(array $rows): array
+    {
+        $code = Account::OPENING_BALANCE_EQUITY_CODE;
+
+        $row = collect($rows)->firstWhere('code', $code);
+
+        // Absent from the rows means the account has no postings at all — no
+        // opening balances have been entered, which is a clear state, not a
+        // problem to flag.
+        $balance = $row
+            ? round((float) $row['credit'] - (float) $row['debit'], 2)
+            : 0.0;
+
+        return [
+            'code' => $code,
+            // Signed on the account's normal (credit) side: positive means the
+            // credits from opening entries have not been fully offset.
+            'balance' => $balance,
+            'is_clear' => abs($balance) < 0.005,
+            'in_use' => $row !== null,
         ];
     }
 

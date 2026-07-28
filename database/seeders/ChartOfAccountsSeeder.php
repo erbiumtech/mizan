@@ -32,6 +32,11 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '3100', 'name' => 'Owner Equity', 'type' => 'equity'],
                 ['code' => '3200', 'name' => 'Retained Earnings', 'type' => 'equity'],
+                // The counter-account for opening balances, so bringing a book
+                // onto the system is distinguishable from genuine owner
+                // contributions. Once every account's opening balance is
+                // entered, this should net to zero.
+                ['code' => '3300', 'name' => 'Opening Balance Equity', 'type' => 'equity', 'description' => 'Counter-account for account opening balances; nets to zero once the book is fully opened'],
             ]],
             ['code' => '4000', 'name' => 'Income', 'type' => 'income', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '4100', 'name' => 'Service Revenue', 'type' => 'income'],
