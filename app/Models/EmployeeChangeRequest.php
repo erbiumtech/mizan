@@ -24,9 +24,16 @@ class EmployeeChangeRequest extends Model
 
     /** Employee-editable attributes; user_* keys write to the linked user. */
     public const ALLOWED_FIELDS = [
-        'user_name', 'user_email', 'personal_email', 'nic', 'date_of_joining', 'phone', 'gender',
+        'user_name', 'user_email', 'personal_email', 'nic', 'nic_front', 'nic_back',
+        'date_of_joining', 'phone', 'gender',
         'bank_id', 'bank_account_no', 'iban_no', 'address_line_1', 'address_line_2',
     ];
+
+    /**
+     * Requested values that are file paths on the `public` disk rather than
+     * literals, so the reviewer is shown the image instead of a filename.
+     */
+    public const IMAGE_FIELDS = ['nic_front', 'nic_back'];
 
     /**
      * Employee-requestable settings attributes: the compensation figures only.

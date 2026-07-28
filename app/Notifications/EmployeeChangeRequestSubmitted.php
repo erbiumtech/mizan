@@ -33,9 +33,20 @@ class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
             ->greeting("Hello {$notifiable->name},")
             ->line("{$employeeName} has requested the following changes to {$target}:");
 
+        $labels = ['nic_front' => 'NIC (Front)', 'nic_back' => 'NIC (Back)'];
+
         foreach ($this->changeRequest->requested_changes as $field => $value) {
+            $label = $labels[$field] ?? ucwords(str_replace(['user_', '_'], ['', ' '], $field));
+
+            // Uploads are stored paths; the filename means nothing in an email,
+            // and the file itself is only reachable to a signed-in approver.
+            if (in_array($field, EmployeeChangeRequest::IMAGE_FIELDS, true)) {
+                $mail->line("• {$label}: a new scan was uploaded — open the request to compare it.");
+
+                continue;
+            }
+
             $original = $this->changeRequest->original_values[$field] ?? '—';
-            $label = ucwords(str_replace(['user_', '_'], ['', ' '], $field));
             $mail->line("• {$label}: {$original} → {$value}");
         }
 
