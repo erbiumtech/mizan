@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Account;
+use App\Models\FiscalYear;
 use App\Models\JournalEntry;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class JournalEntryService
                 ->performedOn($entry)
                 ->event('created_with_lines')
                 ->withProperties(['entry_number' => $entry->entry_number, 'lines' => count($lines)])
-                ->log("Journal entry {$entry->entry_number} created with " . count($lines) . ' lines');
+                ->log("Journal entry {$entry->entry_number} created with ".count($lines).' lines');
 
             return $entry;
         });
@@ -115,6 +116,18 @@ class JournalEntryService
             throw new InvalidArgumentException('Journal entry must be balanced before posting.');
         }
 
+        // A closed period is frozen. Checked here rather than at creation so a
+        // draft can still be written and then re-dated, but nothing reaches the
+        // ledger of a year someone has signed off.
+        $period = FiscalYear::containing($entry->entry_date->toDateString());
+
+        if ($period?->isClosed()) {
+            throw new InvalidArgumentException(
+                "Fiscal year {$period->name} is closed; reopen it to post entries dated "
+                .$entry->entry_date->toDateString().'.'
+            );
+        }
+
         DB::transaction(function () use ($entry) {
             foreach ($entry->lines()->with('account')->get() as $line) {
                 $account = Account::lockForUpdate()->find($line->account_id);
@@ -161,7 +174,7 @@ class JournalEntryService
             $reversal = JournalEntry::create([
                 'entry_date' => now()->toDateString(),
                 'reference' => $entry->entry_number,
-                'memo' => "Reversal of {$entry->entry_number}" . ($entry->memo ? " — {$entry->memo}" : ''),
+                'memo' => "Reversal of {$entry->entry_number}".($entry->memo ? " — {$entry->memo}" : ''),
                 'entry_type' => 'reversing',
                 'status' => JournalEntry::STATUS_APPROVED,
                 'approved_by' => $approver?->id ?? $entry->approved_by,
