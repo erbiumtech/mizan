@@ -21,11 +21,54 @@ class TenantSettings
     {
         $overrides = $this->overrides();
 
-        if (array_key_exists($key, $overrides)) {
-            return $overrides[$key];
+        if (! array_key_exists($key, $overrides)) {
+            return config($key, $default);
         }
 
-        return config($key, $default);
+        $override = $overrides[$key];
+        $configured = config($key, $default);
+
+        // A map-shaped setting (payroll account codes, iPayments defaults) is
+        // merged over its config defaults rather than replacing them outright.
+        //
+        // Company Settings saves the whole map in one go, so a partial or blank
+        // save used to erase every key it did not carry — and because those
+        // KeyValue fields are not addable, the keys could not be put back from
+        // the page. Payroll posting then died on "account 'basic_wage' (code )
+        // not found". Merging makes a missing or blank key fall back to config,
+        // so the defaults are always the floor.
+        if (static::isMap($override) && static::isMap($configured)) {
+            return array_replace($configured, static::withoutBlanks($override));
+        }
+
+        return $override;
+    }
+
+    /**
+     * An associative array — not a list, and not a scalar.
+     *
+     * An empty array counts: `array_is_list([])` is true, but a settings map
+     * saved empty is a blank save, and treating it as a list would replace the
+     * defaults with nothing, which is the bug this exists to prevent.
+     */
+    protected static function isMap(mixed $value): bool
+    {
+        return is_array($value) && ($value === [] || ! array_is_list($value));
+    }
+
+    /**
+     * Drops keys whose value is blank, so an empty box in the settings UI reads
+     * as "use the default" instead of overriding it with nothing.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    protected static function withoutBlanks(array $values): array
+    {
+        return array_filter(
+            $values,
+            fn ($value) => ! (is_null($value) || (is_string($value) && trim($value) === '')),
+        );
     }
 
     public function set(string $key, mixed $value): void

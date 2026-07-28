@@ -35,6 +35,14 @@
                                 <td class="py-1.5 pr-4">
                                     @if($p['account'])
                                         {{ $p['account'] }}
+                                        {{-- Which identifier the file will carry: SCB accounts go by
+                                             account number, everyone else by IBAN. Worth showing on a
+                                             file that moves money. --}}
+                                        @if(($p['account_kind'] ?? '') === 'account_no')
+                                            <x-filament::badge color="info" size="xs">A/C</x-filament::badge>
+                                        @elseif(($p['account_kind'] ?? '') === 'iban')
+                                            <x-filament::badge color="gray" size="xs">IBAN</x-filament::badge>
+                                        @endif
                                     @else
                                         <x-filament::badge color="danger">missing</x-filament::badge>
                                     @endif
