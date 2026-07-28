@@ -1,13 +1,26 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Production;
 
 use App\Models\Bank;
 use App\Models\Beneficiary;
 use App\Models\TransactionType;
 use Illuminate\Database\Seeder;
 
-class BeneficiarySeeder extends Seeder
+/**
+ * REAL PRODUCTION DATA — kept out of the default `db:seed` run.
+ *
+ * The seeders in Database\Seeders create dummy data so a fresh install (or a
+ * demo, or a developer's machine) never carries real people, salaries or trading
+ * partners. The genuine values live here instead, and only run when named
+ * explicitly:
+ *
+ *     php artisan db:seed --class="Database\Seeders\Production\RealBeneficiarySeeder"
+ *
+ * Tenant-scoped: a company must be current, so run this from a context that has
+ * made one current (or via `php artisan tenants:artisan`).
+ */
+class RealBeneficiarySeeder extends Seeder
 {
     /**
      * Non-employee payees that appear in the bank payment file alongside
@@ -28,7 +41,7 @@ class BeneficiarySeeder extends Seeder
 
         $beneficiaries = [
             [
-                'name' => 'Mr. Landlord (Office Premises)',
+                'name' => 'Mr. Ahmed Khan (Office Owner)',
                 'bank_id' => $bank('MCB'),
                 'iban' => 'PK36MUCB0001234567890123',
                 'id_type' => 'CNIC',
@@ -40,7 +53,7 @@ class BeneficiarySeeder extends Seeder
                 'payment_type' => 'IBFT',
             ],
             [
-                'name' => 'Evergreen Catering Services',
+                'name' => 'Karachi Catering Services',
                 'bank_id' => $bank('HBL'),
                 'iban' => 'PK40HABB0009876543210987',
                 'id_type' => 'NTN',
@@ -52,7 +65,7 @@ class BeneficiarySeeder extends Seeder
                 'payment_type' => 'IBFT',
             ],
             [
-                'name' => 'Skyline Internet (Pvt) Ltd',
+                'name' => 'Transworld Internet (Pvt) Ltd',
                 'bank_id' => $bank('UBL'),
                 'iban' => 'PK62UNIL0112233445566778',
                 'id_type' => 'NTN',
@@ -77,7 +90,7 @@ class BeneficiarySeeder extends Seeder
                 'is_petty_cash_custodian' => true,
             ],
             [
-                'name' => 'Crescent Fuel Station',
+                'name' => 'PSO Fuel Station DHA',
                 'bank_id' => $bank('NBP'),
                 'account_no' => '4455667788990011',
                 'id_type' => 'NTN',

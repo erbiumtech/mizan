@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\FiscalYear;
+use Illuminate\Database\Seeder;
 
 class FiscalYearSeeder extends Seeder
 {
     public function run()
     {
-         FiscalYear::updateOrCreate(
+        FiscalYear::updateOrCreate(
             ['name' => '2025-2026'],
             [
                 'start_date' => '2025-07-01',

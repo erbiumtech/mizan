@@ -34,8 +34,8 @@ class JournalEntrySeeder extends Seeder
         $service = app(JournalEntryService::class);
         $fiscalYear = FiscalYear::where('is_active', true)->first();
 
-        $maker = $this->userWithRole('Accountant', 'accountant@erbium.tech', 'Demo Accountant');
-        $approver = $this->userWithRole('Manager', 'manager@erbium.tech', 'Demo Manager');
+        $maker = $this->userWithRole('Accountant', 'accountant@example.test', 'Demo Accountant');
+        $approver = $this->userWithRole('Manager', 'manager@example.test', 'Demo Manager');
 
         $id = fn (string $code) => Account::where('code', $code)->firstOrFail()->id;
 

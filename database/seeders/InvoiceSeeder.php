@@ -33,8 +33,8 @@ class InvoiceSeeder extends Seeder
         $start = Carbon::parse($fiscalYear->start_date)->startOfMonth();
         $year = $start->format('Y');
 
-        $supplier = Contact::where('name', 'TechDistributors (Pvt) Ltd')->first();
-        $customer = Contact::where('name', '4sure AG')->first();
+        $supplier = Contact::where('name', ContactSeeder::SUPPLIER_HARDWARE)->first();
+        $customer = Contact::where('name', ContactSeeder::CUSTOMER_PRIMARY)->first();
         $laptop = Product::where('sku', 'LAP-DEV-01')->first();
         $toner = Product::where('sku', 'TNR-HP-01')->first();
 
@@ -67,7 +67,7 @@ class InvoiceSeeder extends Seeder
             [
                 'number' => "INV-{$year}-900002",
                 'kind' => 'sale',
-                'contact' => Contact::where('name', 'Erbium Retail Store')->first(),
+                'contact' => Contact::where('name', ContactSeeder::CUSTOMER_SECONDARY)->first(),
                 'date' => $start->copy()->addDays(12),
                 'pay' => 'none',
                 'lines' => [
