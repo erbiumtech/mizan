@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Payslips\Schemas;
 use App\Models\Payslip;
 use App\Services\PayslipService;
 use App\Support\EmployeeAccess;
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
@@ -44,6 +45,12 @@ class PayslipForm
                         ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
+                    // The label shows the user's name, so the search must match it too;
+                    // Filament would otherwise search only the employee_id title attribute.
+                    ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search(
+                        $search,
+                        EmployeeOptions::accessibleScope(),
+                    ))
                     ->preload()
                     ->required()
                     ->live()

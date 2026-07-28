@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Projects\Schemas;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Models\Project;
 use App\Models\ProjectEnvironment;
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -60,6 +61,10 @@ class ProjectForm
                             ->relationship('manager', 'employee_id')
                             ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                             ->searchable()
+                            // The option label carries the person's name, so the
+                            // search has to match it; Filament alone would only
+                            // match the employee_id title attribute.
+                            ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                             ->preload()
                             ->nullable(),
 
@@ -68,6 +73,7 @@ class ProjectForm
                             ->relationship('secondaryManager', 'employee_id')
                             ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                             ->searchable()
+                            ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                             ->preload()
                             ->nullable()
                             ->different('manager_employee_id')

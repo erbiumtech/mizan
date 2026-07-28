@@ -9,6 +9,14 @@ return [
     'debit_city' => env('IPAYMENTS_DEBIT_CITY', 'KHI'),
     'currency' => env('IPAYMENTS_CURRENCY', 'PKR'),
     'payment_type' => env('IPAYMENTS_PAYMENT_TYPE', 'IBFT'),
+
+    /*
+    | Salary transfers to employees carry their own payment type — the bank
+    | treats bulk payroll differently from an ordinary inter-bank transfer.
+    | Applied to every row of the Salary Bank File, and to any payment in the
+    | Bank Payment File that settles a payslip. See Payment::resolvedPaymentType.
+    */
+    'salary_payment_type' => env('IPAYMENTS_SALARY_PAYMENT_TYPE', 'PAY'),
     'processing_mode' => env('IPAYMENTS_PROCESSING_MODE', 'ON'),
     'invoice_format' => env('IPAYMENTS_INVOICE_FORMAT', '4'),
     'purpose_of_payment' => env('IPAYMENTS_PURPOSE_CODE', '104'),
