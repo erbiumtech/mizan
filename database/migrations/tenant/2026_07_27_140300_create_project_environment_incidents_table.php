@@ -21,7 +21,10 @@ return new class extends Migration
             $table->timestamp('last_reminder_at')->nullable();
             $table->timestamps();
 
-            $table->index(['project_environment_id', 'resolved_at']);
+            // Named explicitly: the conventional name Laravel would generate
+            // ("project_environment_incidents_project_environment_id_resolved_at_index")
+            // is 70 characters, over MySQL's 64-character identifier limit.
+            $table->index(['project_environment_id', 'resolved_at'], 'proj_env_incidents_env_resolved_at_idx');
         });
     }
 
