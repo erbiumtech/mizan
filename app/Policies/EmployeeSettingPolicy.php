@@ -22,9 +22,15 @@ class EmployeeSettingPolicy
         return $user->hasPermissionTo('EmployeeSettingCreate');
     }
 
+    /**
+     * Employees may edit their own settings row without the update permission:
+     * the write is intercepted and becomes a pending EmployeeChangeRequest, so
+     * nothing changes until an Administrator/Manager/CEO approves it.
+     */
     public function update(User $user, EmployeeSetting $employeeSetting): bool
     {
-        return $user->hasPermissionTo('EmployeeSettingUpdate');
+        return $user->hasPermissionTo('EmployeeSettingUpdate')
+            || $employeeSetting->employee?->user_id === $user->id;
     }
 
     public function delete(User $user, EmployeeSetting $employeeSetting): bool

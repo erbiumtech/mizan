@@ -16,15 +16,35 @@ class EmployeeChangeRequest extends Model
 
     public const STATUS_REJECTED = 'rejected';
 
+    /** The employee's own profile row (and the linked user). */
+    public const TARGET_EMPLOYEE = 'employee';
+
+    /** One of the employee's salary settings rows, named by `target_id`. */
+    public const TARGET_SETTING = 'employee_setting';
+
     /** Employee-editable attributes; user_* keys write to the linked user. */
     public const ALLOWED_FIELDS = [
         'user_name', 'user_email', 'personal_email', 'nic', 'date_of_joining', 'phone', 'gender',
         'bank_id', 'bank_account_no', 'iban_no', 'address_line_1', 'address_line_2',
     ];
 
+    /**
+     * Employee-requestable settings attributes: the compensation figures only.
+     * The period and fiscal year that decide *which* payslips a settings row
+     * governs stay with the administrators who create it.
+     */
+    public const SETTING_FIELDS = [
+        'basic_wage', 'medical_allowance', 'device_allowance', 'petrol_allowance',
+        'bonus', 'extra_work_hours', 'advances', 'meal_deduction', 'esi_health_insurance',
+    ];
+
     protected $fillable = [
-        'employee_id', 'requested_by', 'requested_changes', 'original_values', 'status',
-        'reviewed_by', 'reviewed_at', 'rejection_reason',
+        'employee_id', 'target_type', 'target_id', 'requested_by', 'requested_changes',
+        'original_values', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason',
+    ];
+
+    protected $attributes = [
+        'target_type' => self::TARGET_EMPLOYEE,
     ];
 
     protected $casts = [
@@ -60,9 +80,34 @@ class EmployeeChangeRequest extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    /** The settings row this request targets, if it targets one. */
+    public function setting()
+    {
+        return $this->belongsTo(EmployeeSetting::class, 'target_id');
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;
+    }
+
+    public function targetsSetting(): bool
+    {
+        return $this->target_type === self::TARGET_SETTING;
+    }
+
+    /** Which attributes an employee may request on a given target. */
+    public static function allowedFieldsFor(string $targetType): array
+    {
+        return $targetType === self::TARGET_SETTING
+            ? self::SETTING_FIELDS
+            : self::ALLOWED_FIELDS;
+    }
+
+    /** Human label for the target, for the approver's list and emails. */
+    public function targetLabel(): string
+    {
+        return $this->targetsSetting() ? 'Salary settings' : 'Employee profile';
     }
 
     public function approve(User $reviewer): self
@@ -72,22 +117,7 @@ class EmployeeChangeRequest extends Model
         }
 
         return DB::transaction(function () use ($reviewer) {
-            $changes = collect($this->requested_changes)->only(self::ALLOWED_FIELDS);
-
-            $userChanges = [];
-            foreach (['user_name' => 'name', 'user_email' => 'email'] as $key => $column) {
-                if ($changes->has($key)) {
-                    $userChanges[$column] = $changes->pull($key);
-                }
-            }
-
-            if ($userChanges) {
-                $this->employee->user->update($userChanges);
-            }
-
-            if ($changes->isNotEmpty()) {
-                $this->employee->update($changes->all());
-            }
+            $this->targetsSetting() ? $this->applyToSetting() : $this->applyToEmployee();
 
             $this->update([
                 'status' => self::STATUS_APPROVED,
@@ -97,6 +127,55 @@ class EmployeeChangeRequest extends Model
 
             return $this;
         });
+    }
+
+    /** Writes the approved profile edits; user_* keys land on the linked user. */
+    protected function applyToEmployee(): void
+    {
+        $changes = collect($this->requested_changes)->only(self::ALLOWED_FIELDS);
+
+        $userChanges = [];
+        foreach (['user_name' => 'name', 'user_email' => 'email'] as $key => $column) {
+            if ($changes->has($key)) {
+                $userChanges[$column] = $changes->pull($key);
+            }
+        }
+
+        if ($userChanges) {
+            $this->employee->user->update($userChanges);
+        }
+
+        if ($changes->isNotEmpty()) {
+            // The approval is the authority — don't let the interception turn
+            // this write into yet another request just because the requester is
+            // the one currently signed in.
+            Employee::withoutApprovalRouting(fn () => $this->employee->update($changes->all()));
+        }
+    }
+
+    /**
+     * Writes the approved compensation figures onto the targeted settings row.
+     *
+     * The row is reloaded rather than taken from the relation so a settings
+     * record deleted while the request sat pending is caught here instead of
+     * silently doing nothing.
+     */
+    protected function applyToSetting(): void
+    {
+        $setting = EmployeeSetting::find($this->target_id);
+
+        if (! $setting) {
+            throw new InvalidArgumentException('The salary settings this request targets no longer exist.');
+        }
+
+        $changes = collect($this->requested_changes)->only(self::SETTING_FIELDS);
+
+        if ($changes->isNotEmpty()) {
+            // Bypass the self-service interception — this write *is* the
+            // approval — while keeping model events, so the audit trail and the
+            // end-date defaulting still run.
+            EmployeeSetting::withoutApprovalRouting(fn () => $setting->update($changes->all()));
+        }
     }
 
     public function reject(User $reviewer, ?string $reason = null): self

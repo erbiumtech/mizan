@@ -51,6 +51,29 @@ class Employee extends Model
         });
     }
 
+    /** Set while an approved request is being written, to avoid re-routing it. */
+    protected static bool $skipApprovalRouting = false;
+
+    /**
+     * Run a write that must land directly, skipping the self-service
+     * interception below.
+     *
+     * Applying an approved request must not depend on who happens to be logged
+     * in: the approval is the authority. Without this, approving a request while
+     * the requester is still the authenticated user would file a second request
+     * instead of writing the change.
+     */
+    public static function withoutApprovalRouting(callable $callback): mixed
+    {
+        static::$skipApprovalRouting = true;
+
+        try {
+            return $callback();
+        } finally {
+            static::$skipApprovalRouting = false;
+        }
+    }
+
     /**
      * Self-service edits become a pending EmployeeChangeRequest instead
      * of touching the record; approvers' edits apply directly. The
@@ -74,7 +97,8 @@ class Employee extends Model
 
         $actor = auth()->user();
 
-        $selfService = $this->exists
+        $selfService = ! static::$skipApprovalRouting
+            && $this->exists
             && $actor
             && $actor->id === $this->user_id
             && ! $actor->hasAnyRole(['Administrator', 'Manager', 'CEO']);
