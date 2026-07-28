@@ -20,6 +20,9 @@ class Payment extends Model
 
     public const RTGS_THRESHOLD = 1000000;
 
+    /** TransactionType code that marks a payroll transfer (TransactionTypeSeeder). */
+    public const SALARY_TRANSACTION_CODE = 'salary';
+
     protected $fillable = [
         'payable_type', 'payable_id', 'transaction_type_id', 'company_bank_account_id',
         'payslip_id', 'amount', 'reference', 'details', 'value_date',
@@ -58,8 +61,9 @@ class Payment extends Model
 
     /**
      * The iPayments Payment Type for this transaction:
-     * explicit override → RTGS above threshold → BT when the beneficiary
-     * banks with the debiting bank → beneficiary default → IBFT.
+     * explicit override → RTGS above threshold → PAY for an employee salary →
+     * BT when the beneficiary banks with the debiting bank → beneficiary
+     * default → IBFT.
      */
     public function resolvedPaymentType(): string
     {
@@ -67,8 +71,17 @@ class Payment extends Model
             return $this->payment_type;
         }
 
+        // Above the threshold the bank requires RTGS regardless of what the
+        // payment is for, so this outranks the salary rule below: a high-value
+        // salary settles as RTGS, not PAY.
         if ((float) $this->amount >= self::RTGS_THRESHOLD) {
             return 'RTGS';
+        }
+
+        // Otherwise a salary transfer is its own payment type, outranking the
+        // intra-bank and beneficiary-default routing below.
+        if ($this->isEmployeeSalary()) {
+            return (string) (setting('ipayments')['salary_payment_type'] ?? 'PAY');
         }
 
         $payeeBankId = $this->payable instanceof Beneficiary
@@ -86,6 +99,27 @@ class Payment extends Model
         }
 
         return 'IBFT';
+    }
+
+    /**
+     * Whether this payment is an employee salary transfer.
+     *
+     * Settling a payslip is decisive. Otherwise it must be a payment to an
+     * employee under the salary transaction type — an employee can also be paid
+     * an advance or a reimbursement, and those are ordinary transfers, not
+     * payroll, so "the payee is an employee" alone is not enough.
+     */
+    public function isEmployeeSalary(): bool
+    {
+        if ($this->payslip_id) {
+            return true;
+        }
+
+        if (! $this->payable instanceof Employee) {
+            return false;
+        }
+
+        return $this->transactionType?->code === self::SALARY_TRANSACTION_CODE;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FiscalYear;
+use App\Models\Payment;
 use App\Models\Payslip;
 use App\Support\BankFileAccount;
 use Carbon\Carbon;
@@ -117,7 +118,12 @@ class SalaryBankExportService
 
             $rows[] = $this->row([
                 'record_type' => 'P',
-                'payment_type' => $config['payment_type'],
+                // Every row here is a salary transfer, but the bank still
+                // requires RTGS above the threshold — same precedence as
+                // Payment::resolvedPaymentType, so the two files agree.
+                'payment_type' => $payment['amount'] >= Payment::RTGS_THRESHOLD
+                    ? 'RTGS'
+                    : ($config['salary_payment_type'] ?? 'PAY'),
                 'processing_mode' => $config['processing_mode'],
                 'customer_reference' => sprintf('SAL-%s-%03d', strtoupper(substr($month, 0, 3)), $i + 1),
                 'debit_country' => $config['debit_country'],
