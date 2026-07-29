@@ -85,6 +85,12 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::hex(self::BRAND_LIME),
                 'gray' => Color::Slate,
             ])
+            // Disabled in favour of the ⌘K command palette, which is a superset:
+            // it searches records through the same resource global-search hooks,
+            // and also finds resources, pages and commands. Resources keep their
+            // getGloballySearchableAttributes() — canGloballySearch() does not
+            // consult this setting, so the palette still finds records.
+            ->globalSearch(false)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -97,8 +103,15 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => Blade::render('@livewire(\App\Filament\Livewire\CommandPalette::class)'),
             )
+            // One search box, not two. Filament's global search field is turned
+            // off above and this trigger takes its place in the topbar, opening
+            // the ⌘K palette instead — which searches the same records (via each
+            // resource's getGlobalSearchResults) plus resources, pages and
+            // commands. GLOBAL_SEARCH_BEFORE renders even when global search is
+            // disabled, so this lands exactly where the old field sat: inside
+            // fi-topbar-end, ahead of the notifications and user menu.
             ->renderHook(
-                PanelsRenderHook::TOPBAR_END,
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn (): string => view('filament.partials.command-palette-trigger')->render(),
             )
             ->middleware([

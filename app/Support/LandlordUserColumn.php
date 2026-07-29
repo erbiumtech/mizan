@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -50,6 +51,43 @@ class LandlordUserColumn
         // No match is still a match constraint — an empty `whereIn` correctly
         // yields no rows, rather than silently returning everything.
         return $query->whereIn($foreignKey, $ids);
+    }
+
+    /**
+     * Employee ids whose code, or whose owning user's name/email, match the term.
+     *
+     * For tables that reach the user one hop further out — payslips, employee
+     * settings, annual taxes all key on `employee_id` — a nested
+     * `whereHas('employee.user')` is the same cross-database mistake one level
+     * deeper: the emitted SQL still names `users` while running on the tenant
+     * connection. Resolving to ids first keeps every statement inside one
+     * database.
+     *
+     * @param  array<int, string>  $columns  user columns to match against
+     * @return array<int, int>
+     */
+    public static function employeeIdsMatching(string $search, array $columns = ['name', 'email']): array
+    {
+        $term = trim($search);
+
+        if ($term === '') {
+            return [];
+        }
+
+        $userIds = User::query()
+            ->where(function (Builder $q) use ($columns, $term): void {
+                foreach ($columns as $column) {
+                    $q->orWhere($column, 'like', "%{$term}%");
+                }
+            })
+            ->pluck('id')
+            ->all();
+
+        return Employee::query()
+            ->where('employee_id', 'like', "%{$term}%")
+            ->when($userIds !== [], fn (Builder $q) => $q->orWhereIn('user_id', $userIds))
+            ->pluck('id')
+            ->all();
     }
 
     /**

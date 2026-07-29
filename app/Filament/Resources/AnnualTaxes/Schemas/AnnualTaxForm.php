@@ -5,6 +5,7 @@ namespace App\Filament\Resources\AnnualTaxes\Schemas;
 use App\Models\AnnualTax;
 use App\Models\Employee;
 use App\Support\EmployeeAccess;
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
@@ -23,6 +24,12 @@ class AnnualTaxForm
                         ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                     ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->display_label)
                     ->searchable()
+                    // The label shows the user's name, so the search must match it too;
+                    // Filament would otherwise search only the employee_id title attribute.
+                    ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search(
+                        $search,
+                        EmployeeOptions::accessibleScope(),
+                    ))
                     ->preload()
                     ->required()
                     ->rules([
