@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\ProjectEnvironment;
 use App\Models\ProjectEnvironmentIncident;
@@ -15,6 +16,8 @@ use Filament\Widgets\TableWidget;
  */
 class EnvironmentIncidentsTable extends TableWidget
 {
+    use WidgetBelongsToModule;
+
     protected static bool $isLazy = true;
 
     protected static ?int $sort = 6;
@@ -28,6 +31,10 @@ class EnvironmentIncidentsTable extends TableWidget
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return (bool) auth()->user()?->can('ProjectView');
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\SelectsSalaryMonth;
 use App\Models\Payment;
 use App\Models\TransactionType;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class BankPaymentFile extends Page
 {
+    use BelongsToModule;
+
     use SelectsSalaryMonth;
 
     protected string $view = 'filament.pages.bank-payment-file';
@@ -34,6 +37,10 @@ class BankPaymentFile extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('ReportView') ?? false;
     }
 

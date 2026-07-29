@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\Employee;
 use App\Models\Project;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class MyProjectsOverview extends TableWidget
 {
+    use WidgetBelongsToModule;
+
     protected static bool $isLazy = true;
 
     protected static ?int $sort = 8;
@@ -31,6 +34,10 @@ class MyProjectsOverview extends TableWidget
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return (bool) auth()->user()?->can('ProjectView') && Employee::forUser() !== null;
     }
 

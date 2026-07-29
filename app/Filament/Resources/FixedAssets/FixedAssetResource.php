@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FixedAssets;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\FixedAssets\Pages\CreateFixedAsset;
 use App\Filament\Resources\FixedAssets\Pages\EditFixedAsset;
 use App\Filament\Resources\FixedAssets\Pages\ListFixedAssets;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class FixedAssetResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = FixedAsset::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;

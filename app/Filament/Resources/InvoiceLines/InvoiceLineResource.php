@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\InvoiceLines;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\InvoiceLines\Pages\CreateInvoiceLine;
 use App\Filament\Resources\InvoiceLines\Pages\EditInvoiceLine;
 use App\Filament\Resources\InvoiceLines\Pages\ListInvoiceLines;
@@ -16,6 +17,8 @@ use UnitEnum;
 
 class InvoiceLineResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = InvoiceLine::class;
 
     protected static string|UnitEnum|null $navigationGroup = 'Invoicing';

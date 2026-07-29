@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MPRs;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\MPRs\Pages\CreateMPR;
 use App\Filament\Resources\MPRs\Pages\EditMPR;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class MPRResource extends Resource
 {
+    use BelongsToModule;
+
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = MPR::class;

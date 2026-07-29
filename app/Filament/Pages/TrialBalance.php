@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Services\FinancialReportService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -12,6 +13,8 @@ use UnitEnum;
 
 class TrialBalance extends Page
 {
+    use BelongsToModule;
+
     protected string $view = 'filament.pages.trial-balance';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -26,6 +29,10 @@ class TrialBalance extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('ReportView') ?? false;
     }
 

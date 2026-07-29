@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StockMovements;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\StockMovements\Pages\ListStockMovements;
 use App\Filament\Resources\StockMovements\Schemas\StockMovementForm;
 use App\Filament\Resources\StockMovements\Tables\StockMovementsTable;
@@ -15,6 +16,8 @@ use UnitEnum;
 
 class StockMovementResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = StockMovement::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;

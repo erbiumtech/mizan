@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Models\Employee;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
@@ -13,6 +14,8 @@ use Filament\Widgets\ChartWidget;
  */
 class PayrollByEmployeeChart extends ChartWidget
 {
+    use WidgetBelongsToModule;
+
     protected static ?int $sort = 4;
 
     public function getHeading(): ?string
@@ -22,6 +25,10 @@ class PayrollByEmployeeChart extends ChartWidget
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return (bool) auth()->user()?->can('PayslipCreate');
     }
 

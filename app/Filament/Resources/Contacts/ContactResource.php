@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Contacts;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\Contacts\Pages\CreateContact;
 use App\Filament\Resources\Contacts\Pages\EditContact;
 use App\Filament\Resources\Contacts\Pages\ListContacts;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class ContactResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = Contact::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;

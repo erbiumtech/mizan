@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CompanyBankAccounts;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\CompanyBankAccounts\Pages\CreateCompanyBankAccount;
 use App\Filament\Resources\CompanyBankAccounts\Pages\EditCompanyBankAccount;
 use App\Filament\Resources\CompanyBankAccounts\Pages\ListCompanyBankAccounts;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class CompanyBankAccountResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = CompanyBankAccount::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

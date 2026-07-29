@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Models\Account;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -12,12 +13,18 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class AccountBalancesOverview extends StatsOverviewWidget
 {
+    use WidgetBelongsToModule;
+
     protected static bool $isLazy = true;
 
     protected static ?int $sort = 2;
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return (bool) auth()->user()?->can('AccountView');
     }
 

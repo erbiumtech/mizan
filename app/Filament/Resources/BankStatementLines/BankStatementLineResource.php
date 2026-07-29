@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BankStatementLines;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\BankStatementLines\Pages\CreateBankStatementLine;
 use App\Filament\Resources\BankStatementLines\Pages\EditBankStatementLine;
 use App\Filament\Resources\BankStatementLines\Pages\ListBankStatementLines;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class BankStatementLineResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = BankStatementLine::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

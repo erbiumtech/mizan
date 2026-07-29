@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Company;
 use App\Models\CompanyModule;
+use Filament\Facades\Filament;
 use Throwable;
 
 /**
@@ -41,7 +42,7 @@ class Modules
      */
     public function enabled(string $module): bool
     {
-        return $this->enabledFor(Company::current()?->getKey(), $module);
+        return $this->enabledFor($this->currentCompanyId(), $module);
     }
 
     /**
@@ -69,7 +70,39 @@ class Modules
 
     public function licensed(string $module): bool
     {
-        return $this->licensedFor(Company::current()?->getKey(), $module);
+        return $this->licensedFor($this->currentCompanyId(), $module);
+    }
+
+    /**
+     * The company whose licence applies to this request.
+     *
+     * Filament's tenant comes first, and it is the one that matters inside the
+     * panel: it is resolved from the {tenant} route segment, so it is exactly the
+     * company being served. spatie's "current tenant" is the fallback for
+     * everything outside the panel (report routes, the status page, the API).
+     *
+     * They are not interchangeable. SyncSpatieTenant only calls makeCurrent()
+     * when a dedicated tenant connection is configured, so in a single-database
+     * setup — the whole test suite — Company::current() stays null while
+     * Filament's tenant is set. Reading only the latter would have made every
+     * gate fail open there, which is how this was first written and why
+     * ModuleGatingTest exists.
+     */
+    protected function currentCompanyId(): int|string|null
+    {
+        try {
+            if (Filament::getCurrentPanel() !== null) {
+                $tenant = Filament::getTenant();
+
+                if ($tenant instanceof Company) {
+                    return $tenant->getKey();
+                }
+            }
+        } catch (Throwable) {
+            // No panel context (console, queue, non-panel route) — fall through.
+        }
+
+        return Company::current()?->getKey();
     }
 
     public function licensedFor(int|string|null $companyId, string $module): bool

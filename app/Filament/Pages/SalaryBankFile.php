@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\SelectsSalaryMonth;
 use App\Services\SalaryBankExportService;
 use BackedEnum;
@@ -13,6 +14,8 @@ use UnitEnum;
 
 class SalaryBankFile extends Page
 {
+    use BelongsToModule;
+
     use SelectsSalaryMonth;
 
     protected string $view = 'filament.pages.salary-bank-file';
@@ -29,6 +32,10 @@ class SalaryBankFile extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('ReportView') ?? false;
     }
 

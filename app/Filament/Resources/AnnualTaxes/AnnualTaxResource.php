@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AnnualTaxes;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\AnnualTaxes\Pages\CreateAnnualTax;
 use App\Filament\Resources\AnnualTaxes\Pages\EditAnnualTax;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class AnnualTaxResource extends Resource
 {
+    use BelongsToModule;
+
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = AnnualTax::class;

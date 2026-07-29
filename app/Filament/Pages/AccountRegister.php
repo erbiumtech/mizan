@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Models\Account;
 use App\Models\JournalEntry;
 use App\Services\JournalEntryService;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class AccountRegister extends Page
 {
+    use BelongsToModule;
+
     protected string $view = 'filament.pages.account-register';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -33,6 +36,10 @@ class AccountRegister extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('JournalEntryView') ?? false;
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Beneficiaries;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\Beneficiaries\Pages\CreateBeneficiary;
 use App\Filament\Resources\Beneficiaries\Pages\EditBeneficiary;
 use App\Filament\Resources\Beneficiaries\Pages\ListBeneficiaries;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class BeneficiaryResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = Beneficiary::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

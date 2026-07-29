@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\ProjectEnvironment;
 use Filament\Tables\Columns\TextColumn;
@@ -14,6 +15,8 @@ use Filament\Widgets\TableWidget;
  */
 class CertificateExpiryTable extends TableWidget
 {
+    use WidgetBelongsToModule;
+
     protected static bool $isLazy = true;
 
     protected static ?int $sort = 7;
@@ -27,6 +30,10 @@ class CertificateExpiryTable extends TableWidget
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         if (! auth()->user()?->can('ProjectView')) {
             return false;
         }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EmployeeChangeRequests;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\EmployeeChangeRequests\Pages\ListEmployeeChangeRequests;
 use App\Filament\Resources\EmployeeChangeRequests\Schemas\EmployeeChangeRequestForm;
 use App\Filament\Resources\EmployeeChangeRequests\Tables\EmployeeChangeRequestsTable;
@@ -16,6 +17,8 @@ use UnitEnum;
 
 class EmployeeChangeRequestResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = EmployeeChangeRequest::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
