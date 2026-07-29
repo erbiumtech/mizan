@@ -9,10 +9,13 @@ use App\Policies\MprPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Support\EmployeeAccess;
+use App\Support\ModuleMap;
+use App\Support\Modules;
 use App\Support\TenantSettings;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -30,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
+        $this->app->singleton(Modules::class);
     }
 
     /**
@@ -52,6 +56,19 @@ class AppServiceProvider extends ServiceProvider
         // `login`. Only Filament defines a login screen here, so without this a
         // signed-out visitor gets a 500 instead of the sign-in page.
         Authenticate::redirectUsing(fn () => route('filament.admin.auth.login'));
+
+        // Class names are stored as strings in customer data — comments.commentable_type,
+        // payments.payable_type, activity_log.subject_type, custom_fields.model_type,
+        // model_has_roles.model_type — so moving a model class would orphan every
+        // one of those rows. The aliases are deliberately the legacy
+        // `App\Models\…` strings that are already in the data: the alias stays
+        // fixed while the target class moves into its module, so old and new rows
+        // agree and no per-tenant data migration is needed.
+        //
+        // enforceMorphMap (rather than plain morphMap) makes a model missing from
+        // ModuleMap throw on first use instead of silently writing an unmapped
+        // FQCN back into the data. That noise is the point.
+        Relation::enforceMorphMap(ModuleMap::morphMap());
 
         // Registered explicitly because Laravel's guess does not match the file
         // name: App\Models\MPR maps to App\Policies\MPRPolicy, but the class is

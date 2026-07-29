@@ -46,6 +46,12 @@ class CompanyProvisioner
             'status' => 1,
         ]);
 
+        // A new company starts with Core only; a super admin grants the modules
+        // it has bought. Written before the tenant database exists because these
+        // rows are landlord-side and must survive a provisioning rollback being
+        // skipped — rollBack() deletes the company, which cascades them away.
+        modules()->seedDefaults($company->getKey());
+
         // Only tear down a database this call brought into existence.
         $createdDatabase = ! $this->databaseExists($database, $connection);
 
