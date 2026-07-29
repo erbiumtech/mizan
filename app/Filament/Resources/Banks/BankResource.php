@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Banks;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\Banks\Pages\CreateBank;
 use App\Filament\Resources\Banks\Pages\EditBank;
 use App\Filament\Resources\Banks\Pages\ListBanks;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class BankResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = Bank::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

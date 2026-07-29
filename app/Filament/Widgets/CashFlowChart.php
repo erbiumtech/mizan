@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Models\Account;
 use App\Models\JournalEntryLine;
 use Filament\Widgets\ChartWidget;
@@ -14,6 +15,8 @@ use Illuminate\Support\Carbon;
  */
 class CashFlowChart extends ChartWidget
 {
+    use WidgetBelongsToModule;
+
     protected int|string|array $columnSpan = 'full';
 
     protected static ?int $sort = 3;
@@ -27,6 +30,10 @@ class CashFlowChart extends ChartWidget
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return (bool) auth()->user()?->can('AccountView');
     }
 

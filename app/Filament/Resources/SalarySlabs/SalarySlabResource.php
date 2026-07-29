@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SalarySlabs;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\SalarySlabs\Pages\CreateSalarySlab;
 use App\Filament\Resources\SalarySlabs\Pages\EditSalarySlab;
 use App\Filament\Resources\SalarySlabs\Pages\ListSalarySlabs;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class SalarySlabResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = SalarySlab::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTableCells;

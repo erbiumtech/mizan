@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TransactionTypes;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\TransactionTypes\Pages\CreateTransactionType;
 use App\Filament\Resources\TransactionTypes\Pages\EditTransactionType;
 use App\Filament\Resources\TransactionTypes\Pages\ListTransactionTypes;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class TransactionTypeResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = TransactionType::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;

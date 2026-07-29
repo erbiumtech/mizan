@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Models\Employee;
 use App\Models\Invoice;
 use App\Models\JournalEntry;
@@ -17,12 +18,18 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class OperationsOverview extends StatsOverviewWidget
 {
+    use WidgetBelongsToModule;
+
     protected static bool $isLazy = true;
 
     protected static ?int $sort = 1;
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         $user = auth()->user();
 
         return (bool) ($user?->can('EmployeeView')

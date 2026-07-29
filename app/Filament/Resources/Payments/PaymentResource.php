@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payments;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\Payments\Pages\CreatePayment;
 use App\Filament\Resources\Payments\Pages\EditPayment;
 use App\Filament\Resources\Payments\Pages\ListPayments;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class PaymentResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = Payment::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;

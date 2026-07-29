@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\JournalEntries;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\JournalEntries\Pages\CreateJournalEntry;
 use App\Filament\Resources\JournalEntries\Pages\EditJournalEntry;
 use App\Filament\Resources\JournalEntries\Pages\ListJournalEntries;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class JournalEntryResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = JournalEntry::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;

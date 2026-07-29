@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Models\PettyCashVoucher;
 use App\Models\TransactionType;
 use App\Services\PettyCashService;
@@ -22,6 +23,8 @@ use UnitEnum;
 
 class PettyCashBook extends Page
 {
+    use BelongsToModule;
+
     protected string $view = 'filament.pages.petty-cash-book';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -36,6 +39,10 @@ class PettyCashBook extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('PettyCashView') ?? false;
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EmployeeSettings;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\EmployeeSettings\Pages\CreateEmployeeSetting;
 use App\Filament\Resources\EmployeeSettings\Pages\EditEmployeeSetting;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class EmployeeSettingResource extends Resource
 {
+    use BelongsToModule;
+
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = EmployeeSetting::class;

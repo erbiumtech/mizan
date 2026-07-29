@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Services\FinancialReportService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -12,6 +13,8 @@ use UnitEnum;
 
 class ProfitAndLoss extends Page
 {
+    use BelongsToModule;
+
     protected string $view = 'filament.pages.profit-and-loss';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -26,6 +29,10 @@ class ProfitAndLoss extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('ReportView') ?? false;
     }
 

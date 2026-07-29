@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Projects;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
@@ -20,6 +21,8 @@ use UnitEnum;
 
 class ProjectResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = Project::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Projects\Widgets;
 
+use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Models\Project;
 use App\Models\ProjectEnvironment;
 use App\Models\ProjectEnvironmentCheck;
@@ -19,6 +20,8 @@ use Illuminate\Support\Carbon;
  */
 class ProjectHealthChart extends ChartWidget
 {
+    use WidgetBelongsToModule;
+
     protected int|string|array $columnSpan = 'full';
 
     protected static ?int $sort = 1;
@@ -35,6 +38,10 @@ class ProjectHealthChart extends ChartWidget
 
     public static function canView(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return (bool) auth()->user()?->can('ProjectView');
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\JournalEntryLines;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\JournalEntryLines\Pages\CreateJournalEntryLine;
 use App\Filament\Resources\JournalEntryLines\Pages\EditJournalEntryLine;
 use App\Filament\Resources\JournalEntryLines\Pages\ListJournalEntryLines;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class JournalEntryLineResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = JournalEntryLine::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;

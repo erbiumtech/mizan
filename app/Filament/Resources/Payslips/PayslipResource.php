@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payslips;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Resources\Payslips\Pages\CreatePayslip;
 use App\Filament\Resources\Payslips\Pages\EditPayslip;
@@ -20,6 +21,8 @@ use UnitEnum;
 
 class PayslipResource extends Resource
 {
+    use BelongsToModule;
+
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Payslip::class;

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Models\Account;
 use App\Services\GnuCashImportService;
 use App\Services\RegisterEntryService;
@@ -19,6 +20,8 @@ use UnitEnum;
 
 class GnuCashImport extends Page
 {
+    use BelongsToModule;
+
     protected string $view = 'filament.pages.gnucash-import';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -39,6 +42,10 @@ class GnuCashImport extends Page
 
     public static function canAccess(): bool
     {
+        if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
         return auth()->user()?->can('GnuCashImport') ?? false;
     }
 

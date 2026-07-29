@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Accounts;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Resources\Accounts\Pages\CreateAccount;
 use App\Filament\Resources\Accounts\Pages\EditAccount;
 use App\Filament\Resources\Accounts\Pages\ListAccounts;
@@ -20,6 +21,8 @@ use UnitEnum;
 
 class AccountResource extends Resource
 {
+    use BelongsToModule;
+
     protected static ?string $model = Account::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
