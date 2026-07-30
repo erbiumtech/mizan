@@ -2,8 +2,8 @@
 
 namespace App\Modules\Employees\Filament\Resources\Employees\RelationManagers;
 
-use App\Filament\Resources\Projects\ProjectResource;
-use App\Models\Project;
+use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
+use App\Modules\Projects\Models\Project;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;

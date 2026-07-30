@@ -2,9 +2,7 @@
 
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\ReportPageController;
-use App\Http\Controllers\StatusPageController;
 use App\Http\Controllers\TenantFileController;
-use App\Http\Middleware\ResolveStatusPageTenant;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Route;
@@ -13,17 +11,7 @@ Route::get('/', function () {
     return redirect(Filament::getPanel('admin')->getUrl());
 });
 
-// Public status page: unauthenticated, off unless a company enables it, and
-// reachable only with the token from Company Settings. The middleware resolves
-// and then forgets the tenant, so nothing here leaks into the panel session.
-// The Projects module is a *second* condition here, not a replacement for the
-// per-company status_page.enabled setting: both must be true. 404 rather than
-// 403 to match the middleware above — an unlisted page should not confirm it
-// exists. Ordered after ResolveStatusPageTenant, which makes the company
-// current, so the licence check knows whose licence to read.
-Route::get('/status/{company}/{token}', [StatusPageController::class, 'show'])
-    ->middleware([ResolveStatusPageTenant::class, 'module:projects,404'])
-    ->name('status.show');
+// The public status page lives in app/Modules/Projects/routes/web.php.
 
 // Stored files (payslip/MPR PDFs, NIC scans, receipts) are streamed through the
 // app rather than served off a `public/storage` symlink: the symlink cannot be

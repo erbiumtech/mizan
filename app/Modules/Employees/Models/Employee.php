@@ -4,7 +4,7 @@ namespace App\Modules\Employees\Models;
 
 use App\Models\Bank;
 use App\Models\Concerns\HasCustomFields;
-use App\Models\Project;
+use App\Modules\Projects\Models\Project;
 use App\Models\TenantModel as Model;
 use App\Models\User;
 use App\Traits\Auditable;

@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\ProjectEnvironment;
+use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Models\User;
-use App\Notifications\CertificateExpiring;
-use App\Services\EnvironmentCertificateChecker;
-use App\Services\EnvironmentIncidentManager;
+use App\Modules\Projects\Notifications\CertificateExpiring;
+use App\Modules\Projects\Services\EnvironmentCertificateChecker;
+use App\Modules\Projects\Services\EnvironmentIncidentManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\Feature\Concerns\MakesProjects;

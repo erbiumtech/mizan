@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Projects\Pages\EditProject;
-use App\Filament\Resources\Projects\Pages\ListProjects;
-use App\Filament\Resources\Projects\Pages\ViewProject;
-use App\Filament\Resources\Projects\RelationManagers\EmployeesRelationManager;
-use App\Models\Project;
+use App\Modules\Projects\Filament\Resources\Projects\Pages\EditProject;
+use App\Modules\Projects\Filament\Resources\Projects\Pages\ListProjects;
+use App\Modules\Projects\Filament\Resources\Projects\Pages\ViewProject;
+use App\Modules\Projects\Filament\Resources\Projects\RelationManagers\EmployeesRelationManager;
+use App\Modules\Projects\Models\Project;
 use App\Models\User;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;

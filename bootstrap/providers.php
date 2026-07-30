@@ -5,6 +5,7 @@ use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Invoicing\InvoicingServiceProvider;
 use App\Modules\Mpr\MprServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
+use App\Modules\Projects\ProjectsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 
@@ -20,4 +21,5 @@ return [
     MprServiceProvider::class,
     EmployeesServiceProvider::class,
     PayrollServiceProvider::class,
+    ProjectsServiceProvider::class,
 ];

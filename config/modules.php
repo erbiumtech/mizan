@@ -72,6 +72,7 @@ return [
         'description' => 'Projects, environment health monitoring, certificate expiry tracking and the public status page.',
         'requires' => ['employees'],
         'licensed_by_default' => false,
+        'plugin' => \App\Modules\Projects\ProjectsPlugin::class,
     ],
 
     // MPR keys on user_id rather than employee_id, so it does not actually need

@@ -82,10 +82,10 @@ final class ModuleMap
             'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
         ],
         'projects' => [
-            'App\Models\Project' => \App\Models\Project::class,
-            'App\Models\ProjectEnvironment' => \App\Models\ProjectEnvironment::class,
-            'App\Models\ProjectEnvironmentCheck' => \App\Models\ProjectEnvironmentCheck::class,
-            'App\Models\ProjectEnvironmentIncident' => \App\Models\ProjectEnvironmentIncident::class,
+            'App\Models\Project' => \App\Modules\Projects\Models\Project::class,
+            'App\Models\ProjectEnvironment' => \App\Modules\Projects\Models\ProjectEnvironment::class,
+            'App\Models\ProjectEnvironmentCheck' => \App\Modules\Projects\Models\ProjectEnvironmentCheck::class,
+            'App\Models\ProjectEnvironmentIncident' => \App\Modules\Projects\Models\ProjectEnvironmentIncident::class,
         ],
         'mpr' => [
             'App\Models\MPR' => \App\Modules\Mpr\Models\MPR::class,
@@ -142,7 +142,7 @@ final class ModuleMap
             'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource::class,
         ],
         'projects' => [
-            'App\Filament\Resources\Projects\ProjectResource' => \App\Filament\Resources\Projects\ProjectResource::class,
+            'App\Filament\Resources\Projects\ProjectResource' => \App\Modules\Projects\Filament\Resources\Projects\ProjectResource::class,
         ],
         'mpr' => [
             'App\Filament\Resources\MPRs\MPRResource' => \App\Modules\Mpr\Filament\Resources\MPRs\MPRResource::class,
@@ -193,11 +193,11 @@ final class ModuleMap
             // Nested under the resource rather than in Filament/Widgets — found by
             // ModuleCoverageTest, which is exactly the kind of class a map written
             // by hand from a directory listing misses.
-            'App\Filament\Resources\Projects\Widgets\ProjectHealthChart' => \App\Filament\Resources\Projects\Widgets\ProjectHealthChart::class,
-            'App\Filament\Widgets\MyProjectsOverview' => \App\Filament\Widgets\MyProjectsOverview::class,
-            'App\Filament\Widgets\EnvironmentHealthOverview' => \App\Filament\Widgets\EnvironmentHealthOverview::class,
-            'App\Filament\Widgets\EnvironmentIncidentsTable' => \App\Filament\Widgets\EnvironmentIncidentsTable::class,
-            'App\Filament\Widgets\CertificateExpiryTable' => \App\Filament\Widgets\CertificateExpiryTable::class,
+            'App\Filament\Resources\Projects\Widgets\ProjectHealthChart' => \App\Modules\Projects\Filament\Resources\Projects\Widgets\ProjectHealthChart::class,
+            'App\Filament\Widgets\MyProjectsOverview' => \App\Modules\Projects\Filament\Widgets\MyProjectsOverview::class,
+            'App\Filament\Widgets\EnvironmentHealthOverview' => \App\Modules\Projects\Filament\Widgets\EnvironmentHealthOverview::class,
+            'App\Filament\Widgets\EnvironmentIncidentsTable' => \App\Modules\Projects\Filament\Widgets\EnvironmentIncidentsTable::class,
+            'App\Filament\Widgets\CertificateExpiryTable' => \App\Modules\Projects\Filament\Widgets\CertificateExpiryTable::class,
         ],
     ];
 
