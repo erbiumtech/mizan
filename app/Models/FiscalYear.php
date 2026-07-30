@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\Payroll\Models\SalarySlab;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 

@@ -6,7 +6,7 @@ use App\Models\Company;
 use App\Models\CompanyModule;
 use App\Modules\Employees\Models\Employee;
 use App\Models\JournalEntry;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Support\Modules;
@@ -97,7 +97,7 @@ class ModuleDegradationTest extends AccountingTestCase
         $this->assertTrue($payslip->exists, 'Payroll must not fail because the books are elsewhere.');
         $this->assertSame(
             0,
-            JournalEntry::where('source_type', Payslip::class)->where('source_id', $payslip->getKey())->count(),
+            JournalEntry::forSource(Payslip::class, $payslip->getKey())->count(),
             'and nothing may be posted into a module the company does not have.'
         );
     }
@@ -111,7 +111,7 @@ class ModuleDegradationTest extends AccountingTestCase
 
         $this->assertGreaterThan(
             0,
-            JournalEntry::where('source_type', Payslip::class)->where('source_id', $payslip->getKey())->count(),
+            JournalEntry::forSource(Payslip::class, $payslip->getKey())->count(),
         );
     }
 

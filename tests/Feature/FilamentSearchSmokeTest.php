@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\AnnualTaxes\Pages\ListAnnualTaxes;
+use App\Modules\Payroll\Filament\Resources\AnnualTaxes\Pages\ListAnnualTaxes;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
-use App\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;

@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Setting;
-use App\Services\PayrollPostingService;
+use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Support\TenantSettings;
 use Tests\AccountingTestCase;
 

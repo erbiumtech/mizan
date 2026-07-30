@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Comment;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 
 class CommentPolicy

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Payroll\Models\Payslip;
 use App\Support\BankFileAccount;
 use App\Traits\Auditable;
 

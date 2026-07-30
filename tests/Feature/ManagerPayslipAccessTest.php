@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Modules\Employees\Models\Employee;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\AccountRegister;
 use App\Filament\Pages\BankPaymentFile;
-use App\Filament\Pages\FbrTaxFile;
+use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
 use App\Filament\Pages\GnuCashImport;
 use App\Filament\Pages\PettyCashBook;
 use App\Filament\Pages\ProfitAndLoss;
-use App\Filament\Pages\SalaryBankFile;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Filament\Pages\TrialBalance;
 use App\Models\User;
 use Database\Seeders\ChartOfAccountsSeeder;

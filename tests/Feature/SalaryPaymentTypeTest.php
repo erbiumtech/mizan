@@ -8,10 +8,10 @@ use App\Models\CompanyBankAccount;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Models\Payment;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\TransactionType;
 use App\Services\BankPaymentExportService;
-use App\Services\SalaryBankExportService;
+use App\Modules\Payroll\Services\SalaryBankExportService;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
 

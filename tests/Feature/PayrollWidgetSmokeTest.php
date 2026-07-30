@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Widgets\PayrollByEmployeeChart;
+use App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;

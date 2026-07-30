@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\BankPaymentFile;
-use App\Filament\Pages\FbrTaxFile;
-use App\Filament\Pages\SalaryBankFile;
+use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Employees\Models\Employee;
 use App\Models\FiscalYear;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 use Database\Seeders\TransactionTypeSeeder;
 use Illuminate\Support\Facades\Gate;

@@ -41,6 +41,7 @@ return [
         'description' => 'Payslips, salary slabs, annual tax, salary bank files and FBR tax files.',
         'requires' => ['employees'],
         'licensed_by_default' => false,
+        'plugin' => \App\Modules\Payroll\PayrollPlugin::class,
     ],
 
     'accounting' => [

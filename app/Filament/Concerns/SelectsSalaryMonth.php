@@ -3,7 +3,7 @@
 namespace App\Filament\Concerns;
 
 use App\Models\FiscalYear;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use Carbon\Carbon;
 use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Builder;

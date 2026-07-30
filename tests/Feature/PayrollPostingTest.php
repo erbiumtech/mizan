@@ -6,7 +6,7 @@ use App\Models\Account;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Models\JournalEntry;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 use App\Services\JournalEntryService;
 use Tests\AccountingTestCase;
@@ -96,7 +96,7 @@ class PayrollPostingTest extends AccountingTestCase
 
         $payslip->update(['bonus' => 50000]);
 
-        $live = JournalEntry::where('source_type', Payslip::class)
+        $live = JournalEntry::forSource(Payslip::class)
             ->where('source_id', $payslip->id)
             ->get();
 
