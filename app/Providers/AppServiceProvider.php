@@ -3,9 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\SyncSpatieTenant;
-use App\Models\MPR;
 use App\Policies\ActivityLogPolicy;
-use App\Policies\MprPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Support\EmployeeAccess;
@@ -89,12 +87,9 @@ class AppServiceProvider extends ServiceProvider
         // FQCN back into the data. That noise is the point.
         Relation::enforceMorphMap(ModuleMap::morphMap());
 
-        // Registered explicitly because Laravel's guess does not match the file
-        // name: App\Models\MPR maps to App\Policies\MPRPolicy, but the class is
-        // MprPolicy. A case-insensitive filesystem hides that locally; on Linux
-        // the policy is simply not found and the resource is open to everyone.
-        Gate::policy(MPR::class, MprPolicy::class);
-
+        // MPR's policy is registered by MprServiceProvider, which owns that model
+        // now. The reason it was ever explicit still applies to every moved
+        // module: Laravel's guess cannot find a policy outside App\Policies.
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Permission::class, PermissionPolicy::class);

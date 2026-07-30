@@ -289,6 +289,26 @@ class Modules
     }
 
     /**
+     * Filament plugins for the modules that have been physically moved into
+     * app/Modules. Every one is registered regardless of licence state — see
+     * the note in any module's Plugin class for why that is not optional.
+     *
+     * @return array<int, \Filament\Contracts\Plugin>
+     */
+    public static function plugins(): array
+    {
+        $plugins = [];
+
+        foreach (static::registry() as $definition) {
+            if (isset($definition['plugin'])) {
+                $plugins[] = app($definition['plugin']);
+            }
+        }
+
+        return $plugins;
+    }
+
+    /**
      * Modules a company can be shown on its own activation page: licensed, and
      * not Core (which has no toggle at all — see config/modules.php).
      *

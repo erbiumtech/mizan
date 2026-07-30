@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Tenancy\RegisterCompany;
 use App\Models\Company;
+use App\Support\Modules;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -91,6 +92,9 @@ class AdminPanelProvider extends PanelProvider
             // getGloballySearchableAttributes() — canGloballySearch() does not
             // consult this setting, so the palette still finds records.
             ->globalSearch(false)
+            // One plugin per module that has been moved into app/Modules; the
+            // discovery calls below still cover whatever has not moved yet.
+            ->plugins(Modules::plugins())
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

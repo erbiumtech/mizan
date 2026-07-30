@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Resources\MPRs;
+namespace App\Modules\Mpr\Filament\Resources\MPRs;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
-use App\Filament\Resources\MPRs\Pages\CreateMPR;
-use App\Filament\Resources\MPRs\Pages\EditMPR;
-use App\Filament\Resources\MPRs\Pages\ListMPRS;
-use App\Filament\Resources\MPRs\Schemas\MPRForm;
-use App\Filament\Resources\MPRs\Tables\MPRSTable;
-use App\Models\MPR;
+use App\Modules\Mpr\Filament\Resources\MPRs\Pages\CreateMPR;
+use App\Modules\Mpr\Filament\Resources\MPRs\Pages\EditMPR;
+use App\Modules\Mpr\Filament\Resources\MPRs\Pages\ListMPRS;
+use App\Modules\Mpr\Filament\Resources\MPRs\Schemas\MPRForm;
+use App\Modules\Mpr\Filament\Resources\MPRs\Tables\MPRSTable;
+use App\Modules\Mpr\Models\MPR;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

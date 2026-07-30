@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\MPRs\Schemas;
+namespace App\Modules\Mpr\Filament\Resources\MPRs\Schemas;
 
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;

@@ -78,6 +78,11 @@ return [
         'description' => 'Monthly progress reports and the comparison export.',
         'requires' => [],
         'licensed_by_default' => false,
+
+        // Physically moved to app/Modules/Mpr. The plugin registers the module's
+        // Filament classes with the panel; the service provider (listed in
+        // bootstrap/providers.php) carries its policies and routes.
+        'plugin' => \App\Modules\Mpr\MprPlugin::class,
     ],
 
 ];

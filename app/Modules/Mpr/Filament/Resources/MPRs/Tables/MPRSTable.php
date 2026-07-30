@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\MPRs\Tables;
+namespace App\Modules\Mpr\Filament\Resources\MPRs\Tables;
 
-use App\Models\MPR;
+use App\Modules\Mpr\Models\MPR;
 use App\Models\User;
-use App\Services\MprPdfService;
+use App\Modules\Mpr\Services\MprPdfService;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use Filament\Actions\Action;

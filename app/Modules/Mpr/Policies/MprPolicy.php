@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Policies;
+namespace App\Modules\Mpr\Policies;
 
 use App\Models\Mpr;
 use App\Models\User;
