@@ -298,7 +298,9 @@ class Modules
 
             CompanyModule::updateOrCreate(
                 ['company_id' => $companyId, 'module' => $module],
-                ['licensed' => $default, 'enabled' => $default],
+                // enabled stays NULL for anything not licensed by default: the
+                // company has not chosen yet, so the first grant switches it on.
+                ['licensed' => $default, 'enabled' => $default ?: null],
             );
         }
 
@@ -337,10 +339,14 @@ class Modules
         foreach (static::registry() as $module => $definition) {
             $row = $rows[$module] ?? null;
             $default = (bool) ($definition['licensed_by_default'] ?? false);
+            $licensed = $row?->licensed ?? $default;
 
             $state[$module] = [
-                'licensed' => $row?->licensed ?? $default,
-                'enabled' => $row?->enabled ?? $default,
+                'licensed' => $licensed,
+                // A licensed module the company has never made a choice about
+                // reads as on: a grant is meant to light the module up, and only
+                // an explicit false means they switched it off themselves.
+                'enabled' => $row?->enabled ?? ($licensed ? true : $default),
             ];
         }
 

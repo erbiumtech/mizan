@@ -4,8 +4,11 @@ namespace App\Filament\Resources\Companies\Schemas;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Support\Modules;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class CompanyForm
@@ -37,6 +40,24 @@ class CompanyForm
                 ->disabled()
                 ->dehydrated(false)
                 ->visible(fn (?Company $record) => $record !== null),
+
+            // Licensing: what this company has bought. The company's own
+            // Administrator then chooses which of these are switched on, on the
+            // tenant-side Modules page — two flags, two owners.
+            //
+            // Only on edit, and only for super admins: a company admin granting
+            // themselves a module would be a billing hole. CompanyResource is
+            // already super-admin-only, so this is defence in depth.
+            Section::make('Licensed modules')
+                ->description('Modules this company has bought. Revoking one hides it immediately but keeps their own on/off choice, so re-granting restores what they had. Core is always included.')
+                ->visible(fn (?Company $record) => $record !== null && (auth()->user()?->isSuperAdmin() ?? false))
+                ->columns(2)
+                ->schema(array_map(
+                    fn (string $module) => Toggle::make("modules.{$module}")
+                        ->label(Modules::label($module))
+                        ->helperText(config("modules.{$module}.description")),
+                    array_values(array_filter(Modules::names(), fn (string $m) => ! Modules::isLocked($m))),
+                )),
         ]);
     }
 }

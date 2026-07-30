@@ -18,7 +18,18 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('module');
             $table->boolean('licensed')->default(false);
-            $table->boolean('enabled')->default(false);
+
+            // Nullable on purpose — three states, not two. NULL means the company
+            // has never made a choice, which is different from having chosen off:
+            //
+            //   NULL  -> a licence grant switches the module on, so a company does
+            //            not have to go and enable something it just paid for;
+            //   false -> the company switched it off itself, and that survives a
+            //            licence being revoked and re-granted.
+            //
+            // With a plain boolean the two are indistinguishable and one of the
+            // two behaviours has to be wrong.
+            $table->boolean('enabled')->nullable();
             $table->timestamps();
 
             $table->unique(['company_id', 'module']);
