@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Projects\RelationManagers;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;

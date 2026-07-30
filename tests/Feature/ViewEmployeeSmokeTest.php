@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Employees\Pages\ViewEmployee;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Models\Company;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;

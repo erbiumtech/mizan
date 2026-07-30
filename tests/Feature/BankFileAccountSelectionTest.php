@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Bank;
 use App\Models\Beneficiary;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payment;
 use App\Models\Payslip;
 use App\Services\SalaryBankExportService;

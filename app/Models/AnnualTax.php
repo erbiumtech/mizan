@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\Employees\Models\Employee;
 use App\Traits\Auditable;
 
 class AnnualTax extends Model

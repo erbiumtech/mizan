@@ -3,7 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Models\JournalEntry;
 use App\Modules\Inventory\Models\Product;

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Concerns;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Project;
 use App\Models\ProjectEnvironment;
 use App\Models\User;

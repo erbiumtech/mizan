@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Comment;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\JournalEntry;
 use App\Models\Payslip;
 use App\Models\User;

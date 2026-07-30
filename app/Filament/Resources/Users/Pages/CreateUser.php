@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Resources\Users\UserResource;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateUser extends CreateRecord

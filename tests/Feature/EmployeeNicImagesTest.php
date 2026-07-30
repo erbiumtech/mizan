@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Employees\Pages\ViewEmployee;
-use App\Models\Employee;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
+use App\Modules\Employees\Models\Employee;
 use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;
 use App\Support\Pdf\Pdf;
 use Illuminate\Support\Facades\Gate;

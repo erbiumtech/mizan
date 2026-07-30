@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payslip;
 use App\Services\EmployeeWithholdingTaxExport;
 use OpenSpout\Reader\XLSX\Reader;

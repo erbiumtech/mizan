@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\AnnualTaxes\Schemas;
 
 use App\Models\AnnualTax;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Select;

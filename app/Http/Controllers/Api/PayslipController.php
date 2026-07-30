@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Payslip;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\FiscalYear;
 use App\Support\Pdf\Pdf;
 use Illuminate\Support\Facades\Storage;

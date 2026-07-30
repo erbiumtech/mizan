@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Employees\Pages\ListEmployees;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;

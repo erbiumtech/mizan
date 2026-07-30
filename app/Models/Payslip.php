@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeSetting;
 use App\Notifications\PayslipRejected;
 use App\Services\PayrollPostingService;
 use App\Services\PayslipService;

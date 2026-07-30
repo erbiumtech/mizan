@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Payments\Schemas;
 
 use App\Models\Beneficiary;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payment;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;

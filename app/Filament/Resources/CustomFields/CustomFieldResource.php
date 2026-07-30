@@ -11,7 +11,7 @@ use App\Filament\Resources\CustomFields\Tables\CustomFieldsTable;
 use App\Models\Beneficiary;
 use App\Modules\Invoicing\Models\Contact;
 use App\Models\CustomField;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\FixedAsset;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Inventory\Models\Product;

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Employees\Pages\ListEmployees;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

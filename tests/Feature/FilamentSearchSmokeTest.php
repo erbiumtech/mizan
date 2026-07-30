@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\AnnualTaxes\Pages\ListAnnualTaxes;
-use App\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
+use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
 use App\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

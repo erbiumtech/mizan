@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\AnnualTaxes\Pages\CreateAnnualTax;
-use App\Filament\Resources\EmployeeSettings\Pages\CreateEmployeeSetting;
+use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\CreateEmployeeSetting;
 use App\Filament\Resources\Payslips\Pages\CreatePayslip;
 use App\Filament\Resources\Projects\Pages\CreateProject;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\User;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Select;
