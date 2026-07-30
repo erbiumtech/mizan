@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Modules\Mpr\Models\MPR;
 use App\Traits\Auditable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;

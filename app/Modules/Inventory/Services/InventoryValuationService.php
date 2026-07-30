@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Inventory\Services;
 
-use App\Models\Product;
-use App\Models\StockMovement;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\StockMovement;
 use InvalidArgumentException;
 
 /**

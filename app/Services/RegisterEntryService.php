@@ -9,7 +9,7 @@ use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
 use App\Models\Payment;
 use App\Models\PettyCashVoucher;
-use App\Models\StockMovement;
+use App\Modules\Inventory\Models\StockMovement;
 use App\Models\TransactionType;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

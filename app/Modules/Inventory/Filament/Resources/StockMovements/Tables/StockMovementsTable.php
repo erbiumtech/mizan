@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\StockMovements\Tables;
+namespace App\Modules\Inventory\Filament\Resources\StockMovements\Tables;
 
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;

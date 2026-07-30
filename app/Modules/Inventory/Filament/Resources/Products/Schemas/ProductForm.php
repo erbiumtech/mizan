@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\Products\Schemas;
+namespace App\Modules\Inventory\Filament\Resources\Products\Schemas;
 
 use App\Filament\Support\CustomFieldsSchema;
-use App\Models\Product;
+use App\Modules\Inventory\Models\Product;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;

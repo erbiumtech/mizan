@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
-use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\FiscalYear;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
 use App\Models\JournalEntry;
-use App\Models\StockMovement;
 use App\Models\User;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Services\InventoryValuationService;
+use App\Support\ModuleMap;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

@@ -61,6 +61,7 @@ return [
         'description' => 'Products and stock movements, valued through Accounting.',
         'requires' => ['accounting'],
         'licensed_by_default' => false,
+        'plugin' => \App\Modules\Inventory\InventoryPlugin::class,
     ],
 
     'projects' => [

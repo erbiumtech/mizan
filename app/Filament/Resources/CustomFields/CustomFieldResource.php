@@ -14,7 +14,7 @@ use App\Models\CustomField;
 use App\Models\Employee;
 use App\Models\FixedAsset;
 use App\Models\Invoice;
-use App\Models\Product;
+use App\Modules\Inventory\Models\Product;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

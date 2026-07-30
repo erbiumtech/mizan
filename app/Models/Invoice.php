@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use App\Support\ModuleMap;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Support\ModuleMap;
 use App\Traits\Auditable;
 use Illuminate\Support\Carbon;
 

@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Inventory\Services;
 
 use App\Models\Account;
 use App\Models\JournalEntry;
-use App\Models\Product;
-use App\Models\StockMovement;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Services\JournalEntryService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 

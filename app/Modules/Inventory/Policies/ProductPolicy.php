@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Policies;
+namespace App\Modules\Inventory\Policies;
 
-use App\Models\Product;
+use App\Modules\Inventory\Models\Product;
 use App\Models\User;
 
 class ProductPolicy

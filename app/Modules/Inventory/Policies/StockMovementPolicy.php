@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Policies;
+namespace App\Modules\Inventory\Policies;
 
-use App\Models\StockMovement;
+use App\Modules\Inventory\Models\StockMovement;
 use App\Models\User;
 
 class StockMovementPolicy

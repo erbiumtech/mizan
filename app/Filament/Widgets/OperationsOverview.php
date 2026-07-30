@@ -6,7 +6,7 @@ use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Models\Employee;
 use App\Models\Invoice;
 use App\Models\JournalEntry;
-use App\Models\Product;
+use App\Modules\Inventory\Models\Product;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
