@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Modules\Invoicing\Models\Contact;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\User;
 use Database\Seeders\CompanySeeder;
 use Database\Seeders\ContactSeeder;

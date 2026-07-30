@@ -3,7 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
 use Filament\Widgets\ChartWidget;

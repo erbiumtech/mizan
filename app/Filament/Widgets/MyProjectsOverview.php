@@ -4,7 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Filament\Resources\Projects\ProjectResource;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Project;
 use App\Models\ProjectEnvironment;
 use Filament\Tables\Columns\TextColumn;

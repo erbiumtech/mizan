@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payment;
 use Illuminate\Database\Eloquent\Builder;
 use OpenSpout\Common\Entity\Row;

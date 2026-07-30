@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
-use App\Models\EmployeeSetting;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeSetting;
 use App\Models\Payslip;
 use App\Models\User;
 use Tests\AccountingTestCase;

@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Pages\BankPaymentFile;
 use App\Filament\Pages\FbrTaxFile;
 use App\Filament\Pages\SalaryBankFile;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
 use App\Models\User;

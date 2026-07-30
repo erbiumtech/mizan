@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\EmployeeSetting;
+use App\Modules\Employees\Models\EmployeeSetting;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
 use App\Support\Pdf\Pdf;

@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\CompanyModule;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\User;
 use App\Multitenancy\Tasks\SetPermissionsTeamIdTask;
 use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;

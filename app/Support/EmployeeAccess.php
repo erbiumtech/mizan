@@ -3,7 +3,7 @@
 namespace App\Support;
 
 use App\Models\Company;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;

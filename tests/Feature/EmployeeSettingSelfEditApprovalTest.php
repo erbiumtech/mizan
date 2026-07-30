@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\EmployeeSettings\Pages\EditEmployeeSetting;
-use App\Models\Employee;
-use App\Models\EmployeeChangeRequest;
-use App\Models\EmployeeSetting;
+use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\EditEmployeeSetting;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
+use App\Modules\Employees\Models\EmployeeSetting;
 use App\Models\User;
 use App\Notifications\EmployeeChangeRequestSubmitted;
 use Illuminate\Support\Facades\Notification;

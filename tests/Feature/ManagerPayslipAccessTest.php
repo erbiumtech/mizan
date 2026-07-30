@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payslip;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;

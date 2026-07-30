@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payment;
 use App\Models\TransactionType;
 use App\Services\PaymentDetailsExport;

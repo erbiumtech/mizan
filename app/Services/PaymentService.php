@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Support\ModuleMap;
 use App\Models\Account;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\FiscalYear;
 use App\Models\Payment;
 use App\Models\Payslip;

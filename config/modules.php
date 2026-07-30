@@ -33,6 +33,7 @@ return [
         'description' => 'Employee records, change requests and per-employee settings.',
         'requires' => [],
         'licensed_by_default' => false,
+        'plugin' => \App\Modules\Employees\EmployeesPlugin::class,
     ],
 
     'payroll' => [

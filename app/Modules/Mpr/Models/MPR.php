@@ -2,7 +2,7 @@
 
 namespace App\Modules\Mpr\Models;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\TenantModel as Model;
 use App\Models\User;
 use App\Traits\Auditable;

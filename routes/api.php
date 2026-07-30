@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\EmployeeController;
 use App\Modules\Mpr\Http\Controllers\MprController;
 use App\Http\Controllers\Api\PayslipController;
 use App\Http\Controllers\Api\AccountController;
@@ -18,10 +17,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // answer, so check the shipped builds before revoking a licence in production.
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Employee Profile Route
-    Route::middleware('module:employees')->group(function () {
-        Route::get('/my-profile', [EmployeeController::class, 'myProfile']);
-    });
+    // Employee profile lives in app/Modules/Employees/routes/api.php.
 
     // MPR lives in app/Modules/Mpr/routes/api.php, loaded by its own provider.
 

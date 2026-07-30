@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
-use App\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
-use App\Models\Employee;
-use App\Models\EmployeeSetting;
+use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
+use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeSetting;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;

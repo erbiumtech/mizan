@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Payments\Tables;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\Payment;
 use App\Services\PaymentDetailsExport;
 use App\Services\PaymentService;

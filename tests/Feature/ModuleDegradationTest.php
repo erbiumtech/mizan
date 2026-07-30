@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\CompanyModule;
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Models\JournalEntry;
 use App\Models\Payslip;
 use App\Models\User;
-use App\Models\EmployeeSetting;
+use App\Modules\Employees\Models\EmployeeSetting;
 use App\Support\Modules;
 use Tests\AccountingTestCase;
 

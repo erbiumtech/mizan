@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Employees\Pages\ViewEmployee;
-use App\Filament\Resources\Employees\RelationManagers\ProjectsRelationManager;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
+use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\ProjectsRelationManager;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\RelationManagers\EmployeesRelationManager;
 use App\Models\User;

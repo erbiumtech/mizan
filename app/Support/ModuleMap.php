@@ -49,9 +49,9 @@ final class ModuleMap
             'App\Models\Setting' => \App\Models\Setting::class,
         ],
         'employees' => [
-            'App\Models\Employee' => \App\Models\Employee::class,
-            'App\Models\EmployeeChangeRequest' => \App\Models\EmployeeChangeRequest::class,
-            'App\Models\EmployeeSetting' => \App\Models\EmployeeSetting::class,
+            'App\Models\Employee' => \App\Modules\Employees\Models\Employee::class,
+            'App\Models\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
+            'App\Models\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
         ],
         'payroll' => [
             'App\Models\Payslip' => \App\Models\Payslip::class,
@@ -110,9 +110,9 @@ final class ModuleMap
             'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Filament\Resources\FiscalYears\FiscalYearResource::class,
         ],
         'employees' => [
-            'App\Filament\Resources\Employees\EmployeeResource' => \App\Filament\Resources\Employees\EmployeeResource::class,
-            'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => \App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
-            'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
+            'App\Filament\Resources\Employees\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
+            'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
+            'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
         ],
         'payroll' => [
             'App\Filament\Resources\Payslips\PayslipResource' => \App\Filament\Resources\Payslips\PayslipResource::class,
