@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\JournalEntry;
 use App\Models\Payslip;
@@ -87,7 +88,7 @@ class PayrollPostingService
             'entry_date' => $this->entryDate($payslip),
             'memo' => "Payroll {$payslip->month} — {$employeeName}",
             'fiscal_year_id' => $payslip->fiscal_year_id,
-            'source_type' => Payslip::class,
+            'source_type' => ModuleMap::alias(Payslip::class),
             'source_id' => $payslip->id,
         ], $lines);
 
@@ -110,7 +111,7 @@ class PayrollPostingService
      */
     public function unwindForPayslip(Payslip $payslip): void
     {
-        $entries = JournalEntry::where('source_type', Payslip::class)
+        $entries = JournalEntry::where('source_type', ModuleMap::alias(Payslip::class))
             ->where('source_id', $payslip->id)
             ->where('entry_type', '!=', 'reversing')
             ->get();

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\FiscalYear;
 use App\Models\JournalEntry;
@@ -186,7 +187,7 @@ class FiscalYearClosingService
             'entry_type' => 'closing',
             'memo' => "Year-end close {$year->name}: profit and loss rolled to Retained Earnings",
             'fiscal_year_id' => $year->getKey(),
-            'source_type' => FiscalYear::class,
+            'source_type' => ModuleMap::alias(FiscalYear::class),
             'source_id' => $year->getKey(),
         ], $lines);
 
@@ -211,7 +212,7 @@ class FiscalYearClosingService
     {
         return JournalEntry::query()
             ->where('entry_type', 'closing')
-            ->where('source_type', FiscalYear::class)
+            ->where('source_type', ModuleMap::alias(FiscalYear::class))
             ->where('source_id', $year->getKey())
             ->where('is_posted', true)
             ->whereNotExists(function ($query): void {

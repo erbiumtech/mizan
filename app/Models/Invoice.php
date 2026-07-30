@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ModuleMap;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
@@ -95,7 +96,7 @@ class Invoice extends Model
             InvoiceLine::class,
             'invoice_id',
             'source_id'
-        )->where('stock_movements.source_type', InvoiceLine::class);
+        )->where('stock_movements.source_type', ModuleMap::alias(InvoiceLine::class));
     }
 
     public function isDraft(): bool

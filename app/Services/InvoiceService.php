@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\FiscalYear;
 use App\Models\Invoice;
@@ -278,7 +279,7 @@ class InvoiceService
                 'movement_date' => $invoice->invoice_date->toDateString(),
                 'reference' => $invoice->invoice_number,
                 'journal_entry_id' => $entry->id,
-                'source_type' => InvoiceLine::class,
+                'source_type' => ModuleMap::alias(InvoiceLine::class),
                 'source_id' => $line->id,
             ]);
         }
@@ -291,7 +292,7 @@ class InvoiceService
             'movement_date' => $invoice->invoice_date->toDateString(),
             'reference' => $invoice->invoice_number,
             'journal_entry_id' => $entry->id,
-            'source_type' => InvoiceLine::class,
+            'source_type' => ModuleMap::alias(InvoiceLine::class),
             'source_id' => $line->id,
         ]);
     }

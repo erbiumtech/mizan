@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\FixedAsset;
 use App\Models\JournalEntry;
@@ -77,7 +78,7 @@ class DepreciationService
             'entry_type' => 'adjusting',
             'memo' => "Depreciation {$monthEnd->format('M Y')} — {$asset->asset_code} {$asset->name}",
             'fiscal_year_id' => $fiscalYearId,
-            'source_type' => FixedAsset::class,
+            'source_type' => ModuleMap::alias(FixedAsset::class),
             'source_id' => $asset->id,
         ], [
             ['account_id' => $this->accountId('5990'), 'debit_amount' => $amount, 'description' => $asset->asset_code],
@@ -127,7 +128,7 @@ class DepreciationService
             'entry_date' => $date->toDateString(),
             'entry_type' => 'general',
             'memo' => "Disposal of {$asset->asset_code} {$asset->name}",
-            'source_type' => FixedAsset::class,
+            'source_type' => ModuleMap::alias(FixedAsset::class),
             'source_id' => $asset->id,
         ], $lines);
 

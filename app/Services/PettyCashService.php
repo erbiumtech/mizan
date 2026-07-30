@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\Beneficiary;
 use App\Models\JournalEntryLine;
@@ -285,7 +286,7 @@ class PettyCashService
         }
 
         return Payment::create([
-            'payable_type' => Beneficiary::class,
+            'payable_type' => ModuleMap::alias(Beneficiary::class),
             'payable_id' => $custodian->id,
             'transaction_type_id' => $type->id,
             'company_bank_account_id' => ($type->defaultCompanyBankAccount()
