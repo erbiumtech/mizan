@@ -2,6 +2,7 @@
 
 namespace App\Filament\Concerns;
 
+use App\Support\ModuleMap;
 use App\Models\TableView;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
@@ -38,10 +39,19 @@ trait HasSavedViews
         }
     }
 
-    /** Stable key tying views to this resource. */
+    /**
+     * Stable key tying views to this resource.
+     *
+     * Deliberately the resource's *alias* rather than its current class name:
+     * `table_views.resource` holds this string, so returning the live FQCN would
+     * orphan every saved view of every user the day the resource moves into its
+     * module directory.
+     */
     protected function savedViewsKey(): string
     {
-        return method_exists($this, 'getResource') ? static::getResource() : static::class;
+        return ModuleMap::alias(
+            method_exists($this, 'getResource') ? static::getResource() : static::class
+        );
     }
 
     /**

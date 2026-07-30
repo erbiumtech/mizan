@@ -99,53 +99,53 @@ final class ModuleMap
      */
     private const RESOURCES = [
         'core' => [
-            \App\Filament\Resources\Users\UserResource::class,
-            \App\Filament\Resources\Roles\RoleResource::class,
-            \App\Filament\Resources\Permissions\PermissionResource::class,
-            \App\Filament\Resources\Companies\CompanyResource::class,
-            \App\Filament\Resources\TableViews\TableViewResource::class,
-            \App\Filament\Resources\CustomFields\CustomFieldResource::class,
-            \App\Filament\Resources\ActivityLogs\ActivityLogResource::class,
-            \App\Filament\Resources\Comments\CommentResource::class,
-            \App\Filament\Resources\FiscalYears\FiscalYearResource::class,
+            'App\Filament\Resources\Users\UserResource' => \App\Filament\Resources\Users\UserResource::class,
+            'App\Filament\Resources\Roles\RoleResource' => \App\Filament\Resources\Roles\RoleResource::class,
+            'App\Filament\Resources\Permissions\PermissionResource' => \App\Filament\Resources\Permissions\PermissionResource::class,
+            'App\Filament\Resources\Companies\CompanyResource' => \App\Filament\Resources\Companies\CompanyResource::class,
+            'App\Filament\Resources\TableViews\TableViewResource' => \App\Filament\Resources\TableViews\TableViewResource::class,
+            'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Filament\Resources\CustomFields\CustomFieldResource::class,
+            'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Filament\Resources\ActivityLogs\ActivityLogResource::class,
+            'App\Filament\Resources\Comments\CommentResource' => \App\Filament\Resources\Comments\CommentResource::class,
+            'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Filament\Resources\FiscalYears\FiscalYearResource::class,
         ],
         'employees' => [
-            \App\Filament\Resources\Employees\EmployeeResource::class,
-            \App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
-            \App\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
+            'App\Filament\Resources\Employees\EmployeeResource' => \App\Filament\Resources\Employees\EmployeeResource::class,
+            'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => \App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
+            'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
         ],
         'payroll' => [
-            \App\Filament\Resources\Payslips\PayslipResource::class,
-            \App\Filament\Resources\SalarySlabs\SalarySlabResource::class,
-            \App\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
+            'App\Filament\Resources\Payslips\PayslipResource' => \App\Filament\Resources\Payslips\PayslipResource::class,
+            'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Filament\Resources\SalarySlabs\SalarySlabResource::class,
+            'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
         ],
         'accounting' => [
-            \App\Filament\Resources\Accounts\AccountResource::class,
-            \App\Filament\Resources\JournalEntries\JournalEntryResource::class,
-            \App\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
-            \App\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
-            \App\Filament\Resources\Banks\BankResource::class,
-            \App\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource::class,
-            \App\Filament\Resources\Beneficiaries\BeneficiaryResource::class,
-            \App\Filament\Resources\Payments\PaymentResource::class,
-            \App\Filament\Resources\FixedAssets\FixedAssetResource::class,
-            \App\Filament\Resources\BankStatements\BankStatementResource::class,
-            \App\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
+            'App\Filament\Resources\Accounts\AccountResource' => \App\Filament\Resources\Accounts\AccountResource::class,
+            'App\Filament\Resources\JournalEntries\JournalEntryResource' => \App\Filament\Resources\JournalEntries\JournalEntryResource::class,
+            'App\Filament\Resources\JournalEntryLines\JournalEntryLineResource' => \App\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
+            'App\Filament\Resources\TransactionTypes\TransactionTypeResource' => \App\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
+            'App\Filament\Resources\Banks\BankResource' => \App\Filament\Resources\Banks\BankResource::class,
+            'App\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource' => \App\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource::class,
+            'App\Filament\Resources\Beneficiaries\BeneficiaryResource' => \App\Filament\Resources\Beneficiaries\BeneficiaryResource::class,
+            'App\Filament\Resources\Payments\PaymentResource' => \App\Filament\Resources\Payments\PaymentResource::class,
+            'App\Filament\Resources\FixedAssets\FixedAssetResource' => \App\Filament\Resources\FixedAssets\FixedAssetResource::class,
+            'App\Filament\Resources\BankStatements\BankStatementResource' => \App\Filament\Resources\BankStatements\BankStatementResource::class,
+            'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => \App\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
         ],
         'invoicing' => [
-            \App\Filament\Resources\Contacts\ContactResource::class,
-            \App\Filament\Resources\Invoices\InvoiceResource::class,
-            \App\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
+            'App\Filament\Resources\Contacts\ContactResource' => \App\Filament\Resources\Contacts\ContactResource::class,
+            'App\Filament\Resources\Invoices\InvoiceResource' => \App\Filament\Resources\Invoices\InvoiceResource::class,
+            'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
         ],
         'inventory' => [
-            \App\Filament\Resources\Products\ProductResource::class,
-            \App\Filament\Resources\StockMovements\StockMovementResource::class,
+            'App\Filament\Resources\Products\ProductResource' => \App\Filament\Resources\Products\ProductResource::class,
+            'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Filament\Resources\StockMovements\StockMovementResource::class,
         ],
         'projects' => [
-            \App\Filament\Resources\Projects\ProjectResource::class,
+            'App\Filament\Resources\Projects\ProjectResource' => \App\Filament\Resources\Projects\ProjectResource::class,
         ],
         'mpr' => [
-            \App\Filament\Resources\MPRs\MPRResource::class,
+            'App\Filament\Resources\MPRs\MPRResource' => \App\Filament\Resources\MPRs\MPRResource::class,
         ],
     ];
 
@@ -156,22 +156,22 @@ final class ModuleMap
      */
     private const PAGES = [
         'core' => [
-            \App\Filament\Pages\CompanySettings::class,
-            \App\Filament\Pages\Modules::class,
-            \App\Filament\Pages\Auth\EditProfile::class,
-            \App\Filament\Pages\Tenancy\RegisterCompany::class,
+            'App\Filament\Pages\CompanySettings' => \App\Filament\Pages\CompanySettings::class,
+            'App\Filament\Pages\Modules' => \App\Filament\Pages\Modules::class,
+            'App\Filament\Pages\Auth\EditProfile' => \App\Filament\Pages\Auth\EditProfile::class,
+            'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
         'payroll' => [
-            \App\Filament\Pages\SalaryBankFile::class,
-            \App\Filament\Pages\FbrTaxFile::class,
+            'App\Filament\Pages\SalaryBankFile' => \App\Filament\Pages\SalaryBankFile::class,
+            'App\Filament\Pages\FbrTaxFile' => \App\Filament\Pages\FbrTaxFile::class,
         ],
         'accounting' => [
-            \App\Filament\Pages\AccountRegister::class,
-            \App\Filament\Pages\TrialBalance::class,
-            \App\Filament\Pages\ProfitAndLoss::class,
-            \App\Filament\Pages\GnuCashImport::class,
-            \App\Filament\Pages\PettyCashBook::class,
-            \App\Filament\Pages\BankPaymentFile::class,
+            'App\Filament\Pages\AccountRegister' => \App\Filament\Pages\AccountRegister::class,
+            'App\Filament\Pages\TrialBalance' => \App\Filament\Pages\TrialBalance::class,
+            'App\Filament\Pages\ProfitAndLoss' => \App\Filament\Pages\ProfitAndLoss::class,
+            'App\Filament\Pages\GnuCashImport' => \App\Filament\Pages\GnuCashImport::class,
+            'App\Filament\Pages\PettyCashBook' => \App\Filament\Pages\PettyCashBook::class,
+            'App\Filament\Pages\BankPaymentFile' => \App\Filament\Pages\BankPaymentFile::class,
         ],
     ];
 
@@ -182,22 +182,22 @@ final class ModuleMap
      */
     private const WIDGETS = [
         'payroll' => [
-            \App\Filament\Widgets\PayrollByEmployeeChart::class,
+            'App\Filament\Widgets\PayrollByEmployeeChart' => \App\Filament\Widgets\PayrollByEmployeeChart::class,
         ],
         'accounting' => [
-            \App\Filament\Widgets\AccountBalancesOverview::class,
-            \App\Filament\Widgets\CashFlowChart::class,
-            \App\Filament\Widgets\OperationsOverview::class,
+            'App\Filament\Widgets\AccountBalancesOverview' => \App\Filament\Widgets\AccountBalancesOverview::class,
+            'App\Filament\Widgets\CashFlowChart' => \App\Filament\Widgets\CashFlowChart::class,
+            'App\Filament\Widgets\OperationsOverview' => \App\Filament\Widgets\OperationsOverview::class,
         ],
         'projects' => [
             // Nested under the resource rather than in Filament/Widgets — found by
             // ModuleCoverageTest, which is exactly the kind of class a map written
             // by hand from a directory listing misses.
-            \App\Filament\Resources\Projects\Widgets\ProjectHealthChart::class,
-            \App\Filament\Widgets\MyProjectsOverview::class,
-            \App\Filament\Widgets\EnvironmentHealthOverview::class,
-            \App\Filament\Widgets\EnvironmentIncidentsTable::class,
-            \App\Filament\Widgets\CertificateExpiryTable::class,
+            'App\Filament\Resources\Projects\Widgets\ProjectHealthChart' => \App\Filament\Resources\Projects\Widgets\ProjectHealthChart::class,
+            'App\Filament\Widgets\MyProjectsOverview' => \App\Filament\Widgets\MyProjectsOverview::class,
+            'App\Filament\Widgets\EnvironmentHealthOverview' => \App\Filament\Widgets\EnvironmentHealthOverview::class,
+            'App\Filament\Widgets\EnvironmentIncidentsTable' => \App\Filament\Widgets\EnvironmentIncidentsTable::class,
+            'App\Filament\Widgets\CertificateExpiryTable' => \App\Filament\Widgets\CertificateExpiryTable::class,
         ],
     ];
 
@@ -233,6 +233,36 @@ final class ModuleMap
     public static function morphMap(): array
     {
         return array_merge(...array_values(self::MODELS));
+    }
+
+    /**
+     * The stable string to store for a class, rather than the class itself.
+     *
+     * Anywhere a class name is written into a column, this is what goes in:
+     * `journal_entries.source_type`, `stock_movements.source_type`,
+     * `payments.payable_type`, `custom_fields.model_type`, `table_views.resource`.
+     *
+     * Those are plain column writes, not morph relations, so enforceMorphMap()
+     * does not cover them — `where('source_type', Payslip::class)` would simply
+     * stop matching the day Payslip moves into app/Modules/Payroll, and
+     * unwindForPayslip would quietly find no entries to reverse. Storing the
+     * alias instead keeps every existing row valid across the move.
+     *
+     * Unmapped classes return unchanged, so this is safe to wrap around anything.
+     */
+    public static function alias(string $class): string
+    {
+        foreach ([self::MODELS, self::RESOURCES, self::PAGES, self::WIDGETS] as $table) {
+            foreach ($table as $classes) {
+                $alias = array_search($class, $classes, true);
+
+                if ($alias !== false) {
+                    return $alias;
+                }
+            }
+        }
+
+        return $class;
     }
 
     /**

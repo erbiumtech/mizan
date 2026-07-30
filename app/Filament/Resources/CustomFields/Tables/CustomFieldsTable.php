@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomFields\Tables;
 
+use App\Support\ModuleMap;
 use App\Filament\Resources\CustomFields\CustomFieldResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -20,7 +21,7 @@ class CustomFieldsTable
             ->columns([
                 TextColumn::make('model_type')
                     ->label('Applies to')
-                    ->formatStateUsing(fn (string $state) => CustomFieldResource::MODELS[$state] ?? class_basename($state))
+                    ->formatStateUsing(fn (string $state) => CustomFieldResource::modelOptions()[$state] ?? class_basename($state))
                     ->sortable(),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('code')->searchable(),
@@ -31,7 +32,7 @@ class CustomFieldsTable
             ])
             ->defaultSort('sort')
             ->filters([
-                SelectFilter::make('model_type')->label('Applies to')->options(CustomFieldResource::MODELS),
+                SelectFilter::make('model_type')->label('Applies to')->options(CustomFieldResource::modelOptions()),
             ])
             ->recordActions([
                 EditAction::make(),

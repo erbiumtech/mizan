@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomFields\Schemas;
 
+use App\Support\ModuleMap;
 use App\Filament\Resources\CustomFields\CustomFieldResource;
 use App\Models\CustomField;
 use Filament\Forms\Components\Select;
@@ -19,7 +20,7 @@ class CustomFieldForm
         return $schema->components([
             Select::make('model_type')
                 ->label('Applies to')
-                ->options(CustomFieldResource::MODELS)
+                ->options(CustomFieldResource::modelOptions())
                 ->required(),
 
             TextInput::make('name')

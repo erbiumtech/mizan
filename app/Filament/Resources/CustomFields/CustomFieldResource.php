@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CustomFields;
 
+use App\Support\ModuleMap;
 use App\Filament\Resources\CustomFields\Pages\CreateCustomField;
 use App\Filament\Resources\CustomFields\Pages\EditCustomField;
 use App\Filament\Resources\CustomFields\Pages\ListCustomFields;
@@ -32,6 +33,26 @@ class CustomFieldResource extends Resource
         Beneficiary::class => 'Beneficiaries',
         FixedAsset::class => 'Fixed Assets',
     ];
+
+    /**
+     * The same list keyed by each model's stable alias, which is what
+     * `custom_fields.model_type` stores — a definition must keep pointing at the
+     * right model after that model moves into its module directory. Used for the
+     * Select options, the filter and the column label, so nothing writes a raw
+     * class name into the column.
+     *
+     * @return array<string, string>
+     */
+    public static function modelOptions(): array
+    {
+        $options = [];
+
+        foreach (self::MODELS as $class => $label) {
+            $options[ModuleMap::alias($class)] = $label;
+        }
+
+        return $options;
+    }
 
     protected static ?string $model = CustomField::class;
 

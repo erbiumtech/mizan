@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ModuleMap;
 use App\Models\Account;
 use App\Models\Employee;
 use App\Models\FiscalYear;
@@ -42,7 +43,7 @@ class PaymentService
             $payment = Payment::firstOrCreate(
                 ['payslip_id' => $payslip->id],
                 [
-                    'payable_type' => Employee::class,
+                    'payable_type' => ModuleMap::alias(Employee::class),
                     'payable_id' => $payslip->employee_id,
                     'transaction_type_id' => $type->id,
                     'company_bank_account_id' => $defaultAccount?->id,
