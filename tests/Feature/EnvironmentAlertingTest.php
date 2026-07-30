@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\ProjectEnvironment;
-use App\Models\ProjectEnvironmentIncident;
+use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Modules\Projects\Models\ProjectEnvironmentIncident;
 use App\Models\User;
-use App\Notifications\EnvironmentDown;
-use App\Notifications\EnvironmentRecovered;
-use App\Services\EnvironmentHealthChecker;
+use App\Modules\Projects\Notifications\EnvironmentDown;
+use App\Modules\Projects\Notifications\EnvironmentRecovered;
+use App\Modules\Projects\Services\EnvironmentHealthChecker;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
