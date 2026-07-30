@@ -1,5 +1,9 @@
 # Module system: plan
 
+> **Built.** All seven phases are implemented across 16 commits (`afb4b48`…`1e1825e`),
+> 565 tests passing. Read **§13 As built** first — it records where reality
+> differed from this plan, including one finding that contradicts §7.
+
 Two things, decided:
 
 1. **Physical modules.** Code moves into `app/Modules/{Module}/`, one service
@@ -454,3 +458,96 @@ classes as strings, and a mistake there takes down login for every company.
   unauthenticated and already gated by a per-company setting. Projects being
   licensed and enabled is a *second* condition, not a replacement — both must be
   true for the page to answer.
+
+## 13. As built
+
+Seven phases, 16 commits, 565 tests. Where this plan was wrong or incomplete:
+
+### The dependency graph in §7 does not match the code
+
+The boundary lint (phase 6) found **88 imports across 15 module pairs** that no
+`requires` entry declares:
+
+```
+accounting -> employees, payroll, invoicing, inventory
+core       -> accounting, payroll, invoicing, inventory, employees, mpr
+employees  -> projects, accounting
+invoicing  -> inventory
+mpr        -> employees
+payroll    -> accounting        (by design, guarded)
+```
+
+**Accounting is not the base of the graph.** `Payment.payable` may be an
+Employee, `PaymentService` settles payslips, `OperationsOverview` aggregates
+every module, `RegisterEntryService` reaches into invoices and stock — so
+Accounting sits in a *cycle* with Invoicing and Inventory, which declare it as a
+requirement. Core reaches into six modules because it owns the surfaces that
+enumerate domain models (the CustomField list, payroll-account validation,
+the fiscal-year close action, `User::mprs()`).
+
+These are recorded as `KNOWN_COUPLINGS` in `ModuleBoundaryTest`, not converted
+into `requires`. **An import and a licence dependency are different things**:
+every module is always deployed, so an import is harmless while the other module
+is unlicensed *provided the call site degrades*. Declaring the requirement to
+satisfy a lint would make Payroll unsellable without Accounting — exactly what
+the guarded degradation exists to avoid. The list is asserted in both directions,
+so it can neither grow nor keep stale entries.
+
+Breaking the debt needs interfaces, events or a registry. Until then the graph
+cannot get worse without someone deciding to make it worse.
+
+### Six stored-class-string columns, not five
+
+§4 missed `journal_entries.source_type` and `stock_movements.source_type`, and
+misjudged the others: these are plain column writes, so `enforceMorphMap()` does
+not cover them at all. Every such column now normalises to the alias **in a
+mutator**, and reads go through `JournalEntry::forSource()` or
+`whereMorphedTo()` — normalising at the boundary is what makes the guarantee hold
+for callers nobody has written yet.
+
+### `enabled` is a three-state column
+
+A licence grant must light the module up, and a re-grant must restore the
+company's own choice. Those need `NULL` (never chosen) distinct from `false`
+(chosen off); with a plain boolean one of the two behaviours has to be wrong.
+
+### Requirements propagate at read time
+
+§7 enforced dependencies only in the activation form, but a licence revoke does
+not go through that form — revoking Accounting left Invoicing enabled and
+reachable, free to post journal entries into a module the company no longer had.
+`Modules::enabledFor()` now checks requirements recursively.
+
+### Two ordering problems the plan did not anticipate
+
+- `spatie/laravel-permission` registers its **own** `Gate::before` during boot,
+  returning true as soon as the user holds the permission. Before-callbacks run
+  in registration order, so the module deny had to move into `register()` — a
+  boot-time registration never runs for exactly the users it must stop.
+- The dependency cascade cannot work from the desired state alone. Enabling
+  Invoicing while Accounting is off and disabling Accounting while Invoicing is
+  on produce the identical end state and must resolve in opposite directions.
+
+### What the move actually broke
+
+Namespace moves break references in **both** directions, and none of it is a
+compile error: the moved file's references to its old neighbours, and every file
+left behind that referred to the moved class the same way. Also: Laravel resolves
+factory names *and* factory-to-model names through the model namespace; commands
+are auto-discovered only from `app/Console/Commands`; and `App\Models\Company` is
+a prefix of `App\Models\CompanyModule`.
+
+The worst one was silent and green. `ModuleCoverageTest` discovered classes by
+scanning `app/Models` and `app/Filament` — once everything had moved, both were
+empty, so every invariant passed over nothing. Discovery now enumerates
+`app/Modules/*`, and a test asserts the discovery itself finds classes.
+
+### Still open
+
+- **MPR imports Employee** (`belongsTo`) but declares no requirement, so it can
+  be licensed without Employees. Either declare it or confirm the relation is
+  optional at runtime.
+- **The API has no tenant resolution** (`multitenancy.tenant_finder` is null), so
+  route middleware falls back to the caller's company membership and a
+  multi-company user's request is not attributable to one company.
+- **Mobile clients** now receive 403 where those endpoints always answered.
