@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Account;
-use App\Models\Comment;
+use App\Modules\Core\Models\Comment;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Payroll\Models\Payslip;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Tests\AccountingTestCase;
 
 class AuthorizationTest extends AccountingTestCase

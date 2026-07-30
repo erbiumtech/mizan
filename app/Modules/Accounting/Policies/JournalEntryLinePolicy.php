@@ -3,7 +3,7 @@
 namespace App\Modules\Accounting\Policies;
 
 use App\Modules\Accounting\Models\JournalEntryLine;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 /**
  * Journal entry lines are the general ledger. They follow the journal entry

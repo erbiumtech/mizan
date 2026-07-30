@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Roles\Pages\EditRole;
-use App\Filament\Resources\Roles\Schemas\RoleForm;
-use App\Models\Company;
-use App\Models\CompanyModule;
-use App\Models\User;
+use App\Modules\Core\Filament\Resources\Roles\Pages\EditRole;
+use App\Modules\Core\Filament\Resources\Roles\Schemas\RoleForm;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

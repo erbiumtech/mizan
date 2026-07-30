@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Modules\Accounting\Models\Bank;
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

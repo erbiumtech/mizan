@@ -34,7 +34,7 @@ class ModuleCoverageTest extends TestCase
      */
     private const UNMAPPED_MODELS = [
         \App\Models\TenantModel::class,   // abstract base for tenant-connection models
-        \App\Models\CompanyModule::class, // the module system's own landlord state
+        \App\Modules\Core\Models\CompanyModule::class, // the module system's own landlord state
     ];
 
     public function test_every_model_is_in_the_morph_map(): void
@@ -193,8 +193,8 @@ class ModuleCoverageTest extends TestCase
         // Even with an explicit off row, Core stays available — it holds the
         // Modules page, Users and Roles, so a company could otherwise lock
         // itself out of its own administration.
-        $company = \App\Models\Company::factory()->create();
-        \App\Models\CompanyModule::updateOrCreate(
+        $company = \App\Modules\Core\Models\Company::factory()->create();
+        \App\Modules\Core\Models\CompanyModule::updateOrCreate(
             ['company_id' => $company->getKey(), 'module' => 'core'],
             ['licensed' => false, 'enabled' => false],
         );
@@ -209,7 +209,8 @@ class ModuleCoverageTest extends TestCase
      */
     private function discoverModels(): array
     {
-        return $this->classesUnder(app_path('Models'), 'App\Models')
+        return $this->sourceRoots('Models')
+            ->flatMap(fn (array $root) => $this->classesUnder($root[0], $root[1]))
             ->filter(fn (string $class) => is_subclass_of($class, Model::class))
             ->reject(fn (string $class) => (new ReflectionClass($class))->isAbstract())
             ->values()
@@ -222,7 +223,8 @@ class ModuleCoverageTest extends TestCase
     private function discoverFilamentClasses(): array
     {
         return collect(['Resources', 'Pages', 'Widgets'])
-            ->flatMap(fn (string $dir) => $this->classesUnder(app_path("Filament/{$dir}"), "App\\Filament\\{$dir}"))
+            ->flatMap(fn (string $dir) => $this->sourceRoots("Filament/{$dir}"))
+            ->flatMap(fn (array $root) => $this->classesUnder($root[0], $root[1]))
             ->filter(function (string $class) {
                 $reflection = new ReflectionClass($class);
 
@@ -265,6 +267,46 @@ class ModuleCoverageTest extends TestCase
         }
 
         return false;
+    }
+
+    /**
+     * Every place a given kind of class can live: the app-level directory and the
+     * same subdirectory inside each module.
+     *
+     * This has to enumerate app/Modules/* or these tests quietly stop testing
+     * anything. Once every class had moved, scanning only app/Models and
+     * app/Filament left both directories empty — the suite stayed green while the
+     * invariants covered nothing at all, which is a worse failure than any of the
+     * bugs they exist to catch.
+     *
+     * @return \Illuminate\Support\Collection<int, array{0: string, 1: string}>
+     */
+    private function sourceRoots(string $subdirectory): \Illuminate\Support\Collection
+    {
+        $namespaceSuffix = str_replace('/', '\\', $subdirectory);
+
+        $roots = collect([[app_path($subdirectory), 'App\\'.$namespaceSuffix]]);
+
+        foreach (File::directories(app_path('Modules')) as $moduleDir) {
+            $module = basename($moduleDir);
+
+            $roots->push([
+                $moduleDir.'/'.$subdirectory,
+                'App\\Modules\\'.$module.'\\'.$namespaceSuffix,
+            ]);
+        }
+
+        return $roots;
+    }
+
+    public function test_the_class_discovery_actually_finds_classes(): void
+    {
+        // Guards the guard. Every assertion in this file is driven by the two
+        // discovery helpers, so an empty scan would turn the whole suite into a
+        // no-op that still reports success.
+        $this->assertGreaterThan(30, count($this->discoverModels()));
+        $this->assertGreaterThan(40, count($this->discoverFilamentClasses()));
+        $this->assertNotEmpty(File::directories(app_path('Modules')));
     }
 
     /**

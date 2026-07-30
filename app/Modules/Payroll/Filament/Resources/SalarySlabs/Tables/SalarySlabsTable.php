@@ -2,7 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\SalarySlabs\Tables;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\SalarySlab;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;

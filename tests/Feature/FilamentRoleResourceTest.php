@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Roles\Pages\CreateRole;
-use App\Filament\Resources\Roles\Pages\EditRole;
-use App\Filament\Resources\Roles\Schemas\RoleForm;
-use App\Models\User;
+use App\Modules\Core\Filament\Resources\Roles\Pages\CreateRole;
+use App\Modules\Core\Filament\Resources\Roles\Pages\EditRole;
+use App\Modules\Core\Filament\Resources\Roles\Schemas\RoleForm;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;

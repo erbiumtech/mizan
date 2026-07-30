@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;

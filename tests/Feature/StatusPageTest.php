@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Multitenancy\Tasks\SetPermissionsTeamIdTask;
 use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;
 use App\Support\TenantSettings;

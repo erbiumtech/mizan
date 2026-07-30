@@ -2,7 +2,7 @@
 
 namespace App\Modules\Payroll\Services;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Accounting\Support\BankFileAccount;

@@ -3,7 +3,7 @@
 namespace App\Modules\Mpr\Filament\Resources\MPRs\Tables;
 
 use App\Modules\Mpr\Models\MPR;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Modules\Mpr\Services\MprPdfService;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;

@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Console\Commands;
 
 use App\Console\Concerns\SkipsDisabledModules;
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Payroll\Services\PayrollAccountAudit;
 use Illuminate\Console\Command;
 use Spatie\Multitenancy\Commands\Concerns\TenantAware;

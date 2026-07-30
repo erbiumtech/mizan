@@ -2,8 +2,8 @@
 
 namespace Tests;
 
-use App\Models\FiscalYear;
-use App\Models\User;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Core\Models\User;
 use Database\Seeders\AccountSeeder;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Database\Seeders\FiscalYearSeeder;

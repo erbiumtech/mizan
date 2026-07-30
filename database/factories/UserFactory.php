@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -12,6 +12,13 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
+    /**
+     * Named explicitly: Laravel guesses the model from the factory's own class
+     * name and looks for App\Models\User, which no longer exists — Core's models
+     * live in app/Modules/Core/Models.
+     */
+    protected $model = User::class;
+
     /**
      * The current password being used by the factory.
      */

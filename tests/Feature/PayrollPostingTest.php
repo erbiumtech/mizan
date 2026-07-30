@@ -7,7 +7,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Payroll\Models\Payslip;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Modules\Accounting\Services\JournalEntryService;
 use Tests\AccountingTestCase;
 

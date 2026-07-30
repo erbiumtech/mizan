@@ -3,7 +3,7 @@
 namespace App\Modules\Accounting\Policies;
 
 use App\Modules\Accounting\Models\FixedAsset;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class FixedAssetPolicy
 {

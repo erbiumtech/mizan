@@ -3,9 +3,9 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 

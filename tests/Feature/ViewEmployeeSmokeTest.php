@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Employees\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;

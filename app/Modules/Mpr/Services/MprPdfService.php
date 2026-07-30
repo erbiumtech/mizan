@@ -4,7 +4,7 @@ namespace App\Modules\Mpr\Services;
 
 use Exception;
 use App\Models\Mpr;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use App\Support\Pdf\Pdf;

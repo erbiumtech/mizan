@@ -3,7 +3,7 @@
 namespace App\Filament\Concerns;
 
 use App\Support\ModuleMap;
-use App\Models\TableView;
+use App\Modules\Core\Models\TableView;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;

@@ -2,9 +2,9 @@
 
 namespace App\Support;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Employees\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 

@@ -2,9 +2,9 @@
 
 namespace Database\Seeders\Production;
 
-use App\Models\Company;
-use App\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 

@@ -2,7 +2,7 @@
 
 namespace App\Listeners;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use Filament\Events\TenantSet;
 use Spatie\Permission\PermissionRegistrar;
 

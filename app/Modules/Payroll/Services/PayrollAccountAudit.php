@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Models\Setting;
+use App\Modules\Core\Models\Setting;
 use App\Support\TenantSettings;
 
 /**

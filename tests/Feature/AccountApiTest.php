@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Account;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Laravel\Sanctum\Sanctum;
 use Tests\AccountingTestCase;
 

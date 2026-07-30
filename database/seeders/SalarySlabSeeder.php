@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\FiscalYear;
-use App\Models\SalarySlab;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Payroll\Models\SalarySlab;
 use Illuminate\Database\Seeder;
 
 class SalarySlabSeeder extends Seeder

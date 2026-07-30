@@ -3,9 +3,9 @@
 namespace App\Modules\Invoicing\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
 use App\Modules\Invoicing\Models\Invoice;

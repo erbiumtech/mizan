@@ -2,7 +2,7 @@
 
 namespace App\Modules\Payroll\Models;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 

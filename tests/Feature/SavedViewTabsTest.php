@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
-use App\Models\TableView;
-use App\Models\User;
+use App\Modules\Core\Models\TableView;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Tests\Concerns\InteractsWithTenant;

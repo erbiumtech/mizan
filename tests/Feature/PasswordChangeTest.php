@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\Auth\EditProfile;
-use App\Models\User;
+use App\Modules\Core\Filament\Pages\Auth\EditProfile;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;

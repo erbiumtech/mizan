@@ -7,7 +7,7 @@ use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Modules\Accounting\Services\BankReconciliationService;
 use App\Modules\Accounting\Services\JournalEntryService;
 use InvalidArgumentException;

@@ -2,10 +2,10 @@
 
 namespace App\Modules\Payroll\Models;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Services\PayrollPostingService;

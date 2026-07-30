@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\Payslip;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

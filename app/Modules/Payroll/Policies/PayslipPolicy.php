@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Policies;
 
 use App\Modules\Payroll\Models\Payslip;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Support\EmployeeAccess;
 
 class PayslipPolicy

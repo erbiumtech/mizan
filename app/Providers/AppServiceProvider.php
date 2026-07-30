@@ -3,9 +3,6 @@
 namespace App\Providers;
 
 use App\Listeners\SyncSpatieTenant;
-use App\Policies\ActivityLogPolicy;
-use App\Policies\PermissionPolicy;
-use App\Policies\RolePolicy;
 use App\Support\EmployeeAccess;
 use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
@@ -14,14 +11,12 @@ use App\Support\TenantSettings;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
-use Spatie\Activitylog\Models\Activity;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -87,12 +82,19 @@ class AppServiceProvider extends ServiceProvider
         // FQCN back into the data. That noise is the point.
         Relation::enforceMorphMap(ModuleMap::morphMap());
 
-        // MPR's policy is registered by MprServiceProvider, which owns that model
-        // now. The reason it was ever explicit still applies to every moved
-        // module: Laravel's guess cannot find a policy outside App\Policies.
-        Gate::policy(Activity::class, ActivityLogPolicy::class);
-        Gate::policy(Role::class, RolePolicy::class);
-        Gate::policy(Permission::class, PermissionPolicy::class);
+        // Laravel derives a factory's name from the model's namespace — for
+        // App\Modules\Core\Models\Company it looks for
+        // Database\Factories\Modules\Core\Models\CompanyFactory. Factories stay in
+        // one flat directory (the landlord/tenant split is orthogonal to modules,
+        // and there are three of them), so resolve on the class basename instead.
+        Factory::guessFactoryNamesUsing(
+            fn (string $model) => 'Database\\Factories\\'.class_basename($model).'Factory'
+        );
+
+        // Every policy is registered by the module that owns the model — see any
+        // module's ServiceProvider. Laravel's App\Models\X -> App\Policies\XPolicy
+        // guess cannot resolve a class in a module directory, and Filament reads
+        // "no policy" as "allowed", so ModuleCoverageTest asserts the coverage.
 
         // The module deny that runs ahead of both of these is registered in
         // register() — see the comment there for why the ordering matters.

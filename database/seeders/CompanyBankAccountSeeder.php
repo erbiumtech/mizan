@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Bank;
-use App\Models\CompanyBankAccount;
-use App\Models\TransactionType;
+use App\Modules\Accounting\Models\Bank;
+use App\Modules\Accounting\Models\CompanyBankAccount;
+use App\Modules\Accounting\Models\TransactionType;
 use Illuminate\Database\Seeder;
 
 class CompanyBankAccountSeeder extends Seeder

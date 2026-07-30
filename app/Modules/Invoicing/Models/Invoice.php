@@ -3,7 +3,7 @@
 namespace App\Modules\Invoicing\Models;
 
 use App\Models\Concerns\HasCustomFields;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
 use App\Modules\Inventory\Models\StockMovement;

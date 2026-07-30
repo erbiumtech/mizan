@@ -4,7 +4,7 @@ namespace App\Modules\Payroll\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\SelectsSalaryMonth;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\EmployeeWithholdingTaxExport;
 use BackedEnum;

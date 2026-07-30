@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

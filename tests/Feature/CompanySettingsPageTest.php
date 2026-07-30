@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\CompanySettings;
-use App\Models\User;
+use App\Modules\Core\Filament\Pages\CompanySettings;
+use App\Modules\Core\Models\User;
 use App\Support\TenantSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;

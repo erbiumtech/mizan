@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use Tests\AccountingTestCase;
 

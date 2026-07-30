@@ -2,7 +2,7 @@
 
 namespace App\Filament\Concerns;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
 use Carbon\Carbon;
 use Filament\Forms\Components\Select;

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
-use App\Models\CompanyModule;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\CompanyModule;
 use App\Support\Modules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

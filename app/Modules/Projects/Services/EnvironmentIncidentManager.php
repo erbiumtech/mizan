@@ -4,7 +4,7 @@ namespace App\Modules\Projects\Services;
 
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Modules\Projects\Notifications\EnvironmentDown;
 use App\Modules\Projects\Notifications\EnvironmentRecovered;
 use Illuminate\Support\Collection;

@@ -7,7 +7,7 @@ use App\Modules\Projects\Filament\Widgets\CertificateExpiryTable;
 use App\Modules\Projects\Filament\Widgets\EnvironmentHealthOverview;
 use App\Modules\Projects\Filament\Widgets\EnvironmentIncidentsTable;
 use App\Modules\Projects\Filament\Widgets\MyProjectsOverview;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;

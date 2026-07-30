@@ -6,7 +6,7 @@ use App\Modules\Accounting\Models\Bank;
 use App\Models\Concerns\HasCustomFields;
 use App\Modules\Projects\Models\Project;
 use App\Models\TenantModel as Model;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;

@@ -2,7 +2,7 @@
 
 namespace App\Console\Concerns;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 
 /**

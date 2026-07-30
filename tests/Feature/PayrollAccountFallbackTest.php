@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Account;
-use App\Models\Setting;
+use App\Modules\Core\Models\Setting;
 use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Support\TenantSettings;
 use Tests\AccountingTestCase;

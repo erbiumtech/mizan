@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Users\Pages\EditUser;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Filament\Resources\Users\Pages\EditUser;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

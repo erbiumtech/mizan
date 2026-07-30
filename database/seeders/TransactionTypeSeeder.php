@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
-use App\Models\TransactionType;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\TransactionType;
 use Illuminate\Database\Seeder;
 
 class TransactionTypeSeeder extends Seeder
