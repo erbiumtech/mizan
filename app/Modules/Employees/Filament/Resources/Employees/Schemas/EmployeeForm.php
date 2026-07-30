@@ -4,7 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\Employees\Schemas;
 
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Employees\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;

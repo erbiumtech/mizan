@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Multitenancy\CompanyProvisioner;
 use Illuminate\Console\Command;
 

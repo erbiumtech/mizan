@@ -38,15 +38,15 @@ final class ModuleMap
      */
     private const MODELS = [
         'core' => [
-            'App\Models\User' => \App\Models\User::class,
-            'App\Models\Company' => \App\Models\Company::class,
-            'App\Models\TableView' => \App\Models\TableView::class,
-            'App\Models\CustomField' => \App\Models\CustomField::class,
-            'App\Models\CustomFieldValue' => \App\Models\CustomFieldValue::class,
-            'App\Models\ActivityLog' => \App\Models\ActivityLog::class,
-            'App\Models\Comment' => \App\Models\Comment::class,
-            'App\Models\FiscalYear' => \App\Models\FiscalYear::class,
-            'App\Models\Setting' => \App\Models\Setting::class,
+            'App\Models\User' => \App\Modules\Core\Models\User::class,
+            'App\Models\Company' => \App\Modules\Core\Models\Company::class,
+            'App\Models\TableView' => \App\Modules\Core\Models\TableView::class,
+            'App\Models\CustomField' => \App\Modules\Core\Models\CustomField::class,
+            'App\Models\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
+            'App\Models\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
+            'App\Models\Comment' => \App\Modules\Core\Models\Comment::class,
+            'App\Models\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
+            'App\Models\Setting' => \App\Modules\Core\Models\Setting::class,
         ],
         'employees' => [
             'App\Models\Employee' => \App\Modules\Employees\Models\Employee::class,
@@ -99,15 +99,15 @@ final class ModuleMap
      */
     private const RESOURCES = [
         'core' => [
-            'App\Filament\Resources\Users\UserResource' => \App\Filament\Resources\Users\UserResource::class,
-            'App\Filament\Resources\Roles\RoleResource' => \App\Filament\Resources\Roles\RoleResource::class,
-            'App\Filament\Resources\Permissions\PermissionResource' => \App\Filament\Resources\Permissions\PermissionResource::class,
-            'App\Filament\Resources\Companies\CompanyResource' => \App\Filament\Resources\Companies\CompanyResource::class,
-            'App\Filament\Resources\TableViews\TableViewResource' => \App\Filament\Resources\TableViews\TableViewResource::class,
-            'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Filament\Resources\CustomFields\CustomFieldResource::class,
-            'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Filament\Resources\ActivityLogs\ActivityLogResource::class,
-            'App\Filament\Resources\Comments\CommentResource' => \App\Filament\Resources\Comments\CommentResource::class,
-            'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Filament\Resources\FiscalYears\FiscalYearResource::class,
+            'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
+            'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
+            'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Resources\Permissions\PermissionResource::class,
+            'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Resources\Companies\CompanyResource::class,
+            'App\Filament\Resources\TableViews\TableViewResource' => \App\Modules\Core\Filament\Resources\TableViews\TableViewResource::class,
+            'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
+            'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
+            'App\Filament\Resources\Comments\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
+            'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
         ],
         'employees' => [
             'App\Filament\Resources\Employees\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
@@ -156,10 +156,10 @@ final class ModuleMap
      */
     private const PAGES = [
         'core' => [
-            'App\Filament\Pages\CompanySettings' => \App\Filament\Pages\CompanySettings::class,
-            'App\Filament\Pages\Modules' => \App\Filament\Pages\Modules::class,
-            'App\Filament\Pages\Auth\EditProfile' => \App\Filament\Pages\Auth\EditProfile::class,
-            'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Filament\Pages\Tenancy\RegisterCompany::class,
+            'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
+            'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
+            'App\Filament\Pages\Auth\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,
+            'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
         'payroll' => [
             'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,

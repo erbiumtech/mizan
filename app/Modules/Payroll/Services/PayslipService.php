@@ -2,7 +2,7 @@
 
 namespace App\Modules\Payroll\Services;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\TaxCalculatorService;

@@ -26,6 +26,7 @@ return [
         // would lock the company out of its own administration, so it has no
         // toggle on either surface — not a disabled one, none at all.
         'locked' => true,
+        'plugin' => \App\Modules\Core\CorePlugin::class,
     ],
 
     'employees' => [

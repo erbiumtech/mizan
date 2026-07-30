@@ -3,7 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\FixedAssets\Tables;
 
 use App\Filament\Support\CustomFieldsSchema;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Services\DepreciationService;
 use Carbon\Carbon;

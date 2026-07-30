@@ -2,7 +2,7 @@
 
 namespace Tests\Concerns;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use Filament\Facades\Filament;
 
 /**

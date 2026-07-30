@@ -3,7 +3,7 @@
 namespace App\Modules\Accounting\Policies;
 
 use App\Modules\Accounting\Models\CompanyBankAccount;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class CompanyBankAccountPolicy
 {

@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Policies;
 
 use App\Modules\Payroll\Models\AnnualTax;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class AnnualTaxPolicy
 {

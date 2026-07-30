@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Policies;
 
 use App\Modules\Payroll\Models\SalarySlab;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SalarySlabPolicy

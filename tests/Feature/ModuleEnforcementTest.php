@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
-use App\Models\CompanyModule;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Employees\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Multitenancy\Tasks\SetPermissionsTeamIdTask;
 use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;
 use App\Support\ModuleAuthorization;

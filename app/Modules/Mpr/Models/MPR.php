@@ -4,7 +4,7 @@ namespace App\Modules\Mpr\Models;
 
 use App\Modules\Employees\Models\Employee;
 use App\Models\TenantModel as Model;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

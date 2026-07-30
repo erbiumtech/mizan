@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
-use App\Models\CompanyModule;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Core\Models\User;
 use App\Support\ModuleMap;
 use App\Support\Modules;
 use Database\Seeders\PermissionSeeder;
@@ -156,8 +156,8 @@ class ModuleGatingTest extends TestCase
 
         // Users and Roles must stay reachable or a company cannot administer
         // itself out of the state it just put itself in.
-        $this->assertTrue(\App\Filament\Resources\Users\UserResource::canAccess());
-        $this->assertTrue(\App\Filament\Resources\Roles\RoleResource::canAccess());
+        $this->assertTrue(\App\Modules\Core\Filament\Resources\Users\UserResource::canAccess());
+        $this->assertTrue(\App\Modules\Core\Filament\Resources\Roles\RoleResource::canAccess());
     }
 
     public function test_global_search_and_the_command_palette_follow_the_same_gate(): void

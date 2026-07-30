@@ -3,7 +3,7 @@
 namespace App\Modules\Inventory\Policies;
 
 use App\Modules\Inventory\Models\StockMovement;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class StockMovementPolicy
 {

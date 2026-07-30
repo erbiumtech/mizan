@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Employees\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Database\Seeders\CompanySeeder;
 use Database\Seeders\ContactSeeder;
 use Database\Seeders\DatabaseSeeder;

@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\Company;
-use App\Models\Setting;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\Setting;
 use Throwable;
 
 /**

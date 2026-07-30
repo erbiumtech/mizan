@@ -5,7 +5,7 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\JournalEntryLine;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

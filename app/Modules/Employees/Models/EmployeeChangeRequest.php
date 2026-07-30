@@ -3,7 +3,7 @@
 namespace App\Modules\Employees\Models;
 
 use App\Models\TenantModel as Model;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Notifications\EmployeeChangeRequestSubmitted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;

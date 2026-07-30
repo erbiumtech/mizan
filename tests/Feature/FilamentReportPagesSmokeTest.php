@@ -10,7 +10,7 @@ use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;

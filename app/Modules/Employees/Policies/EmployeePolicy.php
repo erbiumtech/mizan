@@ -3,7 +3,7 @@
 namespace App\Modules\Employees\Policies;
 
 use App\Modules\Employees\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Support\EmployeeAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 

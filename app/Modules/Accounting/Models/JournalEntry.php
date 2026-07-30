@@ -2,9 +2,9 @@
 
 namespace App\Modules\Accounting\Models;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Models\TenantModel as Model;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Support\ModuleMap;
 use App\Traits\Auditable;
 use Carbon\Carbon;

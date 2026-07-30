@@ -2,7 +2,7 @@
 
 namespace App\Modules\Payroll\Services;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Modules\Payroll\Models\Payslip;
 use Illuminate\Database\Eloquent\Builder;
 use OpenSpout\Common\Entity\Row;

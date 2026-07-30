@@ -3,7 +3,7 @@
 namespace App\Modules\Invoicing\Policies;
 
 use App\Modules\Invoicing\Models\Contact;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class ContactPolicy
 {

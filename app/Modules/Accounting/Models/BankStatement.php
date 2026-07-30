@@ -3,7 +3,7 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use App\Traits\Auditable;
 
 class BankStatement extends Model

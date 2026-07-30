@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Employees\Models\Employee;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Support\Pdf\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;

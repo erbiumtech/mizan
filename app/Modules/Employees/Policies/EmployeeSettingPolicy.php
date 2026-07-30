@@ -3,7 +3,7 @@
 namespace App\Modules\Employees\Policies;
 
 use App\Modules\Employees\Models\EmployeeSetting;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class EmployeeSettingPolicy
 {

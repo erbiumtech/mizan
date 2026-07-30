@@ -4,7 +4,7 @@ namespace App\Modules\Payroll\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Employees\Models\Employee;
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
 use Filament\Widgets\ChartWidget;
 

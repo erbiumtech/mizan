@@ -5,7 +5,7 @@ namespace Tests\Feature\Concerns;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectEnvironment;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 trait MakesProjects
 {

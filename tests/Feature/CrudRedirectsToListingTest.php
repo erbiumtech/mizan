@@ -7,7 +7,7 @@ use App\Modules\Accounting\Filament\Resources\Banks\BankResource;
 use App\Modules\Accounting\Filament\Resources\Banks\Pages\CreateBank;
 use App\Modules\Accounting\Filament\Resources\Banks\Pages\EditBank;
 use App\Modules\Accounting\Models\Bank;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;

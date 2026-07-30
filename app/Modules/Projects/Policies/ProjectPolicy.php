@@ -3,7 +3,7 @@
 namespace App\Modules\Projects\Policies;
 
 use App\Modules\Projects\Models\Project;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 
 class ProjectPolicy
 {
