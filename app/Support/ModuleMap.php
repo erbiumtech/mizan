@@ -88,7 +88,7 @@ final class ModuleMap
             'App\Models\ProjectEnvironmentIncident' => \App\Models\ProjectEnvironmentIncident::class,
         ],
         'mpr' => [
-            'App\Models\MPR' => \App\Models\MPR::class,
+            'App\Models\MPR' => \App\Modules\Mpr\Models\MPR::class,
         ],
     ];
 
@@ -145,7 +145,7 @@ final class ModuleMap
             'App\Filament\Resources\Projects\ProjectResource' => \App\Filament\Resources\Projects\ProjectResource::class,
         ],
         'mpr' => [
-            'App\Filament\Resources\MPRs\MPRResource' => \App\Filament\Resources\MPRs\MPRResource::class,
+            'App\Filament\Resources\MPRs\MPRResource' => \App\Modules\Mpr\Filament\Resources\MPRs\MPRResource::class,
         ],
     ];
 

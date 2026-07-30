@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Filament\Resources\AnnualTaxes\AnnualTaxResource;
 use App\Filament\Resources\Employees\EmployeeResource;
 use App\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
-use App\Filament\Resources\MPRs\MPRResource;
+use App\Modules\Mpr\Filament\Resources\MPRs\MPRResource;
 use App\Filament\Resources\Payslips\PayslipResource;
 use App\Models\AnnualTax;
 use App\Models\Employee;
 use App\Models\EmployeeSetting;
-use App\Models\MPR;
+use App\Modules\Mpr\Models\MPR;
 use App\Models\Payslip;
 use Tests\AccountingTestCase;
 

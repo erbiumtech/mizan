@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\MPRs\Pages;
+namespace App\Modules\Mpr\Filament\Resources\MPRs\Pages;
 
-use App\Filament\Resources\MPRs\MPRResource;
+use App\Modules\Mpr\Filament\Resources\MPRs\MPRResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 

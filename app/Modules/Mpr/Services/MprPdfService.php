@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Mpr\Services;
 
 use Exception;
 use App\Models\Mpr;

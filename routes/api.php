@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\EmployeeController;
-use App\Http\Controllers\Api\MprController;
+use App\Modules\Mpr\Http\Controllers\MprController;
 use App\Http\Controllers\Api\PayslipController;
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\ReportController;
@@ -23,12 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-profile', [EmployeeController::class, 'myProfile']);
     });
 
-    // MPR Route
-    Route::middleware('module:mpr')->group(function () {
-        Route::get('/my-mprs', [MprController::class, 'index']);
-        Route::get('/my-mprs/comparison', [MprController::class, 'comparison']);
-        Route::get('/my-mprs/{id}', [MprController::class, 'show']);
-    });
+    // MPR lives in app/Modules/Mpr/routes/api.php, loaded by its own provider.
 
     // Payslips Route
     Route::middleware('module:payroll')->group(function () {

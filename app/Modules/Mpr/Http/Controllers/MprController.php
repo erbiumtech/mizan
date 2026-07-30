@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Modules\Mpr\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Mpr;
-use App\Services\MprPdfService;
+use App\Modules\Mpr\Services\MprPdfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
