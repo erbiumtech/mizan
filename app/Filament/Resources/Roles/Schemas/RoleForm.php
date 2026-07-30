@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Schemas;
 
+use App\Support\ModuleMap;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -68,7 +69,26 @@ class RoleForm
             ->orderBy('group')
             ->orderBy('name')
             ->get()
-            ->groupBy('group');
+            ->groupBy('group')
+            // A switched-off module's permissions are not offered: assigning
+            // rights to a feature the company cannot reach is noise at best.
+            //
+            // Filtering here also removes them from the sync in
+            // SyncsGroupedPermissions, which is why that trait has to preserve
+            // what it no longer renders — see preservedPermissionIds().
+            ->filter(fn (Collection $permissions, string $group) => static::groupIsVisible($group));
+    }
+
+    /**
+     * A group no module claims stays visible: it is unmapped rather than
+     * disabled, and hiding it would silently drop permissions nobody can find.
+     * ModuleCoverageTest fails the build if such a group exists.
+     */
+    protected static function groupIsVisible(string $group): bool
+    {
+        $module = ModuleMap::moduleForPermissionGroup($group);
+
+        return $module === null || modules()->enabled($module);
     }
 
     public static function groupKey(string $group): string
