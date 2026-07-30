@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Models\TableView;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +25,7 @@ class SavedViewTabsTest extends TestCase
 
         TableView::create([
             'user_id' => $user->id,
-            'resource' => \App\Filament\Resources\Payslips\PayslipResource::class,
+            'resource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
             'name' => 'My favourite',
             'is_favorite' => true,
             'state' => ['search' => 'ACME'],

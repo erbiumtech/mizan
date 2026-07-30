@@ -3,7 +3,6 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Modules\Mpr\Http\Controllers\MprController;
-use App\Http\Controllers\Api\PayslipController;
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\AuthController;
@@ -21,10 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // MPR lives in app/Modules/Mpr/routes/api.php, loaded by its own provider.
 
-    // Payslips Route
-    Route::middleware('module:payroll')->group(function () {
-        Route::get('/my-payslips', [PayslipController::class, 'index']);
-    });
+    // Payslips live in app/Modules/Payroll/routes/api.php.
 
     Route::middleware('module:accounting')->group(function () {
         // Financial Reports

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use App\Support\ModuleMap;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
@@ -9,6 +10,19 @@ use Carbon\Carbon;
 
 class JournalEntry extends Model
 {
+
+    /**
+     * Entries linked to a source record. Reads have to translate the class to its
+     * alias exactly as writes do — `where('source_type', Payslip::class)` silently
+     * matches nothing once Payslip lives in a module directory, which would leave
+     * a superseded payroll entry in place instead of reversing it.
+     */
+    public function scopeForSource(Builder $query, string $class, int|string|null $id = null): Builder
+    {
+        $query->where('source_type', ModuleMap::alias($class));
+
+        return $id === null ? $query : $query->where('source_id', $id);
+    }
 
     /**
      * Normalise on write: `source_type` holds a model's stable alias, never its live

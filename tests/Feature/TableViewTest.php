@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Models\Company;
 use App\Models\TableView;
 use App\Models\User;

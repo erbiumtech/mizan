@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Setting;
-use App\Services\PayrollAccountAudit;
-use App\Services\PayrollPostingService;
+use App\Modules\Payroll\Services\PayrollAccountAudit;
+use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Support\TenantSettings;
 use Illuminate\Support\Facades\Artisan;
 use ReflectionClass;

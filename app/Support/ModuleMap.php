@@ -54,9 +54,9 @@ final class ModuleMap
             'App\Models\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
         ],
         'payroll' => [
-            'App\Models\Payslip' => \App\Models\Payslip::class,
-            'App\Models\SalarySlab' => \App\Models\SalarySlab::class,
-            'App\Models\AnnualTax' => \App\Models\AnnualTax::class,
+            'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
+            'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
+            'App\Models\AnnualTax' => \App\Modules\Payroll\Models\AnnualTax::class,
         ],
         'accounting' => [
             'App\Models\Account' => \App\Models\Account::class,
@@ -115,9 +115,9 @@ final class ModuleMap
             'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
         ],
         'payroll' => [
-            'App\Filament\Resources\Payslips\PayslipResource' => \App\Filament\Resources\Payslips\PayslipResource::class,
-            'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Filament\Resources\SalarySlabs\SalarySlabResource::class,
-            'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
+            'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
+            'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource::class,
+            'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
         ],
         'accounting' => [
             'App\Filament\Resources\Accounts\AccountResource' => \App\Filament\Resources\Accounts\AccountResource::class,
@@ -162,8 +162,8 @@ final class ModuleMap
             'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
         'payroll' => [
-            'App\Filament\Pages\SalaryBankFile' => \App\Filament\Pages\SalaryBankFile::class,
-            'App\Filament\Pages\FbrTaxFile' => \App\Filament\Pages\FbrTaxFile::class,
+            'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
+            'App\Filament\Pages\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
         ],
         'accounting' => [
             'App\Filament\Pages\AccountRegister' => \App\Filament\Pages\AccountRegister::class,
@@ -182,7 +182,7 @@ final class ModuleMap
      */
     private const WIDGETS = [
         'payroll' => [
-            'App\Filament\Widgets\PayrollByEmployeeChart' => \App\Filament\Widgets\PayrollByEmployeeChart::class,
+            'App\Filament\Widgets\PayrollByEmployeeChart' => \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
         ],
         'accounting' => [
             'App\Filament\Widgets\AccountBalancesOverview' => \App\Filament\Widgets\AccountBalancesOverview::class,

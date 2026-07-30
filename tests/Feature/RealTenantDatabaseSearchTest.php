@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\AnnualTaxes\Pages\ListAnnualTaxes;
+use App\Modules\Payroll\Filament\Resources\AnnualTaxes\Pages\ListAnnualTaxes;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\ListEmployeeSettings;
-use App\Filament\Resources\Payslips\Pages\ListPayslips;
-use App\Models\AnnualTax;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Models\FiscalYear;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 use Database\Seeders\FiscalYearSeeder;
 use Illuminate\Database\QueryException;

@@ -212,7 +212,7 @@ class FiscalYearClosingService
     {
         return JournalEntry::query()
             ->where('entry_type', 'closing')
-            ->where('source_type', ModuleMap::alias(FiscalYear::class))
+            ->forSource(FiscalYear::class)
             ->where('source_id', $year->getKey())
             ->where('is_posted', true)
             ->whereNotExists(function ($query): void {

@@ -6,7 +6,7 @@ use App\Models\Account;
 use App\Models\Beneficiary;
 use App\Models\JournalEntry;
 use App\Models\Payment;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use App\Models\PettyCashVoucher;
 use App\Models\TransactionType;
 use App\Services\JournalEntryService;

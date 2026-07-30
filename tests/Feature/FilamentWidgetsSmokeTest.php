@@ -22,7 +22,7 @@ class FilamentWidgetsSmokeTest extends TestCase
             \App\Filament\Widgets\OperationsOverview::class,
             \App\Filament\Widgets\AccountBalancesOverview::class,
             \App\Filament\Widgets\CashFlowChart::class,
-            \App\Filament\Widgets\PayrollByEmployeeChart::class,
+            \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
         ];
         $failures = [];
         foreach ($widgets as $w) {

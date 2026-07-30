@@ -2,16 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\AnnualTaxes\AnnualTaxResource;
+use App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
 use App\Modules\Mpr\Filament\Resources\MPRs\MPRResource;
-use App\Filament\Resources\Payslips\PayslipResource;
-use App\Models\AnnualTax;
+use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
+use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Mpr\Models\MPR;
-use App\Models\Payslip;
+use App\Modules\Payroll\Models\Payslip;
 use Tests\AccountingTestCase;
 
 class EmployeeHierarchyScopingTest extends AccountingTestCase
