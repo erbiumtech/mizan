@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\BankPaymentFile;
+use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
 use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
 use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Employees\Models\Employee;

@@ -3,7 +3,7 @@
 namespace App\Modules\Inventory\Models;
 
 use App\Support\ModuleMap;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 

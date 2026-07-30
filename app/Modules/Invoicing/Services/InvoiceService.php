@@ -2,15 +2,15 @@
 
 namespace App\Modules\Invoicing\Services;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use App\Models\FiscalYear;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;

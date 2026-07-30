@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use App\Models\Setting;
 use App\Modules\Payroll\Services\PayrollAccountAudit;
 use App\Modules\Payroll\Services\PayrollPostingService;

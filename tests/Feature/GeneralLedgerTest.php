@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\User;
-use App\Services\GeneralLedgerService;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Services\GeneralLedgerService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use Tests\AccountingTestCase;
 
 class GeneralLedgerTest extends AccountingTestCase

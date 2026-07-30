@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Models;
 
 use App\Models\FiscalYear;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
 use App\Models\User;
 use App\Modules\Employees\Models\Employee;

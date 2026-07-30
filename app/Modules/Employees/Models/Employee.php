@@ -2,7 +2,7 @@
 
 namespace App\Modules\Employees\Models;
 
-use App\Models\Bank;
+use App\Modules\Accounting\Models\Bank;
 use App\Models\Concerns\HasCustomFields;
 use App\Modules\Projects\Models\Project;
 use App\Models\TenantModel as Model;

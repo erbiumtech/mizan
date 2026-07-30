@@ -3,9 +3,9 @@
 namespace App\Modules\Payroll\Services;
 
 use App\Models\FiscalYear;
-use App\Models\Payment;
+use App\Modules\Accounting\Models\Payment;
 use App\Modules\Payroll\Models\Payslip;
-use App\Support\BankFileAccount;
+use App\Modules\Accounting\Support\BankFileAccount;
 use Carbon\Carbon;
 
 /**

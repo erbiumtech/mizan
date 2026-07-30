@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Filament\Livewire\CommandPalette;
-use App\Filament\Resources\Accounts\AccountResource;
+use App\Modules\Accounting\Filament\Resources\Accounts\AccountResource;
 use App\Filament\Resources\Companies\CompanyResource;
 use App\Filament\Resources\CustomFields\CustomFieldResource;
 use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
-use App\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
+use App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
 use App\Filament\Resources\Roles\RoleResource;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\Company;

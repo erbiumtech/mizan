@@ -169,7 +169,7 @@ class ModuleEnforcementTest extends TestCase
         $this->setModule('accounting', false);
 
         $this->assertFalse(Gate::allows('ReportView'));
-        $this->assertFalse(Gate::allows('view', new \App\Models\Account));
+        $this->assertFalse(Gate::allows('view', new \App\Modules\Accounting\Models\Account));
         $this->get('/reports/trial-balance')->assertForbidden();
     }
 
