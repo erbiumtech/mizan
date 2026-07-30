@@ -19,9 +19,9 @@ class FilamentWidgetsSmokeTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         $widgets = [
-            \App\Filament\Widgets\OperationsOverview::class,
-            \App\Filament\Widgets\AccountBalancesOverview::class,
-            \App\Filament\Widgets\CashFlowChart::class,
+            \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
+            \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
+            \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
             \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
         ];
         $failures = [];

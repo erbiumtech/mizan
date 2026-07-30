@@ -2,7 +2,7 @@
 
 namespace App\Modules\Inventory\Models;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;

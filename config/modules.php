@@ -49,6 +49,7 @@ return [
         'description' => 'Chart of accounts, journal entries, payments, banks, fixed assets, petty cash and financial reports.',
         'requires' => [],
         'licensed_by_default' => false,
+        'plugin' => \App\Modules\Accounting\AccountingPlugin::class,
     ],
 
     'invoicing' => [

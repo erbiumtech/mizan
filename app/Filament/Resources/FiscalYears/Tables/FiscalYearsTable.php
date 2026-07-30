@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\FiscalYears\Tables;
 
 use App\Models\FiscalYear;
-use App\Services\FiscalYearClosingService;
+use App\Modules\Accounting\Services\FiscalYearClosingService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;

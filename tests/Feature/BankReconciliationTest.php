@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\BankStatement;
-use App\Models\BankStatementLine;
-use App\Models\JournalEntry;
-use App\Models\JournalEntryLine;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\BankStatement;
+use App\Modules\Accounting\Models\BankStatementLine;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Models\User;
-use App\Services\BankReconciliationService;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Services\BankReconciliationService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use InvalidArgumentException;
 use Tests\AccountingTestCase;
 

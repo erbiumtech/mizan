@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use Tests\AccountingTestCase;
 
 class PayrollPostingTest extends AccountingTestCase

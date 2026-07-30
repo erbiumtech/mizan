@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
-use App\Models\JournalEntryLine;
+use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Inventory\Services\InventoryValuationService;

@@ -2,10 +2,10 @@
 
 namespace App\Modules\Payroll\Services;
 
-use App\Models\Account;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Payroll\Models\Payslip;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
 use Carbon\Carbon;
 use RuntimeException;

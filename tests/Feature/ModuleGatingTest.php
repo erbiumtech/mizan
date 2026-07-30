@@ -140,9 +140,9 @@ class ModuleGatingTest extends TestCase
         );
         modules()->flush();
 
-        $this->assertFalse(\App\Filament\Resources\Accounts\AccountResource::canAccess());
-        $this->assertFalse(\App\Filament\Pages\TrialBalance::canAccess());
-        $this->assertFalse(\App\Filament\Widgets\CashFlowChart::canView());
+        $this->assertFalse(\App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::canAccess());
+        $this->assertFalse(\App\Modules\Accounting\Filament\Pages\TrialBalance::canAccess());
+        $this->assertFalse(\App\Modules\Accounting\Filament\Widgets\CashFlowChart::canView());
     }
 
     public function test_core_surfaces_survive_every_other_module_being_off(): void
@@ -169,11 +169,11 @@ class ModuleGatingTest extends TestCase
 
         $this->setModule($company, 'accounting', false);
 
-        $this->assertFalse(\App\Filament\Resources\Accounts\AccountResource::canGloballySearch());
+        $this->assertFalse(\App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::canGloballySearch());
 
         $this->setModule($company, 'accounting', true);
 
-        $this->assertTrue(\App\Filament\Resources\Accounts\AccountResource::canGloballySearch());
+        $this->assertTrue(\App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::canGloballySearch());
     }
 
     public function test_every_gated_class_reports_the_module_that_owns_it(): void

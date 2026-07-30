@@ -2,11 +2,11 @@
 
 namespace App\Modules\Inventory\Services;
 
-use App\Models\Account;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\StockMovement;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 

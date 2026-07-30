@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\InvoicePdfController;
-use App\Http\Controllers\ReportPageController;
 use App\Http\Controllers\TenantFileController;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
@@ -24,16 +23,7 @@ Route::get(TenantStorage::URL_PREFIX.'/{company:id}/{path}', [TenantFileControll
     ->middleware(['auth:web,sanctum'])
     ->name('tenant-file');
 
-// These bypass every canAccess() check, which is exactly why they are gated here:
-// the report pages are Accounting and the invoice PDF is Invoicing, so they are
-// grouped separately rather than sharing one `module:` parameter.
-Route::middleware(['auth'])->prefix('reports')->group(function () {
-    Route::middleware('module:accounting')->group(function () {
-        Route::get('/trial-balance', [ReportPageController::class, 'trialBalance'])->name('reports.trial-balance');
-        Route::get('/profit-and-loss', [ReportPageController::class, 'profitAndLoss'])->name('reports.profit-and-loss');
-    });
-
-    Route::get('/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])
-        ->middleware('module:invoicing')
-        ->name('invoice.pdf');
-});
+// The report pages live in app/Modules/Accounting/routes/web.php.
+Route::get('/reports/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])
+    ->middleware(['auth', 'module:invoicing'])
+    ->name('invoice.pdf');

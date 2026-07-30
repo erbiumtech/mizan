@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Services\RegisterEntryService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Services\RegisterEntryService;
 use Tests\AccountingTestCase;
 
 /**

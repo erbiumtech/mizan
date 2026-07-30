@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\CompanyModule;
 use App\Modules\Employees\Models\Employee;
-use App\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Payroll\Models\Payslip;
 use App\Models\User;
 use App\Modules\Employees\Models\EmployeeSetting;

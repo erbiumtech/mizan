@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use App\Models\Company;
 use App\Models\User;
 use App\Multitenancy\CompanyProvisioner;

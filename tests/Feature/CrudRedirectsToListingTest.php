@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Filament\Concerns\RedirectsToIndex;
-use App\Filament\Resources\Banks\BankResource;
-use App\Filament\Resources\Banks\Pages\CreateBank;
-use App\Filament\Resources\Banks\Pages\EditBank;
-use App\Models\Bank;
+use App\Modules\Accounting\Filament\Resources\Banks\BankResource;
+use App\Modules\Accounting\Filament\Resources\Banks\Pages\CreateBank;
+use App\Modules\Accounting\Filament\Resources\Banks\Pages\EditBank;
+use App\Modules\Accounting\Models\Bank;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
