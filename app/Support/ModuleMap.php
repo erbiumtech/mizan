@@ -78,8 +78,8 @@ final class ModuleMap
             'App\Models\InvoiceLine' => \App\Models\InvoiceLine::class,
         ],
         'inventory' => [
-            'App\Models\Product' => \App\Models\Product::class,
-            'App\Models\StockMovement' => \App\Models\StockMovement::class,
+            'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
+            'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
         ],
         'projects' => [
             'App\Models\Project' => \App\Models\Project::class,
@@ -138,8 +138,8 @@ final class ModuleMap
             'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
         ],
         'inventory' => [
-            'App\Filament\Resources\Products\ProductResource' => \App\Filament\Resources\Products\ProductResource::class,
-            'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Filament\Resources\StockMovements\StockMovementResource::class,
+            'App\Filament\Resources\Products\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,
+            'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource::class,
         ],
         'projects' => [
             'App\Filament\Resources\Projects\ProjectResource' => \App\Filament\Resources\Projects\ProjectResource::class,

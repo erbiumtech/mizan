@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Resources\Products;
+namespace App\Modules\Inventory\Filament\Resources\Products;
 
 use App\Filament\Concerns\BelongsToModule;
-use App\Filament\Resources\Products\Pages\CreateProduct;
-use App\Filament\Resources\Products\Pages\EditProduct;
-use App\Filament\Resources\Products\Pages\ListProducts;
-use App\Filament\Resources\Products\RelationManagers\MovementsRelationManager;
-use App\Filament\Resources\Products\Schemas\ProductForm;
-use App\Filament\Resources\Products\Tables\ProductsTable;
-use App\Models\Product;
+use App\Modules\Inventory\Filament\Resources\Products\Pages\CreateProduct;
+use App\Modules\Inventory\Filament\Resources\Products\Pages\EditProduct;
+use App\Modules\Inventory\Filament\Resources\Products\Pages\ListProducts;
+use App\Modules\Inventory\Filament\Resources\Products\RelationManagers\MovementsRelationManager;
+use App\Modules\Inventory\Filament\Resources\Products\Schemas\ProductForm;
+use App\Modules\Inventory\Filament\Resources\Products\Tables\ProductsTable;
+use App\Modules\Inventory\Models\Product;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

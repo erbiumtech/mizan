@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\StockMovements\Schemas;
+namespace App\Modules\Inventory\Filament\Resources\StockMovements\Schemas;
 
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;

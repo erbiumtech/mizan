@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Resources\StockMovements;
+namespace App\Modules\Inventory\Filament\Resources\StockMovements;
 
 use App\Filament\Concerns\BelongsToModule;
-use App\Filament\Resources\StockMovements\Pages\ListStockMovements;
-use App\Filament\Resources\StockMovements\Schemas\StockMovementForm;
-use App\Filament\Resources\StockMovements\Tables\StockMovementsTable;
-use App\Models\StockMovement;
+use App\Modules\Inventory\Filament\Resources\StockMovements\Pages\ListStockMovements;
+use App\Modules\Inventory\Filament\Resources\StockMovements\Schemas\StockMovementForm;
+use App\Modules\Inventory\Filament\Resources\StockMovements\Tables\StockMovementsTable;
+use App\Modules\Inventory\Models\StockMovement;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

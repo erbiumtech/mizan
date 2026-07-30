@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\Products\Pages;
+namespace App\Modules\Inventory\Filament\Resources\Products\Pages;
 
 use App\Filament\Concerns\HasSavedViews;
-use App\Filament\Resources\Products\ProductResource;
+use App\Modules\Inventory\Filament\Resources\Products\ProductResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\StockMovement;
 
 class InvoiceLine extends Model
 {

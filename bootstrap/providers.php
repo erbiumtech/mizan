@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Mpr\MprServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
@@ -11,5 +12,6 @@ return [
     // One per module physically moved into app/Modules. Each carries its own
     // policies and routes; its Filament classes are registered by the matching
     // plugin listed in config/modules.php.
+    InventoryServiceProvider::class,
     MprServiceProvider::class,
 ];

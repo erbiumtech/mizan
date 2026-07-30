@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\Products\Tables;
+namespace App\Modules\Inventory\Filament\Resources\Products\Tables;
 
 use App\Filament\Support\CustomFieldsSchema;
-use App\Models\Product;
-use App\Services\InventoryService;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Services\InventoryService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;

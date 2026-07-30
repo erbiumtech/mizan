@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Products\RelationManagers;
+namespace App\Modules\Inventory\Filament\Resources\Products\RelationManagers;
 
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;

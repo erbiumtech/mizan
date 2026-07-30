@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\Inventory\Models;
 
+use App\Models\JournalEntry;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 
