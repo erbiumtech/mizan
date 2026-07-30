@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\TenantFileController;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
@@ -23,7 +22,5 @@ Route::get(TenantStorage::URL_PREFIX.'/{company:id}/{path}', [TenantFileControll
     ->middleware(['auth:web,sanctum'])
     ->name('tenant-file');
 
-// The report pages live in app/Modules/Accounting/routes/web.php.
-Route::get('/reports/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])
-    ->middleware(['auth', 'module:invoicing'])
-    ->name('invoice.pdf');
+// The report pages live in app/Modules/Accounting/routes/web.php and the invoice
+// PDF in app/Modules/Invoicing/routes/web.php.

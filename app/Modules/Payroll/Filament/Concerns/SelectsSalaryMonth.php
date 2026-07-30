@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Concerns;
+namespace App\Modules\Payroll\Filament\Concerns;
 
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
