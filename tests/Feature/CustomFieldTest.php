@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Contacts\Pages\CreateContact;
-use App\Models\Contact;
+use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\CreateContact;
+use App\Modules\Invoicing\Models\Contact;
 use App\Models\CustomField;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

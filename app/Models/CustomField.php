@@ -31,6 +31,17 @@ class CustomField extends Model
     }
 
     /**
+     * Normalise on write, so `model_type` holds the stable alias whatever the
+     * caller passed. The Filament Select already offers aliases, but seeders,
+     * imports and tests hand over `Contact::class` directly — and a raw class
+     * name written here is a row that stops matching the day the model moves.
+     */
+    public function setModelTypeAttribute(?string $value): void
+    {
+        $this->attributes['model_type'] = $value === null ? null : ModuleMap::alias($value);
+    }
+
+    /**
      * `model_type` holds the model's stable alias, not its current class name, so
      * a definition survives the model moving into its module directory. Callers
      * keep passing `::class` — the translation happens here, in one place.

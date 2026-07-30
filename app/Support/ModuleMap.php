@@ -73,9 +73,9 @@ final class ModuleMap
             'App\Models\PettyCashVoucher' => \App\Models\PettyCashVoucher::class,
         ],
         'invoicing' => [
-            'App\Models\Contact' => \App\Models\Contact::class,
-            'App\Models\Invoice' => \App\Models\Invoice::class,
-            'App\Models\InvoiceLine' => \App\Models\InvoiceLine::class,
+            'App\Models\Contact' => \App\Modules\Invoicing\Models\Contact::class,
+            'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
+            'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
         ],
         'inventory' => [
             'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
@@ -133,9 +133,9 @@ final class ModuleMap
             'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => \App\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
         ],
         'invoicing' => [
-            'App\Filament\Resources\Contacts\ContactResource' => \App\Filament\Resources\Contacts\ContactResource::class,
-            'App\Filament\Resources\Invoices\InvoiceResource' => \App\Filament\Resources\Invoices\InvoiceResource::class,
-            'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
+            'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
+            'App\Filament\Resources\Invoices\InvoiceResource' => \App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource::class,
+            'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
         ],
         'inventory' => [
             'App\Filament\Resources\Products\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,

@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\JournalEntryLine;
-use App\Models\Product;
-use App\Services\InventoryService;
-use App\Services\InventoryValuationService;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Services\InventoryService;
+use App\Modules\Inventory\Services\InventoryValuationService;
 use InvalidArgumentException;
 use Tests\AccountingTestCase;
 

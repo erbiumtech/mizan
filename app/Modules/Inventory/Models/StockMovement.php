@@ -2,12 +2,22 @@
 
 namespace App\Modules\Inventory\Models;
 
+use App\Support\ModuleMap;
 use App\Models\JournalEntry;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 
 class StockMovement extends Model
 {
+
+    /**
+     * Normalise on write: `source_type` holds a model's stable alias, never its live
+     * class name, so the row survives that model moving into a module directory.
+     */
+    public function setSourceTypeAttribute(?string $value): void
+    {
+        $this->attributes['source_type'] = $value === null ? null : ModuleMap::alias($value);
+    }
     use Auditable;
 
     protected $fillable = [
