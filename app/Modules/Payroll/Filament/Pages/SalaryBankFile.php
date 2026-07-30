@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
-use App\Filament\Concerns\SelectsSalaryMonth;
+use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Payroll\Services\SalaryBankExportService;
 use BackedEnum;
 use Filament\Actions\Action;

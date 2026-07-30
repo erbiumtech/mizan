@@ -4,7 +4,7 @@ namespace App\Modules\Accounting\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAccountRequest;
-use App\Http\Requests\UpdateAccountRequest;
+use App\Modules\Accounting\Http\Requests\UpdateAccountRequest;
 use App\Http\Resources\AccountResource;
 use App\Modules\Accounting\Models\Account;
 use Illuminate\Http\Request;

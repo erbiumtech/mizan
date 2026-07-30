@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Modules\Invoicing\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Support\Pdf\Pdf;
 
