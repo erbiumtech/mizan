@@ -1,5 +1,5 @@
 @php
-    use App\Models\EmployeeChangeRequest;
+    use App\Modules\Employees\Models\EmployeeChangeRequest;
     use Illuminate\Support\Facades\Storage;
     use Illuminate\Support\Str;
 
