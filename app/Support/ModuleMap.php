@@ -157,6 +157,7 @@ final class ModuleMap
     private const PAGES = [
         'core' => [
             \App\Filament\Pages\CompanySettings::class,
+            \App\Filament\Pages\Modules::class,
             \App\Filament\Pages\Auth\EditProfile::class,
             \App\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
