@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\SkipsDisabledModules;
 use App\Services\HealthCheckDispatcher;
 use Illuminate\Console\Command;
 use Spatie\Multitenancy\Commands\Concerns\TenantAware;
@@ -12,6 +13,7 @@ use Spatie\Multitenancy\Commands\Concerns\TenantAware;
  */
 class CheckEnvironmentCertificates extends Command
 {
+    use SkipsDisabledModules;
     use TenantAware;
 
     protected $signature = 'projects:check-certificates {--tenant=*}';
@@ -20,6 +22,10 @@ class CheckEnvironmentCertificates extends Command
 
     public function handle(HealthCheckDispatcher $dispatcher): int
     {
+        if ($this->skipsDisabledModule('projects')) {
+            return self::SUCCESS;
+        }
+
         $count = $dispatcher->dispatchCertificateChecks();
 
         $this->info("Dispatched {$count} certificate check(s).");
