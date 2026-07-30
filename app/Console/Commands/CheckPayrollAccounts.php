@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\SkipsDisabledModules;
 use App\Models\Company;
 use App\Services\PayrollAccountAudit;
 use Illuminate\Console\Command;
@@ -17,6 +18,7 @@ use Spatie\Multitenancy\Commands\Concerns\TenantAware;
  */
 class CheckPayrollAccounts extends Command
 {
+    use SkipsDisabledModules;
     use TenantAware;
 
     protected $signature = 'payroll:accounts
@@ -27,6 +29,12 @@ class CheckPayrollAccounts extends Command
 
     public function handle(PayrollAccountAudit $audit): int
     {
+        // Payroll needs Accounting to post, but the audit reports on Payroll's own
+        // account mapping, so it is Payroll that gates it.
+        if ($this->skipsDisabledModule('payroll')) {
+            return self::SUCCESS;
+        }
+
         $this->newLine();
         $this->line('<fg=gray>Company:</> '.(Company::current()?->name ?? 'unknown'));
 

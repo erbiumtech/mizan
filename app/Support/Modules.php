@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\Company;
 use App\Models\CompanyModule;
+use App\Models\User;
 use Filament\Facades\Filament;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Throwable;
 
 /**
@@ -42,7 +44,77 @@ class Modules
      */
     public function enabled(string $module): bool
     {
-        return $this->enabledFor($this->currentCompanyId(), $module);
+        return $this->availableTo($this->currentUser(), $module);
+    }
+
+    /**
+     * Is the module available, judged from a request's own signals?
+     *
+     * Prefers the company being served (panel tenant, then spatie's current
+     * tenant). Falls back to the user's membership, which is the only signal an
+     * API request has: the API does no tenant resolution at all —
+     * config('multitenancy.tenant_finder') is null — so without this fallback
+     * every API check would fail open.
+     *
+     * A user in several companies makes the request unattributable to one, so
+     * the module counts as available if any of their companies has it rather
+     * than guessing. A caller with no company is not gated.
+     */
+    public function availableTo(?Authenticatable $user, string $module): bool
+    {
+        if (static::isLocked($module)) {
+            return true;
+        }
+
+        $companyIds = $this->companyIdsFor($user);
+
+        if ($companyIds === []) {
+            return true;
+        }
+
+        foreach ($companyIds as $companyId) {
+            if ($this->enabledFor($companyId, $module)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Candidate companies whose licence could apply, most authoritative first.
+     * An empty list means "nothing to check".
+     *
+     * @return array<int, int|string>
+     */
+    public function companyIdsFor(?Authenticatable $user = null): array
+    {
+        if (($companyId = $this->currentCompanyId()) !== null) {
+            return [$companyId];
+        }
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        try {
+            return $user->companies()->pluck('companies.id')->all();
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * The authenticated user, without forcing the auth stack to resolve where
+     * there is none (console, boot, queued work).
+     */
+    protected function currentUser(): ?Authenticatable
+    {
+        try {
+            return auth()->user();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -70,7 +142,7 @@ class Modules
 
     public function licensed(string $module): bool
     {
-        return $this->licensedFor($this->currentCompanyId(), $module);
+        return $this->licensedFor($this->companyIdsFor($this->currentUser())[0] ?? null, $module);
     }
 
     /**

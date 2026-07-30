@@ -16,8 +16,13 @@ Route::get('/', function () {
 // Public status page: unauthenticated, off unless a company enables it, and
 // reachable only with the token from Company Settings. The middleware resolves
 // and then forgets the tenant, so nothing here leaks into the panel session.
+// The Projects module is a *second* condition here, not a replacement for the
+// per-company status_page.enabled setting: both must be true. 404 rather than
+// 403 to match the middleware above — an unlisted page should not confirm it
+// exists. Ordered after ResolveStatusPageTenant, which makes the company
+// current, so the licence check knows whose licence to read.
 Route::get('/status/{company}/{token}', [StatusPageController::class, 'show'])
-    ->middleware(ResolveStatusPageTenant::class)
+    ->middleware([ResolveStatusPageTenant::class, 'module:projects,404'])
     ->name('status.show');
 
 // Stored files (payslip/MPR PDFs, NIC scans, receipts) are streamed through the
@@ -31,8 +36,16 @@ Route::get(TenantStorage::URL_PREFIX.'/{company:id}/{path}', [TenantFileControll
     ->middleware(['auth:web,sanctum'])
     ->name('tenant-file');
 
+// These bypass every canAccess() check, which is exactly why they are gated here:
+// the report pages are Accounting and the invoice PDF is Invoicing, so they are
+// grouped separately rather than sharing one `module:` parameter.
 Route::middleware(['auth'])->prefix('reports')->group(function () {
-    Route::get('/trial-balance', [ReportPageController::class, 'trialBalance'])->name('reports.trial-balance');
-    Route::get('/profit-and-loss', [ReportPageController::class, 'profitAndLoss'])->name('reports.profit-and-loss');
-    Route::get('/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])->name('invoice.pdf');
+    Route::middleware('module:accounting')->group(function () {
+        Route::get('/trial-balance', [ReportPageController::class, 'trialBalance'])->name('reports.trial-balance');
+        Route::get('/profit-and-loss', [ReportPageController::class, 'profitAndLoss'])->name('reports.profit-and-loss');
+    });
+
+    Route::get('/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])
+        ->middleware('module:invoicing')
+        ->name('invoice.pdf');
 });

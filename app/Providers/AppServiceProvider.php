@@ -9,6 +9,7 @@ use App\Policies\MprPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Support\EmployeeAccess;
+use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
 use App\Support\Modules;
 use App\Support\TenantSettings;
@@ -34,6 +35,24 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
         $this->app->singleton(Modules::class);
+
+        // Registered here, in register() rather than boot(), and this is load
+        // bearing. Gate::before callbacks run in registration order, and
+        // spatie/laravel-permission registers its own from its provider's boot()
+        // (PermissionRegistrar::registerPermissions) which returns true the moment
+        // the user holds the permission. A module check registered in boot() lands
+        // behind it and never runs for exactly the users who do have the
+        // permission — which is everyone the check is meant to stop. register()
+        // runs before every provider's boot(), so this callback is first.
+        //
+        // It returns a hard false: a module the company has not licensed is not a
+        // permission question, so neither a super admin nor an Administrator
+        // bypasses it (see the two bypasses in boot()).
+        Gate::before(function ($user, $ability, $arguments = []) {
+            if (ModuleAuthorization::blockingModule($user, (string) $ability, (array) $arguments) !== null) {
+                return false;
+            }
+        });
     }
 
     /**
@@ -80,6 +99,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Permission::class, PermissionPolicy::class);
 
+        // The module deny that runs ahead of both of these is registered in
+        // register() — see the comment there for why the ordering matters.
         Gate::before(function ($user, $ability) {
             // Global super admin bypasses all authorization.
             if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
