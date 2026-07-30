@@ -23,6 +23,20 @@ class PayrollPostingService
      */
     public function postPayslip(Payslip $payslip): ?JournalEntry
     {
+        // Payroll does not declare Accounting as a requirement — it works without
+        // it, it just cannot post — so this is the one genuine cross-module write
+        // that has to degrade rather than fail. Creating a payslip must succeed
+        // for a company that runs payroll and keeps its books elsewhere, and must
+        // keep succeeding if an Accounting licence is revoked underneath live
+        // payroll data.
+        //
+        // Invoicing and Inventory need no equivalent guard: they *do* declare
+        // Accounting as a requirement, so they are unavailable whenever it is
+        // (see Modules::enabledFor) and cannot reach this situation.
+        if (! modules()->enabled('accounting')) {
+            return null;
+        }
+
         $this->unwindForPayslip($payslip);
 
         $debits = [

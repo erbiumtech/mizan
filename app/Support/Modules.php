@@ -137,7 +137,25 @@ class Modules
             return false;
         }
 
-        return $state['licensed'] && $state['enabled'];
+        if (! ($state['licensed'] && $state['enabled'])) {
+            return false;
+        }
+
+        // A module is only usable when everything it declares as a requirement is
+        // usable. Without this, revoking Accounting would leave Invoicing on and
+        // reachable, and issuing an invoice would post journal entries into a
+        // module the company no longer has — the activation form enforces the
+        // dependency, but a licence revoke does not go through that form.
+        //
+        // The graph is acyclic (asserted by ModuleCoverageTest), so the recursion
+        // terminates.
+        foreach (static::requirements($module) as $required) {
+            if (! $this->enabledFor($companyId, $required)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function licensed(string $module): bool

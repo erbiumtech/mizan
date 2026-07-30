@@ -59,7 +59,10 @@ class ModuleStateTest extends TestCase
         // The activation page lists licensed modules, including ones the company
         // has switched off — otherwise a module they paid for and hid could never
         // be brought back.
-        $company = $this->company(['payroll' => [true, false]]);
+        $company = $this->company([
+            'employees' => [true, true],
+            'payroll' => [true, false],
+        ]);
 
         $this->assertTrue(modules()->licensedFor($company->getKey(), 'payroll'));
         $this->assertFalse(modules()->enabledFor($company->getKey(), 'payroll'));
@@ -156,7 +159,12 @@ class ModuleStateTest extends TestCase
 
     public function test_revoking_a_licence_keeps_the_companys_own_choice(): void
     {
-        $company = $this->company(['payroll' => [true, true]]);
+        // Employees too: Payroll requires it, and a required module that is not
+        // available makes Payroll unavailable regardless of its own flags.
+        $company = $this->company([
+            'employees' => [true, true],
+            'payroll' => [true, true],
+        ]);
         $id = $company->getKey();
 
         CompanyModule::where('company_id', $id)->where('module', 'payroll')->update(['licensed' => false]);
