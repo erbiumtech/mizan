@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Invoice;
+use App\Modules\Invoicing\Models\Invoice;
 use App\Support\Pdf\Pdf;
 
 class InvoicePdfController extends Controller

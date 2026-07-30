@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
-use App\Models\Contact;
+use App\Modules\Invoicing\Models\Contact;
 use App\Models\Employee;
 use App\Models\User;
 use Database\Seeders\CompanySeeder;

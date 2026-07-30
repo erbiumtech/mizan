@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\FixedAsset;
-use App\Models\Invoice;
+use App\Modules\Invoicing\Models\Invoice;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
 use App\Models\Payment;

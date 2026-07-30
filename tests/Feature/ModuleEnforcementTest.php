@@ -181,7 +181,7 @@ class ModuleEnforcementTest extends TestCase
 
         $this->setModule('invoicing', false);
 
-        $this->assertFalse(Gate::allows('view', new \App\Models\Invoice));
+        $this->assertFalse(Gate::allows('view', new \App\Modules\Invoicing\Models\Invoice));
     }
 
     public function test_core_authorization_survives_every_module_being_off(): void

@@ -82,7 +82,7 @@ class CommandPaletteTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->setCurrentTenant();
 
-        \App\Models\Product::create([
+        \App\Modules\Inventory\Models\Product::create([
             'sku' => 'WIDGET-1', 'name' => 'Blue Widget', 'unit' => 'pcs',
             'valuation_method' => 'fifo', 'reorder_level' => 0, 'is_active' => true,
         ]);

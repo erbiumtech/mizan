@@ -6,7 +6,7 @@ use App\Filament\Livewire\CommandPalette;
 use App\Filament\Resources\Accounts\AccountResource;
 use App\Filament\Resources\Companies\CompanyResource;
 use App\Filament\Resources\CustomFields\CustomFieldResource;
-use App\Filament\Resources\Invoices\InvoiceResource;
+use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
 use App\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
 use App\Filament\Resources\Roles\RoleResource;
 use App\Filament\Resources\Users\UserResource;

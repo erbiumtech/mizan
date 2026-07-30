@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Modules\Invoicing\Filament\Resources\Invoices;
+
+use App\Filament\Concerns\BelongsToModule;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\CreateInvoice;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\EditInvoice;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\ListInvoices;
+use App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers\LinesRelationManager;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Schemas\InvoiceForm;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Tables\InvoicesTable;
+use App\Modules\Invoicing\Models\Invoice;
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
+
+class InvoiceResource extends Resource
+{
+    use BelongsToModule;
+
+    protected static ?string $model = Invoice::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Invoicing';
+
+    protected static ?string $recordTitleAttribute = 'invoice_number';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['invoice_number'];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('customFieldValues.customField');
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return InvoiceForm::configure($schema);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return InvoicesTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            LinesRelationManager::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListInvoices::route('/'),
+            'create' => CreateInvoice::route('/create'),
+            'edit' => EditInvoice::route('/{record}/edit'),
+        ];
+    }
+}

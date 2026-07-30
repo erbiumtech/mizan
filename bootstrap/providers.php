@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Inventory\InventoryServiceProvider;
+use App\Modules\Invoicing\InvoicingServiceProvider;
 use App\Modules\Mpr\MprServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
@@ -13,5 +14,6 @@ return [
     // policies and routes; its Filament classes are registered by the matching
     // plugin listed in config/modules.php.
     InventoryServiceProvider::class,
+    InvoicingServiceProvider::class,
     MprServiceProvider::class,
 ];

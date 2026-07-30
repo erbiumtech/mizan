@@ -54,6 +54,7 @@ return [
         'description' => 'Contacts and invoices. Posts journal entries through Accounting.',
         'requires' => ['accounting'],
         'licensed_by_default' => false,
+        'plugin' => \App\Modules\Invoicing\InvoicingPlugin::class,
     ],
 
     'inventory' => [
