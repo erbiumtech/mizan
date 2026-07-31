@@ -20,7 +20,7 @@ class TableViewResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookmark;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Access Control';
+    protected static string|UnitEnum|null $navigationGroup = 'Settings';
 
     protected static ?string $recordTitleAttribute = 'name';
 
