@@ -10,6 +10,7 @@ use App\Support\Impersonation;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use RuntimeException;
@@ -47,11 +48,25 @@ class ImpersonationTest extends TestCase
         (new RoleSeeder)->run();
 
         $this->impersonation = app(Impersonation::class);
+
+        // The suite runs on the array session driver, whose store lives for one
+        // request — so the password hash AuthenticateSession writes never reaches
+        // the next request and the logout this guards against cannot happen. A
+        // real session driver is what makes these two tests able to fail.
+        config(['session.driver' => 'file']);
     }
 
     private function member(string $role, array $attributes = []): User
     {
-        $user = User::factory()->create($attributes + ['status' => 1]);
+        // A password of their own. UserFactory hashes 'password' once and hands
+        // every user the same hash, and AuthenticateSession decides whether a
+        // session is still valid by comparing exactly that — so shared hashes
+        // would let a stale stamp match the wrong person, hiding the bug the
+        // "survives the next request" tests below exist to catch.
+        $user = User::factory()->create($attributes + [
+            'status' => 1,
+            'password' => 'secret-'.uniqid(),
+        ]);
         $this->company->users()->attach($user);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
@@ -219,6 +234,59 @@ class ImpersonationTest extends TestCase
 
         $this->post(route('impersonate.stop'))->assertRedirect();
 
+        $this->assertAuthenticatedAs($admin);
+    }
+
+    // --- staying signed in --------------------------------------------------
+
+    /**
+     * The swap has to outlive the request that made it.
+     *
+     * AuthenticateSession keeps a copy of the signed-in user's password hash in
+     * the session and, the moment the two disagree, flushes the session and sends
+     * the visitor to the login screen. That is what "Log in as" used to do: the
+     * copy stayed the administrator's while the session became the employee's,
+     * and the redirect afterwards was the first request to notice.
+     *
+     * Note the first request below. It is what puts the hash in the session in the
+     * first place — the middleware writes it after a response — so a browser
+     * always has one and actingAs() on its own never does. Every other test here
+     * skipped it, which is why the whole feature could pass while being unusable.
+     */
+    public function test_signing_in_as_someone_survives_the_next_request(): void
+    {
+        $admin = $this->member('Administrator');
+        $employee = $this->member('Employee');
+
+        $this->actAs($admin);
+
+        $url = Filament::getPanel('admin')->getUrl($this->company);
+
+        $this->get($url)->assertOk();
+
+        $this->impersonation->start($employee);
+
+        $this->get($url)->assertOk();
+        $this->assertAuthenticatedAs($employee);
+    }
+
+    /** And so does the way back. */
+    public function test_returning_to_your_own_account_survives_the_next_request(): void
+    {
+        $admin = $this->member('Administrator');
+        $employee = $this->member('Employee');
+
+        $this->actAs($admin);
+
+        $url = Filament::getPanel('admin')->getUrl($this->company);
+
+        $this->get($url)->assertOk();
+        $this->impersonation->start($employee);
+        $this->get($url)->assertOk();
+
+        $this->post(route('impersonate.stop'))->assertRedirect();
+
+        $this->get($url)->assertOk();
         $this->assertAuthenticatedAs($admin);
     }
 
