@@ -55,7 +55,7 @@ class BankPaymentExportService extends SalaryBankExportService
                 'debit_currency' => $config['currency'],
                 'debit_bank_id' => $config['debit_bank_id'],
                 'beneficiary_email' => $beneficiary['email'],
-                'beneficiary_bank_name' => $beneficiary['bank_name'],
+                'beneficiary_bank_name' => $beneficiary['bank_short_code'],
                 'purpose_of_payment' => $config['purpose_of_payment'],
                 'beneficiary_id' => $beneficiary['id_number'],
                 'beneficiary_id_type' => $beneficiary['id_type'],

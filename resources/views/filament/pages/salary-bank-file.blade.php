@@ -47,7 +47,18 @@
                                         <x-filament::badge color="danger">missing</x-filament::badge>
                                     @endif
                                 </td>
-                                <td class="py-1.5 pr-4">{{ $p['bank_name'] ?: '—' }}</td>
+                                {{-- The short code, because that is what column 66 of the file
+                                     carries. Banks with no short code on record export blank, so
+                                     they are flagged rather than shown as an empty cell. --}}
+                                <td class="py-1.5 pr-4">
+                                    @if($p['bank_short_code'])
+                                        {{ $p['bank_short_code'] }}
+                                    @elseif($p['bank_name'])
+                                        <x-filament::badge color="warning" size="xs">no short code</x-filament::badge>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td class="py-1.5 pr-4">{{ $p['details'] }}</td>
                                 <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p['amount'], 2) }}</td>
                             </tr>
