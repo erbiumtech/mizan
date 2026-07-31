@@ -25,7 +25,7 @@
                             <th class="py-2 pr-4 font-medium">Account / IBAN</th>
                             <th class="py-2 pr-4 font-medium">Details</th>
                             <th class="py-2 pr-4 font-medium">Status</th>
-                            <th class="py-2 pl-4 font-medium text-right">Amount</th>
+                            <th class="py-2 pl-4 font-medium text-right">Net Salary</th>
                         </tr>
                     </thead>
                     <tbody>
