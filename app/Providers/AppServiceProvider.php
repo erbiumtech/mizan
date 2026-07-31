@@ -118,6 +118,12 @@ class AppServiceProvider extends ServiceProvider
         // Isolation is enforced at the database level (one database per company),
         // so Filament's row-level tenant scoping is disabled — resource queries
         // already run against the current tenant's database connection.
+        //
+        // This holds only for models in a tenant database. Anything in the
+        // landlord database is shared by every company and has to draw the
+        // boundary by hand: ActivityLog and TableView carry a company_id and
+        // scope on it themselves, and UserResource turns row scoping back on
+        // (see the $isScopedToTenant there) because membership is a pivot.
         Resource::scopeToTenant(false);
 
         // Keep spatie/laravel-multitenancy's current tenant in sync with the

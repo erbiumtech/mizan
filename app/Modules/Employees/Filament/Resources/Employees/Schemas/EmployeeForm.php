@@ -11,6 +11,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 
 class EmployeeForm
@@ -31,9 +32,30 @@ class EmployeeForm
 
                 // BelongsTo user (Employee Name) — readonly in Nova; picker
                 // restricted to users holding the Employee role.
+                //
+                // The row's own user is always in the list, whether or not they
+                // still qualify. Users are shared across companies, so a query
+                // that only offers current members would make an employee left
+                // behind by a membership change show a blank name and fail
+                // validation on save — on a field nobody can even edit.
                 Select::make('user_id')
                     ->label('Employee Name')
-                    ->relationship('user', 'name', fn ($query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'Employee')))
+                    ->relationship(
+                        'user',
+                        'name',
+                        // The membership scope is lifted at the root so it can come
+                        // back as one branch of an OR: the picker offers this
+                        // company's people, an existing row keeps its own user.
+                        fn (Builder $query, ?Employee $record): Builder => $query
+                            ->acrossCompanies()
+                            ->where(fn (Builder $eligible) => $eligible
+                                ->where(fn (Builder $member) => $member
+                                    ->inCurrentCompany()
+                                    ->exceptPlatformAdmins()
+                                    ->whereHas('roles', fn (Builder $roles) => $roles->where('name', 'Employee')))
+                                ->when($record?->user_id, fn (Builder $own, $userId) => $own
+                                    ->orWhere($own->getModel()->getQualifiedKeyName(), $userId))),
+                    )
                     ->searchable()
                     ->preload()
                     ->required()

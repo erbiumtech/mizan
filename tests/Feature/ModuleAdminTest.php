@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Core\Filament\Pages\Modules as ModulesPage;
+use App\Support\Modules as Registry;
 use App\Modules\Core\Filament\Resources\Companies\Pages\EditCompany;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
@@ -10,6 +11,7 @@ use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\InteractsWithTenant;
@@ -52,6 +54,12 @@ class ModuleAdminTest extends TestCase
         $user = User::factory()->create(['is_super_admin' => true]);
         $this->company->users()->attach($user->getKey());
 
+        // Also an Administrator of this company, which is what reaching the tenant
+        // Modules page requires — canAccess() checks the role directly rather than
+        // through the gate, exactly as CompanySettings does. Being a super admin
+        // alone does not open a company's own settings pages.
+        $user->assignRole('Administrator');
+
         return $user;
     }
 
@@ -89,6 +97,38 @@ class ModuleAdminTest extends TestCase
         $this->setCurrentTenant($this->company);
 
         Livewire::test(ModulesPage::class)->assertFormFieldDoesNotExist('core');
+    }
+
+    public function test_the_empty_state_points_a_super_admin_at_the_licensing_surface(): void
+    {
+        // A super admin *is* the person who grants licences, so "contact your
+        // administrator" is a dead end — and it is what made an empty page look
+        // like a bug rather than an ungranted licence.
+        foreach (Registry::names() as $module) {
+            $this->licence($module, false);
+        }
+
+        $this->actingAs($this->superAdmin());
+        $this->setCurrentTenant($this->company);
+
+        Livewire::test(ModulesPage::class)
+            ->assertSee('As a super admin you grant them', escape: false)
+            ->assertDontSee('Contact your administrator');
+    }
+
+    public function test_the_empty_state_says_so_when_the_module_table_is_missing(): void
+    {
+        // The reason this was hard to diagnose: an unmigrated landlord read exactly
+        // like a company with no licences, because Modules::load() falls back to
+        // config defaults rather than failing.
+        Schema::drop('company_modules');
+
+        $this->actingAs($this->administrator());
+        $this->setCurrentTenant($this->company);
+
+        Livewire::test(ModulesPage::class)
+            ->assertSee('not migrated yet', escape: false)
+            ->assertSee('php artisan migrate', escape: false);
     }
 
     public function test_an_administrator_can_switch_a_licensed_module_off(): void

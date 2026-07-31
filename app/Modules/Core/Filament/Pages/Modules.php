@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
 use App\Support\ModuleMap;
@@ -67,7 +68,7 @@ class Modules extends Page
                     ->schema([
                         Placeholder::make('none')
                             ->hiddenLabel()
-                            ->content('No optional modules are licensed for this company yet. Contact your administrator to have one added.'),
+                            ->content(new HtmlString($this->emptyStateMessage())),
                     ]),
             ]);
         }
@@ -88,6 +89,36 @@ class Modules extends Page
                         ->live(),
                 ]),
         ]);
+    }
+
+    /**
+     * Why the list is empty — three different reasons that used to read
+     * identically, which is what made an unmigrated landlord look like a company
+     * with no licences.
+     */
+    private function emptyStateMessage(): string
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('company_modules')) {
+            return 'The module system is not migrated yet — the <code>company_modules</code> table '
+                .'does not exist, so no licence can be read. Run <code>php artisan migrate</code>. '
+                .'Existing companies are granted every module by that migration.';
+        }
+
+        // A super admin *is* the person who grants licences, so telling them to
+        // contact their administrator is a dead end. Point at the actual surface.
+        if (auth()->user()?->isSuperAdmin()) {
+            $company = Company::find($this->tenantId());
+
+            $url = $company
+                ? CompanyResource::getUrl('edit', ['record' => $company])
+                : CompanyResource::getUrl('index');
+
+            return 'No optional modules are licensed for this company yet. As a super admin you grant '
+                .'them under <a class="fi-link" href="'.e($url).'">Licensed modules</a> on the company '
+                .'record; this page is where the company then switches on what it has.';
+        }
+
+        return 'No optional modules are licensed for this company yet. Contact your administrator to have one added.';
     }
 
     private function toggleFor(string $module): Toggle

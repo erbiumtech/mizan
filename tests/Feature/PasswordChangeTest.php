@@ -37,7 +37,6 @@ class PasswordChangeTest extends TestCase
     public function test_profile_page_renders_for_an_employee(): void
     {
         $user = $this->employee();
-        $user->companies()->attach($this->tenant);
 
         $this->get('/admin/profile')
             ->assertSuccessful()

@@ -156,9 +156,18 @@ class Employee extends Model
         return $this->hasOne(EmployeeSetting::class);
     }
 
+    /**
+     * Deliberately outside the membership scope the panel puts on users.
+     *
+     * An employee's user is this company's own record — it is what names every
+     * payslip and MPR in its history — and it has to keep resolving after the
+     * person is removed from the company (Users page → Remove from company) or
+     * their access moves elsewhere. Scoped, the relation would come back null and
+     * the row would read as a nameless employee.
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->acrossCompanies();
     }
 
     /** The employee this one reports to (self-referential; nullable). */
