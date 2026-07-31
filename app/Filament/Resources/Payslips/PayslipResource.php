@@ -26,7 +26,7 @@ class PayslipResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Payslip';
+    protected static string|UnitEnum|null $navigationGroup = 'Employee';
 
     protected static ?string $recordTitleAttribute = 'id';
 
