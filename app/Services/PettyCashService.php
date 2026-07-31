@@ -272,16 +272,26 @@ class PettyCashService
             throw new InvalidArgumentException('Float is already at or above '.number_format($this->floatAmount(), 2).' — nothing to replenish.');
         }
 
-        $custodian = Beneficiary::where('is_petty_cash_custodian', true)->where('is_active', true)->first();
+        $custodian = Beneficiary::pettyCashCustodian()->first();
 
         if (! $custodian) {
-            throw new RuntimeException('No petty cash custodian beneficiary configured.');
+            // Say where to fix it. The custodian is a *beneficiary* flag, not one
+            // of the company bank accounts, which is the obvious place to go
+            // looking and the wrong one.
+            throw new RuntimeException(
+                'No petty cash custodian is set, so there is nobody to make the replenishment payment out to. '
+                .'Open Accounting → Beneficiaries, edit the person who holds the petty cash, and turn on '
+                .'"Petty cash custodian".'
+            );
         }
 
         $type = TransactionType::byCode('petty-cash-replenishment');
 
         if (! $type) {
-            throw new RuntimeException('Transaction type petty-cash-replenishment not found. Run TransactionTypeSeeder.');
+            throw new RuntimeException(
+                'The petty-cash-replenishment transaction type is missing, so the payment cannot be classified. '
+                .'Seed it with: php artisan tenants:artisan "db:seed --class=Database\\\\Seeders\\\\TransactionTypeSeeder"'
+            );
         }
 
         return Payment::create([

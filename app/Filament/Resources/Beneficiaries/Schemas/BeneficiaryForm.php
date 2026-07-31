@@ -89,6 +89,21 @@ class BeneficiaryForm
                     ->label('Active')
                     ->default(true),
 
+                // The person the month-end replenishment payment is made out to.
+                // The column, the model and both seeders have always had this
+                // flag; only the form was missing it, so a company that entered
+                // its beneficiaries by hand had no way to name a custodian and
+                // Petty Cash → Replenish Month could never succeed.
+                //
+                // One at a time: PettyCashService::replenish() takes the first
+                // active custodian it finds, so a second one would make which
+                // beneficiary gets paid depend on row order. Saving this on
+                // clears it everywhere else (see Beneficiary::booted()).
+                Toggle::make('is_petty_cash_custodian')
+                    ->label('Petty cash custodian')
+                    ->helperText('Receives the month-end petty cash replenishment payment. Only one beneficiary can hold this at a time — turning it on here takes it off whoever holds it now.')
+                    ->default(false),
+
                 ...CustomFieldsSchema::form(Beneficiary::class),
             ]);
     }

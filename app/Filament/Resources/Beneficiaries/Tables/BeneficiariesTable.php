@@ -40,6 +40,15 @@ class BeneficiariesTable
                     ->boolean()
                     ->sortable(),
 
+                // Visible so "who gets the replenishment payment" is answerable
+                // from the list — and so its absence is visible too, which is the
+                // state that breaks the month-end close.
+                IconColumn::make('is_petty_cash_custodian')
+                    ->label('Petty cash')
+                    ->boolean()
+                    ->tooltip(fn (bool $state): ?string => $state ? 'Receives the petty cash replenishment' : null)
+                    ->sortable(),
+
                 ...CustomFieldsSchema::tableColumns(Beneficiary::class),
             ])
             ->filters([

@@ -130,7 +130,7 @@ class PettyCashBook extends Page
             ->action(function (array $data): void {
                 try {
                     $voucher = app(PettyCashService::class)->bookVoucher($data);
-                } catch (\InvalidArgumentException $e) {
+                } catch (\InvalidArgumentException|\RuntimeException $e) {
                     // The upload already landed on disk; don't leave it orphaned.
                     if (filled($data['receipt_path'] ?? null)) {
                         Storage::disk('public')->delete($data['receipt_path']);
@@ -211,7 +211,7 @@ class PettyCashBook extends Page
 
                 try {
                     app(PettyCashService::class)->updateVoucher($voucher, $data);
-                } catch (\InvalidArgumentException $e) {
+                } catch (\InvalidArgumentException|\RuntimeException $e) {
                     // Roll back a fresh upload that never made it onto the voucher.
                     if (filled($data['receipt_path']) && $data['receipt_path'] !== $old) {
                         Storage::disk('public')->delete($data['receipt_path']);
@@ -277,7 +277,13 @@ class PettyCashBook extends Page
                     ->required(),
             ])
             ->action(function (array $data): void {
-                app(PettyCashService::class)->topUp($data['date'], (float) $data['amount']);
+                try {
+                    app(PettyCashService::class)->topUp($data['date'], (float) $data['amount']);
+                } catch (\InvalidArgumentException|\RuntimeException $e) {
+                    Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return;
+                }
 
                 $this->data['month'] = Carbon::parse($data['date'])->format('Y-m');
 
@@ -304,7 +310,7 @@ class PettyCashBook extends Page
             ->action(function (): void {
                 try {
                     $payment = app(PettyCashService::class)->replenish($this->selectedMonth());
-                } catch (\InvalidArgumentException $e) {
+                } catch (\InvalidArgumentException|\RuntimeException $e) {
                     Notification::make()->danger()->title($e->getMessage())->send();
 
                     return;
