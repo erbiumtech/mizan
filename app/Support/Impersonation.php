@@ -106,7 +106,7 @@ class Impersonation
 
         Auth::login($target);
 
-        // TEMP-DISABLED
+        $this->refreshSessionPasswordHash($target);
 
         session([self::SESSION_KEY => $actorId]);
 
@@ -140,7 +140,7 @@ class Impersonation
 
         Auth::login($impersonator);
 
-        // TEMP-DISABLED
+        $this->refreshSessionPasswordHash($impersonator);
 
         return $impersonator;
     }
