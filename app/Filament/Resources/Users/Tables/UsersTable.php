@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Models\User;
+use App\Support\Impersonation;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Facades\Filament;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -60,6 +63,42 @@ class UsersTable
                     ->action(fn (User $record) => $record->update([
                         'status' => (int) $record->status === 1 ? 0 : 1,
                     ])),
+
+                // Sign in as this user to complete something on their behalf.
+                //
+                // Asks the service, not the Gate. Gate::before grants an
+                // Administrator every ability except 'create', so `can()` here
+                // would be true for every row — including super admins, which is
+                // the one row that must never offer it. start() re-checks anyway,
+                // so a stale or forged request still cannot get through.
+                Action::make('impersonate')
+                    ->label('Log in as')
+                    ->icon('heroicon-o-arrow-right-end-on-rectangle')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (User $record): string => 'Log in as '.$record->name)
+                    ->modalDescription('You will be signed in as this user until you stop. Everything you do is '
+                        .'recorded against them and against you — including salary acknowledgements, which are a '
+                        .'statement of consent.')
+                    ->modalSubmitActionLabel('Log in as this user')
+                    ->visible(fn (User $record): bool => app(Impersonation::class)->allows(auth()->user(), $record))
+                    ->action(function (User $record) {
+                        try {
+                            app(Impersonation::class)->start($record);
+                        } catch (\RuntimeException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return null;
+                        }
+
+                        Notification::make()
+                            ->warning()
+                            ->title('You are now signed in as '.$record->name)
+                            ->body('Use "Stop impersonating" in the banner to return to your own account.')
+                            ->send();
+
+                        return redirect(Filament::getPanel('admin')->getUrl());
+                    }),
 
                 EditAction::make(),
             ])
