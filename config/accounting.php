@@ -19,6 +19,7 @@ return [
         'petrol_allowance' => '5300',
         'device_allowance' => '5400',
         'bonus_overtime' => '5500',
+        'expense_reimbursement' => '5600',
         'meal_recovery' => '5600',
         'tax_payable' => '2100',
         'esi_payable' => '2200',

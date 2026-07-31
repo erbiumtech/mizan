@@ -39,7 +39,7 @@ class PaymentService
             ->get();
 
         foreach ($payslips as $payslip) {
-            $payment = Payment::firstOrCreate(
+            $payment = Payment::UpdateOrCreate(
                 ['payslip_id' => $payslip->id],
                 [
                     'payable_type' => Employee::class,
