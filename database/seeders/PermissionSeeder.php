@@ -19,6 +19,9 @@ class PermissionSeeder extends Seeder
             ['name' => 'UserCreate', 'group' => 'User'],
             ['name' => 'UserUpdate', 'group' => 'User'],
             ['name' => 'UserDelete', 'group' => 'User'],
+            // Sign in as another user. Administrator gets it with everything else;
+            // no other seeded role lists it.
+            ['name' => 'UserImpersonate', 'group' => 'User'],
 
             ['name' => 'EmployeeView', 'group' => 'Employee'],
             ['name' => 'EmployeeUpdate', 'group' => 'Employee'],

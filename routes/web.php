@@ -36,3 +36,21 @@ Route::middleware(['auth'])->prefix('reports')->group(function () {
     Route::get('/profit-and-loss', [ReportPageController::class, 'profitAndLoss'])->name('reports.profit-and-loss');
     Route::get('/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])->name('invoice.pdf');
 });
+
+// Returning from impersonation. A plain route rather than a Livewire action so
+// the way back works from any page in the panel, including one that fails to
+// render — being stuck as somebody else is the failure mode to avoid.
+Route::post('/impersonate/stop', function () {
+    $impersonator = app(App\Support\Impersonation::class)->stop();
+
+    if (! $impersonator) {
+        return redirect()->back();
+    }
+
+    \Filament\Notifications\Notification::make()
+        ->success()
+        ->title('Welcome back, '.$impersonator->name)
+        ->send();
+
+    return redirect(\Filament\Facades\Filament::getPanel('admin')->getUrl());
+})->middleware(['web', 'auth'])->name('impersonate.stop');
