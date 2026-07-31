@@ -25,7 +25,8 @@ class CompanyForm
             Select::make('admin_user_id')
                 ->label('Company Admin')
                 ->helperText('This user is added to the company as its Administrator.')
-                ->options(fn () => User::orderBy('name')->pluck('name', 'id'))
+                // Any user, not just the current company's — see User::scopeAcrossCompanies().
+                ->options(fn () => User::acrossCompanies()->orderBy('name')->pluck('name', 'id'))
                 ->searchable()
                 ->required()
                 ->dehydrated()

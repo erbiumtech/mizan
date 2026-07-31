@@ -42,11 +42,18 @@ class UserForm
                     ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
 
                 // Company membership (which companies this user can access).
+                //
+                // Super admin only: the options are every company in the system,
+                // and granting access to one is not a company administrator's
+                // call to make. Their own company is attached automatically on
+                // create (see UserResource::$isScopedToTenant), which is the only
+                // membership this page needs.
                 Select::make('companies')
                     ->label('Company Access')
                     ->multiple()
                     ->relationship('companies', 'name')
                     ->preload()
+                    ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false)
                     ->helperText('Companies this user can sign in to. Switch companies to set roles for each.'),
 
                 // Roles are per-company (spatie teams); this applies to the

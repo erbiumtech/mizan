@@ -46,7 +46,12 @@ class MPRSTable
                     ->label('User Name')
                     ->options(function (): array {
                         $user = auth()->user();
-                        $query = User::query();
+
+                        // Privileged means privileged within this company: users
+                        // are shared across companies (landlord table), so the
+                        // membership scope comes first and the downline narrows
+                        // it further. See User::scopeInCurrentCompany().
+                        $query = User::inCurrentCompany();
 
                         // Non-privileged users only filter within their downline.
                         if ($user && ! app(EmployeeAccess::class)->isPrivileged($user)) {

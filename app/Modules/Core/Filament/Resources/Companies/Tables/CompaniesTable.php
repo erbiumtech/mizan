@@ -54,12 +54,13 @@ class CompaniesTable
             ->schema([
                 Select::make('user_id')
                     ->label('User')
-                    ->options(fn () => User::orderBy('name')->pluck('name', 'id'))
+                    // Any user, not just the current company's — see User::scopeAcrossCompanies().
+                    ->options(fn () => User::acrossCompanies()->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
             ])
             ->action(function (array $data, Company $record): void {
-                $user = User::find($data['user_id']);
+                $user = User::acrossCompanies()->find($data['user_id']);
                 if (! $user) {
                     return;
                 }

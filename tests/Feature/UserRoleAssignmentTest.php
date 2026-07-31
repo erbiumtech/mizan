@@ -32,7 +32,13 @@ class UserRoleAssignmentTest extends TestCase
         $this->actingAs($admin);
         $this->setCurrentTenant($company);
 
+        // A member of this company: UserResource scopes to the `company_user`
+        // pivot, so a non-member is not editable from this company's panel — which
+        // is the isolation UserTenantScopingTest asserts. Creating a user with the
+        // panel serving a company attaches them to it already (same scoping,
+        // write side), hence sync rather than attach.
         $target = User::factory()->create();
+        $company->users()->syncWithoutDetaching([$target->getKey()]);
 
         Livewire::test(EditUser::class, ['record' => $target->getKey()])
             ->assertSuccessful()

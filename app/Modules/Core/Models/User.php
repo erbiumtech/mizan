@@ -4,9 +4,11 @@ namespace App\Modules\Core\Models;
 
 use App\Modules\Mpr\Models\MPR;
 use App\Traits\Auditable;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasTenants
@@ -54,6 +57,109 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     {
         return $this->belongsToMany(Company::class, 'company_user')
             ->withTimestamps();
+    }
+
+    /**
+     * Take this user off one company: they can no longer sign in to it and hold
+     * nothing there.
+     *
+     * What a company's Users page means by "delete". The account itself is a
+     * landlord row shared by every company the person works for, so deleting it
+     * from one company's panel would take them out of all the others — and take
+     * the row that every payslip, MPR and audit entry of theirs points at. What
+     * the page can end is this company's claim on them: the `company_user` pivot,
+     * which is what grants access, and their roles here, which are per-company
+     * (spatie teams) and would otherwise come back with them on a re-add.
+     *
+     * Their employee record stays. It is this company's own history — payslips,
+     * settings, the lot — and losing it is not what removing a member means.
+     */
+    public function removeFromCompany(Company $company): void
+    {
+        $registrar = app(PermissionRegistrar::class);
+        $previous = $registrar->getPermissionsTeamId();
+
+        try {
+            $registrar->setPermissionsTeamId($company->getKey());
+            $this->fresh()?->syncRoles([]);
+        } finally {
+            $registrar->setPermissionsTeamId($previous);
+        }
+
+        $this->companies()->detach($company->getKey());
+    }
+
+    /**
+     * Only the users who may access the company being served.
+     *
+     * The membership boundary that has to be drawn by hand for this table: it is
+     * in the landlord database, shared by every company, so unlike an Employee or
+     * a Payslip a User is not isolated by the connection it is read over. Applied
+     * for real by UserResource; also available to the queries that go around a
+     * resource — a table filter's option list, a select — since those would
+     * otherwise name every account in the system.
+     *
+     * No current company (login, console, a landlord-level job) means no
+     * narrowing: there is no company whose members to narrow to.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeInCurrentCompany(Builder $query): void
+    {
+        $company = Filament::getTenant() ?? Company::current();
+
+        if (! $company instanceof Company) {
+            return;
+        }
+
+        // Both sides are landlord tables, so this subquery does not span the
+        // landlord/tenant connection split (see App\Support\LandlordUserColumn
+        // for the queries that would).
+        $query->whereHas('companies', fn (Builder $companies) => $companies->whereKey($company->getKey()));
+    }
+
+    /**
+     * Drop the platform's own accounts, unless a platform account is asking.
+     *
+     * A super admin is attached to the companies they create — the provisioner
+     * does it, and they hold the Administrator role there — but they are not one
+     * of the company's people, and a company has no business administering them.
+     * Listed, they came with a Deactivate button and an Edit form: a company
+     * administrator could lock the account that runs the installation out of
+     * every company in it.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeExceptPlatformAdmins(Builder $query): void
+    {
+        if (auth()->user()?->isSuperAdmin()) {
+            return;
+        }
+
+        $query->where($query->getModel()->qualifyColumn('is_super_admin'), false);
+    }
+
+    /**
+     * Every user, current company or not.
+     *
+     * `users` is a landlord table shared by all companies, so UserResource turns
+     * Filament's row scoping back on and, while the panel is serving a request,
+     * that lands as a global scope on this model. The Companies resource — super
+     * admin only — is the one place that has to reach past it: the whole point of
+     * assigning a company's Administrator is picking someone who is not a member
+     * yet. Anywhere else, wanting this is a bug.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeAcrossCompanies(Builder $query): void
+    {
+        // No current panel means no scope was ever applied — Filament registers
+        // it against one panel and the closure no-ops outside it.
+        $panel = Filament::getCurrentPanel();
+
+        if ($panel?->hasTenancy()) {
+            $query->withoutGlobalScope($panel->getTenancyScopeName());
+        }
     }
 
     public function getTenants(Panel $panel): Collection
