@@ -22,6 +22,18 @@ class TableViewResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Settings';
 
+    /**
+     * Kept out of the sidebar. Saved views are created and applied from the bar on
+     * each table (HasSavedViews), which is where anyone thinks about them; this
+     * resource exists for the rarer job of tidying them up across a company, and a
+     * permanent menu entry for that was noise.
+     *
+     * Not removed — canAccess() still admits an Administrator, so the pages remain
+     * reachable by URL and by ⌘K, which both consult canAccess() rather than the
+     * navigation.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     /** Managing all companies' saved views is an Administrator concern. */
