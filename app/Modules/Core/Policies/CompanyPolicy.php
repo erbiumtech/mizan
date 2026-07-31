@@ -23,7 +23,10 @@ class CompanyPolicy
         return $user->isSuperAdmin();
     }
 
-    /** Administrators of an existing company may also register another one. */
+    /**
+     * Same rule, kept behind canCreateCompanies() because the tenant registration
+     * page asks that question directly — see RegisterCompany::canView().
+     */
     public function create(User $user): bool
     {
         return $user->canCreateCompanies();

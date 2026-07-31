@@ -16,7 +16,8 @@ class RegisterCompany extends RegisterTenant
     }
 
     /**
-     * Only Administrators (of any company they belong to) may create new companies.
+     * Super admins only — see User::canCreateCompanies(). Filament aborts the
+     * route on this too, so the page is gone, not merely hidden from the menu.
      */
     public static function canView(): bool
     {
