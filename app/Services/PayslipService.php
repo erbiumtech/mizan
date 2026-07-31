@@ -20,7 +20,7 @@ class PayslipService
      */
     public function calculateByParams(
         $employeeId, $month, $fiscalYearId, $bonus = null, $extraWorkHours = null,
-        $deviceAllowance = null, $petrolAllowance = null, $advances = null, $mealDeduction = null, $esiInsurance = null
+        $deviceAllowance = null, $petrolAllowance = null, $advances = null, $mealDeduction = null, $esiInsurance = null, $expenseReimbursement = null
     ) {
         $fiscalYear = FiscalYear::find($fiscalYearId);
 
@@ -36,7 +36,7 @@ class PayslipService
         $setting = EmployeeSetting::getActiveSettingForDate($employeeId, $targetDate, $fiscalYearId);
 
         if (!$setting) {
-            return array_fill_keys(['basic_wage', 'medical_allowance', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance', 'bonus', 'extra_work_hours', 'total_earnings', 'withholding_tax', 'total_deductions', 'net_salary'], 0);
+            return array_fill_keys(['basic_wage', 'medical_allowance', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance', 'bonus', 'extra_work_hours', 'expense_reimbursement', 'total_earnings', 'withholding_tax', 'total_deductions', 'net_salary'], 0);
         }
 
         $data = [
@@ -49,6 +49,7 @@ class PayslipService
             'esi_health_insurance' => ((float)$esiInsurance > 0) ? (float)$esiInsurance : (float)$setting->esi_health_insurance,
             'bonus'                => ((float)$bonus > 0) ? (float)$bonus : (float)($setting->bonus ?? 0),
             'extra_work_hours'     => ((float)$extraWorkHours > 0) ? (float)$extraWorkHours : (float)($setting->extra_work_hours ?? 0),
+            'expense_reimbursement' => (float) ($expenseReimbursement ?? 0),
         ];
 
         // Current Month Total Earnings Base (Form values ke sath)
@@ -140,8 +141,8 @@ class PayslipService
         // Total Deductions (Tax + Advances + Meal + ESI)
         $data['total_deductions'] = round($data['withholding_tax'] + $data['advances'] + $data['meal_deduction'] + $data['esi_health_insurance'], 2);
 
-        // Net Salary (Earnings - Deductions)
-        $data['net_salary'] = round($data['total_earnings'] - $data['total_deductions'], 2);
+        // Net Salary (Earnings + Expense Reimbursement - Deductions)
+        $data['net_salary'] = round($data['total_earnings'] + $data['expense_reimbursement'] - $data['total_deductions'], 2);
 
         return $data;
     }

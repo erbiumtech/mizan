@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Payslips\Tables;
 
 use App\Models\Payslip;
 use App\Support\EmployeeAccess;
+use App\Support\LandlordUserColumn;
+use App\Support\Pdf\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -18,7 +20,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use App\Support\Pdf\Pdf;
 
 class PayslipsTable
 {
@@ -31,11 +32,13 @@ class PayslipsTable
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
                     ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
+                    // Resolved to employee ids first: `users` lives in the
+                    // landlord database, so a whereHas through it would emit a
+                    // cross-database subquery on the tenant connection.
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
-                        ->where('payslips.id', 'like', "%{$search}%")
-                        ->orWhereHas('employee', fn ($q) => $q
-                            ->where('employee_id', 'like', "%{$search}%")
-                            ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))))
+                        ->where(fn (Builder $q): Builder => $q
+                            ->where('payslips.id', 'like', "%{$search}%")
+                            ->orWhereIn('employee_id', LandlordUserColumn::employeeIdsMatching($search))))
                     ->sortable(),
 
                 TextColumn::make('month')
@@ -69,6 +72,11 @@ class PayslipsTable
 
                 TextColumn::make('extra_work_hours')
                     ->label('Extra Work Hours')
+                    ->numeric()
+                    ->toggleable(),
+
+                TextColumn::make('expense_reimbursement')
+                    ->label('Expense Reimbursment')
                     ->numeric()
                     ->toggleable(),
 

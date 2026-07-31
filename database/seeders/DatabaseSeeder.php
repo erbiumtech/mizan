@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
 
     public static function superAdminEmail(): string
     {
-        return (string) (env('SEED_ADMIN_EMAIL') ?: self::SUPER_ADMIN_EMAIL);
+        return (string) (config('seeding.admin_email') ?: self::SUPER_ADMIN_EMAIL);
     }
 
     /**

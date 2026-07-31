@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\BankFileAccount;
 use App\Traits\Auditable;
 
 class Payment extends Model
@@ -18,6 +19,9 @@ class Payment extends Model
     public const STATUS_PAID = 'paid';
 
     public const RTGS_THRESHOLD = 1000000;
+
+    /** TransactionType code that marks a payroll transfer (TransactionTypeSeeder). */
+    public const SALARY_TRANSACTION_CODE = 'salary';
 
     protected $fillable = [
         'payable_type', 'payable_id', 'transaction_type_id', 'company_bank_account_id',
@@ -57,8 +61,9 @@ class Payment extends Model
 
     /**
      * The iPayments Payment Type for this transaction:
-     * explicit override → RTGS above threshold → BT when the beneficiary
-     * banks with the debiting bank → beneficiary default → IBFT.
+     * explicit override → RTGS above threshold → PAY for an employee salary →
+     * BT when the beneficiary banks with the debiting bank → beneficiary
+     * default → IBFT.
      */
     public function resolvedPaymentType(): string
     {
@@ -66,8 +71,17 @@ class Payment extends Model
             return $this->payment_type;
         }
 
+        // Above the threshold the bank requires RTGS regardless of what the
+        // payment is for, so this outranks the salary rule below: a high-value
+        // salary settles as RTGS, not PAY.
         if ((float) $this->amount >= self::RTGS_THRESHOLD) {
             return 'RTGS';
+        }
+
+        // Otherwise a salary transfer is its own payment type, outranking the
+        // intra-bank and beneficiary-default routing below.
+        if ($this->isEmployeeSalary()) {
+            return (string) (setting('ipayments')['salary_payment_type'] ?? 'PAY');
         }
 
         $payeeBankId = $this->payable instanceof Beneficiary
@@ -88,6 +102,27 @@ class Payment extends Model
     }
 
     /**
+     * Whether this payment is an employee salary transfer.
+     *
+     * Settling a payslip is decisive. Otherwise it must be a payment to an
+     * employee under the salary transaction type — an employee can also be paid
+     * an advance or a reimbursement, and those are ordinary transfers, not
+     * payroll, so "the payee is an employee" alone is not enough.
+     */
+    public function isEmployeeSalary(): bool
+    {
+        if ($this->payslip_id) {
+            return true;
+        }
+
+        if (! $this->payable instanceof Employee) {
+            return false;
+        }
+
+        return $this->transactionType?->code === self::SALARY_TRANSACTION_CODE;
+    }
+
+    /**
      * Beneficiary-side columns for the bank file, from either an
      * Employee or a Beneficiary payable.
      */
@@ -98,7 +133,12 @@ class Payment extends Model
         if ($payable instanceof Employee) {
             return [
                 'name' => $payable->user->name ?? $payable->employee_id,
-                'account' => $payable->iban_no ?: $payable->bank_account_no,
+                'account' => BankFileAccount::value(
+                    $payable->iban_no,
+                    $payable->bank_account_no,
+                    $payable->bank,
+                    $payable->bank_short_code,
+                ),
                 'bank_code' => $payable->bank?->bank_code ?? $payable->bank_code ?? '',
                 'bank_name' => $payable->bank?->bank_name ?? $payable->bank_name ?? '',
                 'email' => $payable->user->email ?? '',
@@ -112,7 +152,11 @@ class Payment extends Model
 
         return [
             'name' => $payable->name ?? '',
-            'account' => $payable->iban ?: $payable->account_no,
+            'account' => BankFileAccount::value(
+                $payable->iban ?? null,
+                $payable->account_no ?? null,
+                $payable->bank ?? null,
+            ),
             'bank_code' => $payable->bank?->bank_code ?? '',
             'bank_name' => $payable->bank?->bank_name ?? '',
             'email' => $payable->email ?? '',

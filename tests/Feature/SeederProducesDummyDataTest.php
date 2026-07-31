@@ -89,16 +89,17 @@ class SeederProducesDummyDataTest extends TestCase
     /** The real values can still be supplied per-environment. */
     public function test_env_overrides_win_over_the_dummy_defaults(): void
     {
-        putenv('SEED_ADMIN_EMAIL=real-admin@somewhere.test');
-        putenv('SEED_COMPANY_SLUG=real-slug');
+        // config, not env(): read at the point of use, env() returns null once
+        // the host has run `config:cache`.
+        config([
+            'seeding.admin_email' => 'real-admin@somewhere.test',
+            'seeding.company_slug' => 'real-slug',
+        ]);
 
-        try {
-            $this->assertSame('real-admin@somewhere.test', DatabaseSeeder::superAdminEmail());
-            $this->assertSame('real-slug', CompanySeeder::companySlug());
-        } finally {
-            putenv('SEED_ADMIN_EMAIL');
-            putenv('SEED_COMPANY_SLUG');
-        }
+        $this->assertSame('real-admin@somewhere.test', DatabaseSeeder::superAdminEmail());
+        $this->assertSame('real-slug', CompanySeeder::companySlug());
+
+        config(['seeding.admin_email' => null, 'seeding.company_slug' => null]);
 
         $this->assertSame(DatabaseSeeder::SUPER_ADMIN_EMAIL, DatabaseSeeder::superAdminEmail());
     }

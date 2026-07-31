@@ -2,22 +2,22 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\SelectsSalaryMonth;
 use App\Models\FiscalYear;
 use App\Models\Payslip;
 use App\Services\EmployeeWithholdingTaxExport;
 use BackedEnum;
-use Carbon\Carbon;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Collection as BaseCollection;
 use UnitEnum;
 
 class FbrTaxFile extends Page
 {
+    use SelectsSalaryMonth;
+
     protected string $view = 'filament.pages.fbr-tax-file';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -37,54 +37,32 @@ class FbrTaxFile extends Page
 
     public function mount(): void
     {
-        $fiscalYear = $this->fiscalYear();
-        $months = $this->months($fiscalYear);
-
         $this->form->fill([
-            'fiscal_year_id' => $fiscalYear?->id,
-            'month' => $months->last(),
+            'fiscal_year_id' => $this->defaultFiscalYear()?->id,
+            'month' => $this->defaultMonth(),
         ]);
     }
 
-    public function fiscalYear(): ?FiscalYear
+    /**
+     * The month labels count only taxed payslips — the rows this file exports —
+     * so a month showing no count really will produce an empty file.
+     */
+    protected function monthCountQuery(FiscalYear $fiscalYear): Builder
     {
-        if ($id = ($this->data['fiscal_year_id'] ?? null)) {
-            return FiscalYear::find($id);
-        }
-
-        return FiscalYear::where('is_active', true)->first();
+        return Payslip::where('fiscal_year_id', $fiscalYear->id)->where('withholding_tax', '>', 0);
     }
 
-    public function months(?FiscalYear $fiscalYear): BaseCollection
+    protected function monthCountNoun(): string
     {
-        if (! $fiscalYear) {
-            return collect();
-        }
-
-        return Payslip::where('fiscal_year_id', $fiscalYear->id)
-            ->whereNotNull('month')
-            ->distinct()
-            ->pluck('month')
-            ->sortBy(fn ($m) => Carbon::parse("{$m} 1, 2000")->month)
-            ->values();
+        return 'with tax';
     }
 
     public function form(Schema $schema): Schema
     {
-        $fiscalYear = $this->fiscalYear();
-
         return $schema
             ->components([
-                Select::make('fiscal_year_id')
-                    ->label('Fiscal year')
-                    ->options(FiscalYear::orderByDesc('start_date')->pluck('name', 'id')->all())
-                    ->native(false)
-                    ->live(),
-                Select::make('month')
-                    ->label('Tax month')
-                    ->options($this->months($fiscalYear)->mapWithKeys(fn ($m) => [$m => $m])->all())
-                    ->native(false)
-                    ->live(),
+                $this->fiscalYearSelect(),
+                $this->monthSelect('Tax month'),
             ])
             ->statePath('data')
             ->columns(2);
@@ -95,7 +73,9 @@ class FbrTaxFile extends Page
      */
     public function query(): Builder
     {
-        $fiscalYearId = $this->data['fiscal_year_id'] ?? null;
+        // Resolved, not raw state: with no selection the page should still show
+        // the current year rather than every year at once.
+        $fiscalYearId = $this->fiscalYear()?->id;
         $month = $this->data['month'] ?? null;
 
         return Payslip::query()

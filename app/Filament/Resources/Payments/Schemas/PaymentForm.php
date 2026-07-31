@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Payments\Schemas;
 use App\Models\Beneficiary;
 use App\Models\Employee;
 use App\Models\Payment;
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\MorphToSelect;
 use Filament\Forms\Components\Select;
@@ -22,7 +23,11 @@ class PaymentForm
                     ->types([
                         MorphToSelect\Type::make(Employee::class)
                             ->titleAttribute('employee_id')
+                            // Searching by name needs the landlord users table,
+                            // which no single query may join to employees — so
+                            // match the resolved ids instead of a title column.
                             ->modifyOptionsQueryUsing(fn ($query) => $query->with('user'))
+                            ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                             ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label),
                         MorphToSelect\Type::make(Beneficiary::class)
                             ->titleAttribute('name'),

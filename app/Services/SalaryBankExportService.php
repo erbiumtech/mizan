@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\FiscalYear;
+use App\Models\Payment;
 use App\Models\Payslip;
+use App\Support\BankFileAccount;
 use Carbon\Carbon;
 
 /**
@@ -64,11 +66,22 @@ class SalaryBankExportService
         return $payslips->map(function (Payslip $p) use ($month, $year) {
             $employee = $p->employee;
 
+            $account = BankFileAccount::resolve(
+                $employee->iban_no,
+                $employee->bank_account_no,
+                $employee->bank,
+                $employee->bank_short_code,
+                $employee->bank_name ?? null,
+            );
+
             return [
                 'payslip' => $p,
                 'employee_code' => $employee->employee_id,
                 'name' => $employee->user->name ?? $employee->employee_id,
-                'account' => $employee->iban_no ?: $employee->bank_account_no,
+                // SCB beneficiaries go by account number (intra-bank); everyone
+                // else by IBAN (inter-bank IBFT). See BankFileAccount.
+                'account' => $account['value'],
+                'account_kind' => $account['kind'],
                 'bank_code' => $employee->bank?->bank_code ?? $employee->bank_code ?? '',
                 'bank_name' => $employee->bank?->bank_name ?? $employee->bank_name ?? '',
                 'address_1' => $employee->address_line_1 ?? '',
@@ -105,7 +118,12 @@ class SalaryBankExportService
 
             $rows[] = $this->row([
                 'record_type' => 'P',
-                'payment_type' => $config['payment_type'],
+                // Every row here is a salary transfer, but the bank still
+                // requires RTGS above the threshold — same precedence as
+                // Payment::resolvedPaymentType, so the two files agree.
+                'payment_type' => $payment['amount'] >= Payment::RTGS_THRESHOLD
+                    ? 'RTGS'
+                    : ($config['salary_payment_type'] ?? 'PAY'),
                 'processing_mode' => $config['processing_mode'],
                 'customer_reference' => sprintf('SAL-%s-%03d', strtoupper(substr($month, 0, 3)), $i + 1),
                 'debit_country' => $config['debit_country'],

@@ -397,6 +397,8 @@
                                 Hours</span><span>{{ number_format($data->extra_work_hours, 2) }}</span></div>
                         <div class="line-item"><span>Bonus</span><span>{{ number_format($data->bonus, 2) }}</span>
                         </div>
+                        <div class="line-item"><span>Expense
+                                Reimbursement</span><span>{{ number_format($data->expense_reimbursement, 2) }}</span></div>
                     </td>
                     <td>
                         <div class="line-item"><span>Withholding
