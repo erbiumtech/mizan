@@ -75,6 +75,11 @@ class PayslipsTable
                     ->numeric()
                     ->toggleable(),
 
+                TextColumn::make('expense_reimbursement')
+                    ->label('Expense Reimbursment')
+                    ->numeric()
+                    ->toggleable(),
+
                 TextColumn::make('advances')
                     ->label('Advances')
                     ->money('PKR')
