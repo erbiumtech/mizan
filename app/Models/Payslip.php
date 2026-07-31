@@ -28,7 +28,7 @@ class Payslip extends Model
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
         'total_deductions', 'net_salary', 'pdf_path',
-        'employee_review', 'employee_reviewed_at', 'employee_rejection_reason',
+        'employee_review', 'employee_reviewed_at', 'employee_rejection_reason', 'expense_reimbursement',
     ];
 
     protected $casts = [
@@ -116,7 +116,8 @@ class Payslip extends Model
                 $payslip->petrol_allowance,
                 $payslip->advances,
                 $payslip->meal_deduction,
-                $payslip->esi_health_insurance
+                $payslip->esi_health_insurance,
+                $payslip->expense_reimbursement
             );
 
             if ($calculatedData) {
@@ -126,6 +127,7 @@ class Payslip extends Model
                 $payslip->petrol_allowance = $calculatedData['petrol_allowance'];
                 $payslip->bonus = $calculatedData['bonus'];
                 $payslip->extra_work_hours = $calculatedData['extra_work_hours'];
+                $payslip->expense_reimbursement = $calculatedData['expense_reimbursement'];
                 $payslip->withholding_tax = $calculatedData['withholding_tax'];
                 $payslip->advances = $calculatedData['advances'];
                 $payslip->meal_deduction = $calculatedData['meal_deduction'];
@@ -243,7 +245,7 @@ class Payslip extends Model
 
         $medicalExemption = $annualTotalEarnings * 0.10;
 
-        // Annual Taxable Income = Total Earnings - 10% Exemption Cut (Exact 3,720,600 banta hai)
+        // Annual Taxable Income = Total Earnings - 10% Exemption Cut
         $annualTaxableIncome = max(0, $annualTotalEarnings - $medicalExemption);
 
         $annualTotalTax = app(TaxCalculatorService::class)
