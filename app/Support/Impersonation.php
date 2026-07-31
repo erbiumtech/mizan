@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Company;
 use App\Models\User;
+use BadMethodCallException;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Auth;
 use RuntimeException;
@@ -105,6 +106,8 @@ class Impersonation
 
         Auth::login($target);
 
+        // TEMP-DISABLED
+
         session([self::SESSION_KEY => $actorId]);
 
         return $target;
@@ -137,7 +140,38 @@ class Impersonation
 
         Auth::login($impersonator);
 
+        // TEMP-DISABLED
+
         return $impersonator;
+    }
+
+    /**
+     * Re-stamp the session with the password of whoever is now signed in.
+     *
+     * Without this the swap survives exactly as long as the request that made it.
+     * AuthenticateSession keeps a copy of the signed-in user's password hash in
+     * the session and logs out — flushing the session, straight to the login
+     * screen — the moment the two disagree. Auth::login() does not touch that
+     * copy: the middleware refreshes it after each response instead, and it is
+     * not among the panel's *persistent* middleware, so it never runs on the
+     * Livewire request the button is clicked in. The stamp stayed the
+     * administrator's while the session became the target's, and the redirect
+     * that follows was the first request to notice.
+     *
+     * Mirrors the middleware's own storePasswordHashInSession(), HMAC and legacy
+     * fallback included, so the value is in whatever form this Laravel compares.
+     */
+    protected function refreshSessionPasswordHash(User $user): void
+    {
+        $hash = $user->getAuthPassword();
+
+        try {
+            $hash = Auth::guard()->hashPasswordForCookie($hash);
+        } catch (BadMethodCallException) {
+            // A guard without the HMAC helper stores the raw hash.
+        }
+
+        session()->put('password_hash_'.Auth::getDefaultDriver(), $hash);
     }
 
     public function isActive(): bool
