@@ -142,6 +142,18 @@ class PayslipsTable
                     ->relationship('fiscalYear', 'name')
                     ->searchable()
                     ->preload(),
+
+                // Employee acknowledgement of the payslip. A plain column match is
+                // enough: employee_review is NOT NULL with a 'pending' default, so
+                // every row holds one of the three states and there is no missing
+                // case for the Pending option to also account for.
+                SelectFilter::make('employee_review')
+                    ->label('Employee Review')
+                    ->options([
+                        Payslip::REVIEW_PENDING => 'Pending',
+                        Payslip::REVIEW_ACCEPTED => 'Accepted',
+                        Payslip::REVIEW_REJECTED => 'Rejected',
+                    ]),
             ])
             ->recordActions([
                 EditAction::make(),
