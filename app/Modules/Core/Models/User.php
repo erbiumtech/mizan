@@ -175,32 +175,19 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     }
 
     /**
-     * Whether this user may create new companies — i.e. is an Administrator in
-     * at least one of the companies they belong to. Roles are per-company
-     * (spatie teams), so we check each company's team context.
+     * Whether this user may create new companies. Super admins only.
+     *
+     * Registering a company provisions a database, migrates it and seeds its
+     * roles — an installation-level act, not something a company administrator
+     * does within their own. It used to be enough to hold Administrator in any
+     * company you belonged to, which let any customer's admin add companies to
+     * the installation. The rest of company management (view, update, delete —
+     * see CompanyPolicy) was already super-admin only; this is the last piece
+     * lining up with it.
      */
     public function canCreateCompanies(): bool
     {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
-        $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
-        $previous = $registrar->getPermissionsTeamId();
-
-        try {
-            foreach ($this->companies as $company) {
-                $registrar->setPermissionsTeamId($company->getKey());
-
-                if ($this->fresh()->hasRole('Administrator')) {
-                    return true;
-                }
-            }
-
-            return false;
-        } finally {
-            $registrar->setPermissionsTeamId($previous);
-        }
+        return $this->isSuperAdmin();
     }
 
     use Auditable, HasApiTokens, HasFactory, HasRoles, Notifiable;

@@ -66,7 +66,7 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Company::class, slugAttribute: 'slug')
             // Company switcher for users who belong to more than one company.
             ->tenantMenu()
-            // Admin-only company creation is enforced by RegisterCompany::canView().
+            // Super-admin-only company creation is enforced by RegisterCompany::canView().
             ->tenantRegistration(RegisterCompany::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
