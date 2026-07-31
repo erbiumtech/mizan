@@ -114,6 +114,12 @@ class PayslipsTable
                         'rejected' => 'danger',
                         default => 'gray',
                     })
+                    // An acknowledgement entered by somebody signed in as the
+                    // employee reads exactly like the employee's own unless the
+                    // list says otherwise.
+                    ->description(fn (Payslip $record): ?string => $record->reviewWasRecordedOnBehalf()
+                        ? 'on behalf, by '.($record->employee_review_recorded_by_name ?: 'an administrator')
+                        : null)
                     ->sortable(),
             ])
             ->groups([
