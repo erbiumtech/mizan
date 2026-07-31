@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Impersonation;
 use App\Notifications\PayslipRejected;
 use App\Services\PayrollPostingService;
 use App\Services\PayslipService;
@@ -29,11 +30,37 @@ class Payslip extends Model
         'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
         'total_deductions', 'net_salary', 'pdf_path',
         'employee_review', 'employee_reviewed_at', 'employee_rejection_reason', 'expense_reimbursement',
+        'employee_review_recorded_by', 'employee_review_recorded_by_name',
     ];
 
     protected $casts = [
         'employee_reviewed_at' => 'datetime',
     ];
+
+    /**
+     * Was this acknowledgement entered by somebody other than the employee?
+     */
+    public function reviewWasRecordedOnBehalf(): bool
+    {
+        return $this->employee_review_recorded_by !== null;
+    }
+
+    /**
+     * The note the payslip carries when it was: "Accepted on behalf of the
+     * employee by …". Null when the employee acknowledged it themselves.
+     */
+    public function reviewOnBehalfNote(): ?string
+    {
+        if (! $this->reviewWasRecordedOnBehalf()) {
+            return null;
+        }
+
+        $who = $this->employee_review_recorded_by_name ?: 'an administrator';
+        $verb = $this->employee_review === self::REVIEW_REJECTED ? 'Rejected' : 'Accepted';
+        $when = $this->employee_reviewed_at?->format('d M Y');
+
+        return "{$verb} on behalf of the employee by {$who}".($when ? " on {$when}" : '').'.';
+    }
 
     public function isPendingReview(): bool
     {
@@ -54,10 +81,20 @@ class Payslip extends Model
             throw new \InvalidArgumentException("Payslip has already been reviewed ({$this->employee_review}).");
         }
 
+        // Who is really at the keyboard. An administrator signed in as the employee
+        // (App\Support\Impersonation) may legitimately enter this for staff who
+        // cannot, but accepting a payslip is a statement of consent — so the
+        // payslip records that it was entered on their behalf, and by whom, rather
+        // than presenting it as the employee's own acknowledgement. Left null in
+        // the ordinary case, where the employee did it themselves.
+        $onBehalfOf = app(Impersonation::class)->impersonator();
+
         $this->update([
             'employee_review' => $status,
             'employee_reviewed_at' => now(),
             'employee_rejection_reason' => $status === self::REVIEW_REJECTED ? $reason : null,
+            'employee_review_recorded_by' => $onBehalfOf?->getKey(),
+            'employee_review_recorded_by_name' => $onBehalfOf?->name,
         ]);
 
         if ($status === self::REVIEW_REJECTED) {
@@ -172,6 +209,7 @@ class Payslip extends Model
         return $dirty !== []
             && array_diff_key($dirty, array_flip([
                 'employee_review', 'employee_reviewed_at', 'employee_rejection_reason',
+                'employee_review_recorded_by', 'employee_review_recorded_by_name',
             ])) === [];
     }
 
