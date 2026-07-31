@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Payslips\Schemas;
 use App\Models\Payslip;
 use App\Services\PayslipService;
 use App\Support\EmployeeAccess;
+use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
@@ -24,6 +25,7 @@ class PayslipForm
         'petrol_allowance',
         'bonus',
         'extra_work_hours',
+        'expense_reimbursement',
         'withholding_tax',
         'advances',
         'meal_deduction',
@@ -44,6 +46,12 @@ class PayslipForm
                         ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
+                    // The label shows the user's name, so the search must match it too;
+                    // Filament would otherwise search only the employee_id title attribute.
+                    ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search(
+                        $search,
+                        EmployeeOptions::accessibleScope(),
+                    ))
                     ->preload()
                     ->required()
                     ->live()
@@ -154,6 +162,13 @@ class PayslipForm
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
 
+                TextInput::make('expense_reimbursement')
+                    ->label('Expense Reimbursement')
+                    ->numeric()
+                    ->minValue(0)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+
                 TextInput::make('advances')
                     ->label('Advances')
                     ->numeric()
@@ -226,7 +241,8 @@ class PayslipForm
             (float) ($get('petrol_allowance') ?? 0),
             (float) ($get('advances') ?? 0),
             (float) ($get('meal_deduction') ?? 0),
-            (float) ($get('esi_health_insurance') ?? 0)
+            (float) ($get('esi_health_insurance') ?? 0),
+            (float) ($get('expense_reimbursement') ?? 0)
         );
 
         foreach (self::CALCULATED_KEYS as $key) {

@@ -33,12 +33,12 @@ class CompanySeeder extends Seeder
 
     public static function companyName(): string
     {
-        return (string) (env('SEED_COMPANY_NAME') ?: self::COMPANY_NAME);
+        return (string) (config('seeding.company_name') ?: self::COMPANY_NAME);
     }
 
     public static function companySlug(): string
     {
-        return (string) (env('SEED_COMPANY_SLUG') ?: self::COMPANY_SLUG);
+        return (string) (config('seeding.company_slug') ?: self::COMPANY_SLUG);
     }
 
     /**

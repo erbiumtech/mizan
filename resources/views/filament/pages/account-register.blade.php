@@ -7,6 +7,11 @@
     @php($rows = collect($ledger['rows']))
     @php($totalDebit = $rows->sum('debit'))
     @php($totalCredit = $rows->sum('credit'))
+    {{-- Computed once: Action::toHtml() renders regardless of visible(), so each
+         button has to be gated here. --}}
+    @php($canEditRow = $this->editRowAction->isVisible())
+    @php($canDeleteRow = $this->deleteRowAction->isVisible())
+    @php($canReverseRow = $this->reverseRowAction->isVisible())
 
     {{-- Summary stat cards --}}
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -53,6 +58,7 @@
                         <th class="px-3 py-2 text-right font-medium">Debit</th>
                         <th class="px-3 py-2 text-right font-medium">Credit</th>
                         <th class="px-3 py-2 text-right font-medium">Balance</th>
+                        <th class="px-3 py-2 text-right font-medium">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
@@ -60,6 +66,7 @@
                         <tr class="text-gray-500 dark:text-gray-400">
                             <td class="px-3 py-2" colspan="7">Opening balance</td>
                             <td class="px-3 py-2 text-right tabular-nums">{{ number_format($ledger['opening_balance'], 2) }}</td>
+                            <td></td>
                         </tr>
                     @endif
                     @forelse($ledger['rows'] as $row)
@@ -82,9 +89,34 @@
                             <td class="px-3 py-2 text-right tabular-nums {{ $row['debit'] ? 'text-success-600 dark:text-success-400' : '' }}">{{ $row['debit'] ? number_format($row['debit'], 2) : '' }}</td>
                             <td class="px-3 py-2 text-right tabular-nums {{ $row['credit'] ? 'text-danger-600 dark:text-danger-400' : '' }}">{{ $row['credit'] ? number_format($row['credit'], 2) : '' }}</td>
                             <td class="px-3 py-2 text-right tabular-nums font-medium {{ $row['balance'] < 0 ? 'text-danger-600 dark:text-danger-400' : '' }}">{{ number_format($row['balance'], 2) }}</td>
+                            <td class="whitespace-nowrap px-3 py-2 text-right align-middle">
+                                <div class="inline-flex items-center justify-end gap-0.5">
+                                    @if($row['immutable_reason'])
+                                        {{-- Booked by another document, reconciled, or a split: reversal is the only
+                                             correction that keeps both sides consistent. --}}
+                                        <span
+                                            class="inline-flex h-8 w-8 items-center justify-center text-gray-300 dark:text-gray-600"
+                                            title="{{ $row['immutable_reason'] }}"
+                                        >
+                                            <x-filament::icon icon="heroicon-m-lock-closed" class="h-4 w-4" />
+                                        </span>
+                                    @else
+                                        @if($canEditRow)
+                                            {{ ($this->editRowAction)(['entry' => $row['entry_id']]) }}
+                                        @endif
+                                        @if($canDeleteRow)
+                                            {{ ($this->deleteRowAction)(['entry' => $row['entry_id']]) }}
+                                        @endif
+                                    @endif
+
+                                    @if($canReverseRow)
+                                        {{ ($this->reverseRowAction)(['entry' => $row['entry_id']]) }}
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td class="px-3 py-6 text-center text-gray-400" colspan="8">No posted transactions in this range.</td></tr>
+                        <tr><td class="px-3 py-6 text-center text-gray-400" colspan="9">No posted transactions in this range.</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
@@ -93,6 +125,7 @@
                         <td class="px-3 py-2 text-right tabular-nums text-success-600 dark:text-success-400">{{ number_format($totalDebit, 2) }}</td>
                         <td class="px-3 py-2 text-right tabular-nums text-danger-600 dark:text-danger-400">{{ number_format($totalCredit, 2) }}</td>
                         <td class="px-3 py-2 text-right tabular-nums {{ $ledger['closing_balance'] < 0 ? 'text-danger-600 dark:text-danger-400' : '' }}">{{ number_format($ledger['closing_balance'], 2) }}</td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>

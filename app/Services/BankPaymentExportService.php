@@ -51,7 +51,7 @@ class BankPaymentExportService extends SalaryBankExportService
                 'payment_details_1' => $payment->details,
                 'invoice_format' => $config['invoice_format'],
                 'payment_currency' => $config['currency'],
-                'amount' => $this->formatAmount((float) $payment->amount),
+                'amount' => $this->formatAmount((float) $payment->net_salary),
                 'debit_currency' => $config['currency'],
                 'debit_bank_id' => $config['debit_bank_id'],
                 'beneficiary_email' => $beneficiary['email'],

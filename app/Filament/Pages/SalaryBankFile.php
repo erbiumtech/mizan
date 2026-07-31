@@ -2,21 +2,19 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\FiscalYear;
-use App\Models\Payslip;
+use App\Filament\Concerns\SelectsSalaryMonth;
 use App\Services\SalaryBankExportService;
 use BackedEnum;
-use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Collection;
 use UnitEnum;
 
 class SalaryBankFile extends Page
 {
+    use SelectsSalaryMonth;
+
     protected string $view = 'filament.pages.salary-bank-file';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
@@ -36,45 +34,19 @@ class SalaryBankFile extends Page
 
     public function mount(): void
     {
-        $months = $this->months();
-
         $this->form->fill([
-            'month' => $months->last() ?? now()->format('F'),
+            'fiscal_year_id' => $this->defaultFiscalYear()?->id,
+            'month' => $this->defaultMonth(),
             'value_date' => now()->toDateString(),
         ]);
     }
 
-    public function fiscalYear(): ?FiscalYear
-    {
-        return FiscalYear::where('is_active', true)->first();
-    }
-
-    public function months(): Collection
-    {
-        $fiscalYear = $this->fiscalYear();
-
-        if (! $fiscalYear) {
-            return collect();
-        }
-
-        return Payslip::where('fiscal_year_id', $fiscalYear->id)
-            ->distinct()
-            ->pluck('month')
-            ->sortBy(fn ($m) => Carbon::parse("{$m} 1, 2000")->month)
-            ->values();
-    }
-
     public function form(Schema $schema): Schema
     {
-        $months = $this->months();
-
         return $schema
             ->components([
-                Select::make('month')
-                    ->label('Salary month')
-                    ->options($months->mapWithKeys(fn ($m) => [$m => $m])->all())
-                    ->native(false)
-                    ->live(),
+                $this->fiscalYearSelect(),
+                $this->monthSelect(),
                 DatePicker::make('value_date')
                     ->label('Payment/value date')
                     ->native(false)
@@ -82,7 +54,7 @@ class SalaryBankFile extends Page
                     ->live(),
             ])
             ->statePath('data')
-            ->columns(3);
+            ->columns(4);
     }
 
     public function getPayments(): array

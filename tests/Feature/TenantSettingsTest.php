@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\PettyCashService;
 use App\Support\TenantSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,13 +27,30 @@ class TenantSettingsTest extends TestCase
         $this->assertEqualsWithDelta(12500.0, setting('petty_cash.float_amount'), 0.001);
     }
 
-    public function test_array_settings_round_trip(): void
+    /**
+     * A map-shaped override is merged over the config defaults, not swapped for
+     * them: Company Settings saves the whole map at once, so replacing wholesale
+     * let a partial save erase every key it did not carry — which wedged payroll
+     * posting in production. See PayrollAccountFallbackTest.
+     */
+    public function test_array_settings_merge_over_the_config_defaults(): void
     {
         $codes = ['basic_wage' => '9100', 'tax_payable' => '2999'];
         app(TenantSettings::class)->set('accounting.payroll_accounts', $codes);
 
-        $this->assertSame($codes, setting('accounting.payroll_accounts'));
-        $this->assertSame('9100', data_get(setting('accounting.payroll_accounts'), 'basic_wage'));
+        $effective = setting('accounting.payroll_accounts');
+
+        // The overridden keys win...
+        $this->assertSame('9100', $effective['basic_wage']);
+        $this->assertSame('2999', $effective['tax_payable']);
+
+        // ...and the ones the save did not mention keep their defaults.
+        $this->assertSame('2300', $effective['salaries_payable']);
+        $this->assertSame(
+            array_keys(config('accounting.payroll_accounts')),
+            array_keys($effective),
+            'no key may go missing'
+        );
     }
 
     public function test_boolean_settings_round_trip(): void
@@ -48,7 +66,7 @@ class TenantSettingsTest extends TestCase
     {
         app(TenantSettings::class)->set('petty_cash.float_amount', 7777.0);
 
-        $service = app(\App\Services\PettyCashService::class);
+        $service = app(PettyCashService::class);
         $this->assertEqualsWithDelta(7777.0, $service->floatAmount(), 0.001);
     }
 }

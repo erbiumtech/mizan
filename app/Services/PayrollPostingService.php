@@ -10,9 +10,7 @@ use RuntimeException;
 
 class PayrollPostingService
 {
-    public function __construct(private JournalEntryService $journalEntryService)
-    {
-    }
+    public function __construct(private JournalEntryService $journalEntryService) {}
 
     /**
      * Create the journal entry for a payslip:
@@ -33,6 +31,7 @@ class PayrollPostingService
             'petrol_allowance' => (float) $payslip->petrol_allowance,
             'device_allowance' => (float) $payslip->device_allowance,
             'bonus_overtime' => (float) $payslip->bonus + (float) $payslip->extra_work_hours,
+            'expense_reimbursement' => (float) $payslip->expense_reimbursement,
         ];
 
         $credits = [
@@ -118,10 +117,29 @@ class PayrollPostingService
     protected function accountId(string $key): int
     {
         $code = data_get(setting('accounting.payroll_accounts'), $key);
+
+        // A blank or zero code means the mapping was saved without this line
+        // rather than deliberately pointing at account "0", so fall back to the
+        // shipped default instead of failing.
+        if ($code === null || $code === '' || $code === 0 || $code === '0') {
+            $code = config('accounting.payroll_accounts.'.$key);
+        }
+
+        if ($code === null || $code === '') {
+            throw new RuntimeException(
+                "Payroll account '{$key}' has no account code configured. Set it under "
+                .'Company Settings → Payroll → Payroll Account Codes.'
+            );
+        }
+
         $account = Account::where('code', $code)->first();
 
         if (! $account) {
-            throw new RuntimeException("Payroll account '{$key}' (code {$code}) not found. Run ChartOfAccountsSeeder.");
+            throw new RuntimeException(
+                "Payroll account '{$key}' points at account code {$code}, which does not exist in this "
+                .'company\'s chart of accounts. Either correct it under Company Settings → Payroll → '
+                .'Payroll Account Codes, or seed the chart with ChartOfAccountsSeeder.'
+            );
         }
 
         return $account->id;
