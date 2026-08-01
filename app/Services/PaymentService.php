@@ -152,11 +152,9 @@ class PaymentService
      * Undo a release: the batch's payments go back in the pool and will appear in
      * the next one.
      *
-     * For a file the bank rejected, or one built by mistake. The prior status is
-     * reconstructed rather than stored, and exactly: approve() is the only thing
-     * that ever sets journal_entry_id on a payment, and it sets the status to
-     * approved at the same time — so a released payment with a journal entry was
-     * approved before it went, and one without was a draft.
+     * For a file the bank rejected, or one built by mistake. Each payment goes
+     * back to what it was before the release — see restoreToPool(). To put a
+     * single row back without re-issuing the whole file, use revertExport().
      *
      * Refuses outright if any payment in the batch has been marked paid. That
      * says the money actually moved, and putting such a row back in the pool
@@ -184,11 +182,7 @@ class PaymentService
         }
 
         foreach ($payments as $payment) {
-            $payment->update([
-                'status' => $payment->journal_entry_id ? Payment::STATUS_APPROVED : Payment::STATUS_DRAFT,
-                'batch_reference' => null,
-                'released_at' => null,
-            ]);
+            $this->restoreToPool($payment);
         }
 
         activity('Payment')
@@ -200,6 +194,63 @@ class PaymentService
             ->log("Voided payment batch {$reference} — ".$payments->count().' payment(s) returned to the next batch');
 
         return $payments;
+    }
+
+    /**
+     * Put a single exported payment back in the pool.
+     *
+     * The batch-level void is the usual way back, but a file is not always wrong
+     * as a whole — one row bounces, or one payee's details were stale — and
+     * re-issuing the entire batch to fix one payment is worse than fixing the one.
+     *
+     * @throws InvalidArgumentException when the payment never went out, or has
+     *                                  been marked paid
+     */
+    public function revertExport(Payment $payment): Payment
+    {
+        if ($payment->status === Payment::STATUS_PAID) {
+            throw new InvalidArgumentException(
+                "Payment #{$payment->id} is marked paid, so the money has moved. Reverse it rather than "
+                .'putting it back in the pool.'
+            );
+        }
+
+        if ($payment->status !== Payment::STATUS_EXPORTED) {
+            throw new InvalidArgumentException("Payment #{$payment->id} has not been exported.");
+        }
+
+        $batch = $payment->batch_reference;
+
+        $this->restoreToPool($payment);
+
+        activity('Payment')
+            ->performedOn($payment)
+            ->withProperties([
+                'batch_reference' => $batch,
+                'restored_to' => $payment->status,
+                'amount' => (float) $payment->amount,
+            ])
+            ->log("Payment #{$payment->id} reverted from exported"
+                .($batch ? " (was in batch {$batch})" : '').' and returned to the next batch');
+
+        return $payment;
+    }
+
+    /**
+     * Back to whatever it was before the release, and out of its batch.
+     *
+     * The prior status is reconstructed rather than stored, and exactly: approve()
+     * is the only thing that ever sets journal_entry_id on a payment, and it sets
+     * the status to approved at the same time — so a released payment carrying a
+     * journal entry was approved before it went, and one without was a draft.
+     */
+    protected function restoreToPool(Payment $payment): void
+    {
+        $payment->update([
+            'status' => $payment->journal_entry_id ? Payment::STATUS_APPROVED : Payment::STATUS_DRAFT,
+            'batch_reference' => null,
+            'released_at' => null,
+        ]);
     }
 
     /**
