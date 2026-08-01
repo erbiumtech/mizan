@@ -3,7 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
-use App\Filament\Concerns\VoidsPaymentBatches;
+use App\Modules\Accounting\Filament\Concerns\VoidsPaymentBatches;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Services\BankPaymentExportService;

@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
-use App\Models\EmployeeSetting;
-use App\Models\Payslip;
-use App\Models\User;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Core\Models\User;
 use App\Support\Impersonation;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
@@ -179,7 +179,7 @@ class PayslipReviewOnBehalfTest extends AccountingTestCase
     public function test_recording_on_behalf_is_still_a_review_only_change(): void
     {
         $payslip = $this->payslip();
-        $postedBefore = \App\Models\JournalEntry::where('source_type', Payslip::class)
+        $postedBefore = \App\Modules\Accounting\Models\JournalEntry::where('source_type', Payslip::class)
             ->where('source_id', $payslip->getKey())
             ->count();
 
@@ -189,7 +189,7 @@ class PayslipReviewOnBehalfTest extends AccountingTestCase
 
         $this->assertSame(
             $postedBefore,
-            \App\Models\JournalEntry::where('source_type', Payslip::class)
+            \App\Modules\Accounting\Models\JournalEntry::where('source_type', Payslip::class)
                 ->where('source_id', $payslip->getKey())
                 ->count(),
             'An acknowledgement must not re-post the payroll entry.'

@@ -37,7 +37,7 @@ class ModuleBoundaryTest extends TestCase
         'App\Console',
         'App\Filament\Concerns',
         'App\Filament\Livewire',
-        'App\Filament\CommandPalette',
+        'App\Filament\Livewire\CommandPalette',
         'App\Filament\Support',
         'App\Multitenancy',
         'App\Providers',

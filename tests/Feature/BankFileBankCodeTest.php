@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Models\Bank;
-use App\Models\Beneficiary;
-use App\Models\Employee;
-use App\Models\Payment;
-use App\Models\Payslip;
-use App\Models\TransactionType;
-use App\Services\BankPaymentExportService;
-use App\Services\SalaryBankExportService;
+use App\Modules\Accounting\Models\Bank;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Accounting\Models\Payment;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\BankPaymentExportService;
+use App\Modules\Payroll\Services\SalaryBankExportService;
 use Database\Seeders\TransactionTypeSeeder;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
@@ -200,7 +200,7 @@ class BankFileBankCodeTest extends AccountingTestCase
         // net_salary is derived from the employee's salary settings on save, so
         // there has to be one — and the assertion reads what the payslip ends up
         // holding rather than a figure typed here.
-        \App\Models\EmployeeSetting::create([
+        \App\Modules\Employees\Models\EmployeeSetting::create([
             'employee_id' => $employee->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'start_date' => '2026-07-01',
@@ -220,7 +220,7 @@ class BankFileBankCodeTest extends AccountingTestCase
         $net = (float) $payslip->fresh()->net_salary;
         $this->assertGreaterThan(0, $net, 'the fixture has to produce a real net figure');
 
-        app(\App\Services\PaymentService::class)->generateSalaryPayments('January', $this->fiscalYear);
+        app(\App\Modules\Accounting\Services\PaymentService::class)->generateSalaryPayments('January', $this->fiscalYear);
 
         $csv = app(BankPaymentExportService::class)->exportPayments(Payment::all());
         $row = $this->dataRows($csv)[0];

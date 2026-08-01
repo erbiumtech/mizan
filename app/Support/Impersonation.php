@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use BadMethodCallException;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Auth;

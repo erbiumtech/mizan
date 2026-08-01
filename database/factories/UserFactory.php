@@ -14,7 +14,7 @@ class UserFactory extends Factory
 {
     /**
      * Named explicitly: Laravel guesses the model from the factory's own class
-     * name and looks for App\Models\User, which no longer exists — Core's models
+     * name and looks for App\Modules\Core\Models\User, which no longer exists — Core's models
      * live in app/Modules/Core/Models.
      */
     protected $model = User::class;
