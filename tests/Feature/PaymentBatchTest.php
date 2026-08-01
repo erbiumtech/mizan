@@ -204,6 +204,53 @@ class PaymentBatchTest extends AccountingTestCase
         $this->assertSame('July', $july->first()->payslip->month);
     }
 
+    /**
+     * Rent, food and the rest are not month-scoped the way a salary is: they are
+     * unpaid items waiting for a run. Requiring the value date to fall inside the
+     * selected month hid every undated one and everything left over from an
+     * earlier month — the page showed salaries and nothing else.
+     */
+    public function test_undated_and_overdue_payments_still_appear(): void
+    {
+        $beneficiary = Beneficiary::create([
+            'name' => 'Landlord',
+            'account_no' => '5544332211',
+            'payment_type' => 'IBFT',
+        ]);
+
+        $year = $this->yearOfJuly();
+
+        $cases = [
+            'Undated rent' => null,
+            'June rent, still unpaid' => sprintf('%s-06-01', $year),
+            'July rent' => sprintf('%s-07-05', $year),
+            'August rent, not due yet' => sprintf('%s-08-01', $year),
+        ];
+
+        foreach ($cases as $details => $valueDate) {
+            Payment::create([
+                'payable_type' => Beneficiary::class,
+                'payable_id' => $beneficiary->id,
+                'transaction_type_id' => TransactionType::query()->value('id'),
+                'amount' => 50000,
+                'details' => $details,
+                'value_date' => $valueDate,
+                'status' => Payment::STATUS_DRAFT,
+            ]);
+        }
+
+        $details = Livewire::test(BankPaymentFile::class)
+            ->fillForm(['fiscal_year_id' => $this->fiscalYear->id, 'month' => 'July', 'type' => null])
+            ->instance()
+            ->getRows()
+            ->pluck('details');
+
+        $this->assertContains('Undated rent', $details, 'no date means nothing to compare, not hidden');
+        $this->assertContains('June rent, still unpaid', $details, 'an overdue bill carries forward');
+        $this->assertContains('July rent', $details);
+        $this->assertNotContains('August rent, not due yet', $details, 'future-dated waits its turn');
+    }
+
     public function test_a_non_salary_payment_is_filtered_by_its_value_date(): void
     {
         // It has no payslip, so the month can only mean the date it is paid on.
