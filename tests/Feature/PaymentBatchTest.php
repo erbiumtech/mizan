@@ -307,6 +307,139 @@ class PaymentBatchTest extends AccountingTestCase
         );
     }
 
+    // --- voiding a batch ------------------------------------------------------
+
+    public function test_voiding_a_batch_puts_its_payments_back_in_the_pool(): void
+    {
+        // The case it exists for: the bank rejects the file, or the wrong month
+        // goes out. Before this, the only way back was a database edit.
+        $payslip = $this->payslip($this->employee('void-me@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $reference = Payment::where('payslip_id', $payslip->id)->value('batch_reference');
+
+        $restored = app(PaymentService::class)->voidBatch($reference);
+
+        $this->assertCount(1, $restored);
+
+        $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
+
+        $this->assertSame(Payment::STATUS_DRAFT, $payment->status);
+        $this->assertNull($payment->batch_reference);
+        $this->assertNull($payment->released_at);
+
+        // And it is offered to the next batch again.
+        $releasable = collect($this->salaryFile()->instance()->getReleasablePayments());
+        $this->assertSame([$payslip->id], $releasable->pluck('payslip_id')->all());
+    }
+
+    public function test_an_approved_payment_goes_back_to_approved_not_draft(): void
+    {
+        // Reconstructed from journal_entry_id, which approve() is the only thing
+        // that sets — so this is exact rather than a guess.
+        $beneficiary = Beneficiary::create([
+            'name' => 'Skyline Internet',
+            'account_no' => '5544332211',
+            'payment_type' => 'IBFT',
+        ]);
+
+        $payment = Payment::create([
+            'payable_type' => Beneficiary::class,
+            'payable_id' => $beneficiary->id,
+            'transaction_type_id' => TransactionType::byCode('utilities')?->id ?? TransactionType::query()->value('id'),
+            'amount' => 5000,
+            'details' => 'Internet',
+            'value_date' => now()->toDateString(),
+            'status' => Payment::STATUS_DRAFT,
+        ]);
+
+        app(PaymentService::class)->approve($payment);
+        $this->assertSame(Payment::STATUS_APPROVED, $payment->fresh()->status);
+
+        app(PaymentService::class)->release([$payment->fresh()], 'PMT-TEST-B1');
+        app(PaymentService::class)->voidBatch('PMT-TEST-B1');
+
+        $this->assertSame(Payment::STATUS_APPROVED, $payment->fresh()->status);
+    }
+
+    public function test_a_batch_containing_a_paid_payment_cannot_be_voided(): void
+    {
+        // Paid means the money moved; putting the row back would queue it to move
+        // a second time.
+        $payslip = $this->payslip($this->employee('paid@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
+        $reference = $payment->batch_reference;
+        $payment->update(['status' => Payment::STATUS_PAID]);
+
+        try {
+            app(PaymentService::class)->voidBatch($reference);
+            $this->fail('Expected a partly paid batch to be refused.');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('already marked paid', $e->getMessage());
+        }
+
+        $this->assertSame(Payment::STATUS_PAID, $payment->fresh()->status, 'left alone');
+        $this->assertSame($reference, $payment->fresh()->batch_reference);
+    }
+
+    public function test_voiding_an_unknown_batch_is_refused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        app(PaymentService::class)->voidBatch('SAL-1999-01-B9');
+    }
+
+    public function test_the_void_is_recorded(): void
+    {
+        $this->payslip($this->employee('logged@test.local'), Payslip::REVIEW_ACCEPTED);
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $reference = Payment::whereNotNull('batch_reference')->value('batch_reference');
+        app(PaymentService::class)->voidBatch($reference);
+
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'Payment',
+            'description' => "Voided payment batch {$reference} — 1 payment(s) returned to the next batch",
+        ]);
+    }
+
+    public function test_only_released_batches_are_offered_for_voiding(): void
+    {
+        $this->payslip($this->employee('offered@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->assertTrue(app(PaymentService::class)->voidableBatches()->isEmpty(), 'nothing released yet');
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $batches = app(PaymentService::class)->voidableBatches();
+
+        $this->assertCount(1, $batches);
+        $this->assertStringContainsString('1 payment(s)', $batches->first());
+
+        app(PaymentService::class)->voidBatch($batches->keys()->first());
+
+        $this->assertTrue(app(PaymentService::class)->voidableBatches()->isEmpty(), 'and gone once voided');
+    }
+
+    public function test_a_voided_batch_number_is_not_reused(): void
+    {
+        // The reference is numbered from what is stored, so voiding B1 frees the
+        // number — the next release is B1 again, and no two live batches collide.
+        $first = $this->payslip($this->employee('n1@test.local'), Payslip::REVIEW_ACCEPTED);
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $reference = Payment::where('payslip_id', $first->id)->value('batch_reference');
+        app(PaymentService::class)->voidBatch($reference);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $this->assertSame($reference, Payment::where('payslip_id', $first->id)->value('batch_reference'));
+    }
+
     private function yearOfJuly(): string
     {
         return app(\App\Services\SalaryBankExportService::class)->yearForMonth('July', $this->fiscalYear);
