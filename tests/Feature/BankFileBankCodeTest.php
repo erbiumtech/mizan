@@ -36,6 +36,8 @@ class BankFileBankCodeTest extends AccountingTestCase
     }
 
     /** 1-indexed, per the iPayments template. */
+    private const COL_AMOUNT = 39;
+
     private const COL_BANK_CODE = 16;
 
     private const COL_BANK_IDENTIFIER = 66;
@@ -141,6 +143,93 @@ class BankFileBankCodeTest extends AccountingTestCase
      * identifies the bank, so the payment is not misdirected — but the field is
      * blank, which is why the preview flags these rows before upload.
      */
+    /**
+     * The amount column, and the control total that has to agree with it.
+     *
+     * A Payment has no net_salary column, so reading one exported 0.00 on every
+     * row while the trailer total — built from ->amount — stayed correct. A file
+     * whose rows sum to nothing and whose total says otherwise is either rejected
+     * by the bank or pays everybody zero, and nothing on screen showed it.
+     */
+    public function test_the_payment_file_carries_the_real_amount_and_a_matching_total(): void
+    {
+        $beneficiary = Beneficiary::create([
+            'name' => 'Skyline Internet',
+            'bank_id' => $this->bank('MCB', 'MCB Bank Limited', '627100')->id,
+            'iban' => 'PK24HABB0000001123456702',
+            'account_no' => '5544332211',
+            'payment_type' => 'IBFT',
+        ]);
+
+        foreach ([25000.50, 9000] as $amount) {
+            Payment::create([
+                'payable_type' => Beneficiary::class,
+                'payable_id' => $beneficiary->id,
+                'transaction_type_id' => TransactionType::query()->value('id'),
+                'amount' => $amount,
+                'details' => 'Internet',
+                'value_date' => now()->toDateString(),
+                'status' => Payment::STATUS_DRAFT,
+            ]);
+        }
+
+        $csv = app(BankPaymentExportService::class)->exportPayments(Payment::all());
+        $rows = $this->dataRows($csv);
+
+        $amounts = collect($rows)->map(fn (array $row): float => (float) $this->cell($row, self::COL_AMOUNT));
+
+        $this->assertEqualsCanonicalizing([25000.50, 9000.00], $amounts->all());
+        $this->assertNotContains(0.0, $amounts->all(), 'no row may export a zero amount');
+
+        // The trailer's control total must equal the rows it is a total of.
+        $trailer = collect(explode("\n", trim($csv)))
+            ->map(fn (string $line) => str_getcsv($line))
+            ->first(fn (array $cells) => ($cells[0] ?? '') === 'T');
+
+        $this->assertSame(
+            $amounts->sum(),
+            (float) trim((string) $trailer[2]),
+            'the control total and the sum of the rows have to agree'
+        );
+    }
+
+    public function test_a_salary_payment_exports_the_payslips_net_figure(): void
+    {
+        $employee = $this->employee('net-amount@test.local', $this->bank('HBL', 'Habib Bank Limited', '600648'));
+
+        // net_salary is derived from the employee's salary settings on save, so
+        // there has to be one — and the assertion reads what the payslip ends up
+        // holding rather than a figure typed here.
+        \App\Models\EmployeeSetting::create([
+            'employee_id' => $employee->id,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'start_date' => '2026-07-01',
+            'end_date' => '2027-06-30',
+            'basic_wage' => 200000,
+        ]);
+
+        $payslip = Payslip::create([
+            'employee_id' => $employee->id,
+            'month' => 'January',
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'total_working_days' => 22,
+            'paid_days' => 22,
+            'basic_wage' => 200000,
+        ]);
+
+        $net = (float) $payslip->fresh()->net_salary;
+        $this->assertGreaterThan(0, $net, 'the fixture has to produce a real net figure');
+
+        app(\App\Services\PaymentService::class)->generateSalaryPayments('January', $this->fiscalYear);
+
+        $csv = app(BankPaymentExportService::class)->exportPayments(Payment::all());
+        $row = $this->dataRows($csv)[0];
+
+        // Compared as a number: formatAmount() drops a trailing .00, so a whole
+        // figure leaves as 190700 rather than 190700.00.
+        $this->assertSame($net, (float) $this->cell($row, self::COL_AMOUNT));
+    }
+
     public function test_a_bank_with_no_short_code_exports_an_empty_identifier(): void
     {
         $noShortCode = Bank::firstOrCreate(
