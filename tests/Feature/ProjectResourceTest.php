@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Projects\Pages\CreateProject;
-use App\Filament\Resources\Projects\Pages\EditProject;
-use App\Models\Project;
-use App\Models\ProjectEnvironment;
-use App\Models\User;
-use App\Policies\ProjectPolicy;
+use App\Modules\Projects\Filament\Resources\Projects\Pages\CreateProject;
+use App\Modules\Projects\Filament\Resources\Projects\Pages\EditProject;
+use App\Modules\Projects\Models\Project;
+use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Modules\Core\Models\User;
+use App\Modules\Projects\Policies\ProjectPolicy;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;

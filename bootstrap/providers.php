@@ -1,9 +1,29 @@
 <?php
 
+use App\Modules\Accounting\AccountingServiceProvider;
+use App\Modules\Core\CoreServiceProvider;
+use App\Modules\Employees\EmployeesServiceProvider;
+use App\Modules\Inventory\InventoryServiceProvider;
+use App\Modules\Invoicing\InvoicingServiceProvider;
+use App\Modules\Mpr\MprServiceProvider;
+use App\Modules\Payroll\PayrollServiceProvider;
+use App\Modules\Projects\ProjectsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 
 return [
     AppServiceProvider::class,
     AdminPanelProvider::class,
+
+    // One per module physically moved into app/Modules. Each carries its own
+    // policies and routes; its Filament classes are registered by the matching
+    // plugin listed in config/modules.php.
+    InventoryServiceProvider::class,
+    InvoicingServiceProvider::class,
+    MprServiceProvider::class,
+    EmployeesServiceProvider::class,
+    PayrollServiceProvider::class,
+    ProjectsServiceProvider::class,
+    AccountingServiceProvider::class,
+    CoreServiceProvider::class,
 ];

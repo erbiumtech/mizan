@@ -1,6 +1,6 @@
 <?php
 namespace Tests\Feature;
-use App\Models\User;
+use App\Modules\Core\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
@@ -19,10 +19,10 @@ class FilamentWidgetsSmokeTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         $widgets = [
-            \App\Filament\Widgets\OperationsOverview::class,
-            \App\Filament\Widgets\AccountBalancesOverview::class,
-            \App\Filament\Widgets\CashFlowChart::class,
-            \App\Filament\Widgets\PayrollByEmployeeChart::class,
+            \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
+            \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
+            \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
+            \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
         ];
         $failures = [];
         foreach ($widgets as $w) {

@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\EmployeeChangeRequest;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;

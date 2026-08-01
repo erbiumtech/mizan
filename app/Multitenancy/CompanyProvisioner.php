@@ -2,8 +2,8 @@
 
 namespace App\Multitenancy;
 
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\TenantBaselineSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -45,6 +45,12 @@ class CompanyProvisioner
             'database' => $database,
             'status' => 1,
         ]);
+
+        // A new company starts with Core only; a super admin grants the modules
+        // it has bought. Written before the tenant database exists because these
+        // rows are landlord-side and must survive a provisioning rollback being
+        // skipped — rollBack() deletes the company, which cascades them away.
+        modules()->seedDefaults($company->getKey());
 
         // Only tear down a database this call brought into existence.
         $createdDatabase = ! $this->databaseExists($database, $connection);

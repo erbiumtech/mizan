@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use App\Multitenancy\CompanyProvisioner;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

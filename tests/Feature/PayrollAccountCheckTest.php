@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\Setting;
-use App\Services\PayrollAccountAudit;
-use App\Services\PayrollPostingService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\Setting;
+use App\Modules\Payroll\Services\PayrollAccountAudit;
+use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Support\TenantSettings;
 use Illuminate\Support\Facades\Artisan;
 use ReflectionClass;

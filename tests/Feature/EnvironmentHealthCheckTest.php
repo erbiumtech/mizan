@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\CheckEnvironmentHealth;
-use App\Models\ProjectEnvironment;
-use App\Models\ProjectEnvironmentCheck;
-use App\Services\EnvironmentHealthChecker;
+use App\Modules\Projects\Jobs\CheckEnvironmentHealth;
+use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Modules\Projects\Models\ProjectEnvironmentCheck;
+use App\Modules\Projects\Services\EnvironmentHealthChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;

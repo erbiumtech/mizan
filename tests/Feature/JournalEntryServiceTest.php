@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\JournalEntry;
-use App\Models\User;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Core\Models\User;
+use App\Modules\Accounting\Services\JournalEntryService;
 use InvalidArgumentException;
 use Tests\AccountingTestCase;
 

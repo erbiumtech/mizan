@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\Employee;
-use App\Models\User;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

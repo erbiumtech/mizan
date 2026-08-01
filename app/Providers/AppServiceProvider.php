@@ -3,23 +3,20 @@
 namespace App\Providers;
 
 use App\Listeners\SyncSpatieTenant;
-use App\Models\MPR;
-use App\Policies\ActivityLogPolicy;
-use App\Policies\MprPolicy;
-use App\Policies\PermissionPolicy;
-use App\Policies\RolePolicy;
 use App\Support\EmployeeAccess;
+use App\Support\ModuleAuthorization;
+use App\Support\ModuleMap;
+use App\Support\Modules;
 use App\Support\TenantSettings;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
-use Spatie\Activitylog\Models\Activity;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +27,25 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
+        $this->app->singleton(Modules::class);
+
+        // Registered here, in register() rather than boot(), and this is load
+        // bearing. Gate::before callbacks run in registration order, and
+        // spatie/laravel-permission registers its own from its provider's boot()
+        // (PermissionRegistrar::registerPermissions) which returns true the moment
+        // the user holds the permission. A module check registered in boot() lands
+        // behind it and never runs for exactly the users who do have the
+        // permission — which is everyone the check is meant to stop. register()
+        // runs before every provider's boot(), so this callback is first.
+        //
+        // It returns a hard false: a module the company has not licensed is not a
+        // permission question, so neither a super admin nor an Administrator
+        // bypasses it (see the two bypasses in boot()).
+        Gate::before(function ($user, $ability, $arguments = []) {
+            if (ModuleAuthorization::blockingModule($user, (string) $ability, (array) $arguments) !== null) {
+                return false;
+            }
+        });
     }
 
     /**
@@ -53,16 +69,35 @@ class AppServiceProvider extends ServiceProvider
         // signed-out visitor gets a 500 instead of the sign-in page.
         Authenticate::redirectUsing(fn () => route('filament.admin.auth.login'));
 
-        // Registered explicitly because Laravel's guess does not match the file
-        // name: App\Models\MPR maps to App\Policies\MPRPolicy, but the class is
-        // MprPolicy. A case-insensitive filesystem hides that locally; on Linux
-        // the policy is simply not found and the resource is open to everyone.
-        Gate::policy(MPR::class, MprPolicy::class);
+        // Class names are stored as strings in customer data — comments.commentable_type,
+        // payments.payable_type, activity_log.subject_type, custom_fields.model_type,
+        // model_has_roles.model_type — so moving a model class would orphan every
+        // one of those rows. The aliases are deliberately the legacy
+        // `App\Models\…` strings that are already in the data: the alias stays
+        // fixed while the target class moves into its module, so old and new rows
+        // agree and no per-tenant data migration is needed.
+        //
+        // enforceMorphMap (rather than plain morphMap) makes a model missing from
+        // ModuleMap throw on first use instead of silently writing an unmapped
+        // FQCN back into the data. That noise is the point.
+        Relation::enforceMorphMap(ModuleMap::morphMap());
 
-        Gate::policy(Activity::class, ActivityLogPolicy::class);
-        Gate::policy(Role::class, RolePolicy::class);
-        Gate::policy(Permission::class, PermissionPolicy::class);
+        // Laravel derives a factory's name from the model's namespace — for
+        // App\Modules\Core\Models\Company it looks for
+        // Database\Factories\Modules\Core\Models\CompanyFactory. Factories stay in
+        // one flat directory (the landlord/tenant split is orthogonal to modules,
+        // and there are three of them), so resolve on the class basename instead.
+        Factory::guessFactoryNamesUsing(
+            fn (string $model) => 'Database\\Factories\\'.class_basename($model).'Factory'
+        );
 
+        // Every policy is registered by the module that owns the model — see any
+        // module's ServiceProvider. Laravel's App\Models\X -> App\Policies\XPolicy
+        // guess cannot resolve a class in a module directory, and Filament reads
+        // "no policy" as "allowed", so ModuleCoverageTest asserts the coverage.
+
+        // The module deny that runs ahead of both of these is registered in
+        // register() — see the comment there for why the ordering matters.
         Gate::before(function ($user, $ability) {
             // Global super admin bypasses all authorization.
             if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
@@ -83,6 +118,12 @@ class AppServiceProvider extends ServiceProvider
         // Isolation is enforced at the database level (one database per company),
         // so Filament's row-level tenant scoping is disabled — resource queries
         // already run against the current tenant's database connection.
+        //
+        // This holds only for models in a tenant database. Anything in the
+        // landlord database is shared by every company and has to draw the
+        // boundary by hand: ActivityLog and TableView carry a company_id and
+        // scope on it themselves, and UserResource turns row scoping back on
+        // (see the $isScopedToTenant there) because membership is a pivot.
         Resource::scopeToTenant(false);
 
         // Keep spatie/laravel-multitenancy's current tenant in sync with the
