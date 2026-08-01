@@ -55,7 +55,7 @@ class PayslipForm
                     ->preload()
                     ->required()
                     ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set))
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
                     // Uniqueness parity with the Nova custom rule: one payslip per
                     // employee + month + fiscal year.
                     ->rule(function (Get $get, ?Payslip $record) {
@@ -82,7 +82,7 @@ class PayslipForm
                     ])
                     ->required()
                     ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 Select::make('fiscal_year_id')
                     ->label('Fiscal Year')
@@ -91,7 +91,7 @@ class PayslipForm
                     ->preload()
                     ->required()
                     ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 // --- ATTENDANCE (text w/ numeric validation, hidden from index) ---
                 TextInput::make('total_working_days')
@@ -139,56 +139,56 @@ class PayslipForm
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('petrol_allowance')
                     ->label('Petrol Allowance')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('bonus')
                     ->label('Bonus')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('extra_work_hours')
                     ->label('Extra Work Hours')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('expense_reimbursement')
                     ->label('Expense Reimbursement')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('advances')
                     ->label('Advances')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('meal_deduction')
                     ->label('Meal Deduction')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 TextInput::make('esi_health_insurance')
                     ->label('ESI / Health Insurance')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 // --- READONLY calculated totals ---
                 TextInput::make('withholding_tax')
@@ -217,7 +217,7 @@ class PayslipForm
      * Recompute the readonly/derived fields via PayslipService — parity with the
      * Nova updateCalculatedFields() dependsOn callbacks.
      */
-    protected static function recalculate(Get $get, Set $set): void
+    protected static function recalculate(Get $get, Set $set, ?Payslip $record = null): void
     {
         $employee = $get('employee_id');
         $month = $get('month');
@@ -242,7 +242,8 @@ class PayslipForm
             (float) ($get('advances') ?? 0),
             (float) ($get('meal_deduction') ?? 0),
             (float) ($get('esi_health_insurance') ?? 0),
-            (float) ($get('expense_reimbursement') ?? 0)
+            (float) ($get('expense_reimbursement') ?? 0),
+            $record?->getKey()
         );
 
         foreach (self::CALCULATED_KEYS as $key) {

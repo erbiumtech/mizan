@@ -53,6 +53,10 @@ final class ModuleMap
             'App\Models\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
             'App\Models\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
         ],
+        'advances' => [
+            'App\Models\Advance' => \App\Modules\Advances\Models\Advance::class,
+            'App\Models\AdvanceRecovery' => \App\Modules\Advances\Models\AdvanceRecovery::class,
+        ],
         'payroll' => [
             'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
             'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
@@ -112,6 +116,9 @@ final class ModuleMap
             'App\Filament\Resources\Employees\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
             'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
             'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
+        ],
+        'advances' => [
+            'App\Filament\Resources\Advances\AdvanceResource' => \App\Modules\Advances\Filament\Resources\Advances\AdvanceResource::class,
         ],
         'payroll' => [
             'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
@@ -212,6 +219,7 @@ final class ModuleMap
     private const PERMISSION_GROUPS = [
         'core' => ['User', 'Role', 'Permission', 'ActivityLog', 'Comment', 'FiscalYear'],
         'employees' => ['Employee', 'EmployeeSetting'],
+        'advances' => ['Advance'],
         'payroll' => ['Payslip', 'SalarySlab', 'AnnualTax'],
         'accounting' => [
             'Account', 'Bank', 'BankStatement', 'Beneficiary', 'CompanyBankAccount',
