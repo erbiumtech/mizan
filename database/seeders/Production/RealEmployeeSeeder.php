@@ -53,6 +53,12 @@ class RealEmployeeSeeder extends Seeder
             // them (their package, payslips, and the client bill) works either way.
             ['name' => 'Muhammad Abid', 'email' => 'muhammad.abid@example.test', 'role' => 'Employee', 'status' => 1], // Cook, helper and office boy
             ['name' => 'Ahmad Ishtiaq', 'email' => 'ahmad.ishtiaq@example.test', 'role' => 'Employee', 'status' => 1], // Internee
+
+            // Paid in EUR; RealMonthlyBillingSeeder holds the converted package.
+            // Placeholder address for the same reason as the two above — and note
+            // that if this is the same person as the ufarooq@erbium.ch account, it
+            // is that entry that needs correcting, not a second record here.
+            ['name' => 'Muzafar Ali', 'email' => 'muzafar.ali@example.test', 'role' => 'Employee', 'status' => 1],
         ];
 
         /** @var array<string, Employee> $created keyed by email, to resolve managers */

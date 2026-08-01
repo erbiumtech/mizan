@@ -55,20 +55,25 @@ class RealMonthlyBillingSeeder extends Seeder
      */
     private const EXCHANGE_RATE = 304;
 
+    /**
+     * The rate Muzafar Ali's EUR package was converted at.
+     *
+     * Deliberately its own constant even though it equals the quote rate today:
+     * the client's rate is renegotiated per month, and moving it should not
+     * silently rewrite what somebody was paid.
+     */
+    private const EUR_SALARY_RATE = 304;
+
     private const CLIENT = '4sure AG';
 
     /**
      * Each person's July package, keyed by the email RealEmployeeSeeder gives
      * them: [basic, extra work, petrol, medical, device].
      *
-     * One person on the sheet is deliberately absent, and the seeder says so when
-     * it runs rather than quietly billing less than the sheet did: Muzafar Ali,
-     * whose package is in EUR (2,600 + 300 + 200 + 150 + 50). The sheet leaves him
-     * out of its own totals and quotes his 3,300 EUR separately, and the app keeps
-     * one currency per company, so how he is billed is a decision rather than a
-     * conversion.
-     *
-     * Everyone else adds up to the sheet's total exactly: 3,961,427.
+     * The PKR packages add up to the sheet's own salary total exactly: 3,961,427.
+     * Muzafar Ali is paid in EUR and sits outside that total on the sheet, which
+     * quotes his 3,300 EUR separately; the company keeps one currency, so his
+     * package is held here converted — see EUR_SALARY_RATE.
      */
     private const PACKAGES = [
         'harshad@erbium.ch' => [416745, 0, 20000, 21000, 0],
@@ -86,6 +91,17 @@ class RealMonthlyBillingSeeder extends Seeder
         // placeholder addresses in RealEmployeeSeeder.
         'muhammad.abid@example.test' => [200000, 0, 20000, 21000, 0],
         'ahmad.ishtiaq@example.test' => [35000, 0, 20000, 0, 0],
+
+        // Agreed in EUR — 2,600 + 300 + 200 + 150 + 50, so 3,300 a month — and
+        // written as the conversion rather than the product, so the sheet's figures
+        // stay readable and the rate used on them is impossible to mistake.
+        'muzafar.ali@example.test' => [
+            2600 * self::EUR_SALARY_RATE,
+            300 * self::EUR_SALARY_RATE,
+            200 * self::EUR_SALARY_RATE,
+            150 * self::EUR_SALARY_RATE,
+            50 * self::EUR_SALARY_RATE,
+        ],
     ];
 
     /**
