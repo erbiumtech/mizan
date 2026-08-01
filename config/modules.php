@@ -37,6 +37,18 @@ return [
         'plugin' => \App\Modules\Employees\EmployeesPlugin::class,
     ],
 
+    'advances' => [
+        'label' => 'Advances',
+        'description' => 'Money lent to employees, recovered from payroll in monthly instalments.',
+        // Payroll is where the recovery actually happens — a recovery row points at
+        // the payslip that took it — so Advances cannot be sold on its own. The
+        // dependency the other way is soft: Payroll checks whether Advances is on
+        // and falls back to the figure in employee settings when it is not.
+        'requires' => ['employees', 'payroll'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Advances\AdvancesPlugin::class,
+    ],
+
     'payroll' => [
         'label' => 'Payroll',
         'description' => 'Payslips, salary slabs, annual tax, salary bank files and FBR tax files.',

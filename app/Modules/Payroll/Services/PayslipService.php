@@ -17,11 +17,29 @@ class PayslipService
     }
 
     /**
+     * This month's advance instalment, or 0.0 when the employee has none.
+     *
+     * Resolved through the container so Payroll does not hard-depend on the
+     * Advances module: with Advances not installed or switched off there is no
+     * ledger to read, and payroll carries on with the settings figure.
+     */
+    protected function advanceInstalmentFor($employeeId, ?int $excludingPayslipId = null): float
+    {
+        if (! modules()->enabled('advances')) {
+            return 0.0;
+        }
+
+        return app(\App\Modules\Advances\Services\AdvanceService::class)
+            ->instalmentFor((int) $employeeId, $excludingPayslipId);
+    }
+
+    /**
      * Calculate payslip data based on employee settings for a specific month and fiscal year using date ranges.
      */
     public function calculateByParams(
         $employeeId, $month, $fiscalYearId, $bonus = null, $extraWorkHours = null,
-        $deviceAllowance = null, $petrolAllowance = null, $advances = null, $mealDeduction = null, $esiInsurance = null, $expenseReimbursement = null
+        $deviceAllowance = null, $petrolAllowance = null, $advances = null, $mealDeduction = null, $esiInsurance = null, $expenseReimbursement = null,
+        ?int $payslipId = null
     ) {
         $fiscalYear = FiscalYear::find($fiscalYearId);
 
@@ -45,7 +63,14 @@ class PayslipService
             'medical_allowance'    => (float) $setting->medical_allowance,
             'device_allowance'     => ((float)$deviceAllowance > 0) ? (float)$deviceAllowance : (float)$setting->device_allowance,
             'petrol_allowance'     => ((float)$petrolAllowance > 0) ? (float)$petrolAllowance : (float)$setting->petrol_allowance,
-            'advances'             => ((float)$advances > 0) ? (float)$advances : (float)$setting->advances,
+            // From the advance ledger when the employee has one, so the figure
+            // deducted and the balance still owed are the same fact. An explicit
+            // amount passed in still wins — a payroll clerk overriding one month
+            // is a legitimate correction — and an employee with no advance falls
+            // back to their settings exactly as before.
+            'advances'             => ((float)$advances > 0)
+                ? (float)$advances
+                : ($this->advanceInstalmentFor($employeeId, $payslipId) ?: (float)$setting->advances),
             'meal_deduction'       => ((float)$mealDeduction > 0) ? (float)$mealDeduction : (float)$setting->meal_deduction,
             'esi_health_insurance' => ((float)$esiInsurance > 0) ? (float)$esiInsurance : (float)$setting->esi_health_insurance,
             'bonus'                => ((float)$bonus > 0) ? (float)$bonus : (float)($setting->bonus ?? 0),

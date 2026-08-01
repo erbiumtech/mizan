@@ -159,7 +159,8 @@ class Payslip extends Model
                 $payslip->advances,
                 $payslip->meal_deduction,
                 $payslip->esi_health_insurance,
-                $payslip->expense_reimbursement
+                $payslip->expense_reimbursement,
+                $payslip->id
             );
 
             if ($calculatedData) {
@@ -193,6 +194,44 @@ class Payslip extends Model
             }
         });
         static::deleted($syncTax);
+
+        // Book the deduction against the employee's advances, so the balance owed
+        // follows what payroll actually took. Idempotent per payslip: payroll
+        // recalculates on every save, and a second row would recover the same
+        // instalment twice.
+        $syncAdvances = function ($payslip) {
+            if (! modules()->enabled('advances')) {
+                return;
+            }
+
+            app(\App\Modules\Advances\Services\AdvanceService::class)->recordRecoveryFor($payslip);
+        };
+
+        static::saved(function ($payslip) use ($syncAdvances) {
+            if (! static::isReviewOnlyChange($payslip->getChanges())) {
+                $syncAdvances($payslip);
+            }
+        });
+
+        // Deleting the payslip gives its recovery back — the money was never
+        // taken, so the balance must go up again. The cascade on payslip_id does
+        // this at the database level; settling is what needs correcting.
+        static::deleted(function ($payslip) {
+            if (! modules()->enabled('advances')) {
+                return;
+            }
+
+            \App\Modules\Advances\Models\Advance::where('employee_id', $payslip->employee_id)
+                ->get()
+                ->each(function ($advance) {
+                    $advance->refresh();
+
+                    if ($advance->status === \App\Modules\Advances\Models\Advance::STATUS_SETTLED
+                        && $advance->remainingAmount() > 0) {
+                        $advance->update(['status' => \App\Modules\Advances\Models\Advance::STATUS_ACTIVE]);
+                    }
+                });
+        });
 
         // Ledger integration: (re)create the payroll journal entry on save,
         // reverse/remove it on delete.
