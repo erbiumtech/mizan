@@ -21,7 +21,7 @@ class CommentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Audit';
+    protected static string|UnitEnum|null $navigationGroup = 'Audit & Taxes';
 
     protected static ?string $recordTitleAttribute = 'body';
 
