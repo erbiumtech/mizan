@@ -52,11 +52,15 @@ class SalaryBankExportService
     /**
      * The payslips that would be exported for a month, with payment rows.
      */
-    public function paymentsForMonth(string $month, FiscalYear $fiscalYear): array
+    /**
+     * @param  array<int, int>|null  $payslipIds  restrict to these payslips; null means the whole month
+     */
+    public function paymentsForMonth(string $month, FiscalYear $fiscalYear, ?array $payslipIds = null): array
     {
         $payslips = Payslip::with(['employee.user', 'employee.bank'])
             ->where('month', $month)
             ->where('fiscal_year_id', $fiscalYear->id)
+            ->when($payslipIds !== null, fn ($q) => $q->whereKey($payslipIds))
             ->get()
             ->sortBy(fn ($p) => $p->employee->user->name ?? '')
             ->values();
@@ -76,6 +80,7 @@ class SalaryBankExportService
 
             return [
                 'payslip' => $p,
+                'payslip_id' => $p->id,
                 'employee_code' => $employee->employee_id,
                 'name' => $employee->user->name ?? $employee->employee_id,
                 // SCB beneficiaries go by account number (intra-bank); everyone
@@ -99,9 +104,12 @@ class SalaryBankExportService
     /**
      * Full CSV file content for a month's salaries.
      */
-    public function export(string $month, FiscalYear $fiscalYear, ?string $valueDate = null): string
+    /**
+     * @param  array<int, int>|null  $payslipIds  restrict to these payslips; null means the whole month
+     */
+    public function export(string $month, FiscalYear $fiscalYear, ?string $valueDate = null, ?array $payslipIds = null): string
     {
-        $payments = $this->paymentsForMonth($month, $fiscalYear);
+        $payments = $this->paymentsForMonth($month, $fiscalYear, $payslipIds);
         $valueDate = $valueDate
             ? Carbon::parse($valueDate)->format('d/m/Y')
             : now()->format('d/m/Y');
