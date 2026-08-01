@@ -47,6 +47,24 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     }
 
     /**
+     * Does this user hold administrator authority in the company being served?
+     *
+     * The same rule Gate::before applies — a super admin may do anything, an
+     * Administrator may do anything but create a company — except that this can
+     * be asked outside the Gate, which is where it was being got wrong. A
+     * canAccess() on a page, an action's visible(): none of them go through the
+     * Gate, so `hasRole('Administrator')` on its own quietly excluded super
+     * admins. They are not Administrators of most companies — they switch into
+     * any company without a membership row, let alone a role in its team — so
+     * Company Settings simply vanished from the sidebar of every company they had
+     * not been given a role in.
+     */
+    public function isAdministrator(): bool
+    {
+        return $this->isSuperAdmin() || $this->hasRole('Administrator');
+    }
+
+    /**
      * Companies (tenants) this user may access.
      */
     public function companies(): BelongsToMany

@@ -26,7 +26,7 @@ class EmployeesTable
                 TextColumn::make('id')
                     ->label('ID')
                     ->sortable()
-                    ->visible(fn (): bool => auth()->user()?->hasRole('Administrator') ?? false),
+                    ->visible(fn (): bool => auth()->user()?->isAdministrator() ?? false),
 
                 TextColumn::make('employee_id')
                     ->label('Employee ID')

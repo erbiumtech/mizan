@@ -23,7 +23,8 @@ use RuntimeException;
  *    who could would gain the whole platform, and a super admin gains nothing.
  *  - impersonate outside the company you are working in. Users are shared across
  *    companies, so without that check an Administrator of one company could sign
- *    in as somebody who merely happens to also work for another.
+ *    in as somebody who merely happens to also work for another. A super admin is
+ *    exempt: their reach is the installation, not a company (see canReach).
  *
  * Actions taken while impersonating are recorded against the impersonated user,
  * because that is whose data changed — but every audit entry additionally carries
@@ -67,7 +68,7 @@ class Impersonation
             return false;
         }
 
-        if (! $this->shareCompany($actor, $target)) {
+        if (! $this->canReach($actor, $target)) {
             return false;
         }
 
@@ -188,6 +189,29 @@ class Impersonation
         $id = session(self::SESSION_KEY);
 
         return $id ? User::find($id) : null;
+    }
+
+    /**
+     * Is this target within the actor's reach?
+     *
+     * For everyone else that means the company being served, below. A super admin
+     * is the exception, and asking them the same question was wrong: they switch
+     * into any company without being a member of it (getTenants() hands them all
+     * of them, canAccessTenant() lets them in), so the moment one switched to a
+     * company whose pivot row they did not happen to have, "Log in as" disappeared
+     * from every row on the page. Their reach is the installation.
+     *
+     * What still has to hold for them is that the target has somewhere to land: a
+     * user belonging to no company arrives at a panel with no tenant, and being
+     * stuck as somebody else is the failure this feature must not produce.
+     */
+    protected function canReach(User $actor, User $target): bool
+    {
+        if ($actor->isSuperAdmin()) {
+            return $target->companies()->exists();
+        }
+
+        return $this->shareCompany($actor, $target);
     }
 
     /**

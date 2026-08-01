@@ -19,7 +19,7 @@ class StockMovementResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Inventory';
+    protected static string|UnitEnum|null $navigationGroup = 'Invoicing & Inventory';
 
     protected static ?string $recordTitleAttribute = 'id';
 
