@@ -73,6 +73,17 @@ return [
         'plugin' => \App\Modules\Invoicing\InvoicingPlugin::class,
     ],
 
+    'billing' => [
+        'label' => 'Client Billing',
+        'description' => "The month's bill to the client: every employee at full cost, the office expenses, less advance repayments.",
+        // Payroll for the salary lines, Invoicing for the invoice it raises.
+        // Advances is a soft dependency: a client with no advances has nothing to
+        // credit back, so it is guarded rather than required.
+        'requires' => ['employees', 'payroll', 'invoicing'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Billing\BillingPlugin::class,
+    ],
+
     'inventory' => [
         'label' => 'Inventory',
         'description' => 'Products and stock movements, valued through Accounting.',

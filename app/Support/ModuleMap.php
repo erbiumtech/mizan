@@ -81,6 +81,9 @@ final class ModuleMap
             'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
             'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
         ],
+        'billing' => [
+            'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
+        ],
         'inventory' => [
             'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
             'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
@@ -142,6 +145,9 @@ final class ModuleMap
             'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
             'App\Filament\Resources\Invoices\InvoiceResource' => \App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource::class,
             'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
+        ],
+        'billing' => [
+            'App\Filament\Resources\BillingRuns\BillingRunResource' => \App\Modules\Billing\Filament\Resources\BillingRuns\BillingRunResource::class,
         ],
         'inventory' => [
             'App\Filament\Resources\Products\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,
@@ -227,6 +233,7 @@ final class ModuleMap
             'Report', 'Register', 'Import',
         ],
         'invoicing' => ['Invoicing'],
+        'billing' => ['BillingRun'],
         'inventory' => ['Inventory'],
         'projects' => ['Project'],
         'mpr' => ['MPR'],

@@ -6,6 +6,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\TaxCalculatorService;
+use App\Modules\Payroll\Support\PayrollMonth;
 use App\Support\Pdf\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -43,14 +44,7 @@ class PayslipService
     ) {
         $fiscalYear = FiscalYear::find($fiscalYearId);
 
-        $startYear = $fiscalYear ? Carbon::parse($fiscalYear->start_date)->year : 2026;
-
-        $tempDate = Carbon::parse("{$month} 1, {$startYear}");
-        $year = ($tempDate->month <= 6 && $fiscalYear && Carbon::parse($fiscalYear->end_date)->year > $startYear)
-            ? Carbon::parse($fiscalYear->end_date)->year
-            : $startYear;
-
-        $targetDate = Carbon::parse("{$month} 1, {$year}")->toDateString();
+        $targetDate = PayrollMonth::firstDay($month, $fiscalYear)->toDateString();
 
         $setting = EmployeeSetting::getActiveSettingForDate($employeeId, $targetDate, $fiscalYearId);
 
