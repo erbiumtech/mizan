@@ -17,9 +17,9 @@ use Tests\Concerns\InteractsWithTenant;
  * The seeder that loads a month of the salaries spreadsheet.
  *
  * Its figures are the point of it, so they are checked against the sheet's own
- * totals rather than against what the code happens to produce. Muzafar Ali is not
- * seeded — his package is in EUR — and the sheet leaves him out of these totals
- * too, so they match exactly.
+ * totals rather than against what the code happens to produce. The sheet's salary
+ * total covers the PKR staff only; Muzafar Ali is paid in EUR and quoted
+ * separately on it, so he is added here at the rate the seeder converts him at.
  */
 class RealMonthlyBillingSeederTest extends AccountingTestCase
 {
@@ -28,12 +28,16 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
     /** The sheet's July totals. */
     private const SHEET_SALARIES = 3961427;
 
+    /** Muzafar Ali's 3,300 EUR package, at the sheet's rate. */
+    private const MUZAFAR_PKR = 3300 * 304;
+
     private const SHEET_EXPENSES = 2308826;
 
     /** The two instalments coming off the advances in this month. */
     private const SHEET_RECOVERIES = 130000;
 
-    private const SHEET_TOTAL = self::SHEET_SALARIES + self::SHEET_EXPENSES - self::SHEET_RECOVERIES;
+    private const SHEET_TOTAL = self::SHEET_SALARIES + self::MUZAFAR_PKR
+        + self::SHEET_EXPENSES - self::SHEET_RECOVERIES;
 
     protected function setUp(): void
     {
@@ -53,7 +57,7 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         $breakdown = app(\App\Modules\Billing\Services\MonthlyBillingService::class)->breakdown($run);
 
         $this->assertSame(
-            (float) self::SHEET_SALARIES,
+            (float) (self::SHEET_SALARIES + self::MUZAFAR_PKR),
             $breakdown['salary_total'],
             'the whole roster at the packages on the sheet',
         );
