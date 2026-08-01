@@ -149,6 +149,88 @@ class PaymentService
     }
 
     /**
+     * Undo a release: the batch's payments go back in the pool and will appear in
+     * the next one.
+     *
+     * For a file the bank rejected, or one built by mistake. The prior status is
+     * reconstructed rather than stored, and exactly: approve() is the only thing
+     * that ever sets journal_entry_id on a payment, and it sets the status to
+     * approved at the same time — so a released payment with a journal entry was
+     * approved before it went, and one without was a draft.
+     *
+     * Refuses outright if any payment in the batch has been marked paid. That
+     * says the money actually moved, and putting such a row back in the pool
+     * would queue it to move again.
+     *
+     * @return \Illuminate\Support\Collection<int, Payment> the payments restored
+     *
+     * @throws InvalidArgumentException when the batch is unknown or partly paid
+     */
+    public function voidBatch(string $reference): Collection
+    {
+        $payments = Payment::inBatch($reference)->get();
+
+        if ($payments->isEmpty()) {
+            throw new InvalidArgumentException("No payments belong to batch {$reference}.");
+        }
+
+        $paid = $payments->where('status', Payment::STATUS_PAID);
+
+        if ($paid->isNotEmpty()) {
+            throw new InvalidArgumentException(
+                "Batch {$reference} cannot be voided: {$paid->count()} of its payments are already marked paid, "
+                .'so the money has moved. Reverse those individually instead.'
+            );
+        }
+
+        foreach ($payments as $payment) {
+            $payment->update([
+                'status' => $payment->journal_entry_id ? Payment::STATUS_APPROVED : Payment::STATUS_DRAFT,
+                'batch_reference' => null,
+                'released_at' => null,
+            ]);
+        }
+
+        activity('Payment')
+            ->withProperties([
+                'batch_reference' => $reference,
+                'payments' => $payments->pluck('id')->all(),
+                'total' => round((float) $payments->sum('amount'), 2),
+            ])
+            ->log("Voided payment batch {$reference} — ".$payments->count().' payment(s) returned to the next batch');
+
+        return $payments;
+    }
+
+    /**
+     * Batches that could still be voided, newest first: those whose payments are
+     * exported and none of them paid.
+     *
+     * @return \Illuminate\Support\Collection<string, string> reference => label
+     */
+    public function voidableBatches(int $limit = 20): Collection
+    {
+        return Payment::query()
+            ->whereNotNull('batch_reference')
+            ->where('status', Payment::STATUS_EXPORTED)
+            ->get()
+            ->groupBy('batch_reference')
+            ->sortByDesc(fn (Collection $payments) => $payments->max('released_at'))
+            ->take($limit)
+            ->map(function (Collection $payments, string $reference): string {
+                $released = $payments->max('released_at');
+
+                return sprintf(
+                    '%s — %d payment(s), %s%s',
+                    $reference,
+                    $payments->count(),
+                    number_format((float) $payments->sum('amount'), 2),
+                    $released ? ', released '.$released->format('d M Y H:i') : '',
+                );
+            });
+    }
+
+    /**
      * The next unused reference for a prefix, e.g. SAL-2026-07 -> SAL-2026-07-B2
      * when B1 has already gone.
      *

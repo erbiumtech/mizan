@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Concerns\SelectsSalaryMonth;
+use App\Filament\Concerns\VoidsPaymentBatches;
 use App\Models\FiscalYear;
 use App\Models\Payment;
 use App\Models\TransactionType;
@@ -24,6 +25,7 @@ use UnitEnum;
 class BankPaymentFile extends Page
 {
     use SelectsSalaryMonth;
+    use VoidsPaymentBatches;
 
     protected string $view = 'filament.pages.bank-payment-file';
 
@@ -178,6 +180,8 @@ class BankPaymentFile extends Page
                         'Content-Type' => 'text/csv; charset=UTF-8',
                     ]);
                 }),
+
+            $this->voidBatchAction(),
         ];
     }
 
