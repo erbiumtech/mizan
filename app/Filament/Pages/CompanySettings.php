@@ -63,7 +63,7 @@ class CompanySettings extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('Administrator') ?? false;
+        return auth()->user()?->isAdministrator() ?? false;
     }
 
     /**

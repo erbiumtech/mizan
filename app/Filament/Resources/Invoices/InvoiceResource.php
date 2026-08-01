@@ -23,7 +23,7 @@ class InvoiceResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Invoicing';
+    protected static string|UnitEnum|null $navigationGroup = 'Invoicing & Inventory';
 
     protected static ?string $recordTitleAttribute = 'invoice_number';
 

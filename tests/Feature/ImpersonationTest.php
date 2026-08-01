@@ -119,6 +119,76 @@ class ImpersonationTest extends TestCase
         $this->assertTrue($this->impersonation->allows($superAdmin, $employee));
     }
 
+    /**
+     * The reported case: a super admin switches to a company and every "Log in as"
+     * button is gone. They are not a member of most companies — they switch into
+     * any of them regardless — so requiring the shared-company check of them made
+     * the feature vanish exactly where it was most wanted.
+     */
+    public function test_a_super_admin_can_sign_in_as_a_user_of_a_company_they_do_not_belong_to(): void
+    {
+        $superAdmin = $this->member('Employee', ['is_super_admin' => true]);
+
+        $otherCompany = Company::factory()->create();
+        app(PermissionRegistrar::class)->setPermissionsTeamId($otherCompany->getKey());
+        (new RoleSeeder)->run();
+
+        $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
+        $otherCompany->users()->attach($theirStaff);
+
+        $this->assertFalse(
+            $superAdmin->companies()->whereKey($otherCompany->getKey())->exists(),
+            'the point of the case: no membership row, and none needed'
+        );
+
+        // Serving that company, as they would be after switching to it.
+        $this->actingAs($superAdmin);
+        $this->setCurrentTenant($otherCompany);
+
+        $this->assertTrue($this->impersonation->allows($superAdmin, $theirStaff));
+
+        $this->impersonation->start($theirStaff);
+        $this->assertAuthenticatedAs($theirStaff);
+    }
+
+    /** And from their own company, without switching first. */
+    public function test_a_super_admin_reaches_another_companys_user_from_where_they_stand(): void
+    {
+        $superAdmin = $this->member('Employee', ['is_super_admin' => true]);
+
+        $otherCompany = Company::factory()->create();
+        $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
+        $otherCompany->users()->attach($theirStaff);
+
+        $this->actAs($superAdmin);
+
+        $this->assertTrue($this->impersonation->allows($superAdmin, $theirStaff));
+
+        // The swap lands them in a company the target can actually access, not the
+        // one that was being served.
+        $this->impersonation->start($theirStaff);
+
+        $this->assertSame(
+            Filament::getPanel('admin')->getUrl($otherCompany),
+            Filament::getPanel('admin')->getUrl(),
+        );
+    }
+
+    /**
+     * The limit that remains. A user belonging to no company has no panel to land
+     * in, and being stuck as somebody else with nothing rendering is the failure
+     * this feature must not produce.
+     */
+    public function test_even_a_super_admin_cannot_sign_in_as_a_user_of_no_company(): void
+    {
+        $superAdmin = $this->member('Employee', ['is_super_admin' => true]);
+        $orphan = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
+
+        $this->actAs($superAdmin);
+
+        $this->assertFalse($this->impersonation->allows($superAdmin, $orphan));
+    }
+
     // --- who may not be impersonated ----------------------------------------
 
     public function test_nobody_can_impersonate_a_super_admin(): void

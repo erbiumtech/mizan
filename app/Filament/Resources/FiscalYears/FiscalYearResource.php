@@ -21,7 +21,7 @@ class FiscalYearResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Salary Slab & Fiscal Year';
+    protected static string|UnitEnum|null $navigationGroup = 'Settings';
 
     protected static ?string $recordTitleAttribute = 'name';
 

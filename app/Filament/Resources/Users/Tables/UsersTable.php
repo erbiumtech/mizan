@@ -59,7 +59,14 @@ class UsersTable
                     ->icon(fn (User $record): string => (int) $record->status === 1 ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
                     ->color(fn (User $record): string => (int) $record->status === 1 ? 'danger' : 'success')
                     ->requiresConfirmation()
-                    ->visible(fn (): bool => auth()->user()?->hasAnyRole(['Administrator', 'Manager', 'CEO']) ?? false)
+                    ->visible(function (): bool {
+                        $user = auth()->user();
+
+                        // A super admin holds no role in most companies; see
+                        // User::isAdministrator() for why that has to be said here.
+                        return (bool) $user?->isSuperAdmin()
+                            || (bool) $user?->hasAnyRole(['Administrator', 'Manager', 'CEO']);
+                    })
                     ->action(fn (User $record) => $record->update([
                         'status' => (int) $record->status === 1 ? 0 : 1,
                     ])),
