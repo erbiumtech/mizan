@@ -103,7 +103,6 @@ final class ModuleMap
             'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
             'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Resources\Permissions\PermissionResource::class,
             'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Resources\Companies\CompanyResource::class,
-            'App\Filament\Resources\TableViews\TableViewResource' => \App\Modules\Core\Filament\Resources\TableViews\TableViewResource::class,
             'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
             'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
             'App\Filament\Resources\Comments\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,

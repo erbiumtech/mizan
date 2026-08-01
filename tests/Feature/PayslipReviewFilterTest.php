@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Payslips\Pages\ListPayslips;
-use App\Models\Employee;
-use App\Models\Payslip;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Payroll\Models\Payslip;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;

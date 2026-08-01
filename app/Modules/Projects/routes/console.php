@@ -24,7 +24,7 @@ Schedule::command(CheckEnvironmentCertificates::class)
 
 // Retention for the check history (Prunable on ProjectEnvironmentCheck). The
 // model is named as a class constant rather than a string: the old
-// `--model=App\Models\ProjectEnvironmentCheck` string would have silently
+// `--model=App\Modules\Projects\Models\ProjectEnvironmentCheck` string would have silently
 // stopped resolving the moment this model moved, failing at 00:00 in a queue
 // worker rather than in CI.
 Schedule::command('tenants:artisan', ['model:prune --model='.ProjectEnvironmentCheck::class])

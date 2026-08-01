@@ -52,7 +52,11 @@ trait InteractsWithTenant
             );
         }
 
-        if (($user = auth()->user()) instanceof User) {
+        // Not for a super admin. canAccessTenant() lets them into any company
+        // without a membership row, and reaching a company they are not a member
+        // of is precisely what their tests are about — manufacturing one here
+        // would quietly remove the case under test.
+        if (($user = auth()->user()) instanceof User && ! $user->isSuperAdmin()) {
             $user->companies()->syncWithoutDetaching([$this->tenant->getKey()]);
         }
 

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Concerns;
+namespace App\Modules\Accounting\Filament\Concerns;
 
-use App\Services\PaymentService;
+use App\Modules\Accounting\Services\PaymentService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -15,6 +15,10 @@ use InvalidArgumentException;
  * handle: the bank rejects the file, or the wrong month goes out, and those
  * payments have to come back into the pool. Without this the only way back was a
  * database edit.
+ *
+ * Lives in Accounting because it is payments it voids. The Payroll page uses it
+ * too, which is a payroll -> accounting import — already the one coupling
+ * KNOWN_COUPLINGS records as deliberate and guarded.
  *
  * Shared rather than written twice because both pages release into the same
  * place — a batch raised on one is visible and voidable from the other, which is

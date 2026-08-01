@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Users\Pages\ListUsers;
-use App\Models\Beneficiary;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Filament\Resources\Users\Pages\ListUsers;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use App\Support\Impersonation;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -67,7 +67,7 @@ class ImpersonationTest extends TestCase
             'status' => 1,
             'password' => 'secret-'.uniqid(),
         ]);
-        $this->company->users()->attach($user);
+        $this->company->users()->syncWithoutDetaching([$user->getKey()]);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
         $user->assignRole($role);
@@ -134,7 +134,7 @@ class ImpersonationTest extends TestCase
         (new RoleSeeder)->run();
 
         $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
-        $otherCompany->users()->attach($theirStaff);
+        $otherCompany->users()->syncWithoutDetaching([$theirStaff->getKey()]);
 
         $this->assertFalse(
             $superAdmin->companies()->whereKey($otherCompany->getKey())->exists(),
@@ -158,7 +158,7 @@ class ImpersonationTest extends TestCase
 
         $otherCompany = Company::factory()->create();
         $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
-        $otherCompany->users()->attach($theirStaff);
+        $otherCompany->users()->syncWithoutDetaching([$theirStaff->getKey()]);
 
         $this->actAs($superAdmin);
 
@@ -216,7 +216,7 @@ class ImpersonationTest extends TestCase
 
         $otherCompany = Company::factory()->create();
         $outsider = User::factory()->create(['status' => 1]);
-        $otherCompany->users()->attach($outsider);
+        $otherCompany->users()->syncWithoutDetaching([$outsider->getKey()]);
 
         $this->actAs($admin);
 
@@ -400,9 +400,8 @@ class ImpersonationTest extends TestCase
         // takes, without needing payroll fixtures to prove it.
         $record = Beneficiary::create(['name' => 'Utility Co', 'payment_type' => 'IBFT']);
 
-        $entry = \App\Models\ActivityLog::query()
-            ->where('subject_type', Beneficiary::class)
-            ->where('subject_id', $record->getKey())
+        $entry = \App\Modules\Core\Models\ActivityLog::query()
+            ->whereMorphedTo('subject', $record)
             ->latest('id')
             ->first();
 
@@ -422,9 +421,8 @@ class ImpersonationTest extends TestCase
 
         $record = Beneficiary::create(['name' => 'Landlord', 'payment_type' => 'IBFT']);
 
-        $entry = \App\Models\ActivityLog::query()
-            ->where('subject_type', Beneficiary::class)
-            ->where('subject_id', $record->getKey())
+        $entry = \App\Modules\Core\Models\ActivityLog::query()
+            ->whereMorphedTo('subject', $record)
             ->latest('id')
             ->first();
 
@@ -474,8 +472,10 @@ class ImpersonationTest extends TestCase
 
         Livewire::test(ListUsers::class)
             ->assertActionVisible(TestAction::make('impersonate')->table($employee->getKey()))
-            ->assertActionHidden(TestAction::make('impersonate')->table($superAdmin->getKey()))
             ->assertActionHidden(TestAction::make('impersonate')->table($inactive->getKey()))
-            ->assertActionHidden(TestAction::make('impersonate')->table($admin->getKey()));
+            ->assertActionHidden(TestAction::make('impersonate')->table($admin->getKey()))
+            // Stronger than hiding the action: a platform account is not in a
+            // company's user list at all (UserResource::exceptPlatformAdmins).
+            ->assertCanNotSeeTableRecords([$superAdmin]);
     }
 }
