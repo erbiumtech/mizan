@@ -82,11 +82,13 @@ class PaymentsTable
             ->recordActions([
                 EditAction::make(),
                 self::approveAction(),
+                self::revertExportAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     self::approveBulkAction(),
+                    self::revertExportBulkAction(),
                 ]),
             ]);
     }
@@ -156,6 +158,76 @@ class PaymentsTable
                 } catch (\InvalidArgumentException $e) {
                     Notification::make()->title($e->getMessage())->danger()->send();
                 }
+            });
+    }
+
+    /**
+     * Put one exported payment back in the pool.
+     *
+     * The batch-level void on the bank-file pages undoes a whole release, which is
+     * right when the bank rejects the file. This is for the single row that
+     * bounced, or the one whose payee details were stale — re-issuing everybody
+     * else to correct one payment is worse than correcting the one.
+     */
+    protected static function revertExportAction(): Action
+    {
+        return Action::make('revertExport')
+            ->label('Revert from exported')
+            ->icon('heroicon-o-arrow-uturn-left')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('Revert this payment from exported')
+            ->modalDescription(fn (Payment $record): string => 'It goes back to where it was before the release'
+                .($record->batch_reference ? " (it was in batch {$record->batch_reference})" : '')
+                .' and appears in the next batch. Nothing is deleted.')
+            ->modalSubmitActionLabel('Revert')
+            ->visible(fn (Payment $record): bool => $record->status === Payment::STATUS_EXPORTED
+                && (auth()->user()?->can('PaymentUpdate') ?? false))
+            ->action(function (Payment $record): void {
+                try {
+                    app(PaymentService::class)->revertExport($record);
+                } catch (\InvalidArgumentException $e) {
+                    Notification::make()->title($e->getMessage())->danger()->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->title("Payment #{$record->id} is back in the pool as {$record->fresh()->status}.")
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected static function revertExportBulkAction(): BulkAction
+    {
+        return BulkAction::make('revertExportBulk')
+            ->label('Revert from exported')
+            ->icon('heroicon-o-arrow-uturn-left')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->visible(fn (): bool => auth()->user()?->can('PaymentUpdate') ?? false)
+            ->action(function (Collection $records): void {
+                $service = app(PaymentService::class);
+                $reverted = 0;
+                $skipped = 0;
+
+                foreach ($records as $payment) {
+                    try {
+                        $service->revertExport($payment);
+                        $reverted++;
+                    } catch (\InvalidArgumentException) {
+                        // Not exported, or already paid. Counted and reported rather
+                        // than failing the rest of the selection.
+                        $skipped++;
+                    }
+                }
+
+                Notification::make()
+                    ->title("Reverted {$reverted} payment(s).")
+                    ->body($skipped ? "{$skipped} were left alone — not exported, or already paid." : null)
+                    ->success()
+                    ->send();
             });
     }
 

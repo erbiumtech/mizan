@@ -517,6 +517,122 @@ class PaymentBatchTest extends AccountingTestCase
         $this->assertSame($reference, Payment::where('payslip_id', $first->id)->value('batch_reference'));
     }
 
+    // --- reverting a single payment -------------------------------------------
+
+    public function test_a_single_exported_payment_can_be_reverted(): void
+    {
+        // The batch void undoes a whole release; this is for the one row that
+        // bounced, without re-issuing everybody else.
+        $payslip = $this->payslip($this->employee('revert-one@test.local'), Payslip::REVIEW_ACCEPTED);
+        $other = $this->payslip($this->employee('stays-out@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
+        $batch = $payment->batch_reference;
+
+        app(PaymentService::class)->revertExport($payment);
+
+        $payment->refresh();
+        $this->assertSame(Payment::STATUS_DRAFT, $payment->status);
+        $this->assertNull($payment->batch_reference);
+        $this->assertNull($payment->released_at);
+
+        // Its batch-mate is untouched.
+        $mate = Payment::where('payslip_id', $other->id)->firstOrFail();
+        $this->assertSame(Payment::STATUS_EXPORTED, $mate->status);
+        $this->assertSame($batch, $mate->batch_reference);
+
+        // And only the reverted one comes back to the next batch.
+        $releasable = collect($this->salaryFile()->instance()->getReleasablePayments());
+        $this->assertSame([$payslip->id], $releasable->pluck('payslip_id')->all());
+    }
+
+    public function test_reverting_restores_an_approved_payment_to_approved(): void
+    {
+        $beneficiary = Beneficiary::create([
+            'name' => 'Skyline Internet',
+            'account_no' => '5544332211',
+            'payment_type' => 'IBFT',
+        ]);
+
+        $payment = Payment::create([
+            'payable_type' => Beneficiary::class,
+            'payable_id' => $beneficiary->id,
+            'transaction_type_id' => TransactionType::query()->value('id'),
+            'amount' => 5000,
+            'details' => 'Internet',
+            'value_date' => now()->toDateString(),
+            'status' => Payment::STATUS_DRAFT,
+        ]);
+
+        app(PaymentService::class)->approve($payment);
+        app(PaymentService::class)->release([$payment->fresh()], 'PMT-TEST-B1');
+
+        app(PaymentService::class)->revertExport($payment->fresh());
+
+        $this->assertSame(Payment::STATUS_APPROVED, $payment->fresh()->status);
+    }
+
+    public function test_a_payment_that_never_went_out_cannot_be_reverted(): void
+    {
+        $payslip = $this->payslip($this->employee('never-sent@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        app(PaymentService::class)->generateSalaryPayments('July', $this->fiscalYear);
+        $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
+
+        $this->expectExceptionMessage('has not been exported');
+
+        app(PaymentService::class)->revertExport($payment);
+    }
+
+    public function test_a_paid_payment_cannot_be_reverted(): void
+    {
+        $payslip = $this->payslip($this->employee('is-paid@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
+        $payment->update(['status' => Payment::STATUS_PAID]);
+
+        $this->expectExceptionMessage('marked paid');
+
+        app(PaymentService::class)->revertExport($payment);
+    }
+
+    public function test_the_revert_is_recorded(): void
+    {
+        $payslip = $this->payslip($this->employee('revert-log@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
+        $batch = $payment->batch_reference;
+
+        app(PaymentService::class)->revertExport($payment);
+
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'Payment',
+            'description' => "Payment #{$payment->id} reverted from exported (was in batch {$batch}) and returned to the next batch",
+        ]);
+    }
+
+    public function test_the_action_is_offered_only_on_an_exported_row(): void
+    {
+        $exported = $this->payslip($this->employee('offered-revert@test.local'), Payslip::REVIEW_ACCEPTED);
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $draft = $this->payslip($this->employee('still-draft@test.local'), Payslip::REVIEW_ACCEPTED);
+        app(PaymentService::class)->generateSalaryPayments('July', $this->fiscalYear);
+
+        $exportedPayment = Payment::where('payslip_id', $exported->id)->firstOrFail();
+        $draftPayment = Payment::where('payslip_id', $draft->id)->firstOrFail();
+
+        Livewire::test(\App\Filament\Resources\Payments\Pages\ListPayments::class)
+            ->assertActionVisible(TestAction::make('revertExport')->table($exportedPayment->getKey()))
+            ->assertActionHidden(TestAction::make('revertExport')->table($draftPayment->getKey()));
+    }
+
     private function yearOfJuly(): string
     {
         return app(\App\Services\SalaryBankExportService::class)->yearForMonth('July', $this->fiscalYear);
