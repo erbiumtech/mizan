@@ -3,15 +3,15 @@
 namespace Tests\Feature;
 
 use App\Filament\Livewire\CommandPalette;
-use App\Filament\Resources\Accounts\AccountResource;
-use App\Filament\Resources\Companies\CompanyResource;
-use App\Filament\Resources\CustomFields\CustomFieldResource;
-use App\Filament\Resources\Invoices\InvoiceResource;
-use App\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
-use App\Filament\Resources\Roles\RoleResource;
-use App\Filament\Resources\Users\UserResource;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Accounting\Filament\Resources\Accounts\AccountResource;
+use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
+use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
+use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
+use App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
+use App\Modules\Core\Filament\Resources\Roles\RoleResource;
+use App\Modules\Core\Filament\Resources\Users\UserResource;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;

@@ -48,7 +48,7 @@ return [
      * It must  extend `Spatie\Multitenancy\Models\Tenant::class` or
      * implement `Spatie\Multitenancy\Contracts\IsTenant::class` interface
      */
-    'tenant_model' => \App\Models\Company::class,
+    'tenant_model' => \App\Modules\Core\Models\Company::class,
 
     /*
      * If there is a current tenant when dispatching a job, the id of the current tenant

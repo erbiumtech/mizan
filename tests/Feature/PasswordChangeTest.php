@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\Auth\EditProfile;
-use App\Models\User;
+use App\Modules\Core\Filament\Pages\Auth\EditProfile;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
@@ -37,7 +37,6 @@ class PasswordChangeTest extends TestCase
     public function test_profile_page_renders_for_an_employee(): void
     {
         $user = $this->employee();
-        $user->companies()->attach($this->tenant);
 
         $this->get('/admin/profile')
             ->assertSuccessful()

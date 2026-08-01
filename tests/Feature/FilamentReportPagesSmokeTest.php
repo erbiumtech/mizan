@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\AccountRegister;
-use App\Filament\Pages\BankPaymentFile;
-use App\Filament\Pages\FbrTaxFile;
-use App\Filament\Pages\GnuCashImport;
-use App\Filament\Pages\PettyCashBook;
-use App\Filament\Pages\ProfitAndLoss;
-use App\Filament\Pages\SalaryBankFile;
-use App\Filament\Pages\TrialBalance;
-use App\Models\User;
+use App\Modules\Accounting\Filament\Pages\AccountRegister;
+use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
+use App\Modules\Accounting\Filament\Pages\GnuCashImport;
+use App\Modules\Accounting\Filament\Pages\PettyCashBook;
+use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
+use App\Modules\Accounting\Filament\Pages\TrialBalance;
+use App\Modules\Core\Models\User;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;

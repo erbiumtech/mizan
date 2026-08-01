@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\Beneficiary;
-use App\Models\JournalEntry;
-use App\Models\Payment;
-use App\Models\Payslip;
-use App\Models\PettyCashVoucher;
-use App\Models\TransactionType;
-use App\Services\JournalEntryService;
-use App\Services\RegisterEntryService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Models\Payment;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Accounting\Models\PettyCashVoucher;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\JournalEntryService;
+use App\Modules\Accounting\Services\RegisterEntryService;
 use Database\Seeders\TransactionTypeSeeder;
 use InvalidArgumentException;
 use Spatie\Activitylog\Models\Activity;

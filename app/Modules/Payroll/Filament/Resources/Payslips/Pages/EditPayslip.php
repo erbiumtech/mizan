@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Modules\Payroll\Filament\Resources\Payslips\Pages;
+
+use App\Filament\Concerns\RedirectsToIndex;
+use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
+
+class EditPayslip extends EditRecord
+{
+    use RedirectsToIndex;
+
+    protected static string $resource = PayslipResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            DeleteAction::make(),
+        ];
+    }
+}

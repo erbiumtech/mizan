@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Support\TenantMigrations;
 use Illuminate\Console\Command;
 use RuntimeException;

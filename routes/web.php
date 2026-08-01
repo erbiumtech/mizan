@@ -1,10 +1,6 @@
 <?php
 
-use App\Http\Controllers\InvoicePdfController;
-use App\Http\Controllers\ReportPageController;
-use App\Http\Controllers\StatusPageController;
 use App\Http\Controllers\TenantFileController;
-use App\Http\Middleware\ResolveStatusPageTenant;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Route;
@@ -13,12 +9,7 @@ Route::get('/', function () {
     return redirect(Filament::getPanel('admin')->getUrl());
 });
 
-// Public status page: unauthenticated, off unless a company enables it, and
-// reachable only with the token from Company Settings. The middleware resolves
-// and then forgets the tenant, so nothing here leaks into the panel session.
-Route::get('/status/{company}/{token}', [StatusPageController::class, 'show'])
-    ->middleware(ResolveStatusPageTenant::class)
-    ->name('status.show');
+// The public status page lives in app/Modules/Projects/routes/web.php.
 
 // Stored files (payslip/MPR PDFs, NIC scans, receipts) are streamed through the
 // app rather than served off a `public/storage` symlink: the symlink cannot be
@@ -31,11 +22,8 @@ Route::get(TenantStorage::URL_PREFIX.'/{company:id}/{path}', [TenantFileControll
     ->middleware(['auth:web,sanctum'])
     ->name('tenant-file');
 
-Route::middleware(['auth'])->prefix('reports')->group(function () {
-    Route::get('/trial-balance', [ReportPageController::class, 'trialBalance'])->name('reports.trial-balance');
-    Route::get('/profit-and-loss', [ReportPageController::class, 'profitAndLoss'])->name('reports.profit-and-loss');
-    Route::get('/invoice/{invoice}/pdf', [InvoicePdfController::class, 'show'])->name('invoice.pdf');
-});
+// The report pages live in app/Modules/Accounting/routes/web.php and the invoice
+// PDF in app/Modules/Invoicing/routes/web.php.
 
 // Returning from impersonation. A plain route rather than a Livewire action so
 // the way back works from any page in the panel, including one that fails to

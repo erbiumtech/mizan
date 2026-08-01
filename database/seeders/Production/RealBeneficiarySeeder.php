@@ -2,9 +2,9 @@
 
 namespace Database\Seeders\Production;
 
-use App\Models\Bank;
-use App\Models\Beneficiary;
-use App\Models\TransactionType;
+use App\Modules\Accounting\Models\Bank;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\TransactionType;
 use Illuminate\Database\Seeder;
 
 /**

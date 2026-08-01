@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Employee;
-use App\Models\EmployeeSetting;
-use App\Models\FiscalYear;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Core\Models\FiscalYear;
 use Illuminate\Database\Seeder;
 
 class EmployeeSettingSeeder extends Seeder

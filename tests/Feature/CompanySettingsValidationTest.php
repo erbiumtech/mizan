@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\CompanySettings;
+use App\Modules\Core\Filament\Pages\CompanySettings;
 use App\Support\TenantSettings;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Features\SupportTesting\Testable;

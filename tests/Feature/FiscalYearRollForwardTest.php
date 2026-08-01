@@ -2,12 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\FiscalYear;
-use App\Models\JournalEntry;
-use App\Services\FinancialReportService;
-use App\Services\FiscalYearClosingService;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\FinancialReportService;
+use App\Modules\Accounting\Services\FiscalYearClosingService;
+use App\Modules\Accounting\Services\JournalEntryService;
+use App\Support\ModuleMap;
 use Tests\AccountingTestCase;
 
 /**
@@ -109,7 +110,9 @@ class FiscalYearRollForwardTest extends AccountingTestCase
         $this->assertTrue($entry->is_posted);
         $this->assertTrue($entry->isBalanced());
         $this->assertSame($year->end_date->toDateString(), $entry->entry_date->toDateString(), 'dated at year end');
-        $this->assertSame(FiscalYear::class, $entry->source_type);
+        // The alias, not the live class name: source_type is deliberately stable
+        // across the model moving into a module directory.
+        $this->assertSame(ModuleMap::alias(FiscalYear::class), $entry->source_type);
         $this->assertSame($year->getKey(), (int) $entry->source_id);
 
         // Income, expense and retained earnings — three lines.

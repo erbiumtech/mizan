@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use App\Support\TenantStorage;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
