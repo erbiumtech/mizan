@@ -206,11 +206,15 @@ class PaymentBatchTest extends AccountingTestCase
 
     /**
      * Rent, food and the rest are not month-scoped the way a salary is: they are
-     * unpaid items waiting for a run. Requiring the value date to fall inside the
-     * selected month hid every undated one and everything left over from an
-     * earlier month — the page showed salaries and nothing else.
+     * outstanding payables, listed until released.
+     *
+     * Two narrower rules were tried and both hid rows people needed — the value
+     * date having to fall inside the month lost every undated payment, and "due by
+     * the end of the month" lost the ones dated for the day the run goes out,
+     * which is routinely the first of the following month. The page showed
+     * salaries and nothing else.
      */
-    public function test_undated_and_overdue_payments_still_appear(): void
+    public function test_payables_are_listed_whatever_they_are_dated(): void
     {
         $beneficiary = Beneficiary::create([
             'name' => 'Landlord',
@@ -224,7 +228,7 @@ class PaymentBatchTest extends AccountingTestCase
             'Undated rent' => null,
             'June rent, still unpaid' => sprintf('%s-06-01', $year),
             'July rent' => sprintf('%s-07-05', $year),
-            'August rent, not due yet' => sprintf('%s-08-01', $year),
+            'August rent, paid with this run' => sprintf('%s-08-01', $year),
         ];
 
         foreach ($cases as $details => $valueDate) {
@@ -248,12 +252,35 @@ class PaymentBatchTest extends AccountingTestCase
         $this->assertContains('Undated rent', $details, 'no date means nothing to compare, not hidden');
         $this->assertContains('June rent, still unpaid', $details, 'an overdue bill carries forward');
         $this->assertContains('July rent', $details);
-        $this->assertNotContains('August rent, not due yet', $details, 'future-dated waits its turn');
+
+        // The run for July's salaries is normally dated the first of August, and
+        // the rent paid with it carries that date. Hiding it was the bug.
+        $this->assertContains('August rent, paid with this run', $details);
     }
 
-    public function test_a_non_salary_payment_is_filtered_by_its_value_date(): void
+    public function test_a_salary_from_another_month_is_still_excluded(): void
     {
-        // It has no payslip, so the month can only mean the date it is paid on.
+        // The month filter has to keep meaning something, or July's file carries
+        // August's payroll.
+        $employee = $this->employee('two-months@test.local');
+        $this->payslip($employee, Payslip::REVIEW_ACCEPTED, 'July');
+        $this->payslip($employee, Payslip::REVIEW_ACCEPTED, 'August');
+
+        $months = Livewire::test(BankPaymentFile::class)
+            ->fillForm(['fiscal_year_id' => $this->fiscalYear->id, 'month' => 'July', 'type' => 'salary'])
+            ->instance()
+            ->getRows()
+            ->map(fn (Payment $p): ?string => $p->payslip?->month)
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->assertSame(['July'], $months);
+    }
+
+    public function test_a_payable_is_not_dropped_by_the_salary_month(): void
+    {
+        // It has no payslip, so the salary month says nothing about it either way.
         $beneficiary = Beneficiary::create([
             'name' => 'Skyline Internet',
             'account_no' => '5544332211',
@@ -280,7 +307,10 @@ class PaymentBatchTest extends AccountingTestCase
             ->getRows();
 
         $this->assertTrue($rows->contains(fn (Payment $p): bool => $p->details === 'July bill'));
-        $this->assertFalse($rows->contains(fn (Payment $p): bool => $p->details === 'August bill'));
+        $this->assertTrue(
+            $rows->contains(fn (Payment $p): bool => $p->details === 'August bill'),
+            'a payable dated next month is still outstanding and still listed'
+        );
     }
 
     // --- the service ----------------------------------------------------------

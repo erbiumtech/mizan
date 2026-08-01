@@ -103,34 +103,29 @@ class BankPaymentFile extends Page
     /**
      * Narrow a payment query to the chosen salary month.
      *
-     * The month means two different things here, and one rule for both drops rows
-     * silently either way.
+     * The month scopes salaries and nothing else. A salary belongs to the month of
+     * the payslip it pays, so July's file shows July's and no others.
      *
-     * A salary belongs to the month of the payslip it pays, so July's file shows
-     * July's salaries and no others.
+     * Rent, food, a supplier invoice — anything with no payslip behind it — is not
+     * a thing that belongs to a month. It is an outstanding payable, and it stays
+     * listed until it is released. Two narrower rules were tried here and both hid
+     * rows people needed: requiring the value date to fall inside the month lost
+     * every undated payment, and "due by the end of the month" lost the ones dated
+     * for the day the run actually goes out, which is routinely the first of the
+     * following month.
      *
-     * Everything else — rent, food, a supplier, a petty cash top-up — is an unpaid
-     * item waiting for a run, not something that belongs to a month. It appears
-     * once it is due: no value date, or a value date on or before the end of the
-     * selected month. Carrying an overdue bill forward is the point; requiring the
-     * date to fall *inside* the month hid every undated payment and every one left
-     * over from an earlier month, which is how a bill goes unpaid. Future-dated
-     * ones stay out until their month comes round.
+     * The cost is that a payable entered months ahead is listed early. The value
+     * date is on screen for each row and nothing leaves without the operator
+     * pressing Download, so that is a visible choice rather than a silent one —
+     * unlike a missing row, which is invisible by nature.
      */
     protected function constrainToMonth(Builder $query, string $month, FiscalYear $fiscalYear): Builder
     {
-        $year = app(SalaryBankExportService::class)->yearForMonth($month, $fiscalYear);
-        $start = Carbon::parse("{$month} 1 {$year}")->startOfMonth();
-
-        return $query->where(function (Builder $q) use ($month, $fiscalYear, $start) {
+        return $query->where(function (Builder $q) use ($month, $fiscalYear) {
             $q->whereHas('payslip', fn (Builder $p) => $p
                 ->where('month', $month)
                 ->where('fiscal_year_id', $fiscalYear->id))
-                ->orWhere(fn (Builder $other) => $other
-                    ->doesntHave('payslip')
-                    ->where(fn (Builder $due) => $due
-                        ->whereNull('value_date')
-                        ->orWhere('value_date', '<=', $start->copy()->endOfMonth())));
+                ->orWhereDoesntHave('payslip');
         });
     }
 
