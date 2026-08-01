@@ -103,14 +103,19 @@ class BankPaymentFile extends Page
     /**
      * Narrow a payment query to the chosen salary month.
      *
-     * The month means two different things depending on the payment, and picking
-     * one rule for both would drop rows silently. A salary belongs to the month
-     * of the payslip it pays; anything else — a supplier, a petty cash top-up —
-     * has no payslip, so it belongs to the month its value date falls in.
+     * The month means two different things here, and one rule for both drops rows
+     * silently either way.
      *
-     * Without this the page ignored the month entirely: it was used only to
-     * generate the salary payments, and the list that followed was every
-     * unreleased payment there had ever been, whichever month was selected.
+     * A salary belongs to the month of the payslip it pays, so July's file shows
+     * July's salaries and no others.
+     *
+     * Everything else — rent, food, a supplier, a petty cash top-up — is an unpaid
+     * item waiting for a run, not something that belongs to a month. It appears
+     * once it is due: no value date, or a value date on or before the end of the
+     * selected month. Carrying an overdue bill forward is the point; requiring the
+     * date to fall *inside* the month hid every undated payment and every one left
+     * over from an earlier month, which is how a bill goes unpaid. Future-dated
+     * ones stay out until their month comes round.
      */
     protected function constrainToMonth(Builder $query, string $month, FiscalYear $fiscalYear): Builder
     {
@@ -123,7 +128,9 @@ class BankPaymentFile extends Page
                 ->where('fiscal_year_id', $fiscalYear->id))
                 ->orWhere(fn (Builder $other) => $other
                     ->doesntHave('payslip')
-                    ->whereBetween('value_date', [$start, $start->copy()->endOfMonth()]));
+                    ->where(fn (Builder $due) => $due
+                        ->whereNull('value_date')
+                        ->orWhere('value_date', '<=', $start->copy()->endOfMonth())));
         });
     }
 
