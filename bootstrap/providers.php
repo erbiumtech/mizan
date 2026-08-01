@@ -2,6 +2,7 @@
 
 use App\Modules\Accounting\AccountingServiceProvider;
 use App\Modules\Advances\AdvancesServiceProvider;
+use App\Modules\Billing\BillingServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Employees\EmployeesServiceProvider;
 use App\Modules\Inventory\InventoryServiceProvider;
@@ -27,5 +28,6 @@ return [
     ProjectsServiceProvider::class,
     AccountingServiceProvider::class,
     AdvancesServiceProvider::class,
+    BillingServiceProvider::class,
     CoreServiceProvider::class,
 ];

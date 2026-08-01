@@ -53,6 +53,7 @@ class RoleSeeder extends Seeder
             'ProductView', 'ProductCreate', 'ProductUpdate', 'StockMove',
             'PayslipView', 'PayslipCreate', 'PayslipUpdate',
             'AdvanceView', 'AdvanceCreate', 'AdvanceUpdate',
+            'BillingRunView', 'BillingRunCreate', 'BillingRunUpdate',
             // No ProjectHealthCheck: firing an on-demand check makes the server
             // issue an outbound request, which isn't finance work.
             'ProjectView', 'ProjectCreate', 'ProjectUpdate',

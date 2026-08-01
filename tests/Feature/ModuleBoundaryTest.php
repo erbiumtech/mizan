@@ -84,8 +84,10 @@ class ModuleBoundaryTest extends TestCase
      * @var array<string, array<int, string>>
      */
     private const KNOWN_COUPLINGS = [
-        // Guarded soft dependency, by design — see PayrollPostingService.
+        // Guarded soft dependencies, by design — see PayrollPostingService, and
+        // MonthlyBillingService::creditLines() for Billing.
         'payroll' => ['accounting'],
+        'billing' => ['advances'],
 
         // Debt.
         'accounting' => ['employees', 'payroll', 'invoicing', 'inventory'],
@@ -170,14 +172,25 @@ class ModuleBoundaryTest extends TestCase
         // Anything added to KNOWN_COUPLINGS in the direction of a module that is
         // NOT declared and NOT guarded is a licence hole, so the guarded pairs are
         // named here explicitly rather than assumed.
-        $guarded = ['payroll' => ['accounting']];
+        $guarded = [
+            'payroll' => ['accounting'],
+            // A client with no advances has nothing to credit back, so Billing has
+            // to be sellable without the module; creditLines() returns none when it
+            // is off. Note that Payroll reaches Advances the other way — through the
+            // container, with no import — because Advances *requires* Payroll and an
+            // import would make the pair a cycle. That call site is guarded too, in
+            // PayslipService::advanceInstalmentFor().
+            'billing' => ['advances'],
+        ];
 
-        $this->assertSame(
-            $guarded['payroll'],
-            self::KNOWN_COUPLINGS['payroll'],
-            'Payroll gained a coupling that is not the documented, guarded Accounting one. '
-            .'Confirm the new call sites degrade when that module is unavailable.'
-        );
+        foreach ($guarded as $module => $targets) {
+            $this->assertSame(
+                $targets,
+                self::KNOWN_COUPLINGS[$module],
+                ucfirst($module).' gained a coupling that is not the documented, guarded one. '
+                .'Confirm the new call sites degrade when that module is unavailable.'
+            );
+        }
     }
 
     public function test_the_lint_has_something_to_check(): void

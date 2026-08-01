@@ -5,6 +5,7 @@ namespace App\Modules\Advances\Services;
 use App\Modules\Advances\Models\Advance;
 use App\Modules\Advances\Models\AdvanceRecovery;
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Support\PayrollMonth;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -175,8 +176,16 @@ class AdvanceService
             ->get();
     }
 
+    /**
+     * The month payroll took it, not the day the row was written.
+     *
+     * A July payslip is often processed in August, and dating the recovery by
+     * when somebody pressed save would put July's instalment in August — visible
+     * on the advance's own history, and wrong on any bill that credits a month's
+     * repayments back.
+     */
     protected function recoveryDate(Payslip $payslip): string
     {
-        return ($payslip->employee_reviewed_at ?? $payslip->created_at ?? now())->toDateString();
+        return PayrollMonth::lastDay($payslip->month, $payslip->fiscalYear)->toDateString();
     }
 }

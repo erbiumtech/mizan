@@ -201,9 +201,16 @@ class InvoiceService
         ]];
 
         foreach ($lines as $line) {
+            // A negative line is a credit to the customer — a rebate, or money
+            // being handed back — and reduces revenue, so it is a debit. Booking it
+            // as a negative credit would be dropped by postSystemEntry's filter and
+            // leave the entry short by that amount, failing on the balance check
+            // with nothing to point at.
+            $amount = (float) $line->line_total;
+
             $entryLines[] = [
                 'account_id' => $this->revenueAccountId($line),
-                'credit_amount' => (float) $line->line_total,
+                $amount < 0 ? 'debit_amount' : 'credit_amount' => abs($amount),
                 'description' => $line->description,
             ];
 
