@@ -35,7 +35,7 @@ class RealEmployeeSeeder extends Seeder
             ['name' => 'Muhammad Mujahid', 'email' => 'mmujahid@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
             ['name' => 'Hammad Arshad', 'email' => 'harshad@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
             ['name' => 'Nabeel Ahmad', 'email' => 'nahmad@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => 'Umer Farooq', 'email' => 'ufarooq@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
+            ['name' => 'Umer Farooq', 'email' => 'ufarooq@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager — the salaries sheet lists him twice, as "Muhammad Umer Farooq" in PKR and as "Muzafar Ali" in EUR; one person, one record
             ['name' => 'Nadeem Yahya', 'email' => 'nyahya@erbium.ch', 'role' => 'Employee', 'status' => 1], // Employee
             ['name' => 'Arooj Fatima', 'email' => 'arooj.fatima@erbium.ch', 'role' => 'Employee', 'status' => 1], // Employee
             ['name' => 'Fatima Tauqeer', 'email' => 'fatimamohid03@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'nahmad@erbium.ch'], // Employee — reports to Nabeel Ahmad
@@ -53,12 +53,6 @@ class RealEmployeeSeeder extends Seeder
             // them (their package, payslips, and the client bill) works either way.
             ['name' => 'Muhammad Abid', 'email' => 'muhammad.abid@example.test', 'role' => 'Employee', 'status' => 1], // Cook, helper and office boy
             ['name' => 'Ahmad Ishtiaq', 'email' => 'ahmad.ishtiaq@example.test', 'role' => 'Employee', 'status' => 1], // Internee
-
-            // Paid in EUR; RealMonthlyBillingSeeder holds the converted package.
-            // Placeholder address for the same reason as the two above — and note
-            // that if this is the same person as the ufarooq@erbium.ch account, it
-            // is that entry that needs correcting, not a second record here.
-            ['name' => 'Muzafar Ali', 'email' => 'muzafar.ali@example.test', 'role' => 'Employee', 'status' => 1],
         ];
 
         /** @var array<string, Employee> $created keyed by email, to resolve managers */

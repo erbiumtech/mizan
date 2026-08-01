@@ -18,8 +18,8 @@ use Tests\Concerns\InteractsWithTenant;
  *
  * Its figures are the point of it, so they are checked against the sheet's own
  * totals rather than against what the code happens to produce. The sheet's salary
- * total covers the PKR staff only; Muzafar Ali is paid in EUR and quoted
- * separately on it, so he is added here at the rate the seeder converts him at.
+ * total covers its PKR rows only; the EUR component it lists separately is added
+ * here at the rate the seeder converts it at.
  */
 class RealMonthlyBillingSeederTest extends AccountingTestCase
 {
@@ -28,15 +28,15 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
     /** The sheet's July totals. */
     private const SHEET_SALARIES = 3961427;
 
-    /** Muzafar Ali's 3,300 EUR package, at the sheet's rate. */
-    private const MUZAFAR_PKR = 3300 * 304;
+    /** The 3,300 EUR a month the sheet quotes separately, at its rate. */
+    private const EUR_COMPONENT_PKR = 3300 * 304;
 
     private const SHEET_EXPENSES = 2308826;
 
     /** The two instalments coming off the advances in this month. */
     private const SHEET_RECOVERIES = 130000;
 
-    private const SHEET_TOTAL = self::SHEET_SALARIES + self::MUZAFAR_PKR
+    private const SHEET_TOTAL = self::SHEET_SALARIES + self::EUR_COMPONENT_PKR
         + self::SHEET_EXPENSES - self::SHEET_RECOVERIES;
 
     protected function setUp(): void
@@ -57,7 +57,7 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         $breakdown = app(\App\Modules\Billing\Services\MonthlyBillingService::class)->breakdown($run);
 
         $this->assertSame(
-            (float) (self::SHEET_SALARIES + self::MUZAFAR_PKR),
+            (float) (self::SHEET_SALARIES + self::EUR_COMPONENT_PKR),
             $breakdown['salary_total'],
             'the whole roster at the packages on the sheet',
         );
@@ -107,11 +107,48 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         $this->assertContains((float) $payslip->advances, [60000.0, 70000.0]);
     }
 
+    /**
+     * The seeder is the sheet's word on these figures, so a second run has to
+     * restore them. Two things stand in the way of that and both are handled in
+     * payslips(): an unchanged payslip is not dirty, so Eloquent runs no UPDATE and
+     * the recalculation hooked to `updating` never fires; and a figure already on a
+     * payslip is treated by payroll as a deliberate override that outranks the
+     * employee's settings.
+     */
+    public function test_re_running_it_restores_a_package_edited_underneath(): void
+    {
+        $user = \App\Modules\Core\Models\User::query()->acrossCompanies()
+            ->where('email', 'ufarooq@erbium.ch')->firstOrFail();
+        $employee = Employee::where('user_id', $user->id)->firstOrFail();
+
+        // His package is the interesting one: a PKR salary plus the EUR component.
+        $payslip = Payslip::where('employee_id', $employee->id)->firstOrFail();
+        $asSeeded = (float) $payslip->total_earnings;
+
+        $this->assertSame(1516700.0, $asSeeded, '513,500 in PKR plus 3,300 EUR at 304');
+
+        // Through the model, so the payslip is left in a state the application can
+        // actually reach: a figure overridden by hand, with the totals recomputed
+        // around it.
+        $payslip->update(['petrol_allowance' => 5000]);
+
+        $this->assertSame($asSeeded - 80800 + 5000, (float) $payslip->fresh()->total_earnings, 'the override took');
+
+        $this->seed(RealMonthlyBillingSeeder::class);
+
+        $this->assertSame(80800.0, (float) $payslip->fresh()->petrol_allowance, 'the override is gone');
+        $this->assertSame($asSeeded, (float) $payslip->fresh()->total_earnings);
+    }
+
     public function test_running_it_twice_does_not_double_anything(): void
     {
         // Re-running a seeder is normal — after adding a person, or correcting a
         // figure — and the month must not be billed twice for it.
         $employees = Employee::count();
+
+        // Timestamps are stored to the second, so the second run has to land in a
+        // later one for "was it re-saved" to be answerable at all.
+        $this->travel(1)->minutes();
 
         $this->seed(RealMonthlyBillingSeeder::class);
 
@@ -126,5 +163,16 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
 
         $run = BillingRun::firstOrFail();
         $this->assertSame((float) self::SHEET_TOTAL, round((float) $run->invoice->total, 2));
+
+        // Every payslip is genuinely re-saved, not skipped as unchanged — that is
+        // what lets a revised package reach a payslip that already exists, since the
+        // recalculation is hooked to `updating` and Eloquent will not update a model
+        // it considers clean.
+        foreach (Payslip::all() as $payslip) {
+            $this->assertTrue(
+                $payslip->updated_at->greaterThan($payslip->created_at),
+                "payslip #{$payslip->id} was re-saved",
+            );
+        }
     }
 }

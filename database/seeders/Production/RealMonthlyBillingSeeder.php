@@ -56,7 +56,7 @@ class RealMonthlyBillingSeeder extends Seeder
     private const EXCHANGE_RATE = 304;
 
     /**
-     * The rate Muzafar Ali's EUR package was converted at.
+     * The rate the EUR part of a package is converted at.
      *
      * Deliberately its own constant even though it equals the quote rate today:
      * the client's rate is renegotiated per month, and moving it should not
@@ -70,10 +70,10 @@ class RealMonthlyBillingSeeder extends Seeder
      * Each person's July package, keyed by the email RealEmployeeSeeder gives
      * them: [basic, extra work, petrol, medical, device].
      *
-     * The PKR packages add up to the sheet's own salary total exactly: 3,961,427.
-     * Muzafar Ali is paid in EUR and sits outside that total on the sheet, which
-     * quotes his 3,300 EUR separately; the company keeps one currency, so his
-     * package is held here converted — see EUR_SALARY_RATE.
+     * The PKR figures add up to the sheet's own salary total exactly: 3,961,427.
+     * On top of that sits the EUR component the sheet lists separately under
+     * "Muzafar Ali" — the same person as the ufarooq@erbium.ch account below —
+     * held converted, since the company keeps one currency. See EUR_SALARY_RATE.
      */
     private const PACKAGES = [
         'harshad@erbium.ch' => [416745, 0, 20000, 21000, 0],
@@ -84,24 +84,23 @@ class RealMonthlyBillingSeeder extends Seeder
         'mmujahid@erbium.ch' => [379500, 0, 20000, 21000, 0],
         'nyahya@erbium.ch' => [180000, 0, 20000, 21000, 0],
         'hjaved@erbium.ch' => [180000, 0, 20000, 21000, 0],
-        'ufarooq@erbium.ch' => [472500, 0, 20000, 21000, 0],
+        // One person with two rows on the sheet — a PKR salary and a EUR component
+        // of 2,600 + 300 + 200 + 150 + 50, so 3,300 a month, listed there under
+        // "Muzafar Ali". The sheet bills both and an employee has one package, so
+        // they are added together, written as the arithmetic rather than the answer.
+        'ufarooq@erbium.ch' => [
+            472500 + 2600 * self::EUR_SALARY_RATE,
+            0 + 300 * self::EUR_SALARY_RATE,
+            20000 + 200 * self::EUR_SALARY_RATE,
+            21000 + 150 * self::EUR_SALARY_RATE,
+            0 + 50 * self::EUR_SALARY_RATE,
+        ],
         'arooj.fatima@erbium.ch' => [45000, 0, 20000, 0, 0],
 
         // Support staff with no company mailbox — see the note on their
         // placeholder addresses in RealEmployeeSeeder.
         'muhammad.abid@example.test' => [200000, 0, 20000, 21000, 0],
         'ahmad.ishtiaq@example.test' => [35000, 0, 20000, 0, 0],
-
-        // Agreed in EUR — 2,600 + 300 + 200 + 150 + 50, so 3,300 a month — and
-        // written as the conversion rather than the product, so the sheet's figures
-        // stay readable and the rate used on them is impossible to mistake.
-        'muzafar.ali@example.test' => [
-            2600 * self::EUR_SALARY_RATE,
-            300 * self::EUR_SALARY_RATE,
-            200 * self::EUR_SALARY_RATE,
-            150 * self::EUR_SALARY_RATE,
-            50 * self::EUR_SALARY_RATE,
-        ],
     ];
 
     /**
@@ -273,16 +272,28 @@ class RealMonthlyBillingSeeder extends Seeder
                 continue;
             }
 
-            Advance::updateOrCreate(
-                ['employee_id' => $employee->id, 'reference' => 'SHEET-'.$startedOn->format('Y')],
-                [
-                    'total_amount' => $total,
-                    'monthly_instalment' => $instalment,
-                    'started_on' => $startedOn->toDateString(),
-                    'status' => Advance::STATUS_ACTIVE,
-                    'notes' => 'Carried over from the salaries spreadsheet.',
-                ]
-            );
+            // Keyed on the person and the sheet alone, with no month in it: the
+            // loan is one ongoing debt, so loading a second month has to recover
+            // from it again rather than open a second one.
+            $advance = Advance::firstOrNew([
+                'employee_id' => $employee->id,
+                'reference' => 'SHEET',
+            ]);
+
+            $advance->fill([
+                'total_amount' => $total,
+                'monthly_instalment' => $instalment,
+                'notes' => 'Carried over from the salaries spreadsheet.',
+            ]);
+
+            // Only on the way in. Re-running for a later month must not move the
+            // start date forward, and must not reopen a loan since settled.
+            if (! $advance->exists) {
+                $advance->started_on = $startedOn->toDateString();
+                $advance->status = Advance::STATUS_ACTIVE;
+            }
+
+            $advance->save();
         }
 
         $this->command?->info('Seeded '.count(self::ADVANCES).' staff advances.');
@@ -296,7 +307,7 @@ class RealMonthlyBillingSeeder extends Seeder
     private function payslips(\Illuminate\Support\Collection $employees, FiscalYear $fiscalYear): void
     {
         foreach ($employees as $employee) {
-            Payslip::updateOrCreate(
+            $payslip = Payslip::updateOrCreate(
                 [
                     'employee_id' => $employee->id,
                     'month' => self::MONTH,
@@ -309,6 +320,36 @@ class RealMonthlyBillingSeeder extends Seeder
                     'leaves_taken' => 0,
                 ]
             );
+
+            if ($payslip->wasRecentlyCreated) {
+                continue;
+            }
+
+            // An existing payslip needs two nudges to follow a revised package.
+            //
+            // A figure already on a payslip is treated by payroll as a deliberate
+            // override — one month's petrol corrected by hand stays corrected — so
+            // it would win over the settings written above. The sheet is what this
+            // seeder loads, so the overrides are cleared and the settings drive the
+            // figures again. Anything typed on top of a payslip since the last run
+            // goes with them, which is the point of re-running it.
+            $payslip->forceFill([
+                'petrol_allowance' => 0,
+                'device_allowance' => 0,
+                'bonus' => 0,
+                'extra_work_hours' => 0,
+                'meal_deduction' => 0,
+                'esi_health_insurance' => 0,
+
+                // Zero so the advance ledger sets it, rather than the figure the
+                // last run left behind.
+                'advances' => 0,
+            ]);
+
+            // And a payslip that ends up matching what is already stored is not
+            // dirty, so Eloquent would run no UPDATE and the recalculation hooked to
+            // `updating` would never fire. touch() makes the save real.
+            $payslip->touch();
         }
 
         $this->command?->info('Seeded '.self::MONTH.' payslips for '.$employees->count().' employees.');
