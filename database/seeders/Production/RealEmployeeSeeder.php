@@ -44,6 +44,15 @@ class RealEmployeeSeeder extends Seeder
             ['name' => 'Maryam Zahid', 'email' => 'maryamzzahid987@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'mbakar@erbium.ch'], // Employee — reports to Muhammad AbuBakar
             ['name' => 'Muhammad Usman', 'email' => 'usmanqaisrani555@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'ufarooq@erbium.ch'], // Employee — reports to Umer Farooq
             ['name' => 'Syed Rahat Fatima', 'email' => 'rahatrashid78600@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'rbukhari@erbium.ch'], // Employee — reports to Rashid Bukhari
+
+            // Support staff, on the payroll and on the salaries sheet but with no
+            // company mailbox. The addresses below are placeholders on the reserved
+            // `example.test` domain, so a notification can never reach a real inbox
+            // that happens to match a guess. Replace them with real addresses if
+            // either of these two ever needs to sign in — everything else about
+            // them (their package, payslips, and the client bill) works either way.
+            ['name' => 'Muhammad Abid', 'email' => 'muhammad.abid@example.test', 'role' => 'Employee', 'status' => 1], // Cook, helper and office boy
+            ['name' => 'Ahmad Ishtiaq', 'email' => 'ahmad.ishtiaq@example.test', 'role' => 'Employee', 'status' => 1], // Internee
         ];
 
         /** @var array<string, Employee> $created keyed by email, to resolve managers */

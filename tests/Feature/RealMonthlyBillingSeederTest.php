@@ -16,10 +16,10 @@ use Tests\Concerns\InteractsWithTenant;
 /**
  * The seeder that loads a month of the salaries spreadsheet.
  *
- * Its figures are the point of it, so they are checked rather than assumed. The
- * numbers below are the sheet's own totals for the month, less the two people on
- * it who are not in the roster — Muhammad Abid (241,000) and Ahmad Ishtiaq
- * (55,000), 296,000 between them — which the seeder reports when it runs.
+ * Its figures are the point of it, so they are checked against the sheet's own
+ * totals rather than against what the code happens to produce. Muzafar Ali is not
+ * seeded — his package is in EUR — and the sheet leaves him out of these totals
+ * too, so they match exactly.
  */
 class RealMonthlyBillingSeederTest extends AccountingTestCase
 {
@@ -30,7 +30,10 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
 
     private const SHEET_EXPENSES = 2308826;
 
-    private const NOT_IN_ROSTER = 296000;
+    /** The two instalments coming off the advances in this month. */
+    private const SHEET_RECOVERIES = 130000;
+
+    private const SHEET_TOTAL = self::SHEET_SALARIES + self::SHEET_EXPENSES - self::SHEET_RECOVERIES;
 
     protected function setUp(): void
     {
@@ -50,17 +53,14 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         $breakdown = app(\App\Modules\Billing\Services\MonthlyBillingService::class)->breakdown($run);
 
         $this->assertSame(
-            (float) (self::SHEET_SALARIES - self::NOT_IN_ROSTER),
+            (float) self::SHEET_SALARIES,
             $breakdown['salary_total'],
-            'the roster at the packages on the sheet',
+            'the whole roster at the packages on the sheet',
         );
 
         $this->assertSame((float) self::SHEET_EXPENSES, $breakdown['expense_total']);
-        $this->assertSame(-130000.0, $breakdown['credit_total'], "July's two instalments");
-        $this->assertSame(
-            (float) (self::SHEET_SALARIES - self::NOT_IN_ROSTER + self::SHEET_EXPENSES - 130000),
-            $breakdown['subtotal'],
-        );
+        $this->assertSame(-((float) self::SHEET_RECOVERIES), $breakdown['credit_total']);
+        $this->assertSame((float) self::SHEET_TOTAL, $breakdown['subtotal']);
     }
 
     public function test_it_leaves_a_draft_invoice_to_review(): void
@@ -70,7 +70,7 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         $this->assertNotNull($run->invoice);
         $this->assertSame(Invoice::STATUS_DRAFT, $run->invoice->status);
         $this->assertSame('EUR', $run->currency);
-        $this->assertSame(19224.52, $run->totalInClientCurrency());
+        $this->assertSame(round(self::SHEET_TOTAL / 304, 2), $run->totalInClientCurrency());
     }
 
     public function test_the_advances_are_recovering(): void
@@ -121,9 +121,6 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         }
 
         $run = BillingRun::firstOrFail();
-        $this->assertSame(
-            (float) (self::SHEET_SALARIES - self::NOT_IN_ROSTER + self::SHEET_EXPENSES - 130000),
-            round((float) $run->invoice->total, 2),
-        );
+        $this->assertSame((float) self::SHEET_TOTAL, round((float) $run->invoice->total, 2));
     }
 }

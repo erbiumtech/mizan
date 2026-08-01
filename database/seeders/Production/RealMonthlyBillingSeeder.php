@@ -61,19 +61,14 @@ class RealMonthlyBillingSeeder extends Seeder
      * Each person's July package, keyed by the email RealEmployeeSeeder gives
      * them: [basic, extra work, petrol, medical, device].
      *
-     * Three people on the sheet are deliberately absent, and the seeder says so
-     * when it runs rather than quietly billing less than the sheet did:
+     * One person on the sheet is deliberately absent, and the seeder says so when
+     * it runs rather than quietly billing less than the sheet did: Muzafar Ali,
+     * whose package is in EUR (2,600 + 300 + 200 + 150 + 50). The sheet leaves him
+     * out of its own totals and quotes his 3,300 EUR separately, and the app keeps
+     * one currency per company, so how he is billed is a decision rather than a
+     * conversion.
      *
-     *  - Muzafar Ali, whose package is in EUR (2,600 + 300 + 200 + 150 + 50).
-     *    The sheet leaves him out of its own totals and quotes his 3,300 EUR
-     *    separately, and the app keeps one currency per company, so how he is
-     *    billed is a decision rather than a conversion.
-     *  - Muhammad Abid, cook and office boy (200,000 + 20,000 + 21,000).
-     *  - Ahmad Ishtiaq, internee (35,000 + 20,000).
-     *
-     * The last two only need adding to RealEmployeeSeeder with their real email
-     * addresses; they are not invented here, because a made-up address on a real
-     * person is one notification away from being a problem.
+     * Everyone else adds up to the sheet's total exactly: 3,961,427.
      */
     private const PACKAGES = [
         'harshad@erbium.ch' => [416745, 0, 20000, 21000, 0],
@@ -86,6 +81,11 @@ class RealMonthlyBillingSeeder extends Seeder
         'hjaved@erbium.ch' => [180000, 0, 20000, 21000, 0],
         'ufarooq@erbium.ch' => [472500, 0, 20000, 21000, 0],
         'arooj.fatima@erbium.ch' => [45000, 0, 20000, 0, 0],
+
+        // Support staff with no company mailbox — see the note on their
+        // placeholder addresses in RealEmployeeSeeder.
+        'muhammad.abid@example.test' => [200000, 0, 20000, 21000, 0],
+        'ahmad.ishtiaq@example.test' => [35000, 0, 20000, 0, 0],
     ];
 
     /**
