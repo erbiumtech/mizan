@@ -24,6 +24,18 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
+
+        <!-- The tenant connection is pinned too, not just the landlord one. The
+             tests that provision a tenant write a real sqlite file and point this
+             connection at its path, so a developer whose .env runs tenants on
+             MySQL had those 24 tests handing a file path to MySQL as a schema
+             name. Everything here overrides .env, which is the point: the suite
+             must not depend on whose machine it runs on. -->
+        <env name="TENANT_DB_DRIVER" value="sqlite"/>
+        <env name="TENANT_DB_HOST" value="127.0.0.1"/>
+        <env name="TENANT_DB_PORT" value="3306"/>
+        <env name="TENANT_DB_USERNAME" value=""/>
+        <env name="TENANT_DB_PASSWORD" value=""/>
         <env name="TENANT_DATABASE_CONNECTION" value=""/>
         <env name="QUEUES_TENANT_AWARE_BY_DEFAULT" value="false"/>
         <env name="CUSTOM_FIELDS_ENABLED" value="true"/>
