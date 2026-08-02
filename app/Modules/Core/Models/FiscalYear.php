@@ -20,9 +20,49 @@ class FiscalYear extends Model
         'closed_at' => 'datetime',
     ];
 
+    /**
+     * One active year at a time, enforced.
+     *
+     * Everything that asks for the current year asks the same way — `where
+     * is_active, first()` — so a second active year does not read as an error
+     * anywhere. It reads as the wrong year: whichever has the lower id wins, and
+     * on the company this was found on that was a year containing not one of its
+     * entries. Activating a year now stands the others down.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $year): void {
+            if (! $year->is_active) {
+                return;
+            }
+
+            // Asserted, not assumed. A model loaded while it was active, and stood
+            // down in the database since by another year being activated, is not
+            // dirty when it is activated again — Eloquent writes nothing, and the
+            // row stays false while the next line stands every other year down.
+            // That leaves no active year at all.
+            static::whereKey($year->getKey())->update(['is_active' => true]);
+
+            static::whereKeyNot($year->getKey())
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+        });
+    }
+
     public function salarySlabs()
     {
         return $this->hasMany(SalarySlab::class);
+    }
+
+    /**
+     * The one active year, or none.
+     *
+     * Worth going through rather than repeating the query: it is the single place
+     * that decides what "current" means.
+     */
+    public static function current(): ?self
+    {
+        return static::where('is_active', true)->orderByDesc('start_date')->first();
     }
 
     /** A closed year's ledger is frozen: nothing may post into it. */
