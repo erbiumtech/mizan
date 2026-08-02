@@ -52,7 +52,12 @@ class AccountRegister extends Page
         $this->form->fill([
             'account_id' => $accounts->first()->id,
             'from' => null,
-            'to' => null,
+            // Today, so the register agrees with the Profit & Loss and the Trial
+            // Balance, which both stop there. Payments scheduled ahead are dated at
+            // their value date and would otherwise appear here and nowhere else;
+            // what the date excludes is reported under the table, and clearing it
+            // brings them back.
+            'to' => now()->toDateString(),
         ]);
     }
 
@@ -85,6 +90,9 @@ class AccountRegister extends Page
                     ->live(),
                 DatePicker::make('to')
                     ->label('To')
+                    // Filled with today in mount(). Not ->default(now()), which
+                    // puts a Carbon in the state and carries a time of day into a
+                    // date filter.
                     ->native(false)
                     ->afterOrEqual('from')
                     ->live(),
