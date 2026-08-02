@@ -162,6 +162,26 @@ class PaymentPostingTest extends AccountingTestCase
     }
 
     /**
+     * A payslip has one payment, so arrears — after a payslip is corrected
+     * upwards and the first payment has already gone — cannot carry its id. It is
+     * still wages the payslip expensed, so it clears the payable rather than
+     * booking the cost again.
+     */
+    public function test_salary_arrears_clear_the_payable_too(): void
+    {
+        $arrears = $this->payment('salary', 4099.18, [
+            'details' => 'Salary July 2026 — correction',
+        ]);
+
+        $this->assertNull($arrears->payslip_id);
+
+        app(PaymentService::class)->approve($arrears);
+
+        $this->assertSame(4099.18, $this->balanceOf('2300'));
+        $this->assertSame(0.0, $this->balanceOf('5100'), 'not expensed a second time');
+    }
+
+    /**
      * It used to mark the payment approved and book nothing, silently — the one
      * outcome that leaves no trace anywhere to notice.
      */

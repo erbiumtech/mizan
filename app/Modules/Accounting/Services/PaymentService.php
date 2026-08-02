@@ -152,11 +152,15 @@ class PaymentService
      */
     protected function debitAccountFor(Payment $payment): int
     {
-        if ($payment->payslip_id) {
+        $type = $payment->transactionType;
+
+        // Either the payment belongs to a payslip, or it is salary being paid some
+        // other way — arrears after a payslip was corrected, say, which cannot
+        // carry the payslip's id because a payslip has only one payment. Both
+        // settle wages a payslip has already expensed, so both clear the payable.
+        if ($payment->payslip_id || $type?->code === Payment::SALARY_TRANSACTION_CODE) {
             return PayrollAccounts::id('salaries_payable');
         }
-
-        $type = $payment->transactionType;
 
         // Refused rather than skipped. This silently booked nothing at all when
         // the type had no account — the payment went out, was marked approved, and
