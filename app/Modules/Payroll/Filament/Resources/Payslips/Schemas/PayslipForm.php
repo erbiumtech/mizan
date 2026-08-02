@@ -35,6 +35,25 @@ class PayslipForm
         'net_salary',
     ];
 
+    /**
+     * Fields where a figure typed on the payslip silently outranks the
+     * employee's settings — see PayslipService::calculateByParams, which takes
+     * any non-zero value passed in ahead of the settings figure.
+     *
+     * That is deliberate: correcting one month by hand is a real need. It is also
+     * how a device allowance of 5,000 came to be paid as 1.00 for a month, with
+     * nothing on the screen to say the payslip and the settings disagreed.
+     */
+    protected const OVERRIDE_KEYS = [
+        'device_allowance',
+        'petrol_allowance',
+        'bonus',
+        'extra_work_hours',
+        'advances',
+        'meal_deduction',
+        'esi_health_insurance',
+    ];
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -139,28 +158,36 @@ class PayslipForm
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'device_allowance', $state)),
 
                 TextInput::make('petrol_allowance')
                     ->label('Petrol Allowance')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'petrol_allowance', $state)),
 
                 TextInput::make('bonus')
                     ->label('Bonus')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'bonus', $state)),
 
                 TextInput::make('extra_work_hours')
                     ->label('Extra Work Hours')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'extra_work_hours', $state)),
 
                 TextInput::make('expense_reimbursement')
                     ->label('Expense Reimbursement')
@@ -174,21 +201,27 @@ class PayslipForm
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'advances', $state)),
 
                 TextInput::make('meal_deduction')
                     ->label('Meal Deduction')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'meal_deduction', $state)),
 
                 TextInput::make('esi_health_insurance')
                     ->label('ESI / Health Insurance')
                     ->numeric()
                     ->minValue(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                    ->hintColor('warning')
+                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'esi_health_insurance', $state)),
 
                 // --- READONLY calculated totals ---
                 TextInput::make('withholding_tax')
@@ -211,6 +244,65 @@ class PayslipForm
                     ->numeric()
                     ->readOnly(),
             ]);
+    }
+
+    /**
+     * Warn when this field disagrees with what the employee's settings say.
+     *
+     * The figure it names is what the field would hold if it were cleared, so it
+     * covers every override the same way: allowances and deductions come from the
+     * settings, and the advance instalment comes from the advance ledger.
+     */
+    public static function overrideHint(Get $get, ?Payslip $record, string $field, $state): ?string
+    {
+        if (round((float) $state, 2) <= 0) {
+            return null;
+        }
+
+        $derived = self::derivedValues($get, $record);
+        $settingsValue = round((float) ($derived[$field] ?? 0), 2);
+
+        if (round((float) $state, 2) === $settingsValue) {
+            return null;
+        }
+
+        return 'Overrides '.number_format($settingsValue, 2);
+    }
+
+    /**
+     * Every field as payroll would compute it with nothing overridden, from one
+     * call rather than one per field — the form re-renders on each keystroke and
+     * this runs for seven fields at a time.
+     */
+    protected static function derivedValues(Get $get, ?Payslip $record): array
+    {
+        $employee = $get('employee_id');
+        $month = $get('month');
+        $fiscalYear = $get('fiscal_year_id');
+
+        if (! $employee || ! $month || ! $fiscalYear) {
+            return [];
+        }
+
+        // Held in the container, not a static: a static outlives the request, and
+        // the same employee, month and payslip id in a later one would be answered
+        // from figures that have since changed. Each Livewire round trip is its own
+        // request, so this still collapses the seven fields into one call.
+        $cache = app()->bound($bucket = 'payroll.payslip-derived-values')
+            ? app($bucket)
+            : tap(new \ArrayObject, fn ($fresh) => app()->instance($bucket, $fresh));
+
+        $key = implode('|', [$employee, $month, $fiscalYear, $record?->getKey() ?? 'new']);
+
+        if (! isset($cache[$key])) {
+            $cache[$key] = app(PayslipService::class)->calculateByParams(
+                $employee, $month, $fiscalYear,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                $record?->getKey(),
+            ) ?: [];
+        }
+
+        return $cache[$key];
     }
 
     /**
