@@ -5,6 +5,7 @@ namespace App\Modules\Billing\Filament\Resources\BillingRuns\Tables;
 use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Billing\Services\MonthlyBillingService;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,22 @@ use Filament\Tables\Table;
 
 class BillingRunsTable
 {
+    /**
+     * The statement lives outside the panel, so its URL names the company the
+     * way the panel's own URLs do — see ResolveCompanyFromRoute for why it has
+     * to be in there rather than inferred.
+     *
+     * @param  array<string, string>  $query
+     */
+    private static function statementUrl(BillingRun $run, array $query = []): string
+    {
+        return route('billing.statement', [
+            'company' => Filament::getTenant()?->slug,
+            'run' => $run->getKey(),
+            ...$query,
+        ]);
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -68,21 +85,21 @@ class BillingRunsTable
                 // figures back is how a wrong month or a missing expense gets
                 // noticed — after issuing, correcting means voiding a posted
                 // invoice.
-                Action::make('preview')
-                    ->label('Preview')
+                //
+                // A page of its own rather than a modal: this is the sheet the
+                // client is sent, it is read beside their own, and it wants the
+                // width. New tab, so the month's list is still there behind it.
+                Action::make('statement')
+                    ->label('Statement')
                     ->icon('heroicon-o-eye')
                     ->color('gray')
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
-                    ->modalHeading(fn (BillingRun $record): string => "Bill for {$record->periodLabel()}")
-                    ->modalContent(function (BillingRun $record) {
-                        $breakdown = app(MonthlyBillingService::class)->breakdown($record);
+                    ->url(fn (BillingRun $record): string => self::statementUrl($record), shouldOpenInNewTab: true),
 
-                        return view('billing.preview', [
-                            'run' => $record,
-                            'breakdown' => $breakdown,
-                        ]);
-                    }),
+                Action::make('statementPdf')
+                    ->label('PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->url(fn (BillingRun $record): string => self::statementUrl($record, ['format' => 'pdf']), shouldOpenInNewTab: true),
 
                 Action::make('build')
                     ->label(fn (BillingRun $record): string => $record->invoice ? 'Rebuild invoice' : 'Build invoice')

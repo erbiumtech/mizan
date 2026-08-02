@@ -24,5 +24,7 @@ class BillingServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
     }
 }

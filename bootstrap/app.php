@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // downloads) must stay reachable whatever a company has bought.
         $middleware->alias([
             'module' => App\Http\Middleware\EnsureModuleEnabled::class,
+            // For pages outside the panel, which have no tenant otherwise. List it
+            // before `module:` — a licence belongs to a company, so one has to be
+            // current before that question can be answered.
+            'company' => App\Http\Middleware\ResolveCompanyFromRoute::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

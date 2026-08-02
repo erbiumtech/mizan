@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Services\FinancialReportService;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
@@ -78,11 +79,16 @@ class ProfitAndLoss extends Page
                 ->label('Download PDF')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
-                    fn (): string => route('reports.profit-and-loss', array_filter([
-                        'from' => $this->data['from'] ?? null,
-                        'to' => $this->data['to'] ?? null,
-                        'format' => 'pdf',
-                    ])),
+                    // The company is a path segment now, not a filter: the page
+                    // is outside the panel and resolves its tenant from the URL.
+                    fn (): string => route('reports.profit-and-loss', [
+                        'company' => Filament::getTenant()?->slug,
+                        ...array_filter([
+                            'from' => $this->data['from'] ?? null,
+                            'to' => $this->data['to'] ?? null,
+                            'format' => 'pdf',
+                        ]),
+                    ]),
                     shouldOpenInNewTab: true,
                 ),
         ];

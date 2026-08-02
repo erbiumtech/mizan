@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Services\FinancialReportService;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
@@ -68,10 +69,15 @@ class TrialBalance extends Page
                 ->label('Download PDF')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
-                    fn (): string => route('reports.trial-balance', array_filter([
-                        'as_of' => $this->data['as_of'] ?? null,
-                        'format' => 'pdf',
-                    ])),
+                    // The company is a path segment now, not a filter: the page
+                    // is outside the panel and resolves its tenant from the URL.
+                    fn (): string => route('reports.trial-balance', [
+                        'company' => Filament::getTenant()?->slug,
+                        ...array_filter([
+                            'as_of' => $this->data['as_of'] ?? null,
+                            'format' => 'pdf',
+                        ]),
+                    ]),
                     shouldOpenInNewTab: true,
                 ),
         ];

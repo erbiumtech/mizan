@@ -4,16 +4,14 @@ namespace App\Listeners;
 
 use App\Modules\Core\Models\Company;
 use Filament\Events\TenantSet;
-use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Bridges Filament's active tenant to spatie/laravel-multitenancy.
  *
- * When a dedicated tenant database connection is configured (production), the
- * company is made "current" so its database connection and cache prefix are
- * activated. In the single-database test environment (no dedicated tenant
- * connection) we only scope the permission team id, leaving the shared test
- * database untouched.
+ * What "activating" a company means — the database connection, the cache prefix,
+ * the permission team id, and what of that applies in the single-database test
+ * environment — is Company::activate(), shared with the pages that resolve a
+ * company from the URL rather than from the panel.
  */
 class SyncSpatieTenant
 {
@@ -25,12 +23,6 @@ class SyncSpatieTenant
             return;
         }
 
-        if (config('multitenancy.tenant_database_connection_name')) {
-            $tenant->makeCurrent();
-
-            return;
-        }
-
-        app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->getKey());
+        $tenant->activate();
     }
 }
