@@ -89,6 +89,43 @@ class RegisterEntryService
             'opening_balance' => round($opening, 2),
             'rows' => $rows,
             'closing_balance' => round($running, 2),
+            'beyond' => $this->beyond($account, $to),
+        ];
+    }
+
+    /**
+     * What the `to` date leaves out, so a register that stops short says so.
+     *
+     * A payment's entry is dated at its value date, so payments scheduled ahead
+     * post into the future. With no end date the register counted them while the
+     * Profit & Loss and the Trial Balance — which both stop at today — did not,
+     * and the three reports disagreed with nothing on screen to explain it.
+     *
+     * @return array{count: int, total: float}|null
+     */
+    protected function beyond(Account $account, ?string $to): ?array
+    {
+        if (! $to) {
+            return null;
+        }
+
+        $lines = JournalEntryLine::query()
+            ->where('account_id', $account->id)
+            ->whereHas('journalEntry', fn ($q) => $q->where('is_posted', true)
+                ->whereDate('entry_date', '>', $to))
+            ->get();
+
+        if ($lines->isEmpty()) {
+            return null;
+        }
+
+        $movement = $lines->sum(fn (JournalEntryLine $line): float => $account->normal_balance === 'debit'
+            ? (float) $line->debit_amount - (float) $line->credit_amount
+            : (float) $line->credit_amount - (float) $line->debit_amount);
+
+        return [
+            'count' => $lines->count(),
+            'total' => round($movement, 2),
         ];
     }
 

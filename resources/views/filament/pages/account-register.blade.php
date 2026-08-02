@@ -130,5 +130,18 @@
                 </tfoot>
             </table>
         </div>
+
+        {{-- Said out loud rather than silently left off: a payment scheduled ahead
+             is dated at its value date, so it sits beyond the To date and shows in
+             neither this register nor the Profit & Loss until it arrives. --}}
+        @if ($beyond = ($ledger['beyond'] ?? null))
+            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                {{ $beyond['count'] }} later
+                {{ \Illuminate\Support\Str::plural('entry', $beyond['count']) }}
+                after {{ \Illuminate\Support\Carbon::parse($this->data['to'])->toFormattedDateString() }}, worth
+                <span class="font-medium tabular-nums">{{ number_format($beyond['total'], 2) }}</span> —
+                clear the To date to include them.
+            </p>
+        @endif
     </x-filament::section>
 </x-filament-panels::page>
