@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting;
 
+use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Bank;
 use App\Modules\Accounting\Models\BankStatement;
@@ -58,6 +59,8 @@ class AccountingServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        $this->commands([BackfillPaymentEntriesCommand::class]);
 
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');
