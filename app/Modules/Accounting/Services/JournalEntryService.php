@@ -21,7 +21,17 @@ class JournalEntryService
         $this->validateLines($lines);
 
         return DB::transaction(function () use ($header, $lines) {
-            $entry = JournalEntry::create($header + ['status' => JournalEntry::STATUS_DRAFT]);
+            $entry = JournalEntry::create(
+                $header + [
+                    'status' => JournalEntry::STATUS_DRAFT,
+                    // Derived from the date rather than left to the caller. Payroll
+                    // passed one and nothing else did, so two thirds of the ledger
+                    // carried no fiscal year — invisible until something filtered on
+                    // it, at which point those entries would simply be gone from the
+                    // report with nothing to say why.
+                    'fiscal_year_id' => $this->fiscalYearFor($header['entry_date'] ?? null),
+                ]
+            );
             $entry->lines()->createMany($lines);
 
             activity('JournalEntry')
@@ -32,6 +42,23 @@ class JournalEntryService
 
             return $entry;
         });
+    }
+
+    /**
+     * The year the entry's date falls in.
+     *
+     * Null when no year covers the date, which is the honest answer — better an
+     * entry with no year than one filed under the wrong one.
+     */
+    protected function fiscalYearFor(mixed $date): ?int
+    {
+        if (! $date) {
+            return null;
+        }
+
+        return FiscalYear::containing(
+            $date instanceof \DateTimeInterface ? $date->format('Y-m-d') : (string) $date
+        )?->getKey();
     }
 
     public function submitForApproval(JournalEntry $entry): JournalEntry
@@ -179,7 +206,11 @@ class JournalEntryService
                 'status' => JournalEntry::STATUS_APPROVED,
                 'approved_by' => $approver?->id ?? $entry->approved_by,
                 'approved_at' => now(),
-                'fiscal_year_id' => $entry->fiscal_year_id,
+                // The year the reversal is dated in, not the year of what it
+                // reverses. A reversal is posted today; filing it under a year it
+                // falls outside puts the entry's date and its year in disagreement,
+                // and would show it in a report for a period it does not belong to.
+                'fiscal_year_id' => $this->fiscalYearFor(now()->toDateString()) ?? $entry->fiscal_year_id,
                 'source_type' => $entry->source_type,
                 'source_id' => $entry->source_id,
             ]);
