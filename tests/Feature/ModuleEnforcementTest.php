@@ -69,6 +69,12 @@ class ModuleEnforcementTest extends TestCase
         modules()->flush();
     }
 
+    /** The company is in the path since these pages resolve their own tenant. */
+    private function reportUrl(string $name): string
+    {
+        return route($name, ['company' => $this->company->slug]);
+    }
+
     public function test_report_urls_are_closed_when_accounting_is_off(): void
     {
         // The whole point of phase 2: these routes never consult canAccess(), so
@@ -76,11 +82,11 @@ class ModuleEnforcementTest extends TestCase
         $this->actingAs($this->user);
 
         $this->setModule('accounting', true);
-        $this->get('/reports/trial-balance')->assertOk();
+        $this->get($this->reportUrl('reports.trial-balance'))->assertOk();
 
         $this->setModule('accounting', false);
-        $this->get('/reports/trial-balance')->assertForbidden();
-        $this->get('/reports/profit-and-loss')->assertForbidden();
+        $this->get($this->reportUrl('reports.trial-balance'))->assertForbidden();
+        $this->get($this->reportUrl('reports.profit-and-loss'))->assertForbidden();
     }
 
     public function test_a_licensed_but_switched_off_module_closes_its_urls_too(): void
@@ -89,7 +95,7 @@ class ModuleEnforcementTest extends TestCase
 
         $this->setModule('accounting', false, licensed: true);
 
-        $this->get('/reports/trial-balance')->assertForbidden();
+        $this->get($this->reportUrl('reports.trial-balance'))->assertForbidden();
     }
 
     public function test_api_endpoints_are_closed_per_module(): void
@@ -170,7 +176,7 @@ class ModuleEnforcementTest extends TestCase
 
         $this->assertFalse(Gate::allows('ReportView'));
         $this->assertFalse(Gate::allows('view', new \App\Modules\Accounting\Models\Account));
-        $this->get('/reports/trial-balance')->assertForbidden();
+        $this->get($this->reportUrl('reports.trial-balance'))->assertForbidden();
     }
 
     public function test_an_administrator_does_not_bypass_a_disabled_module(): void

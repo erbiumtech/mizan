@@ -26,6 +26,8 @@ class PdfDocument implements Responsable
 
     protected ?string $name = null;
 
+    protected bool $isInline = false;
+
     /** @var array{0: float, 1: float, 2: float, 3: float}|null top/right/bottom/left in mm */
     protected ?array $margins = null;
 
@@ -81,6 +83,20 @@ class PdfDocument implements Responsable
     }
 
     /**
+     * Hand the PDF to the browser to display rather than to save.
+     *
+     * The only difference is Content-Disposition, but it is the difference
+     * between a document you glance at in a tab and one that lands in Downloads
+     * every time you look at it.
+     */
+    public function inline(bool $condition = true): static
+    {
+        $this->isInline = $condition;
+
+        return $this;
+    }
+
+    /**
      * Which engine will actually render. "auto" prefers Browsershot and falls
      * back to Dompdf when Node is missing.
      */
@@ -121,11 +137,26 @@ class PdfDocument implements Responsable
     public function toResponse($request)
     {
         if ($this->driver() === 'browsershot') {
-            return $this->browsershot()->name($this->getName())->toResponse($request);
+            $pdf = $this->browsershot();
+
+            // download(), not name(): spatie's builder only sets a disposition
+            // when asked, and its toResponse() falls back to inline — so a PDF
+            // named but not asked for opened in the tab under Browsershot while
+            // the Dompdf branch below downloaded it. Same call, two behaviours,
+            // depending on whether the host had Node.
+            return ($this->isInline ? $pdf->inline($this->getName()) : $pdf->download($this->getName()))
+                ->toResponse($request);
         }
 
         $contents = $this->dompdf();
         $name = $this->getName();
+
+        if ($this->isInline) {
+            return response($contents, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.$name.'"',
+            ]);
+        }
 
         return response()->streamDownload(
             fn () => print $contents,

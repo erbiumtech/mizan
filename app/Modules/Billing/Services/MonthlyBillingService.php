@@ -7,6 +7,7 @@ use App\Modules\Advances\Models\AdvanceRecovery;
 use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Payroll\Models\Payslip;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -24,6 +25,100 @@ use InvalidArgumentException;
  */
 class MonthlyBillingService
 {
+    /**
+     * The employee columns of the client's statement, in the order the client
+     * reads them, keyed by the payslip column each is drawn from.
+     *
+     * `bonus` and `other` are held back unless a month actually has them: the
+     * statement is meant to look like the sheet the client is used to, which has
+     * five columns. They are never dropped when there is money in them — see
+     * statement(), where `other` catches any part of the gross the named columns
+     * do not account for, so the row always adds up to what is billed.
+     */
+    public const SALARY_COLUMNS = [
+        'basic_wage' => 'Basic Salary',
+        'extra_work_hours' => 'Extra Work',
+        'petrol_allowance' => 'Petrol Allowance',
+        'medical_allowance' => 'Medical Allowance',
+        'device_allowance' => 'Device Allowance',
+        'bonus' => 'Bonus',
+        'other' => 'Other',
+    ];
+
+    /** The five the client's sheet always carries, empty or not. */
+    private const ALWAYS_SHOWN_COLUMNS = [
+        'basic_wage', 'extra_work_hours', 'petrol_allowance', 'medical_allowance', 'device_allowance',
+    ];
+
+    /**
+     * The bill as the client reads it: a row per employee broken into what makes
+     * up their cost, the office expenses under it, then the credits and the
+     * conversion.
+     *
+     * The same figures as breakdown() — this is that bill set out in columns
+     * rather than as invoice lines, and the two totals are asserted equal in
+     * BillingStatementTest. breakdown() stays the source for the invoice, whose
+     * lines are one per employee: an invoice line has one amount, not six.
+     *
+     * @return array{
+     *     columns: array<string, string>,
+     *     employees: array<int, array{name: string, code: string, amounts: array<string, float>, total: float}>,
+     *     column_totals: array<string, float>,
+     *     salary_total: float,
+     *     expenses: array<int, array{description: string, amount: float}>,
+     *     expense_total: float,
+     *     credits: array<int, array{description: string, amount: float}>,
+     *     credit_total: float,
+     *     subtotal: float,
+     *     client_total: float|null,
+     * }
+     */
+    public function statement(BillingRun $run): array
+    {
+        $employees = $this->employeeRows($run);
+
+        $columnTotals = [];
+
+        foreach (array_keys(self::SALARY_COLUMNS) as $column) {
+            $columnTotals[$column] = round(
+                array_sum(array_column(array_column($employees, 'amounts'), $column)),
+                2,
+            );
+        }
+
+        // Itemised, not grouped: the invoice bills "Utilities", the statement
+        // lists what the utilities were. Same payments, same total.
+        $expenses = $this->expenseItems($run);
+        $credits = $this->creditLines($run);
+
+        $salaryTotal = round(array_sum(array_column($employees, 'total')), 2);
+        $expenseTotal = $this->sum($expenses);
+        $creditTotal = $this->sum($credits);
+        $subtotal = round($salaryTotal + $expenseTotal + $creditTotal, 2);
+
+        $rate = (float) $run->exchange_rate;
+
+        return [
+            'columns' => array_intersect_key(
+                self::SALARY_COLUMNS,
+                array_flip(array_filter(
+                    array_keys(self::SALARY_COLUMNS),
+                    fn (string $column): bool => in_array($column, self::ALWAYS_SHOWN_COLUMNS, true)
+                        || $columnTotals[$column] != 0.0,
+                )),
+            ),
+            'employees' => $employees,
+            'column_totals' => $columnTotals,
+            'salary_total' => $salaryTotal,
+            'expenses' => $expenses,
+            'expense_total' => $expenseTotal,
+            'credits' => $credits,
+            'credit_total' => $creditTotal,
+            'subtotal' => $subtotal,
+            'client_total' => $rate > 0 ? round($subtotal / $rate, 2) : null,
+        ];
+    }
+
     /**
      * What the month's invoice would contain, without writing anything.
      *
@@ -126,14 +221,7 @@ class MonthlyBillingService
      */
     protected function salaryLines(BillingRun $run): array
     {
-        $payslips = Payslip::with('employee.user')
-            ->where('month', $run->month)
-            ->where('fiscal_year_id', $run->fiscal_year_id)
-            ->get()
-            ->filter(fn (Payslip $payslip): bool => (float) $payslip->total_earnings > 0)
-            ->sortBy(fn (Payslip $payslip): string => $payslip->employee?->user?->name ?? '');
-
-        return $payslips->map(fn (Payslip $payslip): array => [
+        return $this->billablePayslips($run)->map(fn (Payslip $payslip): array => [
             'description' => trim(sprintf(
                 'Salary — %s (%s)',
                 $payslip->employee?->user?->name ?? 'Unnamed employee',
@@ -141,6 +229,62 @@ class MonthlyBillingService
             )),
             'amount' => round((float) $payslip->total_earnings, 2),
         ])->values()->all();
+    }
+
+    /**
+     * The same employees the invoice bills, broken into the columns the client's
+     * sheet shows.
+     *
+     * The row total is `total_earnings` — the figure the invoice line carries —
+     * and never the sum of the columns, so a statement can never quietly bill a
+     * different number from the invoice beside it. Anything in the gross the named
+     * columns do not account for lands in `other` rather than going missing:
+     * payroll composes total_earnings from these six today, and a seventh added
+     * later would otherwise leave the row not adding up.
+     *
+     * @return array<int, array{name: string, code: string, amounts: array<string, float>, total: float}>
+     */
+    protected function employeeRows(BillingRun $run): array
+    {
+        return $this->billablePayslips($run)->map(function (Payslip $payslip): array {
+            $total = round((float) $payslip->total_earnings, 2);
+
+            $amounts = [];
+
+            foreach (array_keys(self::SALARY_COLUMNS) as $column) {
+                $amounts[$column] = $column === 'other'
+                    ? 0.0
+                    : round((float) $payslip->{$column}, 2);
+            }
+
+            $amounts['other'] = round($total - array_sum($amounts), 2);
+
+            return [
+                'name' => $payslip->employee?->user?->name ?? 'Unnamed employee',
+                'code' => $payslip->employee?->employee_id ?? '—',
+                'amounts' => $amounts,
+                'total' => $total,
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * The month's payslips worth billing, in the order the client reads them.
+     *
+     * Shared by the invoice lines and the statement so the two cannot come to
+     * bill a different set of people.
+     *
+     * @return \Illuminate\Support\Collection<int, Payslip>
+     */
+    protected function billablePayslips(BillingRun $run): Collection
+    {
+        return Payslip::with('employee.user')
+            ->where('month', $run->month)
+            ->where('fiscal_year_id', $run->fiscal_year_id)
+            ->get()
+            ->filter(fn (Payslip $payslip): bool => (float) $payslip->total_earnings > 0)
+            ->sortBy(fn (Payslip $payslip): string => $payslip->employee?->user?->name ?? '')
+            ->values();
     }
 
     /**
@@ -157,18 +301,7 @@ class MonthlyBillingService
      */
     protected function expenseLines(BillingRun $run): array
     {
-        $payments = Payment::with('transactionType')
-            ->whereNull('payslip_id')
-            ->whereNotNull('value_date')
-            // Passed as instants, not date strings: `value_date` is a date cast and
-            // holds midnight, so an upper bound of '2026-07-31' sorts before
-            // '2026-07-31 00:00:00' and silently drops everything dated on the last
-            // day of the month — the rent, most months.
-            ->whereBetween('value_date', [$run->periodStart(), $run->periodEnd()])
-            ->get()
-            ->reject(fn (Payment $payment): bool => $payment->transactionType?->code === Payment::SALARY_TRANSACTION_CODE);
-
-        return $payments
+        return $this->expensePayments($run)
             ->groupBy(fn (Payment $payment): string => $payment->transactionType?->name ?? 'Other expenses')
             ->map(fn ($group, string $name): array => [
                 'description' => $name,
@@ -178,6 +311,60 @@ class MonthlyBillingService
             ->sortBy('description')
             ->values()
             ->all();
+    }
+
+    /**
+     * The same costs, one line per payment instead of per kind.
+     *
+     * What the client's sheet lists: "House rent", "Gas", "AC gas and kitchen
+     * exhaust" — the thing that was bought, not the account it was posted to.
+     * Grouping is right for an invoice line and wrong for the statement, where
+     * "Utilities 236,826" is the figure somebody rings up to query.
+     *
+     * Same payments as expenseLines(), so the two add to the same total — pinned
+     * in BillingStatementTest.
+     *
+     * @return array<int, array{description: string, amount: float}>
+     */
+    protected function expenseItems(BillingRun $run): array
+    {
+        return $this->expensePayments($run)
+            ->sortBy([
+                fn (Payment $a, Payment $b) => $a->value_date <=> $b->value_date,
+                fn (Payment $a, Payment $b) => ($a->details ?? '') <=> ($b->details ?? ''),
+            ])
+            ->map(fn (Payment $payment): array => [
+                'description' => trim((string) $payment->details) !== ''
+                    ? (string) $payment->details
+                    : ($payment->transactionType?->name ?? 'Other expenses'),
+                'amount' => round((float) $payment->amount, 2),
+            ])
+            ->filter(fn (array $line): bool => $line['amount'] != 0.0)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The month's payments that belong on the bill.
+     *
+     * Payments made against a payslip are left out, and so are payments of the
+     * salary type: those are the same money as the employee rows.
+     *
+     * @return Collection<int, Payment>
+     */
+    protected function expensePayments(BillingRun $run): Collection
+    {
+        return Payment::with('transactionType')
+            ->whereNull('payslip_id')
+            ->whereNotNull('value_date')
+            // Passed as instants, not date strings: `value_date` is a date cast and
+            // holds midnight, so an upper bound of '2026-07-31' sorts before
+            // '2026-07-31 00:00:00' and silently drops everything dated on the last
+            // day of the month — the rent, most months.
+            ->whereBetween('value_date', [$run->periodStart(), $run->periodEnd()])
+            ->get()
+            ->reject(fn (Payment $payment): bool => $payment->transactionType?->code === Payment::SALARY_TRANSACTION_CODE)
+            ->values();
     }
 
     /**
