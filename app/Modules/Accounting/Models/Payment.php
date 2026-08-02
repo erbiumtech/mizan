@@ -29,7 +29,8 @@ class Payment extends Model
 
     protected $fillable = [
         'payable_type', 'payable_id', 'transaction_type_id', 'company_bank_account_id',
-        'payslip_id', 'amount', 'reference', 'details', 'value_date',
+        'payslip_id', 'beneficiary_subscription_id', 'period',
+        'amount', 'reference', 'details', 'value_date',
         'payment_type', 'status', 'journal_entry_id',
         'batch_reference', 'released_at',
     ];
@@ -37,6 +38,7 @@ class Payment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'value_date' => 'date',
+        'period' => 'date',
         'released_at' => 'datetime',
     ];
 
@@ -116,6 +118,11 @@ class Payment extends Model
     public function companyBankAccount()
     {
         return $this->belongsTo(CompanyBankAccount::class);
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(BeneficiarySubscription::class, 'beneficiary_subscription_id');
     }
 
     public function payslip()
