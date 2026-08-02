@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Support\PayrollAccounts;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
@@ -131,33 +132,7 @@ class PayrollPostingService
 
     protected function accountId(string $key): int
     {
-        $code = data_get(setting('accounting.payroll_accounts'), $key);
-
-        // A blank or zero code means the mapping was saved without this line
-        // rather than deliberately pointing at account "0", so fall back to the
-        // shipped default instead of failing.
-        if ($code === null || $code === '' || $code === 0 || $code === '0') {
-            $code = config('accounting.payroll_accounts.'.$key);
-        }
-
-        if ($code === null || $code === '') {
-            throw new RuntimeException(
-                "Payroll account '{$key}' has no account code configured. Set it under "
-                .'Company Settings → Payroll → Payroll Account Codes.'
-            );
-        }
-
-        $account = Account::where('code', $code)->first();
-
-        if (! $account) {
-            throw new RuntimeException(
-                "Payroll account '{$key}' points at account code {$code}, which does not exist in this "
-                .'company\'s chart of accounts. Either correct it under Company Settings → Payroll → '
-                .'Payroll Account Codes, or seed the chart with ChartOfAccountsSeeder.'
-            );
-        }
-
-        return $account->id;
+        return PayrollAccounts::id($key);
     }
 
     /**

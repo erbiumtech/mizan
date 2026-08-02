@@ -3,8 +3,10 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Support\PayrollAccounts;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\Payslip;
@@ -78,8 +80,13 @@ class PaymentService
     }
 
     /**
-     * Approve a draft payment and book its journal entry:
-     * debit the transaction type's account, credit Cash/Bank (1100).
+     * Approve a draft payment and post its journal entry: debit what the money
+     * was for, credit Cash/Bank (1100).
+     *
+     * Posted here and now, as petty cash and invoices do. The entry used to be
+     * left as a draft, which put every payment ever approved outside the Profit &
+     * Loss and the Trial Balance — those read posted entries only — and outside
+     * the approval queue as well, since a draft has not been submitted to anyone.
      */
     public function approve(Payment $payment): Payment
     {
@@ -87,32 +94,81 @@ class PaymentService
             throw new InvalidArgumentException("Payment #{$payment->id} is not a draft.");
         }
 
-        $type = $payment->transactionType;
-
-        if (! $payment->journal_entry_id && $type?->account_id) {
-            $cashAccount = Account::where('code', '1100')->first();
-
-            if (! $cashAccount) {
-                throw new RuntimeException('Account 1100 Cash/Bank not found.');
-            }
-
-            $entry = $this->journalEntryService->create([
-                'entry_date' => ($payment->value_date ?? now())->toDateString(),
-                'entry_type' => 'general',
-                'memo' => "{$type->name} payment — {$payment->details}",
-                'transaction_type_id' => $type->id,
-            ], [
-                ['account_id' => $type->account_id, 'debit_amount' => (float) $payment->amount, 'description' => $payment->details],
-                ['account_id' => $cashAccount->id, 'credit_amount' => (float) $payment->amount, 'description' => $payment->details],
-            ]);
-
-            $payment->journal_entry_id = $entry->id;
+        if (! $payment->journal_entry_id) {
+            $payment->journal_entry_id = $this->postEntryFor($payment)?->id;
         }
 
         $payment->status = Payment::STATUS_APPROVED;
         $payment->save();
 
         return $payment;
+    }
+
+    /**
+     * The payment's journal entry, posted. Null when there is nothing to record.
+     */
+    public function postEntryFor(Payment $payment): ?JournalEntry
+    {
+        // A payslip can come out at nothing — a month entirely unpaid leave, a
+        // salary wholly absorbed by deductions — and payroll still raises the
+        // payment. There is no entry to make for zero, and refusing it would stop
+        // the whole batch that row happens to be in.
+        if (round((float) $payment->amount, 2) <= 0) {
+            return null;
+        }
+
+        $type = $payment->transactionType;
+        $cashAccount = Account::where('code', '1100')->first();
+
+        if (! $cashAccount) {
+            throw new RuntimeException('Account 1100 Cash/Bank not found.');
+        }
+
+        $entry = $this->journalEntryService->create([
+            'entry_date' => ($payment->value_date ?? now())->toDateString(),
+            'entry_type' => 'general',
+            'memo' => "{$type?->name} payment — {$payment->details}",
+            'transaction_type_id' => $type?->id,
+        ], [
+            ['account_id' => $this->debitAccountFor($payment), 'debit_amount' => (float) $payment->amount, 'description' => $payment->details],
+            ['account_id' => $cashAccount->id, 'credit_amount' => (float) $payment->amount, 'description' => $payment->details],
+        ]);
+
+        $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);
+
+        return $this->journalEntryService->post($entry);
+    }
+
+    /**
+     * What the money came off.
+     *
+     * A payment that settles a payslip clears Salaries Payable, because the
+     * payslip already booked the wage as an expense and credited that liability.
+     * Debiting the salary expense account again — which is where the salary
+     * transaction type points — would book the same wage twice and leave the
+     * liability standing for ever.
+     *
+     * Everything else debits whatever its transaction type is for.
+     */
+    protected function debitAccountFor(Payment $payment): int
+    {
+        if ($payment->payslip_id) {
+            return PayrollAccounts::id('salaries_payable');
+        }
+
+        $type = $payment->transactionType;
+
+        // Refused rather than skipped. This silently booked nothing at all when
+        // the type had no account — the payment went out, was marked approved, and
+        // never reached the ledger.
+        if (! $type?->account_id) {
+            throw new RuntimeException(
+                "Payment #{$payment->id} cannot be booked: the '".($type?->name ?? 'unknown')
+                ."' transaction type has no account. Set one under Accounting → Transaction Types."
+            );
+        }
+
+        return $type->account_id;
     }
 
     /**
@@ -138,6 +194,15 @@ class PaymentService
         foreach ($payments as $payment) {
             if (! $payment->isReleasable()) {
                 continue;
+            }
+
+            // A draft on its way to the bank is approved first, so that money
+            // leaving the company is in the books by definition. Releasing used to
+            // stamp the status and nothing else, and a payment released without
+            // being approved booked nothing at all — no entry, no expense, no trace
+            // in the Profit & Loss, while the bank file went out regardless.
+            if ($payment->status === Payment::STATUS_DRAFT) {
+                $this->approve($payment);
             }
 
             $payment->update([
