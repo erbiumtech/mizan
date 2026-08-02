@@ -7,6 +7,7 @@ use App\Modules\Accounting\Filament\Resources\Beneficiaries\Pages\CreateBenefici
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\Pages\EditBeneficiary;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\Pages\ListBeneficiaries;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\RelationManagers\PaymentsRelationManager;
+use App\Modules\Accounting\Filament\Resources\Beneficiaries\RelationManagers\SubscriptionsRelationManager;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\Schemas\BeneficiaryForm;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\Tables\BeneficiariesTable;
 use App\Modules\Accounting\Models\Beneficiary;
@@ -53,6 +54,7 @@ class BeneficiaryResource extends Resource
     public static function getRelations(): array
     {
         return [
+            SubscriptionsRelationManager::class,
             PaymentsRelationManager::class,
         ];
     }

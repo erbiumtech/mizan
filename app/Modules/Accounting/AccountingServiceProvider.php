@@ -3,11 +3,13 @@
 namespace App\Modules\Accounting;
 
 use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
+use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Bank;
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\BeneficiarySubscription;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
@@ -19,6 +21,7 @@ use App\Modules\Accounting\Policies\BankPolicy;
 use App\Modules\Accounting\Policies\BankStatementLinePolicy;
 use App\Modules\Accounting\Policies\BankStatementPolicy;
 use App\Modules\Accounting\Policies\BeneficiaryPolicy;
+use App\Modules\Accounting\Policies\BeneficiarySubscriptionPolicy;
 use App\Modules\Accounting\Policies\CompanyBankAccountPolicy;
 use App\Modules\Accounting\Policies\FixedAssetPolicy;
 use App\Modules\Accounting\Policies\JournalEntryLinePolicy;
@@ -46,6 +49,7 @@ class AccountingServiceProvider extends ServiceProvider
         BankStatementLine::class => BankStatementLinePolicy::class,
         BankStatement::class => BankStatementPolicy::class,
         Beneficiary::class => BeneficiaryPolicy::class,
+        BeneficiarySubscription::class => BeneficiarySubscriptionPolicy::class,
         CompanyBankAccount::class => CompanyBankAccountPolicy::class,
         FixedAsset::class => FixedAssetPolicy::class,
         JournalEntryLine::class => JournalEntryLinePolicy::class,
@@ -60,9 +64,10 @@ class AccountingServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
-        $this->commands([BackfillPaymentEntriesCommand::class]);
+        $this->commands([BackfillPaymentEntriesCommand::class, RaiseSubscriptionPayments::class]);
 
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/routes/console.php');
     }
 }

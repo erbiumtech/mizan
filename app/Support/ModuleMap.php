@@ -70,6 +70,7 @@ final class ModuleMap
             'App\Models\Bank' => \App\Modules\Accounting\Models\Bank::class,
             'App\Models\CompanyBankAccount' => \App\Modules\Accounting\Models\CompanyBankAccount::class,
             'App\Models\Beneficiary' => \App\Modules\Accounting\Models\Beneficiary::class,
+            'App\Models\BeneficiarySubscription' => \App\Modules\Accounting\Models\BeneficiarySubscription::class,
             'App\Models\Payment' => \App\Modules\Accounting\Models\Payment::class,
             'App\Models\FixedAsset' => \App\Modules\Accounting\Models\FixedAsset::class,
             'App\Models\BankStatement' => \App\Modules\Accounting\Models\BankStatement::class,

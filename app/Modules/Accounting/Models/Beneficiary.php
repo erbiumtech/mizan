@@ -58,6 +58,11 @@ class Beneficiary extends Model
         return $this->belongsTo(TransactionType::class);
     }
 
+    public function subscriptions()
+    {
+        return $this->hasMany(BeneficiarySubscription::class);
+    }
+
     public function payments()
     {
         return $this->morphMany(Payment::class, 'payable');
