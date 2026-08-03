@@ -8,6 +8,10 @@ use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
 use App\Support\Modules;
 use App\Support\TenantSettings;
+use App\Support\WhatsApp\WhatsAppSender;
+use App\Support\WhatsApp\LogWhatsAppSender;
+use App\Support\WhatsApp\TwilioWhatsAppSender;
+use App\Support\WhatsApp\CloudApiWhatsAppSender;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Illuminate\Auth\Middleware\Authenticate;
@@ -28,6 +32,42 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
         $this->app->singleton(Modules::class);
+
+        // Whichever WhatsApp sender the environment is configured for. The log
+        // sender is the default and the fallback: an install with the driver set
+        // to "cloud" but no credentials sends nothing rather than throwing in the
+        // middle of a payroll run, and says so in the log.
+        $this->app->singleton(WhatsAppSender::class, function (): WhatsAppSender {
+            $driver = config('whatsapp.driver');
+            $cloud = config('whatsapp.cloud');
+            $twilio = config('whatsapp.twilio');
+
+            if ($driver === 'cloud' && filled($cloud['phone_number_id']) && filled($cloud['token'])) {
+                return new CloudApiWhatsAppSender(
+                    phoneNumberId: (string) $cloud['phone_number_id'],
+                    token: (string) $cloud['token'],
+                    apiVersion: (string) ($cloud['api_version'] ?? 'v21.0'),
+                    template: $cloud['template'] ?: null,
+                    templateLanguage: (string) ($cloud['template_language'] ?? 'en'),
+                );
+            }
+
+            if ($driver === 'twilio' && filled($twilio['account_sid']) && filled($twilio['auth_token']) && filled($twilio['from'])) {
+                return new TwilioWhatsAppSender(
+                    accountSid: (string) $twilio['account_sid'],
+                    authToken: (string) $twilio['auth_token'],
+                    from: (string) $twilio['from'],
+                    apiBase: (string) ($twilio['api_base'] ?? 'https://api.twilio.com/2010-04-01'),
+                    contentSid: $twilio['content_sid'] ?: null,
+                    templateMediaBase: $twilio['template_media_base'] ?: null,
+                );
+            }
+
+            // Either no driver chosen or one chosen without its credentials. Both
+            // land here rather than throwing mid-payroll, and the log says what
+            // would have gone where.
+            return new LogWhatsAppSender;
+        });
 
         // Registered here, in register() rather than boot(), and this is load
         // bearing. Gate::before callbacks run in registration order, and

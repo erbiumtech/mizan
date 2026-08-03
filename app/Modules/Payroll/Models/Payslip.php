@@ -44,7 +44,14 @@ class Payslip extends Model
 
     protected $casts = [
         'employee_reviewed_at' => 'datetime',
+        'sent_at' => 'datetime',
     ];
+
+    /** Has the employee been sent this payslip? See PayslipDeliveryService. */
+    public function wasSent(): bool
+    {
+        return $this->sent_at !== null;
+    }
 
     /**
      * Was this acknowledgement entered by somebody other than the employee?

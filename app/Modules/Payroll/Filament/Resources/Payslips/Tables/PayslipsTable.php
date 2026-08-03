@@ -4,6 +4,8 @@ namespace App\Modules\Payroll\Filament\Resources\Payslips\Tables;
 
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
+use App\Support\WhatsApp\PhoneNumber;
+use App\Modules\Payroll\Services\PayslipDeliveryService;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use App\Support\Pdf\Pdf;
@@ -16,6 +18,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,6 +108,16 @@ class PayslipsTable
                     ->money('PKR')
                     ->sortable(),
 
+                // Whether the employee has been sent it at all, which the review
+                // state cannot say: a payslip nobody sent is "pending" too.
+                TextColumn::make('sent_at')
+                    ->label('Sent')
+                    ->badge()
+                    ->state(fn (Payslip $record): string => $record->wasSent() ? 'sent' : 'not sent')
+                    ->color(fn (Payslip $record): string => $record->wasSent() ? 'success' : 'gray')
+                    ->description(fn (Payslip $record): ?string => $record->sent_at?->format('d M Y H:i'))
+                    ->sortable(),
+
                 TextColumn::make('employee_review')
                     ->label('Employee Review')
                     ->badge()
@@ -160,20 +173,161 @@ class PayslipsTable
                         Payslip::REVIEW_ACCEPTED => 'Accepted',
                         Payslip::REVIEW_REJECTED => 'Rejected',
                     ]),
+
+                // "Who has not had theirs yet" is the question at the end of a
+                // payroll run, and it is unanswerable from the review column.
+                TernaryFilter::make('sent_at')
+                    ->label('Sent to employee')
+                    ->nullable()
+                    ->placeholder('All')
+                    ->trueLabel('Sent')
+                    ->falseLabel('Not sent yet'),
             ])
             ->recordActions([
                 EditAction::make(),
                 self::downloadAction(),
+                self::sendAction(),
                 self::acceptAction(),
                 self::rejectAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    self::sendBulkAction(),
                     DeleteBulkAction::make(),
                     self::acceptBulkAction(),
                     self::rejectBulkAction(),
                 ]),
             ]);
+    }
+
+
+    /**
+     * Release the payslip to the employee: email with the PDF attached, and the
+     * same PDF on WhatsApp.
+     *
+     * A send, not a create hook. A payslip is recalculated on every save and
+     * corrected after it is first cut, so sending automatically posted people
+     * copies of figures that changed underneath them — payroll says when the month
+     * is ready. Sending again is possible and is labelled as such, because the
+     * honest reason to do it is that a figure was wrong.
+     */
+    protected static function sendAction(): Action
+    {
+        return Action::make('sendPayslip')
+            ->label(fn (Payslip $record): string => $record->wasSent() ? 'Resend' : 'Send to employee')
+            ->icon('heroicon-o-paper-airplane')
+            ->color(fn (Payslip $record): string => $record->wasSent() ? 'gray' : 'primary')
+            ->requiresConfirmation()
+            ->modalHeading(fn (Payslip $record): string => ($record->wasSent() ? 'Resend ' : 'Send ')
+                .($record->employee?->user?->name ?? 'this employee').'\'s payslip')
+            ->modalDescription(fn (Payslip $record): string => self::destinationSummary($record))
+            ->modalSubmitActionLabel(fn (Payslip $record): string => $record->wasSent() ? 'Send again' : 'Send')
+            ->visible(fn (Payslip $record): bool => auth()->user()?->can('PayslipUpdate') ?? false)
+            ->action(function (Payslip $record): void {
+                try {
+                    $result = app(PayslipDeliveryService::class)->send($record, resend: $record->wasSent());
+                } catch (\InvalidArgumentException $e) {
+                    Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return;
+                }
+
+                self::reportOne($record, $result);
+            });
+    }
+
+    protected static function sendBulkAction(): BulkAction
+    {
+        return BulkAction::make('sendPayslipBulk')
+            ->label('Send to employees')
+            ->icon('heroicon-o-paper-airplane')
+            ->requiresConfirmation()
+            ->modalHeading('Send payslips')
+            ->modalDescription('Each employee is emailed their payslip with the PDF attached, and sent the same PDF on WhatsApp. Anyone who already has theirs is skipped — use Resend on the row to send one again.')
+            ->modalSubmitActionLabel('Send')
+            ->deselectRecordsAfterCompletion()
+            ->visible(fn (): bool => auth()->user()?->can('PayslipUpdate') ?? false)
+            ->action(function (Collection $records): void {
+                $service = app(PayslipDeliveryService::class);
+
+                $sent = 0;
+                $skipped = 0;
+                $problems = [];
+
+                foreach ($records as $record) {
+                    if ($record->wasSent()) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    try {
+                        $result = $service->send($record);
+                    } catch (\InvalidArgumentException $e) {
+                        $problems[] = self::who($record).': '.$e->getMessage();
+
+                        continue;
+                    }
+
+                    $result['sent'] ? $sent++ : null;
+
+                    foreach ($result['errors'] as $error) {
+                        $problems[] = self::who($record).': '.$error;
+                    }
+                }
+
+                // Every failure named, not a count. "3 of 14 failed" leaves
+                // somebody opening fourteen employee records to find out which.
+                Notification::make()
+                    ->status($problems === [] ? 'success' : 'warning')
+                    ->title($sent.' '.\Illuminate\Support\Str::plural('payslip', $sent).' sent'
+                        .($skipped > 0 ? ", {$skipped} already sent and skipped" : ''))
+                    ->body($problems === [] ? null : implode(' · ', array_slice($problems, 0, 8)))
+                    ->persistent($problems !== [])
+                    ->send();
+            });
+    }
+
+    /** Where this payslip is about to go, said before it goes. */
+    protected static function destinationSummary(Payslip $record): string
+    {
+        $employee = $record->employee;
+        $email = $employee?->user?->email ?: $employee?->personal_email;
+        $number = PhoneNumber::e164($employee?->phone) ?? PhoneNumber::e164($employee?->secondary_phone);
+
+        $lines = [
+            $email ? "Email with the PDF attached to {$email}." : 'No email address on the employee record.',
+            $number ? "WhatsApp document to +{$number}." : 'No usable phone number on the employee record.',
+        ];
+
+        if ($record->wasSent()) {
+            $lines[] = 'Already sent '.$record->sent_at->diffForHumans().'.';
+        }
+
+        return implode(' ', $lines);
+    }
+
+    /** @param array{email: string|null, whatsapp: string|null, errors: array<int, string>, sent: bool} $result */
+    protected static function reportOne(Payslip $record, array $result): void
+    {
+        $went = array_filter([
+            $result['email'] ? 'email to '.$result['email'] : null,
+            $result['whatsapp'] ? 'WhatsApp' : null,
+        ]);
+
+        Notification::make()
+            ->status($result['sent'] ? ($result['errors'] === [] ? 'success' : 'warning') : 'danger')
+            ->title($result['sent']
+                ? self::who($record).' was sent their payslip ('.implode(', ', $went).')'
+                : 'Nothing could be sent to '.self::who($record))
+            ->body($result['errors'] === [] ? null : implode(' · ', $result['errors']))
+            ->persistent($result['errors'] !== [])
+            ->send();
+    }
+
+    protected static function who(Payslip $record): string
+    {
+        return $record->employee?->user?->name ?: ($record->employee?->employee_id ?? "Payslip #{$record->id}");
     }
 
     // --- DownloadPayslip (showOnTableRow, withoutConfirmation) ---
