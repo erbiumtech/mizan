@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\Payslips\Tables;
 
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Services\PayslipService;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use App\Support\Pdf\Pdf;
@@ -19,7 +20,6 @@ use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 
 class PayslipsTable
 {
@@ -185,9 +185,11 @@ class PayslipsTable
             ->visible(fn (Payslip $record): bool => auth()->user()?->can('runAction', $record) ?? false)
             ->action(function (Payslip $record) {
                 try {
-                    $url = self::generatePayslipPdf($record);
-
-                    return response()->redirectTo($url);
+                    // Streamed from a fresh render. It used to redirect to a file on
+                    // the public disk that was written once and reused for ever, so a
+                    // payslip corrected after somebody first downloaded it kept
+                    // handing out the old figures.
+                    return app(PayslipService::class)->renderPdf($record);
                 } catch (\InvalidArgumentException $e) {
                     Notification::make()->title($e->getMessage())->danger()->send();
                 }
@@ -305,33 +307,4 @@ class PayslipsTable
                 ->contains($record->employee_id);
     }
 
-    /**
-     * Generate (if missing) and return the download URL for the payslip PDF —
-     * parity with Nova DownloadPayslip::handle().
-     */
-    protected static function generatePayslipPdf(Payslip $payslip): string
-    {
-        $month = $payslip->month;
-        $yearName = $payslip->fiscalYear ? $payslip->fiscalYear->name : 'Unknown-Year';
-        $cleanFileNamePart = $month.'-'.str_replace([' ', '/', '\\'], '-', $yearName);
-        $customEmpId = $payslip->employee->employee_id;
-
-        $fileName = 'payslips/'.$customEmpId.'-'.$cleanFileNamePart.'.pdf';
-
-        if (! Storage::disk('public')->exists($fileName)) {
-            if (! Storage::disk('public')->exists('payslips')) {
-                Storage::disk('public')->makeDirectory('payslips');
-            }
-
-            $absolutePath = Storage::disk('public')->path($fileName);
-
-            Pdf::view('pdfs.payslip', ['data' => $payslip])
-                ->format('a4')
-                ->save($absolutePath);
-
-            $payslip->update(['pdf_path' => $fileName]);
-        }
-
-        return Storage::disk('public')->url($fileName);
-    }
 }

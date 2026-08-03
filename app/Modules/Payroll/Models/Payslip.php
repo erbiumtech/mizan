@@ -33,7 +33,11 @@ class Payslip extends Model
         'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
-        'total_deductions', 'net_salary', 'pdf_path',
+        'total_deductions', 'net_salary',
+        // pdf_path is deliberately absent. The payslip PDF is rendered on request
+        // from the payslip as it stands, never stored — see
+        // PayslipService::renderPdf(). A path here would be a promise that the file
+        // it names still matches the figures, and it did not.
         'employee_review', 'employee_reviewed_at', 'employee_rejection_reason', 'expense_reimbursement',
         'employee_review_recorded_by', 'employee_review_recorded_by_name',
     ];
