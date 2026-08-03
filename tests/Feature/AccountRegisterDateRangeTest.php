@@ -119,6 +119,44 @@ class AccountRegisterDateRangeTest extends AccountingTestCase
         $this->postEntry(now()->addDays(3)->toDateString(), 88000, 'Rent, scheduled');
 
         Livewire::test(AccountRegister::class)
-            ->assertSee('clear the To date to include them');
+            ->assertSee('Not shown')
+            ->assertSee('1 entry')
+            ->assertSee(number_format(88000, 2))
+            ->assertSee('Show them');
+    }
+
+    /**
+     * The way back in. Grey small print under the table was not enough: a payment
+     * dated a few days out reads as one that was never recorded, and the reader
+     * goes looking through the ledger for it rather than for a date field.
+     */
+    public function test_the_button_brings_the_later_entries_in(): void
+    {
+        $this->postEntry(now()->subDay()->toDateString(), 92000, 'Rent, already paid');
+        $this->postEntry(now()->addDays(3)->toDateString(), 88000, 'Rent, scheduled');
+
+        Livewire::test(AccountRegister::class)
+            ->assertDontSee('Rent, scheduled')
+            ->call('includeLaterEntries')
+            ->assertSet('data.to', null)
+            ->assertSee('Rent, scheduled')
+            ->assertDontSee('Not shown');
+    }
+
+    /** Whichever account is being read, and whatever From was set to. */
+    public function test_showing_them_keeps_the_account_and_the_from_date(): void
+    {
+        $this->postEntry(now()->addDays(3)->toDateString(), 88000, 'Rent, scheduled');
+
+        $from = now()->subMonth()->toDateString();
+        $petty = Account::where('code', '1150')->firstOrFail();
+
+        Livewire::test(AccountRegister::class)
+            ->set('data.account_id', $petty->id)
+            ->set('data.from', $from)
+            ->call('includeLaterEntries')
+            ->assertSet('data.account_id', $petty->id)
+            ->assertSet('data.from', fn ($value): bool => \Illuminate\Support\Carbon::parse($value)->toDateString() === $from)
+            ->assertSet('data.to', null);
     }
 }
