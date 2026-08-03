@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\Beneficiary;
-use App\Models\PettyCashVoucher;
-use App\Models\TransactionType;
-use App\Services\PettyCashService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\PettyCashVoucher;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\PettyCashService;
 use Database\Seeders\TransactionTypeSeeder;
 use InvalidArgumentException;
 use Tests\AccountingTestCase;

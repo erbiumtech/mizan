@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\BankPaymentFile;
-use App\Filament\Pages\SalaryBankFile;
-use App\Models\Beneficiary;
-use App\Models\Employee;
-use App\Models\Payment;
-use App\Models\Payslip;
-use App\Models\TransactionType;
-use App\Services\PaymentService;
+use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Accounting\Models\Payment;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\PaymentService;
 use Database\Seeders\TransactionTypeSeeder;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
@@ -162,7 +162,7 @@ class PaymentBatchTest extends AccountingTestCase
         $accepted = $this->payslip($this->employee('in-file@test.local'), Payslip::REVIEW_ACCEPTED);
         $pending = $this->payslip($this->employee('not-in-file@test.local'), Payslip::REVIEW_PENDING);
 
-        $csv = app(\App\Services\SalaryBankExportService::class)->export(
+        $csv = app(\App\Modules\Payroll\Services\SalaryBankExportService::class)->export(
             'July',
             $this->fiscalYear,
             null,
@@ -628,13 +628,13 @@ class PaymentBatchTest extends AccountingTestCase
         $exportedPayment = Payment::where('payslip_id', $exported->id)->firstOrFail();
         $draftPayment = Payment::where('payslip_id', $draft->id)->firstOrFail();
 
-        Livewire::test(\App\Filament\Resources\Payments\Pages\ListPayments::class)
+        Livewire::test(\App\Modules\Accounting\Filament\Resources\Payments\Pages\ListPayments::class)
             ->assertActionVisible(TestAction::make('revertExport')->table($exportedPayment->getKey()))
             ->assertActionHidden(TestAction::make('revertExport')->table($draftPayment->getKey()));
     }
 
     private function yearOfJuly(): string
     {
-        return app(\App\Services\SalaryBankExportService::class)->yearForMonth('July', $this->fiscalYear);
+        return app(\App\Modules\Payroll\Services\SalaryBankExportService::class)->yearForMonth('July', $this->fiscalYear);
     }
 }

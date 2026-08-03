@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -49,17 +49,17 @@ class DatabaseSeeder extends Seeder
         EmployeeSeeder::class,
         EmployeeSettingSeeder::class,
         ChartOfAccountsSeeder::class,
-        //            TransactionTypeSeeder::class,
+                    TransactionTypeSeeder::class,
         CompanyBankAccountSeeder::class,
-        //            BeneficiarySeeder::class,
+                    BeneficiarySeeder::class,
         AccountSeeder::class,
-        //            JournalEntrySeeder::class,
-        //            PayslipSeeder::class,
-        //            FixedAssetSeeder::class,
-        //            PettyCashSeeder::class,
-        //            InventorySeeder::class,
+                    JournalEntrySeeder::class,
+                    PayslipSeeder::class,
+                    FixedAssetSeeder::class,
+                    PettyCashSeeder::class,
+                    InventorySeeder::class,
         ContactSeeder::class,
-        //            InvoiceSeeder::class,
+                    InvoiceSeeder::class,
     ];
 
     public function run(): void

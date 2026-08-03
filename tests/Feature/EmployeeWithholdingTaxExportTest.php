@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
-use App\Models\Payslip;
-use App\Services\EmployeeWithholdingTaxExport;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Services\EmployeeWithholdingTaxExport;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\AccountingTestCase;
 

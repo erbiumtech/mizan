@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
+use App\Modules\Accounting\Models\Account;
 use Illuminate\Database\Seeder;
 
 class ChartOfAccountsSeeder extends Seeder
@@ -56,6 +56,7 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '5800', 'name' => 'Fuel & Travel Expense', 'type' => 'expense'],
                 ['code' => '5850', 'name' => 'Office Supplies Expense', 'type' => 'expense'],
                 ['code' => '5860', 'name' => 'Cleaning Expense', 'type' => 'expense'],
+                ['code' => '5900', 'name' => 'Miscellaneous Expense', 'type' => 'expense', 'description' => 'Costs with no more specific account'],
                 ['code' => '5990', 'name' => 'Depreciation Expense', 'type' => 'expense'],
                 ['code' => '5995', 'name' => 'Loss on Asset Disposal', 'type' => 'expense'],
             ]],

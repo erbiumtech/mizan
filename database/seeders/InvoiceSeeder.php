@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
-use App\Models\Contact;
-use App\Models\FiscalYear;
-use App\Models\Invoice;
-use App\Models\Product;
-use App\Services\InvoiceService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Invoicing\Services\InvoiceService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 

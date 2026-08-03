@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Modules\Payroll\Filament\Resources\SalarySlabs\Pages;
+
+use App\Filament\Concerns\RedirectsToIndex;
+use App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
+
+class EditSalarySlab extends EditRecord
+{
+    use RedirectsToIndex;
+
+    protected static string $resource = SalarySlabResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            DeleteAction::make(),
+        ];
+    }
+}

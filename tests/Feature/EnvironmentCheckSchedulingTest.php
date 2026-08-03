@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\CheckEnvironmentCertificate;
-use App\Jobs\CheckEnvironmentHealth;
-use App\Models\ProjectEnvironment;
-use App\Services\HealthCheckDispatcher;
+use App\Modules\Projects\Jobs\CheckEnvironmentCertificate;
+use App\Modules\Projects\Jobs\CheckEnvironmentHealth;
+use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Modules\Projects\Services\HealthCheckDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\Feature\Concerns\MakesProjects;

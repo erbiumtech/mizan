@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\PettyCashBook;
-use App\Filament\Resources\Beneficiaries\Pages\CreateBeneficiary;
-use App\Filament\Resources\Beneficiaries\Pages\EditBeneficiary;
-use App\Models\Bank;
-use App\Models\Beneficiary;
-use App\Models\Payment;
-use App\Models\TransactionType;
-use App\Services\PettyCashService;
+use App\Modules\Accounting\Filament\Pages\PettyCashBook;
+use App\Modules\Accounting\Filament\Resources\Beneficiaries\Pages\CreateBeneficiary;
+use App\Modules\Accounting\Filament\Resources\Beneficiaries\Pages\EditBeneficiary;
+use App\Modules\Accounting\Models\Bank;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\PettyCashService;
 use Database\Seeders\TransactionTypeSeeder;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
@@ -82,7 +82,8 @@ class PettyCashCustodianTest extends AccountingTestCase
         $payment = $this->service->replenish(now());
 
         $this->assertSame($beneficiary->getKey(), $payment->payable_id);
-        $this->assertSame(Beneficiary::class, $payment->payable_type);
+        // The stable alias, which is what a morph column holds across the move.
+        $this->assertSame(\App\Support\ModuleMap::alias(Beneficiary::class), $payment->payable_type);
         $this->assertSame(Payment::STATUS_DRAFT, $payment->status);
     }
 

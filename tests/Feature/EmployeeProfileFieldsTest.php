@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Employees\Pages\EditEmployee;
-use App\Filament\Resources\Employees\Pages\ViewEmployee;
-use App\Models\Bank;
-use App\Models\Employee;
-use App\Models\EmployeeChangeRequest;
-use App\Models\User;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
+use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
+use App\Modules\Accounting\Models\Bank;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
+use App\Modules\Core\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;

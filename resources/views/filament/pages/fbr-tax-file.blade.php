@@ -3,7 +3,7 @@
 
     @php($rows = $this->getRows())
     @php($month = $this->data['month'] ?? null)
-    @php($businessName = \App\Models\Company::current()?->name)
+    @php($businessName = \App\Modules\Core\Models\Company::current()?->name)
 
     <x-filament::section>
         <x-slot name="heading">FBR Tax File — Employee Withholding Tax (u/s 149)</x-slot>
@@ -34,14 +34,14 @@
                     <tbody>
                         @foreach($rows as $p)
                             @php($employee = $p->employee)
-                            @php($city = trim((string) $employee?->address_line_2) ?: \App\Services\EmployeeWithholdingTaxExport::DEFAULT_CITY)
+                            @php($city = trim((string) $employee?->address_line_2) ?: \App\Modules\Payroll\Services\EmployeeWithholdingTaxExport::DEFAULT_CITY)
                             <tr class="border-b border-gray-100 dark:border-white/5">
-                                <td class="py-1.5 pr-4">{{ \App\Services\EmployeeWithholdingTaxExport::SALARY_SECTION }}</td>
+                                <td class="py-1.5 pr-4">{{ \App\Modules\Payroll\Services\EmployeeWithholdingTaxExport::SALARY_SECTION }}</td>
                                 <td class="py-1.5 pr-4">{{ $employee?->nic }}</td>
                                 <td class="py-1.5 pr-4">{{ trim((string) $employee?->user?->name) }}</td>
                                 <td class="py-1.5 pr-4">{{ $city }}</td>
                                 <td class="py-1.5 pr-4">{{ trim((string) $employee?->address_line_1) ?: $city }}</td>
-                                <td class="py-1.5 pr-4">{{ \App\Services\EmployeeWithholdingTaxExport::TAXPAYER_STATUS }}</td>
+                                <td class="py-1.5 pr-4">{{ \App\Modules\Payroll\Services\EmployeeWithholdingTaxExport::TAXPAYER_STATUS }}</td>
                                 <td class="py-1.5 pr-4">{{ $businessName }}</td>
                                 <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p->total_earnings*0.9, 2) }}</td>
                                 <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p->withholding_tax, 2) }}</td>

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Services\PettyCashService;
+use App\Modules\Accounting\Services\PettyCashService;
 use App\Support\TenantSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
