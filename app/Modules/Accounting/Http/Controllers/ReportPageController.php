@@ -33,6 +33,27 @@ class ReportPageController extends Controller
         return view('reports.balance-sheet', ['report' => $report, 'pdf' => false]);
     }
 
+    public function cashFlow(Request $request)
+    {
+        abort_unless($request->user()->can('ReportView'), 403);
+
+        $validated = $request->validate([
+            'from' => 'nullable|date',
+            'to' => 'nullable|date|after_or_equal:from',
+            'format' => 'nullable|in:pdf',
+        ]);
+
+        $report = $this->reports->cashFlow($validated['from'] ?? null, $validated['to'] ?? null);
+
+        if (($validated['format'] ?? null) === 'pdf') {
+            return Pdf::view('reports.cash-flow', ['report' => $report, 'pdf' => true])
+                ->format('a4')
+                ->name('cash-flow-'.($report['from'] ?? 'opening').'-to-'.$report['to'].'.pdf');
+        }
+
+        return view('reports.cash-flow', ['report' => $report, 'pdf' => false]);
+    }
+
     public function trialBalance(Request $request)
     {
         abort_unless($request->user()->can('ReportView'), 403);

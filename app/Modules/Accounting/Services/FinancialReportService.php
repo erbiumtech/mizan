@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
+use Illuminate\Support\Carbon;
 use App\Modules\Accounting\Models\JournalEntryLine;
 
 class FinancialReportService
@@ -227,6 +228,114 @@ class FinancialReportService
             'rows' => $rows,
             'total' => round($total, 2),
         ];
+    }
+
+    /** Accounts holding cash: the same definition CashFlowChart uses. */
+    private const CASH_CODE_PREFIX = '11';
+
+    /**
+     * Fixed-asset cost accounts. Money spent here is investing, not operating.
+     *
+     * Accumulated depreciation is deliberately not in this range even though it is
+     * a 15xx asset: depreciation moves no cash, and it belongs in operating as the
+     * add-back that undoes its effect on net income.
+     */
+    private const INVESTING_CODE_PREFIX = '14';
+
+    private const DEPRECIATION_CODE = '1500';
+
+    /**
+     * Cash flow for a period, indirect method.
+     *
+     * Built so that it cannot fail to tie. Debits less credits across every account
+     * is zero, so the cash effect of a period is exactly the negative of every
+     * non-cash account's movement — which means classifying each non-cash account
+     * into operating, investing or financing exactly once produces three subtotals
+     * that must sum to the change in cash. No line is estimated and nothing is left
+     * over.
+     *
+     * Net income appears as one line because the income and expense accounts'
+     * combined movement *is* net income: credits less debits over those accounts.
+     */
+    public function cashFlow(?string $from = null, ?string $to = null, ?int $fiscalYearId = null): array
+    {
+        $operating = ['net_income' => 0.0, 'depreciation' => 0.0, 'working_capital' => []];
+        $investing = [];
+        $financing = [];
+        $netChange = 0.0;
+
+        foreach (Account::orderBy('code')->get() as $account) {
+            // Signed on the account's normal side; the cash effect of a movement on
+            // a non-cash account is the opposite of debits less credits.
+            $signed = $this->periodBalance($account, $from, $to, $fiscalYearId);
+            $debitLessCredit = $account->normal_balance === 'debit' ? $signed : -$signed;
+
+            if (abs($debitLessCredit) < 0.005) {
+                continue;
+            }
+
+            if (str_starts_with($account->code, self::CASH_CODE_PREFIX)) {
+                $netChange = round($netChange + $debitLessCredit, 2);
+
+                continue;
+            }
+
+            $effect = round(-$debitLessCredit, 2);
+            $line = ['code' => $account->code, 'name' => $account->name, 'amount' => $effect];
+
+            match (true) {
+                in_array($account->type, ['income', 'expense'], true) => $operating['net_income'] = round($operating['net_income'] + $effect, 2),
+                $account->code === self::DEPRECIATION_CODE => $operating['depreciation'] = round($operating['depreciation'] + $effect, 2),
+                str_starts_with($account->code, self::INVESTING_CODE_PREFIX) => $investing[] = $line,
+                $account->type === 'equity' => $financing[] = $line,
+                default => $operating['working_capital'][] = $line,
+            };
+        }
+
+        $operatingTotal = round(
+            $operating['net_income'] + $operating['depreciation']
+            + array_sum(array_column($operating['working_capital'], 'amount')),
+            2
+        );
+        $investingTotal = round(array_sum(array_column($investing, 'amount')), 2);
+        $financingTotal = round(array_sum(array_column($financing, 'amount')), 2);
+
+        $opening = $from ? $this->cashAt(Carbon::parse($from)->subDay()->toDateString(), $fiscalYearId) : 0.0;
+
+        return [
+            'from' => $from,
+            'to' => $to ?? now()->toDateString(),
+            'operating' => $operating + ['total' => $operatingTotal],
+            'investing' => ['rows' => $investing, 'total' => $investingTotal],
+            'financing' => ['rows' => $financing, 'total' => $financingTotal],
+            'net_change' => $netChange,
+            'opening_cash' => $opening,
+            'closing_cash' => round($opening + $netChange, 2),
+            // The three sections must account for the whole movement in cash. They
+            // cannot fail to unless an account escaped classification, which is why
+            // this is reported rather than assumed.
+            'reconciles' => bccomp(
+                number_format(round($operatingTotal + $investingTotal + $financingTotal, 2), 2, '.', ''),
+                number_format($netChange, 2, '.', ''),
+                2
+            ) === 0,
+        ];
+    }
+
+    /** Cash and bank on a date, from the same ledger the balance sheet reads. */
+    public function cashAt(?string $asOf = null, ?int $fiscalYearId = null): float
+    {
+        $rows = $this->ledger->trialBalance($asOf, $fiscalYearId)['rows'];
+
+        $cash = array_filter(
+            $rows,
+            fn (array $row): bool => str_starts_with($row['code'], self::CASH_CODE_PREFIX),
+        );
+
+        return round(array_sum(array_map(
+            fn (array $row): float => $row['debit'] - $row['credit'],
+            $cash,
+        )), 2);
     }
 
     /**
