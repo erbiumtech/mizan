@@ -25,6 +25,7 @@ class PayslipForm
         'petrol_allowance',
         'bonus',
         'extra_work_hours',
+        'expense_reimbursement',
         'withholding_tax',
         'advances',
         'meal_deduction',
@@ -161,6 +162,13 @@ class PayslipForm
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
 
+                TextInput::make('expense_reimbursement')
+                    ->label('Expense Reimbursement')
+                    ->numeric()
+                    ->minValue(0)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculate($get, $set)),
+
                 TextInput::make('advances')
                     ->label('Advances')
                     ->numeric()
@@ -233,7 +241,8 @@ class PayslipForm
             (float) ($get('petrol_allowance') ?? 0),
             (float) ($get('advances') ?? 0),
             (float) ($get('meal_deduction') ?? 0),
-            (float) ($get('esi_health_insurance') ?? 0)
+            (float) ($get('esi_health_insurance') ?? 0),
+            (float) ($get('expense_reimbursement') ?? 0)
         );
 
         foreach (self::CALCULATED_KEYS as $key) {

@@ -98,6 +98,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
+            // Impersonation banner, above everything else on the page. PAGE_START
+            // would put it inside the content area; this sits at the top of the
+            // body so it is present on every panel page including the ones that
+            // scroll.
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                fn (): string => view('filament.partials.impersonation-banner')->render(),
+            )
             // ⌘K command palette (rendered on every panel page).
             ->renderHook(
                 PanelsRenderHook::BODY_END,

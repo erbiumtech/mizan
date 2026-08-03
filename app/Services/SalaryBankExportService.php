@@ -52,11 +52,15 @@ class SalaryBankExportService
     /**
      * The payslips that would be exported for a month, with payment rows.
      */
-    public function paymentsForMonth(string $month, FiscalYear $fiscalYear): array
+    /**
+     * @param  array<int, int>|null  $payslipIds  restrict to these payslips; null means the whole month
+     */
+    public function paymentsForMonth(string $month, FiscalYear $fiscalYear, ?array $payslipIds = null): array
     {
         $payslips = Payslip::with(['employee.user', 'employee.bank'])
             ->where('month', $month)
             ->where('fiscal_year_id', $fiscalYear->id)
+            ->when($payslipIds !== null, fn ($q) => $q->whereKey($payslipIds))
             ->get()
             ->sortBy(fn ($p) => $p->employee->user->name ?? '')
             ->values();
@@ -76,6 +80,7 @@ class SalaryBankExportService
 
             return [
                 'payslip' => $p,
+                'payslip_id' => $p->id,
                 'employee_code' => $employee->employee_id,
                 'name' => $employee->user->name ?? $employee->employee_id,
                 // SCB beneficiaries go by account number (intra-bank); everyone
@@ -84,6 +89,7 @@ class SalaryBankExportService
                 'account_kind' => $account['kind'],
                 'bank_code' => $employee->bank?->bank_code ?? $employee->bank_code ?? '',
                 'bank_name' => $employee->bank?->bank_name ?? $employee->bank_name ?? '',
+                'bank_short_code' => $employee->bank?->bank_short_code ?? $employee->bank_short_code ?? '',
                 'address_1' => $employee->address_line_1 ?? '',
                 'address_2' => $employee->address_line_2 ?? '',
                 'email' => $employee->user->email ?? '',
@@ -98,9 +104,12 @@ class SalaryBankExportService
     /**
      * Full CSV file content for a month's salaries.
      */
-    public function export(string $month, FiscalYear $fiscalYear, ?string $valueDate = null): string
+    /**
+     * @param  array<int, int>|null  $payslipIds  restrict to these payslips; null means the whole month
+     */
+    public function export(string $month, FiscalYear $fiscalYear, ?string $valueDate = null, ?array $payslipIds = null): string
     {
-        $payments = $this->paymentsForMonth($month, $fiscalYear);
+        $payments = $this->paymentsForMonth($month, $fiscalYear, $payslipIds);
         $valueDate = $valueDate
             ? Carbon::parse($valueDate)->format('d/m/Y')
             : now()->format('d/m/Y');
@@ -143,7 +152,7 @@ class SalaryBankExportService
                 'debit_currency' => $config['currency'],
                 'debit_bank_id' => $config['debit_bank_id'],
                 'beneficiary_email' => $payment['email'],
-                'beneficiary_bank_name' => $payment['bank_name'],
+                'beneficiary_bank_name' => $payment['bank_short_code'],
                 'purpose_of_payment' => $config['purpose_of_payment'],
                 'beneficiary_id' => $payment['nic'],
                 'beneficiary_id_type' => $payment['nic'] ? 'CNIC' : '',

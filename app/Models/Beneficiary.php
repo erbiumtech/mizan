@@ -21,6 +21,33 @@ class Beneficiary extends Model
         'is_petty_cash_custodian' => 'boolean',
     ];
 
+    /**
+     * At most one petty cash custodian.
+     *
+     * PettyCashService::replenish() pays the *first* active custodian it finds, so
+     * with two of them which beneficiary receives the money depends on row order.
+     * Enforced on write rather than by validation so it holds for the seeders and
+     * for any future call site, not only the form.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $beneficiary): void {
+            if (! $beneficiary->is_petty_cash_custodian) {
+                return;
+            }
+
+            static::query()
+                ->whereKeyNot($beneficiary->getKey())
+                ->where('is_petty_cash_custodian', true)
+                ->update(['is_petty_cash_custodian' => false]);
+        });
+    }
+
+    public function scopePettyCashCustodian($query)
+    {
+        return $query->where('is_petty_cash_custodian', true)->where('is_active', true);
+    }
+
     public function bank()
     {
         return $this->belongsTo(Bank::class);

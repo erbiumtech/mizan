@@ -18,7 +18,7 @@ class InvoiceLineResource extends Resource
 {
     protected static ?string $model = InvoiceLine::class;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Invoicing';
+    protected static string|UnitEnum|null $navigationGroup = 'Invoicing & Inventory';
 
     protected static ?string $recordTitleAttribute = 'description';
 

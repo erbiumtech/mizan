@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+
 use App\Models\TenantModel as Model;
 use App\Support\BankFileAccount;
 use App\Traits\Auditable;
@@ -27,12 +29,77 @@ class Payment extends Model
         'payable_type', 'payable_id', 'transaction_type_id', 'company_bank_account_id',
         'payslip_id', 'amount', 'reference', 'details', 'value_date',
         'payment_type', 'status', 'journal_entry_id',
+        'batch_reference', 'released_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'value_date' => 'date',
+        'released_at' => 'datetime',
     ];
+
+    /**
+     * Not yet sent to the bank. What a batch is built from, and what keeps a
+     * released payment out of the next one.
+     */
+    public function scopeUnreleased(Builder $query): Builder
+    {
+        return $query->whereIn('status', [self::STATUS_DRAFT, self::STATUS_APPROVED]);
+    }
+
+    public function scopeInBatch(Builder $query, string $reference): Builder
+    {
+        return $query->where('batch_reference', $reference);
+    }
+
+    public function isReleased(): bool
+    {
+        return $this->released_at !== null;
+    }
+
+    /**
+     * May this payment go in a batch?
+     *
+     * A salary is only releasable once the employee has accepted the payslip it
+     * pays: the acknowledgement is the point of the review step, and paying an
+     * unacknowledged figure is the thing it exists to prevent. Payments with no
+     * payslip behind them — a supplier, a petty cash top-up — have nobody to
+     * acknowledge them and are releasable as soon as they exist.
+     */
+    public function isReleasable(): bool
+    {
+        if ($this->isReleased() || ! in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true)) {
+            return false;
+        }
+
+        $payslip = $this->payslip;
+
+        return $payslip === null || $payslip->employee_review === Payslip::REVIEW_ACCEPTED;
+    }
+
+    /**
+     * Why it cannot go out, in words, for a row the user can see but not select.
+     */
+    public function releaseBlockedReason(): ?string
+    {
+        if ($this->isReleasable()) {
+            return null;
+        }
+
+        if ($this->isReleased()) {
+            return 'Released in '.($this->batch_reference ?: 'an earlier batch');
+        }
+
+        if (! in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true)) {
+            return 'Already '.$this->status;
+        }
+
+        return match ($this->payslip?->employee_review) {
+            Payslip::REVIEW_REJECTED => 'Employee rejected the payslip'
+                .($this->payslip->employee_rejection_reason ? ': '.$this->payslip->employee_rejection_reason : ''),
+            default => 'Employee has not accepted the payslip yet',
+        };
+    }
 
     public function payable()
     {
@@ -141,6 +208,7 @@ class Payment extends Model
                 ),
                 'bank_code' => $payable->bank?->bank_code ?? $payable->bank_code ?? '',
                 'bank_name' => $payable->bank?->bank_name ?? $payable->bank_name ?? '',
+                'bank_short_code' => $payable->bank?->bank_short_code ?? $payable->bank_short_code ?? '',
                 'email' => $payable->user->email ?? '',
                 'id_number' => $payable->nic ?? '',
                 'id_type' => $payable->nic ? 'CNIC' : '',
@@ -159,6 +227,7 @@ class Payment extends Model
             ),
             'bank_code' => $payable->bank?->bank_code ?? '',
             'bank_name' => $payable->bank?->bank_name ?? '',
+            'bank_short_code' => $payable->bank?->bank_short_code ?? '',
             'email' => $payable->email ?? '',
             'id_number' => $payable->id_number ?? '',
             'id_type' => $payable->id_number ? ($payable->id_type ?? 'CNIC') : '',

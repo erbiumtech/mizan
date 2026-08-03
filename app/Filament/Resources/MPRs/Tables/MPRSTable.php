@@ -113,7 +113,7 @@ class MPRSTable
             ->schema(function (): array {
                 $user = auth()->user();
 
-                if ($user && ! $user->hasRole('Administrator')) {
+                if ($user && ! $user->isAdministrator()) {
                     return [
                         Select::make('user_id')
                             ->label('User')

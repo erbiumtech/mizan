@@ -75,6 +75,11 @@ class PayslipsTable
                     ->numeric()
                     ->toggleable(),
 
+                TextColumn::make('expense_reimbursement')
+                    ->label('Expense Reimbursment')
+                    ->numeric()
+                    ->toggleable(),
+
                 TextColumn::make('advances')
                     ->label('Advances')
                     ->money('PKR')
@@ -109,6 +114,12 @@ class PayslipsTable
                         'rejected' => 'danger',
                         default => 'gray',
                     })
+                    // An acknowledgement entered by somebody signed in as the
+                    // employee reads exactly like the employee's own unless the
+                    // list says otherwise.
+                    ->description(fn (Payslip $record): ?string => $record->reviewWasRecordedOnBehalf()
+                        ? 'on behalf, by '.($record->employee_review_recorded_by_name ?: 'an administrator')
+                        : null)
                     ->sortable(),
             ])
             ->groups([
@@ -137,6 +148,18 @@ class PayslipsTable
                     ->relationship('fiscalYear', 'name')
                     ->searchable()
                     ->preload(),
+
+                // Employee acknowledgement of the payslip. A plain column match is
+                // enough: employee_review is NOT NULL with a 'pending' default, so
+                // every row holds one of the three states and there is no missing
+                // case for the Pending option to also account for.
+                SelectFilter::make('employee_review')
+                    ->label('Employee Review')
+                    ->options([
+                        Payslip::REVIEW_PENDING => 'Pending',
+                        Payslip::REVIEW_ACCEPTED => 'Accepted',
+                        Payslip::REVIEW_REJECTED => 'Rejected',
+                    ]),
             ])
             ->recordActions([
                 EditAction::make(),

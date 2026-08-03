@@ -19,7 +19,7 @@ class EmployeeForm
     {
         // Nova $adminOnly closure: non-admins may edit only contact/bank
         // details; employment fields stay read-only for them.
-        $adminOnly = fn (): bool => ! (auth()->user()?->hasRole('Administrator') ?? false);
+        $adminOnly = fn (): bool => ! (auth()->user()?->isAdministrator() ?? false);
 
         return $schema
             ->components([
@@ -120,7 +120,14 @@ class EmployeeForm
                             $fail('A manager cannot be the employee themselves or one of their own reports.');
                         }
                     })
-                    ->visible(fn (): bool => auth()->user()?->hasAnyRole(['Administrator', 'Manager', 'CEO']) ?? false),
+                    ->visible(function (): bool {
+                        $user = auth()->user();
+
+                        // A super admin holds no role in most companies; see
+                        // User::isAdministrator() for why that has to be said here.
+                        return (bool) $user?->isSuperAdmin()
+                            || (bool) $user?->hasAnyRole(['Administrator', 'Manager', 'CEO']);
+                    }),
 
                 DatePicker::make('date_of_birth')
                     ->label('Date of Birth')

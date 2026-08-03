@@ -31,6 +31,7 @@ class PayrollPostingService
             'petrol_allowance' => (float) $payslip->petrol_allowance,
             'device_allowance' => (float) $payslip->device_allowance,
             'bonus_overtime' => (float) $payslip->bonus + (float) $payslip->extra_work_hours,
+            'expense_reimbursement' => (float) $payslip->expense_reimbursement,
         ];
 
         $credits = [

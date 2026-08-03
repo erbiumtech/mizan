@@ -24,7 +24,8 @@
                             <th class="py-2 pr-4 font-medium">Account / IBAN</th>
                             <th class="py-2 pr-4 font-medium">Bank</th>
                             <th class="py-2 pr-4 font-medium">Details</th>
-                            <th class="py-2 pl-4 font-medium text-right">Amount</th>
+                            <th class="py-2 pr-4 font-medium">In this batch</th>
+                            <th class="py-2 pl-4 font-medium text-right">Net Salary</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,15 +48,51 @@
                                         <x-filament::badge color="danger">missing</x-filament::badge>
                                     @endif
                                 </td>
-                                <td class="py-1.5 pr-4">{{ $p['bank_name'] ?: '—' }}</td>
+                                {{-- The short code, because that is what column 66 of the file
+                                     carries. Banks with no short code on record export blank, so
+                                     they are flagged rather than shown as an empty cell. --}}
+                                <td class="py-1.5 pr-4">
+                                    @if($p['bank_short_code'])
+                                        {{ $p['bank_short_code'] }}
+                                    @elseif($p['bank_name'])
+                                        <x-filament::badge color="warning" size="xs">no short code</x-filament::badge>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td class="py-1.5 pr-4">{{ $p['details'] }}</td>
+
+                                {{-- A held-back row stays visible with its reason. Dropping it
+                                     from the list would leave someone wondering why the total
+                                     is short, which is how an unpaid salary goes unnoticed. --}}
+                                <td class="py-1.5 pr-4">
+                                    @if($p['releasable'])
+                                        <x-filament::badge color="success" size="xs">Ready</x-filament::badge>
+                                    @else
+                                        <x-filament::badge color="warning" size="xs">Held</x-filament::badge>
+                                        <span class="text-xs text-gray-500">{{ $p['blocked_reason'] }}</span>
+                                    @endif
+                                </td>
                                 <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p['amount'], 2) }}</td>
                             </tr>
                         @endforeach
+                        @php($ready = collect($payments)->where('releasable', true))
+                        @php($held = collect($payments)->where('releasable', false))
+
+                        {{-- The total is what the file will carry, not what the month adds up
+                             to: the two differ whenever a payslip is still unaccepted, and a
+                             total that ignored that would not reconcile against the bank. --}}
                         <tr class="border-t-2 border-gray-300 dark:border-white/20 font-bold">
-                            <td colspan="5" class="py-2 pr-4">Total ({{ count($payments) }} payments)</td>
-                            <td class="py-2 pl-4 text-right tabular-nums">{{ number_format(collect($payments)->sum('amount'), 2) }}</td>
+                            <td colspan="6" class="py-2 pr-4">This batch ({{ $ready->count() }} of {{ count($payments) }} payments)</td>
+                            <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($ready->sum('amount'), 2) }}</td>
                         </tr>
+
+                        @if($held->isNotEmpty())
+                            <tr class="text-warning-600 dark:text-warning-400">
+                                <td colspan="6" class="py-2 pr-4">Held back until accepted ({{ $held->count() }})</td>
+                                <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($held->sum('amount'), 2) }}</td>
+                            </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>

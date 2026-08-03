@@ -277,6 +277,21 @@
             color: #333;
         }
 
+        /* Acknowledgement entered on the employee's behalf. Stated on the document
+           itself, not only in the audit log: a reader takes an accepted payslip as
+           the employee's own agreement, and when somebody else entered it the page
+           has to say so. */
+        .on-behalf-note {
+            margin-top: 6px;
+            padding: 6px 8px;
+            border: 1px solid #b45309;
+            background: #fffbeb;
+            color: #92400e;
+            font-size: 9.5px;
+            line-height: 1.35;
+            text-align: center;
+        }
+
         /* Footer */
         .footer {
             position: absolute;
@@ -397,6 +412,8 @@
                                 Hours</span><span>{{ number_format($data->extra_work_hours, 2) }}</span></div>
                         <div class="line-item"><span>Bonus</span><span>{{ number_format($data->bonus, 2) }}</span>
                         </div>
+                        <div class="line-item"><span>Expense
+                                Reimbursement</span><span>{{ number_format($data->expense_reimbursement, 2) }}</span></div>
                     </td>
                     <td>
                         <div class="line-item"><span>Withholding
@@ -442,6 +459,13 @@
                 <div class="signature-block">
                     <div style="height: 85px;"></div>
                     <div class="sig-line">Employee Signature</div>
+
+                    @if($data->reviewWasRecordedOnBehalf())
+                        <div class="on-behalf-note">
+                            {{ $data->reviewOnBehalfNote() }}
+                            Not signed by the employee.
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

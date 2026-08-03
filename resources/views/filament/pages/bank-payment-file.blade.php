@@ -24,14 +24,15 @@
                             <th class="py-2 pr-4 font-medium">Payment Type</th>
                             <th class="py-2 pr-4 font-medium">Account / IBAN</th>
                             <th class="py-2 pr-4 font-medium">Details</th>
+                            <th class="py-2 pr-4 font-medium">Value date</th>
                             <th class="py-2 pr-4 font-medium">Status</th>
-                            <th class="py-2 pl-4 font-medium text-right">Amount</th>
+                            <th class="py-2 pl-4 font-medium text-right">Net Salary</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($rows->groupBy(fn ($p) => $p->transactionType->name) as $typeName => $group)
                             <tr class="bg-gray-50 dark:bg-white/5">
-                                <td colspan="8" class="py-2 px-2 font-semibold uppercase text-xs tracking-wide">{{ $typeName }}</td>
+                                <td colspan="9" class="py-2 px-2 font-semibold uppercase text-xs tracking-wide">{{ $typeName }}</td>
                             </tr>
                             @foreach($group as $p)
                                 @php($b = $p->beneficiaryDetails())
@@ -48,17 +49,30 @@
                                         @endif
                                     </td>
                                     <td class="py-1.5 pr-4">{{ $p->details }}</td>
+
+                                    {{-- Shown because a payable is listed until it is released,
+                                         whatever month it is dated for. A row dated ahead of this
+                                         run is legitimate to hold back, and this is what tells
+                                         the operator which ones those are. --}}
+                                    <td class="py-1.5 pr-4">
+                                        @if($p->value_date)
+                                            {{ $p->value_date->format('d M Y') }}
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
+
                                     <td class="py-1.5 pr-4">{{ $p->status }}</td>
                                     <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($p->amount, 2) }}</td>
                                 </tr>
                             @endforeach
                             <tr class="border-b border-gray-200 dark:border-white/10 font-medium">
-                                <td colspan="7" class="py-1.5 pr-4">Total {{ $typeName }} ({{ $group->count() }})</td>
+                                <td colspan="8" class="py-1.5 pr-4">Total {{ $typeName }} ({{ $group->count() }})</td>
                                 <td class="py-1.5 pl-4 text-right tabular-nums">{{ number_format($group->sum('amount'), 2) }}</td>
                             </tr>
                         @endforeach
                         <tr class="border-t-2 border-gray-300 dark:border-white/20 font-bold">
-                            <td colspan="7" class="py-2 pr-4">Grand Total ({{ $rows->count() }} payments)</td>
+                            <td colspan="8" class="py-2 pr-4">Grand Total ({{ $rows->count() }} payments)</td>
                             <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($rows->sum('amount'), 2) }}</td>
                         </tr>
                     </tbody>

@@ -25,7 +25,7 @@ class AnnualTaxResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Taxes';
+    protected static string|UnitEnum|null $navigationGroup = 'Audit & Taxes';
 
     protected static ?string $recordTitleAttribute = 'id';
 
