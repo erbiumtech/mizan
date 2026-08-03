@@ -23,6 +23,10 @@ class InvoicingPlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void
