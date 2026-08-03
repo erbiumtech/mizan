@@ -38,6 +38,25 @@ class PublicStorageIsNotExposedTest extends TestCase
         );
     }
 
+    /**
+     * And it cannot be created by accident.
+     *
+     * A test only fails in CI, which is no help at deploy time: `storage:link` is
+     * the standard Laravel command and appears in most hosts' default deploy
+     * recipes. With no link configured it is a no-op, so the guard holds on a
+     * server where nothing runs the suite.
+     */
+    public function test_no_symlink_is_configured_for_storage_link_to_create(): void
+    {
+        $this->assertSame(
+            [],
+            config('filesystems.links'),
+            'A configured link means one `php artisan storage:link` re-exposes '
+            .'storage/app/public on the web root. Uploads are served through '
+            .'TenantFileController instead — see TenantStorage.'
+        );
+    }
+
     /** The reason the symlink is unnecessary, asserted rather than assumed. */
     public function test_uploads_are_addressed_through_the_streaming_route(): void
     {
