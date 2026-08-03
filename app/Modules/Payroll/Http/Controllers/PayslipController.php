@@ -3,68 +3,70 @@
 namespace App\Modules\Payroll\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Employees\Models\Employee;
-use App\Modules\Core\Models\FiscalYear;
-use App\Support\Pdf\Pdf;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Services\PayslipService;
+use Illuminate\Http\Request;
 
 class PayslipController extends Controller
 {
+    /**
+     * The signed-in employee's payslips.
+     *
+     * `pdf_url` names the download route rather than a file on the public disk.
+     * Two things were wrong with the file: it was written once and reused for
+     * ever, so a payslip corrected afterwards kept handing out the old figures;
+     * and its name was built from a `pay_period` attribute that does not exist,
+     * which left the month out and collapsed every month of a fiscal year onto one
+     * file per employee — August's download was July's PDF.
+     *
+     * Listing no longer renders anything either. It used to render a PDF for every
+     * payslip missing one, so the first call of a new fiscal year rendered a year
+     * of them before it answered.
+     */
     public function index(Request $request)
     {
         $employee = Employee::where('user_id', $request->user()->id)->first();
 
-        if (!$employee) {
+        if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'Employee profile not found'
+                'message' => 'Employee profile not found',
             ], 404);
         }
 
         $payslips = Payslip::where('employee_id', $employee->id)
-                           ->with('fiscalYear') 
-                           ->orderBy('id', 'desc')
-                           ->get()
-                           ->map(function ($payslip) use ($employee) {
+            ->with('fiscalYear')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (Payslip $payslip) {
+                $payslip->pdf_url = route('payslips.pdf', ['payslip' => $payslip->id]);
 
-                               $cleanPayPeriod = str_replace([' ', '/', '\\'], '-', $payslip->pay_period);
+                $payslip->setRelations([]);
+                $payslip->makeHidden('pdf_path');
 
-                               $fyName = $payslip->fiscalYear ? str_replace(['/', '\\'], '-', $payslip->fiscalYear->name) : '';
-
-                               $fileName = $fyName
-                                   ? 'payslips/' . $employee->employee_id . '-' . $fyName . '-' . $cleanPayPeriod . '.pdf'
-                                   : 'payslips/' . $employee->employee_id . '-' . $cleanPayPeriod . '.pdf';
-
-                               if (!Storage::disk('public')->exists($fileName)) {
-
-                                   if (!Storage::disk('public')->exists('payslips')) {
-                                       Storage::disk('public')->makeDirectory('payslips');
-                                   }
-
-                                   $absolutePath = Storage::disk('public')->path($fileName);
-
-                                   Pdf::view('pdfs.payslip', ['data' => $payslip])
-                                      ->format('a4')
-                                      ->save($absolutePath);
-
-                                   $payslip->update(['pdf_path' => $fileName]);
-                               }
-
-                               $payslip->pdf_url = url(Storage::url($fileName));
-
-                               $payslip->setRelations([]);
-                               $payslip->makeHidden('pdf_path');
-
-                               return $payslip;
-                           });
+                return $payslip;
+            });
 
         return response()->json([
             'success' => true,
             'count' => $payslips->count(),
-            'data' => $payslips
+            'data' => $payslips,
         ], 200);
+    }
+
+    /**
+     * One payslip as a PDF, rendered now from the payslip as it stands.
+     *
+     * Scoped to the caller's own payslips. The id is in the URL, so without this
+     * an employee could read a colleague's salary by changing a number.
+     */
+    public function pdf(Request $request, Payslip $payslip)
+    {
+        $employee = Employee::where('user_id', $request->user()->id)->first();
+
+        abort_if(! $employee || $payslip->employee_id !== $employee->id, 403);
+
+        return app(PayslipService::class)->renderPdf($payslip);
     }
 }
