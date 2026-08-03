@@ -32,8 +32,8 @@ class CreatePermissionTables extends Migration
                 $table->unsignedBigInteger($teamForeignKey)->nullable();
                 $table->index($teamForeignKey, 'roles_team_foreign_key_index');
             }
-            $table->string('name');
-            $table->string('guard_name');
+            $table->string('name',100);
+            $table->string('guard_name',100);
             $table->timestamps();
             if ($teams) {
                 $table->unique([$teamForeignKey, 'name', 'guard_name']);
