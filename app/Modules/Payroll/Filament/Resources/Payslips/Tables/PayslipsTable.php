@@ -185,11 +185,13 @@ class PayslipsTable
             ->visible(fn (Payslip $record): bool => auth()->user()?->can('runAction', $record) ?? false)
             ->action(function (Payslip $record) {
                 try {
-                    // Streamed from a fresh render. It used to redirect to a file on
-                    // the public disk that was written once and reused for ever, so a
-                    // payslip corrected after somebody first downloaded it kept
-                    // handing out the old figures.
-                    return app(PayslipService::class)->renderPdf($record);
+                    $service = app(PayslipService::class);
+                    $pdf = $service->renderPdf($record);
+
+                    return response()->streamDownload(function () use ($pdf) {
+                        echo $pdf->toResponse(request()->create('/'))->getContent();
+                    }, $service->pdfFilename($record));
+
                 } catch (\InvalidArgumentException $e) {
                     Notification::make()->title($e->getMessage())->danger()->send();
                 }
