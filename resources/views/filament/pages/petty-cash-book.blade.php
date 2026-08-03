@@ -37,7 +37,7 @@
     <x-filament::section>
         <x-slot name="heading">{{ $summary['month'] }} · Petty Cash Book</x-slot>
         <x-slot name="description">Imprest float {{ number_format($summary['float_amount'], 2) }}</x-slot>
-        <x-slot name="headerEnd">
+        <x-slot name="afterHeader">
             @if($summary['replenished'])
                 <x-filament::badge color="success" icon="heroicon-m-check-circle">Replenished</x-filament::badge>
             @else
