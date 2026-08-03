@@ -101,6 +101,24 @@ class AccountRegister extends Page
             ->columns(3);
     }
 
+    /**
+     * Drop the end date, so entries dated later come into view.
+     *
+     * The default stops at today so the register agrees with the Profit & Loss and
+     * the Trial Balance, which both do. That is right, and it also means a payment
+     * dated a few days out is nowhere on this page — which reads as a payment that
+     * was never recorded. The banner says what is missing; this is the way back in
+     * without hunting for the date field.
+     */
+    public function includeLaterEntries(): void
+    {
+        $this->form->fill([
+            'account_id' => $this->data['account_id'] ?? null,
+            'from' => $this->data['from'] ?? null,
+            'to' => null,
+        ]);
+    }
+
     public function getLedger(): array
     {
         return app(RegisterEntryService::class)->registerRows(

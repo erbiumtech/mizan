@@ -133,15 +133,37 @@
 
         {{-- Said out loud rather than silently left off: a payment scheduled ahead
              is dated at its value date, so it sits beyond the To date and shows in
-             neither this register nor the Profit & Loss until it arrives. --}}
+             neither this register nor the Profit & Loss until it arrives.
+
+             Loud, and with the button, because grey small print under the table was
+             not enough — a payment dated a few days out reads as a payment that was
+             never recorded, and the person looking for it goes hunting through the
+             ledger rather than noticing a footnote. --}}
         @if ($beyond = ($ledger['beyond'] ?? null))
-            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                {{ $beyond['count'] }} later
-                {{ \Illuminate\Support\Str::plural('entry', $beyond['count']) }}
-                after {{ \Illuminate\Support\Carbon::parse($this->data['to'])->toFormattedDateString() }}, worth
-                <span class="font-medium tabular-nums">{{ number_format($beyond['total'], 2) }}</span> —
-                clear the To date to include them.
-            </p>
+            <div class="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning-300 bg-warning-50 p-3 text-sm dark:border-warning-500/30 dark:bg-warning-500/10">
+                <x-filament::icon
+                    icon="heroicon-o-clock"
+                    class="h-5 w-5 flex-shrink-0 text-warning-600 dark:text-warning-400"
+                />
+
+                <span class="text-gray-700 dark:text-gray-200">
+                    Not shown:
+                    <span class="font-medium">{{ $beyond['count'] }} {{ \Illuminate\Support\Str::plural('entry', $beyond['count']) }}</span>
+                    dated after {{ \Illuminate\Support\Carbon::parse($this->data['to'])->toFormattedDateString() }},
+                    worth <span class="font-medium tabular-nums">{{ number_format($beyond['total'], 2) }}</span>.
+                    Payments are dated at their value date, so anything scheduled ahead — or entered with a
+                    later date — sits past the To date.
+                </span>
+
+                <x-filament::button
+                    wire:click="includeLaterEntries"
+                    size="xs"
+                    color="warning"
+                    icon="heroicon-m-eye"
+                >
+                    Show them
+                </x-filament::button>
+            </div>
         @endif
     </x-filament::section>
 </x-filament-panels::page>
