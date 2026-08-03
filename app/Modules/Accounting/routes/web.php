@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['web', 'auth', 'company', 'module:accounting'])
     ->prefix('reports/{company}')
     ->group(function () {
+        Route::get('/balance-sheet', [ReportPageController::class, 'balanceSheet'])->name('reports.balance-sheet');
         Route::get('/trial-balance', [ReportPageController::class, 'trialBalance'])->name('reports.trial-balance');
         Route::get('/profit-and-loss', [ReportPageController::class, 'profitAndLoss'])->name('reports.profit-and-loss');
     });
