@@ -30,7 +30,7 @@
         }
 
         .container {
-            padding: 50px 50px 140px 50px;
+            padding: 50px 50px 80px 50px;
             box-sizing: border-box;
             position: relative;
             width: 100%;
@@ -158,7 +158,7 @@
             display: flex;
             justify-content: space-between;
             border-radius: 6px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             border: 1px solid #eee;
         }
 
@@ -236,7 +236,7 @@
             justify-content: space-between;
             font-size: 15px;
             font-weight: bold;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
         }
 
         /* ==================== SIGNATURES ==================== */
@@ -244,7 +244,7 @@
             display: flex;
             justify-content: space-between;
             gap: 60px;
-            margin-top: 25px;
+            margin-top: 15px;
             margin-bottom: 10px;
         }
 
