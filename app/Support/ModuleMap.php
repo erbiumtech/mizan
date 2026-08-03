@@ -178,6 +178,10 @@ final class ModuleMap
             'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
             'App\Filament\Pages\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
         ],
+        'invoicing' => [
+            'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
+            'App\Filament\Pages\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
+        ],
         'accounting' => [
             'App\Filament\Pages\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
             'App\Filament\Pages\BalanceSheet' => \App\Modules\Accounting\Filament\Pages\BalanceSheet::class,

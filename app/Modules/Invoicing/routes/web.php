@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Invoicing\Http\Controllers\AgedInvoiceReportController;
 use App\Modules\Invoicing\Http\Controllers\InvoicePdfController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,15 @@ use Illuminate\Support\Facades\Route;
  * went unnoticed.
  */
 Route::middleware(['web', 'auth', 'company', 'module:invoicing'])
-    ->get('/reports/{company}/invoice/{invoice}/pdf', InvoicePdfController::class)
-    ->whereNumber('invoice')
-    ->name('invoice.pdf');
+    ->group(function () {
+        Route::get('/reports/{company}/invoice/{invoice}/pdf', InvoicePdfController::class)
+            ->whereNumber('invoice')
+            ->name('invoice.pdf');
+
+        // What is owed, either way round. The two differ by one argument, so they
+        // are one handler.
+        Route::get('/reports/{company}/aged-receivables', [AgedInvoiceReportController::class, 'receivables'])
+            ->name('reports.aged-receivables');
+        Route::get('/reports/{company}/aged-payables', [AgedInvoiceReportController::class, 'payables'])
+            ->name('reports.aged-payables');
+    });
