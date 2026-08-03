@@ -8,6 +8,7 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use App\Modules\Payroll\Support\PayrollMonth;
 use App\Support\Pdf\Pdf;
+use App\Support\Pdf\PdfDocument;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -167,22 +168,44 @@ class PayslipService
         return $data;
     }
 
-    public function generatePdf(Payslip $payslip): string
+    /**
+     * The payslip as a PDF, rendered from the payslip as it stands now.
+     *
+     * Never from a file. A payslip is corrected after it is first printed — an
+     * allowance fixed, attendance entered, an advance instalment picked up — and
+     * every previous version of this served whatever was already on disk, so the
+     * copy an employee downloaded went on showing figures the system had since
+     * changed. There is nothing to invalidate and nothing to go stale because
+     * nothing is kept.
+     */
+    public function renderPdf(Payslip $payslip): PdfDocument
     {
-        $payslip->load('employee.user');
-        $fileName = "payslips/payslip-{$payslip->id}.pdf";
+        $payslip->load('employee.user', 'fiscalYear');
 
-        // Route through the `public` disk so per-tenant storage isolation
-        // (SwitchTenantFilesystemTask) applies to the absolute save path.
-        $disk = \Illuminate\Support\Facades\Storage::disk('public');
-        $disk->makeDirectory(dirname($fileName));
-        $fullPath = $disk->path($fileName);
-
-        Pdf::view('pdfs.payslip', ['data' => $payslip])
+        return Pdf::view('pdfs.payslip', ['data' => $payslip])
             ->format('a4')
             ->margins(0, 0, 0, 0)
-            ->save($fullPath);
+            ->name($this->pdfFilename($payslip));
+    }
 
-        return $fileName;
+    /**
+     * Names the employee, the month and the fiscal year — all three, because the
+     * month was missing from the name the API used (it read a `pay_period`
+     * attribute that does not exist), which collapsed every month of a fiscal
+     * year onto one file per employee.
+     */
+    public function pdfFilename(Payslip $payslip): string
+    {
+        $parts = [
+            $payslip->employee?->employee_id ?: 'employee-'.$payslip->employee_id,
+            $payslip->month,
+            $payslip->fiscalYear?->name,
+        ];
+
+        return str_replace(
+            [' ', '/', '\\'],
+            '-',
+            implode('-', array_filter($parts)),
+        ).'.pdf';
     }
 }
