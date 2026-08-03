@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Payroll\Http\Controllers\PayslipMediaController;
+use App\Modules\Payroll\Http\Controllers\TaxSummaryReportController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -21,3 +22,15 @@ Route::middleware(['web'])
     ->where('signature', '[a-f0-9]{64}')
     ->where('filename', '[A-Za-z0-9._-]+')
     ->name('payslip.whatsapp-media');
+
+/**
+ * The printable tax summary. Payroll's rather than Accounting's because the licence
+ * gate differs: withholding is payroll's, and a company that keeps its books here
+ * without running payroll should not see it.
+ *
+ * The company is a path segment because payslips live in the tenant database and
+ * nothing outside the panel makes one current. See ResolveCompanyFromRoute.
+ */
+Route::middleware(['web', 'auth', 'company', 'module:payroll'])
+    ->get('/reports/{company}/tax-summary', TaxSummaryReportController::class)
+    ->name('reports.tax-summary');

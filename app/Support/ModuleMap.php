@@ -177,6 +177,7 @@ final class ModuleMap
         'payroll' => [
             'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
             'App\Filament\Pages\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
+            'App\Filament\Pages\TaxSummary' => \App\Modules\Payroll\Filament\Pages\TaxSummary::class,
         ],
         'invoicing' => [
             'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
