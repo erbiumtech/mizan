@@ -3,15 +3,16 @@
 namespace App\Modules\Accounting\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreAccountRequest;
-use App\Modules\Accounting\Http\Requests\UpdateAccountRequest;
 use App\Http\Resources\AccountResource;
+use App\Modules\Accounting\Http\Requests\StoreAccountRequest;
+use App\Modules\Accounting\Http\Requests\UpdateAccountRequest;
 use App\Modules\Accounting\Models\Account;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
-    use \Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+    use AuthorizesRequests;
 
     /**
      * Flat list with filters: type, is_active, parent_id, search (code/name).
@@ -30,7 +31,7 @@ class AccountController extends Controller
                 $q->where(fn ($sub) => $sub
                     ->where('code', 'like', "%{$request->search}%")
                     ->orWhere('name', 'like', "%{$request->search}%"));
-            }) 
+            })
             ->orderBy('code')
             ->paginate($request->integer('per_page', 50));
 

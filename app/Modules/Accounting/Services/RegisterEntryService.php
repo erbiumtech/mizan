@@ -4,14 +4,14 @@ namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\FixedAsset;
-use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\PettyCashVoucher;
-use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Accounting\Models\TransactionType;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Invoicing\Models\Invoice;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 /**
@@ -273,7 +273,7 @@ class RegisterEntryService
         $direction = $data['direction'];
         $before = $this->snapshot($entry, $registerAccount);
 
-        DB::transaction(function () use ($entry, $registerAccount, $transferAccount, $amount, $direction, $data): void {
+        TenantTransaction::run(function () use ($entry, $registerAccount, $transferAccount, $amount, $direction, $data): void {
             // Undo the old lines' effect on both accounts, then apply the new
             // ones. Doing it in two passes handles a changed transfer account
             // without special-casing it.
@@ -342,7 +342,7 @@ class RegisterEntryService
         $snapshot = $this->snapshot($entry, $registerAccount);
         $entryNumber = $entry->entry_number;
 
-        DB::transaction(function () use ($entry): void {
+        TenantTransaction::run(function () use ($entry): void {
             foreach ($entry->lines()->get() as $line) {
                 $this->applyBalance($line->account_id, (float) $line->debit_amount, (float) $line->credit_amount, -1);
             }

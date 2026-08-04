@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -15,7 +16,9 @@ use InvalidArgumentException;
 class GnuCashImportService
 {
     public const KIND_ACCOUNT_TREE = 'account_tree';
+
     public const KIND_TRANSACTIONS = 'transactions';
+
     public const KIND_REGISTER = 'register';
 
     protected const TYPE_MAP = [
@@ -35,8 +38,7 @@ class GnuCashImportService
     public function __construct(
         private JournalEntryService $journalEntryService,
         private RegisterEntryService $registerEntryService,
-    ) {
-    }
+    ) {}
 
     /**
      * Parse CSV text into header-keyed rows (BOM-safe, case-insensitive keys).
@@ -101,7 +103,7 @@ class GnuCashImportService
         $parsed = $this->parse($csv);
         $kind = $this->detectKind($parsed['header']);
 
-        return DB::transaction(fn () => match ($kind) {
+        return TenantTransaction::run(fn () => match ($kind) {
             self::KIND_ACCOUNT_TREE => $this->importAccountTree($parsed['rows']),
             self::KIND_TRANSACTIONS => $this->importTransactions($parsed['rows']),
             self::KIND_REGISTER => $this->importActiveRegister($parsed['rows'], $targetAccount),
@@ -110,6 +112,12 @@ class GnuCashImportService
 
     /**
      * Dry run: execute inside a rolled-back transaction, return the preview.
+     *
+     * The rollback is the whole mechanism here, so the transaction has to be on
+     * the connection the writes land on. Through DB::transaction() it was not:
+     * that opened one on the default (landlord) connection while every account
+     * and entry below was written to `tenant` and committed on the spot, which
+     * made a "preview" a silent, permanent import. See TenantTransaction.
      */
     public function preview(string $csv, ?Account $targetAccount = null): array
     {
@@ -118,7 +126,7 @@ class GnuCashImportService
         $result = null;
 
         try {
-            DB::transaction(function () use ($parsed, $kind, $targetAccount, &$result) {
+            TenantTransaction::run(function () use ($parsed, $kind, $targetAccount, &$result) {
                 $result = match ($kind) {
                     self::KIND_ACCOUNT_TREE => $this->importAccountTree($parsed['rows']),
                     self::KIND_TRANSACTIONS => $this->importTransactions($parsed['rows']),
@@ -423,6 +431,4 @@ class GnuCashImportService
     }
 }
 
-class DryRunRollback extends \RuntimeException
-{
-}
+class DryRunRollback extends \RuntimeException {}
