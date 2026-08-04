@@ -6,10 +6,12 @@ use App\Modules\Payroll\Console\Commands\CheckPayrollAccounts;
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
 use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\PayComponent;
+use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Models\SalarySlab;
 use App\Modules\Payroll\Policies\AnnualTaxPolicy;
 use App\Modules\Payroll\Policies\PayComponentPolicy;
+use App\Modules\Payroll\Policies\PayrollRunPolicy;
 use App\Modules\Payroll\Policies\PayslipPolicy;
 use App\Modules\Payroll\Policies\SalarySlabPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +32,7 @@ class PayrollServiceProvider extends ServiceProvider
     private const POLICIES = [
         AnnualTax::class => AnnualTaxPolicy::class,
         PayComponent::class => PayComponentPolicy::class,
+        PayrollRun::class => PayrollRunPolicy::class,
         Payslip::class => PayslipPolicy::class,
         SalarySlab::class => SalarySlabPolicy::class,
     ];

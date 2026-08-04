@@ -60,6 +60,9 @@ class PermissionSeeder extends Seeder
             ['name' => 'AdvanceUpdate', 'group' => 'Advance'],
             ['name' => 'AdvanceDelete', 'group' => 'Advance'],
 
+            ['name' => 'PayrollRunView', 'group' => 'Payslip'],
+            ['name' => 'PayrollRunLock', 'group' => 'Payslip'],
+
             ['name' => 'PayslipView', 'group' => 'Payslip'],
             ['name' => 'PayslipCreate', 'group' => 'Payslip'],
             ['name' => 'PayslipUpdate', 'group' => 'Payslip'],
