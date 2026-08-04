@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use App\Modules\Payroll\Support\PayrollMonth;
@@ -51,6 +52,51 @@ class PayslipService
     }
 
     /**
+     * The parts of pay that come from components rather than columns.
+     *
+     * Everything the system shipped with is still column-backed and read from its
+     * column; this is what makes an allowance added afterwards work without touching
+     * any of the arithmetic below. Taxable earnings are returned separately because
+     * the annual projection needs them and a non-taxable one — a reimbursement of
+     * somebody's own money — must not raise their tax.
+     *
+     * @return array{earnings: float, taxable_earnings: float, deductions: float}
+     */
+    protected function componentTotals(?EmployeeSetting $setting): array
+    {
+        $empty = ['earnings' => 0.0, 'taxable_earnings' => 0.0, 'deductions' => 0.0];
+
+        if (! $setting) {
+            return $empty;
+        }
+
+        $rows = EmployeeSettingComponent::with('component')
+            ->where('employee_setting_id', $setting->getKey())
+            ->get()
+            ->filter(fn (EmployeeSettingComponent $row): bool => $row->component
+                && $row->component->is_active
+                && ! $row->component->is_column_backed);
+
+        foreach ($rows as $row) {
+            $amount = round((float) $row->amount, 2);
+
+            if ($row->component->isEarning()) {
+                $empty['earnings'] = round($empty['earnings'] + $amount, 2);
+
+                if ($row->component->is_taxable) {
+                    $empty['taxable_earnings'] = round($empty['taxable_earnings'] + $amount, 2);
+                }
+
+                continue;
+            }
+
+            $empty['deductions'] = round($empty['deductions'] + $amount, 2);
+        }
+
+        return $empty;
+    }
+
+    /**
      * Calculate payslip data based on employee settings for a specific month and fiscal year using date ranges.
      */
     public function calculateByParams(
@@ -94,9 +140,21 @@ class PayslipService
                 : $this->expenseClaimsFor($employeeId, $payslipId),
         ];
 
+        // Allowances and deductions added as components rather than columns.
+        $components = $this->componentTotals($setting);
+        $data['component_earnings'] = $components['earnings'];
+        $data['component_deductions'] = $components['deductions'];
+
+        // What of this month's earnings is taxable. Only components can be
+        // non-taxable, so this is the month's total less the untaxed part of them —
+        // and the annual projection below has to use it rather than total_earnings,
+        // or a reimbursement in the current month would raise the year's tax while
+        // the same reimbursement in any other month would not.
+        $untaxedComponents = round($components['earnings'] - $components['taxable_earnings'], 2);
+
         // Current Month Total Earnings Base (Form values ke sath)
         $totalEarningsBase = $data['basic_wage'] + $data['petrol_allowance'] + $data['device_allowance'] + $data['bonus'] + $data['extra_work_hours'];
-        $data['total_earnings'] = $totalEarningsBase + $data['medical_allowance'];
+        $data['total_earnings'] = $totalEarningsBase + $data['medical_allowance'] + $components['earnings'];
 
         $previousEarningsSum = Payslip::where('employee_id', $employeeId)
             ->where('fiscal_year_id', $fiscalYearId)
@@ -123,10 +181,18 @@ class PayslipService
                                  + (float)$empSetting->petrol_allowance
                                  + (float)$empSetting->device_allowance
                                  + (float)($empSetting->bonus ?? 0)
-                                 + (float)($empSetting->extra_work_hours ?? 0);
+                                 + (float)($empSetting->extra_work_hours ?? 0)
+                                 // Taxable components only: a reimbursement is not
+                                 // income and must not raise anybody's tax.
+                                 + $this->componentTotals($empSetting)['taxable_earnings'];
 
                 if ($empSetting->id == $setting->id) {
-                    $sMonthlyTotal = $data['total_earnings'];
+                    // This month's figures stand in for the rest of the year, so the
+                    // untaxed part of them has to come out here too. Without it a
+                    // non-taxable component raised the year's tax through the eleven
+                    // months it was projected across, having been correctly excluded
+                    // from the one month it was actually paid in.
+                    $sMonthlyTotal = $data['total_earnings'] - $untaxedComponents;
                 }
 
                 $sStart = Carbon::parse($empSetting->start_date);
@@ -137,7 +203,9 @@ class PayslipService
                     $mName = $currentPeriodCursor->format('F'); //  July, August
 
                     if ($mName === $month || !in_array($mName, $completedMonths)) {
-                        $annualTotalEarnings += ($mName === $month) ? $data['total_earnings'] : $sMonthlyTotal;
+                        $annualTotalEarnings += ($mName === $month)
+                            ? $data['total_earnings'] - $untaxedComponents
+                            : $sMonthlyTotal;
                     }
 
                     $currentPeriodCursor->addMonth();
@@ -146,7 +214,8 @@ class PayslipService
         } else {
             $completedMonthsCount = count($completedMonths);
             $remainingMonths = max(0, 12 - ($completedMonthsCount + 1));
-            $annualTotalEarnings = $previousEarningsSum + $data['total_earnings'] + ($data['total_earnings'] * $remainingMonths);
+            $taxableThisMonth = $data['total_earnings'] - $untaxedComponents;
+            $annualTotalEarnings = $previousEarningsSum + $taxableThisMonth + ($taxableThisMonth * $remainingMonths);
         }
 
         Log::debug('Corrected Annual Total Earnings: ' . $annualTotalEarnings);
@@ -180,8 +249,12 @@ class PayslipService
         $data['withholding_tax'] = round($leftoverAnnualTax / $remainingMonthsForTax, 2);
         Log::debug('Withholding Tax for this month: ' . $data['withholding_tax']);
 
-        // Total Deductions (Tax + Advances + Meal + ESI)
-        $data['total_deductions'] = round($data['withholding_tax'] + $data['advances'] + $data['meal_deduction'] + $data['esi_health_insurance'], 2);
+        // Total Deductions (Tax + Advances + Meal + ESI + anything added as a component)
+        $data['total_deductions'] = round(
+            $data['withholding_tax'] + $data['advances'] + $data['meal_deduction']
+            + $data['esi_health_insurance'] + $components['deductions'],
+            2
+        );
 
         // Net Salary (Earnings + Expense Reimbursement - Deductions)
         $data['net_salary'] = round($data['total_earnings'] + $data['expense_reimbursement'] - $data['total_deductions'], 2);

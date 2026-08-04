@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder
     protected array $tenantSeeders = [
         FiscalYearSeeder::class,
         SalarySlabSeeder::class,
+        PayComponentSeeder::class,
         BankSeeder::class,
         EmployeeSeeder::class,
         EmployeeSettingSeeder::class,
