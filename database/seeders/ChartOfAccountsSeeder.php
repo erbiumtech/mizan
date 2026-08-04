@@ -42,6 +42,12 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '4100', 'name' => 'Service Revenue', 'type' => 'income'],
                 ['code' => '4200', 'name' => 'Sales Revenue', 'type' => 'income', 'description' => 'Product sales'],
                 ['code' => '4300', 'name' => 'Other Income', 'type' => 'income', 'description' => 'Non-product invoice lines'],
+                // Exchange differences, one account each rather than a gain account and
+                // a loss account: a gain of 100 that becomes a loss of 40 should read as
+                // a net 40 loss, not as a gain of 100 beside a loss of 140. A debit
+                // balance shows as a negative income line, which is what a loss is.
+                ['code' => '4400', 'name' => 'Unrealised Exchange Gain / (Loss)', 'type' => 'income', 'description' => 'Foreign balances retranslated at period end; no money has moved'],
+                ['code' => '4450', 'name' => 'Realised Exchange Gain / (Loss)', 'type' => 'income', 'description' => 'The difference between what a foreign amount was booked at and what was actually settled'],
             ]],
             ['code' => '5000', 'name' => 'Expenses', 'type' => 'expense', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '5050', 'name' => 'Cost of Goods Sold', 'type' => 'expense', 'description' => 'Inventory cost of product sales'],

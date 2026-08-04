@@ -4,7 +4,9 @@ namespace App\Modules\Invoicing\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\CurrencyRevaluationService;
 use App\Modules\Accounting\Services\JournalEntryService;
+use App\Modules\Accounting\Support\Money;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
@@ -15,6 +17,7 @@ use App\Modules\Invoicing\Models\InvoiceLine;
 use App\Modules\Invoicing\Models\TaxRate;
 use App\Support\ModuleMap;
 use App\Support\TenantTransaction;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
@@ -25,10 +28,141 @@ use InvalidArgumentException;
  */
 class InvoiceService
 {
+    /**
+     * Which entry lines are in the *document's* currency.
+     *
+     * A sale in euros has a receivable, revenue and tax in euros — but the cost of goods
+     * sold leg is not: it comes from the valuation engine, which holds inventory at what
+     * was actually paid for it, in the base currency. Translating that too would restate
+     * the cost of the stock at the rate the customer happened to be billed at.
+     *
+     * The control line is the receivable or the payable: the one carrying the invoice
+     * total, and the one that has to translate to exactly what the document is worth.
+     */
+    private const FX_CONTROL = 'control';
+
+    private const FX_LINE = 'line';
+
     public function __construct(
         private JournalEntryService $journalEntryService,
         private InventoryValuationService $valuation,
     ) {}
+
+    /**
+     * Settle the rate an invoice is posted at, once.
+     *
+     * A rate given on the invoice wins — an agreed rate is a term of the deal. Otherwise
+     * it is the rate in force on the invoice date, and it is written down, because a rate
+     * recorded later for that day must not silently restate an issued invoice.
+     */
+    protected function fixRate(Invoice $invoice): Invoice
+    {
+        if (! $invoice->isForeignCurrency()) {
+            return $invoice;
+        }
+
+        if ($invoice->exchange_rate) {
+            return $invoice;
+        }
+
+        $converted = Money::toBase(
+            1,
+            $invoice->currencyCode(),
+            $invoice->invoice_date->toDateString(),
+        );
+
+        $invoice->update(['exchange_rate' => $converted['rate']]);
+
+        return $invoice;
+    }
+
+    /**
+     * The document's lines in the base currency, with the foreign amounts alongside.
+     *
+     * Each line keeps what it was billed as and gains what it is worth; the base amounts
+     * are what every report reads. The receivable translates to exactly the invoice's
+     * base total, and any rounding left over by translating the parts separately is put
+     * on the last revenue or expense line — a cent of revenue nobody will read, rather
+     * than a receivable that disagrees with the invoice it came from, which the
+     * settlement arithmetic later depends on.
+     *
+     * @param  array<int, array<string, mixed>>  $entryLines
+     * @return array<int, array<string, mixed>>
+     */
+    protected function translateDocument(Invoice $invoice, array $entryLines): array
+    {
+        if (! $invoice->isForeignCurrency()) {
+            return array_map(fn (array $line): array => Arr::except($line, '_fx'), $entryLines);
+        }
+
+        $rate = $invoice->rate();
+        $code = $invoice->currencyCode();
+        $lastLine = null;
+
+        foreach ($entryLines as $index => $line) {
+            if (! isset($line['_fx'])) {
+                continue;
+            }
+
+            $debit = (float) ($line['debit_amount'] ?? 0);
+            $credit = (float) ($line['credit_amount'] ?? 0);
+
+            $entryLines[$index] = Arr::except($line, '_fx') + [
+                'currency_code' => $code,
+                'rate' => $rate,
+                'foreign_debit_amount' => $debit ?: null,
+                'foreign_credit_amount' => $credit ?: null,
+            ];
+
+            $entryLines[$index]['debit_amount'] = $debit ? round($debit * $rate, 2) : 0;
+            $entryLines[$index]['credit_amount'] = $credit ? round($credit * $rate, 2) : 0;
+
+            if ($line['_fx'] === self::FX_CONTROL) {
+                // Exactly the invoice's base total, not a translation of a translation.
+                $entryLines[$index][$debit ? 'debit_amount' : 'credit_amount'] = $invoice->baseTotal();
+
+                continue;
+            }
+
+            $lastLine = $index;
+        }
+
+        return $this->absorbRounding($entryLines, $lastLine);
+    }
+
+    /**
+     * Put whatever translating the parts separately left over onto one line.
+     *
+     * round(a × r) + round(b × r) is not round((a + b) × r), so an entry translated line
+     * by line can be a cent out. Somebody has to hold that cent, and a revenue line is
+     * the only place it does no harm.
+     *
+     * @param  array<int, array<string, mixed>>  $entryLines
+     * @return array<int, array<string, mixed>>
+     */
+    protected function absorbRounding(array $entryLines, ?int $index): array
+    {
+        if ($index === null) {
+            return $entryLines;
+        }
+
+        $imbalance = round(array_sum(array_map(
+            fn (array $line): float => (float) ($line['debit_amount'] ?? 0) - (float) ($line['credit_amount'] ?? 0),
+            $entryLines,
+        )), 2);
+
+        if (abs($imbalance) < 0.005) {
+            return $entryLines;
+        }
+
+        // Excess debits are cleared by crediting more, and vice versa — whichever side
+        // this line is already on.
+        ($entryLines[$index]['credit_amount'] ?? 0) > 0
+            ? $entryLines[$index]['credit_amount'] = round($entryLines[$index]['credit_amount'] + $imbalance, 2)
+            : $entryLines[$index]['debit_amount'] = round($entryLines[$index]['debit_amount'] - $imbalance, 2);
+
+        return $entryLines;
+    }
 
     public function issue(Invoice $invoice): Invoice
     {
@@ -48,10 +182,14 @@ class InvoiceService
 
         $this->validateTotals($invoice, $lines);
 
+        // Before anything is posted: an invoice in another currency is issued at one
+        // rate, and that rate is what ties the document to the ledger from here on.
+        $this->fixRate($invoice);
+
         return TenantTransaction::run(function () use ($invoice, $lines) {
-            $entryLines = $invoice->kind === Invoice::KIND_SALE
+            $entryLines = $this->translateDocument($invoice, $invoice->kind === Invoice::KIND_SALE
                 ? $this->saleEntryLines($invoice, $lines)
-                : $this->purchaseEntryLines($invoice, $lines);
+                : $this->purchaseEntryLines($invoice, $lines));
 
             $entry = $this->postSystemEntry(
                 $invoice->invoice_date->toDateString(),
@@ -83,7 +221,22 @@ class InvoiceService
         });
     }
 
-    public function recordPayment(Invoice $invoice, float $amount, string $date): Invoice
+    /**
+     * Money received against an invoice, and the exchange difference it realises.
+     *
+     * `$amount` is in the invoice's currency, because that is what the client pays and
+     * what the invoice says they owe. On a base-currency invoice nothing below changes:
+     * the rate is 1, the difference is zero, and no FX line is written.
+     *
+     * On a foreign invoice, three amounts are in play and only two of them agree. The
+     * receivable was booked at the invoice's rate; the money arrived at the rate on the
+     * day it arrived. That difference is real — it is the gain or loss the company
+     * actually made by being paid later than it billed — and it is recognised here, in
+     * full, as realised. `$rate` overrides the table for the case that matters most: a
+     * bank advice saying what actually landed is a fact, and the rate table is only an
+     * estimate of it.
+     */
+    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null): Invoice
     {
         if (! $invoice->isOpen()) {
             throw new InvalidArgumentException("Only issued or partially paid invoices accept payments (invoice is {$invoice->status}).");
@@ -99,22 +252,29 @@ class InvoiceService
             );
         }
 
-        return TenantTransaction::run(function () use ($invoice, $amount, $date) {
-            $cash = $this->accountId('1100');
+        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId) {
+            $cash = $cashAccountId ?? $this->accountId('1100');
+            $paid = round((float) $invoice->amount_paid + $amount, 2);
+
+            $settlement = $this->settlement($invoice, $amount, $paid, $date, $rate);
 
             $lines = $invoice->kind === Invoice::KIND_SALE
                 ? [
-                    ['account_id' => $cash, 'debit_amount' => $amount, 'description' => "Payment {$invoice->invoice_number}"],
-                    ['account_id' => $this->accountId('1250'), 'credit_amount' => $amount, 'description' => "Payment {$invoice->invoice_number}"],
+                    ['account_id' => $cash, 'debit_amount' => $settlement['received']] + $this->cashInCurrency($invoice, $cash, $amount, $settlement, 'debit') + ['description' => "Payment {$invoice->invoice_number}"],
+                    ['account_id' => $this->accountId('1250'), 'credit_amount' => $settlement['relieved'], 'description' => "Payment {$invoice->invoice_number}"]
+                    + $this->clearedInCurrency($invoice, $amount, 'credit'),
                 ]
                 : [
-                    ['account_id' => $this->accountId('2400'), 'debit_amount' => $amount, 'description' => "Payment {$invoice->invoice_number}"],
-                    ['account_id' => $cash, 'credit_amount' => $amount, 'description' => "Payment {$invoice->invoice_number}"],
+                    ['account_id' => $this->accountId('2400'), 'debit_amount' => $settlement['relieved'], 'description' => "Payment {$invoice->invoice_number}"]
+                    + $this->clearedInCurrency($invoice, $amount, 'debit'),
+                    ['account_id' => $cash, 'credit_amount' => $settlement['received']] + $this->cashInCurrency($invoice, $cash, $amount, $settlement, 'credit') + ['description' => "Payment {$invoice->invoice_number}"],
                 ];
 
-            $this->postSystemEntry($date, "Payment against {$invoice->invoice_number}", $lines);
+            if (abs($settlement['difference']) >= 0.005) {
+                $lines[] = $this->realisedLine($invoice, $settlement['difference']);
+            }
 
-            $paid = round((float) $invoice->amount_paid + $amount, 2);
+            $this->postSystemEntry($date, "Payment against {$invoice->invoice_number}", $lines);
 
             $invoice->update([
                 'amount_paid' => $paid,
@@ -126,14 +286,128 @@ class InvoiceService
             InvoiceEvent::record(
                 $invoice,
                 InvoiceEvent::PAYMENT,
-                $invoice->outstanding() > 0
+                ($invoice->outstanding() > 0
                     ? 'Part payment received on '.$date.', '.number_format($invoice->outstanding(), 2).' still outstanding'
-                    : 'Paid in full on '.$date,
+                    : 'Paid in full on '.$date)
+                    .(abs($settlement['difference']) >= 0.005
+                        ? ' — '.($settlement['difference'] > 0 ? 'gain' : 'loss').' of '
+                            .number_format(abs($settlement['difference']), 2).' on the exchange rate'
+                        : ''),
                 $amount,
             );
 
             return $invoice;
         });
+    }
+
+    /**
+     * What a payment is worth, what it clears, and the difference between them.
+     *
+     * `relieved` is computed as the *difference of two cumulative amounts* rather than
+     * as this payment translated on its own. Rounding each part separately can leave a
+     * cent in the receivable after the last payment, and an invoice marked paid in full
+     * with something still sitting against it is the kind of residue nobody finds. Taking
+     * the whole minus what was cleared before makes the reliefs telescope to exactly the
+     * invoice's base total, whatever the instalments were.
+     *
+     * @return array{received: float, relieved: float, rate: float, difference: float}
+     */
+    protected function settlement(Invoice $invoice, float $amount, float $paidToDate, string $date, ?float $rate): array
+    {
+        if (! $invoice->isForeignCurrency()) {
+            return ['received' => $amount, 'relieved' => $amount, 'rate' => 1.0, 'difference' => 0.0];
+        }
+
+        $converted = Money::toBase($amount, $invoice->currencyCode(), $date, $rate);
+
+        $invoiceRate = $invoice->rate();
+        $relieved = round(
+            round($paidToDate * $invoiceRate, 2) - round((float) $invoice->amount_paid * $invoiceRate, 2),
+            2,
+        );
+
+        return [
+            'received' => $converted['base'],
+            'relieved' => $relieved,
+            'rate' => $converted['rate'],
+            // Positive is a gain for a sale: more base currency arrived than the
+            // receivable was carried at. For a purchase the sign works out the same way,
+            // because less base currency left than the payable was carried at.
+            'difference' => round($converted['base'] - $relieved, 2)
+                * ($invoice->kind === Invoice::KIND_SALE ? 1 : -1),
+        ];
+    }
+
+    /**
+     * The foreign amount on the cash line, but only if the cash account holds that
+     * currency.
+     *
+     * Euros paid into a euro account are euros in that account, and its own balance
+     * should say so. Euros paid into a rupee account arrived as rupees — the bank
+     * converted them — and writing euros into it would claim it holds a currency it does
+     * not.
+     *
+     * @param  array{received: float, relieved: float, rate: float, difference: float}  $settlement
+     * @return array<string, mixed>
+     */
+    protected function cashInCurrency(Invoice $invoice, int $cashAccountId, float $amount, array $settlement, string $side): array
+    {
+        if (! $invoice->isForeignCurrency()) {
+            return [];
+        }
+
+        $holds = Account::whereKey($cashAccountId)->value('currency_code') === $invoice->currencyCode();
+
+        return $holds
+            ? [
+                'currency_code' => $invoice->currencyCode(),
+                'rate' => $settlement['rate'],
+                "foreign_{$side}_amount" => $amount,
+            ]
+            : [];
+    }
+
+    /**
+     * The foreign amount coming off the receivable or the payable.
+     *
+     * Always recorded, whichever account the money landed in: it is what makes the
+     * control account's foreign balance fall to zero when the invoice is settled, so that
+     * "what is still owed in euros" is answerable from the ledger and not only from the
+     * documents.
+     *
+     * @return array<string, mixed>
+     */
+    protected function clearedInCurrency(Invoice $invoice, float $amount, string $side): array
+    {
+        return $invoice->isForeignCurrency()
+            ? [
+                'currency_code' => $invoice->currencyCode(),
+                'rate' => $invoice->rate(),
+                "foreign_{$side}_amount" => $amount,
+            ]
+            : [];
+    }
+
+    /**
+     * The realised gain or loss, on its own account.
+     *
+     * Apart from the unrealised kind on purpose: this one is money the company has, and
+     * a reader who cannot tell the two apart cannot tell how much of a good year was
+     * banked and how much was a rate on a reporting date.
+     *
+     * @return array<string, mixed>
+     */
+    protected function realisedLine(Invoice $invoice, float $difference): array
+    {
+        $account = app(CurrencyRevaluationService::class)->realisedAccount();
+
+        return [
+            'account_id' => $account->id,
+            'debit_amount' => $difference < 0 ? -$difference : 0,
+            'credit_amount' => $difference > 0 ? $difference : 0,
+            'description' => ($difference > 0 ? 'Exchange gain on ' : 'Exchange loss on ')
+                .$invoice->invoice_number,
+        ];
     }
 
     /**
@@ -197,11 +471,16 @@ class InvoiceService
                 default => '90+',
             };
 
-            $buckets[$bucket] = round($buckets[$bucket] + $invoice->outstanding(), 2);
+            // The buckets are in base currency. Adding up invoices in a mixture of
+            // currencies also produces a number, which is exactly how that goes wrong
+            // without anybody noticing.
+            $buckets[$bucket] = round($buckets[$bucket] + $invoice->baseOutstanding(), 2);
             $invoices[] = [
                 'invoice_number' => $invoice->invoice_number,
                 'contact' => $invoice->contact->name,
                 'outstanding' => $invoice->outstanding(),
+                'currency_code' => $invoice->currencyCode(),
+                'outstanding_base' => $invoice->baseOutstanding(),
                 'days_overdue' => max(0, $days),
                 'bucket' => $bucket,
             ];
@@ -221,6 +500,7 @@ class InvoiceService
             'account_id' => $this->accountId('1250'),
             'debit_amount' => (float) $invoice->total,
             'description' => $invoice->invoice_number,
+            '_fx' => self::FX_CONTROL,
         ]];
 
         foreach ($lines as $line) {
@@ -239,6 +519,7 @@ class InvoiceService
                 'account_id' => $this->revenueAccountId($line),
                 $amount < 0 ? 'debit_amount' : 'credit_amount' => abs($amount),
                 'description' => $line->description,
+                '_fx' => self::FX_LINE,
             ];
 
             if ($line->product_id) {
@@ -263,6 +544,7 @@ class InvoiceService
                 'account_id' => $accountId,
                 'credit_amount' => $amount,
                 'description' => "Sales tax {$invoice->invoice_number}",
+                '_fx' => self::FX_LINE,
             ];
         }
 
@@ -286,6 +568,7 @@ class InvoiceService
                 // belongs on the tax account, not in the cost of the thing bought.
                 'debit_amount' => $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total,
                 'description' => $line->description,
+                '_fx' => self::FX_LINE,
             ];
         }
 
@@ -294,6 +577,7 @@ class InvoiceService
                 'account_id' => $accountId,
                 'debit_amount' => $amount,
                 'description' => "Input tax {$invoice->invoice_number}",
+                '_fx' => self::FX_LINE,
             ];
         }
 
@@ -301,6 +585,7 @@ class InvoiceService
             'account_id' => $this->accountId('2400'),
             'credit_amount' => (float) $invoice->total,
             'description' => $invoice->invoice_number,
+            '_fx' => self::FX_CONTROL,
         ];
 
         return $entryLines;

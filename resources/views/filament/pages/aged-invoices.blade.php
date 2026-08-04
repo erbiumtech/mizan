@@ -54,7 +54,16 @@
                                     <span class="ml-1 text-gray-400">{{ $row['days_overdue'] }} days overdue</span>
                                 @endif
                             </td>
-                            <td class="py-1.5 pl-4 text-right tabular-nums">{{ $money($row['outstanding']) }}</td>
+                            {{-- Billed in its own currency; the total below adds up in the company's. --}}
+                            <td class="py-1.5 pl-4 text-right tabular-nums">
+                                {{ $money($row['outstanding']) }}
+                                @if(($row['currency_code'] ?? null) && $row['currency_code'] !== \App\Modules\Accounting\Models\Currency::baseCode())
+                                    <span class="block text-xs text-gray-400">
+                                        {{ $row['currency_code'] }} — {{ $money($row['outstanding_base']) }}
+                                        {{ \App\Modules\Accounting\Models\Currency::baseCode() }}
+                                    </span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
@@ -67,7 +76,7 @@
                 @if($rows !== [])
                     <tfoot>
                         <tr class="border-t-2 border-gray-300 font-semibold dark:border-white/20">
-                            <td colspan="3" class="py-2 pr-4">Total</td>
+                            <td colspan="3" class="py-2 pr-4">Total in {{ \App\Modules\Accounting\Models\Currency::baseCode() }}</td>
                             <td class="py-2 pl-4 text-right tabular-nums">{{ $money($report['total']) }}</td>
                         </tr>
                     </tfoot>
