@@ -68,29 +68,40 @@ class InvoicesTable
                     })
                     ->sortable(),
 
+                // In the invoice's own currency, not the company's: that is what the
+                // client is billed. Labelling a euro total "PKR" would be a lie a reader
+                // has no way to catch.
                 TextColumn::make('subtotal')
-                    ->money('PKR')
+                    ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('tax_amount')
                     ->label('Tax')
-                    ->money('PKR')
+                    ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->money('PKR')
+                    ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->sortable(),
 
                 TextColumn::make('amount_paid')
                     ->label('Paid')
-                    ->money('PKR')
+                    ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->sortable(),
 
                 TextColumn::make('outstanding')
                     ->label('Outstanding')
-                    ->money('PKR')
+                    ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->state(fn (Invoice $record): float => $record->outstanding()),
+
+                TextColumn::make('exchange_rate')
+                    ->label('Rate')
+                    ->state(fn (Invoice $record): ?string => $record->isForeignCurrency()
+                        ? number_format($record->rate(), 4)
+                        : null)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('memo')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -140,7 +151,7 @@ class InvoicesTable
                 ->icon('heroicon-o-banknotes')
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoicePay') ?? false) && $record->isOpen())
                 ->schema(self::paymentFields())
-                ->action(fn (array $data, Invoice $record) => self::run(fn (InvoiceService $s) => $s->recordPayment($record, (float) $data['amount'], $data['date']), 'Payment recorded')),
+                ->action(fn (array $data, Invoice $record) => self::run(fn (InvoiceService $s) => $s->recordPayment($record, (float) $data['amount'], $data['date'], isset($data['rate']) && $data['rate'] !== '' ? (float) $data['rate'] : null), 'Payment recorded')),
 
             Action::make('void')
                 ->label('Void')
@@ -172,7 +183,7 @@ class InvoicesTable
                 ->icon('heroicon-o-banknotes')
                 ->visible(fn (): bool => auth()->user()?->can('InvoicePay') ?? false)
                 ->schema(self::paymentFields())
-                ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InvoiceService $s, Invoice $i) => $s->recordPayment($i, (float) $data['amount'], $data['date']), 'Payment recorded')),
+                ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InvoiceService $s, Invoice $i) => $s->recordPayment($i, (float) $data['amount'], $data['date'], isset($data['rate']) && $data['rate'] !== '' ? (float) $data['rate'] : null), 'Payment recorded')),
 
             BulkAction::make('voidBulk')
                 ->label('Void')
@@ -191,7 +202,20 @@ class InvoicesTable
     {
         return [
             DatePicker::make('date')->required()->default(now()->toDateString()),
-            TextInput::make('amount')->numeric()->step(0.01)->required()->minValue(0.01),
+            TextInput::make('amount')->numeric()->step(0.01)->required()->minValue(0.01)
+                ->helperText(fn (?Invoice $record): ?string => $record?->isForeignCurrency()
+                    ? 'In '.$record->currencyCode().', which is what the invoice is billed in.'
+                    : null),
+
+            // A bank advice saying what actually landed is a fact, and the rate table is
+            // only an estimate of it — so the fact can be typed in.
+            TextInput::make('rate')
+                ->label('Rate the bank gave')
+                ->numeric()
+                ->minValue(0)
+                ->visible(fn (?Invoice $record): bool => $record?->isForeignCurrency() ?? false)
+                ->helperText('Leave blank to use the rate in force on the payment date. The difference from '
+                    .'the rate the invoice was raised at is a realised gain or loss.'),
         ];
     }
 
