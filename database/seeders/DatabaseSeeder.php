@@ -59,6 +59,7 @@ class DatabaseSeeder extends Seeder
                     PettyCashSeeder::class,
                     InventorySeeder::class,
         ContactSeeder::class,
+        TaxRateSeeder::class,
                     InvoiceSeeder::class,
     ];
 
