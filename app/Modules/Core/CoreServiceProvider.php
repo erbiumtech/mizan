@@ -8,6 +8,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CustomField;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\TableView;
+use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Core\Models\User;
 use App\Modules\Core\Policies\ActivityLogPolicy;
 use App\Modules\Core\Policies\PermissionPolicy;
@@ -17,6 +18,7 @@ use App\Modules\Core\Policies\CompanyPolicy;
 use App\Modules\Core\Policies\CustomFieldPolicy;
 use App\Modules\Core\Policies\FiscalYearPolicy;
 use App\Modules\Core\Policies\TableViewPolicy;
+use App\Modules\Core\Policies\EmailTemplatePolicy;
 use App\Modules\Core\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -43,6 +45,7 @@ class CoreServiceProvider extends ServiceProvider
         CustomField::class => CustomFieldPolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
         TableView::class => TableViewPolicy::class,
+        EmailTemplate::class => EmailTemplatePolicy::class,
         User::class => UserPolicy::class,
 
         // Vendor models Core owns the authorization for. The activity log is
