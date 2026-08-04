@@ -39,6 +39,110 @@ class FinancialReportService
     }
 
     /**
+     * Statement of position: what the company owns, owes, and what is left over.
+     *
+     * Built from the trial balance rather than from the ledger again, so the two
+     * cannot disagree — which is the property that makes a balance sheet worth
+     * printing.
+     *
+     * Earnings not yet closed are shown as their own equity line. Income and
+     * expense accounts measure a period and are zeroed into Retained Earnings only
+     * at year-end (FiscalYearClosingService), so between closes the profit so far
+     * sits in those accounts and nowhere else — omit it and assets exceed
+     * liabilities plus equity by exactly the profit. Taken as the cumulative
+     * income less expense balance, which needs no knowledge of which years are
+     * closed: a closed year's accounts are already zero.
+     */
+    public function balanceSheet(?string $asOf = null, ?int $fiscalYearId = null): array
+    {
+        $report = $this->ledger->trialBalance($asOf, $fiscalYearId);
+
+        $assets = $this->positionSection($report['rows'], 'asset');
+        $liabilities = $this->positionSection($report['rows'], 'liability');
+        $equity = $this->positionSection($report['rows'], 'equity');
+
+        $earnings = round(
+            $this->positionSection($report['rows'], 'income')['total']
+            - $this->positionSection($report['rows'], 'expense')['total'],
+            2
+        );
+
+        $equityTotal = round($equity['total'] + $earnings, 2);
+        $fundingTotal = round($liabilities['total'] + $equityTotal, 2);
+
+        return [
+            'as_of' => $report['as_of'],
+            'fiscal_year_id' => $fiscalYearId,
+            'assets' => $assets,
+            'liabilities' => $liabilities,
+            'equity' => $equity,
+            'retained_earnings_for_period' => $earnings,
+            'equity_total' => $equityTotal,
+            'liabilities_and_equity_total' => $fundingTotal,
+            'balanced' => bccomp(
+                number_format($assets['total'], 2, '.', ''),
+                number_format($fundingTotal, 2, '.', ''),
+                2
+            ) === 0,
+            // The same half-opened-book warning the trial balance carries: every
+            // opening entry credits this one account, so a leftover balance means
+            // only some accounts were opened.
+            'opening_balance_equity' => $this->openingBalanceEquity($report['rows']),
+        ];
+    }
+
+    /** Which side each section of a statement is measured from. */
+    private const SECTION_SIDE = [
+        'asset' => 'debit',
+        'expense' => 'debit',
+        'liability' => 'credit',
+        'equity' => 'credit',
+        'income' => 'credit',
+    ];
+
+    /**
+     * One section of the statement, with accounts that hold nothing left out.
+     *
+     * Signed by the section, not by the account. An account whose balance sits
+     * against its section shows as a negative and *reduces* the section, which is
+     * what a contra account is for: 1500 Accumulated Depreciation is an asset with
+     * a credit balance, and it belongs in assets as a deduction. Signing it by its
+     * own normal balance would add 20,000 of depreciation to what the company owns.
+     *
+     * It is also what keeps the statement in balance. Debits less credits across
+     * every account is zero, so assets less liabilities less equity less income
+     * plus expenses is zero — the identity only holds while each section is
+     * measured from its own side.
+     *
+     * @param  array<int, array<string, mixed>>  $rows  trial balance rows
+     * @return array{rows: array<int, array{code: string, name: string, amount: float}>, total: float}
+     */
+    protected function positionSection(array $rows, string $type): array
+    {
+        $section = [];
+        $total = 0.0;
+
+        foreach ($rows as $row) {
+            if ($row['type'] !== $type) {
+                continue;
+            }
+
+            $amount = (self::SECTION_SIDE[$type] ?? 'debit') === 'debit'
+                ? round($row['debit'] - $row['credit'], 2)
+                : round($row['credit'] - $row['debit'], 2);
+
+            if (abs($amount) < 0.005) {
+                continue;
+            }
+
+            $section[] = ['code' => $row['code'], 'name' => $row['name'], 'amount' => $amount];
+            $total += $amount;
+        }
+
+        return ['rows' => $section, 'total' => round($total, 2)];
+    }
+
+    /**
      * State of the Opening Balance Equity account.
      *
      * A trial balance can be perfectly in balance and still be wrong in a
