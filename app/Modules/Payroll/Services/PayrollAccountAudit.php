@@ -25,7 +25,7 @@ class PayrollAccountAudit
      * One row per payroll line: the code in force, where it came from, and the
      * account it resolves to (null when it resolves to nothing).
      *
-     * @return array<int, array{key: string, code: string|null, source: string, account: Account|null}>
+     * @return array<int, array{key: string, code: string|null, source: string, account: Account|null, refusal: string|null}>
      */
     public function report(): array
     {
@@ -35,14 +35,36 @@ class PayrollAccountAudit
         return collect(array_keys((array) config(self::SETTING_KEY)))
             ->map(function (string $key) use ($overrides, $effective): array {
                 $code = $effective[$key] ?? null;
+                $account = filled($code) ? Account::where('code', $code)->first() : null;
 
                 return [
                     'key' => $key,
                     'code' => filled($code) ? (string) $code : null,
                     'source' => array_key_exists($key, $overrides) && filled($overrides[$key]) ? 'override' : 'default',
-                    'account' => filled($code) ? Account::where('code', $code)->first() : null,
+                    'account' => $account,
+                    'refusal' => $account?->entryRefusalReason(),
                 ];
             })
+            ->all();
+    }
+
+    /**
+     * Payroll lines whose account exists but cannot receive entries.
+     *
+     * A separate answer from broken(): the code is right and the mapping is fine,
+     * the account itself is in the wrong shape — usually because it was given a
+     * sub-account and quietly became a group header. Clearing the override would
+     * not help, so these are always for a human to fix in the chart.
+     *
+     * @return array<string, string> key => reason, prefixed with the account
+     */
+    public function unpostable(): array
+    {
+        return collect($this->report())
+            ->filter(fn (array $row) => $row['refusal'] !== null)
+            ->mapWithKeys(fn (array $row) => [
+                $row['key'] => "{$row['account']->code} ({$row['account']->name}): {$row['refusal']}",
+            ])
             ->all();
     }
 

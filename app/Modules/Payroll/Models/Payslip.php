@@ -244,6 +244,52 @@ class Payslip extends Model
                 });
         });
 
+        // Expense claims the payslip reimburses. Same shape as the advances above:
+        // idempotent per payslip, because payroll recalculates on every save, and
+        // reversed on delete — a claim whose payslip is gone is owed again.
+        $syncClaims = function ($payslip) {
+            if (! modules()->enabled('expenses')) {
+                return;
+            }
+
+            app(\App\Modules\Expenses\Services\ExpenseClaimService::class)->settleAgainst($payslip);
+        };
+
+        static::saved(function ($payslip) use ($syncClaims) {
+            if (! static::isReviewOnlyChange($payslip->getChanges())) {
+                $syncClaims($payslip);
+            }
+        });
+
+        // Two phases, because expense_claims.payslip_id is nullOnDelete: by the time
+        // `deleted` runs the database has already cut the link, so the claims have to
+        // be noted while the payslip still exists and released once it is gone.
+        $claimsToRelease = [];
+
+        static::deleting(function ($payslip) use (&$claimsToRelease) {
+            if (! modules()->enabled('expenses')) {
+                return;
+            }
+
+            $claimsToRelease = \App\Modules\Expenses\Models\ExpenseClaim::where('payslip_id', $payslip->getKey())
+                ->pluck('id')
+                ->all();
+        });
+
+        static::deleted(function ($payslip) use (&$claimsToRelease) {
+            if (! modules()->enabled('expenses') || $claimsToRelease === []) {
+                return;
+            }
+
+            $service = app(\App\Modules\Expenses\Services\ExpenseClaimService::class);
+
+            foreach (\App\Modules\Expenses\Models\ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
+                $service->release($claim);
+            }
+
+            $claimsToRelease = [];
+        });
+
         // Ledger integration: (re)create the payroll journal entry on save,
         // reverse/remove it on delete.
         static::saved(function ($payslip) {

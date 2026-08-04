@@ -36,6 +36,21 @@ class PayslipService
     }
 
     /**
+     * What this employee is owed back in approved expense claims, or 0.0 when the
+     * module is off — the same guarded shape as the advance ledger, so payroll works
+     * with or without Expenses installed.
+     */
+    protected function expenseClaimsFor($employeeId, ?int $payslipId = null): float
+    {
+        if (! modules()->enabled('expenses')) {
+            return 0.0;
+        }
+
+        return app(\App\Modules\Expenses\Services\ExpenseClaimService::class)
+            ->reimbursableFor((int) $employeeId, $payslipId);
+    }
+
+    /**
      * Calculate payslip data based on employee settings for a specific month and fiscal year using date ranges.
      */
     public function calculateByParams(
@@ -70,7 +85,13 @@ class PayslipService
             'esi_health_insurance' => ((float)$esiInsurance > 0) ? (float)$esiInsurance : (float)$setting->esi_health_insurance,
             'bonus'                => ((float)$bonus > 0) ? (float)$bonus : (float)($setting->bonus ?? 0),
             'extra_work_hours'     => ((float)$extraWorkHours > 0) ? (float)$extraWorkHours : (float)($setting->extra_work_hours ?? 0),
-            'expense_reimbursement' => (float) ($expenseReimbursement ?? 0),
+            // From the approved claims when there are any, so the figure on the
+            // payslip is the sum of things somebody approved rather than a number
+            // typed with nothing behind it. An explicit amount still wins: paying a
+            // reimbursement outside the claim process is a legitimate correction.
+            'expense_reimbursement' => ((float) $expenseReimbursement > 0)
+                ? (float) $expenseReimbursement
+                : $this->expenseClaimsFor($employeeId, $payslipId),
         ];
 
         // Current Month Total Earnings Base (Form values ke sath)

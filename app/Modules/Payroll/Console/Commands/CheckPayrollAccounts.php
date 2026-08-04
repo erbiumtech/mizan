@@ -44,16 +44,39 @@ class CheckPayrollAccounts extends Command
                 $row['key'],
                 $row['code'] ?? '—',
                 $row['source'],
-                $row['account']?->name ?? '<fg=red>MISSING</>',
+                match (true) {
+                    $row['account'] === null => '<fg=red>MISSING</>',
+                    $row['refusal'] !== null => "<fg=red>{$row['account']->name} — UNPOSTABLE</>",
+                    default => $row['account']->name,
+                },
             ])->all(),
         );
 
         $broken = $audit->broken();
+        $unpostable = $audit->unpostable();
+
+        // Reported before the --fix path: repair() only clears bad overrides, and
+        // an account in the wrong shape is not that. Left unsaid, a run that fixed
+        // nothing else would print "All payroll account codes resolve."
+        if ($unpostable !== []) {
+            $this->newLine();
+            $this->error(count($unpostable).' payroll code(s) point at an account that cannot receive entries:');
+
+            foreach ($unpostable as $key => $reason) {
+                $this->line("  - {$key} → {$reason}");
+            }
+
+            $this->line('Payroll posts to leaf accounts only. Fix these under Accounting → Chart of Accounts');
+            $this->line('(move the sub-account elsewhere, or re-activate the account), or point the payroll line');
+            $this->line('at a different code under Company Settings → Payroll.');
+        }
 
         if ($broken === []) {
-            $this->info('All payroll account codes resolve.');
+            if ($unpostable === []) {
+                $this->info('All payroll account codes resolve.');
+            }
 
-            return self::SUCCESS;
+            return $unpostable === [] ? self::SUCCESS : self::FAILURE;
         }
 
         $this->error(count($broken).' payroll code(s) do not exist in this chart of accounts:');
@@ -95,6 +118,6 @@ class CheckPayrollAccounts extends Command
             return self::FAILURE;
         }
 
-        return self::SUCCESS;
+        return $unpostable === [] ? self::SUCCESS : self::FAILURE;
     }
 }

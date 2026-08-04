@@ -88,6 +88,7 @@ class ModuleBoundaryTest extends TestCase
         // MonthlyBillingService::creditLines() for Billing.
         'payroll' => ['accounting'],
         'billing' => ['advances'],
+        'expenses' => ['accounting'],
 
         // Debt.
         'accounting' => ['employees', 'payroll', 'invoicing', 'inventory'],
@@ -181,6 +182,15 @@ class ModuleBoundaryTest extends TestCase
             // import would make the pair a cycle. That call site is guarded too, in
             // PayslipService::advanceInstalmentFor().
             'billing' => ['advances'],
+
+            // A claim's category is a TransactionType and its alternative settlement
+            // is a Payment, both optional: the category is nullable and a claim is
+            // reimbursed through the payslip, not the ledger. Expenses declares
+            // Payroll, which is where the money actually reaches the employee, and
+            // does not declare Accounting for the same reason Payroll does not —
+            // requiring it would make the module unsellable to a company that keeps
+            // its books elsewhere.
+            'expenses' => ['accounting'],
         ];
 
         foreach ($guarded as $module => $targets) {

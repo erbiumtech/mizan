@@ -57,6 +57,9 @@ final class ModuleMap
             'App\Models\Advance' => \App\Modules\Advances\Models\Advance::class,
             'App\Models\AdvanceRecovery' => \App\Modules\Advances\Models\AdvanceRecovery::class,
         ],
+        'expenses' => [
+            'App\Models\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
+        ],
         'payroll' => [
             'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
             'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
@@ -124,6 +127,9 @@ final class ModuleMap
         ],
         'advances' => [
             'App\Filament\Resources\Advances\AdvanceResource' => \App\Modules\Advances\Filament\Resources\Advances\AdvanceResource::class,
+        ],
+        'expenses' => [
+            'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
         ],
         'payroll' => [
             'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
@@ -236,6 +242,7 @@ final class ModuleMap
         'core' => ['User', 'Role', 'Permission', 'ActivityLog', 'Comment', 'FiscalYear'],
         'employees' => ['Employee', 'EmployeeSetting'],
         'advances' => ['Advance'],
+        'expenses' => ['ExpenseClaim'],
         'payroll' => ['Payslip', 'SalarySlab', 'AnnualTax'],
         'accounting' => [
             'Account', 'Bank', 'BankStatement', 'Beneficiary', 'CompanyBankAccount',
