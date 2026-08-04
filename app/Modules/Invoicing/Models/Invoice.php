@@ -31,7 +31,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'invoice_number', 'kind', 'contact_id', 'invoice_date', 'due_date',
-        'status', 'subtotal', 'tax_amount', 'total', 'amount_paid', 'memo',
+        'status', 'subtotal', 'tax_amount', 'tax_inclusive', 'total', 'amount_paid', 'memo',
         'journal_entry_id', 'fiscal_year_id',
     ];
 
@@ -45,6 +45,7 @@ class Invoice extends Model
         'due_date' => 'date',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
+        'tax_inclusive' => 'boolean',
         'total' => 'decimal:2',
         'amount_paid' => 'decimal:2',
     ];

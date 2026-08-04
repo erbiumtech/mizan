@@ -8,6 +8,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class InvoiceForm
@@ -47,11 +48,16 @@ class InvoiceForm
                     ->required()
                     ->minValue(0),
 
+                Toggle::make('tax_inclusive')
+                    ->label('Line amounts include tax')
+                    ->helperText('The same rate is quoted inclusive by one client and exclusive by another, so it is the invoice that says which.'),
+
                 TextInput::make('tax_amount')
                     ->label('Tax')
                     ->numeric()
                     ->required()
-                    ->minValue(0),
+                    ->minValue(0)
+                    ->helperText('Computed from the lines\' rates when any line has one, on issue. Typed only for an invoice that carries no rates.'),
 
                 TextInput::make('total')
                     ->label('Total')

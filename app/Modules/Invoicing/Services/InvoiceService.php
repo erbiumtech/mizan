@@ -10,6 +10,7 @@ use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
+use App\Modules\Invoicing\Models\TaxRate;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
 use Illuminate\Support\Carbon;
@@ -35,7 +36,11 @@ class InvoiceService
             throw new InvalidArgumentException("Only draft invoices can be issued (invoice is {$invoice->status}).");
         }
 
-        $lines = $invoice->lines()->with('product')->get();
+        // Before the totals are checked, so an invoice built from rates is issued
+        // with the tax those rates give rather than whatever was last saved.
+        $this->applyTaxes($invoice);
+
+        $lines = $invoice->lines()->with(['product', 'taxRate'])->get();
 
         if ($lines->isEmpty()) {
             throw new InvalidArgumentException('Invoice has no lines.');
@@ -206,7 +211,11 @@ class InvoiceService
             // as a negative credit would be dropped by postSystemEntry's filter and
             // leave the entry short by that amount, failing on the balance check
             // with nothing to point at.
-            $amount = (float) $line->line_total;
+            //
+            // Net of the line's own tax: on an inclusive invoice the line amount is
+            // gross, and crediting all of it to revenue would book the tax as
+            // income and leave the entry unbalanced by exactly the tax.
+            $amount = $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total;
 
             $entryLines[] = [
                 'account_id' => $this->revenueAccountId($line),
@@ -231,10 +240,10 @@ class InvoiceService
             }
         }
 
-        if ((float) $invoice->tax_amount > 0) {
+        foreach ($this->taxByAccount($invoice, $lines) as $accountId => $amount) {
             $entryLines[] = [
-                'account_id' => $this->accountId('2150'),
-                'credit_amount' => (float) $invoice->tax_amount,
+                'account_id' => $accountId,
+                'credit_amount' => $amount,
                 'description' => "Sales tax {$invoice->invoice_number}",
             ];
         }
@@ -255,15 +264,17 @@ class InvoiceService
                 'account_id' => $line->product_id
                     ? ($line->product->inventory_account_id ?? $this->accountId('1300'))
                     : $this->expenseAccountId($line),
-                'debit_amount' => (float) $line->line_total,
+                // Net, for the same reason as a sale: the tax is recoverable and
+                // belongs on the tax account, not in the cost of the thing bought.
+                'debit_amount' => $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total,
                 'description' => $line->description,
             ];
         }
 
-        if ((float) $invoice->tax_amount > 0) {
+        foreach ($this->taxByAccount($invoice, $lines) as $accountId => $amount) {
             $entryLines[] = [
-                'account_id' => $this->accountId('2150'),
-                'debit_amount' => (float) $invoice->tax_amount,
+                'account_id' => $accountId,
+                'debit_amount' => $amount,
                 'description' => "Input tax {$invoice->invoice_number}",
             ];
         }
@@ -275,6 +286,41 @@ class InvoiceService
         ];
 
         return $entryLines;
+    }
+
+    /**
+     * The invoice's tax, split by the account each rate posts to.
+     *
+     * Grouped rather than lumped onto one account, because two taxes on one
+     * invoice — a sales tax and a provincial levy — are two liabilities to two
+     * authorities, and a single 2150 balance cannot be filed against either.
+     *
+     * An invoice with no rates on its lines falls back to its own tax_amount on the
+     * shipped account: that is every invoice raised before rates existed, and they
+     * must keep posting exactly as they did.
+     *
+     * @return array<int, float> account id => tax
+     */
+    protected function taxByAccount(Invoice $invoice, $lines): array
+    {
+        $byAccount = [];
+
+        foreach ($lines as $line) {
+            $tax = round((float) $line->tax_amount, 2);
+
+            if ($tax === 0.0 || ! $line->taxRate) {
+                continue;
+            }
+
+            $accountId = $line->taxRate->accountId() ?? $this->accountId(TaxRate::DEFAULT_ACCOUNT_CODE);
+            $byAccount[$accountId] = round(($byAccount[$accountId] ?? 0) + $tax, 2);
+        }
+
+        if ($byAccount === [] && (float) $invoice->tax_amount > 0) {
+            $byAccount[$this->accountId(TaxRate::DEFAULT_ACCOUNT_CODE)] = round((float) $invoice->tax_amount, 2);
+        }
+
+        return $byAccount;
     }
 
     protected function recordMovement(Invoice $invoice, InvoiceLine $line, JournalEntry $entry): StockMovement
@@ -344,6 +390,57 @@ class InvoiceService
         $movement->update(['remaining_quantity' => 0]);
     }
 
+    /**
+     * Work out each line's tax from its rate, and the invoice's from its lines.
+     *
+     * Only for invoices that use rates. A line with no rate contributes no tax and,
+     * when *no* line has one, the invoice's own tax_amount is left exactly as
+     * entered — that is the legacy case, and rewriting it would silently restate
+     * every invoice raised before rates existed.
+     *
+     * Subtotal is always net of tax. On an inclusive invoice the line amount is
+     * gross, so the revenue is what is left once the tax comes out; on an exclusive
+     * one the line amount is already net and the tax is added on top. Either way
+     * total = subtotal + tax, so the ledger sees one shape.
+     */
+    public function applyTaxes(Invoice $invoice): Invoice
+    {
+        $lines = $invoice->lines()->with('taxRate')->get();
+
+        if ($lines->every(fn (InvoiceLine $line): bool => $line->tax_rate_id === null)) {
+            return $invoice;
+        }
+
+        $tax = 0.0;
+        $net = 0.0;
+
+        foreach ($lines as $line) {
+            $gross = round((float) $line->line_total, 2);
+            $rate = $line->taxRate;
+
+            $lineTax = match (true) {
+                $rate === null => 0.0,
+                (bool) $invoice->tax_inclusive => $rate->taxWithin($gross),
+                default => $rate->taxOn($gross),
+            };
+
+            if (round((float) $line->tax_amount, 2) !== $lineTax) {
+                $line->forceFill(['tax_amount' => $lineTax])->save();
+            }
+
+            $tax = round($tax + $lineTax, 2);
+            $net = round($net + ($invoice->tax_inclusive ? $gross - $lineTax : $gross), 2);
+        }
+
+        $invoice->forceFill([
+            'subtotal' => $net,
+            'tax_amount' => $tax,
+            'total' => round($net + $tax, 2),
+        ])->save();
+
+        return $invoice->refresh();
+    }
+
     protected function validateTotals(Invoice $invoice, $lines): void
     {
         foreach ($lines as $line) {
@@ -352,7 +449,15 @@ class InvoiceService
             }
         }
 
-        $subtotal = round((float) $lines->sum('line_total'), 2);
+        // Net of tax, because that is what subtotal means. On an exclusive invoice
+        // that is the line sum; on an inclusive one the tax has to come out of it
+        // first, or every inclusive invoice would look mis-added.
+        $subtotal = round(
+            $lines->sum(fn (InvoiceLine $line): float => $invoice->tax_inclusive
+                ? $line->netAmount()
+                : (float) $line->line_total),
+            2
+        );
 
         if ($subtotal !== round((float) $invoice->subtotal, 2)) {
             throw new InvalidArgumentException("Invoice subtotal {$invoice->subtotal} does not match line sum {$subtotal}.");

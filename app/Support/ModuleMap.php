@@ -81,6 +81,7 @@ final class ModuleMap
             'App\Models\Contact' => \App\Modules\Invoicing\Models\Contact::class,
             'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
             'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
+            'App\Models\TaxRate' => \App\Modules\Invoicing\Models\TaxRate::class,
         ],
         'billing' => [
             'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
@@ -146,6 +147,7 @@ final class ModuleMap
             'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
             'App\Filament\Resources\Invoices\InvoiceResource' => \App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource::class,
             'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
+            'App\Filament\Resources\TaxRates\TaxRateResource' => \App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource::class,
         ],
         'billing' => [
             'App\Filament\Resources\BillingRuns\BillingRunResource' => \App\Modules\Billing\Filament\Resources\BillingRuns\BillingRunResource::class,
