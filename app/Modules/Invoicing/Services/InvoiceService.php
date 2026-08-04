@@ -3,8 +3,9 @@
 namespace App\Modules\Invoicing\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\JournalEntryService;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
@@ -12,10 +13,9 @@ use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceEvent;
 use App\Modules\Invoicing\Models\InvoiceLine;
 use App\Modules\Invoicing\Models\TaxRate;
-use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -28,8 +28,7 @@ class InvoiceService
     public function __construct(
         private JournalEntryService $journalEntryService,
         private InventoryValuationService $valuation,
-    ) {
-    }
+    ) {}
 
     public function issue(Invoice $invoice): Invoice
     {
@@ -49,7 +48,7 @@ class InvoiceService
 
         $this->validateTotals($invoice, $lines);
 
-        return DB::transaction(function () use ($invoice, $lines) {
+        return TenantTransaction::run(function () use ($invoice, $lines) {
             $entryLines = $invoice->kind === Invoice::KIND_SALE
                 ? $this->saleEntryLines($invoice, $lines)
                 : $this->purchaseEntryLines($invoice, $lines);
@@ -100,7 +99,7 @@ class InvoiceService
             );
         }
 
-        return DB::transaction(function () use ($invoice, $amount, $date) {
+        return TenantTransaction::run(function () use ($invoice, $amount, $date) {
             $cash = $this->accountId('1100');
 
             $lines = $invoice->kind === Invoice::KIND_SALE
@@ -152,7 +151,7 @@ class InvoiceService
             throw new InvalidArgumentException('Invoices with recorded payments cannot be voided.');
         }
 
-        return DB::transaction(function () use ($invoice, $user) {
+        return TenantTransaction::run(function () use ($invoice, $user) {
             foreach ($invoice->stockMovements()->get() as $movement) {
                 $this->undoMovement($invoice, $movement);
             }

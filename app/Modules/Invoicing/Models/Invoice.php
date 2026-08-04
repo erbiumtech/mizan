@@ -3,9 +3,9 @@
 namespace App\Modules\Invoicing\Models;
 
 use App\Models\Concerns\HasCustomFields;
-use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Support\ModuleMap;
 use App\Traits\Auditable;
@@ -30,6 +30,7 @@ class Invoice extends Model
     public const STATUS_VOID = 'void';
 
     protected $fillable = [
+        'recurring_invoice_id', 'period',
         'invoice_number', 'kind', 'contact_id', 'invoice_date', 'due_date',
         'status', 'subtotal', 'tax_amount', 'tax_inclusive', 'total', 'amount_paid', 'memo',
         'journal_entry_id', 'fiscal_year_id',
@@ -43,6 +44,7 @@ class Invoice extends Model
     protected $casts = [
         'invoice_date' => 'date',
         'due_date' => 'date',
+        'period' => 'date',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'tax_inclusive' => 'boolean',
@@ -65,6 +67,11 @@ class Invoice extends Model
                 ($invoice->kind === self::KIND_PURCHASE ? 'Bill' : 'Invoice').' raised as a draft',
             );
         });
+    }
+
+    public function recurringInvoice()
+    {
+        return $this->belongsTo(RecurringInvoice::class);
     }
 
     public function events()

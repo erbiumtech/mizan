@@ -2,10 +2,11 @@
 
 namespace App\Modules\Invoicing;
 
+use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
-use App\Modules\Invoicing\Models\TaxRate;
 use App\Modules\Invoicing\Models\InvoiceLine;
+use App\Modules\Invoicing\Models\TaxRate;
 use App\Modules\Invoicing\Policies\ContactPolicy;
 use App\Modules\Invoicing\Policies\InvoiceLinePolicy;
 use App\Modules\Invoicing\Policies\InvoicePolicy;
@@ -34,10 +35,13 @@ class InvoicingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->commands([RaiseRecurringInvoices::class]);
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
 
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/routes/console.php');
     }
 }
