@@ -191,6 +191,7 @@ final class ModuleMap
         'core' => [
             'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
             'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
+            'App\Filament\Pages\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
             'App\Filament\Pages\Auth\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,
             'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
