@@ -72,6 +72,8 @@ final class ModuleMap
         ],
         'accounting' => [
             'App\Models\Account' => \App\Modules\Accounting\Models\Account::class,
+            'App\Models\Currency' => \App\Modules\Accounting\Models\Currency::class,
+            'App\Models\ExchangeRate' => \App\Modules\Accounting\Models\ExchangeRate::class,
             'App\Models\JournalEntry' => \App\Modules\Accounting\Models\JournalEntry::class,
             'App\Models\JournalEntryLine' => \App\Modules\Accounting\Models\JournalEntryLine::class,
             'App\Models\TransactionType' => \App\Modules\Accounting\Models\TransactionType::class,

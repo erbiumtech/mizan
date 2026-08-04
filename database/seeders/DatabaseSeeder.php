@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
         BankSeeder::class,
         EmployeeSeeder::class,
         EmployeeSettingSeeder::class,
+        CurrencySeeder::class,
         ChartOfAccountsSeeder::class,
                     TransactionTypeSeeder::class,
         CompanyBankAccountSeeder::class,
