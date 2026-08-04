@@ -85,6 +85,7 @@ final class ModuleMap
             'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
             'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
             'App\Models\TaxRate' => \App\Modules\Invoicing\Models\TaxRate::class,
+            'App\Models\InvoiceEvent' => \App\Modules\Invoicing\Models\InvoiceEvent::class,
         ],
         'billing' => [
             'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,

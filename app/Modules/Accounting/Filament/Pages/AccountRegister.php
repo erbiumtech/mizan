@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\JournalEntryService;
+use App\Modules\Accounting\Services\BankTransferService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -330,6 +331,57 @@ class AccountRegister extends Page
     protected function getHeaderActions(): array
     {
         return [
+            // Its own action rather than a use of Add Transaction: a transfer has one
+            // direction, and leaving that to whoever is typing is how the same money
+            // came to be recorded two different ways.
+            Action::make('transfer')
+                ->label('Transfer')
+                ->icon('heroicon-o-arrows-right-left')
+                ->color('gray')
+                ->visible(fn (): bool => auth()->user()?->can('JournalEntryCreate') && auth()->user()?->can('RegisterPost'))
+                ->modalDescription('Moves money between the company\'s own cash and bank accounts. Money leaving the company is a payment, not a transfer.')
+                ->schema(fn (): array => [
+                    Select::make('from_account_id')
+                        ->label('Out of')
+                        ->options(fn (): array => app(BankTransferService::class)->accounts()
+                            ->mapWithKeys(fn (Account $a): array => [$a->id => $a->code.' '.$a->name])->all())
+                        ->default(fn () => $this->currentAccount()->id)
+                        ->required()
+                        ->native(false),
+                    Select::make('to_account_id')
+                        ->label('Into')
+                        ->options(fn (): array => app(BankTransferService::class)->accounts()
+                            ->mapWithKeys(fn (Account $a): array => [$a->id => $a->code.' '.$a->name])->all())
+                        ->required()
+                        ->native(false)
+                        ->different('from_account_id'),
+                    TextInput::make('amount')->numeric()->minValue(0.01)->required(),
+                    DatePicker::make('date')->native(false)->default(now())->required(),
+                    TextInput::make('reference')->label('Reference')->maxLength(50),
+                    TextInput::make('note')
+                        ->label('Description')
+                        ->maxLength(255)
+                        ->helperText('Left empty, it reads "Transfer 1100 → 1150".'),
+                ])
+                ->action(function (array $data): void {
+                    try {
+                        $entry = app(BankTransferService::class)->transfer(
+                            Account::findOrFail($data['from_account_id']),
+                            Account::findOrFail($data['to_account_id']),
+                            (float) $data['amount'],
+                            $data['date'],
+                            $data['reference'] ?? null,
+                            $data['note'] ?? null,
+                        );
+                    } catch (\InvalidArgumentException $e) {
+                        Notification::make()->danger()->title($e->getMessage())->send();
+
+                        return;
+                    }
+
+                    Notification::make()->success()->title("Transferred — {$entry->entry_number}.")->send();
+                }),
+
             Action::make('addTransaction')
                 ->label('Add Transaction')
                 ->icon('heroicon-o-plus')

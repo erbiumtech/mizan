@@ -9,6 +9,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
 use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Invoicing\Models\InvoiceEvent;
 use App\Modules\Invoicing\Models\InvoiceLine;
 use App\Modules\Invoicing\Models\TaxRate;
 use App\Modules\Accounting\Services\JournalEntryService;
@@ -72,6 +73,13 @@ class InvoiceService
                     ?? FiscalYear::where('is_active', true)->value('id'),
             ]);
 
+            InvoiceEvent::record(
+                $invoice,
+                InvoiceEvent::ISSUED,
+                "Issued and posted as {$entry->entry_number}",
+                (float) $invoice->total,
+            );
+
             return $invoice;
         });
     }
@@ -116,6 +124,15 @@ class InvoiceService
                     : Invoice::STATUS_PARTIALLY_PAID,
             ]);
 
+            InvoiceEvent::record(
+                $invoice,
+                InvoiceEvent::PAYMENT,
+                $invoice->outstanding() > 0
+                    ? 'Part payment received on '.$date.', '.number_format($invoice->outstanding(), 2).' still outstanding'
+                    : 'Paid in full on '.$date,
+                $amount,
+            );
+
             return $invoice;
         });
     }
@@ -145,6 +162,8 @@ class InvoiceService
             }
 
             $invoice->update(['status' => Invoice::STATUS_VOID]);
+
+            InvoiceEvent::record($invoice, InvoiceEvent::VOIDED, 'Voided and its posting reversed');
 
             return $invoice;
         });

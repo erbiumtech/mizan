@@ -52,6 +52,19 @@ class PayrollAccounts
             );
         }
 
+        // Caught here rather than in JournalEntryService::validateLines, which only
+        // knows it was handed an unpostable account and reports it as "Line 0:
+        // account 5100 cannot accept entries" — true, but it names neither the
+        // payroll line that chose it nor what to do about it.
+        if ($reason = $account->entryRefusalReason()) {
+            throw new RuntimeException(
+                "Payroll account '{$key}' points at account {$account->code} ({$account->name}), which cannot "
+                ."receive entries because {$reason}. Payroll must post to a leaf account: either fix that account "
+                .'under Accounting → Chart of Accounts, or point this line at another code under Company '
+                .'Settings → Payroll → Payroll Account Codes.'
+            );
+        }
+
         return $account->id;
     }
 }

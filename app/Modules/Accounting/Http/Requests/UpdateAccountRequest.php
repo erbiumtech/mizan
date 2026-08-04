@@ -58,6 +58,14 @@ class UpdateAccountRequest extends FormRequest
             if ($parent && $parent->type !== $type) {
                 $validator->errors()->add('parent_id', 'Parent account must have the same type.');
             }
+
+            // A posted-to account stops accepting entries once it has a child.
+            if ($parent && ! $parent->canHaveChildren()) {
+                $validator->errors()->add(
+                    'parent_id',
+                    "Account {$parent->code} ({$parent->name}) has journal entries of its own and cannot be a parent."
+                );
+            }
         });
     }
 }

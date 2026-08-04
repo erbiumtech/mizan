@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Models;
 use App\Models\TenantModel as Model;
 use App\Traits\Auditable;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 class Account extends Model
 {
@@ -52,6 +53,28 @@ class Account extends Model
                 $account->normal_balance = in_array($account->type, ['asset', 'expense'])
                     ? 'debit'
                     : 'credit';
+            }
+        });
+
+        // Giving a posted-to account a child silently retires it: canAcceptEntries()
+        // refuses parents, so every future posting to it fails while its existing
+        // lines stay behind on what is now a group header. A misfiled 5802 under
+        // 5100 Basic Salary Expense took out all payroll posting exactly this way,
+        // and the error surfaced three layers down ("Line 0: account 5100 cannot
+        // accept entries") with nothing pointing at the parent that caused it.
+        static::saving(function (Account $account) {
+            if (! $account->isDirty('parent_id') || ! $account->parent_id) {
+                return;
+            }
+
+            $parent = static::find($account->parent_id);
+
+            if ($parent && ! $parent->canHaveChildren()) {
+                throw new InvalidArgumentException(
+                    "Account {$parent->code} ({$parent->name}) already has journal entries, so it cannot "
+                    .'become a parent account. Pick a group account as the parent, or move the existing '
+                    ."entries off {$parent->code} first."
+                );
             }
         });
     }
@@ -123,6 +146,14 @@ class Account extends Model
     }
 
     /**
+     * Accounts that may be chosen as a parent: no journal lines of their own.
+     */
+    public function scopeGroupable($query)
+    {
+        return $query->whereDoesntHave('lines');
+    }
+
+    /**
      * Only active leaf accounts that allow manual entry may receive lines.
      */
     public function canAcceptEntries(): bool
@@ -136,6 +167,36 @@ class Account extends Model
         }
 
         return $this->is_active;
+    }
+
+    /**
+     * Why this account cannot receive lines, for an error a human can act on.
+     */
+    public function entryRefusalReason(): ?string
+    {
+        if (! $this->allow_manual_entry) {
+            return 'it does not allow manual entry';
+        }
+
+        if ($this->children()->exists()) {
+            return 'it has sub-accounts, which makes it a group header';
+        }
+
+        if (! $this->is_active) {
+            return 'it is inactive';
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether this account may be given sub-accounts.
+     *
+     * False once it carries journal lines: see the saving guard in booted().
+     */
+    public function canHaveChildren(): bool
+    {
+        return ! $this->lines()->exists();
     }
 
     /**
