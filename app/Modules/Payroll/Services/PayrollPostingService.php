@@ -8,6 +8,7 @@ use App\Modules\Accounting\Support\PayrollAccounts;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
+use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use RuntimeException;
 
@@ -40,8 +41,24 @@ class PayrollPostingService
             return null;
         }
 
-        $this->unwindForPayslip($payslip);
+        // One transaction over the unwind and the replacement. Resolving the
+        // accounts or validating the lines can still fail — a mapped account that
+        // has been given a sub-account is enough — and until this was wrapped, the
+        // reversal was already committed by then: the payslip's original entry had
+        // been reversed and detached, its replacement never written, and every
+        // retry failed the same way. Nothing to roll forward from, by hand.
+        return TenantTransaction::run(function () use ($payslip) {
+            $this->unwindForPayslip($payslip);
 
+            return $this->writeEntry($payslip);
+        });
+    }
+
+    /**
+     * Build and post the payslip's entry. Assumes any earlier entry is unwound.
+     */
+    protected function writeEntry(Payslip $payslip): ?JournalEntry
+    {
         $debits = [
             'basic_wage' => (float) $payslip->basic_wage,
             'medical_allowance' => (float) $payslip->medical_allowance,

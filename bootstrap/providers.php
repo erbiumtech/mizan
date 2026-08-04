@@ -5,6 +5,7 @@ use App\Modules\Advances\AdvancesServiceProvider;
 use App\Modules\Billing\BillingServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Employees\EmployeesServiceProvider;
+use App\Modules\Expenses\ExpensesServiceProvider;
 use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Invoicing\InvoicingServiceProvider;
 use App\Modules\Mpr\MprServiceProvider;
@@ -24,6 +25,7 @@ return [
     InvoicingServiceProvider::class,
     MprServiceProvider::class,
     EmployeesServiceProvider::class,
+    ExpensesServiceProvider::class,
     PayrollServiceProvider::class,
     ProjectsServiceProvider::class,
     AccountingServiceProvider::class,
