@@ -78,6 +78,18 @@ class PayrollPostingService
 
         $lines = [];
 
+        // Components added as data rather than columns, each to its own account. The
+        // entry would not balance without them: net salary already includes the
+        // allowance, so leaving the debit out would credit money nothing paid for and
+        // the posting would be refused — correctly, but with nothing to point at.
+        foreach ($this->dataDrivenLines($payslip) as [$accountId, $amount, $isEarning, $label]) {
+            $lines[] = [
+                'account_id' => $accountId,
+                $isEarning ? 'debit_amount' : 'credit_amount' => $amount,
+                'description' => "Payslip #{$payslip->id} {$label}",
+            ];
+        }
+
         foreach ($debits as $key => $amount) {
             if ($amount > 0) {
                 $lines[] = [
@@ -145,6 +157,36 @@ class PayrollPostingService
                 $entry->delete();
             }
         }
+    }
+
+    /**
+     * The payslip's data-driven components, as ledger lines.
+     *
+     * A component with no account anywhere is skipped rather than guessed at: posting
+     * an allowance to the wrong account is worse than the imbalance that follows, and
+     * the imbalance is caught immediately by the posting check.
+     *
+     * @return array<int, array{0: int, 1: float, 2: bool, 3: string}>
+     */
+    protected function dataDrivenLines(Payslip $payslip): array
+    {
+        $lines = [];
+
+        $rows = $payslip->components()->with('component')->get()
+            ->filter(fn ($row): bool => $row->component && ! $row->component->is_column_backed);
+
+        foreach ($rows as $row) {
+            $amount = round((float) $row->amount, 2);
+            $accountId = $row->component->accountId();
+
+            if ($amount <= 0 || ! $accountId) {
+                continue;
+            }
+
+            $lines[] = [$accountId, $amount, $row->component->isEarning(), $row->component->label];
+        }
+
+        return $lines;
     }
 
     protected function accountId(string $key): int

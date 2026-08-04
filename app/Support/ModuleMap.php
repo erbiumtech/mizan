@@ -61,6 +61,9 @@ final class ModuleMap
             'App\Models\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
         ],
         'payroll' => [
+            'App\Models\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
+            'App\Models\EmployeeSettingComponent' => \App\Modules\Payroll\Models\EmployeeSettingComponent::class,
+            'App\Models\PayslipComponent' => \App\Modules\Payroll\Models\PayslipComponent::class,
             'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
             'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
             'App\Models\AnnualTax' => \App\Modules\Payroll\Models\AnnualTax::class,
@@ -133,6 +136,7 @@ final class ModuleMap
             'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
         ],
         'payroll' => [
+            'App\Filament\Resources\PayComponents\PayComponentResource' => \App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource::class,
             'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
             'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource::class,
             'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,

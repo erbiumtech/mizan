@@ -67,6 +67,13 @@ class EmployeeSettingResource extends Resource
         return EmployeeSettingsTable::configure($table);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Modules\Employees\Filament\Resources\EmployeeSettings\RelationManagers\ComponentsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

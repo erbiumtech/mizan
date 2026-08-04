@@ -143,6 +143,11 @@ class Payslip extends Model
         return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');
     }
 
+    public function components()
+    {
+        return $this->hasMany(PayslipComponent::class);
+    }
+
     public function journalEntries()
     {
         return $this->morphMany(JournalEntry::class, 'source');
@@ -242,6 +247,19 @@ class Payslip extends Model
                         $advance->update(['status' => \App\Modules\Advances\Models\Advance::STATUS_ACTIVE]);
                     }
                 });
+        });
+
+        // What this payslip actually paid, component by component.
+        //
+        // Recorded rather than derived, because a package corrected in September must
+        // not change what August paid. Written on every save and reconciled rather than
+        // appended, so a corrected payslip's components follow its columns.
+        static::saved(function ($payslip) {
+            if (static::isReviewOnlyChange($payslip->getChanges())) {
+                return;
+            }
+
+            app(\App\Modules\Payroll\Services\PayComponentRecorder::class)->record($payslip);
         });
 
         // Expense claims the payslip reimburses. Same shape as the advances above:

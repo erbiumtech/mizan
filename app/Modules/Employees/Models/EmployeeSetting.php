@@ -154,6 +154,11 @@ class EmployeeSetting extends Model
         $this->setRawAttributes($this->getRawOriginal());
     }
 
+    public function components()
+    {
+        return $this->hasMany(\App\Modules\Payroll\Models\EmployeeSettingComponent::class, 'employee_setting_id');
+    }
+
     public static function getActiveSettingForDate($employeeId, $date, $fiscalYearId = null)
     {
         $fiscalYearRecord = $fiscalYearId ? FiscalYear::find($fiscalYearId) : null;
