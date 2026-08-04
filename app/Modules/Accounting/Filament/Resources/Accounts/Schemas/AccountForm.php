@@ -8,6 +8,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class AccountForm
 {
@@ -38,9 +39,21 @@ class AccountForm
                     ->required(),
 
                 // Nova: BelongsTo parent → Account — nullable, searchable.
+                //
+                // Only accounts with no journal lines are offered: an account that
+                // has been posted to stops accepting entries the moment it gains a
+                // child (Account::canHaveChildren), and the resulting failure shows
+                // up far away, in the next payroll or invoice posting.
                 Select::make('parent_id')
                     ->label('Parent Account')
-                    ->relationship('parent', 'name')
+                    ->relationship(
+                        'parent',
+                        'name',
+                        fn (Builder $query, ?Account $record) => $query
+                            ->groupable()
+                            ->when($record, fn (Builder $q) => $q->whereKeyNot($record->getKey()))
+                    )
+                    ->helperText('Only accounts without journal entries of their own can be parents.')
                     ->searchable()
                     ->preload()
                     ->nullable(),

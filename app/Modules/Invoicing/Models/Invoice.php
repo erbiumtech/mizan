@@ -57,6 +57,19 @@ class Invoice extends Model
                 $invoice->invoice_number = static::nextInvoiceNumber($invoice->kind, $invoice->invoice_date);
             }
         });
+
+        static::created(function (Invoice $invoice) {
+            InvoiceEvent::record(
+                $invoice,
+                InvoiceEvent::CREATED,
+                ($invoice->kind === self::KIND_PURCHASE ? 'Bill' : 'Invoice').' raised as a draft',
+            );
+        });
+    }
+
+    public function events()
+    {
+        return $this->hasMany(InvoiceEvent::class)->latest('id');
     }
 
     public static function nextInvoiceNumber(string $kind, $date = null): string

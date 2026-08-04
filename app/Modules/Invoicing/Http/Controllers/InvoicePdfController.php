@@ -4,6 +4,7 @@ namespace App\Modules\Invoicing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Invoicing\Models\InvoiceEvent;
 use App\Support\Pdf\Pdf;
 use Illuminate\Http\Request;
 
@@ -19,6 +20,11 @@ class InvoicePdfController extends Controller
         $record = Invoice::with(['contact', 'lines.product'])->findOrFail($invoice);
 
         abort_unless($request->user()->can('view', $record), 403);
+
+        // The closest thing to "sent" this application can witness: there is no
+        // portal and no tracked email, so what is recorded is that somebody produced
+        // the document — not that the client read it.
+        InvoiceEvent::record($record, InvoiceEvent::PRINTED, 'PDF produced');
 
         return Pdf::view('pdfs.invoice', ['invoice' => $record])
             ->name("{$record->invoice_number}.pdf")

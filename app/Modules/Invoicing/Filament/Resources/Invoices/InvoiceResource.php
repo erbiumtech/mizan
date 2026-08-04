@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\CreateInvoice;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\EditInvoice;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\ListInvoices;
+use App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers\HistoryRelationManager;
 use App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers\LinesRelationManager;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Schemas\InvoiceForm;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Tables\InvoicesTable;
@@ -54,6 +55,7 @@ class InvoiceResource extends Resource
     {
         return [
             LinesRelationManager::class,
+            HistoryRelationManager::class,
         ];
     }
 
