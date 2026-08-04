@@ -6,6 +6,7 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Support\TemplatedMail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -33,12 +34,30 @@ class PayslipIssued extends Notification implements ShouldQueue
         $payslips = app(PayslipService::class);
         $period = trim($this->payslip->month.' '.($this->payslip->fiscalYear?->name ?? ''));
 
-        return (new MailMessage)
-            ->subject("Your payslip for {$period}")
-            ->greeting('Hello '.($this->payslip->employee?->user?->name ?? 'there').',')
-            ->line("Your payslip for {$period} is attached.")
-            ->line('Net salary: '.number_format((float) $this->payslip->net_salary, 2).'.')
-            ->line('Please open it and confirm the figures are right. If something looks wrong, reject it in the portal with a note and payroll will look again.')
+        $employee = $this->payslip->employee?->user?->name ?? 'there';
+        $net = number_format((float) $this->payslip->net_salary, 2);
+
+        // The wording below is what is sent unless the company has written its own —
+        // see TemplatedMail. The PDF is attached either way.
+        $mail = TemplatedMail::apply(
+            new MailMessage,
+            'payslip_issued',
+            [
+                'employee_name' => $employee,
+                'period' => $period,
+                'net_salary' => $net,
+                'company' => \App\Modules\Core\Models\Company::current()?->name,
+            ],
+            subject: "Your payslip for {$period}",
+            greeting: "Hello {$employee},",
+            lines: [
+                "Your payslip for {$period} is attached.",
+                "Net salary: {$net}.",
+                'Please open it and confirm the figures are right. If something looks wrong, reject it in the portal with a note and payroll will look again.',
+            ],
+        );
+
+        return $mail
             ->attachData(
                 $payslips->renderPdf($this->payslip)->raw(),
                 $payslips->pdfFilename($this->payslip),

@@ -26,6 +26,25 @@ class Contact extends Model
         'is_active' => 'boolean',
     ];
 
+    public function people()
+    {
+        return $this->hasMany(ContactPerson::class);
+    }
+
+    /**
+     * Where correspondence goes.
+     *
+     * The primary named person if there is one, otherwise the contact's own address —
+     * so adding people to a client changes who is written to, and adding none changes
+     * nothing.
+     */
+    public function correspondenceEmail(): ?string
+    {
+        $primary = $this->people()->where('is_primary', true)->value('email');
+
+        return $primary ?: $this->email;
+    }
+
     public function invoices()
     {
         return $this->hasMany(Invoice::class);

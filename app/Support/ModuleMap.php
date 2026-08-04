@@ -38,6 +38,7 @@ final class ModuleMap
      */
     private const MODELS = [
         'core' => [
+            'App\Models\EmailTemplate' => \App\Modules\Core\Models\EmailTemplate::class,
             'App\Models\User' => \App\Modules\Core\Models\User::class,
             'App\Models\Company' => \App\Modules\Core\Models\Company::class,
             'App\Models\TableView' => \App\Modules\Core\Models\TableView::class,
@@ -90,6 +91,7 @@ final class ModuleMap
             'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
             'App\Models\TaxRate' => \App\Modules\Invoicing\Models\TaxRate::class,
             'App\Models\InvoiceEvent' => \App\Modules\Invoicing\Models\InvoiceEvent::class,
+            'App\Models\ContactPerson' => \App\Modules\Invoicing\Models\ContactPerson::class,
         ],
         'billing' => [
             'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
@@ -116,6 +118,7 @@ final class ModuleMap
      */
     private const RESOURCES = [
         'core' => [
+            'App\Filament\Resources\EmailTemplates\EmailTemplateResource' => \App\Modules\Core\Filament\Resources\EmailTemplates\EmailTemplateResource::class,
             'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
             'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
             'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Resources\Permissions\PermissionResource::class,
