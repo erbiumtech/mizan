@@ -30,7 +30,7 @@ class Account extends Model
     public const RETAINED_EARNINGS_CODE = '3200';
 
     protected $fillable = [
-        'code', 'name', 'type', 'normal_balance', 'parent_id',
+        'code', 'name', 'type', 'normal_balance', 'parent_id', 'currency_code',
         'is_active', 'allow_manual_entry', 'description', 'balance',
     ];
 

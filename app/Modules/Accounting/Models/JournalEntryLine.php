@@ -11,12 +11,16 @@ class JournalEntryLine extends Model
 
     protected $fillable = [
         'journal_entry_id', 'account_id', 'debit_amount', 'credit_amount', 'description', 'reconciled_at',
+        'currency_code', 'foreign_debit_amount', 'foreign_credit_amount', 'rate',
     ];
 
     protected $casts = [
         'debit_amount' => 'decimal:2',
         'credit_amount' => 'decimal:2',
         'reconciled_at' => 'datetime',
+            'foreign_debit_amount' => 'decimal:4',
+        'foreign_credit_amount' => 'decimal:4',
+        'rate' => 'decimal:8',
     ];
 
     public function journalEntry()
