@@ -6,8 +6,9 @@ use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Core\Models\User;
+use App\Support\TenantTransaction;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 class BankReconciliationService
@@ -15,9 +16,7 @@ class BankReconciliationService
     /** Auto-match date window, in days, either side of the statement line date. */
     private const DATE_WINDOW_DAYS = 3;
 
-    public function __construct(private GeneralLedgerService $generalLedger)
-    {
-    }
+    public function __construct(private GeneralLedgerService $generalLedger) {}
 
     /**
      * Import CSV-style rows into statement lines.
@@ -33,7 +32,7 @@ class BankReconciliationService
 
         $created = [];
 
-        DB::transaction(function () use ($rows, $statement, &$created) {
+        TenantTransaction::run(function () use ($rows, $statement, &$created) {
             foreach ($rows as $i => $row) {
                 if (! array_key_exists('amount', $row) || $row['amount'] === null || $row['amount'] === '') {
                     throw new InvalidArgumentException("Row {$i}: amount is required.");
@@ -61,7 +60,7 @@ class BankReconciliationService
             ->performedOn($statement)
             ->event('imported')
             ->withProperties(['rows' => count($created)])
-            ->log("Imported {$statement->id}: " . count($created) . ' statement line(s)');
+            ->log("Imported {$statement->id}: ".count($created).' statement line(s)');
 
         return $created;
     }
@@ -81,7 +80,7 @@ class BankReconciliationService
 
         $matched = 0;
 
-        DB::transaction(function () use ($statement, &$matched) {
+        TenantTransaction::run(function () use ($statement, &$matched) {
             foreach ($statement->lines()->where('match_status', BankStatementLine::STATUS_UNMATCHED)->get() as $line) {
                 $candidates = $this->candidateLedgerLines($statement)
                     ->filter(fn (JournalEntryLine $l) => $this->amountsMatch($l, $line));
@@ -143,7 +142,7 @@ class BankReconciliationService
             throw new InvalidArgumentException('Statement line is not matched.');
         }
 
-        DB::transaction(function () use ($line) {
+        TenantTransaction::run(function () use ($line) {
             if ($line->matchedLine) {
                 $line->matchedLine->update(['reconciled_at' => null]);
             }
@@ -164,7 +163,7 @@ class BankReconciliationService
     {
         $this->guardStatementOpen($line);
 
-        DB::transaction(function () use ($line) {
+        TenantTransaction::run(function () use ($line) {
             if ($line->matchedLine) {
                 $line->matchedLine->update(['reconciled_at' => null]);
             }
@@ -240,9 +239,9 @@ class BankReconciliationService
      * Unreconciled posted ledger lines on the statement's account, excluding any
      * already claimed by another statement line.
      *
-     * @return \Illuminate\Support\Collection<int, JournalEntryLine>
+     * @return Collection<int, JournalEntryLine>
      */
-    protected function candidateLedgerLines(BankStatement $statement): \Illuminate\Support\Collection
+    protected function candidateLedgerLines(BankStatement $statement): Collection
     {
         return JournalEntryLine::query()
             ->where('account_id', $statement->account_id)
@@ -253,7 +252,7 @@ class BankReconciliationService
             ->get();
     }
 
-    protected function pickCandidate(\Illuminate\Support\Collection $candidates, BankStatementLine $line): ?JournalEntryLine
+    protected function pickCandidate(Collection $candidates, BankStatementLine $line): ?JournalEntryLine
     {
         // Pass 1: exact amount + date within the window.
         $byDate = $candidates->filter(function (JournalEntryLine $l) use ($line) {
@@ -296,7 +295,7 @@ class BankReconciliationService
 
     protected function applyMatch(BankStatementLine $line, JournalEntryLine $ledgerLine, string $status): void
     {
-        DB::transaction(function () use ($line, $ledgerLine, $status) {
+        TenantTransaction::run(function () use ($line, $ledgerLine, $status) {
             $ledgerLine->update(['reconciled_at' => now()]);
 
             $line->update([

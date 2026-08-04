@@ -3,10 +3,10 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 class JournalEntryService
@@ -20,7 +20,7 @@ class JournalEntryService
     {
         $this->validateLines($lines);
 
-        return DB::transaction(function () use ($header, $lines) {
+        return TenantTransaction::run(function () use ($header, $lines) {
             $entry = JournalEntry::create(
                 $header + [
                     'status' => JournalEntry::STATUS_DRAFT,
@@ -155,7 +155,7 @@ class JournalEntryService
             );
         }
 
-        DB::transaction(function () use ($entry) {
+        TenantTransaction::run(function () use ($entry) {
             foreach ($entry->lines()->with('account')->get() as $line) {
                 $account = Account::lockForUpdate()->find($line->account_id);
 
@@ -197,7 +197,7 @@ class JournalEntryService
             throw new InvalidArgumentException('Only posted entries can be reversed.');
         }
 
-        return DB::transaction(function () use ($entry, $approver) {
+        return TenantTransaction::run(function () use ($entry, $approver) {
             $reversal = JournalEntry::create([
                 'entry_date' => now()->toDateString(),
                 'reference' => $entry->entry_number,

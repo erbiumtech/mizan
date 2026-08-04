@@ -2,123 +2,6 @@
 
 namespace App\Support;
 
-use App\Modules\Accounting\Filament\Pages\AccountRegister;
-use App\Modules\Accounting\Filament\Pages\BalanceSheet;
-use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
-use App\Modules\Accounting\Filament\Pages\CashFlow;
-use App\Modules\Accounting\Filament\Pages\GnuCashImport;
-use App\Modules\Accounting\Filament\Pages\PettyCashBook;
-use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
-use App\Modules\Accounting\Filament\Pages\TrialBalance;
-use App\Modules\Accounting\Filament\Resources\Accounts\AccountResource;
-use App\Modules\Accounting\Filament\Resources\Banks\BankResource;
-use App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLineResource;
-use App\Modules\Accounting\Filament\Resources\BankStatements\BankStatementResource;
-use App\Modules\Accounting\Filament\Resources\Beneficiaries\BeneficiaryResource;
-use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource;
-use App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource;
-use App\Modules\Accounting\Filament\Resources\JournalEntries\JournalEntryResource;
-use App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
-use App\Modules\Accounting\Filament\Resources\Payments\PaymentResource;
-use App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource;
-use App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview;
-use App\Modules\Accounting\Filament\Widgets\CashFlowChart;
-use App\Modules\Accounting\Filament\Widgets\OperationsOverview;
-use App\Modules\Accounting\Models\Account;
-use App\Modules\Accounting\Models\Bank;
-use App\Modules\Accounting\Models\BankStatement;
-use App\Modules\Accounting\Models\BankStatementLine;
-use App\Modules\Accounting\Models\Beneficiary;
-use App\Modules\Accounting\Models\BeneficiarySubscription;
-use App\Modules\Accounting\Models\CompanyBankAccount;
-use App\Modules\Accounting\Models\FixedAsset;
-use App\Modules\Accounting\Models\JournalEntry;
-use App\Modules\Accounting\Models\JournalEntryLine;
-use App\Modules\Accounting\Models\Payment;
-use App\Modules\Accounting\Models\PettyCashVoucher;
-use App\Modules\Accounting\Models\TransactionType;
-use App\Modules\Advances\Filament\Resources\Advances\AdvanceResource;
-use App\Modules\Advances\Models\Advance;
-use App\Modules\Advances\Models\AdvanceRecovery;
-use App\Modules\Billing\Filament\Resources\BillingRuns\BillingRunResource;
-use App\Modules\Billing\Models\BillingRun;
-use App\Modules\Core\Filament\Pages\Auth\EditProfile;
-use App\Modules\Core\Filament\Pages\CompanySettings;
-use App\Modules\Core\Filament\Pages\Modules;
-use App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany;
-use App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource;
-use App\Modules\Core\Filament\Resources\Comments\CommentResource;
-use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
-use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
-use App\Modules\Core\Filament\Resources\EmailTemplates\EmailTemplateResource;
-use App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource;
-use App\Modules\Core\Filament\Resources\Permissions\PermissionResource;
-use App\Modules\Core\Filament\Resources\Roles\RoleResource;
-use App\Modules\Core\Filament\Resources\Users\UserResource;
-use App\Modules\Core\Models\ActivityLog;
-use App\Modules\Core\Models\Comment;
-use App\Modules\Core\Models\Company;
-use App\Modules\Core\Models\CustomField;
-use App\Modules\Core\Models\CustomFieldValue;
-use App\Modules\Core\Models\EmailTemplate;
-use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Core\Models\Setting;
-use App\Modules\Core\Models\TableView;
-use App\Modules\Core\Models\User;
-use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource;
-use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
-use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
-use App\Modules\Employees\Models\Employee;
-use App\Modules\Employees\Models\EmployeeChangeRequest;
-use App\Modules\Employees\Models\EmployeeSetting;
-use App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource;
-use App\Modules\Expenses\Models\ExpenseClaim;
-use App\Modules\Inventory\Filament\Resources\Products\ProductResource;
-use App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource;
-use App\Modules\Inventory\Models\Product;
-use App\Modules\Inventory\Models\StockMovement;
-use App\Modules\Invoicing\Filament\Pages\AgedPayables;
-use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
-use App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource;
-use App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource;
-use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
-use App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource;
-use App\Modules\Invoicing\Models\Contact;
-use App\Modules\Invoicing\Models\ContactPerson;
-use App\Modules\Invoicing\Models\Invoice;
-use App\Modules\Invoicing\Models\InvoiceEvent;
-use App\Modules\Invoicing\Models\InvoiceLine;
-use App\Modules\Invoicing\Models\RecurringInvoice;
-use App\Modules\Invoicing\Models\RecurringInvoiceLine;
-use App\Modules\Invoicing\Models\TaxRate;
-use App\Modules\Mpr\Filament\Resources\MPRs\MPRResource;
-use App\Modules\Mpr\Models\MPR;
-use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
-use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
-use App\Modules\Payroll\Filament\Pages\TaxSummary;
-use App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource;
-use App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource;
-use App\Modules\Payroll\Filament\Resources\PayrollRuns\PayrollRunResource;
-use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
-use App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource;
-use App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart;
-use App\Modules\Payroll\Models\AnnualTax;
-use App\Modules\Payroll\Models\EmployeeSettingComponent;
-use App\Modules\Payroll\Models\PayComponent;
-use App\Modules\Payroll\Models\PayrollRun;
-use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Models\PayslipComponent;
-use App\Modules\Payroll\Models\SalarySlab;
-use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
-use App\Modules\Projects\Filament\Resources\Projects\Widgets\ProjectHealthChart;
-use App\Modules\Projects\Filament\Widgets\CertificateExpiryTable;
-use App\Modules\Projects\Filament\Widgets\EnvironmentHealthOverview;
-use App\Modules\Projects\Filament\Widgets\EnvironmentIncidentsTable;
-use App\Modules\Projects\Filament\Widgets\MyProjectsOverview;
-use App\Modules\Projects\Models\Project;
-use App\Modules\Projects\Models\ProjectEnvironment;
-use App\Modules\Projects\Models\ProjectEnvironmentCheck;
-use App\Modules\Projects\Models\ProjectEnvironmentIncident;
 use Illuminate\Support\Str;
 
 /**
@@ -155,78 +38,78 @@ final class ModuleMap
      */
     private const MODELS = [
         'core' => [
-            'App\Models\EmailTemplate' => EmailTemplate::class,
-            'App\Models\User' => User::class,
-            'App\Models\Company' => Company::class,
-            'App\Models\TableView' => TableView::class,
-            'App\Models\CustomField' => CustomField::class,
-            'App\Models\CustomFieldValue' => CustomFieldValue::class,
-            'App\Models\ActivityLog' => ActivityLog::class,
-            'App\Models\Comment' => Comment::class,
-            'App\Models\FiscalYear' => FiscalYear::class,
-            'App\Models\Setting' => Setting::class,
+            'App\Models\EmailTemplate' => \App\Modules\Core\Models\EmailTemplate::class,
+            'App\Models\User' => \App\Modules\Core\Models\User::class,
+            'App\Models\Company' => \App\Modules\Core\Models\Company::class,
+            'App\Models\TableView' => \App\Modules\Core\Models\TableView::class,
+            'App\Models\CustomField' => \App\Modules\Core\Models\CustomField::class,
+            'App\Models\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
+            'App\Models\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
+            'App\Models\Comment' => \App\Modules\Core\Models\Comment::class,
+            'App\Models\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
+            'App\Models\Setting' => \App\Modules\Core\Models\Setting::class,
         ],
         'employees' => [
-            'App\Models\Employee' => Employee::class,
-            'App\Models\EmployeeChangeRequest' => EmployeeChangeRequest::class,
-            'App\Models\EmployeeSetting' => EmployeeSetting::class,
+            'App\Models\Employee' => \App\Modules\Employees\Models\Employee::class,
+            'App\Models\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
+            'App\Models\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
         ],
         'advances' => [
-            'App\Models\Advance' => Advance::class,
-            'App\Models\AdvanceRecovery' => AdvanceRecovery::class,
+            'App\Models\Advance' => \App\Modules\Advances\Models\Advance::class,
+            'App\Models\AdvanceRecovery' => \App\Modules\Advances\Models\AdvanceRecovery::class,
         ],
         'expenses' => [
-            'App\Models\ExpenseClaim' => ExpenseClaim::class,
+            'App\Models\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
         ],
         'payroll' => [
-            'App\Models\PayrollRun' => PayrollRun::class,
-            'App\Models\PayComponent' => PayComponent::class,
-            'App\Models\EmployeeSettingComponent' => EmployeeSettingComponent::class,
-            'App\Models\PayslipComponent' => PayslipComponent::class,
-            'App\Models\Payslip' => Payslip::class,
-            'App\Models\SalarySlab' => SalarySlab::class,
-            'App\Models\AnnualTax' => AnnualTax::class,
+            'App\Models\PayrollRun' => \App\Modules\Payroll\Models\PayrollRun::class,
+            'App\Models\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
+            'App\Models\EmployeeSettingComponent' => \App\Modules\Payroll\Models\EmployeeSettingComponent::class,
+            'App\Models\PayslipComponent' => \App\Modules\Payroll\Models\PayslipComponent::class,
+            'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
+            'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
+            'App\Models\AnnualTax' => \App\Modules\Payroll\Models\AnnualTax::class,
         ],
         'accounting' => [
-            'App\Models\Account' => Account::class,
-            'App\Models\JournalEntry' => JournalEntry::class,
-            'App\Models\JournalEntryLine' => JournalEntryLine::class,
-            'App\Models\TransactionType' => TransactionType::class,
-            'App\Models\Bank' => Bank::class,
-            'App\Models\CompanyBankAccount' => CompanyBankAccount::class,
-            'App\Models\Beneficiary' => Beneficiary::class,
-            'App\Models\BeneficiarySubscription' => BeneficiarySubscription::class,
-            'App\Models\Payment' => Payment::class,
-            'App\Models\FixedAsset' => FixedAsset::class,
-            'App\Models\BankStatement' => BankStatement::class,
-            'App\Models\BankStatementLine' => BankStatementLine::class,
-            'App\Models\PettyCashVoucher' => PettyCashVoucher::class,
+            'App\Models\Account' => \App\Modules\Accounting\Models\Account::class,
+            'App\Models\JournalEntry' => \App\Modules\Accounting\Models\JournalEntry::class,
+            'App\Models\JournalEntryLine' => \App\Modules\Accounting\Models\JournalEntryLine::class,
+            'App\Models\TransactionType' => \App\Modules\Accounting\Models\TransactionType::class,
+            'App\Models\Bank' => \App\Modules\Accounting\Models\Bank::class,
+            'App\Models\CompanyBankAccount' => \App\Modules\Accounting\Models\CompanyBankAccount::class,
+            'App\Models\Beneficiary' => \App\Modules\Accounting\Models\Beneficiary::class,
+            'App\Models\BeneficiarySubscription' => \App\Modules\Accounting\Models\BeneficiarySubscription::class,
+            'App\Models\Payment' => \App\Modules\Accounting\Models\Payment::class,
+            'App\Models\FixedAsset' => \App\Modules\Accounting\Models\FixedAsset::class,
+            'App\Models\BankStatement' => \App\Modules\Accounting\Models\BankStatement::class,
+            'App\Models\BankStatementLine' => \App\Modules\Accounting\Models\BankStatementLine::class,
+            'App\Models\PettyCashVoucher' => \App\Modules\Accounting\Models\PettyCashVoucher::class,
         ],
         'invoicing' => [
-            'App\Models\Contact' => Contact::class,
-            'App\Models\Invoice' => Invoice::class,
-            'App\Models\InvoiceLine' => InvoiceLine::class,
-            'App\Models\TaxRate' => TaxRate::class,
-            'App\Models\InvoiceEvent' => InvoiceEvent::class,
-            'App\Models\ContactPerson' => ContactPerson::class,
-            'App\Models\RecurringInvoice' => RecurringInvoice::class,
-            'App\Models\RecurringInvoiceLine' => RecurringInvoiceLine::class,
+            'App\Models\Contact' => \App\Modules\Invoicing\Models\Contact::class,
+            'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
+            'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
+            'App\Models\TaxRate' => \App\Modules\Invoicing\Models\TaxRate::class,
+            'App\Models\InvoiceEvent' => \App\Modules\Invoicing\Models\InvoiceEvent::class,
+            'App\Models\ContactPerson' => \App\Modules\Invoicing\Models\ContactPerson::class,
+            'App\Models\RecurringInvoice' => \App\Modules\Invoicing\Models\RecurringInvoice::class,
+            'App\Models\RecurringInvoiceLine' => \App\Modules\Invoicing\Models\RecurringInvoiceLine::class,
         ],
         'billing' => [
-            'App\Models\BillingRun' => BillingRun::class,
+            'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
         ],
         'inventory' => [
-            'App\Models\Product' => Product::class,
-            'App\Models\StockMovement' => StockMovement::class,
+            'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
+            'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
         ],
         'projects' => [
-            'App\Models\Project' => Project::class,
-            'App\Models\ProjectEnvironment' => ProjectEnvironment::class,
-            'App\Models\ProjectEnvironmentCheck' => ProjectEnvironmentCheck::class,
-            'App\Models\ProjectEnvironmentIncident' => ProjectEnvironmentIncident::class,
+            'App\Models\Project' => \App\Modules\Projects\Models\Project::class,
+            'App\Models\ProjectEnvironment' => \App\Modules\Projects\Models\ProjectEnvironment::class,
+            'App\Models\ProjectEnvironmentCheck' => \App\Modules\Projects\Models\ProjectEnvironmentCheck::class,
+            'App\Models\ProjectEnvironmentIncident' => \App\Modules\Projects\Models\ProjectEnvironmentIncident::class,
         ],
         'mpr' => [
-            'App\Models\MPR' => MPR::class,
+            'App\Models\MPR' => \App\Modules\Mpr\Models\MPR::class,
         ],
     ];
 
@@ -237,65 +120,65 @@ final class ModuleMap
      */
     private const RESOURCES = [
         'core' => [
-            'App\Filament\Resources\EmailTemplates\EmailTemplateResource' => EmailTemplateResource::class,
-            'App\Filament\Resources\Users\UserResource' => UserResource::class,
-            'App\Filament\Resources\Roles\RoleResource' => RoleResource::class,
-            'App\Filament\Resources\Permissions\PermissionResource' => PermissionResource::class,
-            'App\Filament\Resources\Companies\CompanyResource' => CompanyResource::class,
-            'App\Filament\Resources\CustomFields\CustomFieldResource' => CustomFieldResource::class,
-            'App\Filament\Resources\ActivityLogs\ActivityLogResource' => ActivityLogResource::class,
-            'App\Filament\Resources\Comments\CommentResource' => CommentResource::class,
-            'App\Filament\Resources\FiscalYears\FiscalYearResource' => FiscalYearResource::class,
+            'App\Filament\Resources\EmailTemplates\EmailTemplateResource' => \App\Modules\Core\Filament\Resources\EmailTemplates\EmailTemplateResource::class,
+            'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
+            'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
+            'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Resources\Permissions\PermissionResource::class,
+            'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Resources\Companies\CompanyResource::class,
+            'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
+            'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
+            'App\Filament\Resources\Comments\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
+            'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
         ],
         'employees' => [
-            'App\Filament\Resources\Employees\EmployeeResource' => EmployeeResource::class,
-            'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => EmployeeChangeRequestResource::class,
-            'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => EmployeeSettingResource::class,
+            'App\Filament\Resources\Employees\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
+            'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
+            'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
         ],
         'advances' => [
-            'App\Filament\Resources\Advances\AdvanceResource' => AdvanceResource::class,
+            'App\Filament\Resources\Advances\AdvanceResource' => \App\Modules\Advances\Filament\Resources\Advances\AdvanceResource::class,
         ],
         'expenses' => [
-            'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => ExpenseClaimResource::class,
+            'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
         ],
         'payroll' => [
-            'App\Filament\Resources\PayComponents\PayComponentResource' => PayComponentResource::class,
-            'App\Filament\Resources\PayrollRuns\PayrollRunResource' => PayrollRunResource::class,
-            'App\Filament\Resources\Payslips\PayslipResource' => PayslipResource::class,
-            'App\Filament\Resources\SalarySlabs\SalarySlabResource' => SalarySlabResource::class,
-            'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => AnnualTaxResource::class,
+            'App\Filament\Resources\PayComponents\PayComponentResource' => \App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource::class,
+            'App\Filament\Resources\PayrollRuns\PayrollRunResource' => \App\Modules\Payroll\Filament\Resources\PayrollRuns\PayrollRunResource::class,
+            'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
+            'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource::class,
+            'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
         ],
         'accounting' => [
-            'App\Filament\Resources\Accounts\AccountResource' => AccountResource::class,
-            'App\Filament\Resources\JournalEntries\JournalEntryResource' => JournalEntryResource::class,
-            'App\Filament\Resources\JournalEntryLines\JournalEntryLineResource' => JournalEntryLineResource::class,
-            'App\Filament\Resources\TransactionTypes\TransactionTypeResource' => TransactionTypeResource::class,
-            'App\Filament\Resources\Banks\BankResource' => BankResource::class,
-            'App\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource' => CompanyBankAccountResource::class,
-            'App\Filament\Resources\Beneficiaries\BeneficiaryResource' => BeneficiaryResource::class,
-            'App\Filament\Resources\Payments\PaymentResource' => PaymentResource::class,
-            'App\Filament\Resources\FixedAssets\FixedAssetResource' => FixedAssetResource::class,
-            'App\Filament\Resources\BankStatements\BankStatementResource' => BankStatementResource::class,
-            'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => BankStatementLineResource::class,
+            'App\Filament\Resources\Accounts\AccountResource' => \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::class,
+            'App\Filament\Resources\JournalEntries\JournalEntryResource' => \App\Modules\Accounting\Filament\Resources\JournalEntries\JournalEntryResource::class,
+            'App\Filament\Resources\JournalEntryLines\JournalEntryLineResource' => \App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
+            'App\Filament\Resources\TransactionTypes\TransactionTypeResource' => \App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
+            'App\Filament\Resources\Banks\BankResource' => \App\Modules\Accounting\Filament\Resources\Banks\BankResource::class,
+            'App\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource' => \App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource::class,
+            'App\Filament\Resources\Beneficiaries\BeneficiaryResource' => \App\Modules\Accounting\Filament\Resources\Beneficiaries\BeneficiaryResource::class,
+            'App\Filament\Resources\Payments\PaymentResource' => \App\Modules\Accounting\Filament\Resources\Payments\PaymentResource::class,
+            'App\Filament\Resources\FixedAssets\FixedAssetResource' => \App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource::class,
+            'App\Filament\Resources\BankStatements\BankStatementResource' => \App\Modules\Accounting\Filament\Resources\BankStatements\BankStatementResource::class,
+            'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => \App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
         ],
         'invoicing' => [
-            'App\Filament\Resources\Contacts\ContactResource' => ContactResource::class,
-            'App\Filament\Resources\Invoices\InvoiceResource' => InvoiceResource::class,
-            'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => InvoiceLineResource::class,
-            'App\Filament\Resources\TaxRates\TaxRateResource' => TaxRateResource::class,
+            'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
+            'App\Filament\Resources\Invoices\InvoiceResource' => \App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource::class,
+            'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
+            'App\Filament\Resources\TaxRates\TaxRateResource' => \App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource::class,
         ],
         'billing' => [
-            'App\Filament\Resources\BillingRuns\BillingRunResource' => BillingRunResource::class,
+            'App\Filament\Resources\BillingRuns\BillingRunResource' => \App\Modules\Billing\Filament\Resources\BillingRuns\BillingRunResource::class,
         ],
         'inventory' => [
-            'App\Filament\Resources\Products\ProductResource' => ProductResource::class,
-            'App\Filament\Resources\StockMovements\StockMovementResource' => StockMovementResource::class,
+            'App\Filament\Resources\Products\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,
+            'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource::class,
         ],
         'projects' => [
-            'App\Filament\Resources\Projects\ProjectResource' => ProjectResource::class,
+            'App\Filament\Resources\Projects\ProjectResource' => \App\Modules\Projects\Filament\Resources\Projects\ProjectResource::class,
         ],
         'mpr' => [
-            'App\Filament\Resources\MPRs\MPRResource' => MPRResource::class,
+            'App\Filament\Resources\MPRs\MPRResource' => \App\Modules\Mpr\Filament\Resources\MPRs\MPRResource::class,
         ],
     ];
 
@@ -306,29 +189,30 @@ final class ModuleMap
      */
     private const PAGES = [
         'core' => [
-            'App\Filament\Pages\CompanySettings' => CompanySettings::class,
-            'App\Filament\Pages\Modules' => Modules::class,
-            'App\Filament\Pages\Auth\EditProfile' => EditProfile::class,
-            'App\Filament\Pages\Tenancy\RegisterCompany' => RegisterCompany::class,
+            'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
+            'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
+            'App\Filament\Pages\Auth\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,
+            'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
         'payroll' => [
-            'App\Filament\Pages\SalaryBankFile' => SalaryBankFile::class,
-            'App\Filament\Pages\FbrTaxFile' => FbrTaxFile::class,
-            'App\Filament\Pages\TaxSummary' => TaxSummary::class,
+            'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
+            'App\Filament\Pages\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
+            'App\Filament\Pages\TaxSummary' => \App\Modules\Payroll\Filament\Pages\TaxSummary::class,
         ],
         'invoicing' => [
-            'App\Filament\Pages\AgedReceivables' => AgedReceivables::class,
-            'App\Filament\Pages\AgedPayables' => AgedPayables::class,
+            'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
+            'App\Filament\Pages\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
         ],
         'accounting' => [
-            'App\Filament\Pages\AccountRegister' => AccountRegister::class,
-            'App\Filament\Pages\CashFlow' => CashFlow::class,
-            'App\Filament\Pages\BalanceSheet' => BalanceSheet::class,
-            'App\Filament\Pages\TrialBalance' => TrialBalance::class,
-            'App\Filament\Pages\ProfitAndLoss' => ProfitAndLoss::class,
-            'App\Filament\Pages\GnuCashImport' => GnuCashImport::class,
-            'App\Filament\Pages\PettyCashBook' => PettyCashBook::class,
-            'App\Filament\Pages\BankPaymentFile' => BankPaymentFile::class,
+            'App\Filament\Pages\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
+            'App\Filament\Pages\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
+            'App\Filament\Pages\ContractorPayments' => \App\Modules\Accounting\Filament\Pages\ContractorPayments::class,
+            'App\Filament\Pages\BalanceSheet' => \App\Modules\Accounting\Filament\Pages\BalanceSheet::class,
+            'App\Filament\Pages\TrialBalance' => \App\Modules\Accounting\Filament\Pages\TrialBalance::class,
+            'App\Filament\Pages\ProfitAndLoss' => \App\Modules\Accounting\Filament\Pages\ProfitAndLoss::class,
+            'App\Filament\Pages\GnuCashImport' => \App\Modules\Accounting\Filament\Pages\GnuCashImport::class,
+            'App\Filament\Pages\PettyCashBook' => \App\Modules\Accounting\Filament\Pages\PettyCashBook::class,
+            'App\Filament\Pages\BankPaymentFile' => \App\Modules\Accounting\Filament\Pages\BankPaymentFile::class,
         ],
     ];
 
@@ -339,22 +223,22 @@ final class ModuleMap
      */
     private const WIDGETS = [
         'payroll' => [
-            'App\Filament\Widgets\PayrollByEmployeeChart' => PayrollByEmployeeChart::class,
+            'App\Filament\Widgets\PayrollByEmployeeChart' => \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
         ],
         'accounting' => [
-            'App\Filament\Widgets\AccountBalancesOverview' => AccountBalancesOverview::class,
-            'App\Filament\Widgets\CashFlowChart' => CashFlowChart::class,
-            'App\Filament\Widgets\OperationsOverview' => OperationsOverview::class,
+            'App\Filament\Widgets\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
+            'App\Filament\Widgets\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
+            'App\Filament\Widgets\OperationsOverview' => \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
         ],
         'projects' => [
             // Nested under the resource rather than in Filament/Widgets — found by
             // ModuleCoverageTest, which is exactly the kind of class a map written
             // by hand from a directory listing misses.
-            'App\Filament\Resources\Projects\Widgets\ProjectHealthChart' => ProjectHealthChart::class,
-            'App\Filament\Widgets\MyProjectsOverview' => MyProjectsOverview::class,
-            'App\Filament\Widgets\EnvironmentHealthOverview' => EnvironmentHealthOverview::class,
-            'App\Filament\Widgets\EnvironmentIncidentsTable' => EnvironmentIncidentsTable::class,
-            'App\Filament\Widgets\CertificateExpiryTable' => CertificateExpiryTable::class,
+            'App\Filament\Resources\Projects\Widgets\ProjectHealthChart' => \App\Modules\Projects\Filament\Resources\Projects\Widgets\ProjectHealthChart::class,
+            'App\Filament\Widgets\MyProjectsOverview' => \App\Modules\Projects\Filament\Widgets\MyProjectsOverview::class,
+            'App\Filament\Widgets\EnvironmentHealthOverview' => \App\Modules\Projects\Filament\Widgets\EnvironmentHealthOverview::class,
+            'App\Filament\Widgets\EnvironmentIncidentsTable' => \App\Modules\Projects\Filament\Widgets\EnvironmentIncidentsTable::class,
+            'App\Filament\Widgets\CertificateExpiryTable' => \App\Modules\Projects\Filament\Widgets\CertificateExpiryTable::class,
         ],
     ];
 
@@ -403,7 +287,7 @@ final class ModuleMap
      * `payments.payable_type`, `custom_fields.model_type`, `table_views.resource`.
      *
      * Those are plain column writes, not morph relations, so enforceMorphMap()
-     * does not cover them — `where('source_type', Payslip::class)` would simply
+     * does not cover them — `where('source_type', \App\Modules\Payroll\Models\Payslip::class)` would simply
      * stop matching the day Payslip moves into app/Modules/Payroll, and
      * unwindForPayslip would quietly find no entries to reverse. Storing the
      * alias instead keeps every existing row valid across the move.

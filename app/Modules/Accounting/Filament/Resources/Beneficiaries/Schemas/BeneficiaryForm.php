@@ -85,7 +85,17 @@ class BeneficiaryForm
                     ->default('IBFT')
                     ->required(),
 
-                Toggle::make('is_active')
+                Toggle::make('is_contractor')
+                ->label('Contractor')
+                ->helperText('A person paid for work rather than a landlord, utility or supplier. No tax is withheld from them; it appears on the Contractor Payments report.')
+                ->live(),
+
+            TextInput::make('engagement')
+                ->label('What they do')
+                ->maxLength(255)
+                ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => (bool) $get('is_contractor')),
+
+            Toggle::make('is_active')
                     ->label('Active')
                     ->default(true),
 
