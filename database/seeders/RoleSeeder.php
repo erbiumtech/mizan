@@ -57,6 +57,8 @@ class RoleSeeder extends Seeder
             'PettyCashView', 'PettyCashCreate',
             'ProductView', 'ProductCreate', 'ProductUpdate', 'StockMove',
             'PayslipView', 'PayslipCreate', 'PayslipUpdate',
+            // The accountant runs payroll and signs the month off.
+            'PayrollRunView', 'PayrollRunLock',
             'AdvanceView', 'AdvanceCreate', 'AdvanceUpdate',
             'ExpenseClaimView', 'ExpenseClaimCreate', 'ExpenseClaimUpdate', 'ExpenseClaimApprove',
             'BillingRunView', 'BillingRunCreate', 'BillingRunUpdate',
