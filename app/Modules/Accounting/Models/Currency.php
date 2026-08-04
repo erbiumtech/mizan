@@ -52,6 +52,30 @@ class Currency extends Model
             static::whereKeyNot($currency->getKey())->where('is_base', true)->update(['is_base' => false]);
         });
 
+        /*
+         * Neither the base currency nor one that has been used can be deleted.
+         *
+         * On the model, not only in the policy: Administrators and super admins pass
+         * every policy check, and this is a rule about what the ledger can still
+         * explain, not about who is asking. A rate names the currency a posted line was
+         * converted at, and that name has to stay resolvable.
+         */
+        static::deleting(function (self $currency): void {
+            if ($currency->is_base) {
+                throw new InvalidArgumentException(
+                    "{$currency->code} is what this company's books are kept in and cannot be removed. "
+                    .'Change the base currency first, which is only possible while nothing is posted.'
+                );
+            }
+
+            if ($currency->rates()->exists()) {
+                throw new InvalidArgumentException(
+                    "{$currency->code} has ".$currency->rates()->count().' recorded rate(s), which posted lines '
+                    .'refer to. Switch it off instead so it stops being offered.'
+                );
+            }
+        });
+
         static::updating(function (self $currency): void {
             if (! $currency->isDirty('is_base') || $currency->is_base) {
                 return;

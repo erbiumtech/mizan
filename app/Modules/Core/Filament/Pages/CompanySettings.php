@@ -3,12 +3,15 @@
 namespace App\Modules\Core\Filament\Pages;
 
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\Currency;
+use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Core\Models\Company;
 use App\Support\TenantSettings;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -100,6 +103,7 @@ class CompanySettings extends Page
     public function mount(): void
     {
         $this->form->fill([
+            'base_currency' => Currency::baseCode(),
             'petty_cash_float_amount' => setting('petty_cash.float_amount'),
             'accounting_auto_post_payroll' => (bool) setting('accounting.auto_post_payroll'),
             'accounting_payroll_accounts' => setting('accounting.payroll_accounts'),
@@ -129,6 +133,25 @@ class CompanySettings extends Page
         return $schema
             ->statePath('data')
             ->components([
+                // The company's own currency, not a per-document or per-report choice:
+                // it is what every amount in this company's ledger means.
+                Section::make('Currency')
+                    ->description('What this company keeps its books in. Everything posted is recorded in it.')
+                    ->schema([
+                        Select::make('base_currency')
+                            ->label('Base currency')
+                            ->options(fn (): array => static::currencyOptions())
+                            ->selectablePlaceholder(false)
+                            ->native(false)
+                            // Fixed once anything is posted: every stored amount means
+                            // this currency, so changing it would reinterpret the ledger
+                            // rather than restate it.
+                            ->disabled(fn (): bool => static::ledgerHasEntries())
+                            ->helperText(fn (): string => static::ledgerHasEntries()
+                                ? 'Fixed: entries have been posted in this currency, and changing it would reinterpret them rather than restate them.'
+                                : 'Can still be changed because nothing has been posted yet.'),
+                    ]),
+
                 Section::make('Petty Cash')
                     ->schema([
                         TextInput::make('petty_cash_float_amount')
@@ -260,9 +283,59 @@ class CompanySettings extends Page
             ]);
     }
 
+    /** Has anything been posted in the current base currency? */
+    /**
+     * The currencies that may be chosen, and always the one in use.
+     *
+     * A company whose currency list has not been seeded, or whose base currency has
+     * since been switched off, still has a base currency — the page shows it, so it has
+     * to be a valid answer. Leaving it out makes the form reject the value it was itself
+     * given.
+     *
+     * @return array<string, string>
+     */
+    public static function currencyOptions(): array
+    {
+        $currency = Currency::class;
+
+        $options = $currency::active()
+            ->orderBy('code')
+            ->get()
+            ->mapWithKeys(fn ($row): array => [$row->code => $row->code.' — '.$row->name])
+            ->all();
+
+        $base = $currency::baseCode();
+        $name = $currency::where('code', $base)->value('name');
+
+        return $options + [$base => $name ? "{$base} — {$name}" : $base];
+    }
+
+    public static function ledgerHasEntries(): bool
+    {
+        return JournalEntryLine::exists();
+    }
+
+    private function saveBaseCurrency(?string $code): void
+    {
+        if (! $code || $code === Currency::baseCode()) {
+            return;
+        }
+
+        try {
+            Currency::where('code', $code)->firstOrFail()->update(['is_base' => true]);
+        } catch (\InvalidArgumentException $e) {
+            Notification::make()->danger()->title($e->getMessage())->send();
+        }
+    }
+
     public function save(): void
     {
         $state = $this->form->getState();
+
+        // The currency is a row, not a setting: it is what the ledger's amounts mean,
+        // and the model refuses to change it once anything is posted rather than
+        // trusting this screen to have disabled the field.
+        $this->saveBaseCurrency($state['base_currency'] ?? null);
 
         $settings = app(TenantSettings::class);
         $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);

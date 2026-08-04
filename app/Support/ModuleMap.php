@@ -152,6 +152,7 @@ final class ModuleMap
         ],
         'accounting' => [
             'App\Filament\Resources\Accounts\AccountResource' => \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::class,
+            'App\Filament\Resources\Currencies\CurrencyResource' => \App\Modules\Accounting\Filament\Resources\Currencies\CurrencyResource::class,
             'App\Filament\Resources\JournalEntries\JournalEntryResource' => \App\Modules\Accounting\Filament\Resources\JournalEntries\JournalEntryResource::class,
             'App\Filament\Resources\JournalEntryLines\JournalEntryLineResource' => \App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
             'App\Filament\Resources\TransactionTypes\TransactionTypeResource' => \App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
@@ -191,6 +192,9 @@ final class ModuleMap
      */
     private const PAGES = [
         'core' => [
+            // The hub the report pages are reached through. Core because it spans
+            // four modules; each link is gated by the page behind it.
+            'App\Filament\Pages\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
             'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
             'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
             'App\Filament\Pages\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
@@ -232,6 +236,9 @@ final class ModuleMap
             'App\Filament\Widgets\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
             'App\Filament\Widgets\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
             'App\Filament\Widgets\OperationsOverview' => \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
+        ],
+        'invoicing' => [
+            'App\Filament\Widgets\ReceivablesPayablesOverview' => \App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview::class,
         ],
         'projects' => [
             // Nested under the resource rather than in Filament/Widgets — found by
