@@ -1,5 +1,3 @@
-## Running payroll: from employee to money in the bank
-
 This chapter follows one month of salary all the way through: the records that
 have to exist first, opening the month, what the arithmetic does, what reaches
 the ledger, signing the month off, and producing the file the bank pays from.

@@ -1,5 +1,3 @@
-## Paying suppliers and other beneficiaries
-
 This chapter follows money out of the company from end to end: the standing data
 a payment needs before it can exist, raising one, approving it, sending it to the
 bank as part of a batch, and undoing each of those steps while you still can.

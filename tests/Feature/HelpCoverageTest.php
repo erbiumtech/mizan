@@ -61,11 +61,25 @@ class HelpCoverageTest extends TestCase
         ]));
     }
 
+    /**
+     * Pages that are themselves documentation, so a Help panel on them would be
+     * a help topic about reading help.
+     *
+     * @var array<int, class-string>
+     */
+    private const IS_ITSELF_HELP = [
+        \App\Modules\Core\Filament\Pages\UserManual::class,
+    ];
+
     public function test_every_standalone_page_offers_help(): void
     {
         $missing = [];
 
         foreach (ModuleMap::pages() as $page) {
+            if (in_array($page, self::IS_ITSELF_HELP, true)) {
+                continue;
+            }
+
             if ($this->helpSlugIn($page) === null) {
                 $missing[] = $page;
             }
@@ -113,7 +127,12 @@ class HelpCoverageTest extends TestCase
     {
         $dangling = [];
 
-        foreach (File::glob(resource_path('markdown/help/*.md')) as $path) {
+        $documents = [
+            ...File::glob(resource_path('markdown/help/*.md')),
+            ...File::glob(resource_path('markdown/manual/*.md')),
+        ];
+
+        foreach ($documents as $path) {
             preg_match_all('/!\[[^\]]*\]\(([^)]+)\)/', File::get($path), $matches);
 
             foreach ($matches[1] as $src) {

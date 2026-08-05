@@ -1,5 +1,3 @@
-## Advances and expense claims
-
 Both of these are money moving between the company and an employee outside
 normal salary, and both **settle through payroll** rather than having a
 screen of their own where you mark them paid. An advance is recovered from

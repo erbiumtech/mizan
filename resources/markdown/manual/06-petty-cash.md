@@ -1,5 +1,3 @@
-## Petty cash
-
 Petty cash here is a proper **imprest float**: the box is topped up to a fixed
 amount, spending is recorded against it voucher by voucher, and at the end of the
 month the box is restored to the float by paying the custodian back exactly what
