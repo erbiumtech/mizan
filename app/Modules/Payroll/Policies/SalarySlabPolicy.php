@@ -2,8 +2,8 @@
 
 namespace App\Modules\Payroll\Policies;
 
-use App\Modules\Payroll\Models\SalarySlab;
 use App\Modules\Core\Models\User;
+use App\Modules\Payroll\Models\SalarySlab;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SalarySlabPolicy

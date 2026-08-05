@@ -22,7 +22,6 @@ use UnitEnum;
 class PayslipResource extends Resource
 {
     use BelongsToModule;
-
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Payslip::class;

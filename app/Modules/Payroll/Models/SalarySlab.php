@@ -2,8 +2,8 @@
 
 namespace App\Modules\Payroll\Models;
 
-use App\Modules\Core\Models\FiscalYear;
 use App\Models\TenantModel as Model;
+use App\Modules\Core\Models\FiscalYear;
 use App\Traits\Auditable;
 
 class SalarySlab extends Model
