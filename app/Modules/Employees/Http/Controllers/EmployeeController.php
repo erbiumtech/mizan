@@ -3,8 +3,8 @@
 namespace App\Modules\Employees\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Modules\Employees\Models\Employee;
+use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
@@ -12,16 +12,16 @@ class EmployeeController extends Controller
     {
         $employee = Employee::where('user_id', $request->user()->id)->first();
 
-        if (!$employee) {
+        if (! $employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'Employee profile not found'
+                'message' => 'Employee profile not found',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $employee
+            'data' => $employee,
         ], 200);
     }
 }

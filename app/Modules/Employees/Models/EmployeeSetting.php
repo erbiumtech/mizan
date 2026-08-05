@@ -2,8 +2,8 @@
 
 namespace App\Modules\Employees\Models;
 
-use App\Modules\Core\Models\FiscalYear;
 use App\Models\TenantModel as Model;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Traits\Auditable;
 use Carbon\Carbon;

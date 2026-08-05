@@ -2,8 +2,8 @@
 
 namespace App\Modules\Employees\Policies;
 
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 

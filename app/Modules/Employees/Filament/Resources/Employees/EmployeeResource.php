@@ -24,7 +24,6 @@ use UnitEnum;
 class EmployeeResource extends Resource
 {
     use BelongsToModule;
-
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Employee::class;
