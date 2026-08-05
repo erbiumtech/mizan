@@ -87,10 +87,27 @@
                             <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($ready->sum('amount'), 2) }}</td>
                         </tr>
 
-                        @if($held->isNotEmpty())
+                        {{-- Grouped by *why*, not lumped under one reason. This line used to read
+                             "Held back until accepted" whatever the reason, so a month whose
+                             salaries had already gone out in an earlier batch was described as
+                             waiting for an acceptance that had nothing to do with it — and sent
+                             somebody looking for a screen to accept them on. --}}
+                        @foreach($held->groupBy('blocked_category') as $category => $rows)
                             <tr class="text-warning-600 dark:text-warning-400">
-                                <td colspan="6" class="py-2 pr-4">Held back until accepted ({{ $held->count() }})</td>
-                                <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($held->sum('amount'), 2) }}</td>
+                                <td colspan="6" class="py-2 pr-4">
+                                    {{ \App\Modules\Accounting\Models\Payment::blockLabel($category) }}
+                                    ({{ $rows->count() }})
+                                </td>
+                                <td class="py-2 pl-4 text-right tabular-nums">{{ number_format($rows->sum('amount'), 2) }}</td>
+                            </tr>
+                        @endforeach
+
+                        @if($held->isNotEmpty())
+                            <tr class="text-xs text-gray-500 dark:text-gray-400">
+                                <td colspan="7" class="pb-2 pr-4">
+                                    Held rows are listed above with their own reason. Already-released ones are
+                                    not waiting for anything — void the batch if that file has to be re-issued.
+                                </td>
                             </tr>
                         @endif
                     </tbody>
