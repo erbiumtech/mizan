@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Payroll\Services\WithholdingTaxSummary;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -93,6 +94,7 @@ class TaxSummary extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('tax-summary', 'Tax Summary: Help'),
             Action::make('pdf')
                 ->label('Download PDF')
                 ->icon('heroicon-o-arrow-down-tray')

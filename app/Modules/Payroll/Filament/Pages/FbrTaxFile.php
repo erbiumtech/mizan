@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Payroll\Models\Payslip;
@@ -102,6 +103,7 @@ class FbrTaxFile extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('fbr-tax-file', 'FBR Tax File: Help'),
             Action::make('downloadFbrTaxFile')
                 ->label('Download FBR Tax File')
                 ->icon('heroicon-o-arrow-down-tray')

@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Concerns\VoidsPaymentBatches;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\PaymentService;
@@ -123,6 +124,7 @@ class SalaryBankFile extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('salary-bank-file', 'Salary Bank File: Help'),
             Action::make('csv')
                 ->label('Download CSV')
                 ->icon('heroicon-o-arrow-down-tray')
