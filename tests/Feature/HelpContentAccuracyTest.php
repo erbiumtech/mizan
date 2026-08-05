@@ -125,8 +125,24 @@ class HelpContentAccuracyTest extends TestCase
     }
 
     /**
-     * Permission names cited across the help docs, mapped to the files citing
-     * them so a failure names the file to open.
+     * Both bodies of documentation: the per-screen help panels and the
+     * cross-module manual chapters. The manual names permissions just as freely,
+     * and being a walkthrough rather than a reference makes a wrong name there
+     * more misleading, not less.
+     *
+     * @return array<int, string>
+     */
+    private static function documentPaths(): array
+    {
+        return [
+            ...File::glob(resource_path('markdown/help/*.md')),
+            ...File::glob(resource_path('markdown/manual/*.md')),
+        ];
+    }
+
+    /**
+     * Permission names cited across the documentation, mapped to the files
+     * citing them so a failure names the file to open.
      *
      * @return array<string, array<int, string>>
      */
@@ -134,7 +150,7 @@ class HelpContentAccuracyTest extends TestCase
     {
         $cited = [];
 
-        foreach (File::glob(resource_path('markdown/help/*.md')) as $path) {
+        foreach (static::documentPaths() as $path) {
             preg_match_all('/`([A-Za-z]+)`/', File::get($path), $matches);
 
             foreach (array_unique($matches[1]) as $token) {

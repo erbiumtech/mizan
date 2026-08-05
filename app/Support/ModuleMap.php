@@ -198,6 +198,9 @@ final class ModuleMap
             // The hub the report pages are reached through. Core because it spans
             // four modules; each link is gated by the page behind it.
             'App\Filament\Pages\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
+            // The cross-module walkthroughs. Core because a manual that
+            // disappears with a module cannot explain the module.
+            'App\Filament\Pages\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
             'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
             'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
             'App\Filament\Pages\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
