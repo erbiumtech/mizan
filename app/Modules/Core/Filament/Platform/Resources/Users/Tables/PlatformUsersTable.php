@@ -3,9 +3,13 @@
 namespace App\Modules\Core\Filament\Platform\Resources\Users\Tables;
 
 use App\Modules\Core\Models\User;
+use App\Support\Impersonation;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -60,6 +64,7 @@ class PlatformUsersTable
                     ->query(fn ($query) => $query->whereDoesntHave('companies')),
             ])
             ->recordActions([
+                self::impersonateAction(),
                 EditAction::make(),
             ])
             ->toolbarActions([
@@ -73,5 +78,56 @@ class PlatformUsersTable
                 ]),
             ])
             ->defaultSort('name');
+    }
+
+    /**
+     * Sign in as this user, from anywhere in the installation.
+     *
+     * The cross-company half of impersonation, which used to be done from inside whichever
+     * company happened to be open — a super admin standing in one customer's URL signing in
+     * as another customer's staff. It belongs here, where the list is every account and the
+     * only people who can open the page are the ones allowed to do it.
+     *
+     * A company's own Administrator keeps the action on their own Users list for their own
+     * staff: acknowledging a salary change on behalf of somebody is a company workflow, and
+     * routing it through the platform operator would put an outside party's name on a
+     * statement of consent.
+     *
+     * Asks the service rather than the Gate, because Gate::before grants a super admin every
+     * ability and `can()` would therefore be true for every row — including another super
+     * admin, the one row that must never offer it.
+     */
+    protected static function impersonateAction(): Action
+    {
+        return Action::make('impersonate')
+            ->label('Log in as')
+            ->icon('heroicon-o-arrow-right-end-on-rectangle')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading(fn (User $record): string => 'Log in as '.$record->name)
+            ->modalDescription('You will be signed in as this user, in one of their own companies, until '
+                .'you stop. Everything you do is recorded against them and against you — including salary '
+                .'acknowledgements, which are a statement of consent.')
+            ->modalSubmitActionLabel('Log in as this user')
+            ->visible(fn (User $record): bool => app(Impersonation::class)->allows(auth()->user(), $record))
+            ->action(function (User $record) {
+                try {
+                    app(Impersonation::class)->start($record);
+                } catch (\RuntimeException $e) {
+                    Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return null;
+                }
+
+                Notification::make()
+                    ->warning()
+                    ->title('You are now signed in as '.$record->name)
+                    ->body('Use "Stop impersonating" in the banner to return to your own account.')
+                    ->send();
+
+                // Their own company, not this panel: the person you are now is not a
+                // platform admin and would be refused at the door.
+                return redirect(Filament::getPanel('admin')->getUrl());
+            });
     }
 }
