@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\PermissionCache;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 
@@ -172,5 +173,12 @@ class PermissionSeeder extends Seeder
         foreach ($permissions as $permissionData) {
             Permission::firstOrCreate($permissionData, ['guard_name' => 'web']);
         }
+
+        // Once, at the end, and across every company. Spatie invalidates its own cache on
+        // write, but only the copy belonging to the context doing the writing — and a seeder
+        // has no company, so each company kept serving the list it had cached before this ran.
+        // A permission added here and not visible there is not a stale menu: policies call
+        // hasPermissionTo(), which throws for a name it cannot find, and the panel 500s.
+        PermissionCache::flushEverywhere();
     }
 }
