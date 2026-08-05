@@ -3,3 +3,41 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../resources/views/components/**/*';
+
+/*
+ * Markdown-rendered help content (see App\Filament\Support\HelpAction) has no
+ * classes of its own to style — Str::markdown() emits plain <h2>/<ul>/<table>
+ * — and this project has no @tailwindcss/typography plugin to reach for
+ * instead.
+ */
+.help-content h2 {
+    @apply mt-6 mb-2 text-base font-semibold text-gray-950 dark:text-white;
+}
+.help-content h2:first-child {
+    @apply mt-0;
+}
+.help-content p,
+.help-content ul,
+.help-content table,
+.help-content img {
+    @apply mb-3;
+}
+.help-content ul {
+    @apply list-disc space-y-1 pl-5;
+}
+.help-content strong {
+    @apply font-semibold text-gray-950 dark:text-white;
+}
+.help-content table {
+    @apply w-full border-collapse text-left;
+}
+.help-content th,
+.help-content td {
+    @apply border-b border-gray-200 px-3 py-1.5 dark:border-white/10;
+}
+.help-content th {
+    @apply font-medium text-gray-500 dark:text-gray-400;
+}
+.help-content img {
+    @apply w-full rounded-lg ring-1 ring-gray-950/5 dark:ring-white/10;
+}
