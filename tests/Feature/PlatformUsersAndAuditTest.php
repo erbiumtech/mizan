@@ -191,6 +191,64 @@ class PlatformUsersAndAuditTest extends TestCase
         $this->assertNull(User::find($user->getKey()));
     }
 
+    // ---- Impersonation -------------------------------------------------------
+
+    /**
+     * The cross-company half of impersonation lives here now.
+     *
+     * It used to be done from inside whichever company happened to be open: a super admin
+     * standing in one customer's URL, signing in as another customer's staff. A company's own
+     * Administrator keeps the action for their own staff, because acknowledging a salary
+     * change on somebody's behalf is a company workflow and routing it through the platform
+     * operator would put an outside party's name on a statement of consent.
+     */
+    public function test_a_platform_admin_can_sign_in_as_any_companys_user(): void
+    {
+        $staff = User::factory()->create(['status' => 1]);
+        $this->second->users()->attach($staff);
+
+        Livewire::test(ListPlatformUsers::class)
+            ->callTableAction('impersonate', $staff);
+
+        $this->assertAuthenticatedAs($staff);
+        $this->assertTrue(app(\App\Support\Impersonation::class)->isActive());
+    }
+
+    public function test_the_action_is_not_offered_for_another_platform_admin(): void
+    {
+        // Privilege escalation, and pointless besides: they already have everything.
+        $other = User::factory()->create(['is_super_admin' => true, 'status' => 1]);
+        $this->first->users()->attach($other);
+
+        Livewire::test(ListPlatformUsers::class)
+            ->assertTableActionHidden('impersonate', $other);
+    }
+
+    public function test_the_action_is_not_offered_for_a_user_with_no_company(): void
+    {
+        // They would land on a panel with no tenant, and being stuck as somebody else with
+        // nothing rendering is the failure this feature must not produce.
+        $orphan = User::factory()->create(['status' => 1]);
+
+        Livewire::test(ListPlatformUsers::class)
+            ->assertTableActionHidden('impersonate', $orphan);
+    }
+
+    public function test_stopping_returns_the_platform_admin_to_the_platform_panel(): void
+    {
+        // Not to a company panel: they were administering the installation, and the screen
+        // they were on is here.
+        $staff = User::factory()->create(['status' => 1]);
+        $this->second->users()->attach($staff);
+
+        Livewire::test(ListPlatformUsers::class)->callTableAction('impersonate', $staff);
+
+        $this->post(route('impersonate.stop'))
+            ->assertRedirect(Filament::getPanel('platform')->getUrl());
+
+        $this->assertAuthenticatedAs($this->superAdmin);
+    }
+
     // ---- Permissions ---------------------------------------------------------
 
     public function test_permissions_are_administered_here_and_not_by_a_company(): void
