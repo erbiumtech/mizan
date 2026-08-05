@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Core\Models\User;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Modules\Employees\Models\Employee;
-use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
@@ -32,12 +32,36 @@ class EmployeePhoneTest extends TestCase
             ->assertHasFormErrors([
                 'phone' => 'required',
                 'nic' => 'required',
-                'bank_id' => 'required',
+                // Both bank identifiers, because neither is filled: the rule is "at least
+                // one", and which one is needed depends on the bank.
                 'bank_account_no' => 'required',
                 'iban_no' => 'required',
+                // No bank chosen, so the short code has to say who they bank with.
+                'bank_short_code' => 'required',
                 'nic_front' => 'required',
                 'nic_back' => 'required',
             ]);
+    }
+
+    /**
+     * A bank from the directory is not required, because the directory lists the banks we
+     * transfer *out* to — an employee who banks with us has none to choose, and requiring one
+     * made them unrecordable. See OwnBankAccountTest.
+     */
+    public function test_a_bank_from_the_directory_is_not_required(): void
+    {
+        Livewire::test(CreateEmployee::class)
+            ->fillForm(['bank_id' => null])
+            ->call('create')
+            ->assertHasNoFormErrors(['bank_id']);
+    }
+
+    public function test_one_bank_identifier_satisfies_the_other(): void
+    {
+        Livewire::test(CreateEmployee::class)
+            ->fillForm(['bank_account_no' => '0000001123456702', 'iban_no' => ''])
+            ->call('create')
+            ->assertHasNoFormErrors(['iban_no']);
     }
 
     public function test_phone_must_be_unique(): void
