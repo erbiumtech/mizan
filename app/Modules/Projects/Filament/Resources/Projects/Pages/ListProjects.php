@@ -3,6 +3,7 @@
 namespace App\Modules\Projects\Filament\Resources\Projects\Pages;
 
 use App\Filament\Concerns\HasSavedViews;
+use App\Filament\Support\HelpAction;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -16,6 +17,7 @@ class ListProjects extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('projects', 'Projects: Help'),
             CreateAction::make(),
             $this->saveViewAction(),
         ];
