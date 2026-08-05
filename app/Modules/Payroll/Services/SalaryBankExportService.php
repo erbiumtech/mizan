@@ -87,6 +87,7 @@ class SalaryBankExportService
                 // else by IBAN (inter-bank IBFT). See BankFileAccount.
                 'account' => $account['value'],
                 'account_kind' => $account['kind'],
+                'account_problem' => $account['problem'],
                 'bank_code' => $employee->bank?->bank_code ?? $employee->bank_code ?? '',
                 'bank_name' => $employee->bank?->bank_name ?? $employee->bank_name ?? '',
                 'bank_short_code' => $employee->bank?->bank_short_code ?? $employee->bank_short_code ?? '',
