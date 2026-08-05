@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Core\Services\CsvImportService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -107,6 +108,8 @@ class CsvImport extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('csv-import', 'CSV Import: Help'),
+
             Action::make('template')
                 ->label('Download template')
                 ->icon('heroicon-o-document-arrow-down')

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Roles\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Platform\Resources\Roles\PlatformRoleResource;
 use Filament\Resources\Pages\ListRecords;
 
@@ -18,6 +19,8 @@ class ListPlatformRoles extends ListRecords
      */
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            HelpAction::make('platform-roles', 'Platform Roles: Help'),
+        ];
     }
 }
