@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Modules\Core\Filament\Pages\Modules as ModulesPage;
-use App\Support\Modules as Registry;
-use App\Modules\Core\Filament\Resources\Companies\Pages\EditCompany;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\EditCompany;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Core\Models\User;
+use App\Support\Modules as Registry;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -245,12 +245,23 @@ class ModuleAdminTest extends TestCase
 
     // ----------------------------------------------------------------- licensing
 
+    /**
+     * Licensing happens on the platform panel now, so the tests for it stand there.
+     * Granting a company a module is not something done from inside another company, which
+     * is the whole reason that panel exists.
+     */
+    private function onThePlatformPanel(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('platform'));
+        \Filament\Facades\Filament::bootCurrentPanel();
+    }
+
     public function test_a_super_admin_grants_a_licence_from_the_company_page(): void
     {
         $this->licence('payroll', false);
 
         $this->actingAs($this->superAdmin());
-        $this->setCurrentTenant($this->company);
+        $this->onThePlatformPanel();
 
         Livewire::test(EditCompany::class, ['record' => $this->company->getRouteKey()])
             ->fillForm(['modules' => ['payroll' => true]])
@@ -273,7 +284,7 @@ class ModuleAdminTest extends TestCase
         $this->licence('payroll', true, false);
 
         $this->actingAs($this->superAdmin());
-        $this->setCurrentTenant($this->company);
+        $this->onThePlatformPanel();
 
         Livewire::test(EditCompany::class, ['record' => $this->company->getRouteKey()])
             ->fillForm(['modules' => ['payroll' => false]])
@@ -302,7 +313,7 @@ class ModuleAdminTest extends TestCase
         $this->licence('inventory', false);
 
         $this->actingAs($this->superAdmin());
-        $this->setCurrentTenant($this->company);
+        $this->onThePlatformPanel();
 
         Livewire::test(EditCompany::class, ['record' => $this->company->getRouteKey()])
             ->fillForm(['modules' => ['inventory' => true]])
@@ -316,7 +327,7 @@ class ModuleAdminTest extends TestCase
     public function test_core_is_not_offered_as_a_licence(): void
     {
         $this->actingAs($this->superAdmin());
-        $this->setCurrentTenant($this->company);
+        $this->onThePlatformPanel();
 
         Livewire::test(EditCompany::class, ['record' => $this->company->getRouteKey()])
             ->assertFormFieldDoesNotExist('modules.core');

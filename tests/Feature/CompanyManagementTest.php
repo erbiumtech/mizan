@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
-use App\Modules\Core\Filament\Resources\Companies\Pages\ListCompanies;
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\ListCompanies;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -17,6 +17,16 @@ use Tests\TestCase;
 class CompanyManagementTest extends TestCase
 {
     use InteractsWithTenant, RefreshDatabase;
+
+    /**
+     * Stand on the platform panel: no tenant, which is the context company
+     * administration now happens in.
+     */
+    private function onThePlatformPanel(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('platform'));
+        \Filament\Facades\Filament::bootCurrentPanel();
+    }
 
     public function test_only_super_admin_can_access_company_resource(): void
     {
@@ -53,7 +63,11 @@ class CompanyManagementTest extends TestCase
         $target = User::factory()->create();
 
         $this->actingAs($super);
-        $this->setCurrentTenant($company);
+
+        // On the platform panel, which is where companies are administered — there is no
+        // current company here, and appointing somebody an administrator of one is
+        // precisely the act that should not need to be performed from inside another.
+        $this->onThePlatformPanel();
 
         Livewire::test(ListCompanies::class)
             ->callTableAction('assignAdmin', $company, ['user_id' => $target->id]);

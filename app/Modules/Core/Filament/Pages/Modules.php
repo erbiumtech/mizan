@@ -2,9 +2,10 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
-use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Core\Models\User;
 use App\Support\ModuleMap;
 use App\Support\Modules as Registry;
 use BackedEnum;
@@ -109,9 +110,14 @@ class Modules extends Page
         if (auth()->user()?->isSuperAdmin()) {
             $company = Company::find($this->tenantId());
 
+            // Named for the platform panel explicitly. Companies are administered there
+            // now, and CompanyResource::getUrl() resolves against whichever panel is
+            // current — which, on this page, is always the company's own. Left to itself it
+            // asked for filament.admin.resources.companies.edit, a route that no longer
+            // exists, and the page 500ed for exactly the company this message is for.
             $url = $company
-                ? CompanyResource::getUrl('edit', ['record' => $company])
-                : CompanyResource::getUrl('index');
+                ? CompanyResource::getUrl('edit', ['record' => $company], panel: User::PLATFORM_PANEL)
+                : CompanyResource::getUrl('index', panel: User::PLATFORM_PANEL);
 
             return 'No optional modules are licensed for this company yet. As a super admin you grant '
                 .'them under <a class="fi-link" href="'.e($url).'">Licensed modules</a> on the company '

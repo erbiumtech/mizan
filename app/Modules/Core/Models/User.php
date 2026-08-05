@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
@@ -36,14 +35,92 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return config('multitenancy.landlord_database_connection_name') ?: config('database.default');
     }
 
+    /** The tenant-less panel where the installation itself is administered. */
+    public const PLATFORM_PANEL = 'platform';
+
     /**
      * Determine whether the user can access the given Filament panel.
+     *
      * Only active accounts (status = 1) may sign in — mirrors the legacy
      * status-based login rule that previously lived in NovaAuthService.
+     *
+     * The platform panel additionally requires a super admin, and this is the whole
+     * boundary: it has no tenant, so nothing there is scoped to a company, and
+     * `Gate::before` grants a super admin every ability. A single missing condition here
+     * would hand any active user the installation. Enumerated route by route in
+     * PlatformPanelAccessTest rather than sampled.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return (int) $this->status === 1;
+        if ((int) $this->status !== 1) {
+            return false;
+        }
+
+        return $panel->getId() !== self::PLATFORM_PANEL || $this->isSuperAdmin();
+    }
+
+    protected static function booted(): void
+    {
+        /*
+         * The last platform admin cannot be deleted or stood down.
+         *
+         * There is no way back from it: the platform panel admits super admins only, and
+         * `is_super_admin` is granted from that panel, so an installation with none has
+         * nobody who can appoint one. It would have to be fixed in the database.
+         *
+         * On the model rather than in a policy, for the reason this codebase has met
+         * several times now: `Gate::before` grants a super admin every ability, so a rule
+         * that must hold for everybody cannot live where the answer is "yes, you are an
+         * administrator". Deactivating counts as standing down — an inactive account
+         * cannot sign in, so it is not somebody who can appoint a replacement.
+         */
+        static::deleting(function (self $user): void {
+            if ($user->isTheLastPlatformAdmin()) {
+                throw new \InvalidArgumentException(
+                    "{$user->name} is the only platform admin left. Appoint another one first — an "
+                    .'installation with none has nobody who can grant it, and it would have to be '
+                    .'fixed in the database.'
+                );
+            }
+        });
+
+        static::updating(function (self $user): void {
+            $standingDown = ($user->isDirty('is_super_admin') && ! $user->is_super_admin)
+                || ($user->isDirty('status') && (int) $user->status !== 1);
+
+            if ($standingDown && $user->isTheLastPlatformAdmin()) {
+                throw new \InvalidArgumentException(
+                    "{$user->name} is the only platform admin left, so this would leave the "
+                    .'installation with nobody who can administer it. Appoint another one first.'
+                );
+            }
+        });
+    }
+
+    /**
+     * The only account that can still open the platform panel.
+     *
+     * Active, because an inactive one cannot sign in — counting it would let the last two
+     * be removed one after the other.
+     */
+    public function isTheLastPlatformAdmin(): bool
+    {
+        // The values as they are *stored*, not as they have just been set. Asked from an
+        // `updating` hook, the model already carries the change being validated — reading
+        // it there would ask "is the account that is no longer a platform admin the last
+        // platform admin", which is always no, and the guard would never fire.
+        $wasPlatformAdmin = (bool) ($this->exists ? $this->getOriginal('is_super_admin') : $this->is_super_admin);
+        $wasActive = (int) ($this->exists ? $this->getOriginal('status') : $this->status) === 1;
+
+        if (! $wasPlatformAdmin || ! $wasActive) {
+            return false;
+        }
+
+        return ! static::query()
+            ->where('is_super_admin', true)
+            ->where('status', 1)
+            ->whereKeyNot($this->getKey())
+            ->exists();
     }
 
     /** Global super admin — manages companies across all tenants. */
@@ -268,15 +345,6 @@ class User extends Authenticatable implements FilamentUser, HasTenants
             'is_super_admin' => 'boolean',
         ];
     }
-
-    // protected static function booted()
-    // {
-    //     static::creating(function ($user) {
-    //         if (empty($user->password)) {
-    //             $user->password = Hash::make('password');
-    //         }
-    //     });
-    // }
 
     public function mprs()
     {

@@ -38,6 +38,17 @@ class Impersonation
     public const SESSION_KEY = 'impersonator_id';
 
     /**
+     * Where to put the actor back.
+     *
+     * Impersonation starts from either panel now — a company's own Users list, or the
+     * platform one — and the way back has to land where it began. Sending a platform admin
+     * to a company panel after they finished would leave them a click away from the screen
+     * they were working on, and sending a company Administrator to /platform would show
+     * them a 403.
+     */
+    public const RETURN_URL_KEY = 'impersonator_return_url';
+
+    /**
      * May this user sign in as that one?
      */
     public function allows(?User $actor, ?User $target): bool
@@ -101,15 +112,16 @@ class Impersonation
             ])
             ->log("{$actor->email} started signing in as {$target->email}");
 
-        // Written before the swap: after Auth::login the session is regenerated
-        // and $actor is no longer the authenticated user.
+        // Both written before the swap: after Auth::login the session is regenerated and
+        // $actor is no longer the authenticated user, so neither could be worked out then.
         $actorId = $actor->getKey();
+        $returnUrl = $this->currentPanelUrl();
 
         Auth::login($target);
 
         $this->refreshSessionPasswordHash($target);
 
-        session([self::SESSION_KEY => $actorId]);
+        session([self::SESSION_KEY => $actorId, self::RETURN_URL_KEY => $returnUrl]);
 
         return $target;
     }
@@ -144,6 +156,38 @@ class Impersonation
         $this->refreshSessionPasswordHash($impersonator);
 
         return $impersonator;
+    }
+
+    /**
+     * Where the actor should be put back, or null if we never knew.
+     *
+     * Read before stop() clears it, or after — it survives the swap either way, because it
+     * is only forgotten by returnUrlAndForget().
+     */
+    public function returnUrlAndForget(): ?string
+    {
+        $url = session(self::RETURN_URL_KEY);
+
+        session()->forget(self::RETURN_URL_KEY);
+
+        return is_string($url) && $url !== '' ? $url : null;
+    }
+
+    /**
+     * The panel the actor is standing in, as a URL.
+     *
+     * Null when there is no panel — a console command or a queued job, where there is
+     * nowhere to go back to and the caller decides.
+     */
+    protected function currentPanelUrl(): ?string
+    {
+        try {
+            return Filament::getCurrentPanel()?->getUrl();
+        } catch (\Throwable) {
+            // A panel that cannot build its own URL — no tenant resolvable, for instance —
+            // must not stop somebody signing in as a user. The fallback is the caller's.
+            return null;
+        }
     }
 
     /**
@@ -194,19 +238,31 @@ class Impersonation
     /**
      * Is this target within the actor's reach?
      *
-     * For everyone else that means the company being served, below. A super admin
-     * is the exception, and asking them the same question was wrong: they switch
-     * into any company without being a member of it (getTenants() hands them all
-     * of them, canAccessTenant() lets them in), so the moment one switched to a
-     * company whose pivot row they did not happen to have, "Log in as" disappeared
-     * from every row on the page. Their reach is the installation.
+     * Reach follows the context you are standing in, which is the whole point of there
+     * being two panels.
      *
-     * What still has to hold for them is that the target has somewhere to land: a
-     * user belonging to no company arrives at a panel with no tenant, and being
-     * stuck as somebody else is the failure this feature must not produce.
+     * *In a company* — the company panel — the target must work for that company,
+     * super admin or not. A super admin needs no membership row of their own (they switch
+     * into any company; `getTenants()` hands them all of them), but they are looking at one
+     * company's people and that is who they may act as. Reaching another customer's user
+     * from inside this one's URL is the confusion the platform panel exists to remove.
+     *
+     * *In no company* — the platform panel, which only a super admin can open — reach is
+     * the installation, and the one thing that still has to hold is that the target has
+     * somewhere to land: a user belonging to no company arrives at a panel with no tenant,
+     * and being stuck as somebody else with nothing rendering is the failure this feature
+     * must not produce.
      */
     protected function canReach(User $actor, User $target): bool
     {
+        $company = Filament::getTenant() ?? Company::current();
+
+        if ($company instanceof Company) {
+            return $target->companies()->whereKey($company->getKey())->exists()
+                && ($actor->isSuperAdmin()
+                    || $actor->companies()->whereKey($company->getKey())->exists());
+        }
+
         if ($actor->isSuperAdmin()) {
             return $target->companies()->exists();
         }
@@ -215,21 +271,15 @@ class Impersonation
     }
 
     /**
-     * Do these two users both work for the company being served?
+     * Do these two work for at least one company in common?
      *
-     * With no company in context there is nothing to compare against, so this
-     * falls back to "they share at least one company" rather than allowing it
-     * outright — impersonation is not something to fail open on.
+     * Only asked with no company in context and no super admin — a console command, a
+     * queued job, a test that set neither. There is nothing to compare against, so this
+     * falls back to a shared company rather than allowing it outright: impersonation is not
+     * something to fail open on.
      */
     protected function shareCompany(User $actor, User $target): bool
     {
-        $company = Filament::getTenant() ?? Company::current();
-
-        if ($company instanceof Company) {
-            return $actor->companies()->whereKey($company->getKey())->exists()
-                && $target->companies()->whereKey($company->getKey())->exists();
-        }
-
         return $target->companies()
             ->whereIn('companies.id', $actor->companies()->pluck('companies.id'))
             ->exists();

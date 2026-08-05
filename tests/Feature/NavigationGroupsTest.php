@@ -96,15 +96,56 @@ class NavigationGroupsTest extends TestCase
         $this->assertContains('Annual Taxes', $merged);
     }
 
-    public function test_users_sit_with_roles_and_permissions(): void
+    public function test_users_sit_with_roles(): void
     {
         $navigation = $this->navigation();
 
         // A group holding Users alone said nothing its own label did not.
         $this->assertArrayNotHasKey('User', $navigation);
 
-        foreach (['Users', 'Roles', 'Permissions'] as $item) {
+        foreach (['Users', 'Roles'] as $item) {
             $this->assertContains($item, $navigation['Access Control'] ?? []);
+        }
+    }
+
+    /**
+     * Permissions is not here. The set of permissions is what the *code* checks — inventing
+     * one does nothing and deleting one breaks every company at once — so it is
+     * administered on the platform panel, while which of a company's roles hold which
+     * permissions stays with that company.
+     */
+    public function test_permissions_are_not_offered_to_a_company(): void
+    {
+        $this->assertNotContains('Permissions', $this->navigation()['Access Control'] ?? []);
+    }
+
+    /** The platform panel has its own, much shorter, set of groups. */
+    public function test_the_platform_panel_carries_only_installation_level_things(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        $this->actingAs(User::factory()->create(['is_super_admin' => true, 'status' => 1]));
+
+        Filament::setCurrentPanel(Filament::getPanel('platform'));
+        Filament::bootCurrentPanel();
+
+        $navigation = [];
+
+        foreach (Filament::getPanel('platform')->getNavigation() as $group) {
+            $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
+                ->map(fn ($item): string => $item->getLabel())
+                ->all();
+        }
+
+        $merged = array_merge(...array_values($navigation));
+
+        foreach (['Companies', 'Users', 'Permissions', 'Activity'] as $item) {
+            $this->assertContains($item, $merged, "the platform panel offers {$item}");
+        }
+
+        // Nothing that needs a company's database, which this panel has not connected.
+        foreach (['Payslips', 'Invoices', 'Fiscal Years', 'Email Templates', 'Company Settings'] as $item) {
+            $this->assertNotContains($item, $merged, "{$item} needs a tenant connection");
         }
     }
 

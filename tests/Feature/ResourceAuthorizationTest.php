@@ -4,14 +4,14 @@ namespace Tests\Feature;
 
 use App\Filament\Livewire\CommandPalette;
 use App\Modules\Accounting\Filament\Resources\Accounts\AccountResource;
-use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
-use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
-use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
 use App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource;
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
+use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
 use App\Modules\Core\Filament\Resources\Roles\RoleResource;
 use App\Modules\Core\Filament\Resources\Users\UserResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
@@ -135,7 +135,7 @@ class ResourceAuthorizationTest extends TestCase
     }
 
     /** A super admin keeps full reach — the fix must not over-restrict. */
-    public function test_a_super_admin_still_sees_company_management(): void
+    public function test_a_super_admin_may_administer_companies_but_not_from_a_company(): void
     {
         $this->seed(PermissionSeeder::class);
 
@@ -147,7 +147,11 @@ class ResourceAuthorizationTest extends TestCase
         $this->setCurrentTenant($company);
 
         $this->assertTrue(CompanyResource::canAccess());
-        $this->assertContains('Companies', $this->paletteLabels('companies'));
-        $this->assertContains('New Company', $this->paletteLabels('company'));
+
+        // Not from here, though. Companies moved to the platform panel, and the palette
+        // offers what the panel you are standing in registers — a super admin inside a
+        // company gets that company's work, and administers the installation next door.
+        $this->assertNotContains('Companies', $this->paletteLabels('companies'));
+        $this->assertNotContains('New Company', $this->paletteLabels('company'));
     }
 }
