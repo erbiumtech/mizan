@@ -305,6 +305,23 @@ Three bugs surfaced while building, all of them found by tests rather than by us
   it. Only a licence being taken away outranks an inferred grant.
 
 §9's open decisions, as resolved: path `/platform`; its own login at `/platform/login`;
-`RegisterCompany` deleted along with the admin panel's tenant registration; **impersonation
-left where it is** — it was outside the phases, it works, and moving it is a separate piece
-of work with its own reasoning.
+`RegisterCompany` deleted along with the admin panel's tenant registration.
+
+**Impersonation moved too** (`895f423`), after the phases, and the shape of the move is
+worth recording because it is not the obvious one. Reach now follows the context you stand
+in: in a company, the target must work for that company — super admin or not — and in no
+company, which is only the platform panel, reach is the installation. So the cross-company
+half moved and the company half stayed.
+
+A company's own Administrator keeps the action for their own staff. That is deliberate. The
+feature exists so somebody can acknowledge a salary change on behalf of an employee who
+will not, and an acknowledgement is a statement of consent — routing it through the platform
+operator would put an outside party's name on it. Moving the whole feature would have read
+as tidier and been worse.
+
+One test changed meaning rather than breaking: `a super admin reaches another company's user
+from where they stand` was a deliberate, tested behaviour, and it is now asserted from
+`/platform` instead, with its old form inverted into "a super admin in a company is bound to
+that company's people". The way back also had to learn where it started, since returning a
+platform admin to a company panel would leave them a click from the screen they were on, and
+returning a company Administrator to `/platform` would show them a 403.
