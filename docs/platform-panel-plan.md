@@ -1,5 +1,10 @@
 # A platform panel for super admins: plan
 
+> **Built.** All four phases, at `/platform`, across commits `6f4b33c`, `5620cb1`,
+> `bf1c467` and the guard-rail test that followed. Read **§11 As built** first — it
+> records where reality differed from this plan, including two places where the plan was
+> wrong and one where following it would have removed a feature.
+
 One thing, decided: **installation-level work stops happening inside a customer's
 URL.** A super admin gets a second Filament panel at `/platform` with no tenant, where
 they create companies, grant licences and appoint administrators — and a link into
@@ -254,3 +259,52 @@ precisely so class moves cost nothing.
   company's database, the honest form is a link into `/admin/{company}`, where the whole
   request is that company's. Switching tenants mid-request to render one table is how a
   page ends up reading one company and writing another.
+
+## 11. As built
+
+Four things differed from the plan above.
+
+**The activity log was added, not moved (§4).** The plan had it leaving the company panel.
+That would have taken away a company administrator's own audit trail — legitimate and
+useful — so both exist: the company's own list, scoped as it always was, and a
+cross-company one with a company column and filter. The scoping needed no work either way,
+because `ActivityLog` already filters reads to the current company *when there is one*, and
+there is none on this panel.
+
+**No `except:` was needed on `CorePlugin` (§6).** `discoverResources()` takes only `in:` and
+`for:`, and `Filament/Platform/…` is not inside the directories Core discovers, so there
+was never an overlap to exclude. `PlatformPanelIsLandlordOnlyTest` asserts nothing is
+registered on both panels, which is the property that mattered.
+
+**The landlord-only guard checks inheritance, not the connection name (§8).** Under the
+single-database test suite a tenant model resolves to the default connection, so a check on
+`getConnectionName()` finds nothing and passes while proving nothing. `is_subclass_of(…,
+TenantModel::class)` holds in both environments, and a second test asserts the predicate
+really does catch `FiscalYear`, `EmailTemplate`, `CustomField` and `Comment` — otherwise an
+empty offender list would be indistinguishable from a check that never matches.
+
+**One thing was added that the plan did not have:** the last platform admin can no longer
+be deleted, stood down or deactivated. It came out of writing the phase-3 delete action and
+asking what happens after it — the panel admits super admins only and `is_super_admin` is
+granted from it, so an installation with none has nobody who can appoint one and would have
+to be fixed in the database. Enforced on the `User` model rather than in a policy, for the
+reason this codebase keeps meeting: `Gate::before` grants a super admin every ability, so a
+rule that must hold for everybody cannot live where the answer is "yes, you are an
+administrator".
+
+Three bugs surfaced while building, all of them found by tests rather than by use:
+
+- the licences page's Save action named its method as a string, which the action does not
+  invoke — Save looked fine and wrote nothing, and every test that called the method
+  directly would have passed. One test now goes through the button.
+- the last-platform-admin guard read the value already set on the model instead of the
+  stored one, so it could never fire on an update: "is the account that is no longer a
+  platform admin the last platform admin" is always no.
+- the licence cascade treated a module that had *never* been granted as one just revoked,
+  so granting Payroll pulled in Employees and then immediately revoked Payroll for want of
+  it. Only a licence being taken away outranks an inferred grant.
+
+§9's open decisions, as resolved: path `/platform`; its own login at `/platform/login`;
+`RegisterCompany` deleted along with the admin panel's tenant registration; **impersonation
+left where it is** — it was outside the phases, it works, and moving it is a separate piece
+of work with its own reasoning.
