@@ -327,4 +327,63 @@ class TaxRateTest extends AccountingTestCase
         $this->assertSame($zero->id, $invoice->lines()->first()->tax_rate_id, 'the rate is on the record');
         $this->assertSame(0.0, $this->balanceOf('2150'), 'and nothing posts to tax');
     }
+
+    // ---- Re-running the seeder ----------------------------------------------
+
+    public function test_the_seeder_gives_a_new_company_the_rates_it_starts_from(): void
+    {
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        $this->assertSame(18.0, (float) TaxRate::where('name', 'GST 18%')->value('rate'));
+        $this->assertSame(0.0, (float) TaxRate::where('name', 'Zero-rated')->value('rate'));
+    }
+
+    /**
+     * Re-running the seeder is how a company picks up a rate added to the code. Which
+     * rate its invoices charge by default is a decision about that company, so the
+     * seeder must not put 18% back onto every line of one that turned it off — an
+     * export client charged sales tax by a seeder is not a mistake anybody looks for.
+     */
+    public function test_re_running_it_does_not_re_apply_a_default_that_was_turned_off(): void
+    {
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        TaxRate::where('is_default', true)->update(['is_default' => false]);
+
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        $this->assertSame(0, TaxRate::where('is_default', true)->count());
+    }
+
+    public function test_re_running_it_does_not_re_enable_a_rate_that_was_switched_off(): void
+    {
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        TaxRate::where('name', 'GST 18%')->update(['is_active' => false]);
+
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        $this->assertFalse((bool) TaxRate::where('name', 'GST 18%')->value('is_active'));
+    }
+
+    public function test_re_running_it_does_correct_the_rate_itself(): void
+    {
+        // The percentage is a fact about the tax, not a decision about the company, so
+        // that much is re-asserted.
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        TaxRate::where('name', 'GST 18%')->update(['rate' => 5]);
+
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        $this->assertSame(18.0, (float) TaxRate::where('name', 'GST 18%')->value('rate'));
+    }
+
+    public function test_it_does_not_duplicate_them(): void
+    {
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+        $this->seed(\Database\Seeders\TaxRateSeeder::class);
+
+        $this->assertSame(2, TaxRate::whereIn('name', ['GST 18%', 'Zero-rated'])->count());
+    }
 }
