@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Modules\Accounting\Http\Requests;
 
+use App\Modules\Accounting\Models\Account;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +10,7 @@ class StoreAccountRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Modules\Accounting\Models\Account::class);
+        return $this->user()->can('create', Account::class);
     }
 
     public function rules(): array
@@ -30,9 +31,17 @@ class StoreAccountRequest extends FormRequest
         $validator->after(function ($validator) {
             $parentId = $this->input('parent_id');
 
-            if ($parentId && ($parent = \App\Modules\Accounting\Models\Account::find($parentId))) {
+            if ($parentId && ($parent = Account::find($parentId))) {
                 if ($parent->type !== $this->input('type')) {
                     $validator->errors()->add('parent_id', 'Parent account must have the same type.');
+                }
+
+                // A posted-to account stops accepting entries once it has a child.
+                if (! $parent->canHaveChildren()) {
+                    $validator->errors()->add(
+                        'parent_id',
+                        "Account {$parent->code} ({$parent->name}) has journal entries of its own and cannot be a parent."
+                    );
                 }
             }
         });

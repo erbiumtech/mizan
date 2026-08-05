@@ -16,6 +16,18 @@ return [
     'driver' => env('PDF_DRIVER', 'auto'),
 
     /*
+     * How long headless Chrome gets to render one document.
+     *
+     * Browsershot's own default is 60 seconds, which is generous for a payslip and
+     * not generous at all for a loaded machine: the timeout is wall-clock, so a
+     * busy CPU is what actually spends it. The test suite raises this (see
+     * phpunit.xml) because it is the only place a real browser is launched
+     * alongside a thousand other tests, and a rendering timeout there says nothing
+     * about the code.
+     */
+    'timeout' => (int) env('PDF_TIMEOUT', 60),
+
+    /*
      * Paper defaults applied when a caller does not specify them.
      */
     'paper' => [

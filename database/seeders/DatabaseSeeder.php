@@ -45,9 +45,11 @@ class DatabaseSeeder extends Seeder
     protected array $tenantSeeders = [
         FiscalYearSeeder::class,
         SalarySlabSeeder::class,
+        PayComponentSeeder::class,
         BankSeeder::class,
         EmployeeSeeder::class,
         EmployeeSettingSeeder::class,
+        CurrencySeeder::class,
         ChartOfAccountsSeeder::class,
                     TransactionTypeSeeder::class,
         CompanyBankAccountSeeder::class,
@@ -59,6 +61,7 @@ class DatabaseSeeder extends Seeder
                     PettyCashSeeder::class,
                     InventorySeeder::class,
         ContactSeeder::class,
+        TaxRateSeeder::class,
                     InvoiceSeeder::class,
     ];
 

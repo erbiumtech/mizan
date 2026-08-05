@@ -39,6 +39,12 @@
         <env name="TENANT_DATABASE_CONNECTION" value=""/>
         <env name="QUEUES_TENANT_AWARE_BY_DEFAULT" value="false"/>
         <env name="CUSTOM_FIELDS_ENABLED" value="true"/>
+
+        <!-- Headless Chrome gets longer here than in production. One test renders a
+             payslip through a real browser, and its timeout is wall-clock: on a
+             machine busy running the rest of the suite it was the first thing to
+             fail, with a rendering timeout that says nothing about the code. -->
+        <env name="PDF_TIMEOUT" value="180"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

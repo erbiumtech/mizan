@@ -2,19 +2,17 @@
 
 namespace App\Modules\Accounting\Services;
 
-use App\Support\ModuleMap;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Support\ModuleMap;
 use Carbon\Carbon;
 use InvalidArgumentException;
 use RuntimeException;
 
 class DepreciationService
 {
-    public function __construct(private JournalEntryService $journalEntryService)
-    {
-    }
+    public function __construct(private JournalEntryService $journalEntryService) {}
 
     /**
      * Book one month of depreciation for every eligible asset.

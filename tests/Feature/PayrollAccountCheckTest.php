@@ -123,6 +123,57 @@ class PayrollAccountCheckTest extends AccountingTestCase
         $this->assertSame('50000', $stored['basic_wage'], 'left for a human to correct');
     }
 
+    /**
+     * The code resolves, the account exists, and payroll still cannot post to it —
+     * 5100 with a sub-account filed under it. broken() has nothing to say about
+     * this (the mapping is fine), so the audit reported a clean chart while every
+     * payslip save failed.
+     */
+    public function test_an_account_that_cannot_receive_entries_is_reported_separately(): void
+    {
+        $basic = Account::where('code', '5100')->firstOrFail();
+
+        // Past the model guard: charts that already hold this shape are exactly
+        // who the audit is for. See AccountParentGuardTest for the guard itself.
+        Account::whereKey(
+            Account::create([
+                'code' => '5101',
+                'name' => 'Payroll/Salaries Tax',
+                'type' => 'expense',
+                'parent_id' => Account::where('code', '5000')->firstOrFail()->id,
+            ])->id
+        )->update(['parent_id' => $basic->id]);
+
+        $this->assertSame([], $this->audit()->broken(), 'the mapping itself is sound');
+
+        $unpostable = $this->audit()->unpostable();
+        $this->assertArrayHasKey('basic_wage', $unpostable);
+        $this->assertStringContainsString('5100 (Basic Salary Expense)', $unpostable['basic_wage']);
+        $this->assertStringContainsString('sub-accounts', $unpostable['basic_wage']);
+
+        $row = collect($this->audit()->report())->firstWhere('key', 'basic_wage');
+        $this->assertNotNull($row['account'], 'the account is found; it just cannot be posted to');
+        $this->assertNotNull($row['refusal']);
+
+        // Not something clearing an override can fix.
+        $this->assertSame([], $this->audit()->repair()['cleared']);
+        $this->assertArrayHasKey('basic_wage', $this->audit()->unpostable());
+    }
+
+    public function test_an_unpostable_account_is_not_reported_once_the_chart_is_corrected(): void
+    {
+        $this->assertSame([], $this->audit()->unpostable());
+
+        $inactive = Account::where('code', '5200')->firstOrFail();
+        $inactive->update(['is_active' => false]);
+
+        $this->assertArrayHasKey('medical_allowance', $this->audit()->unpostable());
+
+        $inactive->update(['is_active' => true]);
+
+        $this->assertSame([], $this->audit()->unpostable());
+    }
+
     public function test_a_missing_default_with_no_override_is_reported_as_unfixable(): void
     {
         Account::where('code', config(PayrollAccountAudit::SETTING_KEY.'.esi_payable'))->delete();

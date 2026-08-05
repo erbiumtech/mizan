@@ -7,6 +7,7 @@ use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\CreateContact;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\EditContact;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\ListContacts;
 use App\Modules\Invoicing\Filament\Resources\Contacts\RelationManagers\InvoicesRelationManager;
+use App\Modules\Invoicing\Filament\Resources\Contacts\RelationManagers\PeopleRelationManager;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Schemas\ContactForm;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Tables\ContactsTable;
 use App\Modules\Invoicing\Models\Contact;
@@ -47,6 +48,7 @@ class ContactResource extends Resource
     public static function getRelations(): array
     {
         return [
+            PeopleRelationManager::class,
             InvoicesRelationManager::class,
         ];
     }

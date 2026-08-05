@@ -3,6 +3,7 @@
 namespace App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers;
 
 use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Invoicing\Models\TaxRate;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -64,6 +65,22 @@ class LinesRelationManager extends RelationManager
                 ->preload()
                 ->nullable()
                 ->helperText('Optional GL account override'),
+
+            // The rate, not the tax. What it works out to is computed when the
+            // invoice is issued, from whether that invoice is inclusive — so a
+            // figure typed here would be overwritten and is not offered.
+            Select::make('tax_rate_id')
+                ->label('Tax')
+                ->options(fn (): array => TaxRate::active()
+                    ->orderByDesc('is_default')
+                    ->orderByDesc('rate')
+                    ->get()
+                    ->mapWithKeys(fn (TaxRate $rate): array => [$rate->id => $rate->label()])
+                    ->all())
+                ->default(fn (): ?int => TaxRate::active()->where('is_default', true)->value('id'))
+                ->searchable()
+                ->nullable()
+                ->helperText('Leave empty for a line that carries no tax.'),
         ]);
     }
 
@@ -71,6 +88,13 @@ class LinesRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                TextColumn::make('taxRate.name')
+                    ->label('Tax')
+                    ->placeholder('—')
+                    ->description(fn ($record): ?string => (float) $record->tax_amount > 0
+                        ? number_format((float) $record->tax_amount, 2)
+                        : null),
+
                 TextColumn::make('product.name')
                     ->label('Product')
                     ->toggleable(),

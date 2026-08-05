@@ -49,10 +49,19 @@ class PermissionSeeder extends Seeder
             ['name' => 'BillingRunUpdate', 'group' => 'BillingRun'],
             ['name' => 'BillingRunDelete', 'group' => 'BillingRun'],
 
+            ['name' => 'ExpenseClaimView', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimCreate', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimUpdate', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimDelete', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimApprove', 'group' => 'ExpenseClaim'],
+
             ['name' => 'AdvanceView', 'group' => 'Advance'],
             ['name' => 'AdvanceCreate', 'group' => 'Advance'],
             ['name' => 'AdvanceUpdate', 'group' => 'Advance'],
             ['name' => 'AdvanceDelete', 'group' => 'Advance'],
+
+            ['name' => 'PayrollRunView', 'group' => 'Payslip'],
+            ['name' => 'PayrollRunLock', 'group' => 'Payslip'],
 
             ['name' => 'PayslipView', 'group' => 'Payslip'],
             ['name' => 'PayslipCreate', 'group' => 'Payslip'],

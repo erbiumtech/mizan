@@ -116,6 +116,19 @@ class NavigationGroupsTest extends TestCase
         $this->assertContains('Payslips', $navigation['Employee'] ?? []);
     }
 
+    public function test_gnucash_import_sits_with_the_other_import(): void
+    {
+        $navigation = $this->navigation();
+
+        // It spent a while under Reports, which is where the accounting odds and
+        // ends had collected. It reads a file and writes a ledger; the page it
+        // belongs next to is Import from CSV.
+        $settings = $navigation['Settings'] ?? [];
+
+        $this->assertContains('GnuCash Import', $settings);
+        $this->assertContains('Import from CSV', $settings);
+    }
+
     public function test_table_views_is_nowhere_in_the_sidebar(): void
     {
         // The resource was deleted outright; saved views are made from the bar on
@@ -139,6 +152,8 @@ class NavigationGroupsTest extends TestCase
 
         sort($labels);
 
+        // No Reports: the fourteen report pages are reached through the single
+        // top-level Reports link instead, which ReportsHubTest covers.
         $this->assertSame([
             'Access Control',
             'Accounting',
@@ -146,7 +161,6 @@ class NavigationGroupsTest extends TestCase
             'Employee',
             'Invoicing & Inventory',
             'MPR',
-            'Reports',
             'Settings',
         ], $labels);
     }

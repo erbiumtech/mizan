@@ -3,12 +3,12 @@
 namespace App\Modules\Projects\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\TenantTransaction;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 
 /**
@@ -197,7 +197,7 @@ class ProjectEnvironment extends Model
      */
     public function recordCheck(bool $isUp, ?int $code, ?int $latencyMs, ?string $error = null): ProjectEnvironmentCheck
     {
-        return DB::transaction(function () use ($isUp, $code, $latencyMs, $error) {
+        return TenantTransaction::run(function () use ($isUp, $code, $latencyMs, $error) {
             $check = $this->checks()->create([
                 'checked_at' => now(),
                 'is_up' => $isUp,

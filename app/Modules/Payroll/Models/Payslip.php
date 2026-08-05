@@ -2,6 +2,8 @@
 
 namespace App\Modules\Payroll\Models;
 
+use InvalidArgumentException;
+
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
@@ -143,6 +145,16 @@ class Payslip extends Model
         return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');
     }
 
+    public function payrollRun()
+    {
+        return $this->belongsTo(PayrollRun::class, 'payroll_run_id');
+    }
+
+    public function components()
+    {
+        return $this->hasMany(PayslipComponent::class);
+    }
+
     public function journalEntries()
     {
         return $this->morphMany(JournalEntry::class, 'source');
@@ -150,6 +162,60 @@ class Payslip extends Model
 
     protected static function booted()
     {
+        /*
+         * A locked month cannot be changed.
+         *
+         * Enforced on the model rather than in a policy, because Administrators and
+         * super admins pass every policy check — and a sign-off that the most
+         * privileged user can walk through is not a sign-off. Reopening the run is the
+         * way past this, and it leaves a reason behind.
+         */
+        $refuseIfLocked = function ($payslip, string $verb): void {
+            $run = $payslip->payroll_run_id
+                ? PayrollRun::find($payslip->payroll_run_id)
+                : null;
+
+            if ($run?->isLocked()) {
+                throw new InvalidArgumentException(
+                    "{$run->periodLabel()} payroll has been signed off, so this payslip cannot be {$verb}. "
+                    .'Reopen the run if it genuinely has to change.'
+                );
+            }
+        };
+
+        static::updating(function ($payslip) use ($refuseIfLocked) {
+            // An employee accepting or rejecting their payslip is not a change to the
+            // month's figures, and refusing it would leave them unable to respond to
+            // something already sent to them.
+            if (static::isReviewOnlyChange($payslip->getDirty())) {
+                return;
+            }
+
+            $refuseIfLocked($payslip, 'changed');
+        });
+
+        static::deleting(fn ($payslip) => $refuseIfLocked($payslip, 'deleted'));
+
+        // Attached to its month's run, made if this is the first payslip of the month,
+        // so nothing depends on whoever created the payslip remembering — and then
+        // refused if that month has been signed off.
+        //
+        // One hook, in that order, deliberately. As two the refusal ran first, saw no
+        // run id yet and returned, and the attachment then put the payslip into the
+        // locked run: the control held only against callers who happened to name the
+        // run themselves.
+        static::creating(function ($payslip) use ($refuseIfLocked) {
+            if (! $payslip->payroll_run_id && $payslip->month && $payslip->fiscal_year_id) {
+                $fiscalYear = \App\Modules\Core\Models\FiscalYear::find($payslip->fiscal_year_id);
+
+                if ($fiscalYear) {
+                    $payslip->payroll_run_id = PayrollRun::forMonth($payslip->month, $fiscalYear)->getKey();
+                }
+            }
+
+            $refuseIfLocked($payslip, 'added');
+        });
+
         $calculate = function ($payslip) {
             // Employee accept/reject only touches review columns; the
             // figures and ledger posting must stay as issued.
@@ -242,6 +308,65 @@ class Payslip extends Model
                         $advance->update(['status' => \App\Modules\Advances\Models\Advance::STATUS_ACTIVE]);
                     }
                 });
+        });
+
+        // What this payslip actually paid, component by component.
+        //
+        // Recorded rather than derived, because a package corrected in September must
+        // not change what August paid. Written on every save and reconciled rather than
+        // appended, so a corrected payslip's components follow its columns.
+        static::saved(function ($payslip) {
+            if (static::isReviewOnlyChange($payslip->getChanges())) {
+                return;
+            }
+
+            app(\App\Modules\Payroll\Services\PayComponentRecorder::class)->record($payslip);
+        });
+
+        // Expense claims the payslip reimburses. Same shape as the advances above:
+        // idempotent per payslip, because payroll recalculates on every save, and
+        // reversed on delete — a claim whose payslip is gone is owed again.
+        $syncClaims = function ($payslip) {
+            if (! modules()->enabled('expenses')) {
+                return;
+            }
+
+            app(\App\Modules\Expenses\Services\ExpenseClaimService::class)->settleAgainst($payslip);
+        };
+
+        static::saved(function ($payslip) use ($syncClaims) {
+            if (! static::isReviewOnlyChange($payslip->getChanges())) {
+                $syncClaims($payslip);
+            }
+        });
+
+        // Two phases, because expense_claims.payslip_id is nullOnDelete: by the time
+        // `deleted` runs the database has already cut the link, so the claims have to
+        // be noted while the payslip still exists and released once it is gone.
+        $claimsToRelease = [];
+
+        static::deleting(function ($payslip) use (&$claimsToRelease) {
+            if (! modules()->enabled('expenses')) {
+                return;
+            }
+
+            $claimsToRelease = \App\Modules\Expenses\Models\ExpenseClaim::where('payslip_id', $payslip->getKey())
+                ->pluck('id')
+                ->all();
+        });
+
+        static::deleted(function ($payslip) use (&$claimsToRelease) {
+            if (! modules()->enabled('expenses') || $claimsToRelease === []) {
+                return;
+            }
+
+            $service = app(\App\Modules\Expenses\Services\ExpenseClaimService::class);
+
+            foreach (\App\Modules\Expenses\Models\ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
+                $service->release($claim);
+            }
+
+            $claimsToRelease = [];
         });
 
         // Ledger integration: (re)create the payroll journal entry on save,

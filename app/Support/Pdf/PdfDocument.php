@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf as BrowsershotPdf;
+use Spatie\LaravelPdf\PdfBuilder;
 
 /**
  * A PDF built from a Blade view, rendered by whichever engine the environment
@@ -176,13 +177,16 @@ class PdfDocument implements Responsable
         return View::make($this->view, $this->data + ['pdfEngine' => $this->driver()])->render();
     }
 
-    protected function browsershot(): \Spatie\LaravelPdf\PdfBuilder
+    protected function browsershot(): PdfBuilder
     {
         $pdf = BrowsershotPdf::view($this->view, $this->data + ['pdfEngine' => 'browsershot'])
             ->format($this->format)
             ->withBrowsershot(fn (Browsershot $b) => $b
                 ->setNodeBinary(config('services.node.binary'))
-                ->setNpmBinary(config('services.node.npm')));
+                ->setNpmBinary(config('services.node.npm'))
+                // Wall-clock, so what spends it is a busy machine rather than a
+                // complicated document. Configurable for exactly that reason.
+                ->timeout(config('pdf.timeout', 60)));
 
         $pdf = $this->orientation === 'landscape' ? $pdf->landscape() : $pdf->portrait();
 

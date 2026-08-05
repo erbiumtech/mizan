@@ -38,6 +38,7 @@ final class ModuleMap
      */
     private const MODELS = [
         'core' => [
+            'App\Models\EmailTemplate' => \App\Modules\Core\Models\EmailTemplate::class,
             'App\Models\User' => \App\Modules\Core\Models\User::class,
             'App\Models\Company' => \App\Modules\Core\Models\Company::class,
             'App\Models\TableView' => \App\Modules\Core\Models\TableView::class,
@@ -57,13 +58,22 @@ final class ModuleMap
             'App\Models\Advance' => \App\Modules\Advances\Models\Advance::class,
             'App\Models\AdvanceRecovery' => \App\Modules\Advances\Models\AdvanceRecovery::class,
         ],
+        'expenses' => [
+            'App\Models\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
+        ],
         'payroll' => [
+            'App\Models\PayrollRun' => \App\Modules\Payroll\Models\PayrollRun::class,
+            'App\Models\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
+            'App\Models\EmployeeSettingComponent' => \App\Modules\Payroll\Models\EmployeeSettingComponent::class,
+            'App\Models\PayslipComponent' => \App\Modules\Payroll\Models\PayslipComponent::class,
             'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
             'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
             'App\Models\AnnualTax' => \App\Modules\Payroll\Models\AnnualTax::class,
         ],
         'accounting' => [
             'App\Models\Account' => \App\Modules\Accounting\Models\Account::class,
+            'App\Models\Currency' => \App\Modules\Accounting\Models\Currency::class,
+            'App\Models\ExchangeRate' => \App\Modules\Accounting\Models\ExchangeRate::class,
             'App\Models\JournalEntry' => \App\Modules\Accounting\Models\JournalEntry::class,
             'App\Models\JournalEntryLine' => \App\Modules\Accounting\Models\JournalEntryLine::class,
             'App\Models\TransactionType' => \App\Modules\Accounting\Models\TransactionType::class,
@@ -81,6 +91,11 @@ final class ModuleMap
             'App\Models\Contact' => \App\Modules\Invoicing\Models\Contact::class,
             'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
             'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
+            'App\Models\TaxRate' => \App\Modules\Invoicing\Models\TaxRate::class,
+            'App\Models\InvoiceEvent' => \App\Modules\Invoicing\Models\InvoiceEvent::class,
+            'App\Models\ContactPerson' => \App\Modules\Invoicing\Models\ContactPerson::class,
+            'App\Models\RecurringInvoice' => \App\Modules\Invoicing\Models\RecurringInvoice::class,
+            'App\Models\RecurringInvoiceLine' => \App\Modules\Invoicing\Models\RecurringInvoiceLine::class,
         ],
         'billing' => [
             'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
@@ -107,6 +122,7 @@ final class ModuleMap
      */
     private const RESOURCES = [
         'core' => [
+            'App\Filament\Resources\EmailTemplates\EmailTemplateResource' => \App\Modules\Core\Filament\Resources\EmailTemplates\EmailTemplateResource::class,
             'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
             'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
             'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Resources\Permissions\PermissionResource::class,
@@ -124,13 +140,19 @@ final class ModuleMap
         'advances' => [
             'App\Filament\Resources\Advances\AdvanceResource' => \App\Modules\Advances\Filament\Resources\Advances\AdvanceResource::class,
         ],
+        'expenses' => [
+            'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
+        ],
         'payroll' => [
+            'App\Filament\Resources\PayComponents\PayComponentResource' => \App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource::class,
+            'App\Filament\Resources\PayrollRuns\PayrollRunResource' => \App\Modules\Payroll\Filament\Resources\PayrollRuns\PayrollRunResource::class,
             'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
             'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource::class,
             'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
         ],
         'accounting' => [
             'App\Filament\Resources\Accounts\AccountResource' => \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::class,
+            'App\Filament\Resources\Currencies\CurrencyResource' => \App\Modules\Accounting\Filament\Resources\Currencies\CurrencyResource::class,
             'App\Filament\Resources\JournalEntries\JournalEntryResource' => \App\Modules\Accounting\Filament\Resources\JournalEntries\JournalEntryResource::class,
             'App\Filament\Resources\JournalEntryLines\JournalEntryLineResource' => \App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
             'App\Filament\Resources\TransactionTypes\TransactionTypeResource' => \App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
@@ -146,6 +168,7 @@ final class ModuleMap
             'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
             'App\Filament\Resources\Invoices\InvoiceResource' => \App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource::class,
             'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
+            'App\Filament\Resources\TaxRates\TaxRateResource' => \App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource::class,
         ],
         'billing' => [
             'App\Filament\Resources\BillingRuns\BillingRunResource' => \App\Modules\Billing\Filament\Resources\BillingRuns\BillingRunResource::class,
@@ -169,17 +192,29 @@ final class ModuleMap
      */
     private const PAGES = [
         'core' => [
+            // The hub the report pages are reached through. Core because it spans
+            // four modules; each link is gated by the page behind it.
+            'App\Filament\Pages\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
             'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
             'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
+            'App\Filament\Pages\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
             'App\Filament\Pages\Auth\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,
             'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
         'payroll' => [
             'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
             'App\Filament\Pages\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
+            'App\Filament\Pages\TaxSummary' => \App\Modules\Payroll\Filament\Pages\TaxSummary::class,
+        ],
+        'invoicing' => [
+            'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
+            'App\Filament\Pages\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
         ],
         'accounting' => [
             'App\Filament\Pages\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
+            'App\Filament\Pages\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
+            'App\Filament\Pages\ContractorPayments' => \App\Modules\Accounting\Filament\Pages\ContractorPayments::class,
+            'App\Filament\Pages\CurrencyRevaluation' => \App\Modules\Accounting\Filament\Pages\CurrencyRevaluation::class,
             'App\Filament\Pages\BalanceSheet' => \App\Modules\Accounting\Filament\Pages\BalanceSheet::class,
             'App\Filament\Pages\TrialBalance' => \App\Modules\Accounting\Filament\Pages\TrialBalance::class,
             'App\Filament\Pages\ProfitAndLoss' => \App\Modules\Accounting\Filament\Pages\ProfitAndLoss::class,
@@ -202,6 +237,9 @@ final class ModuleMap
             'App\Filament\Widgets\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
             'App\Filament\Widgets\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
             'App\Filament\Widgets\OperationsOverview' => \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
+        ],
+        'invoicing' => [
+            'App\Filament\Widgets\ReceivablesPayablesOverview' => \App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview::class,
         ],
         'projects' => [
             // Nested under the resource rather than in Filament/Widgets — found by
@@ -228,6 +266,7 @@ final class ModuleMap
         'core' => ['User', 'Role', 'Permission', 'ActivityLog', 'Comment', 'FiscalYear'],
         'employees' => ['Employee', 'EmployeeSetting'],
         'advances' => ['Advance'],
+        'expenses' => ['ExpenseClaim'],
         'payroll' => ['Payslip', 'SalarySlab', 'AnnualTax'],
         'accounting' => [
             'Account', 'Bank', 'BankStatement', 'Beneficiary', 'CompanyBankAccount',
@@ -259,7 +298,7 @@ final class ModuleMap
      * `payments.payable_type`, `custom_fields.model_type`, `table_views.resource`.
      *
      * Those are plain column writes, not morph relations, so enforceMorphMap()
-     * does not cover them — `where('source_type', Payslip::class)` would simply
+     * does not cover them — `where('source_type', \App\Modules\Payroll\Models\Payslip::class)` would simply
      * stop matching the day Payslip moves into app/Modules/Payroll, and
      * unwindForPayslip would quietly find no entries to reverse. Storing the
      * alias instead keeps every existing row valid across the move.

@@ -8,6 +8,7 @@ use App\Modules\Accounting\Support\PayrollAccounts;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
+use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use RuntimeException;
 
@@ -40,8 +41,24 @@ class PayrollPostingService
             return null;
         }
 
-        $this->unwindForPayslip($payslip);
+        // One transaction over the unwind and the replacement. Resolving the
+        // accounts or validating the lines can still fail — a mapped account that
+        // has been given a sub-account is enough — and until this was wrapped, the
+        // reversal was already committed by then: the payslip's original entry had
+        // been reversed and detached, its replacement never written, and every
+        // retry failed the same way. Nothing to roll forward from, by hand.
+        return TenantTransaction::run(function () use ($payslip) {
+            $this->unwindForPayslip($payslip);
 
+            return $this->writeEntry($payslip);
+        });
+    }
+
+    /**
+     * Build and post the payslip's entry. Assumes any earlier entry is unwound.
+     */
+    protected function writeEntry(Payslip $payslip): ?JournalEntry
+    {
         $debits = [
             'basic_wage' => (float) $payslip->basic_wage,
             'medical_allowance' => (float) $payslip->medical_allowance,
@@ -60,6 +77,18 @@ class PayrollPostingService
         ];
 
         $lines = [];
+
+        // Components added as data rather than columns, each to its own account. The
+        // entry would not balance without them: net salary already includes the
+        // allowance, so leaving the debit out would credit money nothing paid for and
+        // the posting would be refused — correctly, but with nothing to point at.
+        foreach ($this->dataDrivenLines($payslip) as [$accountId, $amount, $isEarning, $label]) {
+            $lines[] = [
+                'account_id' => $accountId,
+                $isEarning ? 'debit_amount' : 'credit_amount' => $amount,
+                'description' => "Payslip #{$payslip->id} {$label}",
+            ];
+        }
 
         foreach ($debits as $key => $amount) {
             if ($amount > 0) {
@@ -128,6 +157,36 @@ class PayrollPostingService
                 $entry->delete();
             }
         }
+    }
+
+    /**
+     * The payslip's data-driven components, as ledger lines.
+     *
+     * A component with no account anywhere is skipped rather than guessed at: posting
+     * an allowance to the wrong account is worse than the imbalance that follows, and
+     * the imbalance is caught immediately by the posting check.
+     *
+     * @return array<int, array{0: int, 1: float, 2: bool, 3: string}>
+     */
+    protected function dataDrivenLines(Payslip $payslip): array
+    {
+        $lines = [];
+
+        $rows = $payslip->components()->with('component')->get()
+            ->filter(fn ($row): bool => $row->component && ! $row->component->is_column_backed);
+
+        foreach ($rows as $row) {
+            $amount = round((float) $row->amount, 2);
+            $accountId = $row->component->accountId();
+
+            if ($amount <= 0 || ! $accountId) {
+                continue;
+            }
+
+            $lines[] = [$accountId, $amount, $row->component->isEarning(), $row->component->label];
+        }
+
+        return $lines;
     }
 
     protected function accountId(string $key): int

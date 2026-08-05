@@ -29,6 +29,11 @@ class RoleSeeder extends Seeder
         $employeeRole->syncPermissions([
             'PayslipView',
             'EmployeeSettingView',
+            // Their own claims: submit one and see what happened to it. Approving is
+            // deliberately absent — an approver is somebody else.
+            'ExpenseClaimView',
+            'ExpenseClaimCreate',
+            'ExpenseClaimUpdate',
             'CommentCreate',
             'CommentView',
             'ProjectView',
@@ -52,7 +57,10 @@ class RoleSeeder extends Seeder
             'PettyCashView', 'PettyCashCreate',
             'ProductView', 'ProductCreate', 'ProductUpdate', 'StockMove',
             'PayslipView', 'PayslipCreate', 'PayslipUpdate',
+            // The accountant runs payroll and signs the month off.
+            'PayrollRunView', 'PayrollRunLock',
             'AdvanceView', 'AdvanceCreate', 'AdvanceUpdate',
+            'ExpenseClaimView', 'ExpenseClaimCreate', 'ExpenseClaimUpdate', 'ExpenseClaimApprove',
             'BillingRunView', 'BillingRunCreate', 'BillingRunUpdate',
             // No ProjectHealthCheck: firing an on-demand check makes the server
             // issue an outbound request, which isn't finance work.

@@ -31,6 +31,14 @@ class MonthlyPayrollService
      */
     public function openMonth(string $month, FiscalYear $fiscalYear): Collection
     {
+        $run = \App\Modules\Payroll\Models\PayrollRun::forMonth($month, $fiscalYear);
+
+        if ($run->isLocked()) {
+            throw new \InvalidArgumentException(
+                "{$run->periodLabel()} payroll has been signed off. Reopen the run to add payslips to it."
+            );
+        }
+
         $created = collect();
 
         foreach ($this->employeesDueAPayslip($month, $fiscalYear) as $employee) {

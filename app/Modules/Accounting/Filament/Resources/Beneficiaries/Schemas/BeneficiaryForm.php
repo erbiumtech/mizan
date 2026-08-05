@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Beneficiary;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class BeneficiaryForm
@@ -84,6 +85,16 @@ class BeneficiaryForm
                     ])
                     ->default('IBFT')
                     ->required(),
+
+                Toggle::make('is_contractor')
+                    ->label('Contractor')
+                    ->helperText('A person paid for work rather than a landlord, utility or supplier. No tax is withheld from them; it appears on the Contractor Payments report.')
+                    ->live(),
+
+                TextInput::make('engagement')
+                    ->label('What they do')
+                    ->maxLength(255)
+                    ->visible(fn (Get $get): bool => (bool) $get('is_contractor')),
 
                 Toggle::make('is_active')
                     ->label('Active')

@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TableView extends Model
 {
-
     /**
      * Normalise on write: `resource` holds a Filament resource's stable alias, so
      * a saved view survives that resource moving into a module directory. Callers
@@ -26,6 +25,7 @@ class TableView extends Model
     {
         $this->attributes['resource'] = $value === null ? null : ModuleMap::alias($value);
     }
+
     use HasFactory;
 
     protected $fillable = [

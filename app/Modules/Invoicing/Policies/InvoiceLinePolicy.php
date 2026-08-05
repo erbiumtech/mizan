@@ -2,8 +2,8 @@
 
 namespace App\Modules\Invoicing\Policies;
 
-use App\Modules\Invoicing\Models\InvoiceLine;
 use App\Modules\Core\Models\User;
+use App\Modules\Invoicing\Models\InvoiceLine;
 
 /**
  * Invoice lines are part of an invoice, so they follow the invoice permissions

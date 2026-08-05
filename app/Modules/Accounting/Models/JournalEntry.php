@@ -2,8 +2,8 @@
 
 namespace App\Modules\Accounting\Models;
 
-use App\Modules\Core\Models\FiscalYear;
 use App\Models\TenantModel as Model;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Support\ModuleMap;
 use App\Traits\Auditable;
@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 class JournalEntry extends Model
 {
-
     /**
      * Entries linked to a source record. Reads have to translate the class to its
      * alias exactly as writes do — `where('source_type', Payslip::class)` silently
@@ -34,6 +33,7 @@ class JournalEntry extends Model
     {
         $this->attributes['source_type'] = $value === null ? null : ModuleMap::alias($value);
     }
+
     use Auditable;
 
     public const STATUS_DRAFT = 'draft';

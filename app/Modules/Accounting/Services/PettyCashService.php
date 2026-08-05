@@ -2,15 +2,15 @@
 
 namespace App\Modules\Accounting\Services;
 
-use App\Support\ModuleMap;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\PettyCashVoucher;
 use App\Modules\Accounting\Models\TransactionType;
+use App\Support\ModuleMap;
+use App\Support\TenantTransaction;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -148,7 +148,7 @@ class PettyCashService
             }
         }
 
-        DB::transaction(function () use ($voucher, $entry, $lines, $details, $amount, $delta, $data): void {
+        TenantTransaction::run(function () use ($voucher, $entry, $lines, $details, $amount, $delta, $data): void {
             foreach ($lines as $line) {
                 $isDebit = (float) $line->debit_amount > 0;
 

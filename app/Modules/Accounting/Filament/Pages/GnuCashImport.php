@@ -24,13 +24,19 @@ class GnuCashImport extends Page
 
     protected string $view = 'filament.pages.gnucash-import';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    /**
+     * Settings, with Import from CSV — this brings a book *in*, which is a
+     * one-off setup job, not something anybody reads. It sat under Reports only
+     * because that group had become where the accounting odds and ends went.
+     *
+     * No $navigationSort: every other item in Settings leaves it unset too, so
+     * one here would jump this page over all of them for no reason.
+     */
+    protected static string|UnitEnum|null $navigationGroup = 'Settings';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-up-on-square-stack';
 
     protected static ?string $title = 'GnuCash Import';
-
-    protected static ?int $navigationSort = 7;
 
     public ?array $data = [];
 

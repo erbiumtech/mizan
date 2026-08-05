@@ -3,12 +3,13 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\JournalEntryService;
+use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
-use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Core\Models\User;
-use App\Modules\Accounting\Services\JournalEntryService;
+use RuntimeException;
 use Tests\AccountingTestCase;
 
 class PayrollPostingTest extends AccountingTestCase
@@ -148,5 +149,92 @@ class PayrollPostingTest extends AccountingTestCase
             (float) $payslip->net_salary,
             (float) Account::where('code', '2300')->first()->balance
         );
+    }
+
+    /**
+     * The chart shape that broke payroll: a sub-account filed under 5100. A parent
+     * cannot accept entries, so basic_wage had nowhere to go.
+     *
+     * Written past the model guard on purpose. New charts can no longer reach this
+     * state (see AccountParentGuardTest), but the ones that already did still have
+     * to fail comprehensibly rather than reporting "Line 0: account 5100 (Basic
+     * Salary Expense) cannot accept entries" — which names neither payroll nor the
+     * sub-account behind it.
+     */
+    private function misfileChildUnderBasicSalary(): Account
+    {
+        $child = Account::create([
+            'code' => '5101',
+            'name' => 'Payroll/Salaries Tax',
+            'type' => 'expense',
+            'parent_id' => Account::where('code', '5000')->firstOrFail()->id,
+        ]);
+
+        Account::whereKey($child->id)->update([
+            'parent_id' => Account::where('code', '5100')->firstOrFail()->id,
+        ]);
+
+        return $child->fresh();
+    }
+
+    public function test_a_mapped_account_given_a_child_fails_with_an_actionable_message(): void
+    {
+        $this->misfileChildUnderBasicSalary();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage("Payroll account 'basic_wage' points at account 5100 (Basic Salary Expense)");
+
+        $this->makePayslip();
+    }
+
+    /**
+     * The failure above is only half the damage. Posting reverses the payslip's
+     * existing entry before writing the replacement, and that reversal used to be
+     * committed by the time the replacement failed validation — leaving the
+     * payslip with no live entry and a reversal that could not be undone from
+     * the UI.
+     */
+    public function test_a_failed_repost_leaves_the_existing_entry_untouched(): void
+    {
+        config(['accounting.auto_post_payroll' => true]);
+
+        $payslip = $this->makePayslip();
+        $entry = $payslip->journalEntries()->first();
+        $salariesPayable = Account::where('code', '2300')->firstOrFail();
+
+        $this->assertTrue($entry->is_posted);
+        $balanceBefore = (float) $salariesPayable->fresh()->balance;
+
+        // Break the mapping the same way the chart did.
+        $child = $this->misfileChildUnderBasicSalary();
+
+        try {
+            $payslip->update(['bonus' => 50000]);
+            $this->fail('expected the unpostable account to throw');
+        } catch (RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame(
+            1,
+            JournalEntry::forSource(Payslip::class)->where('source_id', $payslip->id)->count(),
+            'the payslip still has exactly one live entry'
+        );
+        $this->assertSame(0, JournalEntry::where('entry_type', 'reversing')->count(), 'no reversal was left behind');
+        $this->assertSame($balanceBefore, (float) $salariesPayable->fresh()->balance);
+
+        // And it posts again once the chart is put right: this time the reversal is
+        // real, because the replacement it makes room for is actually written.
+        $child->update(['parent_id' => Account::where('code', '5000')->firstOrFail()->id]);
+        $payslip->update(['bonus' => 50000]);
+
+        $live = JournalEntry::forSource(Payslip::class)
+            ->where('source_id', $payslip->id)
+            ->where('entry_type', '!=', 'reversing')
+            ->get();
+
+        $this->assertCount(1, $live);
+        $this->assertSame((float) $payslip->fresh()->total_earnings, $live->first()->total_debits);
+        $this->assertSame(1, JournalEntry::where('entry_type', 'reversing')->count());
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Modules\Invoicing\Models;
 
-use App\Modules\Accounting\Models\Bank;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Models\Bank;
 use App\Traits\Auditable;
 
 class Contact extends Model
@@ -25,6 +25,25 @@ class Contact extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function people()
+    {
+        return $this->hasMany(ContactPerson::class);
+    }
+
+    /**
+     * Where correspondence goes.
+     *
+     * The primary named person if there is one, otherwise the contact's own address —
+     * so adding people to a client changes who is written to, and adding none changes
+     * nothing.
+     */
+    public function correspondenceEmail(): ?string
+    {
+        $primary = $this->people()->where('is_primary', true)->value('email');
+
+        return $primary ?: $this->email;
+    }
 
     public function invoices()
     {

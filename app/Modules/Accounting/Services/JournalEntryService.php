@@ -3,10 +3,11 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Support\Money;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 class JournalEntryService
@@ -18,9 +19,14 @@ class JournalEntryService
      */
     public function create(array $header, array $lines): JournalEntry
     {
+        // Foreign amounts are converted before anything is validated, because what has
+        // to balance is the base currency. A line given in EUR against one given in PKR
+        // will never balance as written; both in base always can.
+        $lines = $this->toBaseCurrency($lines, $header['entry_date'] ?? null);
+
         $this->validateLines($lines);
 
-        return DB::transaction(function () use ($header, $lines) {
+        return TenantTransaction::run(function () use ($header, $lines) {
             $entry = JournalEntry::create(
                 $header + [
                     'status' => JournalEntry::STATUS_DRAFT,
@@ -42,6 +48,56 @@ class JournalEntryService
 
             return $entry;
         });
+    }
+
+    /**
+     * Fill in the base amounts for any line given in a foreign currency.
+     *
+     * `debit_amount` and `credit_amount` are always the base currency — every report in
+     * the application reads those two columns and none of them know about currencies.
+     * A caller passing `foreign_debit_amount` and `currency_code` gets the base figure
+     * computed here at the day's rate; a caller passing base amounts is untouched, which
+     * is every existing caller.
+     *
+     * @param  array<int, array<string, mixed>>  $lines
+     * @return array<int, array<string, mixed>>
+     */
+    protected function toBaseCurrency(array $lines, mixed $entryDate): array
+    {
+        $on = $entryDate instanceof \DateTimeInterface
+            ? $entryDate->format('Y-m-d')
+            : ($entryDate ? (string) $entryDate : null);
+
+        foreach ($lines as $index => $line) {
+            $foreignDebit = (float) ($line['foreign_debit_amount'] ?? 0);
+            $foreignCredit = (float) ($line['foreign_credit_amount'] ?? 0);
+
+            if ($foreignDebit === 0.0 && $foreignCredit === 0.0) {
+                continue;
+            }
+
+            $converted = Money::toBase(
+                $foreignDebit > 0 ? $foreignDebit : $foreignCredit,
+                $line['currency_code'] ?? null,
+                $on,
+                isset($line['rate']) ? (float) $line['rate'] : null,
+            );
+
+            $lines[$index]['rate'] = $converted['rate'];
+
+            // Only when the caller has not said otherwise: a base amount given
+            // explicitly alongside a foreign one is the settled figure — a bank advice,
+            // say — and recomputing it would overwrite the fact with an estimate.
+            if ($foreignDebit > 0 && ! isset($line['debit_amount'])) {
+                $lines[$index]['debit_amount'] = $converted['base'];
+            }
+
+            if ($foreignCredit > 0 && ! isset($line['credit_amount'])) {
+                $lines[$index]['credit_amount'] = $converted['base'];
+            }
+        }
+
+        return $lines;
     }
 
     /**
@@ -155,7 +211,7 @@ class JournalEntryService
             );
         }
 
-        DB::transaction(function () use ($entry) {
+        TenantTransaction::run(function () use ($entry) {
             foreach ($entry->lines()->with('account')->get() as $line) {
                 $account = Account::lockForUpdate()->find($line->account_id);
 
@@ -197,7 +253,7 @@ class JournalEntryService
             throw new InvalidArgumentException('Only posted entries can be reversed.');
         }
 
-        return DB::transaction(function () use ($entry, $approver) {
+        return TenantTransaction::run(function () use ($entry, $approver) {
             $reversal = JournalEntry::create([
                 'entry_date' => now()->toDateString(),
                 'reference' => $entry->entry_number,

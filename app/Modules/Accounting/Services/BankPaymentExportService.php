@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
 class BankPaymentExportService extends SalaryBankExportService
 {
     /**
-     * @param Collection<int, Payment> $payments
+     * @param  Collection<int, Payment>  $payments
      */
     public function exportPayments(Collection $payments, ?string $valueDate = null): string
     {

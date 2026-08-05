@@ -3,9 +3,10 @@
 namespace App\Modules\Invoicing\Models;
 
 use App\Models\Concerns\HasCustomFields;
-use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Models\Currency;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Support\ModuleMap;
 use App\Traits\Auditable;
@@ -30,8 +31,9 @@ class Invoice extends Model
     public const STATUS_VOID = 'void';
 
     protected $fillable = [
-        'invoice_number', 'kind', 'contact_id', 'invoice_date', 'due_date',
-        'status', 'subtotal', 'tax_amount', 'total', 'amount_paid', 'memo',
+        'recurring_invoice_id', 'period',
+        'invoice_number', 'kind', 'currency_code', 'exchange_rate', 'contact_id', 'invoice_date', 'due_date',
+        'status', 'subtotal', 'tax_amount', 'tax_inclusive', 'total', 'amount_paid', 'memo',
         'journal_entry_id', 'fiscal_year_id',
     ];
 
@@ -43,10 +45,13 @@ class Invoice extends Model
     protected $casts = [
         'invoice_date' => 'date',
         'due_date' => 'date',
+        'period' => 'date',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
+        'tax_inclusive' => 'boolean',
         'total' => 'decimal:2',
         'amount_paid' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
     ];
 
     protected static function booted()
@@ -56,6 +61,24 @@ class Invoice extends Model
                 $invoice->invoice_number = static::nextInvoiceNumber($invoice->kind, $invoice->invoice_date);
             }
         });
+
+        static::created(function (Invoice $invoice) {
+            InvoiceEvent::record(
+                $invoice,
+                InvoiceEvent::CREATED,
+                ($invoice->kind === self::KIND_PURCHASE ? 'Bill' : 'Invoice').' raised as a draft',
+            );
+        });
+    }
+
+    public function recurringInvoice()
+    {
+        return $this->belongsTo(RecurringInvoice::class);
+    }
+
+    public function events()
+    {
+        return $this->hasMany(InvoiceEvent::class)->latest('id');
     }
 
     public static function nextInvoiceNumber(string $kind, $date = null): string
@@ -115,5 +138,60 @@ class Invoice extends Model
     public function outstanding(): float
     {
         return round((float) $this->total - (float) $this->amount_paid, 2);
+    }
+
+    /**
+     * The currency this invoice is billed in. Null on the column means the base one,
+     * which is what every invoice raised before currencies existed is.
+     */
+    public function currencyCode(): string
+    {
+        return $this->currency_code ?: Currency::baseCode();
+    }
+
+    public function isForeignCurrency(): bool
+    {
+        return $this->currencyCode() !== Currency::baseCode();
+    }
+
+    /**
+     * The rate this invoice was posted at.
+     *
+     * Read from the column rather than looked up, because a rate recorded later for the
+     * invoice date must not silently restate an invoice that has already been issued and
+     * whose journal entry says something else.
+     */
+    public function rate(): float
+    {
+        return (float) ($this->exchange_rate ?: 1);
+    }
+
+    /**
+     * The invoice in base currency: what the ledger holds for it.
+     *
+     * Reports that add invoices together have to use these. Summing `total` across
+     * invoices in different currencies produces a number, which is precisely how this
+     * goes wrong unnoticed.
+     */
+    public function baseTotal(): float
+    {
+        return round((float) $this->total * $this->rate(), 2);
+    }
+
+    public function basePaid(): float
+    {
+        return round((float) $this->amount_paid * $this->rate(), 2);
+    }
+
+    /**
+     * What is still owed, in base, at the rate it was booked at.
+     *
+     * Deliberately not at today's rate: the receivable was booked at the invoice rate,
+     * and the whole difference between that and the rate on the day the money arrives is
+     * recognised then, as a realised gain or loss.
+     */
+    public function baseOutstanding(): float
+    {
+        return round($this->baseTotal() - $this->basePaid(), 2);
     }
 }

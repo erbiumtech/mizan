@@ -2,19 +2,19 @@
 
 namespace App\Modules\Core\Filament\Resources\CustomFields;
 
-use App\Support\ModuleMap;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\CreateCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\EditCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\ListCustomFields;
 use App\Modules\Core\Filament\Resources\CustomFields\Schemas\CustomFieldForm;
 use App\Modules\Core\Filament\Resources\CustomFields\Tables\CustomFieldsTable;
-use App\Modules\Accounting\Models\Beneficiary;
-use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Core\Models\CustomField;
 use App\Modules\Employees\Models\Employee;
-use App\Modules\Accounting\Models\FixedAsset;
-use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Inventory\Models\Product;
+use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Invoicing\Models\Invoice;
+use App\Support\ModuleMap;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

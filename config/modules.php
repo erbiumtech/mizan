@@ -49,6 +49,16 @@ return [
         'plugin' => \App\Modules\Advances\AdvancesPlugin::class,
     ],
 
+    'expenses' => [
+        'label' => 'Expense Claims',
+        'description' => 'Employees claim what they paid for, an approver decides, and payroll reimburses it.',
+        // Employees to claim, Payroll because reimbursement rides on the payslip —
+        // expense_reimbursement is where the money reaches the employee.
+        'requires' => ['employees', 'payroll'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Expenses\ExpensesPlugin::class,
+    ],
+
     'payroll' => [
         'label' => 'Payroll',
         'description' => 'Payslips, salary slabs, annual tax, salary bank files and FBR tax files.',
