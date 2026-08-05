@@ -109,6 +109,34 @@ class HelpCoverageTest extends TestCase
         ]));
     }
 
+    public function test_every_image_a_help_doc_references_exists(): void
+    {
+        $dangling = [];
+
+        foreach (File::glob(resource_path('markdown/help/*.md')) as $path) {
+            preg_match_all('/!\[[^\]]*\]\(([^)]+)\)/', File::get($path), $matches);
+
+            foreach ($matches[1] as $src) {
+                // Only local paths are ours to check; an absolute URL is somebody
+                // else's uptime problem, not a broken reference.
+                if (preg_match('#^[a-z]+://#i', $src)) {
+                    continue;
+                }
+
+                if (! File::exists(public_path(ltrim($src, '/')))) {
+                    $dangling[] = basename($path).' → '.$src;
+                }
+            }
+        }
+
+        $this->assertSame([], $dangling, implode("\n", [
+            'These help docs reference images that are not on disk, so the help',
+            'panel renders a broken image where a screenshot should be:',
+            '',
+            ...$dangling,
+        ]));
+    }
+
     private function isFilamentPage(string $class): bool
     {
         return (new ReflectionClass($class))->isSubclassOf(\Filament\Pages\Page::class);
