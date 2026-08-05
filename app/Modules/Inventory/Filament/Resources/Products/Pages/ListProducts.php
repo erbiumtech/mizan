@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Filament\Resources\Products\Pages;
 
 use App\Filament\Concerns\HasSavedViews;
+use App\Filament\Support\HelpAction;
 use App\Modules\Inventory\Filament\Resources\Products\ProductResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -16,6 +17,7 @@ class ListProducts extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('products', 'Products: Help'),
             CreateAction::make(),
             $this->saveViewAction(),
         ];

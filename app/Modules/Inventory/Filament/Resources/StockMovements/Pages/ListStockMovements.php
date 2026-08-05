@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\StockMovements\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource;
 use Filament\Resources\Pages\ListRecords;
 
@@ -12,6 +13,8 @@ class ListStockMovements extends ListRecords
     // Read-only resource — no create header action (parity with Nova).
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            HelpAction::make('stock-movements', 'Stock Movements: Help'),
+        ];
     }
 }
