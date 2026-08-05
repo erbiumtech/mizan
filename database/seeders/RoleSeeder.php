@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\Core\Models\Company;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -9,12 +10,42 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
 {
+    /**
+     * Seed the roles for the current company, or for every company when there is no
+     * current one.
+     *
+     * Roles are per-company (spatie teams), and a null team is not a company. Run
+     * outside a tenant — plain `db:seed --class=RoleSeeder`, which is what somebody
+     * naturally types — this used to create a full set of roles belonging to no
+     * company, holding every permission, reachable by nobody, while leaving each real
+     * company's roles exactly as they were. It reported success, and the roles it was
+     * meant to update were untouched.
+     *
+     * Seeding every company is what running it without naming one means. Callers that
+     * do set a team — the provisioner, `tenants:artisan` — are unaffected.
+     */
     public function run()
     {
-        // Roles are per-company (spatie teams). Scope creation to the current
-        // team so each company gets its own set instead of reusing another's.
-        $teamId = app(PermissionRegistrar::class)->getPermissionsTeamId();
+        $registrar = app(PermissionRegistrar::class);
+        $teamId = $registrar->getPermissionsTeamId();
 
+        if ($teamId !== null) {
+            $this->seedTeam($teamId);
+
+            return;
+        }
+
+        foreach (Company::query()->orderBy('id')->pluck('id') as $companyId) {
+            $registrar->setPermissionsTeamId($companyId);
+            $this->seedTeam($companyId);
+        }
+
+        $registrar->setPermissionsTeamId(null);
+        $registrar->forgetCachedPermissions();
+    }
+
+    private function seedTeam(int $teamId): void
+    {
         $adminRole = Role::firstOrCreate(['name' => 'Administrator', 'company_id' => $teamId]);
         $employeeRole = Role::firstOrCreate(['name' => 'Employee', 'company_id' => $teamId]);
 
