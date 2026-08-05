@@ -16,8 +16,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -66,6 +68,33 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     public function isAdministrator(): bool
     {
         return $this->isSuperAdmin() || $this->hasRole('Administrator');
+    }
+
+    /**
+     * Users holding a permission — or nobody, when the permission itself is absent.
+     *
+     * Spatie's `permission()` scope throws `PermissionDoesNotExist` when no such row
+     * exists. That is a statement about the environment, not about the caller: a
+     * database whose PermissionSeeder has not been re-run since the permission was
+     * added. Every caller here is a notification step that runs *after* something has
+     * already been saved, so the throw turned a successful save into a 500 and told an
+     * employee their expense claim had failed when the row was sitting in the table.
+     *
+     * Logged rather than swallowed. A claim nobody is waiting on is a real problem, just
+     * a smaller one than losing the submission, and the log says what to run.
+     */
+    public static function holdingPermission(string $permission): Builder
+    {
+        try {
+            return static::permission($permission);
+        } catch (PermissionDoesNotExist $e) {
+            Log::warning(
+                "No permission named {$permission} exists, so nobody could be notified. "
+                .'Run `php artisan db:seed --class=PermissionSeeder` — this database is behind the code.'
+            );
+
+            return static::whereRaw('1 = 0');
+        }
     }
 
     /**
