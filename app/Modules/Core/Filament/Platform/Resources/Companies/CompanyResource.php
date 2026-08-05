@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Modules\Core\Filament\Resources\Companies;
+namespace App\Modules\Core\Filament\Platform\Resources\Companies;
 
-use App\Modules\Core\Filament\Resources\Companies\Pages\CreateCompany;
-use App\Modules\Core\Filament\Resources\Companies\Pages\EditCompany;
-use App\Modules\Core\Filament\Resources\Companies\Pages\ListCompanies;
-use App\Modules\Core\Filament\Resources\Companies\Schemas\CompanyForm;
-use App\Modules\Core\Filament\Resources\Companies\Tables\CompaniesTable;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\CreateCompany;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\EditCompany;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\ListCompanies;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Schemas\CompanyForm;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Tables\CompaniesTable;
 use App\Modules\Core\Models\Company;
 use BackedEnum;
 use Filament\Resources\Resource;

@@ -13,10 +13,12 @@ use App\Modules\Payroll\PayrollServiceProvider;
 use App\Modules\Projects\ProjectsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
+use App\Providers\Filament\PlatformPanelProvider;
 
 return [
     AppServiceProvider::class,
     AdminPanelProvider::class,
+    PlatformPanelProvider::class,
 
     // One per module physically moved into app/Modules. Each carries its own
     // policies and routes; its Filament classes are registered by the matching

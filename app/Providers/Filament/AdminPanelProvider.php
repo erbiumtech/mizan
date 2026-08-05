@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
-use App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 use Filament\Http\Middleware\Authenticate;
@@ -66,8 +65,11 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Company::class, slugAttribute: 'slug')
             // Company switcher for users who belong to more than one company.
             ->tenantMenu()
-            // Super-admin-only company creation is enforced by RegisterCompany::canView().
-            ->tenantRegistration(RegisterCompany::class)
+            // No tenant registration. Creating a company provisions a database,
+            // migrates it and seeds its roles — installation-level work, which now
+            // happens on the platform panel where there is no company in scope to
+            // confuse it with. Two routes to the same act meant two places to keep the
+            // super-admin check.
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             // Self-service password change (user menu → Change Password).

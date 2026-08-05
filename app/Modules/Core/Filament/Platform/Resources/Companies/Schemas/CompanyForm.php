@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Core\Filament\Resources\Companies\Schemas;
+namespace App\Modules\Core\Filament\Platform\Resources\Companies\Schemas;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
