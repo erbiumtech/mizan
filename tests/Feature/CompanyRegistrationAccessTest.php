@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany;
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -95,11 +95,10 @@ class CompanyRegistrationAccessTest extends TestCase
         $this->actingAs($admin);
         $this->setCurrentTenant($company);
 
-        $this->assertFalse(RegisterCompany::canView());
-        $this->get(Filament::getTenantRegistrationUrl())->assertNotFound();
+        $this->assertFalse(CompanyResource::canAccess());
     }
 
-    public function test_the_registration_page_is_open_to_a_super_admin(): void
+    public function test_the_company_screen_is_open_to_a_super_admin(): void
     {
         $this->seed(PermissionSeeder::class);
         $company = $this->makeCompanyWithRoles();
@@ -108,9 +107,18 @@ class CompanyRegistrationAccessTest extends TestCase
         $company->users()->attach($superAdmin);
 
         $this->actingAs($superAdmin);
-        $this->setCurrentTenant($company);
 
-        $this->assertTrue(RegisterCompany::canView());
-        $this->get(Filament::getTenantRegistrationUrl())->assertOk();
+        $this->assertTrue(CompanyResource::canAccess());
+    }
+
+    /**
+     * There is one route to creating a company, and it is on the platform panel. The
+     * admin panel's tenant registration was a second one, gated by the same check in a
+     * second place — and it created companies from inside an unrelated company's URL,
+     * which is the confusion the platform panel exists to remove.
+     */
+    public function test_the_admin_panel_no_longer_offers_to_register_a_company(): void
+    {
+        $this->assertFalse(Filament::getPanel('admin')->hasTenantRegistration());
     }
 }

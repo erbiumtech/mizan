@@ -126,7 +126,7 @@ final class ModuleMap
             'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
             'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
             'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Resources\Permissions\PermissionResource::class,
-            'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Resources\Companies\CompanyResource::class,
+            'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource::class,
             'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
             'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
             'App\Filament\Resources\Comments\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
@@ -199,7 +199,6 @@ final class ModuleMap
             'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
             'App\Filament\Pages\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
             'App\Filament\Pages\Auth\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,
-            'App\Filament\Pages\Tenancy\RegisterCompany' => \App\Modules\Core\Filament\Pages\Tenancy\RegisterCompany::class,
         ],
         'payroll' => [
             'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,

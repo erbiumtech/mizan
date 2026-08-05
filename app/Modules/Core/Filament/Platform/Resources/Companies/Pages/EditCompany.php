@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Modules\Core\Filament\Resources\Companies\Pages;
+namespace App\Modules\Core\Filament\Platform\Resources\Companies\Pages;
 
 use App\Filament\Concerns\RedirectsToIndex;
-use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\CompanyModule;
 use App\Support\Modules;
 use Filament\Actions\DeleteAction;

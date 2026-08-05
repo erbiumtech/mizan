@@ -36,14 +36,28 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return config('multitenancy.landlord_database_connection_name') ?: config('database.default');
     }
 
+    /** The tenant-less panel where the installation itself is administered. */
+    public const PLATFORM_PANEL = 'platform';
+
     /**
      * Determine whether the user can access the given Filament panel.
+     *
      * Only active accounts (status = 1) may sign in — mirrors the legacy
      * status-based login rule that previously lived in NovaAuthService.
+     *
+     * The platform panel additionally requires a super admin, and this is the whole
+     * boundary: it has no tenant, so nothing there is scoped to a company, and
+     * `Gate::before` grants a super admin every ability. A single missing condition here
+     * would hand any active user the installation. Enumerated route by route in
+     * PlatformPanelAccessTest rather than sampled.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return (int) $this->status === 1;
+        if ((int) $this->status !== 1) {
+            return false;
+        }
+
+        return $panel->getId() !== self::PLATFORM_PANEL || $this->isSuperAdmin();
     }
 
     /** Global super admin — manages companies across all tenants. */

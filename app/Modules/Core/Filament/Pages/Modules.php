@@ -2,7 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
-use App\Modules\Core\Filament\Resources\Companies\CompanyResource;
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
 use App\Support\ModuleMap;
