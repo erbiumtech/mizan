@@ -1,3 +1,5 @@
+![Invoices](/images/help/invoices.png)
+
 ## What an invoice is
 
 An invoice is either a **Sale** (a customer invoice) or a **Purchase** (a

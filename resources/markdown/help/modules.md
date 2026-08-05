@@ -1,3 +1,5 @@
+![Modules](/images/help/modules.png)
+
 ## What this is
 
 Switches for which licensed modules are actually turned on for this company

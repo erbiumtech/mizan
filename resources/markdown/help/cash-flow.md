@@ -1,3 +1,5 @@
+![Cash Flow](/images/help/cash-flow.png)
+
 ## What this shows
 
 Where the company's cash actually went, by the indirect method — starting

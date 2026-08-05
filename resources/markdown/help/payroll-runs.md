@@ -1,3 +1,5 @@
+![Payroll Runs](/images/help/payroll-runs.png)
+
 ## What a payroll run is
 
 A **Payroll Month** (internally a "payroll run") is created automatically the

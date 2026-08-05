@@ -1,3 +1,5 @@
+![Platform Activity Logs](/images/help/platform-activity-logs.png)
+
 ## What this is — Platform Administrator documentation
 
 Every company's audit trail, in one list — the cross-company companion to

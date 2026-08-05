@@ -1,3 +1,5 @@
+![CSV Import](/images/help/csv-import.png)
+
 ## What this is
 
 A quick way to bring in existing records at setup — a spreadsheet of

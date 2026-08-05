@@ -1,3 +1,5 @@
+![My Profile](/images/help/edit-profile.png)
+
 ## What this is
 
 Your own password change screen, reachable from the user menu by anyone

@@ -1,3 +1,5 @@
+![Petty Cash Book](/images/help/petty-cash-book.png)
+
 ## What this tracks
 
 A month's petty cash float: what it started with, what was spent out of it

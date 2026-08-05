@@ -1,3 +1,5 @@
+![Permissions](/images/help/permissions.png)
+
 ## What this is — Platform Administrator documentation
 
 The installation-wide list of permissions the code actually checks —

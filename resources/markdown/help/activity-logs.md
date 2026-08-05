@@ -1,3 +1,5 @@
+![Activity Log](/images/help/activity-logs.png)
+
 ## What this is
 
 A read-only audit trail: every record created, updated, or deleted in this

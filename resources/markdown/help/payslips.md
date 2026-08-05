@@ -1,3 +1,5 @@
+![Payslips](/images/help/payslips.png)
+
 ## What a payslip is
 
 One employee's pay for one month of one fiscal year — there can only ever be

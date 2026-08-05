@@ -1,3 +1,5 @@
+![Platform Roles](/images/help/platform-roles.png)
+
 ## What this is — Platform Administrator documentation
 
 Every role, in every company, in one list — the cross-company view a single

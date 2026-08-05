@@ -1,3 +1,5 @@
+![Transaction Types](/images/help/transaction-types.png)
+
 ## What this is
 
 A transaction type is a label for *why* money is moving — Salary, Rent, Food,

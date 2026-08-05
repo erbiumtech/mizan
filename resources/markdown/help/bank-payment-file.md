@@ -1,3 +1,5 @@
+![Bank Payment File](/images/help/bank-payment-file.png)
+
 ## What this builds
 
 The batch of outstanding payments — salaries and everything else (suppliers,

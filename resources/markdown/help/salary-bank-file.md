@@ -1,3 +1,5 @@
+![Salary Bank File](/images/help/salary-bank-file.png)
+
 ## What this does
 
 Builds the bank file that actually pays a month's salaries — a Standard

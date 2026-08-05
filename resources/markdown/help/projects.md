@@ -1,3 +1,5 @@
+![Projects](/images/help/projects.png)
+
 ## What a project is
 
 A delivery project: a team of employees with dated stints, a primary and

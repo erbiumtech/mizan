@@ -1,3 +1,5 @@
+![Profit & Loss](/images/help/profit-and-loss.png)
+
 ## What this shows
 
 Income and expenses over a period, and the profit or loss they net out to.

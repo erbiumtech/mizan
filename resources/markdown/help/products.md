@@ -1,3 +1,5 @@
+![Products](/images/help/products.png)
+
 ## What a product is
 
 A stock item: its SKU, name, unit of measure, reorder level, and which

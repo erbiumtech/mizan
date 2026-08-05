@@ -1,3 +1,5 @@
+![MPRs](/images/help/mprs.png)
+
 ## What an MPR is
 
 A Monthly Performance Review: one dated record per user covering feedback,

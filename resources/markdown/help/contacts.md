@@ -1,3 +1,5 @@
+![Contacts](/images/help/contacts.png)
+
 ## What a contact is
 
 A contact is a customer, a supplier, or both — set by **Kind**. The same record

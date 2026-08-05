@@ -1,3 +1,5 @@
+![Comments](/images/help/comments.png)
+
 ## What this is
 
 Comments attached to another record — today, payslips. Not in the sidebar;

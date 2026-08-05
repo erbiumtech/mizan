@@ -1,3 +1,5 @@
+![FBR Tax File](/images/help/fbr-tax-file.png)
+
 ## What this does
 
 Exports the FBR "MONTHLY DETAILS" file: the withholding-tax return format

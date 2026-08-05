@@ -1,3 +1,5 @@
+![Aged Receivables](/images/help/aged-receivables.png)
+
 ## What this report shows
 
 What customers still owe, grouped by how overdue it is. Only **Sale**

@@ -1,3 +1,5 @@
+![Company Bank Accounts](/images/help/company-bank-accounts.png)
+
 ## What this is
 
 The company's own bank accounts — the accounts payments are actually debited

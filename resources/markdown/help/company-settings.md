@@ -1,3 +1,5 @@
+![Company Settings](/images/help/company-settings.png)
+
 ## What this is
 
 The per-company settings that don't belong on any single resource: the base

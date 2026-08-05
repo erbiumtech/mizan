@@ -1,3 +1,5 @@
+![Banks](/images/help/banks.png)
+
 ## What this is
 
 The banks the company or its employees hold accounts with — a simple

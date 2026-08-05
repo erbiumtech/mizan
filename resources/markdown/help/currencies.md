@@ -1,3 +1,5 @@
+![Currencies](/images/help/currencies.png)
+
 ## What this is
 
 The currencies the company deals in, beyond its own books. Which currency the

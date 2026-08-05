@@ -1,3 +1,5 @@
+![Trial Balance](/images/help/trial-balance.png)
+
 ## What this shows
 
 Every account and its balance, as at a single date, with total debits and
