@@ -3,10 +3,10 @@
 namespace App\Modules\Accounting\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
-use App\Modules\Employees\Models\Employee;
-use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Inventory\Models\Product;
+use App\Modules\Invoicing\Models\Invoice;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 

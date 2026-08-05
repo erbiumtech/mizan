@@ -31,6 +31,9 @@ abstract class AgedInvoices extends Page
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
+    // Reached from the Reports hub, not the sidebar. See Core\Filament\Pages\Reports.
+    protected static bool $shouldRegisterNavigation = false;
+
     public ?array $data = [];
 
     /** Invoice::KIND_SALE for receivables, KIND_PURCHASE for payables. */

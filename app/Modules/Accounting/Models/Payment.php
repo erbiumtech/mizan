@@ -2,13 +2,12 @@
 
 namespace App\Modules\Accounting\Models;
 
-use Illuminate\Database\Eloquent\Builder;
-
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Accounting\Support\BankFileAccount;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 
 class Payment extends Model
 {

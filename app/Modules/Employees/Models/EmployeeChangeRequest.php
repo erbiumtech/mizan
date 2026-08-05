@@ -5,7 +5,7 @@ namespace App\Modules\Employees\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\User;
 use App\Notifications\EmployeeChangeRequestSubmitted;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
@@ -131,21 +131,50 @@ class EmployeeChangeRequest extends Model
             throw new InvalidArgumentException("Only pending change requests can be approved (request is {$this->status}).");
         }
 
-        return DB::transaction(function () use ($reviewer) {
-            $this->targetsSetting() ? $this->applyToSetting() : $this->applyToEmployee();
+        // The only approval that spans both databases: name and email live on the
+        // landlord `users` row, everything else on this company's. No transaction
+        // covers both connections, so the tenant side goes first and commits, and
+        // the user row follows.
+        //
+        // That order is deliberate. The other way round — the user write inside a
+        // tenant transaction, as it was — meant a failure anywhere after it rolled
+        // back the request while leaving the new name and login email applied, so
+        // a request that was never approved had already changed how someone signs
+        // in. This way a failure leaves the approval and the employee record
+        // agreeing with each other, and one landlord field visibly not caught up.
+        $userChanges = [];
+
+        TenantTransaction::run(function () use ($reviewer, &$userChanges) {
+            if ($this->targetsSetting()) {
+                $this->applyToSetting();
+            } else {
+                $userChanges = $this->applyToEmployee();
+            }
 
             $this->update([
                 'status' => self::STATUS_APPROVED,
                 'reviewed_by' => $reviewer->id,
                 'reviewed_at' => now(),
             ]);
-
-            return $this;
         });
+
+        if ($userChanges !== []) {
+            $this->employee->user->update($userChanges);
+        }
+
+        return $this;
     }
 
-    /** Writes the approved profile edits; user_* keys land on the linked user. */
-    protected function applyToEmployee(): void
+    /**
+     * Writes the approved profile edits.
+     *
+     * Returns the user_* keys for approve() to apply afterwards rather than
+     * writing them here: they are the one part of this that lands on the landlord
+     * connection, outside the transaction wrapping the rest.
+     *
+     * @return array<string, mixed> columns for the linked user
+     */
+    protected function applyToEmployee(): array
     {
         $changes = collect($this->requested_changes)->only(self::ALLOWED_FIELDS);
 
@@ -156,16 +185,14 @@ class EmployeeChangeRequest extends Model
             }
         }
 
-        if ($userChanges) {
-            $this->employee->user->update($userChanges);
-        }
-
         if ($changes->isNotEmpty()) {
             // The approval is the authority — don't let the interception turn
             // this write into yet another request just because the requester is
             // the one currently signed in.
             Employee::withoutApprovalRouting(fn () => $this->employee->update($changes->all()));
         }
+
+        return $userChanges;
     }
 
     /**

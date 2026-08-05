@@ -6,7 +6,11 @@ use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Services\PaymentService;
+use App\Modules\Payroll\Models\Payslip;
+use App\Support\ModuleMap;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Spatie\Multitenancy\Commands\Concerns\TenantAware;
 use Throwable;
 
@@ -82,7 +86,7 @@ class BackfillPaymentEntriesCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @param \Illuminate\Support\Collection<int, Payment> $missing */
+    /** @param Collection<int, Payment> $missing */
     private function report($missing, $stale): void
     {
         if ($missing->isNotEmpty()) {
@@ -94,7 +98,7 @@ class BackfillPaymentEntriesCommand extends Command
                     '#'.$payment->id,
                     $payment->transactionType?->name ?? '—',
                     number_format((float) $payment->amount, 2),
-                    \Illuminate\Support\Str::limit($payment->details, 34),
+                    Str::limit($payment->details, 34),
                     $this->destinationFor($payment),
                 ])->all(),
             );
@@ -128,7 +132,7 @@ class BackfillPaymentEntriesCommand extends Command
     private function warnAboutUnpostedPayroll(): void
     {
         $waiting = JournalEntry::whereNotNull('source_id')
-            ->where('source_type', \App\Support\ModuleMap::alias(\App\Modules\Payroll\Models\Payslip::class))
+            ->where('source_type', ModuleMap::alias(Payslip::class))
             ->where('is_posted', false)
             ->count();
 
@@ -157,7 +161,7 @@ class BackfillPaymentEntriesCommand extends Command
             ?? '⚠ no account on this type — will be skipped';
     }
 
-    /** @param \Illuminate\Support\Collection<int, Payment> $missing */
+    /** @param Collection<int, Payment> $missing */
     private function book($missing, PaymentService $payments): int
     {
         $booked = 0;
@@ -183,7 +187,7 @@ class BackfillPaymentEntriesCommand extends Command
         return $booked;
     }
 
-    /** @param \Illuminate\Support\Collection<int, Payment> $stale */
+    /** @param Collection<int, Payment> $stale */
     private function rebuild($stale, PaymentService $payments, JournalEntryService $entries): int
     {
         $rebuilt = 0;

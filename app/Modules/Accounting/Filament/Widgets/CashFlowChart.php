@@ -23,9 +23,39 @@ class CashFlowChart extends ChartWidget
 
     public ?string $filter = '14';
 
+    /**
+     * The period's totals, cached because getDescription() and getData() are
+     * separate calls and would otherwise run the same two aggregates twice.
+     *
+     * @var array{in: float, out: float}|null
+     */
+    private ?array $totals = null;
+
     public function getHeading(): ?string
     {
         return 'Daily Cash Flow';
+    }
+
+    /**
+     * In, out, and the net between them.
+     *
+     * A line chart shows the shape of the period and leaves the reader to add up
+     * fourteen pairs of points to find out whether cash actually went up or down,
+     * which is the one thing the panel is looked at for.
+     */
+    public function getDescription(): ?string
+    {
+        ['in' => $in, 'out' => $out] = $this->periodTotals();
+        $net = round($in - $out, 2);
+
+        return sprintf(
+            'In PKR %s · Out PKR %s · Net %sPKR %s over %d days',
+            number_format($in, 2),
+            number_format($out, 2),
+            $net < 0 ? '−' : '',
+            number_format(abs($net), 2),
+            (int) ($this->filter ?: 14),
+        );
     }
 
     public static function canView(): bool
@@ -87,6 +117,25 @@ class CashFlowChart extends ChartWidget
                 ],
             ],
             'labels' => $labels,
+        ];
+    }
+
+    /**
+     * @return array{in: float, out: float}
+     */
+    protected function periodTotals(): array
+    {
+        if ($this->totals !== null) {
+            return $this->totals;
+        }
+
+        $days = (int) ($this->filter ?: 14);
+        $from = Carbon::today()->subDays($days - 1);
+        $accountIds = Account::whereIn('code', ['1100', '1150'])->pluck('id');
+
+        return $this->totals = [
+            'in' => round((float) $this->sumsByDay('debit_amount', $accountIds, $from)->sum(), 2),
+            'out' => round((float) $this->sumsByDay('credit_amount', $accountIds, $from)->sum(), 2),
         ];
     }
 

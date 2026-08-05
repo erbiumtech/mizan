@@ -29,6 +29,9 @@ class PettyCashBook extends Page
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
+    // Reached from the Reports hub, not the sidebar. See Core\Filament\Pages\Reports.
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-wallet';
 
     protected static ?string $title = 'Petty Cash Book';

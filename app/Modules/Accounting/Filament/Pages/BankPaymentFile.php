@@ -11,8 +11,8 @@ use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Payroll\Services\SalaryBankExportService;
-use Carbon\Carbon;
 use BackedEnum;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -26,13 +26,15 @@ use UnitEnum;
 class BankPaymentFile extends Page
 {
     use BelongsToModule;
-
     use SelectsSalaryMonth;
     use VoidsPaymentBatches;
 
     protected string $view = 'filament.pages.bank-payment-file';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
+
+    // Reached from the Reports hub, not the sidebar. See Core\Filament\Pages\Reports.
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-currency-dollar';
 

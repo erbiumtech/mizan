@@ -139,6 +139,8 @@ class NavigationGroupsTest extends TestCase
 
         sort($labels);
 
+        // No Reports: the fourteen report pages are reached through the single
+        // top-level Reports link instead, which ReportsHubTest covers.
         $this->assertSame([
             'Access Control',
             'Accounting',
@@ -146,7 +148,6 @@ class NavigationGroupsTest extends TestCase
             'Employee',
             'Invoicing & Inventory',
             'MPR',
-            'Reports',
             'Settings',
         ], $labels);
     }

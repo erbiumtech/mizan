@@ -18,9 +18,7 @@ use RuntimeException;
 
 class PaymentService
 {
-    public function __construct(private JournalEntryService $journalEntryService)
-    {
-    }
+    public function __construct(private JournalEntryService $journalEntryService) {}
 
     /**
      * One draft salary Payment per payslip of the month (idempotent via
@@ -188,7 +186,7 @@ class PaymentService
      * the payments that actually went.
      *
      * @param  iterable<Payment>  $payments
-     * @return \Illuminate\Support\Collection<int, Payment>
+     * @return Collection<int, Payment>
      */
     public function release(iterable $payments, string $reference): Collection
     {
@@ -233,7 +231,7 @@ class PaymentService
      * says the money actually moved, and putting such a row back in the pool
      * would queue it to move again.
      *
-     * @return \Illuminate\Support\Collection<int, Payment> the payments restored
+     * @return Collection<int, Payment> the payments restored
      *
      * @throws InvalidArgumentException when the batch is unknown or partly paid
      */
@@ -330,7 +328,7 @@ class PaymentService
      * Batches that could still be voided, newest first: those whose payments are
      * exported and none of them paid.
      *
-     * @return \Illuminate\Support\Collection<string, string> reference => label
+     * @return Collection<string, string> reference => label
      */
     public function voidableBatches(int $limit = 20): Collection
     {

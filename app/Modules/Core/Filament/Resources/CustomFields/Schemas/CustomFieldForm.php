@@ -2,7 +2,6 @@
 
 namespace App\Modules\Core\Filament\Resources\CustomFields\Schemas;
 
-use App\Support\ModuleMap;
 use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
 use App\Modules\Core\Models\CustomField;
 use Filament\Forms\Components\Select;

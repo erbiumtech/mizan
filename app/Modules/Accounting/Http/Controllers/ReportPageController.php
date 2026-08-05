@@ -9,9 +9,7 @@ use Illuminate\Http\Request;
 
 class ReportPageController extends Controller
 {
-    public function __construct(private FinancialReportService $reports)
-    {
-    }
+    public function __construct(private FinancialReportService $reports) {}
 
     public function balanceSheet(Request $request)
     {

@@ -2,8 +2,8 @@
 
 namespace App\Modules\Core\Models;
 
-use App\Support\ModuleMap;
 use App\Models\TenantModel as Model;
+use App\Support\ModuleMap;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 

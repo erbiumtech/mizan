@@ -5,8 +5,8 @@ namespace App\Modules\Accounting\Filament\Pages;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
-use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Services\BankTransferService;
+use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -26,6 +26,9 @@ class AccountRegister extends Page
     protected string $view = 'filament.pages.account-register';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
+
+    // Reached from the Reports hub, not the sidebar. See Core\Filament\Pages\Reports.
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-book-open';
 

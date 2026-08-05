@@ -4,10 +4,10 @@ namespace App\Modules\Inventory\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\StockMovement;
-use App\Modules\Accounting\Services\JournalEntryService;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 /**
@@ -19,8 +19,7 @@ class InventoryService
     public function __construct(
         private InventoryValuationService $valuation,
         private JournalEntryService $journalEntryService,
-    ) {
-    }
+    ) {}
 
     /**
      * Receive stock: creates a purchase lot and posts
@@ -32,7 +31,7 @@ class InventoryService
             throw new InvalidArgumentException('Purchase needs a positive quantity and non-negative cost.');
         }
 
-        return DB::transaction(function () use ($product, $quantity, $unitCost, $date, $reference) {
+        return TenantTransaction::run(function () use ($product, $quantity, $unitCost, $date, $reference) {
             $total = round($quantity * $unitCost, 2);
 
             $entry = $this->postSystemEntry($date, "Stock purchase {$product->sku} ×{$quantity}", [
@@ -62,7 +61,7 @@ class InventoryService
             throw new InvalidArgumentException('Sale needs a positive quantity and non-negative price.');
         }
 
-        return DB::transaction(function () use ($product, $quantity, $unitPrice, $date, $reference) {
+        return TenantTransaction::run(function () use ($product, $quantity, $unitPrice, $date, $reference) {
             $cogs = $this->valuation->costOfSale($product, $quantity);
             $revenue = round($quantity * $unitPrice, 2);
 
@@ -95,7 +94,7 @@ class InventoryService
             throw new InvalidArgumentException('Adjustment quantity cannot be zero.');
         }
 
-        return DB::transaction(function () use ($product, $quantity, $date, $unitCost, $reference) {
+        return TenantTransaction::run(function () use ($product, $quantity, $date, $unitCost, $reference) {
             if ($quantity > 0) {
                 if ($unitCost === null || $unitCost < 0) {
                     throw new InvalidArgumentException('Positive adjustments need a unit cost.');

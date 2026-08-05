@@ -11,6 +11,7 @@ use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\BeneficiarySubscription;
 use App\Modules\Accounting\Models\CompanyBankAccount;
+use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
@@ -23,6 +24,7 @@ use App\Modules\Accounting\Policies\BankStatementPolicy;
 use App\Modules\Accounting\Policies\BeneficiaryPolicy;
 use App\Modules\Accounting\Policies\BeneficiarySubscriptionPolicy;
 use App\Modules\Accounting\Policies\CompanyBankAccountPolicy;
+use App\Modules\Accounting\Policies\CurrencyPolicy;
 use App\Modules\Accounting\Policies\FixedAssetPolicy;
 use App\Modules\Accounting\Policies\JournalEntryLinePolicy;
 use App\Modules\Accounting\Policies\JournalEntryPolicy;
@@ -49,6 +51,7 @@ class AccountingServiceProvider extends ServiceProvider
         BankStatementLine::class => BankStatementLinePolicy::class,
         BankStatement::class => BankStatementPolicy::class,
         Beneficiary::class => BeneficiaryPolicy::class,
+        Currency::class => CurrencyPolicy::class,
         BeneficiarySubscription::class => BeneficiarySubscriptionPolicy::class,
         CompanyBankAccount::class => CompanyBankAccountPolicy::class,
         FixedAsset::class => FixedAssetPolicy::class,

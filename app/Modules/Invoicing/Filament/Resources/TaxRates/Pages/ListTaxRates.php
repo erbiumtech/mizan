@@ -2,8 +2,8 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\TaxRates\Pages;
 
-use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListTaxRates extends ListRecords
@@ -12,6 +12,6 @@ class ListTaxRates extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\CreateAction::make()];
+        return [CreateAction::make()];
     }
 }
