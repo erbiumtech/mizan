@@ -28,10 +28,29 @@ class TaxRateSeeder extends Seeder
         ];
 
         foreach ($rates as $rate) {
-            TaxRate::updateOrCreate(
-                ['name' => $rate['name']],
-                $rate + ['account_id' => $account, 'is_active' => true],
-            );
+            $existing = TaxRate::where('name', $rate['name'])->first();
+
+            if (! $existing) {
+                TaxRate::create($rate + ['account_id' => $account, 'is_active' => true]);
+
+                continue;
+            }
+
+            /*
+             * Which rate an invoice charges by default, and whether a rate is offered at
+             * all, are decisions about this company — not facts about Pakistani tax. They
+             * are set when the rate is first created and never re-asserted afterwards.
+             *
+             * Re-running this seeder is how a company picks up a rate added to the code,
+             * and it must not quietly put 18% back onto every invoice line of a company
+             * that deliberately turned it off — an export client charged sales tax by a
+             * seeder is not a mistake anybody would look for.
+             */
+            $existing->update([
+                'code' => $rate['code'],
+                'rate' => $rate['rate'],
+                'account_id' => $account,
+            ]);
         }
 
         $this->command?->info('Seeded '.count($rates).' tax rates. Confirm the rate your invoices actually charge.');
