@@ -36,6 +36,22 @@ class TestEnvironmentTest extends TestCase
     }
 
     /**
+     * The one test that launches a real browser has a wall-clock timeout, so what
+     * spends it is the machine being busy with the other thousand tests rather than
+     * the document being complicated. It failed that way once, and a rendering
+     * timeout says nothing about the code it was supposedly testing.
+     */
+    public function test_headless_chrome_is_given_longer_than_in_production(): void
+    {
+        $this->assertGreaterThan(
+            60,
+            config('pdf.timeout'),
+            'PDF_TIMEOUT is not raised for the suite, so the payslip render has production\'s 60 seconds '
+            .'while sharing a machine with every other test.'
+        );
+    }
+
+    /**
      * Not decoration: two of these were found by tests that passed for the wrong
      * reason — impersonation on the array session driver, which cannot survive
      * between requests, and tenancy scoping on a panel that was never booted.

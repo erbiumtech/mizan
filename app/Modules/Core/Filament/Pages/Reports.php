@@ -9,7 +9,6 @@ use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
-use App\Modules\Accounting\Filament\Pages\GnuCashImport;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
@@ -91,9 +90,11 @@ class Reports extends Page
             PettyCashBook::class => 'The cash float: what was spent, what is left, and replenishment.',
             CurrencyRevaluation::class => 'Foreign balances at the rate on a date, and the difference posted.',
         ],
-        'Bank files & imports' => [
+        // GnuCash Import used to sit here. It is an import, not a report, and now
+        // lives in Settings beside Import from CSV — which is why this section is
+        // down to bank files alone.
+        'Bank files' => [
             BankPaymentFile::class => 'Selected payments as a bank transfer file.',
-            GnuCashImport::class => 'Bring a GnuCash book in: accounts, then transactions.',
         ],
     ];
 

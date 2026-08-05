@@ -92,20 +92,23 @@ class ReportsHubTest extends TestCase
             'Receivables & payables',
             'Payroll & tax',
             'Ledgers & books',
-            'Bank files & imports',
+            'Bank files',
         ], array_keys(Reports::sections()));
 
-        // The fourteen that used to be the sidebar group. Named rather than
-        // counted: a rename that dropped one would still count fourteen.
+        // Named rather than counted: a rename that dropped one would still count
+        // the same. GnuCash Import is deliberately absent — it is an import, and
+        // it lives in Settings now; NavigationGroupsTest holds that end of it.
         foreach ([
             'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
             'Account Register', 'Petty Cash Book',
-            'Bank Payment File', 'GnuCash Import',
+            'Bank Payment File',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }
+
+        $this->assertNotContains('GnuCash Import', $this->hubLabels());
     }
 
     /**
@@ -181,9 +184,9 @@ class ReportsHubTest extends TestCase
         $this->actingAs($user);
         $this->setCurrentTenant($company);
 
-        // Employee holds none of ReportView, JournalEntryView, PettyCashView or
-        // GnuCashImport, so there is no report to link to — and a hub with an
-        // empty body is worse than no link at all.
+        // Employee holds none of ReportView, JournalEntryView or PettyCashView, so
+        // there is no report to link to — and a hub with an empty body is worse
+        // than no link at all.
         $this->assertSame([], Reports::sections());
         $this->assertFalse(Reports::canAccess());
         $this->assertNotContains('Reports', collect($this->navigation())->flatten()->all());
@@ -233,6 +236,9 @@ class ReportsHubTest extends TestCase
         // Guards the guard: the loop above passes trivially if the panel reports no
         // hidden pages at all, which is what a broken tenant or an unbooted panel
         // looks like from here.
-        $this->assertGreaterThanOrEqual(14, $examined, 'the panel reported no pages hidden from the sidebar');
+        // A floor, not the count: pages legitimately move in and out of the hub
+        // (GnuCash Import went to Settings), and this only needs to catch a scan
+        // that found nothing.
+        $this->assertGreaterThanOrEqual(10, $examined, 'the panel reported no pages hidden from the sidebar');
     }
 }
