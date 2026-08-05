@@ -126,6 +126,7 @@ final class ModuleMap
             'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
             'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
             'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Platform\Resources\Permissions\PermissionResource::class,
+            'App\Filament\Platform\Resources\Roles\PlatformRoleResource' => \App\Modules\Core\Filament\Platform\Resources\Roles\PlatformRoleResource::class,
             'App\Filament\Platform\Resources\Users\PlatformUserResource' => \App\Modules\Core\Filament\Platform\Resources\Users\PlatformUserResource::class,
             'App\Filament\Platform\Resources\ActivityLogs\PlatformActivityLogResource' => \App\Modules\Core\Filament\Platform\Resources\ActivityLogs\PlatformActivityLogResource::class,
             'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource::class,
