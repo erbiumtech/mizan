@@ -4,6 +4,8 @@ namespace App\Modules\Payroll;
 
 use App\Modules\Payroll\Console\Commands\CheckPayrollAccounts;
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
+use App\Modules\Payroll\Console\Commands\PostPendingPayrollEntries;
+use App\Modules\Payroll\Console\Commands\SetPayrollAutoPosting;
 use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\PayrollRun;
@@ -51,6 +53,11 @@ class PayrollServiceProvider extends ServiceProvider
         // Laravel only auto-discovers commands in app/Console/Commands,
         // so a moved command has to be registered here or it disappears
         // from artisan — and from the scheduler, silently.
-        $this->commands([CheckPayrollAccounts::class, OpenPayrollMonth::class]);
+        $this->commands([
+            CheckPayrollAccounts::class,
+            OpenPayrollMonth::class,
+            PostPendingPayrollEntries::class,
+            SetPayrollAutoPosting::class,
+        ]);
     }
 }

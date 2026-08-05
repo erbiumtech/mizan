@@ -4,8 +4,8 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Payroll\Models\Payslip;
-use App\Notifications\PayslipIssued;
 use App\Modules\Payroll\Support\PayslipMediaLink;
+use App\Notifications\PayslipIssued;
 use App\Support\WhatsApp\PhoneNumber;
 use App\Support\WhatsApp\WhatsAppDocument;
 use App\Support\WhatsApp\WhatsAppException;

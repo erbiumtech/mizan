@@ -4,13 +4,12 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Support\PayrollAccounts;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Accounting\Services\JournalEntryService;
 use App\Support\ModuleMap;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
-use RuntimeException;
 
 class PayrollPostingService
 {
@@ -126,7 +125,7 @@ class PayrollPostingService
 
         $this->journalEntryService->submitForApproval($entry);
 
-        if (setting('accounting.auto_post_payroll')) {
+        if (setting(PayrollAutoPosting::SETTING_KEY)) {
             $entry->update([
                 'status' => JournalEntry::STATUS_APPROVED,
                 'approved_at' => now(),

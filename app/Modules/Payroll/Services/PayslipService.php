@@ -6,7 +6,6 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Services\TaxCalculatorService;
 use App\Modules\Payroll\Support\PayrollMonth;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
@@ -15,9 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class PayslipService
 {
-    public function __construct(private TaxCalculatorService $taxCalculator)
-    {
-    }
+    public function __construct(private TaxCalculatorService $taxCalculator) {}
 
     /**
      * This month's advance instalment, or 0.0 when the employee has none.
@@ -110,27 +107,27 @@ class PayslipService
 
         $setting = EmployeeSetting::getActiveSettingForDate($employeeId, $targetDate, $fiscalYearId);
 
-        if (!$setting) {
+        if (! $setting) {
             return array_fill_keys(['basic_wage', 'medical_allowance', 'device_allowance', 'petrol_allowance', 'advances', 'meal_deduction', 'esi_health_insurance', 'bonus', 'extra_work_hours', 'expense_reimbursement', 'total_earnings', 'withholding_tax', 'total_deductions', 'net_salary'], 0);
         }
 
         $data = [
-           'basic_wage'           => (float) $setting->basic_wage,
-            'medical_allowance'    => (float) $setting->medical_allowance,
-            'device_allowance'     => ((float)$deviceAllowance > 0) ? (float)$deviceAllowance : (float)$setting->device_allowance,
-            'petrol_allowance'     => ((float)$petrolAllowance > 0) ? (float)$petrolAllowance : (float)$setting->petrol_allowance,
+            'basic_wage' => (float) $setting->basic_wage,
+            'medical_allowance' => (float) $setting->medical_allowance,
+            'device_allowance' => ((float) $deviceAllowance > 0) ? (float) $deviceAllowance : (float) $setting->device_allowance,
+            'petrol_allowance' => ((float) $petrolAllowance > 0) ? (float) $petrolAllowance : (float) $setting->petrol_allowance,
             // From the advance ledger when the employee has one, so the figure
             // deducted and the balance still owed are the same fact. An explicit
             // amount passed in still wins — a payroll clerk overriding one month
             // is a legitimate correction — and an employee with no advance falls
             // back to their settings exactly as before.
-            'advances'             => ((float)$advances > 0)
-                ? (float)$advances
-                : ($this->advanceInstalmentFor($employeeId, $payslipId) ?: (float)$setting->advances),
-            'meal_deduction'       => ((float)$mealDeduction > 0) ? (float)$mealDeduction : (float)$setting->meal_deduction,
-            'esi_health_insurance' => ((float)$esiInsurance > 0) ? (float)$esiInsurance : (float)$setting->esi_health_insurance,
-            'bonus'                => ((float)$bonus > 0) ? (float)$bonus : (float)($setting->bonus ?? 0),
-            'extra_work_hours'     => ((float)$extraWorkHours > 0) ? (float)$extraWorkHours : (float)($setting->extra_work_hours ?? 0),
+            'advances' => ((float) $advances > 0)
+                ? (float) $advances
+                : ($this->advanceInstalmentFor($employeeId, $payslipId) ?: (float) $setting->advances),
+            'meal_deduction' => ((float) $mealDeduction > 0) ? (float) $mealDeduction : (float) $setting->meal_deduction,
+            'esi_health_insurance' => ((float) $esiInsurance > 0) ? (float) $esiInsurance : (float) $setting->esi_health_insurance,
+            'bonus' => ((float) $bonus > 0) ? (float) $bonus : (float) ($setting->bonus ?? 0),
+            'extra_work_hours' => ((float) $extraWorkHours > 0) ? (float) $extraWorkHours : (float) ($setting->extra_work_hours ?? 0),
             // From the approved claims when there are any, so the figure on the
             // payslip is the sum of things somebody approved rather than a number
             // typed with nothing behind it. An explicit amount still wins: paying a
@@ -173,15 +170,14 @@ class PayslipService
 
         $annualTotalEarnings = $previousEarningsSum;
 
-
         if ($allSettings->isNotEmpty()) {
             foreach ($allSettings as $empSetting) {
-                $sMonthlyTotal = (float)$empSetting->basic_wage
-                                 + (float)$empSetting->medical_allowance
-                                 + (float)$empSetting->petrol_allowance
-                                 + (float)$empSetting->device_allowance
-                                 + (float)($empSetting->bonus ?? 0)
-                                 + (float)($empSetting->extra_work_hours ?? 0)
+                $sMonthlyTotal = (float) $empSetting->basic_wage
+                                 + (float) $empSetting->medical_allowance
+                                 + (float) $empSetting->petrol_allowance
+                                 + (float) $empSetting->device_allowance
+                                 + (float) ($empSetting->bonus ?? 0)
+                                 + (float) ($empSetting->extra_work_hours ?? 0)
                                  // Taxable components only: a reimbursement is not
                                  // income and must not raise anybody's tax.
                                  + $this->componentTotals($empSetting)['taxable_earnings'];
@@ -202,7 +198,7 @@ class PayslipService
                 while ($currentPeriodCursor <= $sEnd) {
                     $mName = $currentPeriodCursor->format('F'); //  July, August
 
-                    if ($mName === $month || !in_array($mName, $completedMonths)) {
+                    if ($mName === $month || ! in_array($mName, $completedMonths)) {
                         $annualTotalEarnings += ($mName === $month)
                             ? $data['total_earnings'] - $untaxedComponents
                             : $sMonthlyTotal;
@@ -218,15 +214,15 @@ class PayslipService
             $annualTotalEarnings = $previousEarningsSum + $taxableThisMonth + ($taxableThisMonth * $remainingMonths);
         }
 
-        Log::debug('Corrected Annual Total Earnings: ' . $annualTotalEarnings);
+        Log::debug('Corrected Annual Total Earnings: '.$annualTotalEarnings);
 
         // Instructor & FBR Rule: Poori Annual Total Earnings ka 10% medical cut
         $medicalExemption = $annualTotalEarnings * 0.10;
-        Log::debug('10% Medical Exemption Cut: ' . $medicalExemption);
+        Log::debug('10% Medical Exemption Cut: '.$medicalExemption);
 
         // Annual Taxable Income = Total Earnings - 10% Exemption Cut
         $annualTaxableIncome = max(0, $annualTotalEarnings - $medicalExemption);
-        Log::debug('Final Annual Taxable Income: ' . $annualTaxableIncome);
+        Log::debug('Final Annual Taxable Income: '.$annualTaxableIncome);
 
         // Annual tax nikalna
         $totalAnnualTax = $this->taxCalculator->annualTax($annualTaxableIncome, $fiscalYearId);
@@ -239,7 +235,7 @@ class PayslipService
 
         // Total saal mein kitne mahine complete ho chuke hain
         $completedMonthsCount = count($completedMonths);
-        
+
         $remainingMonthsForTax = max(1, 12 - $completedMonthsCount);
 
         // Leftover tax jo abhi tak pay nahi hua
@@ -247,7 +243,7 @@ class PayslipService
 
         // Monthly withholding tax = Leftover tax ko baqi rehnay walay mahino par divide karna
         $data['withholding_tax'] = round($leftoverAnnualTax / $remainingMonthsForTax, 2);
-        Log::debug('Withholding Tax for this month: ' . $data['withholding_tax']);
+        Log::debug('Withholding Tax for this month: '.$data['withholding_tax']);
 
         // Total Deductions (Tax + Advances + Meal + ESI + anything added as a component)
         $data['total_deductions'] = round(

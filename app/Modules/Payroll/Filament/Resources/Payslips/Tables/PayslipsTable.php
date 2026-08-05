@@ -3,12 +3,12 @@
 namespace App\Modules\Payroll\Filament\Resources\Payslips\Tables;
 
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Services\PayslipService;
-use App\Support\WhatsApp\PhoneNumber;
 use App\Modules\Payroll\Services\PayslipDeliveryService;
+use App\Modules\Payroll\Services\PayslipService;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use App\Support\Pdf\Pdf;
+use App\Support\WhatsApp\PhoneNumber;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -199,7 +199,6 @@ class PayslipsTable
                 ]),
             ]);
     }
-
 
     /**
      * Release the payslip to the employee: email with the PDF attached, and the
@@ -462,5 +461,4 @@ class PayslipsTable
                 ->accessibleEmployeeIds(auth()->user())
                 ->contains($record->employee_id);
     }
-
 }
