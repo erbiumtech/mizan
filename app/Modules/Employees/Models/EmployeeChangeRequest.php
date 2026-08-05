@@ -71,7 +71,7 @@ class EmployeeChangeRequest extends Model
     protected static function booted()
     {
         static::created(function (EmployeeChangeRequest $request) {
-            $approvers = User::permission('EmployeeChangeApprove')
+            $approvers = User::holdingPermission('EmployeeChangeApprove')
                 ->where('id', '!=', $request->requested_by)
                 ->where('status', 1)
                 ->get();
