@@ -2,8 +2,8 @@
 
 namespace App\Modules\Invoicing\Policies;
 
-use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Core\Models\User;
+use App\Modules\Invoicing\Models\Contact;
 
 class ContactPolicy
 {

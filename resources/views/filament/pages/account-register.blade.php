@@ -42,7 +42,7 @@
     <x-filament::section>
         <x-slot name="heading">{{ $account->code }} {{ $account->name }}</x-slot>
         <x-slot name="description">GnuCash-style register — every transaction from one screen</x-slot>
-        <x-slot name="headerEnd">
+        <x-slot name="afterHeader">
             <x-filament::badge color="gray">{{ $rows->count() }} {{ \Illuminate\Support\Str::plural('entry', $rows->count()) }}</x-filament::badge>
         </x-slot>
 

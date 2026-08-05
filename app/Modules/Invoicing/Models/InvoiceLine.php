@@ -2,8 +2,8 @@
 
 namespace App\Modules\Invoicing\Models;
 
-use App\Modules\Accounting\Models\Account;
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Models\Account;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\StockMovement;
 

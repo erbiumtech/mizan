@@ -2,8 +2,8 @@
 
 namespace App\Modules\Accounting\Services;
 
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Employees\Models\Employee;
 use Illuminate\Database\Eloquent\Builder;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;

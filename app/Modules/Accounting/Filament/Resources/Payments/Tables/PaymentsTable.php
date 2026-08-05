@@ -2,10 +2,10 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Payments\Tables;
 
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\PaymentDetailsExport;
 use App\Modules\Accounting\Services\PaymentService;
+use App\Modules\Employees\Models\Employee;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;

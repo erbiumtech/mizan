@@ -2,15 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Models\TenantModel;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\CompanyModule;
 use App\Support\ModuleMap;
 use App\Support\Modules;
 use Database\Seeders\PermissionSeeder;
+use Filament\Pages\Page;
+use Filament\Resources\Resource;
+use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use ReflectionClass;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
@@ -32,9 +41,24 @@ class ModuleCoverageTest extends TestCase
      *
      * @var array<int, class-string>
      */
+    /**
+     * How a permission name reaches Spatie. Group 1 is the argument list, which
+     * is then mined for string literals.
+     *
+     * @var array<int, string>
+     */
+    private const PERMISSION_CHECK_PATTERNS = [
+        // Spatie's own API. These throw PermissionDoesNotExist on an unknown name.
+        "/(?:hasPermissionTo|hasDirectPermission|hasAnyPermission|hasAllPermissions|checkPermissionTo)\(([^)]*)\)/",
+        // Single-argument can()/cannot(), which routes to Spatie's Gate::before.
+        // Nothing else it could be: a policy ability always passes the model or
+        // class as a second argument, so the one-argument form is a permission.
+        "/->(?:can|cannot)\(\s*('[A-Za-z]+')\s*\)/",
+    ];
+
     private const UNMAPPED_MODELS = [
-        \App\Models\TenantModel::class,   // abstract base for tenant-connection models
-        \App\Modules\Core\Models\CompanyModule::class, // the module system's own landlord state
+        TenantModel::class,   // abstract base for tenant-connection models
+        CompanyModule::class, // the module system's own landlord state
     ];
 
     public function test_every_model_is_in_the_morph_map(): void
@@ -95,7 +119,7 @@ class ModuleCoverageTest extends TestCase
                 continue;
             }
 
-            if (\Illuminate\Support\Facades\Gate::getPolicyFor($class) === null) {
+            if (Gate::getPolicyFor($class) === null) {
                 $unpoliced[] = $class;
             }
         }
@@ -141,7 +165,7 @@ class ModuleCoverageTest extends TestCase
         // owning module is switched off (phase 4 filters by module).
         $this->seed(PermissionSeeder::class);
 
-        $groups = \Spatie\Permission\Models\Permission::query()
+        $groups = Permission::query()
             ->distinct()
             ->pluck('group')
             ->filter()
@@ -153,6 +177,36 @@ class ModuleCoverageTest extends TestCase
         ));
 
         $this->assertSame([], $orphans, 'Permission groups with no owning module: '.implode(', ', $orphans));
+    }
+
+    public function test_every_permission_the_code_checks_is_seeded(): void
+    {
+        // This has already gone wrong once. AdvancePolicy checked AdvanceView
+        // while PermissionSeeder had not been re-run against the database, and
+        // hasPermissionTo() *throws* PermissionDoesNotExist instead of denying —
+        // so a missing row did not hide the Advances resource, it 500'd every
+        // page, because Filament asks every resource whether it may appear in the
+        // sidebar. The can() form does not throw, but an unseeded name there is
+        // its own kind of bad: it denies everybody, silently, forever.
+        $this->seed(PermissionSeeder::class);
+
+        $seeded = Permission::pluck('name')->all();
+        $checked = $this->discoverCheckedPermissions();
+
+        $missing = array_diff_key($checked, array_flip($seeded));
+        ksort($missing);
+
+        $this->assertSame([], array_keys($missing), implode("\n", [
+            'These permissions are checked in code but are not in PermissionSeeder,',
+            'so no role can ever hold one. Add them to the seeder (and to whichever',
+            'roles should have them in RoleSeeder).',
+            '',
+            ...array_map(
+                fn (string $name, array $sites) => $name.' — '.implode(', ', array_unique($sites)),
+                array_keys($missing),
+                $missing,
+            ),
+        ]));
     }
 
     public function test_every_registry_entry_has_a_label_and_resolvable_requirements(): void
@@ -193,8 +247,8 @@ class ModuleCoverageTest extends TestCase
         // Even with an explicit off row, Core stays available — it holds the
         // Modules page, Users and Roles, so a company could otherwise lock
         // itself out of its own administration.
-        $company = \App\Modules\Core\Models\Company::factory()->create();
-        \App\Modules\Core\Models\CompanyModule::updateOrCreate(
+        $company = Company::factory()->create();
+        CompanyModule::updateOrCreate(
             ['company_id' => $company->getKey(), 'module' => 'core'],
             ['licensed' => false, 'enabled' => false],
         );
@@ -233,14 +287,61 @@ class ModuleCoverageTest extends TestCase
                 }
 
                 return $reflection->isSubclassOf(\Filament\Resources\Resource::class)
-                    || $reflection->isSubclassOf(\Filament\Pages\Page::class)
-                    || $reflection->isSubclassOf(\Filament\Widgets\Widget::class);
+                    || $reflection->isSubclassOf(Page::class)
+                    || $reflection->isSubclassOf(Widget::class);
             })
             // Resource sub-pages (ListAccounts, EditAccount, …) are reached only
             // through their resource, which is already gated.
             ->reject(fn (string $class) => Str::contains($class, '\Resources\\') && Str::contains($class, '\Pages\\'))
             ->values()
             ->all();
+    }
+
+    /**
+     * Every permission name the application checks at runtime, mapped to the
+     * places it is checked.
+     *
+     * Line-based on purpose: all the call sites are single-line, and reporting
+     * file:line is what makes a failure fixable without a search. A check built
+     * from a variable has no literal to find, so it is simply not covered.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function discoverCheckedPermissions(): array
+    {
+        $found = [];
+
+        foreach ($this->permissionCheckFiles() as $file) {
+            foreach (file($file, FILE_IGNORE_NEW_LINES) as $index => $line) {
+                foreach (self::PERMISSION_CHECK_PATTERNS as $pattern) {
+                    if (! preg_match_all($pattern, $line, $calls)) {
+                        continue;
+                    }
+
+                    foreach ($calls[1] as $arguments) {
+                        preg_match_all("/'([A-Za-z]+)'/", $arguments, $names);
+
+                        foreach ($names[1] as $name) {
+                            $found[$name][] = Str::after($file, base_path().DIRECTORY_SEPARATOR).':'.($index + 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function permissionCheckFiles(): Collection
+    {
+        return collect(File::allFiles(app_path()))
+            ->merge(File::allFiles(resource_path('views')))
+            ->filter(fn ($file) => $file->getExtension() === 'php')
+            ->map(fn ($file) => $file->getPathname())
+            ->values();
     }
 
     /**
@@ -279,9 +380,9 @@ class ModuleCoverageTest extends TestCase
      * invariants covered nothing at all, which is a worse failure than any of the
      * bugs they exist to catch.
      *
-     * @return \Illuminate\Support\Collection<int, array{0: string, 1: string}>
+     * @return Collection<int, array{0: string, 1: string}>
      */
-    private function sourceRoots(string $subdirectory): \Illuminate\Support\Collection
+    private function sourceRoots(string $subdirectory): Collection
     {
         $namespaceSuffix = str_replace('/', '\\', $subdirectory);
 
@@ -306,13 +407,14 @@ class ModuleCoverageTest extends TestCase
         // no-op that still reports success.
         $this->assertGreaterThan(30, count($this->discoverModels()));
         $this->assertGreaterThan(40, count($this->discoverFilamentClasses()));
+        $this->assertGreaterThan(80, count($this->discoverCheckedPermissions()));
         $this->assertNotEmpty(File::directories(app_path('Modules')));
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, class-string>
+     * @return Collection<int, class-string>
      */
-    private function classesUnder(string $path, string $namespace): \Illuminate\Support\Collection
+    private function classesUnder(string $path, string $namespace): Collection
     {
         if (! File::isDirectory($path)) {
             return collect();

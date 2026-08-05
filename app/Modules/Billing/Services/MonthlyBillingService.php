@@ -7,8 +7,8 @@ use App\Modules\Advances\Models\AdvanceRecovery;
 use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Payroll\Models\Payslip;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -174,7 +174,7 @@ class MonthlyBillingService
             );
         }
 
-        return DB::transaction(function () use ($run, $lines, $breakdown) {
+        return TenantTransaction::run(function () use ($run, $lines, $breakdown) {
             $invoice = $run->invoice ?? Invoice::create([
                 'kind' => Invoice::KIND_SALE,
                 'contact_id' => $run->contact_id,
@@ -274,7 +274,7 @@ class MonthlyBillingService
      * Shared by the invoice lines and the statement so the two cannot come to
      * bill a different set of people.
      *
-     * @return \Illuminate\Support\Collection<int, Payslip>
+     * @return Collection<int, Payslip>
      */
     protected function billablePayslips(BillingRun $run): Collection
     {

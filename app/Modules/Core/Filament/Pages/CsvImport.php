@@ -112,7 +112,7 @@ class CsvImport extends Page
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->action(fn () => response()->streamDownload(
-                    fn () => print(app(CsvImportService::class)->template($this->data['type'])),
+                    fn () => print (app(CsvImportService::class)->template($this->data['type'])),
                     $this->data['type'].'-template.csv',
                     ['Content-Type' => 'text/csv'],
                 )),

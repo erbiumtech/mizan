@@ -3,8 +3,8 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
-use Illuminate\Support\Carbon;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use Illuminate\Support\Carbon;
 
 class FinancialReportService
 {

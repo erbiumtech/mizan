@@ -18,7 +18,7 @@ class JournalEntryLine extends Model
         'debit_amount' => 'decimal:2',
         'credit_amount' => 'decimal:2',
         'reconciled_at' => 'datetime',
-            'foreign_debit_amount' => 'decimal:4',
+        'foreign_debit_amount' => 'decimal:4',
         'foreign_credit_amount' => 'decimal:4',
         'rate' => 'decimal:8',
     ];
