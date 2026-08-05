@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Currencies\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Resources\Currencies\CurrencyResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -12,6 +13,9 @@ class ListCurrencies extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [CreateAction::make()];
+        return [
+            HelpAction::make('currencies', 'Currencies: Help'),
+            CreateAction::make(),
+        ];
     }
 }
