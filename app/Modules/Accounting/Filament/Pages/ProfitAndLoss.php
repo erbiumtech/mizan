@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Services\FinancialReportService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -78,6 +79,8 @@ class ProfitAndLoss extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('profit-and-loss', 'Profit & Loss: Help'),
+
             Action::make('pdf')
                 ->label('Download PDF')
                 ->icon('heroicon-o-arrow-down-tray')

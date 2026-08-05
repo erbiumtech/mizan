@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Services\ContractorPaymentSummary;
 use App\Modules\Core\Models\FiscalYear;
 use BackedEnum;
@@ -68,5 +69,12 @@ class ContractorPayments extends Page
     public function getReport(): array
     {
         return app(ContractorPaymentSummary::class)->summary($this->data['fiscal_year_id'] ?? null);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            HelpAction::make('contractor-payments', 'Contractor Payments: Help'),
+        ];
     }
 }

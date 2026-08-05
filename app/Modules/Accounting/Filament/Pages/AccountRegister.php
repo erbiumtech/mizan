@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\BankTransferService;
@@ -334,6 +335,8 @@ class AccountRegister extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('account-register', 'Account Register: Help'),
+
             // Its own action rather than a use of Add Transaction: a transfer has one
             // direction, and leaving that to whoever is typing is how the same money
             // came to be recorded two different ways.

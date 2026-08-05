@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Models\PettyCashVoucher;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Services\PettyCashService;
@@ -105,6 +106,7 @@ class PettyCashBook extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('petty-cash-book', 'Petty Cash Book: Help'),
             $this->addVoucherAction(),
             $this->topUpAction(),
             $this->replenishAction(),
