@@ -16,6 +16,9 @@ class TenantBaselineSeeder extends Seeder
         $this->call([
             FiscalYearSeeder::class,
             ChartOfAccountsSeeder::class,
+            // Without this a company has no currencies at all: nothing to show on the
+            // Currencies screen, and no row saying which one its books are kept in.
+            CurrencySeeder::class,
             TransactionTypeSeeder::class,
             SalarySlabSeeder::class,
             BankSeeder::class,

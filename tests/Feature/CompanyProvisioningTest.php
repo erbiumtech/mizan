@@ -111,6 +111,16 @@ class CompanyProvisioningTest extends TestCase
         // Baseline chart of accounts seeded into the tenant database.
         $company->makeCurrent();
         $this->assertGreaterThan(0, Account::count());
+
+        // And a currency to keep its books in. Without one the company has nothing on
+        // its Currencies screen and no row saying what its posted amounts mean.
+        $this->assertSame('PKR', \App\Modules\Accounting\Models\Currency::baseCode());
+        $this->assertGreaterThan(0, \App\Modules\Accounting\Models\Currency::count());
+
+        // The accounts exchange differences are posted to, which the revaluation and
+        // settlement paths both refuse to invent.
+        $this->assertNotNull(Account::where('code', '4400')->first(), 'unrealised exchange gain / (loss)');
+        $this->assertNotNull(Account::where('code', '4450')->first(), 'realised exchange gain / (loss)');
         Company::forgetCurrent();
 
         // Owner is a member with the Administrator role in this company's team.
