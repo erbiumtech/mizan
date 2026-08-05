@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Concerns\VoidsPaymentBatches;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\TransactionType;
@@ -150,6 +151,8 @@ class BankPaymentFile extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('bank-payment-file', 'Bank Payment File: Help'),
+
             Action::make('csv')
                 ->label('Download CSV')
                 ->icon('heroicon-o-arrow-down-tray')
