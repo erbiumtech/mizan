@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Core\Filament\Resources\Permissions\Tables;
+namespace App\Modules\Core\Filament\Platform\Resources\Permissions\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
