@@ -34,7 +34,12 @@
                                 <td class="py-1.5 pr-4">{{ $i + 1 }}</td>
                                 <td class="py-1.5 pr-4">{{ $p['name'] }}</td>
                                 <td class="py-1.5 pr-4">
-                                    @if($p['account'])
+                                    @if($p['account_problem'] ?? null)
+                                        {{ $p['account'] ? $p['account'] : '' }}
+                                        <x-filament::badge color="danger" size="xs">
+                                            {{ \App\Modules\Accounting\Support\BankFileAccount::problemLabel($p['account_problem']) }}
+                                        </x-filament::badge>
+                                    @elseif($p['account'])
                                         {{ $p['account'] }}
                                         {{-- Which identifier the file will carry: SCB accounts go by
                                              account number, everyone else by IBAN. Worth showing on a
@@ -114,9 +119,24 @@
                 </table>
             </div>
 
-            @if(collect($payments)->contains(fn ($p) => ! $p['account']))
+            @php($noAccount = collect($payments)->where('account_problem', \App\Modules\Accounting\Support\BankFileAccount::PROBLEM_NO_ACCOUNT))
+            @php($wrongKind = collect($payments)->where('account_problem', \App\Modules\Accounting\Support\BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY))
+
+            @if($noAccount->isNotEmpty())
                 <p class="mt-4 text-sm text-danger-600 dark:text-danger-400">
-                    Some employees have no bank account/IBAN on file — their rows will export with a blank account. Fill these in on the Employee record before uploading.
+                    {{ $noAccount->count() }} employee(s) have no bank account or IBAN on file — those rows would
+                    export with a blank account, which the bank rejects. Fill them in on the Employee record.
+                </p>
+            @endif
+
+            @if($wrongKind->isNotEmpty())
+                {{-- The quiet one. The row looks complete and the file looks valid, and the
+                     payment is rejected or misdirected days later — so these are held back
+                     rather than warned about. --}}
+                <p class="mt-4 text-sm text-danger-600 dark:text-danger-400">
+                    {{ $wrongKind->count() }} employee(s) bank with us and have only an IBAN on file. A transfer
+                    inside our own bank is sent on the account number, so these are held back until it is added
+                    on the Employee record — an IBAN here would look valid and fail at the bank.
                 </p>
             @endif
         @endif

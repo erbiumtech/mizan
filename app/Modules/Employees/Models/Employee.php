@@ -2,11 +2,11 @@
 
 namespace App\Modules\Employees\Models;
 
-use App\Modules\Accounting\Models\Bank;
 use App\Models\Concerns\HasCustomFields;
-use App\Modules\Projects\Models\Project;
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Models\Bank;
 use App\Modules\Core\Models\User;
+use App\Modules\Projects\Models\Project;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -32,13 +32,29 @@ class Employee extends Model
     protected static function booted()
     {
         static::saving(function ($employee) {
+            /*
+             * The two code columns are a copy of the chosen directory bank, kept beside the
+             * relation because the bank file reads them per row.
+             *
+             * "No bank chosen" is not the same as "no bank", though: the directory lists the
+             * banks we transfer *out* to, so an employee who banks with us has none to
+             * choose and carries a short code of their own. Blanking the copies whenever
+             * bank_id was empty erased exactly that — the field could be filled in and the
+             * value never survived the save, which is half of why an own-bank employee could
+             * not be recorded at all.
+             *
+             * So they are cleared only when they describe a bank that has just been removed
+             * and nothing was put in its place.
+             */
             if ($employee->bank_id) {
                 $bank = Bank::find($employee->bank_id);
                 if ($bank) {
                     $employee->bank_code = $bank->bank_code;
                     $employee->bank_short_code = $bank->bank_short_code;
                 }
-            } else {
+            } elseif ($employee->isDirty('bank_id')
+                && ! $employee->isDirty('bank_short_code')
+                && ! $employee->isDirty('bank_code')) {
                 $employee->bank_code = null;
                 $employee->bank_short_code = null;
             }
