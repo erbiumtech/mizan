@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Multitenancy\Models\Tenant as SpatieTenant;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -58,5 +59,32 @@ class Company extends SpatieTenant
     {
         return $this->belongsToMany(User::class, 'company_user')
             ->withTimestamps();
+    }
+
+    /**
+     * This company's roles.
+     *
+     * Roles are per-company (spatie teams), so every row carries a `company_id` and one
+     * company's Accountant is not another's. Named as a relation because that is the only
+     * honest way to show them: listed flat, five names across N companies read as
+     * duplicates of each other.
+     */
+    public function roles(): HasMany
+    {
+        return $this->hasMany(
+            config('permission.models.role'),
+            config('permission.column_names.team_foreign_key', 'company_id'),
+        );
+    }
+
+    /**
+     * What this company has been sold, and what it currently has switched on.
+     *
+     * Landlord rows, so they are readable with no tenant current — which is what lets a
+     * platform admin grant a licence without entering the company.
+     */
+    public function companyModules(): HasMany
+    {
+        return $this->hasMany(CompanyModule::class);
     }
 }

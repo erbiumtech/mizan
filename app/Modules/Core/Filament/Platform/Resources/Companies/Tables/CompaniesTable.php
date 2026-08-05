@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Companies\Tables;
 
+use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use Filament\Actions\Action;
@@ -24,6 +25,15 @@ class CompaniesTable
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('slug')->searchable()->toggleable(),
                 TextColumn::make('users_count')->label('Members')->counts('users')->sortable(),
+
+                // A company with no roles cannot give anybody anything to do, and nothing
+                // else on this screen would say so.
+                TextColumn::make('roles_count')
+                    ->label('Roles')
+                    ->counts('roles')
+                    ->badge()
+                    ->color(fn ($state): string => $state ? 'gray' : 'danger')
+                    ->formatStateUsing(fn ($state): string => $state ?: 'none'),
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')
@@ -31,6 +41,20 @@ class CompaniesTable
                 TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
+                Action::make('licences')
+                    ->label('Licences')
+                    ->icon('heroicon-o-key')
+                    ->color('gray')
+                    ->url(fn (Company $record): string => CompanyResource::getUrl('licences', ['record' => $record])),
+
+                Action::make('open')
+                    ->label('Open')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->color('gray')
+                    // Into the other panel, where the whole request is that company's.
+                    ->url(fn (Company $record): string => "/admin/{$record->slug}")
+                    ->openUrlInNewTab(),
+
                 self::assignAdminAction(),
                 EditAction::make(),
             ])
@@ -44,6 +68,11 @@ class CompaniesTable
     /**
      * Attach a user to the company and grant them the Administrator role in that
      * company's team.
+     *
+     * Kept beside the Members relation manager, which is the fuller answer — it sets any
+     * of the company's roles and shows what each member already is. This stays because
+     * appointing the *first* administrator is the one thing a newly provisioned company
+     * always needs, and it is worth one click from the list rather than three from a tab.
      */
     protected static function assignAdminAction(): Action
     {
