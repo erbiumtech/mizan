@@ -1,3 +1,5 @@
+![Beneficiaries](/images/help/beneficiaries.png)
+
 ## What this is
 
 Everyone the company pays who isn't an employee: landlords, caterers,

@@ -1,3 +1,5 @@
+![Fixed Assets](/images/help/fixed-assets.png)
+
 ## What this is
 
 Company-owned assets that lose value over time — equipment, vehicles,

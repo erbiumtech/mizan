@@ -1,3 +1,5 @@
+![Reports](/images/help/reports.png)
+
 ## What this is
 
 One door to every report in the app, grouped into five sections — Financial

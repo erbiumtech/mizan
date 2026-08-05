@@ -1,3 +1,5 @@
+![Employee Change Requests](/images/help/employee-change-requests.png)
+
 ## What lands here
 
 When an employee (anyone without the Administrator, Manager, or CEO role)

@@ -1,3 +1,5 @@
+![Bank Statements](/images/help/bank-statements.png)
+
 ## What this is
 
 Bank reconciliation: bringing the bank's own record of a company bank

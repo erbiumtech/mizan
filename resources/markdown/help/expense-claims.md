@@ -1,3 +1,5 @@
+![Expense Claims](/images/help/expense-claims.png)
+
 ## What an expense claim is
 
 Something an employee paid for out of pocket and is owed back. It follows the

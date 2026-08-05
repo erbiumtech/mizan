@@ -1,3 +1,5 @@
+![Annual Taxes](/images/help/annual-taxes.png)
+
 ## What this is
 
 One row per employee per fiscal year, projecting their annual income and tax

@@ -1,3 +1,5 @@
+![Chart of Accounts](/images/help/accounts.png)
+
 ## What the Chart of Accounts is
 
 Every account the company's books can post against — Asset, Liability, Equity,

@@ -1,3 +1,5 @@
+![Aged Payables](/images/help/aged-payables.png)
+
 ## What this report shows
 
 What the company still owes its suppliers, grouped by how overdue it is. Only

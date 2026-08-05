@@ -1,3 +1,5 @@
+![Journal Entries](/images/help/journal-entries.png)
+
 ## What a journal entry is
 
 A journal entry is a set of lines against different accounts that must balance:

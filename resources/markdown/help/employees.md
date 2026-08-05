@@ -1,3 +1,5 @@
+![Employees](/images/help/employees.png)
+
 ## What an employee record is
 
 An employee record holds the personal, employment, and banking details behind

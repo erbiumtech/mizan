@@ -1,3 +1,5 @@
+![GnuCash Import](/images/help/gnucash-import.png)
+
 ## What this does
 
 Brings a GnuCash CSV export into the books. This is a one-off setup job, not

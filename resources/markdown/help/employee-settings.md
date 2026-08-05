@@ -1,3 +1,5 @@
+![Employee Settings](/images/help/employee-settings.png)
+
 ## What this is
 
 An Employee Setting row is a dated **compensation package**: basic wage, the

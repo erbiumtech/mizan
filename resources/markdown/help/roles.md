@@ -1,3 +1,5 @@
+![Roles](/images/help/roles.png)
+
 ## What this is
 
 The five roles for this company — Administrator, Manager, CEO, Accountant,

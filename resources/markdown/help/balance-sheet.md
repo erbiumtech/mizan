@@ -1,3 +1,5 @@
+![Balance Sheet](/images/help/balance-sheet.png)
+
 ## What this shows
 
 What the company owns, owes, and is worth, as at a single date — assets,

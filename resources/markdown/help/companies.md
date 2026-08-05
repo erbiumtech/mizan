@@ -1,3 +1,5 @@
+![Companies](/images/help/companies.png)
+
 ## What this is — Platform Administrator documentation
 
 Every company (tenant) in the installation. This is where a company is

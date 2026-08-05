@@ -1,3 +1,5 @@
+![Stock Movements](/images/help/stock-movements.png)
+
 ## What this is
 
 The full history behind every product's on-hand quantity and stock value:

@@ -1,3 +1,5 @@
+![Payments](/images/help/payments.png)
+
 ## What a payment is
 
 A single amount owed to either an **Employee** (a salary, advance or

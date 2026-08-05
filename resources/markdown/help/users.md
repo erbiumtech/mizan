@@ -1,3 +1,5 @@
+![Users](/images/help/users.png)
+
 ## What this is
 
 Every account that can sign in to this company — their name, email, whether

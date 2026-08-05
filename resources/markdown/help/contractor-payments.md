@@ -1,3 +1,5 @@
+![Contractor Payments](/images/help/contractor-payments.png)
+
 ## What this shows
 
 A year-end answer for people who are paid for work but aren't on the payroll:

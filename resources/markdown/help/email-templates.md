@@ -1,3 +1,5 @@
+![Email Templates](/images/help/email-templates.png)
+
 ## What this is
 
 The wording of the automatic emails this company sends — payslip notices,

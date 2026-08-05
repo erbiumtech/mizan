@@ -1,3 +1,5 @@
+![Fiscal Years](/images/help/fiscal-years.png)
+
 ## What this is
 
 The accounting periods journal entries and reports book into. Every journal

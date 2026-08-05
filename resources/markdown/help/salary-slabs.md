@@ -1,3 +1,5 @@
+![Salary Slabs](/images/help/salary-slabs.png)
+
 ## What a salary slab is
 
 A **Salary Slab** is one bracket of a progressive annual income-tax table for

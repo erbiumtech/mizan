@@ -1,3 +1,5 @@
+![Platform Users](/images/help/platform-users.png)
+
 ## What this is — Platform Administrator documentation
 
 Every account in the installation, across every company — including other

@@ -1,3 +1,5 @@
+![Account Register](/images/help/account-register.png)
+
 ## What the register shows
 
 One account at a time — a bank or cash account — with every transaction that

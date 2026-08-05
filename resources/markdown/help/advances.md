@@ -1,3 +1,5 @@
+![Advances](/images/help/advances.png)
+
 ## What an advance is
 
 Money lent to an employee, recovered back in monthly instalments through

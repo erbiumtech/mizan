@@ -1,3 +1,5 @@
+![Billing Runs](/images/help/billing-runs.png)
+
 ## What a billing run is
 
 A billing run is one client's bill for one payroll month, assembled

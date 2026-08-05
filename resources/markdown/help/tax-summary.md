@@ -1,3 +1,5 @@
+![Tax Summary](/images/help/tax-summary.png)
+
 ## What this does
 
 Salary withholding tax, by employee and by month, for a fiscal year. The FBR

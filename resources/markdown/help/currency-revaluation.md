@@ -1,3 +1,5 @@
+![Currency Revaluation](/images/help/currency-revaluation.png)
+
 ## What this does
 
 Restates every foreign-currency balance at the exchange rate in force on a

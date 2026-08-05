@@ -1,3 +1,5 @@
+![Pay Components](/images/help/pay-components.png)
+
 ## What a pay component is
 
 Every earning or deduction that can appear on a payslip — basic wage, an

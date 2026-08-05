@@ -1,3 +1,5 @@
+![Tax Rates](/images/help/tax-rates.png)
+
 ## What a tax rate is
 
 A tax rate is a percentage and the account it posts to when it's charged —
