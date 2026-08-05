@@ -5,7 +5,6 @@ namespace App\Modules\Core\Filament\Platform\Resources\Companies;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\CreateCompany;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\EditCompany;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\ListCompanies;
-use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\ManageCompanyLicences;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Schemas\CompanyForm;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Tables\CompaniesTable;
 use App\Modules\Core\Models\Company;
@@ -63,7 +62,6 @@ class CompanyResource extends Resource
             'index' => ListCompanies::route('/'),
             'create' => CreateCompany::route('/create'),
             'edit' => EditCompany::route('/{record}/edit'),
-            'licences' => ManageCompanyLicences::route('/{record}/licences'),
         ];
     }
 }

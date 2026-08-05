@@ -2,7 +2,6 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Companies\Tables;
 
-use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use Filament\Actions\Action;
@@ -41,12 +40,6 @@ class CompaniesTable
                 TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                Action::make('licences')
-                    ->label('Licences')
-                    ->icon('heroicon-o-key')
-                    ->color('gray')
-                    ->url(fn (Company $record): string => CompanyResource::getUrl('licences', ['record' => $record])),
-
                 Action::make('open')
                     ->label('Open')
                     ->icon('heroicon-o-arrow-top-right-on-square')
