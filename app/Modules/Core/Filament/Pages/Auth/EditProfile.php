@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages\Auth;
 
+use App\Filament\Support\HelpAction;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -47,5 +48,12 @@ class EditProfile extends BaseEditProfile
     protected function getSavedNotificationTitle(): ?string
     {
         return 'Password changed.';
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            HelpAction::make('edit-profile', 'My Profile: Help'),
+        ];
     }
 }

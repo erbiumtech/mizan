@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
@@ -57,6 +58,13 @@ class Modules extends Page
     public function mount(): void
     {
         $this->form->fill($this->currentState());
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            HelpAction::make('modules', 'Modules: Help'),
+        ];
     }
 
     public function form(Schema $schema): Schema
