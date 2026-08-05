@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Livewire\CommandPalette;
-use App\Modules\Core\Filament\Resources\Companies\Schemas\CompanyForm;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Schemas\CompanyForm;
 use App\Modules\Core\Filament\Resources\Users\Pages\CreateUser;
 use App\Modules\Core\Filament\Resources\Users\Pages\EditUser;
 use App\Modules\Core\Filament\Resources\Users\Pages\ListUsers;

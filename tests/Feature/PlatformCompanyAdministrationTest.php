@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\ManageCompanyLicences;
+use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\EditCompany;
 use App\Modules\Core\Filament\Platform\Resources\Companies\RelationManagers\MembersRelationManager;
 use App\Modules\Core\Filament\Platform\Resources\Companies\RelationManagers\RolesRelationManager;
 use App\Modules\Core\Models\Company;
@@ -218,11 +218,20 @@ class PlatformCompanyAdministrationTest extends TestCase
 
     // ---- Licences ------------------------------------------------------------
 
-    private function licences(): \Livewire\Features\SupportTesting\Testable
+    /**
+     * Licensing lives on the company's own edit page, which already had it — with the
+     * activity logging ModuleAdminTest covers. What is asserted here is the dependency
+     * cascade added to it, since selling a module that cannot run is worse than not
+     * selling it.
+     */
+    private function licence(array $modules): void
     {
-        // By slug, because Company::getRouteKeyName() is 'slug' — the same binding the
-        // browser uses.
-        return Livewire::test(ManageCompanyLicences::class, ['record' => $this->company->slug]);
+        Livewire::test(EditCompany::class, ['record' => $this->company->getRouteKey()])
+            ->fillForm(['modules' => $modules])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        modules()->flush();
     }
 
     private function licensed(string $module): bool
@@ -232,86 +241,71 @@ class PlatformCompanyAdministrationTest extends TestCase
             ->value('licensed');
     }
 
-    public function test_a_licence_can_be_granted(): void
-    {
-        $this->licences()
-            ->set('data.payroll', true)
-            ->call('save');
-
-        $this->assertTrue($this->licensed('payroll'));
-    }
-
     public function test_granting_a_module_brings_in_what_it_cannot_run_without(): void
     {
         // Selling Invoicing without Accounting sells something that cannot post.
-        $this->licences()
-            ->set('data.invoicing', true)
-            ->call('save');
+        $this->licence(['invoicing' => true]);
 
         $this->assertTrue($this->licensed('invoicing'));
         $this->assertTrue($this->licensed('accounting'), 'invoicing requires accounting');
     }
 
+    public function test_it_brings_in_requirements_of_requirements(): void
+    {
+        // Billing needs Invoicing, which needs Accounting; and Payroll, which needs
+        // Employees.
+        $this->licence(['billing' => true]);
+
+        foreach (['billing', 'invoicing', 'accounting', 'payroll', 'employees'] as $module) {
+            $this->assertTrue($this->licensed($module), "{$module} came with billing");
+        }
+    }
+
     public function test_revoking_a_module_takes_its_dependents_with_it(): void
     {
-        // Otherwise the company keeps paying for a module that fails on its first invoice.
-        // Note that Invoicing is left switched on in the form: the toggle just moved wins,
-        // because a licence coming back after being revoked is the one outcome nobody
-        // expects from turning a toggle off.
-        $this->licences()->set('data.invoicing', true)->call('save');
+        // Otherwise the company keeps paying for a module that fails on first use. Note
+        // Invoicing is left switched on in the form: the toggle just moved wins, because a
+        // licence returning after being revoked is the one outcome nobody expects from
+        // turning a toggle off.
+        $this->licence(['invoicing' => true]);
 
-        $this->licences()
-            ->set('data.invoicing', true)
-            ->set('data.accounting', false)
-            ->call('save');
+        $this->licence(['invoicing' => true, 'accounting' => false]);
 
         $this->assertFalse($this->licensed('accounting'));
         $this->assertFalse($this->licensed('invoicing'));
     }
 
-    public function test_core_cannot_be_revoked(): void
+    public function test_a_never_granted_module_is_still_pulled_in_when_needed(): void
     {
-        // A company without Core cannot be administered at all, so it has no toggle
-        // rather than a disabled one that does nothing.
-        $this->licences()->set('data.core', false)->call('save');
+        // "Not ticked" is not "withheld": otherwise granting Payroll would fail for want
+        // of Employees, which nobody had granted because nobody had been asked.
+        $this->licence(['payroll' => true]);
 
-        $this->assertTrue($this->licensed('core'));
+        $this->assertTrue($this->licensed('payroll'));
+        $this->assertTrue($this->licensed('employees'));
     }
 
     public function test_a_licence_does_not_decide_what_the_company_switches_on(): void
     {
-        // Two flags, two owners. Revoking a licence must leave their own choice alone, so
-        // that re-granting it restores what they had rather than resetting it.
-        $this->licences()->set('data.projects', true)->call('save');
+        // Two flags, two owners. Revoking a licence leaves their own choice alone, so
+        // re-granting restores what they had rather than resetting it.
+        $this->licence(['projects' => true, 'employees' => true]);
 
-        $this->company->companyModules()->where('module', 'projects')->update(['enabled' => true]);
+        $this->company->companyModules()->where('module', 'projects')->update(['enabled' => false]);
 
-        $this->licences()->set('data.projects', false)->call('save');
+        $this->licence(['projects' => false, 'employees' => true]);
+        $this->licence(['projects' => true, 'employees' => true]);
 
-        $this->assertFalse($this->licensed('projects'));
-        $this->assertTrue(
+        $this->assertTrue($this->licensed('projects'));
+        $this->assertFalse(
             (bool) $this->company->companyModules()->where('module', 'projects')->value('enabled'),
-            'their switch is untouched',
+            'their switch survived the revoke and the re-grant',
         );
-    }
-
-    /**
-     * Through the header action, not the method behind it. The action first named the
-     * method as a string, which the action does not invoke — so Save looked like it worked
-     * and wrote nothing, and every test calling the method directly would have passed.
-     */
-    public function test_the_save_button_actually_saves(): void
-    {
-        $this->licences()
-            ->set('data.payroll', true)
-            ->callAction('save');
-
-        $this->assertTrue($this->licensed('payroll'));
     }
 
     public function test_licences_are_per_company(): void
     {
-        $this->licences()->set('data.payroll', true)->call('save');
+        $this->licence(['payroll' => true]);
 
         $this->assertSame(0, $this->other->companyModules()->where('licensed', true)->count());
     }

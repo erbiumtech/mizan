@@ -64,7 +64,7 @@ class EditCompany extends EditRecord
 
     protected function afterSave(): void
     {
-        foreach ($this->licenceState as $module => $licensed) {
+        foreach ($this->cascade($this->licenceState) as $module => $licensed) {
             if (! in_array($module, Modules::names(), true) || Modules::isLocked($module)) {
                 continue;
             }
@@ -92,5 +92,96 @@ class EditCompany extends EditRecord
         }
 
         modules()->flush();
+    }
+
+    /**
+     * A licence set that makes sense: nothing granted without its requirements, nothing
+     * left granted whose requirements were taken away.
+     *
+     * Both directions matter. Granting Invoicing without Accounting sells something that
+     * cannot post a single invoice, and revoking Accounting while Invoicing stays granted
+     * leaves the company paying for a module that fails on first use.
+     *
+     * Where the two collide — Accounting switched off while Invoicing is on — the toggle
+     * just moved wins, and Invoicing goes with it. Inferring the opposite would mean a
+     * licence explicitly revoked came back because something else needed it, which is the
+     * one outcome nobody expects from turning a toggle off. A module that has *never* been
+     * granted is not a decision to withhold it, so it is still pulled in when something
+     * needs it — otherwise granting Payroll would fail for want of Employees.
+     *
+     * @param  array<string, bool>  $desired
+     * @return array<string, bool>
+     */
+    private function cascade(array $desired): array
+    {
+        $current = modules()->stateFor($this->record->getKey());
+        $licences = [];
+        $switchedOff = [];
+
+        foreach (Modules::names() as $module) {
+            if (Modules::isLocked($module)) {
+                continue;
+            }
+
+            $licences[$module] = (bool) ($desired[$module] ?? false);
+
+            if (! $licences[$module] && ($current[$module]['licensed'] ?? false)) {
+                $switchedOff[] = $module;
+            }
+        }
+
+        foreach (array_keys($licences) as $module) {
+            if (! $licences[$module]) {
+                continue;
+            }
+
+            foreach ($this->allRequirements($module) as $required) {
+                if (Modules::isLocked($required) || in_array($required, $switchedOff, true)) {
+                    continue;
+                }
+
+                $licences[$required] = true;
+            }
+        }
+
+        // A fixpoint, because revoking Accounting takes Invoicing, and Invoicing takes
+        // Billing.
+        for ($pass = 0; $pass <= count($licences); $pass++) {
+            $changed = false;
+
+            foreach (array_keys($licences) as $module) {
+                if (! $licences[$module]) {
+                    continue;
+                }
+
+                foreach (Modules::requirements($module) as $required) {
+                    if (Modules::isLocked($required) || ($licences[$required] ?? false)) {
+                        continue;
+                    }
+
+                    $licences[$module] = false;
+                    $changed = true;
+                }
+            }
+
+            if (! $changed) {
+                break;
+            }
+        }
+
+        return $licences;
+    }
+
+    /** @return array<int, string> */
+    private function allRequirements(string $module): array
+    {
+        $required = [];
+
+        foreach (Modules::requirements($module) as $direct) {
+            $required[] = $direct;
+            $required = array_merge($required, $this->allRequirements($direct));
+        }
+
+        return array_values(array_unique($required));
     }
 }
