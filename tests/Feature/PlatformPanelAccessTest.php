@@ -166,6 +166,8 @@ class PlatformPanelAccessTest extends TestCase
 
         $this->actingAs($admin);
 
-        $this->get("/platform/companies/{$other->getKey()}/edit")->assertForbidden();
+        // By slug: Company::getRouteKeyName() is 'slug', so an id here would 404 on
+        // binding and the test would pass without reaching the authorization it is about.
+        $this->get("/platform/companies/{$other->slug}/edit")->assertForbidden();
     }
 }
