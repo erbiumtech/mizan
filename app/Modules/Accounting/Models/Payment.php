@@ -81,6 +81,55 @@ class Payment extends Model
     }
 
     /**
+     * Why a held row is held, as a category rather than a sentence.
+     *
+     * The sentence below names the batch or quotes a rejection, which is right against one
+     * row and useless for grouping — "Released in SAL-2026-07-B1" and "…-B2" are the same
+     * fact twice. A summary line that groups by this can state what is actually true of each
+     * group instead of asserting one reason for all of them, which is how a screen came to
+     * say "held back until accepted" about payments that had already gone out.
+     */
+    public const BLOCK_RELEASED = 'released';
+
+    public const BLOCK_STATUS = 'status';
+
+    public const BLOCK_REJECTED = 'rejected';
+
+    public const BLOCK_UNACCEPTED = 'unaccepted';
+
+    /** @var array<string, string> */
+    public const BLOCK_LABELS = [
+        self::BLOCK_RELEASED => 'Already released in an earlier batch',
+        self::BLOCK_STATUS => 'No longer releasable',
+        self::BLOCK_REJECTED => 'Rejected by the employee',
+        self::BLOCK_UNACCEPTED => 'Held back until accepted',
+    ];
+
+    public function releaseBlockedCategory(): ?string
+    {
+        if ($this->isReleasable()) {
+            return null;
+        }
+
+        if ($this->isReleased()) {
+            return self::BLOCK_RELEASED;
+        }
+
+        if (! in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true)) {
+            return self::BLOCK_STATUS;
+        }
+
+        return $this->payslip?->employee_review === Payslip::REVIEW_REJECTED
+            ? self::BLOCK_REJECTED
+            : self::BLOCK_UNACCEPTED;
+    }
+
+    public static function blockLabel(?string $category): string
+    {
+        return self::BLOCK_LABELS[$category] ?? 'Held back';
+    }
+
+    /**
      * Why it cannot go out, in words, for a row the user can see but not select.
      */
     public function releaseBlockedReason(): ?string

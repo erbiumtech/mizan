@@ -8,8 +8,8 @@ use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Payroll\Services\SalaryBankExportService;
-use Carbon\Carbon;
 use BackedEnum;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
@@ -20,7 +20,6 @@ use UnitEnum;
 class SalaryBankFile extends Page
 {
     use BelongsToModule;
-
     use SelectsSalaryMonth;
     use VoidsPaymentBatches;
 
@@ -108,6 +107,7 @@ class SalaryBankFile extends Page
             $row['payment'] = $payment;
             $row['releasable'] = $payment?->isReleasable() ?? false;
             $row['blocked_reason'] = $payment?->releaseBlockedReason();
+            $row['blocked_category'] = $payment?->releaseBlockedCategory();
             $row['batch_reference'] = $payment?->batch_reference;
 
             return $row;
