@@ -4,14 +4,10 @@ namespace App\Modules\Payroll\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Models\JournalEntry;
-use App\Modules\Advances\Models\Advance;
-use App\Modules\Advances\Services\AdvanceService;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
-use App\Modules\Expenses\Models\ExpenseClaim;
-use App\Modules\Expenses\Services\ExpenseClaimService;
 use App\Modules\Payroll\Services\PayComponentRecorder;
 use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Modules\Payroll\Services\PayslipService;
@@ -285,7 +281,7 @@ class Payslip extends Model
                 return;
             }
 
-            app(AdvanceService::class)->recordRecoveryFor($payslip);
+            app(\App\Modules\Advances\Services\AdvanceService::class)->recordRecoveryFor($payslip);
         };
 
         static::saved(function ($payslip) use ($syncAdvances) {
@@ -302,14 +298,14 @@ class Payslip extends Model
                 return;
             }
 
-            Advance::where('employee_id', $payslip->employee_id)
+            \App\Modules\Advances\Models\Advance::where('employee_id', $payslip->employee_id)
                 ->get()
                 ->each(function ($advance) {
                     $advance->refresh();
 
-                    if ($advance->status === Advance::STATUS_SETTLED
+                    if ($advance->status === \App\Modules\Advances\Models\Advance::STATUS_SETTLED
                         && $advance->remainingAmount() > 0) {
-                        $advance->update(['status' => Advance::STATUS_ACTIVE]);
+                        $advance->update(['status' => \App\Modules\Advances\Models\Advance::STATUS_ACTIVE]);
                     }
                 });
         });
@@ -335,7 +331,7 @@ class Payslip extends Model
                 return;
             }
 
-            app(ExpenseClaimService::class)->settleAgainst($payslip);
+            app(\App\Modules\Expenses\Services\ExpenseClaimService::class)->settleAgainst($payslip);
         };
 
         static::saved(function ($payslip) use ($syncClaims) {
@@ -354,7 +350,7 @@ class Payslip extends Model
                 return;
             }
 
-            $claimsToRelease = ExpenseClaim::where('payslip_id', $payslip->getKey())
+            $claimsToRelease = \App\Modules\Expenses\Models\ExpenseClaim::where('payslip_id', $payslip->getKey())
                 ->pluck('id')
                 ->all();
         });
@@ -364,9 +360,9 @@ class Payslip extends Model
                 return;
             }
 
-            $service = app(ExpenseClaimService::class);
+            $service = app(\App\Modules\Expenses\Services\ExpenseClaimService::class);
 
-            foreach (ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
+            foreach (\App\Modules\Expenses\Models\ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
                 $service->release($claim);
             }
 
