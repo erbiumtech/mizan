@@ -2,23 +2,27 @@
 
 namespace App\Modules\Payroll\Models;
 
-use InvalidArgumentException;
-
-use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Accounting\Models\JournalEntry;
 use App\Models\TenantModel as Model;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Advances\Models\Advance;
+use App\Modules\Advances\Services\AdvanceService;
+use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Expenses\Models\ExpenseClaim;
+use App\Modules\Expenses\Services\ExpenseClaimService;
+use App\Modules\Payroll\Services\PayComponentRecorder;
 use App\Modules\Payroll\Services\PayrollPostingService;
-use App\Modules\Payroll\Services\TaxCalculatorService;
-use App\Support\Impersonation;
-use App\Notifications\PayslipRejected;
 use App\Modules\Payroll\Services\PayslipService;
+use App\Modules\Payroll\Services\TaxCalculatorService;
+use App\Notifications\PayslipRejected;
+use App\Support\Impersonation;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
+use InvalidArgumentException;
 
 class Payslip extends Model
 {
@@ -92,11 +96,11 @@ class Payslip extends Model
     public function recordEmployeeReview(string $status, ?string $reason = null): self
     {
         if (! in_array($status, [self::REVIEW_ACCEPTED, self::REVIEW_REJECTED])) {
-            throw new \InvalidArgumentException("Invalid review status {$status}.");
+            throw new InvalidArgumentException("Invalid review status {$status}.");
         }
 
         if (! $this->isPendingReview()) {
-            throw new \InvalidArgumentException("Payslip has already been reviewed ({$this->employee_review}).");
+            throw new InvalidArgumentException("Payslip has already been reviewed ({$this->employee_review}).");
         }
 
         // Who is really at the keyboard. An administrator signed in as the employee
@@ -116,7 +120,7 @@ class Payslip extends Model
         ]);
 
         if ($status === self::REVIEW_REJECTED) {
-            $staff = User::permission('PayslipUpdate')
+            $staff = User::holdingPermission('PayslipUpdate')
                 ->where('id', '!=', $this->employee?->user_id)
                 ->where('status', 1)
                 ->get();
@@ -206,7 +210,7 @@ class Payslip extends Model
         // run themselves.
         static::creating(function ($payslip) use ($refuseIfLocked) {
             if (! $payslip->payroll_run_id && $payslip->month && $payslip->fiscal_year_id) {
-                $fiscalYear = \App\Modules\Core\Models\FiscalYear::find($payslip->fiscal_year_id);
+                $fiscalYear = FiscalYear::find($payslip->fiscal_year_id);
 
                 if ($fiscalYear) {
                     $payslip->payroll_run_id = PayrollRun::forMonth($payslip->month, $fiscalYear)->getKey();
@@ -281,7 +285,7 @@ class Payslip extends Model
                 return;
             }
 
-            app(\App\Modules\Advances\Services\AdvanceService::class)->recordRecoveryFor($payslip);
+            app(AdvanceService::class)->recordRecoveryFor($payslip);
         };
 
         static::saved(function ($payslip) use ($syncAdvances) {
@@ -298,14 +302,14 @@ class Payslip extends Model
                 return;
             }
 
-            \App\Modules\Advances\Models\Advance::where('employee_id', $payslip->employee_id)
+            Advance::where('employee_id', $payslip->employee_id)
                 ->get()
                 ->each(function ($advance) {
                     $advance->refresh();
 
-                    if ($advance->status === \App\Modules\Advances\Models\Advance::STATUS_SETTLED
+                    if ($advance->status === Advance::STATUS_SETTLED
                         && $advance->remainingAmount() > 0) {
-                        $advance->update(['status' => \App\Modules\Advances\Models\Advance::STATUS_ACTIVE]);
+                        $advance->update(['status' => Advance::STATUS_ACTIVE]);
                     }
                 });
         });
@@ -320,7 +324,7 @@ class Payslip extends Model
                 return;
             }
 
-            app(\App\Modules\Payroll\Services\PayComponentRecorder::class)->record($payslip);
+            app(PayComponentRecorder::class)->record($payslip);
         });
 
         // Expense claims the payslip reimburses. Same shape as the advances above:
@@ -331,7 +335,7 @@ class Payslip extends Model
                 return;
             }
 
-            app(\App\Modules\Expenses\Services\ExpenseClaimService::class)->settleAgainst($payslip);
+            app(ExpenseClaimService::class)->settleAgainst($payslip);
         };
 
         static::saved(function ($payslip) use ($syncClaims) {
@@ -350,7 +354,7 @@ class Payslip extends Model
                 return;
             }
 
-            $claimsToRelease = \App\Modules\Expenses\Models\ExpenseClaim::where('payslip_id', $payslip->getKey())
+            $claimsToRelease = ExpenseClaim::where('payslip_id', $payslip->getKey())
                 ->pluck('id')
                 ->all();
         });
@@ -360,9 +364,9 @@ class Payslip extends Model
                 return;
             }
 
-            $service = app(\App\Modules\Expenses\Services\ExpenseClaimService::class);
+            $service = app(ExpenseClaimService::class);
 
-            foreach (\App\Modules\Expenses\Models\ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
+            foreach (ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
                 $service->release($claim);
             }
 

@@ -61,7 +61,7 @@ class ExpenseClaim extends Model
         static::created(function (self $claim): void {
             // Never to the person who submitted it, even if they hold the permission:
             // the point of an approver is that it is somebody else.
-            $approvers = User::permission(self::APPROVE_PERMISSION)
+            $approvers = User::holdingPermission(self::APPROVE_PERMISSION)
                 ->where('id', '!=', $claim->submitted_by)
                 ->where('status', 1)
                 ->get();
