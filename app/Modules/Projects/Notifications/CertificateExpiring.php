@@ -3,8 +3,10 @@
 namespace App\Modules\Projects\Notifications;
 
 use App\Modules\Projects\Models\ProjectEnvironment;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -51,5 +53,24 @@ class CertificateExpiring extends Notification implements ShouldQueue
 
         return ":lock: Certificate for *{$project->name}* {$this->environment->label()}"
             ." expires in {$this->daysRemaining} day(s)";
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        $project = $this->environment->project;
+        $label = $this->environment->label();
+
+        $notification = FilamentNotification::make()
+            ->title("Certificate expires in {$this->daysRemaining} day(s)")
+            ->body("{$project->name} {$label} — expires ".$this->environment->ssl_expires_at->format('j M Y H:i').'.');
+
+        $this->daysRemaining <= 7 ? $notification->danger() : $notification->warning();
+
+        return $notification->getDatabaseMessage();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 }

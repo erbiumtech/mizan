@@ -2,11 +2,14 @@
 
 namespace App\Notifications;
 
+use App\Modules\Core\Models\User;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
+use App\Support\TemplatedMail;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use App\Support\TemplatedMail;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -26,13 +29,17 @@ class PayslipIssued extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        // Recipients with no user account (personal-email-only staff) are
+        // routed on demand and can only ever receive mail.
+        return $notifiable instanceof User
+            ? ['mail', 'database', 'broadcast']
+            : ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         $payslips = app(PayslipService::class);
-        $period = trim($this->payslip->month.' '.($this->payslip->fiscalYear?->name ?? ''));
+        $period = $this->period();
 
         $employee = $this->payslip->employee?->user?->name ?? 'there';
         $net = number_format((float) $this->payslip->net_salary, 2);
@@ -63,5 +70,24 @@ class PayslipIssued extends Notification implements ShouldQueue
                 $payslips->pdfFilename($this->payslip),
                 ['mime' => 'application/pdf'],
             );
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return FilamentNotification::make()
+            ->title('Payslip issued')
+            ->body("Your payslip for {$this->period()} is ready.")
+            ->success()
+            ->getDatabaseMessage();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
+    }
+
+    private function period(): string
+    {
+        return trim($this->payslip->month.' '.($this->payslip->fiscalYear?->name ?? ''));
     }
 }

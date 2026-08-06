@@ -3,8 +3,11 @@
 namespace App\Notifications;
 
 use App\Modules\Employees\Models\EmployeeChangeRequest;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -16,13 +19,12 @@ class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $employeeName = $this->changeRequest->employee->user?->name
-            ?? $this->changeRequest->employee->employee_id;
+        $employeeName = $this->employeeName();
 
         $target = $this->changeRequest->targetsSetting()
             ? 'their salary settings'
@@ -53,5 +55,29 @@ class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
         return $mail
             ->action('Review Change Request', url("/cpi/resources/employee-change-requests/{$this->changeRequest->id}"))
             ->line('The change will only take effect once approved.');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return FilamentNotification::make()
+            ->title("Change request from {$this->employeeName()} awaits approval")
+            ->body("Request #{$this->changeRequest->id} needs your review.")
+            ->actions([
+                Action::make('review')
+                    ->label('Review')
+                    ->url("/cpi/resources/employee-change-requests/{$this->changeRequest->id}"),
+            ])
+            ->getDatabaseMessage();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
+    }
+
+    private function employeeName(): string
+    {
+        return $this->changeRequest->employee->user?->name
+            ?? $this->changeRequest->employee->employee_id;
     }
 }
