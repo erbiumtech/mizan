@@ -1,9 +1,9 @@
 # Real-time Notifications — Implementation Plan
 
-**Status:** Planned
+**Status:** Implemented (2026-08-06) — see [Implementation notes](#implementation-notes) for where the build diverged from this plan
 **Created:** 2026-08-06
 
-Goal: give the 7 existing business notifications (payslips, expense claims, employee change requests, environment/certificate alerts) an in-app real-time signal on top of the email they already send — a Filament notification bell that updates instantly via WebSocket, not just on page reload.
+Goal: give the existing business notifications (payslips, expense claims, employee change requests, environment/certificate alerts) an in-app real-time signal on top of the email they already send — a Filament notification bell that updates instantly via WebSocket, not just on page reload.
 
 ## Decisions
 
@@ -109,5 +109,15 @@ Since there's no existing deploy/infra documentation in the repo, add:
 - `php artisan tinker` → dispatch one notification (e.g. `PayslipIssued`) to a real `User` and confirm a row lands in the `notifications` table with a Filament-shaped `data` payload.
 - Run `npm run build` (or `npm run dev`) + `php artisan serve`, log into the admin panel, open browser devtools Network/WS tab, confirm a `wss://` connection to the configured Reverb host and a successful `/broadcasting/auth` POST for the `App.Modules.Core.Models.User.{id}` channel.
 - From `tinker` in a second terminal, send the same notification to the logged-in user and confirm the bell updates and a toast appears without a page reload.
-- `php artisan queue:work` (now on `redis`) is running while testing, since all 7 notifications remain `ShouldQueue`.
+- `php artisan queue:work` (now on `redis`) is running while testing, since all notifications remain `ShouldQueue`.
 - Confirm the `PayslipIssued` on-demand-mail-route branch (recipient with no `User` account) still only sends mail and doesn't throw when `via()` checks `instanceof User`.
+
+## Implementation notes
+
+- **8 notifications, not 7.** `ExpenseClaimSubmitted` and `ExpenseClaimDecided` are two separate classes; the original count in this doc's intro was off by one.
+- **§3 changed shape entirely.** Reading Filament's actual source (`vendor/filament/filament/resources/views/components/layout/base.blade.php:147-153`) showed it already bundles its own Echo/Pusher asset and auto-instantiates `window.Echo` from `config('filament.broadcasting.echo')` — no custom render hook or `@vite` entry needed on the panels at all. Just `php artisan vendor:publish --tag=filament-config` and fill in the `echo` array.
+- **`php artisan install:broadcasting --reverb` failed partway** (its npm step needs a TTY, unavailable in this environment) after publishing `config/broadcasting.php` and `routes/channels.php` but *before* adding any `REVERB_*` vars to `.env`. Finished by hand: generated the app id/key/secret, added the `REVERB_*`/`VITE_REVERB_*` vars, then `php artisan vendor:publish --tag=reverb-config` and `npm install laravel-echo pusher-js` directly.
+- **Redis queue needed `predis`, not `phpredis`.** The `redis-server` binary is installed locally but the phpredis PHP extension isn't — `QUEUE_CONNECTION=redis` broke on the first real dispatch ("Class Redis not found"). Added `predis/predis` and set `REDIS_CLIENT=predis`, Laravel's standard pure-PHP fallback.
+- **The `notifications` table didn't exist** (the `database` channel was never used before this). Generated via `php artisan make:notifications-table` and moved into `database/migrations/landlord/`, since `User` lives on the landlord connection, not a tenant one.
+- **A concurrent session touched the same area.** While this was in progress, a separate Claude Code session/worktree (co-authored commit `587ea95`, since removed) independently hit and fixed a related problem: `routes/channels.php` builds the broadcaster eagerly at boot, so a `.env` with `BROADCAST_CONNECTION=reverb` and no Reverb credentials took down the entire suite under raw `vendor/bin/phpunit` (640 tests, all with the same bootstrap trace). Their fix — pinning `BROADCAST_CONNECTION=null` in `phpunit.xml` — landed on this branch and is complementary to, not in conflict with, the `REVERB_APP_*` vars added here; both are kept.
+- **Verified live**, not just by test suite: logged into the admin panel with Puppeteer (headless `shell`, `--disable-gpu`), confirmed the WebSocket connects to Reverb and the private channel `App.Modules.Core.Models.User.{id}` subscription succeeds, dispatched a real `PayslipRejected` notification via `Notification::sendNow()`, drained the queued broadcast job with `queue:work --once`, and watched the exact payload arrive over the socket — the topbar bell's unread count and a toast updated with no page reload. All test rows and queue keys were cleaned up afterward.
