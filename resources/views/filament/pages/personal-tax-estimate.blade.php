@@ -28,14 +28,23 @@
                 <div>
                     <p class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">Estimated tax</p>
                     <p class="mt-1 text-2xl font-bold text-primary-600 dark:text-primary-400">
-                        PKR {{ number_format($estimate['total_tax'], 2) }}
+                        PKR {{ number_format($estimate['total_payable'] ?? $estimate['total_tax'], 2) }}
                     </p>
+                    @if (($estimate['total_surcharge'] ?? 0) > 0)
+                        {{-- Broken out, because a surcharge is a percentage of the
+                             tax and somebody checking the arithmetic against a
+                             bracket table will otherwise think the total is wrong. --}}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            PKR {{ number_format($estimate['total_tax'], 2) }} tax
+                            + PKR {{ number_format($estimate['total_surcharge'], 2) }} surcharge
+                        </p>
+                    @endif
                 </div>
                 <div>
                     <p class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">Overall rate</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-950 dark:text-white">
                         @if ($estimate['total_income'] > 0)
-                            {{ number_format($estimate['total_tax'] / $estimate['total_income'] * 100, 2) }}%
+                            {{ number_format(($estimate['total_payable'] ?? $estimate['total_tax']) / $estimate['total_income'] * 100, 2) }}%
                         @else
                             —
                         @endif
@@ -58,28 +67,45 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase dark:border-white/10 dark:text-gray-400">
-                                <th class="py-2 font-medium">Taxed as</th>
-                                <th class="py-2 text-right font-medium">Income</th>
-                                <th class="py-2 font-medium">Bracket</th>
-                                <th class="py-2 text-right font-medium">Rate on excess</th>
-                                <th class="py-2 text-right font-medium">Tax</th>
+                                <th class="px-3 py-2 font-medium">Taxed as</th>
+                                <th class="px-3 py-2 text-right font-medium">Income</th>
+                                <th class="px-3 py-2 text-right font-medium">Allowance</th>
+                                <th class="px-3 py-2 text-right font-medium">Taxable</th>
+                                <th class="px-3 py-2 font-medium">Bracket</th>
+                                <th class="px-3 py-2 text-right font-medium">Rate on excess</th>
+                                <th class="px-3 py-2 text-right font-medium">Tax</th>
+                                <th class="px-3 py-2 text-right font-medium">Surcharge</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($estimate['regimes'] as $row)
                                 <tr class="border-b border-gray-200 last:border-0 dark:border-white/10">
-                                    <td class="py-2 text-gray-700 dark:text-gray-200">{{ $row['label'] }}</td>
-                                    <td class="py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">
+                                    <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $row['label'] }}</td>
+                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">
                                         {{ number_format($row['income'], 2) }}
                                     </td>
-                                    <td class="py-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <td class="px-3 py-2 text-right tabular-nums text-gray-500 dark:text-gray-400">
+                                        {{ ($row['allowance'] ?? 0) > 0 ? '(' . number_format($row['allowance'], 2) . ')' : '—' }}
+                                    </td>
+                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">
+                                        {{ number_format($row['taxable'], 2) }}
+                                    </td>
+                                    <td class="px-3 py-2 text-xs whitespace-nowrap text-gray-500 dark:text-gray-400">
                                         {{ $row['bracket']?->label() ?? '—' }}
                                     </td>
-                                    <td class="py-2 text-right tabular-nums text-gray-500 dark:text-gray-400">
+                                    <td class="px-3 py-2 text-right tabular-nums text-gray-500 dark:text-gray-400">
                                         {{ number_format($row['marginal_rate'], 2) }}%
                                     </td>
-                                    <td class="py-2 text-right font-semibold tabular-nums text-gray-950 dark:text-white">
+                                    <td class="px-3 py-2 text-right font-semibold tabular-nums text-gray-950 dark:text-white">
                                         {{ number_format($row['tax'], 2) }}
+                                    </td>
+                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">
+                                        @if (($row['surcharge'] ?? 0) > 0)
+                                            {{ number_format($row['surcharge'], 2) }}
+                                            <span class="text-xs text-gray-400">({{ number_format($row['surcharge_rate'], 0) }}%)</span>
+                                        @else
+                                            —
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -97,7 +123,7 @@
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
                     It sits on income accounts with no <strong>Taxed as</strong> setting. Guessing how it is
                     taxed would give you a confident but wrong number, so it is left out. Set
-                    <strong>Taxed as</strong> on those accounts under My Accounts and it will be included.
+                    <strong>Taxed as</strong> on those accounts under Chart of Accounts and it will be included.
                 </p>
             </x-filament::section>
         @endif
@@ -110,8 +136,8 @@
         <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
             <li>It works only from what you have recorded here.</li>
             <li>It does not know about tax already deducted from you at source, including by your employer.</li>
-            <li>It does not apply tax credits, deductible allowances, or the surcharge on high salaried income.</li>
-            <li>Rental and capital gains use indicative flat rates, not the full schedules, which depend on the asset and how long it was held.</li>
+            <li>It does not apply tax credits, or the receipted deductions specific to a property — insurance, loan interest, property tax and the like. The automatic one-fifth repair allowance on rent <strong>is</strong> applied.</li>
+            <li>Capital gains assume you are a filer and acquired the asset on or after 1 July 2024, which is a flat 15%. Older assets use holding-period rates and non-filers are taxed at slab rates; neither can be worked out from your ledger.</li>
             <li>Each kind of income is assessed on its own schedule and the results added, which is a simplification of a real return.</li>
         </ul>
     </x-filament::section>

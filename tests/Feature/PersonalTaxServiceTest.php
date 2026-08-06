@@ -8,6 +8,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
+use App\Modules\PersonalFinance\Models\TaxSurcharge;
 use App\Modules\PersonalFinance\Services\PersonalTaxService;
 use Database\Seeders\FiscalYearSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -187,6 +188,95 @@ class PersonalTaxServiceTest extends TestCase
                 "2026-2027 salaried tax on {$income}",
             );
         }
+    }
+
+    public function test_the_surcharge_is_a_percentage_of_the_tax_not_the_income(): void
+    {
+        // s.4AB for tax year 2026: 9% of the TAX for a salaried individual once
+        // taxable income passes 10,000,000. The distinction matters — 9% of the
+        // income would be an order of magnitude out.
+        $result = $this->tax()->taxFor(12000000, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+        // 616,000 + 35% of (12,000,000 - 4,100,000) = 3,381,000
+        $this->assertSame(3381000.0, $result['tax']);
+        $this->assertSame(round(3381000.0 * 0.09, 2), $result['surcharge']);
+        $this->assertSame(9.0, $result['surcharge_rate']);
+        $this->assertSame(round(3381000.0 * 1.09, 2), $result['total']);
+    }
+
+    public function test_the_surcharge_does_not_apply_below_the_threshold(): void
+    {
+        $result = $this->tax()->taxFor(9000000, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+        $this->assertSame(0.0, $result['surcharge']);
+        $this->assertSame($result['tax'], $result['total']);
+    }
+
+    public function test_the_salaried_surcharge_is_gone_in_2026_27_but_the_business_one_remains(): void
+    {
+        // The Finance Act 2026 withdrew it for salary income only. Expressed as an
+        // absent row rather than a branch, so this asserts the data as much as the
+        // arithmetic.
+        $year = FiscalYear::where('name', '2026-2027')->firstOrFail();
+
+        $salaried = $this->tax()->taxFor(12000000, TaxSchedule::REGIME_SALARIED, $year->id);
+        $business = $this->tax()->taxFor(12000000, TaxSchedule::REGIME_BUSINESS, $year->id);
+
+        $this->assertSame(0.0, $salaried['surcharge'], 'The salaried surcharge was withdrawn for 2026-27.');
+        $this->assertGreaterThan(0.0, $business['surcharge'], 'The non-salaried surcharge was not withdrawn.');
+        $this->assertSame(10.0, $business['surcharge_rate']);
+    }
+
+    public function test_rental_income_is_taxed_after_the_repair_allowance(): void
+    {
+        $this->earn('4200', 1000000);
+
+        $estimate = $this->tax()->estimate($this->year->id);
+        $rental = collect($estimate['regimes'])->firstWhere('regime', TaxSchedule::REGIME_RENTAL);
+
+        // One fifth of the rent is allowed automatically, so the tax is never on
+        // the gross. Getting this wrong overstates the liability by 20% of rent.
+        $this->assertSame(1000000.0, $rental['income'], 'gross rent');
+        $this->assertSame(200000.0, $rental['allowance'], '20% repair allowance');
+        $this->assertSame(800000.0, $rental['taxable'], 'net rent');
+    }
+
+    public function test_rental_uses_the_ordinary_slabs_not_a_rate_of_its_own(): void
+    {
+        // Property income has had no separate rate table since 2019: net rental is
+        // added to total income and taxed at the ordinary slabs. It was briefly a
+        // made-up flat 15% here, which was simply wrong.
+        $amount = 2000000.0;
+
+        $rental = $this->tax()->taxFor($amount, TaxSchedule::REGIME_RENTAL, $this->year->id);
+        $business = $this->tax()->taxFor($amount, TaxSchedule::REGIME_BUSINESS, $this->year->id);
+
+        $this->assertSame($business['tax'], $rental['tax']);
+    }
+
+    public function test_the_estimate_totals_tax_and_surcharge_separately(): void
+    {
+        $this->earn('4000', 12000000);
+
+        $estimate = $this->tax()->estimate($this->year->id);
+
+        $this->assertGreaterThan(0.0, $estimate['total_surcharge']);
+        $this->assertSame(
+            round($estimate['total_tax'] + $estimate['total_surcharge'], 2),
+            $estimate['total_payable'],
+        );
+    }
+
+    public function test_capital_gains_is_a_flat_fifteen_percent(): void
+    {
+        // The enacted rate for a filer on assets acquired from 1 July 2024, for
+        // both securities and immovable property — not a placeholder.
+        $result = $this->tax()->taxFor(1000000, TaxSchedule::REGIME_CAPITAL_GAINS, $this->year->id);
+
+        $this->assertSame(150000.0, $result['tax']);
+        $this->assertSame(15.0, $result['marginal_rate']);
+        // A separate block charge; the surcharge does not sit on top of it.
+        $this->assertSame(0.0, $result['surcharge']);
     }
 
     public function test_income_is_grouped_by_the_regime_on_its_account(): void

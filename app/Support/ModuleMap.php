@@ -116,6 +116,7 @@ final class ModuleMap
         'personal_finance' => [
             'App\Models\PersonalTaxProfile' => \App\Modules\PersonalFinance\Models\PersonalTaxProfile::class,
             'App\Models\TaxSchedule' => \App\Modules\PersonalFinance\Models\TaxSchedule::class,
+            'App\Models\TaxSurcharge' => \App\Modules\PersonalFinance\Models\TaxSurcharge::class,
         ],
     ];
 
