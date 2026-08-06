@@ -70,6 +70,14 @@ class RoleSeeder extends Seeder
             'ProjectView',
             'ProjectCreate',
             'ProjectUpdate',
+            // Their own books. Everybody gets these, not just finance staff —
+            // tracking your own money is not a privilege of the accounts
+            // department. Not PersonalFinanceViewAny: that is the cross-user
+            // read, and it belongs to Administrator alone.
+            'PersonalFinanceView',
+            'PersonalFinanceCreate',
+            'PersonalFinanceUpdate',
+            'PersonalFinanceDelete',
         ]);
 
         // Accounting roles with segregation of duties:
@@ -103,6 +111,12 @@ class RoleSeeder extends Seeder
             'BankStatementView', 'BankStatementCreate', 'BankStatementUpdate', 'BankStatementImport', 'BankStatementMatch',
             'CommentView', 'CommentCreate', 'CommentResolve',
             'ActivityLogView',
+            // Their own books, same as everybody else. Manager and CEO are built
+            // from this list, so they inherit it.
+            'PersonalFinanceView',
+            'PersonalFinanceCreate',
+            'PersonalFinanceUpdate',
+            'PersonalFinanceDelete',
         ]);
 
         // Manager: everything the Accountant has + approve/reject/post/reverse.
