@@ -154,6 +154,20 @@ class PersonalFinancePagesTest extends TestCase
         $this->assertSame(64000.0, $report['total_expenses']);
     }
 
+    public function test_the_tax_estimate_opens_on_a_year_it_can_actually_work_out(): void
+    {
+        // The active fiscal year is routinely the one whose Finance Act has not
+        // been enacted, so it has no brackets seeded. Defaulting to it would
+        // greet everybody with an error on a screen that has never worked for
+        // them, which reads as broken rather than as "rates not published yet".
+        app(StarterChart::class)->createFor();
+
+        $result = Livewire::test(TaxEstimate::class)->instance()->getEstimate();
+
+        $this->assertNull($result['error'], 'The Tax Estimate opens on an error out of the box.');
+        $this->assertNotNull($result['estimate']);
+    }
+
     public function test_the_tax_estimate_reports_a_missing_schedule_instead_of_zero(): void
     {
         // 2026-2027 has no schedule seeded. Answering "you owe nothing" would be
