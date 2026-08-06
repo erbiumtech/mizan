@@ -46,7 +46,13 @@ class SalarySlabSeeder extends Seeder
                 ['min_amount' => 3200000, 'max_amount' => 4100000, 'fixed_tax' => 316000, 'percentage' => 25],
                 ['min_amount' => 4100000, 'max_amount' => 5600000,    'fixed_tax' => 541000, 'percentage' => 29],
                 ['min_amount' => 5600000, 'max_amount' => 7000000,    'fixed_tax' => 976000, 'percentage' => 32],
-                ['min_amount' => 7000000, 'max_amount' => 50000000,    'fixed_tax' => 1424000, 'percentage' => 35],
+                // Null, not a figure. TaxCalculatorService matches
+                // `max_amount >= income OR max_amount IS NULL`, so a bounded top
+                // slab leaves everything above it matching no slab at all — and
+                // the service returns 0.0 rather than raising, so the highest
+                // earners are silently taxed at nothing. This used to read
+                // 50,000,000.
+                ['min_amount' => 7000000, 'max_amount' => null,    'fixed_tax' => 1424000, 'percentage' => 35],
             ];
 
             SalarySlab::where('fiscal_year_id', $fy2026->id)->delete();
