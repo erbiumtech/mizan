@@ -1,7 +1,7 @@
 
 # Personal Finance — Implementation Plan
 
-**Status:** Planned (2026-08-06) — not yet started
+**Status:** Built (2026-08-06), after one significant redesign — see [The pivot](#the-pivot)
 **Created:** 2026-08-06
 
 Goal: let a person keep their own complete accounts inside this app — record what they
@@ -13,17 +13,48 @@ Nothing like this exists today. Every existing module is company money: payroll,
 the company ledger. The one per-person precedent is MPR, which keys on `user_id` in a
 tenant table.
 
+## The pivot
+
+The first build was wrong, and the correction is worth recording because the
+mistake is an easy one to repeat.
+
+**What was built first:** a private per-user ledger. Its own `personal_*` tables,
+a global scope keying every row to `auth()->id()`, and a model guard so not even
+an Administrator could edit somebody else's records. About 2,100 lines.
+
+**What the requirement actually was:** a person keeping their own books wants an
+**accountant** to do it for them, and employs staff — a driver, a cook. That is
+not a private ledger. That is a small organisation.
+
+**Why that changes everything:** an organisation here is a *tenant*. Roles are
+already scoped per tenant (`company_id` is the Spatie team key), so a personal
+account gets Administrator, Accountant, Manager, Employee and CEO for free.
+Employees, the chart of accounts, the Account Register, the Balance Sheet and the
+P&L all already work per tenant. None of it needed building.
+
+And the privacy mechanism was not merely redundant, it was **backwards**: a scope
+keyed on the signed-in user would have hidden the books from the accountant hired
+to keep them.
+
+**What survived:** the individual Pakistani tax schedules and the estimate over
+them — the one thing the app genuinely could not already do. About 500 lines.
+**What was deleted:** roughly 1,250 lines, the same day they were written.
+
+The lesson for next time: "personal" was read as "private". It meant "belonging
+to a person rather than the business", which is a statement about *whose money*
+it is, not about *who may see it*.
+
 ## Decisions
 
 | Question | Decision |
 |---|---|
-| Where data lives | Tenant DB, per company — a person in two companies gets two separate ledgers |
-| Data model | True double-entry, in the module's **own** tables |
-| Separation | Separate tables mirroring the ledger shape, so company reports cannot see personal money by construction |
+| What a personal account is | A tenant, with `companies.type = personal` |
+| Roles | The same five as any tenant — an accountant can keep somebody's books |
+| Domestic staff | Employees with **no login**; `employees.user_id` is nullable |
+| Paying staff | An expense, not a payslip. Payroll is not licensed for a personal account |
+| The ledger | The tenant's own `accounts` / `journal_entries` — no parallel tables |
+| Database | One per personal account, as for a company |
 | Tax scope | Salaried, business, rental, capital gains, filer/non-filer |
-| Payroll import | None — income is entered by hand |
-| Privacy | Owner manages their own; Administrator may **view** |
-| Tax schedules | New table owned by this module; `salary_slabs` stays payroll's |
 
 ## Facts verified against source (not assumed)
 
@@ -35,19 +66,20 @@ Everything below was read out of the codebase before planning, and each shaped a
   is therefore worthless against an Administrator. The codebase already documents this on
   `ExpenseClaim::assertNotOwnClaim()`: *"Enforced on the model rather than in the policy:
   Administrators and super admins pass every policy check, so a rule that has to hold for
-  everyone cannot live in one."* → ownership must be a global scope plus a model-level
-  guard.
+  everyone cannot live in one."* → this drove the abandoned owner-scope design. It stopped
+  mattering once a personal account became a tenant: access is membership, which the panel
+  already enforces, rather than a per-row owner check.
 - **`accounts.code` carries a global unique index** (`create_accounts_table`) with no owner
-  column, which is exactly why the company chart cannot be made per-person. → the personal
-  chart uses a composite `unique(['user_id','code'])`.
+  column, which is exactly why the company chart cannot be made per-person — and, once a
+  personal account became its own tenant, why it does not need to be: each tenant has its
+  own `accounts` table, so two people's charts never meet.
 - **`accounts.balance` is a cached scalar** maintained by `JournalEntryService::post()`. One
-  scalar cannot represent per-owner balances; the company's own report services already
-  sidestep it by recomputing from lines. → personal balances are always derived from lines,
-  with no cached column.
+  scalar cannot represent per-owner balances — another reason a shared table keyed by owner
+  was the wrong shape. Per tenant it is fine, and the existing reports work unchanged.
 - **`JournalEntryService::approve()` hard-throws when approver === creator** (segregation of
-  duties), so a solo person could never approve their own entry. → no approval workflow;
-  mirror `RegisterEntryService::bookRow()`, which builds two lines and goes straight to
-  posted.
+  duties), so a person keeping their own books could never approve their own entry. → the
+  Account Register is the entry surface, because `RegisterEntryService::bookRow()` builds
+  the two lines and posts them in one step, sidestepping the workflow entirely.
 - **`users` lives in the landlord DB** while domain tables are per-tenant. Cross-database
   joins fail (`LandlordUserColumn` documents the "Base table or view not found" failure,
   including on the paginator's `count(*)`). → `user_id` is a soft reference,
@@ -61,9 +93,9 @@ Everything below was read out of the codebase before planning, and each shaped a
   *ending* year while the app calls it "2025-2026" — any FBR-facing label needs
   translating.
 - **`Impersonation` lets a company Administrator sign in as any non-super-admin user in
-  their company.** No scope keyed on `auth()->id()` survives that. Given the Administrator
-  is already permitted to view, this widens rather than breaks the model, but it is a known
-  property, not a surprise. Impersonated actions are recorded with `impersonated_by`.
+  their company.** This mattered a great deal to the abandoned privacy model and matters
+  little now: access to a personal account is membership of that tenant, which is a
+  deliberate act, not something impersonation quietly bypasses.
 - **`CompanyFactory` licenses and enables every registry module** in `afterCreating`, so a
   new module is automatically on in existing tests.
 
@@ -98,154 +130,80 @@ and this opens at **1%**, which is the salaried marker. Most likely these are pr
 figures for a tax year whose Finance Act was not yet enacted. **Action: confirm against the
 Act.**
 
-## Phase 1 — module skeleton
+## What was built
 
-Directory `app/Modules/PersonalFinance` ⇒ registry key **must** be `personal_finance`;
-`ModuleMap::moduleFor()` derives it as `Str::snake(basename($dir))` and returns null on a
-mismatch, which makes every gated class throw.
+**A personal account is a tenant** with `companies.type = 'personal'`. It provisions
+through the same `CompanyProvisioner`, gets its own database, and gets the same five roles
+as any other tenant — which is the whole reason this shape works, since an accountant
+keeping somebody's books is just a role.
 
-- `config/modules.php` — label `Personal Finance`, `requires: []` (deliberately no
-  dependency on accounting or payroll — it owns its tables and its tax code),
-  `licensed_by_default => false`, `plugin => PersonalFinancePlugin::class`.
-- `PersonalFinancePlugin.php` — shape of `AdvancesPlugin`; `discoverResources` +
-  `discoverPages`.
-- `PersonalFinanceServiceProvider.php` — `POLICIES` const looped through `Gate::policy()`,
-  per `ExpensesServiceProvider`.
-- `bootstrap/providers.php` — append the provider. No `AdminPanelProvider` change; it
-  already calls `->plugins(Modules::plugins())`.
+**`employees.user_id` is nullable.** A driver or a cook is employed and gets paid but never
+signs in, and inventing an email address and password for them is worse than letting the
+record stand alone. An `employees.name` column holds the name where there is no user to
+take it from; for anybody who does sign in, the user record stays the single source of
+truth, and `Employee::fullName()` encodes that precedence.
 
-## Phase 2 — the personal ledger
+**Paying staff is an expense, not a payslip.** Payroll is deliberately not licensed for a
+personal account, so there is no payslip, no acknowledgement and no accept/reject flow.
+Domestic Staff Wages is an expense account in the personal chart.
 
-Migrations in `database/migrations/tenant/`; models extend `App\Models\TenantModel`.
+**Module defaults** (`Modules::PERSONAL_DEFAULTS`): accounting, employees and
+personal_finance. Not invoicing, projects, MPR or payroll. Core is always licensed since it
+holds the Modules page.
 
-```
-personal_accounts     user_id, code, name,
-                      type(asset|liability|equity|income|expense),
-                      tax_regime(nullable), opening_balance, is_active
-                      unique(['user_id','code'])      ← not globally unique
-personal_entries      user_id, date, description, fiscal_year_id
-personal_entry_lines  personal_entry_id, personal_account_id, debit, credit
-```
+**The personal chart of accounts** (`PersonalChartOfAccountsSeeder`) replaces the business
+one: Education, Domestic Staff Wages, Food, Rent, Utilities, Transport, Medical, and income
+accounts pre-tagged with their tax regime. It keeps codes 3200 and 3300, which the
+accounting module looks up by code and without which an opening balance or a year close
+would break.
 
-`PersonalEntryService` mirrors the guarantees of `JournalEntryService::validateLines()`:
-at least two lines, debit XOR credit per line, non-negative, balanced, one transaction.
+**The tax engine**, which is the part the app could not already do:
 
-**Usability point that decides whether this survives contact with a real user.** Nobody
-hand-writes debits and credits to log lunch. The everyday surface is three actions —
-**Record income**, **Record expense**, **Transfer** — each building the two balanced lines
-itself. The raw entry screen stays for anyone who wants it.
+- `tax_schedules`, one row per bracket per regime per tax year, seeded and editable, so a
+  Finance Act is a re-seed rather than a code change.
+- `PersonalTaxService`, which returns a **breakdown** — matched bracket, marginal rate,
+  effective rate — and **raises rather than returning zero** when no bracket matches. That
+  last point is the payroll bug above, refusing to be repeated.
+- `accounts.tax_regime`, so income is classified once on the account instead of per entry.
+  Untagged income is reported as unclassified rather than guessed at.
+- A Tax Estimate page, visible only on a personal account, that opens on a year it can
+  actually compute and states its limits on screen.
 
-A starter chart is seeded per user on first use: **Education** alongside Rent, Food,
-Transport, Utilities, Medical and Other, plus Cash and Bank. Seeded on demand, not in
-`TenantBaselineSeeder` — it is per user, not per company.
+**Everything else is the existing app.** Chart of Accounts, Account Register, Balance
+Sheet, Profit & Loss, Cash Flow — all unchanged, all working per tenant. The Account
+Register is the everyday entry surface because `RegisterEntryService::bookRow()` builds the
+two lines and posts them in one step, sidestepping the approval workflow that a household
+has no use for. Accountant already holds `RegisterPost`, so the person's accountant can
+keep the books.
 
-## Phase 3 — the tax engine
+## Known limits
 
-```
-tax_schedules          fiscal_year_id, regime, min_amount, max_amount(null=top),
-                       fixed_tax, percentage
-personal_tax_profiles  user_id, fiscal_year_id, filer_status, notes
-```
-
-`regime`: `salaried | business | rental | capital_gains`.
-
-`PersonalTaxService` — its own calculator, so the module keeps `requires: []` and stays
-clear of `ModuleBoundaryTest`. Same proven arithmetic
-(`fixed_tax + percentage × (income − min_amount)`) but it returns a **breakdown** — matched
-slab, marginal rate, effective rate — because a personal tax screen must show its working.
-It **errors rather than returning zero** when no slab matches, which is Bug 1's root cause.
-
-Income is bucketed by regime through a `tax_regime` attribute on each income account: tag
-"Salary" once and every entry against it is classified.
-
-**Honest scope.** Encoding Pakistani tax law fully is large and consequential. What this
-phase guarantees: every rate is **seeded, editable, per-fiscal-year data**, so a Finance Act
-is a re-seed rather than a code change; the breakdown is visible so figures are auditable;
-and the screen and help both state plainly that this is an estimate, not tax advice.
-
-Encoded but flagged for confirmation rather than asserted correct:
-
-- the salaried-vs-business threshold (dominant-share rule — exact percentage to confirm);
-- the 9% surcharge on high salaried income from Finance Act 2025, absent from the app today;
-- capital gains rates by asset class and holding period;
-- what filer/non-filer actually changes — it drives *withholding* rates, not slab
-  liability, so v1 records and displays it rather than silently applying it to the result.
-
-Payroll's exemption logic is **not** reused. Its 10% medical exemption is applied to total
-earnings, uncapped, and to employees with no medical allowance at all — the real rule is
-10% of *basic salary*. That bug is not copied.
-
-## Phase 4 — screens
-
-Under a `Personal` navigation group, all gated by `BelongsToModule`:
-
-- **Accounts** (resource) — the person's chart with balances.
-- **Transactions** (resource) — the ledger, with the three quick actions.
-- **Balance Sheet** (page) — assets, liabilities, net worth. The hard, already-correct part
-  is ported rather than reinvented: `FinancialReportService::positionSection()` /
-  `SECTION_SIDE` and `GeneralLedgerService::balanceAsOf()` take account-shaped and
-  line-shaped rows, so they port near-verbatim. The page is a near-copy of
-  `Accounting/Filament/Pages/BalanceSheet.php`.
-- **Income & Expenditure** (page) — earnings vs spending by category for a fiscal year;
-  this is where "how much went on education" is answered.
-- **Tax Estimate** (page) — income by regime, slab applied, breakdown, estimate, disclaimer.
-
-### Ownership — the most important implementation note
-
-Per the `Gate::before` finding above, ownership is enforced structurally, with the policy
-as documentation rather than as the gate:
-
-1. **`BelongsToOwner` trait** — `booted()` global scope filtering to `auth()->id()`, plus a
-   `creating` hook stamping `user_id`. No privileged bypass in the scope.
-2. **Model-level guard on save and delete** (the `ExpenseClaim` pattern) throwing when the
-   row's `user_id` is not the acting user. This is what actually delivers "Administrator may
-   view but **not edit**", which the Gate would otherwise override.
-3. **Administrator cross-user view** is an explicit opt-in: a `withoutOwnerScope()` escape
-   used only on the admin read path, gated on `PersonalFinanceViewAny`. Deliberately **not**
-   `ScopesToAccessibleEmployees` — that grants a manager their whole downline, the opposite
-   of what is wanted.
-
-Permissions in `PermissionSeeder`, group `PersonalFinance`, mirrored in
-`ModuleMap::PERMISSION_GROUPS`: `PersonalFinanceView`, `PersonalFinanceCreate`,
-`PersonalFinanceUpdate`, `PersonalFinanceDelete`, `PersonalFinanceViewAny`.
-`RoleSeeder`: Administrator gets everything via `Permission::all()`; **Employee** gets
-View/Create/Update/Delete — this module is for everyone, not only finance staff.
-
-`ModuleMap` additions: `MODELS` (alias exactly `App\Models\<Basename>`), `RESOURCES`,
-`PAGES`, `PERMISSION_GROUPS`.
-
-## Phase 5 — documentation
-
-Not optional — `HelpCoverageTest` fails the build if a resource list page or standalone page
-lacks `HelpAction::make(...)` with a matching `resources/markdown/help/<slug>.md`. Five help
-docs, with `<!-- requires: ... -->` annotations on action sections per the role-aware help
-mechanism. Screenshots via `php artisan help:screenshots`. Plus manual chapter
-`resources/markdown/manual/13-personal-finance.md` registered in `UserManual::CHAPTERS`
-(`UserManualTest` asserts the list and the directory agree in both directions).
+- **Rental and capital gains use indicative flat rates**, not the real schedules, which
+  depend on the asset and how long it was held. Labelled as such on screen.
+- **Filer status is recorded and shown, not applied.** It changes withholding rates rather
+  than the liability the brackets produce.
+- **The estimate knows nothing about tax already deducted at source**, credits, deductible
+  allowances, or the surcharge on high salaried income.
+- **FY2026-27 brackets are not seeded** for the personal schedules, because the payroll
+  rates for that year are themselves unverified. The Tax Estimate opens on the most recent
+  year that *does* have rates rather than erroring.
 
 ## Verification
 
 ```
 composer dump-autoload
-php artisan test --filter="ModuleCoverageTest|ModuleGatingTest|ModuleBoundaryTest|\
-HelpCoverageTest|HelpContentAccuracyTest|UserManualTest|FilamentResourcesSmokeTest|\
-ModulePermissionFilteringTest|TaxCalculatorTest"
-php artisan test          # full suite — 1312 green as of 2026-08-06
+vendor/bin/phpunit --filter="Module|Help|UserManual|PersonalTax|PersonalAccountProvisioning|EmployeeWithoutLogin"
+vendor/bin/phpunit          # full suite
 ```
 
-New tests:
+Tests:
 
-- **`PersonalTaxServiceTest`** — each regime against its seeded schedule, boundary amounts,
-  income above the top slab (must **not** return zero), and the breakdown figures.
-- **`PersonalLedgerTest`** — entries must balance; the three quick actions produce the right
-  two lines; balances and net worth add up.
-- **`PersonalFinancePrivacyTest`** — the decisive one: user A cannot see, open, edit or
-  delete user B's rows through the resource, the table query, or a direct record URL; an
-  Administrator can view but **not** edit; and no personal row appears in the company Trial
-  Balance, P&L, Balance Sheet or Account Register.
-
-Manual check: `php artisan help:screenshots --only=personal-accounts …`, then sign in as an
-Employee and as an Administrator to confirm ownership holds in the browser.
-
-For existing companies the module is off by default — `php artisan tenants:migrate`, then
-license it per company on the Modules page.
+- **`PersonalAccountProvisioningTest`** — a personal account provisions with the five
+  roles, the household chart, the tax brackets and the right module licences; a business
+  still gets exactly the registry defaults; a household can employ someone with no login.
+- **`EmployeeWithoutLoginTest`** — a login-less employee exists, shows their name, and never
+  leaks into `accessibleUserIds()` as user 0.
+- **`PersonalTaxServiceTest`** — each regime against its schedule, the breakdown, income
+  above the top bracket, a missing schedule raising rather than returning zero, unposted
+  income not taxed, and the salaried figures pinned to the same expectations as
+  `TaxCalculatorTest` so the two calculators cannot drift.
