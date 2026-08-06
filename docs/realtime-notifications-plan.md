@@ -16,7 +16,7 @@ Goal: give the 7 existing business notifications (payslips, expense claims, empl
 - `App\Modules\Core\Models\User` uses `Notifiable` but does not override `receivesBroadcastNotificationsOn()`, so both Laravel's `BroadcastNotificationCreated` event and Filament's `Notifications`/`DatabaseNotifications` Livewire components independently compute the same private channel name: `str_replace('\\','.', User::class) . '.' . $id` → **`App.Modules.Core.Models.User.{id}`** (`vendor/laravel/framework/.../BroadcastNotificationCreated.php:69-71`, `vendor/filament/notifications/src/Livewire/Notifications.php:105-107`). `routes/channels.php` must authorize exactly this string, not the classic `App.Models.User.{id}`.
 - `BroadcastChannel::getData()` falls back to `toArray()` only if `toBroadcast()` is absent (`vendor/laravel/framework/.../Channels/BroadcastChannel.php:62-64`); `DatabaseChannel` falls back to `toDatabase()` then `toArray()`. So each notification needs both `toDatabase()` and `toBroadcast()` explicitly defined to control the payload shape.
 - `Filament\Notifications\Notification::getDatabaseMessage()` exists (`vendor/filament/notifications/src/Notification.php:230`) — this is the bridge that makes a plain Illuminate notification render correctly in Filament's bell/toast UI.
-- Filament's Vite build is folded into the app's single `vite.config.js` via `->viteTheme()`; there is no existing `@vite(['resources/js/app.js'])` anywhere in the two panel providers, so `window.Echo` (which lives in `resources/js/bootstrap.js`) is **not currently loaded on any Filament panel page** — a render hook must be added to both panels.
+- Filament 5 bundles its own Echo/Pusher asset (`vendor/filament/filament/resources/js/echo.js`, registered `->core()` in `FilamentServiceProvider.php:101`, so it loads unconditionally on every panel page) which sets `window.EchoFactory` and `window.Pusher`. Every panel's `hasBroadcasting()` already defaults to `true` (`vendor/filament/filament/src/Panel/Concerns/HasBroadcasting.php:9`). The base layout (`vendor/filament/filament/resources/views/components/layout/base.blade.php:147-153`) already contains `window.Echo = new window.EchoFactory(@js(config('filament.broadcasting.echo')))` guarded by `filament()->hasBroadcasting() && config('filament.broadcasting.echo')` — so **no custom render hook or Vite entry is needed on the panels**; the only missing piece is publishing `config/filament.php` and filling in its `broadcasting.echo` array. `resources/js/app.js` is only loaded by `resources/views/welcome.blade.php` (the stock Laravel landing page) — irrelevant to the Filament panels.
 - All 7 notifications' notifiables resolve to `App\Modules\Core\Models\User` instances (never a `Company`/tenant directly), fanned out via `Notification::send($users, ...)` — confirmed for every call site. One edge case: `PayslipIssued` sometimes uses `Notification::route('mail', $address)` (an on-demand notifiable with no `User`) when a payslip recipient has no account — `via()` must skip `database`/`broadcast` in that case.
 
 ## Implementation
@@ -39,14 +39,24 @@ Goal: give the 7 existing business notifications (payslips, expense claims, empl
 - `.env` / `.env.example`: set `QUEUE_CONNECTION=redis`.
 - `.env` / `.env.example`: set `REVERB_HOST` / `VITE_REVERB_HOST` to a placeholder (e.g. `ws.mpr.test`) with a comment that it must point at the dedicated Reverb VPS once provisioned; `REVERB_PORT=443`, `REVERB_SCHEME=https` (and matching `VITE_REVERB_*`) since it'll sit behind TLS.
 
-### 3. Load Echo on Filament panel pages
-- Add one render hook to **both** `app/Providers/Filament/AdminPanelProvider.php` and `app/Providers/Filament/PlatformPanelProvider.php`, following the existing pattern used for the impersonation banner / command palette:
+### 3. Configure Filament's built-in Echo bootstrap
+- `php artisan vendor:publish --tag=filament-config` to bring `config/filament.php` into the app.
+- Fill in its `broadcasting.echo` array (read directly server-side, no `VITE_`-prefixed vars needed since Blade embeds it via `@js(...)`, not a Vite bundle):
   ```php
-  ->renderHook(
-      PanelsRenderHook::HEAD_END,
-      fn (): string => Blade::render("@vite(['resources/js/app.js'])"),
-  )
+  'broadcasting' => [
+      'echo' => [
+          'broadcaster' => 'reverb',
+          'key' => env('REVERB_APP_KEY'),
+          'wsHost' => env('REVERB_HOST'),
+          'wsPort' => env('REVERB_PORT', 80),
+          'wssPort' => env('REVERB_PORT', 443),
+          'authEndpoint' => '/broadcasting/auth',
+          'forceTLS' => env('REVERB_SCHEME', 'https') === 'https',
+          'enabledTransports' => ['ws', 'wss'],
+      ],
+  ],
   ```
+  Filament's base layout picks this up automatically on every panel page — nothing else to wire up.
 
 ### 4. Enable Filament's database notifications bell
 - Add `->databaseNotifications()` to both panel providers. Keep polling on at a reduced interval as a fallback in case a WS connection drops: `->databaseNotificationsPolling('60s')` (Echo push still delivers instantly when connected; polling is just the safety net, not the primary path).
