@@ -113,6 +113,13 @@ final class ModuleMap
         'mpr' => [
             'App\Models\MPR' => \App\Modules\Mpr\Models\MPR::class,
         ],
+        'personal_finance' => [
+            'App\Models\PersonalAccount' => \App\Modules\PersonalFinance\Models\PersonalAccount::class,
+            'App\Models\PersonalEntry' => \App\Modules\PersonalFinance\Models\PersonalEntry::class,
+            'App\Models\PersonalEntryLine' => \App\Modules\PersonalFinance\Models\PersonalEntryLine::class,
+            'App\Models\PersonalTaxProfile' => \App\Modules\PersonalFinance\Models\PersonalTaxProfile::class,
+            'App\Models\TaxSchedule' => \App\Modules\PersonalFinance\Models\TaxSchedule::class,
+        ],
     ];
 
     /**
@@ -185,6 +192,10 @@ final class ModuleMap
         ],
         'mpr' => [
             'App\Filament\Resources\MPRs\MPRResource' => \App\Modules\Mpr\Filament\Resources\MPRs\MPRResource::class,
+        ],
+        'personal_finance' => [
+            'App\Filament\Resources\PersonalAccounts\PersonalAccountResource' => \App\Modules\PersonalFinance\Filament\Resources\PersonalAccounts\PersonalAccountResource::class,
+            'App\Filament\Resources\PersonalEntries\PersonalEntryResource' => \App\Modules\PersonalFinance\Filament\Resources\PersonalEntries\PersonalEntryResource::class,
         ],
     ];
 
@@ -283,6 +294,7 @@ final class ModuleMap
         'inventory' => ['Inventory'],
         'projects' => ['Project'],
         'mpr' => ['MPR'],
+        'personal_finance' => ['PersonalFinance'],
     ];
 
     /**
