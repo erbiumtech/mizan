@@ -6,7 +6,7 @@ Every account that can sign in to this company — their name, email, whether
 they're active, which roles they hold here, and (for a super admin only)
 which companies they can access at all.
 
-## Creating or editing one
+## Creating or editing one <!-- requires: UserCreate, UserUpdate -->
 
 Click **New**, then fill in **Name**, **Email**, and a **Password** (at least
 8 characters; leave the password blank when editing to keep the existing one).

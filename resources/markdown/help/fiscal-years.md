@@ -6,11 +6,11 @@ The accounting periods journal entries and reports book into. Every journal
 entry belongs to a fiscal year, and closing one locks it against further
 posting.
 
-## Creating one
+## Creating one <!-- requires: FiscalYearCreate -->
 
 Click **New**, give it a **Year Name**, and set whether it's **Active**.
 
-## Closing a year
+## Closing a year <!-- requires: FiscalYearUpdate -->
 
 Click **Close** on an open year. Before locking, the app checks three
 things, and shows you every one that's failing rather than just the first:
@@ -28,7 +28,7 @@ If none of these block it, closing takes effect immediately: **nothing may
 post into a closed year** — not a manual journal entry, not one generated
 automatically by a payment or invoice.
 
-## Reopening a year
+## Reopening a year <!-- requires: FiscalYearUpdate -->
 
 **Reopen** removes the lock and allows posting into that year again. There's
 no separate "why" required — anyone with update rights on fiscal years can

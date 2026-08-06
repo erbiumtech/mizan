@@ -22,7 +22,7 @@ not by the rate itself.
   on a new invoice line. Only one rate can be default at a time; turning this
   on for one stands the others down.
 
-## Deleting
+## Deleting <!-- requires: InvoiceUpdate -->
 
 Only possible if the rate has never been charged on an invoice line. Once at
 least one line has used it, delete is blocked with an explanation — switch

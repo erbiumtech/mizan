@@ -7,7 +7,7 @@ Employee — and exactly which permissions each one carries. This is where you
 change what a role can do; who holds which role is set on the person's own
 record, on the Users page.
 
-## Editing a role's permissions
+## Editing a role's permissions <!-- requires: updateRole -->
 
 Open a role and the **Permissions** section lists every permission grouped by
 the module it belongs to, each as a checklist you can bulk-toggle a whole
