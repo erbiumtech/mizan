@@ -25,7 +25,7 @@ Approvers (anyone holding the approve permission) see every request.
 Non-approvers see only their own — this list is scoped, not filtered, so an
 employee never sees another employee's pending change.
 
-## Deciding a request
+## Deciding a request <!-- requires: EmployeeChangeApprove -->
 
 Click **View Changes** to see exactly what's being requested against what the
 record currently holds, then:

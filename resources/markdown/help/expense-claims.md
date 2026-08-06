@@ -6,7 +6,7 @@ Something an employee paid for out of pocket and is owed back. It follows the
 same submit → decide pattern as an Employee Change Request, deliberately —
 one workflow, one place to get the approval rules right.
 
-## Submitting one
+## Submitting one <!-- requires: ExpenseClaimCreate -->
 
 Click **New**. **Employee** defaults to your own record (most claims are
 somebody claiming for themselves, though anyone with access to a downline can
@@ -19,7 +19,7 @@ same thing land under one heading in reports), and optionally attach a
 Every new claim notifies everyone who can approve claims — except the person
 submitting it, even if they also happen to hold that permission.
 
-## Deciding a claim
+## Deciding a claim <!-- requires: ExpenseClaimApprove -->
 
 Whoever holds the approve permission sees **Approve** and **Refuse** on any
 pending claim that isn't their own — **a claim can never be decided by the

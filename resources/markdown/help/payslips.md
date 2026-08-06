@@ -6,7 +6,7 @@ One employee's pay for one month of one fiscal year — there can only ever be
 one payslip per employee/month/fiscal-year combination; trying to create a
 second is refused, with a pointer to edit the existing one instead.
 
-## Creating one
+## Creating one <!-- requires: PayslipCreate -->
 
 Pick the **Employee**, **Month** and **Fiscal Year** first — everything else
 derives from those three. Most figures (basic wage, medical allowance, and

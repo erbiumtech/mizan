@@ -7,7 +7,7 @@ payroll. **Recovered** and **Remaining** are never typed in — they're
 calculated from the actual recovery history every time, so they can't drift
 out of step with what payroll has really taken.
 
-## Creating one
+## Creating one <!-- requires: AdvanceCreate -->
 
 Click **New**, pick the **Employee** (fixed once saved — the recoveries
 already taken belong to that person), the **Advance amount**, and the
@@ -38,7 +38,7 @@ outside payroll — cash repaid directly, or a correction. It can't exceed
 what's still outstanding, and updates the same recovery ledger a payslip
 instalment would.
 
-## Deleting
+## Deleting <!-- requires: AdvanceDelete -->
 
 Only possible while nothing has been recovered yet — once payroll has taken
 even one instalment, the advance *is* the record of it, and deleting it would

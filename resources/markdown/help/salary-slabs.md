@@ -26,7 +26,7 @@ fiscal year, or the income falls below every slab's minimum — tax comes out
 as zero rather than erroring, so a missing slab is easy to miss unless
 withholding tax on payslips for that year is checked directly.
 
-## Adding one
+## Adding one <!-- requires: SalarySlabCreate -->
 
 Click **New** and fill in:
 
