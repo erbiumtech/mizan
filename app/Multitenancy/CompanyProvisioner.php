@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 use PDO;
 use RuntimeException;
 
@@ -153,6 +154,18 @@ class CompanyProvisioner
             }
 
             $company->users()->detach();
+
+            // Roles too. They are landlord rows carrying company_id as a plain
+            // column — spatie's team key, with no foreign key to cascade from —
+            // so deleting the company leaves them behind belonging to nobody.
+            // Invisible, but not harmless: they are still rows named
+            // Administrator and Employee, and they broke editing a real
+            // company's roles by counting towards the name uniqueness check.
+            Role::where(
+                config('permission.column_names.team_foreign_key', 'company_id'),
+                $company->getKey(),
+            )->delete();
+
             $company->delete();
         } catch (\Throwable) {
             // Swallowed on purpose: the caller is about to see the real failure.
