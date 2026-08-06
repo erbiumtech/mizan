@@ -9,6 +9,7 @@ use App\Multitenancy\CompanyProvisioner;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class CompanyProvisioningTest extends TestCase
@@ -91,6 +92,47 @@ class CompanyProvisioningTest extends TestCase
 
         $this->assertDatabaseMissing('companies', ['slug' => 'doomed-co']);
         $this->assertFalse(File::exists($path), 'the tenant database should have been removed');
+    }
+
+    /**
+     * Provisioning must not depend on somebody having re-seeded permissions.
+     *
+     * Deliberately does NOT seed PermissionSeeder first, unlike every other test
+     * here — and that omission is the point. RoleSeeder calls syncPermissions()
+     * with a list of literal names, and Spatie throws PermissionDoesNotExist for
+     * a name it cannot find rather than skipping it. So the moment a release
+     * adds a permission, creating a company 500s until somebody remembers to
+     * re-seed the landlord permissions table, with no hint that is what is
+     * wrong.
+     *
+     * It happened: adding the Personal Finance permissions broke company
+     * creation in exactly this way, and every test here passed throughout
+     * because they all pre-seed the precondition instead of asserting
+     * provisioning establishes it.
+     */
+    public function test_provisioning_works_without_permissions_being_seeded_first(): void
+    {
+        $this->assertSame(0, Permission::count(), 'precondition: no permissions seeded');
+
+        $owner = User::factory()->create();
+
+        $company = app(CompanyProvisioner::class)->provision(
+            name: 'Fresh Install Co',
+            creator: $owner,
+        );
+
+        $this->provisionedFiles[] = $company->database;
+
+        $company->makeCurrent();
+        $this->assertTrue(
+            $owner->fresh()->hasRole('Administrator'),
+            'The owner did not get their role, so RoleSeeder did not complete.',
+        );
+        Company::forgetCurrent();
+
+        // And the roles really do carry their permissions, rather than having
+        // been quietly created empty.
+        $this->assertGreaterThan(0, Permission::count());
     }
 
     public function test_provisioning_creates_isolated_seeded_tenant_and_attaches_owner(): void
