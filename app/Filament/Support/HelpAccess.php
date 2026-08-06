@@ -76,17 +76,31 @@ final class HelpAccess
 
         $summary['role'] = static::roleNameFor($user);
 
+        $adminOnly = static::adminOnlyAbilitiesFor($model);
+
         foreach (static::abilitiesFor($model) as $ability => $permissions) {
             $verb = static::VERBS[$ability] ?? Str::lower(Str::headline($ability));
 
-            // Every permission the ability checks must be held; an ability that
-            // checks none is role-gated and not something to claim either way.
-            $holdsAll = $permissions !== [] && collect($permissions)
-                ->every(fn (string $permission) => static::holds($user, $permission));
-
+            // Some policies gate on the Administrator role rather than on a
+            // permission — EmployeePolicy and EmailTemplatePolicy both do — so
+            // there is no permission name to look up, but there is still
+            // something true to tell the reader.
             if ($permissions === []) {
+                if (! in_array($ability, $adminOnly, true)) {
+                    continue;
+                }
+
+                if (static::isAdministrator($user)) {
+                    $summary['can'][] = $verb;
+                } else {
+                    $summary['cannot'][] = ['verb' => $verb, 'who' => ['Administrator']];
+                }
+
                 continue;
             }
+
+            $holdsAll = collect($permissions)
+                ->every(fn (string $permission) => static::holds($user, $permission));
 
             if ($holdsAll) {
                 $summary['can'][] = $verb;
@@ -180,11 +194,74 @@ final class HelpAccess
     }
 
     /**
+     * Abilities whose policy method authorises by Administrator rather than by
+     * a permission — `isAdministrator()` or `hasRole('Administrator')`.
+     *
+     * Without this, a resource whose policy is entirely role-based (Employees,
+     * Email Templates, Custom Fields) produces no banner at all, which reads as
+     * "we have nothing to tell you" when the truth is "this screen is
+     * Administrator-only".
+     *
+     * @return array<int, string>
+     */
+    public static function adminOnlyAbilitiesFor(string $model): array
+    {
+        $policy = Gate::getPolicyFor($model);
+
+        if ($policy === null) {
+            return [];
+        }
+
+        $reflection = new ReflectionClass($policy);
+        $source = @file($reflection->getFileName()) ?: [];
+        $abilities = [];
+
+        foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->class !== $reflection->getName() || $method->isConstructor()) {
+                continue;
+            }
+
+            if (in_array($method->getName(), self::NOT_WORTH_LISTING, true)) {
+                continue;
+            }
+
+            $body = implode('', array_slice(
+                $source,
+                $method->getStartLine() - 1,
+                $method->getEndLine() - $method->getStartLine() + 1,
+            ));
+
+            if (preg_match("/isAdministrator\(\)|hasRole\(\s*'Administrator'\s*\)/", $body)) {
+                $abilities[] = $method->getName();
+            }
+        }
+
+        return $abilities;
+    }
+
+    /** Matches the Gate::before bypass: a super admin counts as an administrator. */
+    private static function isAdministrator(User $user): bool
+    {
+        try {
+            return $user->isAdministrator();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * Spatie throws PermissionDoesNotExist rather than denying an unknown name,
      * and a help panel is not somewhere to turn that into a 500.
      */
     private static function holds(User $user, string $permission): bool
     {
+        // Same reasoning as HelpAction::holdsAny(): hasPermissionTo() does not
+        // go through the Gate, so a super admin holding no role in the company
+        // they are currently in would otherwise be told they can do nothing.
+        if (static::isAdministrator($user)) {
+            return true;
+        }
+
         try {
             return $user->hasPermissionTo($permission);
         } catch (Throwable) {

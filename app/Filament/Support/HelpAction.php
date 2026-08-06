@@ -139,6 +139,15 @@ final class HelpAction
             return false;
         }
 
+        // Mirror the Gate::before bypass in AppServiceProvider. hasPermissionTo()
+        // is a direct lookup that does not consult the Gate, so without this a
+        // super admin switched into a company where they hold no role — which is
+        // the normal way they work — would have every gated section hidden from
+        // them, on every screen.
+        if (method_exists($user, 'isAdministrator') && $user->isAdministrator()) {
+            return true;
+        }
+
         foreach ($permissions as $permission) {
             try {
                 // Spatie throws on an unknown name rather than denying, and a
