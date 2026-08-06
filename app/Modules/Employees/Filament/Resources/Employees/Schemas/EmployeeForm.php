@@ -3,13 +3,14 @@
 namespace App\Modules\Employees\Filament\Resources\Employees\Schemas;
 
 use App\Filament\Support\CustomFieldsSchema;
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
@@ -191,21 +192,53 @@ class EmployeeForm
                     ->imageEditor()
                     ->maxSize(4096),
 
+                /*
+                 * The directory lists the banks we transfer *out* to, so our own bank is
+                 * deliberately not in it — which used to make an employee who banks with us
+                 * unsaveable, because this field was required and had nothing to pick. It is
+                 * optional now, and the short code below carries the answer instead.
+                 */
                 Select::make('bank_id')
                     ->label('Bank')
                     ->relationship('bank', 'bank_name')
                     ->searchable()
                     ->preload()
-                    ->required()
-                    ->helperText('Bank directory for salary bank files'),
+                    ->live()
+                    ->helperText('The bank we transfer out to. Leave blank if they bank with us — '
+                        .'our own bank is not in this directory — and fill in the short code instead.'),
 
+                TextInput::make('bank_short_code')
+                    ->label('Bank short code')
+                    ->maxLength(20)
+                    ->visible(fn (Get $get): bool => blank($get('bank_id')))
+                    ->required(fn (Get $get): bool => blank($get('bank_id')))
+                    ->helperText('Only when no bank is chosen above — e.g. SCB for Standard Chartered. '
+                        .'It is what the bank file carries in the beneficiary bank column.'),
+
+                TextInput::make('bank_code')
+                    ->label('Bank code')
+                    ->maxLength(20)
+                    ->visible(fn (Get $get): bool => blank($get('bank_id')))
+                    ->helperText('Optional. Only used when no bank is chosen.'),
+
+                /*
+                 * One of these two has to be there, and *which* one depends on the bank: a
+                 * transfer inside our own bank goes on the account number, everything else on
+                 * the IBAN. Requiring both would block a perfectly payable employee whose
+                 * other identifier nobody has, so the rule is "at least one", and the bank
+                 * file preview refuses the row if it is the wrong one.
+                 */
                 TextInput::make('bank_account_no')
                     ->label('Bank A/C No')
-                    ->required(),
+                    ->live(onBlur: true)
+                    ->required(fn (Get $get): bool => blank($get('iban_no')))
+                    ->helperText('What a transfer inside our own bank is sent on.'),
 
                 TextInput::make('iban_no')
                     ->label('IBAN No')
-                    ->required(),
+                    ->live(onBlur: true)
+                    ->required(fn (Get $get): bool => blank($get('bank_account_no')))
+                    ->helperText('What a transfer to another bank is sent on.'),
 
                 TextInput::make('phone')
                     ->tel()

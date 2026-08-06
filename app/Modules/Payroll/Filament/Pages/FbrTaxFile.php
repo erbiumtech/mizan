@@ -3,8 +3,8 @@
 namespace App\Modules\Payroll\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
-use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\EmployeeWithholdingTaxExport;
 use BackedEnum;
@@ -18,7 +18,6 @@ use UnitEnum;
 class FbrTaxFile extends Page
 {
     use BelongsToModule;
-
     use SelectsSalaryMonth;
 
     protected string $view = 'filament.pages.fbr-tax-file';

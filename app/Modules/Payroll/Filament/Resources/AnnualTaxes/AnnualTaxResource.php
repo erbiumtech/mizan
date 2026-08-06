@@ -21,7 +21,6 @@ use UnitEnum;
 class AnnualTaxResource extends Resource
 {
     use BelongsToModule;
-
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = AnnualTax::class;

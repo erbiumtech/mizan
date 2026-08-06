@@ -75,9 +75,81 @@ class Payment extends Model
             return false;
         }
 
+        if ($this->accountProblem() === BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY) {
+            return false;
+        }
+
         $payslip = $this->payslip;
 
         return $payslip === null || $payslip->employee_review === Payslip::REVIEW_ACCEPTED;
+    }
+
+    /**
+     * What is wrong with the identifier this payment would be sent on, if anything.
+     *
+     * @see BankFileAccount for the two cases and why only one of them stops a release
+     */
+    public function accountProblem(): ?string
+    {
+        if (! $this->payable) {
+            return null;
+        }
+
+        return $this->beneficiaryDetails()['account_problem'] ?? null;
+    }
+
+    /**
+     * Why a held row is held, as a category rather than a sentence.
+     *
+     * The sentence below names the batch or quotes a rejection, which is right against one
+     * row and useless for grouping — "Released in SAL-2026-07-B1" and "…-B2" are the same
+     * fact twice. A summary line that groups by this can state what is actually true of each
+     * group instead of asserting one reason for all of them, which is how a screen came to
+     * say "held back until accepted" about payments that had already gone out.
+     */
+    public const BLOCK_RELEASED = 'released';
+
+    public const BLOCK_STATUS = 'status';
+
+    public const BLOCK_REJECTED = 'rejected';
+
+    public const BLOCK_UNACCEPTED = 'unaccepted';
+
+    /** @var array<string, string> */
+    public const BLOCK_LABELS = [
+        self::BLOCK_RELEASED => 'Already released in an earlier batch',
+        self::BLOCK_STATUS => 'No longer releasable',
+        self::BLOCK_REJECTED => 'Rejected by the employee',
+        self::BLOCK_UNACCEPTED => 'Held back until accepted',
+        BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY => 'Wrong kind of account number on file',
+    ];
+
+    public function releaseBlockedCategory(): ?string
+    {
+        if ($this->isReleasable()) {
+            return null;
+        }
+
+        if ($this->isReleased()) {
+            return self::BLOCK_RELEASED;
+        }
+
+        if (! in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true)) {
+            return self::BLOCK_STATUS;
+        }
+
+        if ($this->accountProblem() === BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY) {
+            return BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY;
+        }
+
+        return $this->payslip?->employee_review === Payslip::REVIEW_REJECTED
+            ? self::BLOCK_REJECTED
+            : self::BLOCK_UNACCEPTED;
+    }
+
+    public static function blockLabel(?string $category): string
+    {
+        return self::BLOCK_LABELS[$category] ?? 'Held back';
     }
 
     /**
@@ -95,6 +167,11 @@ class Payment extends Model
 
         if (! in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true)) {
             return 'Already '.$this->status;
+        }
+
+        if ($this->accountProblem() === BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY) {
+            return 'They bank with us, so this needs their account number — an IBAN is what we '
+                .'send to other banks. Add it on their record.';
         }
 
         return match ($this->payslip?->employee_review) {
@@ -206,14 +283,19 @@ class Payment extends Model
         $payable = $this->payable;
 
         if ($payable instanceof Employee) {
+            $account = BankFileAccount::resolve(
+                $payable->iban_no,
+                $payable->bank_account_no,
+                $payable->bank,
+                $payable->bank_short_code,
+                $payable->bank_name ?? null,
+            );
+
             return [
                 'name' => $payable->user->name ?? $payable->employee_id,
-                'account' => BankFileAccount::value(
-                    $payable->iban_no,
-                    $payable->bank_account_no,
-                    $payable->bank,
-                    $payable->bank_short_code,
-                ),
+                'account' => $account['value'],
+                'account_kind' => $account['kind'],
+                'account_problem' => $account['problem'],
                 'bank_code' => $payable->bank?->bank_code ?? $payable->bank_code ?? '',
                 'bank_name' => $payable->bank?->bank_name ?? $payable->bank_name ?? '',
                 'bank_short_code' => $payable->bank?->bank_short_code ?? $payable->bank_short_code ?? '',
@@ -226,13 +308,17 @@ class Payment extends Model
             ];
         }
 
+        $account = BankFileAccount::resolve(
+            $payable->iban ?? null,
+            $payable->account_no ?? null,
+            $payable->bank ?? null,
+        );
+
         return [
             'name' => $payable->name ?? '',
-            'account' => BankFileAccount::value(
-                $payable->iban ?? null,
-                $payable->account_no ?? null,
-                $payable->bank ?? null,
-            ),
+            'account' => $account['value'],
+            'account_kind' => $account['kind'],
+            'account_problem' => $account['problem'],
             'bank_code' => $payable->bank?->bank_code ?? '',
             'bank_name' => $payable->bank?->bank_name ?? '',
             'bank_short_code' => $payable->bank?->bank_short_code ?? '',

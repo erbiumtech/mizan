@@ -4,7 +4,6 @@ namespace App\Modules\Payroll\Policies;
 
 use App\Modules\Core\Models\User;
 use App\Modules\Payroll\Models\PayComponent;
-use InvalidArgumentException;
 
 /**
  * Defining what pay is made of is a payroll-configuration act, so it takes the

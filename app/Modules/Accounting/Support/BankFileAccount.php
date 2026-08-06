@@ -21,8 +21,30 @@ use App\Modules\Accounting\Models\Bank;
 class BankFileAccount
 {
     /**
-     * @return array{value: string, kind: string, is_own_bank: bool}
-     *                                                               kind is 'account_no', 'iban', or '' when neither is on file
+     * Nothing on file to pay into. The row would export with a blank beneficiary account,
+     * which the bank rejects.
+     */
+    public const PROBLEM_NO_ACCOUNT = 'no_account';
+
+    /**
+     * An own-bank beneficiary with only an IBAN.
+     *
+     * A transfer within our own bank is keyed on the plain account number; the IBAN is the
+     * identifier for going *out*. Sending one where the other is expected is the quiet
+     * failure this exists to catch — the row looks complete, the file looks valid, and the
+     * payment is rejected or misdirected days later.
+     */
+    public const PROBLEM_OWN_BANK_IBAN_ONLY = 'own_bank_iban_only';
+
+    /** @var array<string, string> */
+    public const PROBLEM_LABELS = [
+        self::PROBLEM_NO_ACCOUNT => 'No bank account on file',
+        self::PROBLEM_OWN_BANK_IBAN_ONLY => 'Only an IBAN, but they bank with us',
+    ];
+
+    /**
+     * @return array{value: string, kind: string, is_own_bank: bool, problem: string|null}
+     *                                                                                     kind is 'account_no', 'iban', or '' when neither is on file
      */
     public static function resolve(
         ?string $iban,
@@ -47,14 +69,32 @@ class BankFileAccount
         [$firstKind, $secondKind] = $ownBank ? ['account_no', 'iban'] : ['iban', 'account_no'];
 
         if ($first !== null) {
-            return ['value' => $first, 'kind' => $firstKind, 'is_own_bank' => $ownBank];
+            return ['value' => $first, 'kind' => $firstKind, 'is_own_bank' => $ownBank, 'problem' => null];
         }
 
         if ($second !== null) {
-            return ['value' => $second, 'kind' => $secondKind, 'is_own_bank' => $ownBank];
+            // Still returned, so a caller that only wants an identifier gets the best one
+            // available — but named as a problem, because for an own-bank beneficiary this
+            // is the wrong kind and the payment will not go through on it.
+            return [
+                'value' => $second,
+                'kind' => $secondKind,
+                'is_own_bank' => $ownBank,
+                'problem' => $ownBank ? self::PROBLEM_OWN_BANK_IBAN_ONLY : null,
+            ];
         }
 
-        return ['value' => '', 'kind' => '', 'is_own_bank' => $ownBank];
+        return [
+            'value' => '',
+            'kind' => '',
+            'is_own_bank' => $ownBank,
+            'problem' => self::PROBLEM_NO_ACCOUNT,
+        ];
+    }
+
+    public static function problemLabel(?string $problem): string
+    {
+        return self::PROBLEM_LABELS[$problem] ?? 'Bank details incomplete';
     }
 
     /** Just the identifier, for callers that do not care which kind it is. */

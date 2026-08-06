@@ -2,8 +2,8 @@
 
 namespace App\Modules\Payroll\Policies;
 
-use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Core\Models\User;
+use App\Modules\Payroll\Models\AnnualTax;
 
 class AnnualTaxPolicy
 {
