@@ -329,10 +329,36 @@ class Modules
      * Existing companies are not touched by this: they were backfilled to
      * all-on by the create_company_modules_table migration.
      */
-    public function seedDefaults(int|string $companyId): void
+    /**
+     * What a personal account starts with, on top of Core.
+     *
+     * A household needs a ledger, somewhere to record the people it employs, and
+     * the tax estimate. It does not invoice customers, run projects or file
+     * monthly progress reports, and — per the design — it does not run payroll
+     * either: paying the cook is an expense, not a payslip with an
+     * acknowledgement flow.
+     *
+     * A licence, not a lock. Anything here can be switched off and anything
+     * absent can be granted later, exactly as for a business.
+     *
+     * @var array<int, string>
+     */
+    public const PERSONAL_DEFAULTS = ['accounting', 'employees', 'personal_finance'];
+
+    /**
+     * @param  array<int, string>|null  $licensed  Modules to license regardless of
+     *                                             their registry default. Null uses
+     *                                             the registry.
+     */
+    public function seedDefaults(int|string $companyId, ?array $licensed = null): void
     {
         foreach (static::registry() as $module => $definition) {
-            $default = (bool) ($definition['licensed_by_default'] ?? false);
+            $default = $licensed === null
+                ? (bool) ($definition['licensed_by_default'] ?? false)
+                // Core stays licensed whatever the preset says: it holds the
+                // Modules page itself, so a company without it cannot administer
+                // its way back.
+                : (in_array($module, $licensed, true) || ($definition['locked'] ?? false));
 
             CompanyModule::updateOrCreate(
                 ['company_id' => $companyId, 'module' => $module],
