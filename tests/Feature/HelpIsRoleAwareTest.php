@@ -213,6 +213,74 @@ class HelpIsRoleAwareTest extends TestCase
         $this->assertSame(['AccountCreate'], $abilities['create'] ?? null);
     }
 
+    public function test_a_super_admin_with_no_role_here_still_sees_everything(): void
+    {
+        $company = Company::factory()->create();
+        $this->seed(PermissionSeeder::class);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
+        (new RoleSeeder)->run();
+
+        // How a super admin normally works: switched into a company without
+        // holding any role in it. hasPermissionTo() would say no to everything,
+        // while the Gate::before bypass says yes to everything — and the panel
+        // has to agree with the Gate, not with the lookup.
+        $user = User::factory()->create(['status' => 1, 'is_super_admin' => true]);
+        $company->users()->attach($user->getKey());
+        $this->actingAs($user);
+        $this->setCurrentTenant($company);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->assertSame([], $user->roles->pluck('name')->all(), 'precondition: no role in this company');
+
+        $html = Livewire::test(ListJournalEntries::class)
+            ->mountAction('help')
+            ->getMountedActionModalHtml();
+
+        $this->assertStringContainsString('Approval', $html);
+        $this->assertStringContainsString('Posting', $html);
+        $this->assertStringContainsString('Deleting an entry', $html);
+        $this->assertStringNotContainsString('hidden here because your role cannot', $html);
+    }
+
+    public function test_no_section_is_gated_so_tightly_that_nobody_can_see_it(): void
+    {
+        $company = Company::factory()->create();
+        $this->seed(PermissionSeeder::class);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
+        (new RoleSeeder)->run();
+
+        $held = \Spatie\Permission\Models\Role::query()
+            ->where('company_id', $company->getKey())
+            ->get()
+            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
+            ->unique()
+            ->all();
+
+        $orphaned = [];
+
+        foreach (glob(resource_path('markdown/help/*.md')) as $path) {
+            preg_match_all('/<!--\s*requires:\s*([A-Za-z0-9, ]+?)\s*-->/', file_get_contents($path), $matches);
+
+            foreach ($matches[1] as $list) {
+                $names = array_filter(array_map('trim', explode(',', $list)));
+
+                // Any-of semantics: at least one name must be reachable by some
+                // role, or the section is dead text nobody but a super admin
+                // will ever read.
+                if (array_intersect($names, $held) === []) {
+                    $orphaned[] = implode(', ', $names).' — '.basename($path);
+                }
+            }
+        }
+
+        $this->assertSame([], array_unique($orphaned), implode("\n", [
+            'These sections are gated on permissions no seeded role holds, so no',
+            'ordinary user will ever see them however senior:',
+            '',
+            ...array_unique($orphaned),
+        ]));
+    }
+
     private function accessBlock(string $html): string
     {
         preg_match('/You are signed in as.*?Individual records/s', $html, $m);
