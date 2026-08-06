@@ -18,7 +18,7 @@ class Employee extends Model
     use Auditable, HasCustomFields;
 
     protected $fillable = [
-        'user_id', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
+        'user_id', 'name', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
         'is_active', 'designation', 'department',
         'date_of_joining', 'date_of_birth', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',
@@ -201,7 +201,26 @@ class Employee extends Model
     /** Display label used in selects/columns: "EMP-1 - John Doe". */
     public function getDisplayLabelAttribute(): string
     {
-        return trim($this->employee_id.' - '.($this->user?->name ?? ''), ' -');
+        return trim($this->employee_id.' - '.$this->fullName(), ' -');
+    }
+
+    /**
+     * The person's name, wherever it lives.
+     *
+     * The linked user first, because for anybody who signs in that record is the
+     * one source of truth and this must not drift from it. The `name` column is
+     * the fallback for staff with no login — a household's driver or cook — who
+     * have no user to take a name from.
+     */
+    public function fullName(): string
+    {
+        return (string) ($this->user?->name ?? $this->name ?? '');
+    }
+
+    /** Employed here, but never signs in. */
+    public function hasLogin(): bool
+    {
+        return $this->user_id !== null;
     }
 
     public function changeRequests()

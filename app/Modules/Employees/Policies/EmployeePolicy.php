@@ -31,9 +31,22 @@ class EmployeePolicy
         return $this->canAccess($user, $employee);
     }
 
+    /**
+     * Staff who never sign in are created here; staff who do are created through
+     * Users, which makes the login and the employee record together.
+     *
+     * This used to be a hard false, because an employee was by definition
+     * somebody with an account. That stopped being true once a household could
+     * employ a driver or a cook: they are employed and they get paid, and
+     * inventing an email address and a password for them to never use is worse
+     * than letting the record stand on its own.
+     *
+     * Note create is the one ability the Gate::before bypass does NOT grant, so
+     * this really is the check for everybody, Administrator included.
+     */
     public function create(User $user)
     {
-        return false;
+        return $user->isAdministrator() || $user->hasPermissionTo('EmployeeUpdate');
     }
 
     public function update(User $user, Employee $employee)
