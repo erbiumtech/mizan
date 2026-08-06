@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Payroll\Models\SalarySlab;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use Tests\AccountingTestCase;
 
@@ -66,5 +67,55 @@ class TaxCalculatorTest extends AccountingTestCase
     public function test_unknown_fiscal_year_produces_no_tax(): void
     {
         $this->assertSame(0.0, $this->calc()->annualTax(3000000, 99999));
+    }
+
+    /**
+     * Every other case here pins 2025-2026, whose top slab is correctly
+     * unbounded. This one guards the *other* seeded year, because the failure
+     * mode is silent: annualTax() matches `max_amount >= income OR max_amount
+     * IS NULL`, so a capped top slab means a high enough income matches nothing
+     * and the method returns 0.0 — no exception, no warning, no tax. The
+     * highest earners in the company are exactly who it would go wrong for.
+     */
+    public function test_the_top_slab_of_every_seeded_year_is_unbounded(): void
+    {
+        $capped = FiscalYear::query()
+            ->whereHas('salarySlabs')
+            ->get()
+            ->filter(function (FiscalYear $year) {
+                $top = SalarySlab::where('fiscal_year_id', $year->id)
+                    ->orderByDesc('min_amount')
+                    ->first();
+
+                return $top !== null && $top->max_amount !== null;
+            })
+            ->map(fn (FiscalYear $year) => $year->name)
+            ->values()
+            ->all();
+
+        $this->assertSame([], $capped, implode("\n", [
+            'The top salary slab of these fiscal years has an upper bound, so any',
+            'taxable income above it matches no slab and is silently taxed at zero:',
+            '',
+            ...$capped,
+        ]));
+    }
+
+    public function test_income_above_the_top_threshold_is_still_taxed(): void
+    {
+        foreach (FiscalYear::whereHas('salarySlabs')->get() as $year) {
+            $top = SalarySlab::where('fiscal_year_id', $year->id)
+                ->orderByDesc('min_amount')
+                ->firstOrFail();
+
+            // Comfortably past any plausible cap.
+            $income = ((float) $top->min_amount) * 20 + 1_000_000;
+
+            $this->assertGreaterThan(
+                0.0,
+                $this->calc()->annualTax($income, $year->id),
+                "{$year->name}: income of {$income} produced no tax at all.",
+            );
+        }
     }
 }
