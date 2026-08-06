@@ -113,15 +113,63 @@ class HelpIsRoleAwareTest extends TestCase
         $this->assertStringNotContainsString('<td>Employee</td>', $html);
     }
 
-    public function test_the_explanatory_prose_is_still_shown_in_full(): void
+    public function test_sections_the_reader_cannot_act_on_are_hidden(): void
     {
         $html = $this->helpHtmlFor('Accountant');
 
-        // Deliberately NOT filtered: an Accountant needs to know what happens
-        // after they submit, even though they cannot do those steps.
-        $this->assertStringContainsString('Submit for Approval', $html);
-        $this->assertStringContainsString('Post Entry', $html);
-        $this->assertStringContainsString('Reverse Entry', $html);
+        // Accountant holds Create and Submit, so those stay.
+        $this->assertStringContainsString('Creating one', $html);
+        $this->assertStringContainsString('Submitting for approval', $html);
+
+        // They hold none of Approve/Reject/Post/Reverse/Delete.
+        $this->assertStringNotContainsString('>Approval<', $html);
+        $this->assertStringNotContainsString('>Posting<', $html);
+        $this->assertStringNotContainsString('Fixing a posted mistake', $html);
+        $this->assertStringNotContainsString('Deleting an entry', $html);
+    }
+
+    public function test_a_manager_keeps_the_sections_an_accountant_loses(): void
+    {
+        $html = $this->helpHtmlFor('Manager');
+
+        // Manager holds approve/reject/post/reverse but not delete.
+        $this->assertStringContainsString('Approval', $html);
+        $this->assertStringContainsString('Posting', $html);
+        $this->assertStringContainsString('Fixing a posted mistake', $html);
+        $this->assertStringNotContainsString('Deleting an entry', $html);
+    }
+
+    public function test_unannotated_sections_are_always_kept(): void
+    {
+        $html = $this->helpHtmlFor('Accountant');
+
+        // The safe default, and load bearing: an Accountant still needs to know
+        // what an entry is, which entries reach reports, and the troubleshooting
+        // — including "Why can't I approve this entry?", which is aimed squarely
+        // at the reader who cannot.
+        $this->assertStringContainsString('What a journal entry is', $html);
+        $this->assertStringContainsString('Where it shows up', $html);
+        $this->assertStringContainsString('Quick answers', $html);
+        $this->assertStringContainsString("Entries you didn't create yourself", $html);
+    }
+
+    public function test_the_reader_is_told_that_something_was_hidden(): void
+    {
+        $html = $this->helpHtmlFor('Accountant');
+
+        // Otherwise a filtered doc just looks like it is missing steps.
+        $this->assertStringContainsString('hidden here because your role cannot', $html);
+    }
+
+    public function test_the_annotation_never_leaks_into_the_rendered_page(): void
+    {
+        foreach (['Accountant', 'Manager', 'Administrator'] as $role) {
+            $this->assertStringNotContainsString(
+                'requires:',
+                $this->helpHtmlFor($role),
+                "The requires annotation leaked into the {$role} panel.",
+            );
+        }
     }
 
     public function test_two_roles_no_longer_receive_identical_help(): void

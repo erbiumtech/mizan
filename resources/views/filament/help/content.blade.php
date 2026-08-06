@@ -38,3 +38,15 @@
 <div class="help-content text-sm text-gray-700 dark:text-gray-200">
     {!! $markdown !!}
 </div>
+
+@if (($hiddenSections ?? 0) > 0)
+    {{-- Say that something was left out. Without this the panel just looks like
+         the documentation is missing steps, and the reader cannot tell the
+         difference between "not written" and "not yours to do". --}}
+    <p class="mt-4 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
+        {{ $hiddenSections }}
+        {{ \Illuminate\Support\Str::plural('section', $hiddenSections) }}
+        {{ $hiddenSections === 1 ? 'is' : 'are' }} hidden here because your role cannot carry out
+        {{ $hiddenSections === 1 ? 'that step' : 'those steps' }}.
+    </p>
+@endif

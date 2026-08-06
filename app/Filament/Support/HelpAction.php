@@ -41,10 +41,17 @@ final class HelpAction
             ->modalWidth(Width::TwoExtraLarge)
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
-            ->modalContent(fn ($livewire) => view('filament.help.content', [
-                'markdown' => static::markdown($slug),
-                'access' => static::accessFor($livewire),
-            ]));
+            ->modalContent(function ($livewire) use ($slug) {
+                $filtered = static::filterSections(
+                    file_get_contents(resource_path("markdown/help/{$slug}.md"))
+                );
+
+                return view('filament.help.content', [
+                    'markdown' => Str::markdown(static::trimRoleTable($filtered['markdown'])),
+                    'access' => static::accessFor($livewire),
+                    'hiddenSections' => $filtered['hidden'],
+                ]);
+            });
     }
 
     /**
@@ -56,7 +63,96 @@ final class HelpAction
     {
         $source = file_get_contents(resource_path("markdown/help/{$slug}.md"));
 
-        return Str::markdown(static::trimRoleTable($source));
+        return Str::markdown(static::trimRoleTable(static::filterSections($source)['markdown']));
+    }
+
+    /**
+     * Drop the sections describing work the reader cannot do.
+     *
+     * A section opts in by annotating its heading:
+     *
+     *     ## Approval <!-- requires: JournalEntryApprove, JournalEntryReject -->
+     *
+     * Several names mean any one of them is enough. An HTML comment so that a
+     * doc rendered by anything other than this method — a text editor, a
+     * markdown preview — still reads correctly rather than showing markup.
+     *
+     * Unannotated sections are always kept. That is the safe default and it is
+     * load bearing: "What a journal entry is", "Where it shows up" and the
+     * troubleshooting section are exactly what somebody with fewer permissions
+     * needs, and "Why can't I approve this entry?" is most useful to the reader
+     * who cannot.
+     *
+     * @return array{markdown: string, hidden: int}
+     */
+    public static function filterSections(string $markdown): array
+    {
+        $user = auth()->user();
+        $lines = explode("\n", $markdown);
+        $out = [];
+        $hidden = 0;
+        $dropping = false;
+
+        foreach ($lines as $line) {
+            if (str_starts_with($line, '## ')) {
+                $required = static::requirementIn($line);
+                $dropping = $required !== [] && ! static::holdsAny($user, $required);
+
+                if ($dropping) {
+                    $hidden++;
+
+                    continue;
+                }
+
+                // Keep the heading, lose the annotation.
+                $out[] = rtrim(preg_replace('/<!--\s*requires:.*?-->/', '', $line));
+
+                continue;
+            }
+
+            if (! $dropping) {
+                $out[] = $line;
+            }
+        }
+
+        return ['markdown' => implode("\n", $out), 'hidden' => $hidden];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function requirementIn(string $heading): array
+    {
+        if (! preg_match('/<!--\s*requires:\s*([A-Za-z0-9, ]+?)\s*-->/', $heading, $matches)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $matches[1]))));
+    }
+
+    /**
+     * @param  array<int, string>  $permissions
+     */
+    private static function holdsAny(mixed $user, array $permissions): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        foreach ($permissions as $permission) {
+            try {
+                // Spatie throws on an unknown name rather than denying, and a
+                // typo'd annotation must not take the whole panel down. The
+                // permission names are covered by HelpContentAccuracyTest.
+                if ($user->hasPermissionTo($permission)) {
+                    return true;
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return false;
     }
 
     /**
