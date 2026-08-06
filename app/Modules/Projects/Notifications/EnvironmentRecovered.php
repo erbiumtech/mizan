@@ -4,8 +4,10 @@ namespace App\Modules\Projects\Notifications;
 
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -45,5 +47,22 @@ class EnvironmentRecovered extends Notification implements ShouldQueue
 
         return ":white_check_mark: Recovered — *{$project->name}* {$this->environment->label()}"
             .' after '.$this->incident->durationForHumans();
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        $project = $this->environment->project;
+        $label = $this->environment->label();
+
+        return FilamentNotification::make()
+            ->title("Recovered: {$project->name} {$label}")
+            ->body('Downtime: '.$this->incident->durationForHumans().'.')
+            ->success()
+            ->getDatabaseMessage();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 }
