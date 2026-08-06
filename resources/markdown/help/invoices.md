@@ -7,7 +7,7 @@ supplier bill) — set by **Kind** when it's created, and fixed after that.
 It starts life as a **Draft**: editable, with no effect on the books at all
 until it's **Issued**.
 
-## Creating one
+## Creating one <!-- requires: InvoiceCreate, InvoiceUpdate -->
 
 From **Invoices**, click **New**. You'll fill in the Kind, the **Contact**,
 the **Invoice Date**, and a **Currency** — the currency is what the contact is
@@ -33,7 +33,7 @@ off, tax is added on top. Whichever you pick, **Subtotal + Tax = Total** is
 enforced at issue time — the app recalculates both from the lines' rates
 whenever any line has one, overwriting whatever was last saved.
 
-## Issuing
+## Issuing <!-- requires: InvoiceIssue -->
 
 Click **Issue** once the lines are ready. This is the one irreversible step:
 it posts a balanced journal entry (a receivable or payable, revenue or
@@ -42,7 +42,7 @@ product lines — cost of goods sold moved out of inventory) and the invoice
 becomes **Issued**. From here it can no longer be edited; only **Record
 Payment** or **Void** act on it.
 
-## Recording a payment
+## Recording a payment <!-- requires: InvoicePay -->
 
 **Record Payment** takes an amount (in the invoice's own currency) and a date,
 moving the invoice to **Partially Paid** or **Paid** once the full total is
@@ -52,7 +52,7 @@ date — that gap is a real gain or loss and is posted automatically. If a bank
 advice says what actually landed, type that rate in **Rate the bank gave**
 rather than trusting the day's table.
 
-## Voiding
+## Voiding <!-- requires: InvoiceVoid -->
 
 **Void** is only available on an **Issued** or **Partially Paid** invoice that
 has had **no payments recorded against it yet** — once money has moved, the
@@ -61,7 +61,7 @@ invoice). Voiding reverses the posting entry and, for product lines, undoes
 the stock movement — a sale's consumed lot is restored, a purchase's lot must
 not have been partly used elsewhere or the void is refused.
 
-## Deleting a draft
+## Deleting a draft <!-- requires: InvoiceVoid -->
 
 A **Draft** invoice can be deleted outright — but the permission behind that
 button is the same one that gates Void (`InvoiceVoid`), not a separate delete

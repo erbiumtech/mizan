@@ -6,14 +6,14 @@ Comments attached to another record — today, payslips. Not in the sidebar;
 you normally reach these from the record they're on rather than browsing a
 standalone list.
 
-## Adding and editing one
+## Adding and editing one <!-- requires: CommentCreate -->
 
 Type the **Comment** and save. You can only edit or delete your own comment,
 and only while it's still **open** — once someone replies to it, or it's
 marked **Resolved**, it's locked; the record of the conversation stops
 changing at that point.
 
-## Resolving
+## Resolving <!-- requires: CommentResolve -->
 
 **Mark Resolved** (on a single comment, or as a bulk action across several)
 stamps who resolved it and when. It's only offered to whoever holds the

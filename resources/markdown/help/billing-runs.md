@@ -8,7 +8,7 @@ than typed by hand: that month's payslips, office expenses, and advance
 repayments. What comes out of it is an ordinary draft **Invoice** — issuing,
 paying, ageing and printing it from there on is Invoicing's job, unchanged.
 
-## Creating one
+## Creating one <!-- requires: BillingRunCreate -->
 
 Pick the **Client** (a contact flagged as a customer), the **Payroll month**
 and **Fiscal Year** the bill covers, an **Invoice Date** and **Due Date**, and
@@ -45,7 +45,7 @@ individually rather than grouped, and the credits and currency conversion
 underneath. **PDF** produces the same thing as a printable document. Both
 total to exactly what the linked invoice bills — the two are checked to agree.
 
-## Deleting
+## Deleting <!-- requires: BillingRunDelete -->
 
 Only possible while the run's invoice is still rebuildable — i.e. not yet
 issued — and only for Administrator; the other roles that can build and edit

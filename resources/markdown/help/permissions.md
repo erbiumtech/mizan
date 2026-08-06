@@ -9,7 +9,7 @@ company's own panel, where an administrator assigns *these* permissions to
 *their* roles. This page decides what the set of permissions is, full stop,
 for every company at once.
 
-## Creating or editing one
+## Creating or editing one <!-- requires: createPermission, updatePermission -->
 
 Give it a **Name** — the exact string the code checks with `can()` or
 `hasPermissionTo()` — and a **Group**, which is what the Roles page's

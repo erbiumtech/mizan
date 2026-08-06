@@ -7,7 +7,7 @@ platform admins, who are excluded from any single company's own Users list.
 This is the cross-company view; a company's roles and day-to-day membership
 are still managed on that company's own Users page.
 
-## Creating or editing one
+## Creating or editing one <!-- requires: UserCreate, UserUpdate -->
 
 Fill in **Name**, **Email**, and a **Password**. Two switches decide their
 reach:

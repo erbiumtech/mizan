@@ -20,7 +20,7 @@ Set once per product and used every time stock is sold or written off:
 Changing this on an existing product changes how *future* sales are costed; it
 doesn't retroactively re-cost what's already been sold.
 
-## Recording stock movements
+## Recording stock movements <!-- requires: StockMove, StockAdjust -->
 
 The Product form itself never creates a movement — quantities and costs are
 recorded from three actions on this list, against a specific product:
@@ -39,7 +39,7 @@ automatically — there is no draft or approval step, the same as a payment or
 an invoice. To correct one, don't edit the journal entry it produced; adjust
 the stock again (see Stock Movements).
 
-## Deleting
+## Deleting <!-- requires: ProductDelete -->
 
 Only possible for a product with **no movement history at all** — the moment
 anything has been received, sold, or adjusted against it, the product itself

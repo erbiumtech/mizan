@@ -9,7 +9,7 @@ monitoring. Unlike most resources here, **every project is visible to
 everyone** who can view projects at all — there's no per-record ownership
 scoping, only the module-wide permission.
 
-## Creating and editing
+## Creating and editing <!-- requires: ProjectCreate, ProjectUpdate -->
 
 Click **New**. Give it a **Code** (e.g. `PRJ-ERP-01`) and **Name**, a
 **Status** (Planned, Active, On hold, Completed, Cancelled), and optionally a
@@ -41,7 +41,7 @@ Opening a project shows each environment's current health, uptime over the
 last 30 days, latency, and (over HTTPS) certificate expiry — with the SSL
 column turning amber inside 30 days and red inside 7.
 
-## The team
+## The team <!-- requires: ProjectUpdate -->
 
 The **Team** tab manages who's assigned, as dated stints rather than a plain
 member list: **Assign employee** records a role, an allocation percentage, and
@@ -55,7 +55,7 @@ the current one is required before starting a new one.
 From the Employees side, an employee's own **Projects** tab shows the same
 assignments read-only — it's edited from the project, not from there.
 
-## Deleting
+## Deleting <!-- requires: ProjectDelete -->
 
 Only possible for a project with **no assignment history at all** — once
 anyone has ever been on the team, delete the assignments (or just end them)

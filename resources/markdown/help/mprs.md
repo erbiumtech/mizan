@@ -7,7 +7,7 @@ topics & scope discussed, the module recently worked on, any request the
 employee raised, the goal for next month, and what they learned this month.
 Each field is a rich-text entry (formatting and file attachments included).
 
-## Creating and editing
+## Creating and editing <!-- requires: MPRCreate, MPRUpdate -->
 
 Click **New**, pick the **User** the review is for and the **Date**, and fill
 in the six fields. There's no workflow beyond save — no draft/submit/approve
