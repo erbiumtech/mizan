@@ -12,7 +12,9 @@ know about:
   liability for the year, not what is still outstanding.
 - **Tax credits and deductible allowances** — pension contributions, charitable
   donations, Zakat and the rest.
-- **The surcharge on high salaried income** introduced by the Finance Act 2025.
+- **Surcharges.** The 9% surcharge on high salaried income was withdrawn for
+  salaried individuals from July 2026, but the 10% equivalent for non-salaried
+  income was not. Neither is applied here.
 - **Anything you have not recorded.** Income you never entered is income this
   screen cannot see.
 

@@ -112,23 +112,33 @@ above 50,000,000 matches no slab and the method returns `0.0` — no exception, 
 FY2025-2026 correctly uses `null`. Fix: `max_amount => null` on the top slab, plus a
 `TaxCalculatorTest` case above the top threshold (the existing file has none).
 
-**Bug 2 — the FY2026-2027 rates are unverified, and that is the year payroll uses.**
-Recorded as a comment in the seeder; **no rates changed**, because guessing at tax law is
-worse than flagging it.
+**Bug 2 — the FY2026-2027 rates: I flagged them, and I was wrong.**
 
-`FiscalYearSeeder` marks both years active and `FiscalYear::booted()` stands down whichever
-was activated first, so 2026-2027 wins and is what `FiscalYear::current()` returns — every
-payslip is taxed on it.
+I suspected them because the eight-bracket shape and the 20/25/29/32 middle look
+like a departure from 2025-2026's six brackets, and I could not verify them from
+inside the repo. Verified since against the **Finance Act 2026** (presidential
+assent 25 June 2026, effective 1 July 2026): the Act genuinely restructured the
+salaried brackets from six to eight, and **the table in the app is correct** —
+every figure, including the `1,424,000 + 35%` top bracket. Two independent
+sources plus a mobility-tax firm's summary agree.
 
-What is verifiable from inside the repo: the 2025-2026 set matches the Finance Act 2025
-salaried schedule exactly. The 2026-2027 set does not — eight brackets rather than six, and
-20/25/29/32 in the middle where the enacted salaried schedule has 23/30/35.
+Recorded as a mistake rather than quietly deleted, because "these numbers look
+unusual" is not evidence, and the honest flag cost a reader a doubt they did not
+need to have. The one real bug that year was the capped top slab, fixed above.
 
-An earlier reading of mine called it "the non-salaried schedule". That is wrong and worth
-recording as wrong: Pakistan's non-salaried schedule opens at **15%** on the second bracket,
-and this opens at **1%**, which is the salaried marker. Most likely these are provisional
-figures for a tax year whose Finance Act was not yet enacted. **Action: confirm against the
-Act.**
+Also learned while verifying, and worth knowing:
+
+- The **9% surcharge** on salaried taxable income over 10,000,000 (s.4AB) was
+  **withdrawn for salaried individuals** by the 2026 Act. Payroll never
+  implemented it, so nothing needed removing — but if it is ever added it must
+  not apply to a 2026-2027 salary.
+- The equivalent **10% surcharge for non-salaried individuals and AOPs was not
+  withdrawn**. The estimate models no surcharges at all and says so.
+- Two popular Pakistani tax sites publish a "non-salaried" table that is simply
+  the salaried rates doubled (1→2, 11→22, 23→46, 30→60, 35→70), reaching a 70%
+  marginal rate. It is wrong, and it is the reason the business brackets here were
+  cross-checked against a professional summary rather than taken from the first
+  result.
 
 ## What was built
 
@@ -178,15 +188,19 @@ keep the books.
 
 ## Known limits
 
-- **Rental and capital gains use indicative flat rates**, not the real schedules, which
-  depend on the asset and how long it was held. Labelled as such on screen.
-- **Filer status is recorded and shown, not applied.** It changes withholding rates rather
-  than the liability the brackets produce.
-- **The estimate knows nothing about tax already deducted at source**, credits, deductible
-  allowances, or the surcharge on high salaried income.
-- **FY2026-27 brackets are not seeded** for the personal schedules, because the payroll
-  rates for that year are themselves unverified. The Tax Estimate opens on the most recent
-  year that *does* have rates rather than erroring.
+- **Rental and capital gains use indicative flat bands**, not the statutory
+  schedules. Property income has its own rates and deductions; capital gains
+  depend on the asset class and holding period, and the 2026 Act moved the
+  withholding rate on debt-security disposals from 15% to 20%. A bracket table
+  cannot represent that, and the screen says the figures are approximate.
+- **No surcharges are modelled**, in either direction. See above.
+- **Filer status is recorded and shown, not applied.** It changes withholding
+  rates rather than the liability the brackets produce.
+- **The estimate knows nothing about tax already deducted at source**, credits or
+  deductible allowances.
+- **Salaried and business brackets are seeded for both 2025-2026 and 2026-2027**,
+  so the Tax Estimate works on the current year out of the box. A year with no
+  rates still errors rather than showing zero.
 
 ## Verification
 

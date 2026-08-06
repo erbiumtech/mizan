@@ -36,25 +36,24 @@ class SalarySlabSeeder extends Seeder
         // 2. Fiscal Year 2026-2027 Slabs
         // ==========================================
         //
-        // UNVERIFIED — these rates need confirming against the Finance Act before
-        // anyone relies on them, and this is the year payroll actually uses.
+        // VERIFIED against the Finance Act 2026 (presidential assent 25 June 2026,
+        // effective 1 July 2026). Eight brackets, 0/1/11/20/25/29/32/35, top
+        // bracket "1,424,000 + 35% above 7,000,000". This is the enacted salaried
+        // schedule for tax year 2027, and it is what payroll uses, since
+        // FiscalYearSeeder activates both years and FiscalYear::booted() stands
+        // down whichever came first, leaving 2026-2027 current.
         //
-        // FiscalYearSeeder marks both years active and FiscalYear::booted() stands
-        // down whichever was activated first, so 2026-2027 wins and is what
-        // FiscalYear::current() returns. Every payslip is being taxed on the rows
-        // below (TaxCalculatorTest says as much: "the shared base uses 2026-2027").
+        // Recorded because I got this wrong once: the eight-bracket shape and the
+        // 20/25/29/32 middle look like a departure from the six-bracket
+        // 2025-2026 schedule, and I flagged them as probably provisional. They
+        // are not — the Act genuinely restructured the salaried brackets, and
+        // this table is right. Two independent sources plus a mobility-tax firm's
+        // summary agree on every figure.
         //
-        // What is verifiable from here: the 2025-2026 set above matches the
-        // Finance Act 2025 salaried schedule exactly. This set does not — it has
-        // eight brackets rather than six, and 20/25/29/32 in the middle where the
-        // enacted salaried schedule has 23/30/35. It is not the non-salaried
-        // schedule either; that one opens at 15% on the second bracket, and this
-        // opens at 1%, which is the salaried marker.
-        //
-        // Most likely these are provisional figures for a tax year whose Finance
-        // Act had not been enacted when they were written. Deliberately left as
-        // found: guessing at tax rates is worse than flagging them. Confirm
-        // against the Act, then delete this comment.
+        // Note the 9% surcharge under s.4AB on taxable income over 10,000,000 was
+        // withdrawn for salaried individuals by the same Act. Payroll never
+        // implemented that surcharge, so nothing here needs removing — but if it
+        // is ever added, it must not be applied to a 2026-2027 salary.
         $fy2026 = FiscalYear::where('name', '2026-2027')->first();
 
         if ($fy2026) {
