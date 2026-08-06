@@ -80,11 +80,23 @@ above 50,000,000 matches no slab and the method returns `0.0` — no exception, 
 FY2025-2026 correctly uses `null`. Fix: `max_amount => null` on the top slab, plus a
 `TaxCalculatorTest` case above the top threshold (the existing file has none).
 
-**Bug 2 — the FY2026-2027 schedule looks like the wrong regime.** Eight brackets with
-29%/32% steps is the shape of the FBR *non-salaried* schedule, sitting in a table
-`TaxCalculatorService` treats as salaried. **Not fixed unilaterally** — rewriting tax rates
-on my own judgement is exactly the wrong move. Deliverable is a written finding; the real
-FY2026-27 salaried numbers need confirming against the Finance Act before anyone edits.
+**Bug 2 — the FY2026-2027 rates are unverified, and that is the year payroll uses.**
+Recorded as a comment in the seeder; **no rates changed**, because guessing at tax law is
+worse than flagging it.
+
+`FiscalYearSeeder` marks both years active and `FiscalYear::booted()` stands down whichever
+was activated first, so 2026-2027 wins and is what `FiscalYear::current()` returns — every
+payslip is taxed on it.
+
+What is verifiable from inside the repo: the 2025-2026 set matches the Finance Act 2025
+salaried schedule exactly. The 2026-2027 set does not — eight brackets rather than six, and
+20/25/29/32 in the middle where the enacted salaried schedule has 23/30/35.
+
+An earlier reading of mine called it "the non-salaried schedule". That is wrong and worth
+recording as wrong: Pakistan's non-salaried schedule opens at **15%** on the second bracket,
+and this opens at **1%**, which is the salaried marker. Most likely these are provisional
+figures for a tax year whose Finance Act was not yet enacted. **Action: confirm against the
+Act.**
 
 ## Phase 1 — module skeleton
 
