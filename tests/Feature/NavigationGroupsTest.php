@@ -202,6 +202,10 @@ class NavigationGroupsTest extends TestCase
             'Employee',
             'Invoicing & Inventory',
             'MPR',
+            // A person's own books, not the company's. Its own group rather than
+            // a corner of Accounting precisely because the money in it is not
+            // the company's money.
+            'Personal',
             'Settings',
         ], $labels);
     }
