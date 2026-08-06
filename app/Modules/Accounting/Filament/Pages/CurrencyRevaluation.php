@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Services\CurrencyRevaluationService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -76,6 +77,8 @@ class CurrencyRevaluation extends Page
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('currency-revaluation', 'Currency Revaluation: Help'),
+
             Action::make('revalue')
                 ->label('Post revaluation')
                 ->icon('heroicon-o-check-circle')

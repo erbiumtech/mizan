@@ -76,8 +76,13 @@ class ReportsHubTest extends TestCase
         // the panel then has two ways in to the same fourteen screens.
         $this->assertArrayNotHasKey('Reports', $navigation);
 
-        // Top level, next to the Dashboard, exactly once.
-        $this->assertSame(['Dashboard', 'Reports'], $navigation[''] ?? []);
+        // Top level, next to the Dashboard, exactly once. Deliberately still an
+        // exhaustive list rather than a contains-check: what this catches is a
+        // new *report* arriving at top level instead of inside the hub, and that
+        // only fails if an unexpected label here is an error. User Manual earns
+        // its place beside Reports for the same reason Reports has one — it is a
+        // door to everything rather than one more screen.
+        $this->assertSame(['Dashboard', 'Reports', 'User Manual'], $navigation[''] ?? []);
 
         $everything = collect($navigation)->flatten()->all();
         $this->assertSame(1, collect($everything)->filter(fn (string $l) => $l === 'Reports')->count());

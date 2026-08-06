@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\JournalEntryLine;
@@ -67,6 +68,13 @@ class CompanySettings extends Page
     public static function canAccess(): bool
     {
         return auth()->user()?->isAdministrator() ?? false;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            HelpAction::make('company-settings', 'Company Settings: Help'),
+        ];
     }
 
     /**

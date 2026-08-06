@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Pages\AccountRegister;
 use App\Modules\Accounting\Filament\Pages\BalanceSheet;
 use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
@@ -124,6 +125,13 @@ class Reports extends Page
         }
 
         return false;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            HelpAction::make('reports', 'Reports: Help'),
+        ];
     }
 
     /**

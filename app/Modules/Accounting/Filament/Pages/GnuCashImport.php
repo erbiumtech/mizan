@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Services\GnuCashImportService;
 use App\Modules\Accounting\Services\RegisterEntryService;
@@ -58,6 +59,13 @@ class GnuCashImport extends Page
     public function mount(): void
     {
         $this->form->fill();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            HelpAction::make('gnucash-import', 'GnuCash Import: Help'),
+        ];
     }
 
     public function registerAccounts(): Collection

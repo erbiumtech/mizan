@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\CustomFields\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -13,6 +14,7 @@ class ListCustomFields extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            HelpAction::make('custom-fields', 'Custom Fields: Help'),
             CreateAction::make(),
         ];
     }
