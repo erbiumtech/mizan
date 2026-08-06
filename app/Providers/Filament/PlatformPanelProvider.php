@@ -67,6 +67,10 @@ class PlatformPanelProvider extends PanelProvider
                 'gray' => Color::Slate,
             ])
             ->globalSearch(false)
+            // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
+            // instantly; polling is just the fallback if a socket drops.
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('60s')
             // Core only, and only the platform half of it. Modules::plugins() is
             // per-company licensing, which has no meaning without a company.
             ->plugins([

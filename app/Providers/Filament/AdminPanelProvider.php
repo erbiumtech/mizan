@@ -94,6 +94,10 @@ class AdminPanelProvider extends PanelProvider
             // getGloballySearchableAttributes() — canGloballySearch() does not
             // consult this setting, so the palette still finds records.
             ->globalSearch(false)
+            // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
+            // instantly; polling is just the fallback if a socket drops.
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('60s')
             // Every resource, page and widget now belongs to a module and is
             // registered by that module's plugin — there is no app-level discovery
             // left. Registration is unconditional regardless of licence state; see
