@@ -19,7 +19,7 @@ stop there too. A transaction dated ahead of today (a payment scheduled for
 next week, say) is therefore invisible by default; a banner says so, and
 **"Show later entries"** clears the end date to bring it back into view.
 
-## Recording money directly on the register
+## Recording money directly on the register <!-- requires: JournalEntryCreate -->
 
 - **Add Transaction** — books a balanced two-line journal entry immediately:
   enter the amount in **Debit** for money coming in, **Credit** for money
@@ -29,7 +29,7 @@ next week, say) is therefore invisible by default; a banner says so, and
   Money leaving the company is a payment, not a transfer — use this only for
   internal moves.
 
-## Editing a row
+## Editing a row <!-- requires: JournalEntryUpdate, JournalEntryDelete, JournalEntryReverse -->
 
 **Edit transaction** restates a posted entry in place rather than reversing
 it — this is the one place in the app where a posted entry is edited directly.

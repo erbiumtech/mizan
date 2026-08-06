@@ -6,7 +6,7 @@ The banks the company or its employees hold accounts with — a simple
 reference list used elsewhere for bank codes and IBFT routing, not itself a
 place where money is recorded.
 
-## Creating one
+## Creating one <!-- requires: BankCreate -->
 
 Click **New**. You'll set:
 

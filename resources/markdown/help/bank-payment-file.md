@@ -39,7 +39,7 @@ batch — held-back rows stay in the pool for a future batch. Confirmation
 shows exactly how many payments will be released and how many are held back
 before you commit.
 
-## Undoing a released batch
+## Undoing a released batch <!-- requires: PaymentUpdate -->
 
 **Void a batch** exists for when a file was rejected by the bank or was built
 by mistake. It returns every payment in the chosen batch back to the pool

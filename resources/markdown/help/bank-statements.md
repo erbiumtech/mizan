@@ -6,14 +6,14 @@ Bank reconciliation: bringing the bank's own record of a company bank
 account's activity onto the system, and matching each line against what the
 ledger already shows, so the two are proven to agree.
 
-## Creating a statement
+## Creating a statement <!-- requires: BankStatementCreate -->
 
 Click **New** and set the **Bank Account** it's for (only active, postable
 asset accounts are offered), the **Statement Date**, and the bank's own
 **Opening Balance** and **Closing Balance** for the period. It starts as
 **Draft**.
 
-## Importing lines
+## Importing lines <!-- requires: BankStatementImport -->
 
 Open the statement and use **Import Lines (CSV)** to bring in the bank's own
 transaction rows: one per line, as `transaction_date,description,reference,amount`
@@ -22,7 +22,7 @@ shown on the statement's **Lines** tab, starting as **Unmatched**. Lines are
 only ever created this way or through matching — the Lines tab itself is
 read-only, there's no manual line entry.
 
-## Matching lines to the ledger
+## Matching lines to the ledger <!-- requires: BankStatementMatch -->
 
 **Auto-Match** compares every unmatched line against the ledger, looking for
 an exact amount with a date within 3 days, or an exact amount with a matching
@@ -31,7 +31,7 @@ determine on its own stays **Unmatched** for a human to resolve by hand
 (shown as **Manually matched** once resolved), or to mark **Excluded** if it
 genuinely has no ledger counterpart.
 
-## Completing a reconciliation
+## Completing a reconciliation <!-- requires: BankStatementComplete -->
 
 **Complete Reconciliation** is only available once **every line is either
 matched or excluded** — nothing left Unmatched — and the statement's closing

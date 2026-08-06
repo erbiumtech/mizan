@@ -7,7 +7,7 @@ reimbursement) or a **Beneficiary** (rent, a supplier, a contractor). Payments
 are what eventually get grouped into a bank file — see **Bank Payment File**
 for that step.
 
-## Creating one
+## Creating one <!-- requires: PaymentCreate -->
 
 Click **New**. You'll pick who's being paid (**Payable**), a **Transaction
 Type**, the **Debit Account** the payment draws from (falls back to a
@@ -33,7 +33,7 @@ Once the bank confirms it went through, it's marked **Paid**.
 
 **Deleting is only possible while a payment is still Draft.**
 
-## Reverting an export
+## Reverting an export <!-- requires: PaymentUpdate -->
 
 If a specific payment in an exported batch bounced, or its payee details were
 stale, use **Revert from exported** on that one row rather than voiding the

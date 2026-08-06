@@ -5,7 +5,7 @@
 A month's petty cash float: what it started with, what was spent out of it
 (vouchers), any direct top-ups, and what's left. One month at a time.
 
-## Recording spending
+## Recording spending <!-- requires: PettyCashCreate -->
 
 **Add Voucher** records an expense paid from the float: date, a description,
 a **Category** (a transaction type), the amount, and an optional receipt
@@ -18,7 +18,7 @@ expense category is a re-book (delete and re-add), not an edit, since the
 month and category are what group vouchers into the summary in the first
 place.
 
-## Topping up and replenishing — the two ways money enters the float
+## Topping up and replenishing — the two ways money enters the float <!-- requires: PettyCashReplenish -->
 
 - **Top Up Float** — a direct deposit from the bank into the float, recorded
   immediately. Use this when cash is added to the float outside of the normal
