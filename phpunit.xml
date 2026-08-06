@@ -21,6 +21,15 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
+
+        <!-- Pinned for the same reason as the connections below: a developer's
+             .env decides it otherwise, and here that took out the whole suite.
+             routes/channels.php calls Broadcast::channel(), which builds the
+             broadcaster while every test boots; with BROADCAST_CONNECTION=reverb
+             in .env and no Reverb credentials in the test environment, Pusher was
+             constructed with a null key and 640 tests died in bootstrap. Tests
+             have nothing to broadcast to. -->
+        <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
