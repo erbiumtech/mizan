@@ -11,9 +11,22 @@ class Company extends SpatieTenant
 {
     protected $table = 'companies';
 
+    /**
+     * A tenant is either a business or one person's own affairs.
+     *
+     * The distinction is presentational and configurational, not structural: a
+     * personal account gets its own database, roles and staff exactly like a
+     * business, because a household with an accountant and a cook is a very
+     * small organisation and the machinery is identical.
+     */
+    public const TYPE_BUSINESS = 'business';
+
+    public const TYPE_PERSONAL = 'personal';
+
     protected $fillable = [
         'name',
         'slug',
+        'type',
         'database',
         'status',
     ];
@@ -86,5 +99,33 @@ class Company extends SpatieTenant
     public function companyModules(): HasMany
     {
         return $this->hasMany(CompanyModule::class);
+    }
+
+    /** One person's own affairs rather than a business. */
+    public function isPersonal(): bool
+    {
+        return $this->type === self::TYPE_PERSONAL;
+    }
+
+    /**
+     * What to call this on screen.
+     *
+     * "Company" is wrong for somebody's household, and being addressed as a
+     * company while recording your grocery bill is the kind of small wrongness
+     * that makes software feel like it was not meant for you.
+     */
+    public function typeLabel(): string
+    {
+        return $this->isPersonal() ? 'Personal Account' : 'Company';
+    }
+
+    public function scopePersonal($query)
+    {
+        return $query->where('type', self::TYPE_PERSONAL);
+    }
+
+    public function scopeBusiness($query)
+    {
+        return $query->where('type', self::TYPE_BUSINESS);
     }
 }
