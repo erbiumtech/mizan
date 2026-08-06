@@ -52,13 +52,15 @@ class RoleSeeder extends Seeder
         // Admin have all the permissions
         $adminRole->syncPermissions(Permission::all());
 
-        // Employee: own payslips, own salary settings (read-only — the resource
-        // scopes rows to own + downline), and comments on them.
+        // Employee: own payslips, own advances, own salary settings (all
+        // read-only — the resource scopes rows to own + downline), and
+        // comments on them.
         // Projects are a company-wide shared reference: every employee sees all
         // of them and may add or correct environment data. Deletion and
         // on-demand health checks stay privileged.
         $employeeRole->syncPermissions([
             'PayslipView',
+            'AdvanceView',
             'EmployeeSettingView',
             // Their own claims: submit one and see what happened to it. Approving is
             // deliberately absent — an approver is somebody else.

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
+use App\Modules\PersonalFinance\Models\TaxSurcharge;
 use Illuminate\Database\Seeder;
 
 /**
@@ -64,25 +65,43 @@ class TaxScheduleSeeder extends Seeder
     ];
 
     /**
-     * INDICATIVE, not the statutory schedule. Property income has its own rate
-     * table and its own deductions, and I could not find an authoritative
-     * enacted version to encode. A single flat band over an exempt threshold
-     * keeps the regime working end to end and keeps the number non-zero; the Tax
-     * Estimate screen labels it as approximate.
+     * Property income is NOT taxed on its own rate table.
+     *
+     * The separate property-income schedule was abolished in 2019: for an
+     * individual, net rental is added to total income and taxed at the ordinary
+     * slabs. So this deliberately mirrors the non-salaried brackets rather than
+     * inventing a rental-specific table, and PersonalTaxService applies the
+     * automatic one-fifth repair allowance (s.15A) before taxing it.
+     *
+     * It was a flat 15% band here at first, which was simply wrong — a made-up
+     * rate on a gross figure that should never have been taxed gross.
+     *
+     * Remaining simplification, stated on screen: a real return aggregates rental
+     * with the taxpayer's other income and applies one schedule to the total,
+     * whereas this assesses each head separately. For somebody whose only income
+     * is rent the two agree; for somebody with a salary as well, the separate
+     * assessment understates.
      *
      * @var array<int, array<string, mixed>>
      */
-    private const RENTAL_BRACKETS = [
-        ['min_amount' => 0,      'max_amount' => 300000, 'fixed_tax' => 0, 'percentage' => 0],
-        ['min_amount' => 300000, 'max_amount' => null,   'fixed_tax' => 0, 'percentage' => 15],
-    ];
+    private const RENTAL_BRACKETS = self::BUSINESS_BRACKETS;
 
     /**
-     * INDICATIVE, and the least trustworthy of the four. Real capital gains tax
-     * depends on the asset class and the holding period — securities, immovable
-     * property and debt instruments are all treated differently, and the 2026 Act
-     * moved the withholding rate on debt-security disposals from 15% to 20%.
-     * A flat band cannot represent that and is not trying to.
+     * Capital gains: a flat 15%, which is the enacted rate for the mainstream
+     * case rather than a placeholder.
+     *
+     * For a filer, gains on securities (s.37A) and on immovable property (s.37)
+     * acquired on or after 1 July 2024 are taxed at a flat 15% with no
+     * holding-period relief — the holding-period tables were retired for assets
+     * acquired from that date.
+     *
+     * Two cases this does NOT cover, and the screen says so:
+     *  - assets acquired between 1 July 2022 and 30 June 2024, which still use the
+     *    old holding-period slabs;
+     *  - non-filers, who are taxed at slab rates instead of the flat 15%.
+     *
+     * Both depend on facts about the asset that the ledger does not record, so
+     * they cannot be inferred here.
      *
      * @var array<int, array<string, mixed>>
      */
@@ -108,6 +127,18 @@ class TaxScheduleSeeder extends Seeder
             TaxSchedule::REGIME_CAPITAL_GAINS => self::CAPITAL_GAINS_BRACKETS,
         ]);
 
+        // Section 4AB, tax year 2026: 9% of the tax for salaried, 10% for
+        // non-salaried and AOPs, once taxable income passes 10,000,000. Rental is
+        // taxed on the non-salaried schedule, so it carries the same 10%.
+        //
+        // Capital gains has no row: the flat 15% under s.37/37A is a separate
+        // block charge and the surcharge does not sit on top of it.
+        $this->seedSurcharges('2025-2026', [
+            TaxSchedule::REGIME_SALARIED => ['threshold' => 10000000, 'percentage' => 9],
+            TaxSchedule::REGIME_BUSINESS => ['threshold' => 10000000, 'percentage' => 10],
+            TaxSchedule::REGIME_RENTAL => ['threshold' => 10000000, 'percentage' => 10],
+        ]);
+
         $this->seedYear('2026-2027', [
             // Finance Act 2026 (assent 25 June 2026, effective 1 July 2026).
             // The Act restructured the salaried brackets from six to eight;
@@ -128,6 +159,42 @@ class TaxScheduleSeeder extends Seeder
             TaxSchedule::REGIME_RENTAL => self::RENTAL_BRACKETS,
             TaxSchedule::REGIME_CAPITAL_GAINS => self::CAPITAL_GAINS_BRACKETS,
         ]);
+
+        // Tax year 2027: NO salaried row, because the Finance Act 2026 withdrew
+        // the 9% surcharge for individuals deriving salary income. Expressing
+        // that as an absent row rather than a code branch is the point of keeping
+        // surcharges as data.
+        //
+        // The non-salaried 10% is kept. Reporting on this is less consistent than
+        // on the salaried withdrawal — one summary says s.4AB is abolished
+        // outright from tax year 2027, others describe only the salaried
+        // withdrawal. Kept because an estimate that overstates is the safer error
+        // for somebody planning around it, and because removing a charge on the
+        // strength of one ambiguous sentence is the worse bet. Confirm and delete
+        // these two rows if it did go.
+        $this->seedSurcharges('2026-2027', [
+            TaxSchedule::REGIME_BUSINESS => ['threshold' => 10000000, 'percentage' => 10],
+            TaxSchedule::REGIME_RENTAL => ['threshold' => 10000000, 'percentage' => 10],
+        ]);
+    }
+
+    /**
+     * @param  array<string, array{threshold: float|int, percentage: float|int}>  $surcharges
+     */
+    private function seedSurcharges(string $yearName, array $surcharges): void
+    {
+        $year = FiscalYear::where('name', $yearName)->first();
+
+        if (! $year) {
+            return;
+        }
+
+        foreach ($surcharges as $regime => $rule) {
+            TaxSurcharge::firstOrCreate(
+                ['fiscal_year_id' => $year->id, 'regime' => $regime],
+                ['threshold' => $rule['threshold'], 'percentage' => $rule['percentage']],
+            );
+        }
     }
 
     /**

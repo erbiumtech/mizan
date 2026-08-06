@@ -2,15 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource;
+use App\Modules\Advances\Filament\Resources\Advances\AdvanceResource;
+use App\Modules\Advances\Models\Advance;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
-use App\Modules\Mpr\Filament\Resources\MPRs\MPRResource;
-use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
-use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Mpr\Filament\Resources\MPRs\MPRResource;
 use App\Modules\Mpr\Models\MPR;
+use App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource;
+use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
+use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\Payslip;
 use Tests\AccountingTestCase;
 
@@ -93,6 +95,30 @@ class EmployeeHierarchyScopingTest extends AccountingTestCase
         $this->actingAs($this->manager->user);
 
         $employeeIds = PayslipResource::getEloquentQuery()->pluck('employee_id')->all();
+
+        $this->assertEqualsCanonicalizing([$this->manager->id, $this->leaf->id], $employeeIds);
+    }
+
+    private function advanceFor(Employee $employee): Advance
+    {
+        return Advance::create([
+            'employee_id' => $employee->id,
+            'total_amount' => 1000,
+            'monthly_instalment' => 100,
+            'started_on' => '2025-01-01',
+            'status' => Advance::STATUS_ACTIVE,
+        ]);
+    }
+
+    public function test_manager_sees_downline_advances(): void
+    {
+        $this->advanceFor($this->manager);
+        $this->advanceFor($this->leaf);
+        $this->advanceFor($this->stranger);
+
+        $this->actingAs($this->manager->user);
+
+        $employeeIds = AdvanceResource::getEloquentQuery()->pluck('employee_id')->all();
 
         $this->assertEqualsCanonicalizing([$this->manager->id, $this->leaf->id], $employeeIds);
     }
