@@ -10,6 +10,7 @@ use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CompanyProvisioningTest extends TestCase
@@ -92,6 +93,17 @@ class CompanyProvisioningTest extends TestCase
 
         $this->assertDatabaseMissing('companies', ['slug' => 'doomed-co']);
         $this->assertFalse(File::exists($path), 'the tenant database should have been removed');
+
+        // Roles are landlord rows keyed on company_id with no foreign key to
+        // cascade them, so deleting the company used to leave them behind. They
+        // belong to no company and are reachable by nobody, but they are still
+        // rows named Administrator and Employee — and they broke editing a real
+        // company's roles, because the name uniqueness rule counted them.
+        $this->assertSame(
+            0,
+            Role::whereNotIn('company_id', Company::pluck('id'))->count(),
+            'the rolled-back company left orphan roles behind',
+        );
     }
 
     /**

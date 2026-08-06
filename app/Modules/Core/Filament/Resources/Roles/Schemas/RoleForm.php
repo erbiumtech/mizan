@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Roles\Schemas;
 
+use App\Modules\Core\Filament\Resources\Roles\RoleResource;
 use App\Support\ModuleMap;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
@@ -9,6 +10,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 
@@ -23,7 +25,25 @@ class RoleForm
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
+                            // Scoped to the company, because roles are. Every
+                            // company has an Employee and an Administrator, so a
+                            // rule that checks the whole table rejects the name a
+                            // role already has the moment a second company exists
+                            // — "The name has already been taken." about the only
+                            // role of that name in the company you are looking at.
+                            //
+                            // ignoreRecord alone is not enough: it excludes the row
+                            // being edited and then still matches every other
+                            // company's copy. The resource's getEloquentQuery()
+                            // does scope by company, but a unique rule builds its
+                            // own query and never goes through it.
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn (Unique $rule): Unique => $rule->where(
+                                    config('permission.column_names.team_foreign_key', 'company_id'),
+                                    RoleResource::currentCompanyId(),
+                                ),
+                            ),
 
                         Select::make('guard_name')
                             ->options(['web' => 'web'])
