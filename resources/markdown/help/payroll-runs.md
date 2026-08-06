@@ -19,13 +19,13 @@ Each row is one calendar month and shows:
 - **Status** — Open, or Signed off (with the date and who signed it), or
   reopened (with the reason given).
 
-## Signing off a month
+## Signing off a month <!-- requires: PayrollRunLock -->
 
 Click **Sign off** on an Open month. This freezes it: none of its payslips
 can be changed, added to, or deleted afterwards. A month with no payslips in
 it cannot be signed off — there is nothing yet to agree to.
 
-## Reopening a signed-off month
+## Reopening a signed-off month <!-- requires: PayrollRunLock -->
 
 Click **Reopen** and give a reason — it's required, and it stays on the
 record. This is deliberate: a month that was agreed and then changed is

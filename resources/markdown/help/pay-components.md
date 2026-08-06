@@ -14,7 +14,7 @@ Anything you add here is different: it gets an amount per employee, a line on
 the payslip, and a place in the ledger, all driven from this one row — no
 migration, no code change.
 
-## Adding one
+## Adding one <!-- requires: SalarySlabCreate -->
 
 Click **New** and fill in:
 
@@ -36,7 +36,7 @@ Click **New** and fill in:
 - **Active** — switching this off stops the component being paid going
   forward without touching payslips that already used it.
 
-## Editing and removing one
+## Editing and removing one <!-- requires: SalarySlabUpdate, SalarySlabDelete -->
 
 The **shipped, column-backed components can never be deleted** — they're part
 of payroll's own arithmetic, and removing the row would leave the calculation
