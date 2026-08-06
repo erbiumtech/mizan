@@ -35,6 +35,26 @@ class SalarySlabSeeder extends Seeder
         // ==========================================
         // 2. Fiscal Year 2026-2027 Slabs
         // ==========================================
+        //
+        // UNVERIFIED — these rates need confirming against the Finance Act before
+        // anyone relies on them, and this is the year payroll actually uses.
+        //
+        // FiscalYearSeeder marks both years active and FiscalYear::booted() stands
+        // down whichever was activated first, so 2026-2027 wins and is what
+        // FiscalYear::current() returns. Every payslip is being taxed on the rows
+        // below (TaxCalculatorTest says as much: "the shared base uses 2026-2027").
+        //
+        // What is verifiable from here: the 2025-2026 set above matches the
+        // Finance Act 2025 salaried schedule exactly. This set does not — it has
+        // eight brackets rather than six, and 20/25/29/32 in the middle where the
+        // enacted salaried schedule has 23/30/35. It is not the non-salaried
+        // schedule either; that one opens at 15% on the second bracket, and this
+        // opens at 1%, which is the salaried marker.
+        //
+        // Most likely these are provisional figures for a tax year whose Finance
+        // Act had not been enacted when they were written. Deliberately left as
+        // found: guessing at tax rates is worse than flagging them. Confirm
+        // against the Act, then delete this comment.
         $fy2026 = FiscalYear::where('name', '2026-2027')->first();
 
         if ($fy2026) {
@@ -46,7 +66,13 @@ class SalarySlabSeeder extends Seeder
                 ['min_amount' => 3200000, 'max_amount' => 4100000, 'fixed_tax' => 316000, 'percentage' => 25],
                 ['min_amount' => 4100000, 'max_amount' => 5600000,    'fixed_tax' => 541000, 'percentage' => 29],
                 ['min_amount' => 5600000, 'max_amount' => 7000000,    'fixed_tax' => 976000, 'percentage' => 32],
-                ['min_amount' => 7000000, 'max_amount' => 50000000,    'fixed_tax' => 1424000, 'percentage' => 35],
+                // Null, not a figure. TaxCalculatorService matches
+                // `max_amount >= income OR max_amount IS NULL`, so a bounded top
+                // slab leaves everything above it matching no slab at all — and
+                // the service returns 0.0 rather than raising, so the highest
+                // earners are silently taxed at nothing. This used to read
+                // 50,000,000.
+                ['min_amount' => 7000000, 'max_amount' => null,    'fixed_tax' => 1424000, 'percentage' => 35],
             ];
 
             SalarySlab::where('fiscal_year_id', $fy2026->id)->delete();

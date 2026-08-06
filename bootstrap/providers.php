@@ -10,6 +10,7 @@ use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Invoicing\InvoicingServiceProvider;
 use App\Modules\Mpr\MprServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
+use App\Modules\PersonalFinance\PersonalFinanceServiceProvider;
 use App\Modules\Projects\ProjectsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
@@ -33,5 +34,6 @@ return [
     AccountingServiceProvider::class,
     AdvancesServiceProvider::class,
     BillingServiceProvider::class,
+    PersonalFinanceServiceProvider::class,
     CoreServiceProvider::class,
 ];

@@ -69,6 +69,7 @@ class UserManual extends Page
         '10-assets-and-stock' => 'Fixed assets and stock',
         '11-reconciliation-and-close' => 'Reconciling the bank and closing the period',
         '12-reports' => 'Reports and statutory output',
+        '13-personal-finance' => 'Your own books: personal finance and tax',
     ];
 
     public static function canAccess(): bool

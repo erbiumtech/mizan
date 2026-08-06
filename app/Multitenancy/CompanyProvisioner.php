@@ -4,6 +4,7 @@ namespace App\Multitenancy;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\TenantBaselineSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -72,6 +73,20 @@ class CompanyProvisioner
                     '--force' => true,
                 ]);
             }
+
+            // Permissions first, and this ordering is load bearing.
+            //
+            // RoleSeeder calls syncPermissions() with literal names, and Spatie
+            // throws PermissionDoesNotExist for a name it cannot find rather
+            // than skipping it. Permissions live in the landlord database and
+            // are global, so provisioning used to assume somebody had re-seeded
+            // them after any release that added one — and when that assumption
+            // failed, creating a company died with a 500 naming a permission,
+            // which says nothing about the real problem.
+            //
+            // firstOrCreate, so re-running it here is idempotent and costs one
+            // query per permission on a path that already migrates a database.
+            (new PermissionSeeder)->run();
 
             // The tenant is current, so the permission team id is this company:
             // seed the company's own set of roles and attach the creator as its

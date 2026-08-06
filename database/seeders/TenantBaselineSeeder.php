@@ -22,6 +22,11 @@ class TenantBaselineSeeder extends Seeder
             TransactionTypeSeeder::class,
             SalarySlabSeeder::class,
             BankSeeder::class,
+            // Tax brackets for the Personal Finance estimate. Reference data
+            // shared by everyone in the company, unlike the per-person chart of
+            // accounts, which is seeded for a user the first time they open the
+            // module.
+            TaxScheduleSeeder::class,
         ]);
     }
 }

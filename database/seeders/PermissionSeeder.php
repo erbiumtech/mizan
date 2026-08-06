@@ -16,6 +16,17 @@ class PermissionSeeder extends Seeder
             ['name' => 'MPRUpdate', 'group' => 'MPR'],
             ['name' => 'MPRDelete', 'group' => 'MPR'],
 
+            // A person's own books. These grant access to your *own* records
+            // only — which rows you can reach is decided by the owner scope on
+            // the models, not by holding a permission. PersonalFinanceViewAny is
+            // the exception: it is the read-only cross-user view, and no seeded
+            // role but Administrator holds it.
+            ['name' => 'PersonalFinanceView', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceCreate', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceUpdate', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceDelete', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceViewAny', 'group' => 'PersonalFinance'],
+
             ['name' => 'UserView', 'group' => 'User'],
             ['name' => 'UserCreate', 'group' => 'User'],
             ['name' => 'UserUpdate', 'group' => 'User'],
