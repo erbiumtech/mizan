@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Modules\Accounting\Models\Account;
+use App\Support\TaxRegimes;
 use Illuminate\Database\Seeder;
 
 /**
@@ -26,7 +27,7 @@ use Illuminate\Database\Seeder;
  */
 class PersonalChartOfAccountsSeeder extends Seeder
 {
-    /** code, name, type. */
+    /** code, name, type, tax regime (income accounts only). */
     private const ACCOUNTS = [
         // What you have.
         ['1000', 'Cash in Hand', 'asset'],
@@ -46,10 +47,10 @@ class PersonalChartOfAccountsSeeder extends Seeder
         ['3300', 'Opening Balance Equity', 'equity'],
 
         // What comes in.
-        ['4000', 'Salary', 'income'],
-        ['4100', 'Business Income', 'income'],
-        ['4200', 'Rental Income', 'income'],
-        ['4300', 'Profit on Investments', 'income'],
+        ['4000', 'Salary', 'income', TaxRegimes::SALARIED],
+        ['4100', 'Business Income', 'income', TaxRegimes::BUSINESS],
+        ['4200', 'Rental Income', 'income', TaxRegimes::RENTAL],
+        ['4300', 'Profit on Investments', 'income', TaxRegimes::CAPITAL_GAINS],
         ['4900', 'Other Income', 'income'],
 
         // What goes out.
@@ -67,12 +68,20 @@ class PersonalChartOfAccountsSeeder extends Seeder
 
     public function run(): void
     {
-        foreach (self::ACCOUNTS as [$code, $name, $type]) {
+        foreach (self::ACCOUNTS as $account) {
+            [$code, $name, $type] = $account;
+
             Account::firstOrCreate(
                 ['code' => $code],
                 [
                     'name' => $name,
                     'type' => $type,
+                    // Income arrives already classified for the common cases, so
+                    // the tax estimate works without anybody configuring
+                    // anything. "Other Income" is deliberately left untagged:
+                    // there is no honest default for it, and the estimate
+                    // reports it as unclassified rather than guessing.
+                    'tax_regime' => $account[3] ?? null,
                     'is_active' => true,
                     'allow_manual_entry' => true,
                 ],
