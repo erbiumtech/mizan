@@ -125,12 +125,68 @@ class PersonalTaxServiceTest extends TestCase
 
     public function test_a_missing_schedule_raises_rather_than_returning_zero(): void
     {
-        $other = FiscalYear::where('name', '2026-2027')->firstOrFail();
+        // A year nobody has seeded rates for. Both shipped years now have them,
+        // which is the point — but the guard still has to hold, because silently
+        // answering "you owe nothing" is how payroll's equivalent bug stayed
+        // invisible.
+        $unseeded = FiscalYear::create([
+            'name' => '2030-2031',
+            'start_date' => '2030-07-01',
+            'end_date' => '2031-06-30',
+            'is_active' => false,
+        ]);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No Salaried tax bracket covers');
 
-        $this->tax()->taxFor(3000000, TaxSchedule::REGIME_SALARIED, $other->id);
+        $this->tax()->taxFor(3000000, TaxSchedule::REGIME_SALARIED, $unseeded->id);
+    }
+
+    public function test_both_shipped_years_have_rates_for_every_regime(): void
+    {
+        // The gap this closes: the Tax Estimate used to open on the active year
+        // and find nothing, because only 2025-2026 was seeded. Somebody's first
+        // visit was an error message on a feature that had never worked.
+        $missing = [];
+
+        foreach (['2025-2026', '2026-2027'] as $yearName) {
+            $year = FiscalYear::where('name', $yearName)->firstOrFail();
+
+            foreach (array_keys(TaxSchedule::REGIMES) as $regime) {
+                $exists = TaxSchedule::where('fiscal_year_id', $year->id)
+                    ->where('regime', $regime)
+                    ->exists();
+
+                if (! $exists) {
+                    $missing[] = "{$yearName} / {$regime}";
+                }
+            }
+        }
+
+        $this->assertSame([], $missing, 'No brackets seeded for: '.implode(', ', $missing));
+    }
+
+    public function test_the_2026_27_salaried_schedule_matches_the_enacted_act(): void
+    {
+        // Finance Act 2026 restructured the salaried brackets from six to eight.
+        // Pinned here as well as in payroll's TaxCalculatorTest so the two
+        // calculators cannot drift apart on the same year.
+        $year = FiscalYear::where('name', '2026-2027')->firstOrFail();
+
+        $cases = [
+            1000000 => 4000.0,      // 1% of 400,000
+            3000000 => 276000.0,    // 116,000 + 20% of 800,000
+            5000000 => 802000.0,    // 541,000 + 29% of 900,000
+            8000000 => 1774000.0,   // 1,424,000 + 35% of 1,000,000
+        ];
+
+        foreach ($cases as $income => $expected) {
+            $this->assertSame(
+                $expected,
+                $this->tax()->taxFor($income, TaxSchedule::REGIME_SALARIED, $year->id)['tax'],
+                "2026-2027 salaried tax on {$income}",
+            );
+        }
     }
 
     public function test_income_is_grouped_by_the_regime_on_its_account(): void
