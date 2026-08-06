@@ -7,7 +7,7 @@ the total of every **Debit** must equal the total of every **Credit**. You canno
 save an entry that doesn't balance, and you cannot submit one for approval that
 doesn't balance — the app checks both times.
 
-## Creating one
+## Creating one <!-- requires: JournalEntryCreate -->
 
 From **Journal Entries**, click **New**. You'll fill in:
 
@@ -25,13 +25,13 @@ own (postings always go against the lowest-level account).
 The entry starts life as **Draft**. Nothing else in the app sees it yet — not
 the register, not any report — until it's Posted.
 
-## Submitting for approval
+## Submitting for approval <!-- requires: JournalEntrySubmit -->
 
 Once the lines balance, click **Submit for Approval**. This is available to
 whoever created the entry (or anyone else who can edit it) and moves it to
 **Pending Approval**.
 
-## Approval
+## Approval <!-- requires: JournalEntryApprove, JournalEntryReject -->
 
 Someone with approval rights reviews it and either:
 
@@ -47,7 +47,7 @@ able to approve, this is almost always why.
 A rejected entry isn't gone — it's still the same entry, still editable. Fix
 whatever the rejection reason pointed at and **Submit for Approval** again.
 
-## Posting
+## Posting <!-- requires: JournalEntryPost -->
 
 Once **Approved**, click **Post Entry**. This is the step that actually updates
 account balances — before this, an approved entry has had no effect on the
@@ -67,7 +67,7 @@ an Approved-but-not-yet-posted, or a Rejected entry shows up nowhere but the
 Journal Entries list itself. If a number you expected to see is missing from a
 report, check whether the entry behind it has actually been posted yet.
 
-## Fixing a posted mistake
+## Fixing a posted mistake <!-- requires: JournalEntryReverse -->
 
 Click **Reverse Entry** on the posted entry. This does *not* undo it — it
 creates a **new** entry, dated today, with every line flipped (debits become
@@ -76,7 +76,7 @@ original stays on the books exactly as it was; the reversal is what brings the
 balance back. Both entries remain visible forever, which is the point — the
 correction is on the record, not a hidden edit.
 
-## Deleting an entry
+## Deleting an entry <!-- requires: JournalEntryDelete -->
 
 Only possible while an entry is still **Draft** or **Rejected** — the moment it
 reaches Pending Approval, it can no longer be deleted, only carried through to

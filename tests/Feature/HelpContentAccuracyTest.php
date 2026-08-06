@@ -93,6 +93,45 @@ class HelpContentAccuracyTest extends TestCase
         ]));
     }
 
+    public function test_every_permission_gating_a_section_is_seeded(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        $seeded = Permission::pluck('name')->unique()->all();
+        $unknown = [];
+
+        foreach (static::documentPaths() as $path) {
+            preg_match_all(
+                '/<!--\s*requires:\s*([A-Za-z0-9, ]+?)\s*-->/',
+                File::get($path),
+                $matches,
+            );
+
+            foreach ($matches[1] as $list) {
+                foreach (array_map('trim', explode(',', $list)) as $name) {
+                    if ($name !== '' && ! in_array($name, $seeded, true)) {
+                        $unknown[] = $name.' — '.basename($path);
+                    }
+                }
+            }
+        }
+
+        $unknown = array_values(array_unique($unknown));
+        sort($unknown);
+
+        // This one is nastier than a wrong name in prose. A section gated on a
+        // permission that does not exist is hidden from *everybody*, forever,
+        // and silently — HelpAction treats the resulting exception as "does not
+        // hold it" so that one typo cannot take the whole panel down.
+        $this->assertSame([], $unknown, implode("\n", [
+            'These <!-- requires: … --> annotations name a permission that',
+            'PermissionSeeder does not create, so the section they gate is hidden',
+            'from every role including Administrator, with no error anywhere.',
+            '',
+            ...$unknown,
+        ]));
+    }
+
     public function test_names_cited_as_absent_are_still_absent(): void
     {
         $this->seed(PermissionSeeder::class);
