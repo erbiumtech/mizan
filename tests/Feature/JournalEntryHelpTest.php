@@ -42,9 +42,14 @@ class JournalEntryHelpTest extends TestCase
         return $user;
     }
 
-    public function test_the_help_action_renders_the_workflow_and_the_roles_table(): void
+    public function test_the_help_action_renders_the_whole_workflow(): void
     {
-        $this->actAs(Company::factory()->create(), 'Accountant');
+        // As an Administrator on purpose: this is the "does the content pipeline
+        // work end to end" test, so it wants the unfiltered document. It used to
+        // run as an Accountant and assert the posting and reversing sections,
+        // which is precisely what the panel now hides from that role — see
+        // HelpIsRoleAwareTest for the per-role behaviour.
+        $this->actAs(Company::factory()->create(), 'Administrator');
 
         Livewire::test(ListJournalEntries::class)
             ->mountAction('help')
@@ -53,8 +58,7 @@ class JournalEntryHelpTest extends TestCase
             ->assertMountedActionModalSee('Reverse Entry')
             // The rule that is easy to trip over and impossible to guess from
             // the screen alone: content, not just presence, is what matters here.
-            ->assertMountedActionModalSeeHtml('cannot approve your own entry')
-            ->assertMountedActionModalSee('Administrator');
+            ->assertMountedActionModalSeeHtml('cannot approve your own entry');
     }
 
     public function test_the_journal_entries_list_offers_a_help_action_to_those_who_can_use_it(): void
