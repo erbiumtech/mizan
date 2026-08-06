@@ -28,16 +28,14 @@ class JournalEntryForm
                     ])
                     ->default('general'),
 
-                Select::make('status')
-                    ->label('Status')
-                    ->options([
-                        'draft' => 'Draft',
-                        'pending_approval' => 'Pending Approval',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        'posted' => 'Posted',
-                    ]),
-
+                // Deliberately no Status field. Status only ever moves through
+                // JournalEntryService — Submit for Approval, Approve, Reject, Post,
+                // Reverse — each of which enforces its own rule (balanced lines,
+                // segregation of duties, an open fiscal year). A form field here
+                // would let anyone who can edit a Draft skip straight to Posted:
+                // no approval, no segregation-of-duty check, and no update to the
+                // account balances that only post() applies. The table's row
+                // actions are the only place status changes.
                 TextInput::make('reference')
                     ->label('Reference')
                     ->nullable(),
