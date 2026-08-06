@@ -162,6 +162,14 @@ class NavigationGroupsTest extends TestCase
         $this->assertContains('Payslips', $navigation['Employee'] ?? []);
     }
 
+    public function test_mpr_sits_with_the_other_employee_records(): void
+    {
+        $navigation = $this->navigation();
+
+        $this->assertArrayNotHasKey('MPR', $navigation);
+        $this->assertContains('MPR', $navigation['Employee'] ?? []);
+    }
+
     public function test_gnucash_import_sits_with_the_other_import(): void
     {
         $navigation = $this->navigation();
@@ -210,7 +218,6 @@ class NavigationGroupsTest extends TestCase
             'Audit & Taxes',
             'Employee',
             'Invoicing & Inventory',
-            'MPR',
             'Settings',
         ], $labels);
     }
@@ -250,7 +257,7 @@ class NavigationGroupsTest extends TestCase
     {
         $navigation = $this->navigation();
 
-        $this->assertGreaterThanOrEqual(8, count($navigation));
+        $this->assertGreaterThanOrEqual(7, count($navigation));
         $this->assertGreaterThanOrEqual(30, collect($navigation)->flatten()->count());
         $this->assertContains('Dashboard', collect($navigation)->flatten()->all());
     }
