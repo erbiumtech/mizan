@@ -226,6 +226,11 @@ final class ModuleMap
             'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
             'App\Filament\Pages\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
         ],
+        'personal_finance' => [
+            'App\Filament\Pages\PersonalBalanceSheet' => \App\Modules\PersonalFinance\Filament\Pages\PersonalBalanceSheet::class,
+            'App\Filament\Pages\IncomeAndExpenditure' => \App\Modules\PersonalFinance\Filament\Pages\IncomeAndExpenditure::class,
+            'App\Filament\Pages\TaxEstimate' => \App\Modules\PersonalFinance\Filament\Pages\TaxEstimate::class,
+        ],
         'accounting' => [
             'App\Filament\Pages\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
             'App\Filament\Pages\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
