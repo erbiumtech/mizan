@@ -6,7 +6,7 @@ A transaction type is a label for *why* money is moving — Salary, Rent, Food,
 Utilities — used to categorize payments and to route them to the right
 default account automatically.
 
-## Creating one
+## Creating one <!-- requires: TransactionTypeCreate -->
 
 Click **New**. You'll set:
 

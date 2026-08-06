@@ -7,7 +7,7 @@ Income, or Expense — lives here. Journal entries, payments, invoices, payroll
 and everything else that touches the ledger ultimately posts against one of
 these accounts.
 
-## Creating an account
+## Creating an account <!-- requires: AccountCreate -->
 
 Click **New**. You'll fill in:
 

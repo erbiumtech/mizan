@@ -6,7 +6,7 @@ Everyone the company pays who isn't an employee: landlords, caterers,
 suppliers, contractors. Payments can be made out to either an Employee or a
 Beneficiary — this is where the latter are set up.
 
-## Creating one
+## Creating one <!-- requires: BeneficiaryCreate -->
 
 Click **New**. You'll fill in their name, bank details (**Bank**, **Account
 No**, **IBAN**), an optional identifier (**CNIC** or **NTN**), contact

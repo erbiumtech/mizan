@@ -7,7 +7,7 @@ ledger itself is kept in is set once, in Company Settings — this page is for
 the *other* currencies you invoice or get paid in, and the exchange rates
 needed to convert them.
 
-## Adding a currency
+## Adding a currency <!-- requires: AccountCreate -->
 
 Click **New** and enter its ISO 4217 **Code** (e.g. `USD`, `EUR`) — exactly 3
 letters, unique. Add a display **Symbol**, how many **Decimals** it's shown
@@ -19,7 +19,7 @@ rename or deactivate the currency, but the code itself becomes read-only —
 changing it after the fact would silently disconnect it from every rate and
 posting already recorded under the old code.
 
-## Recording rates
+## Recording rates <!-- requires: AccountCreate -->
 
 Open a currency and go to its **Rates** tab. Each rate has an **effective
 date**, the **rate** itself (expressed as the base currency per 1 unit of this

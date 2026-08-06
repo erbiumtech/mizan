@@ -5,7 +5,7 @@
 The company's own bank accounts — the accounts payments are actually debited
 from, as opposed to Banks (the institutions) or Beneficiaries (who gets paid).
 
-## Creating one
+## Creating one <!-- requires: CompanyBankAccountCreate -->
 
 Click **New**. You'll set:
 

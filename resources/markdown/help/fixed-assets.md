@@ -6,7 +6,7 @@ Company-owned assets that lose value over time — equipment, vehicles,
 furniture — tracked here so their depreciation posts to the ledger
 automatically instead of being calculated by hand.
 
-## Creating one
+## Creating one <!-- requires: FixedAssetCreate -->
 
 Click **New**. You'll set:
 
@@ -23,7 +23,7 @@ Click **New**. You'll set:
 An **Asset Code** (e.g. `FA-0001`) is generated automatically — you don't set
 it.
 
-## Running depreciation
+## Running depreciation <!-- requires: FixedAssetDepreciate -->
 
 **Run Depreciation** books one month's charge for the selected asset(s) and
 posts the journal entry immediately — there's no draft or approval step for
@@ -32,7 +32,7 @@ is capped at whatever remains of the depreciable base, so running it past an
 asset's useful life simply books nothing more. An asset that's already fully
 depreciated, or already disposed, is not eligible.
 
-## Disposing an asset
+## Disposing an asset <!-- requires: FixedAssetDispose -->
 
 **Dispose Asset** writes the asset off the books — its remaining book value
 becomes a loss — and **cannot be undone**. Once disposed, the asset can no
