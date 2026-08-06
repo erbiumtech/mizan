@@ -3,6 +3,9 @@
 namespace App\Modules\Accounting\Filament\Resources\Accounts\Schemas;
 
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\Company;
+use App\Support\TaxRegimes;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -36,7 +39,19 @@ class AccountForm
                         'income' => 'Income',
                         'expense' => 'Expense',
                     ])
+                    ->live()
                     ->required(),
+
+                // Only on income accounts, and only where a tax estimate exists
+                // to consume it — a business tenant has no use for the
+                // individual schedules, so the field would be a question with no
+                // purpose on every account it has.
+                Select::make('tax_regime')
+                    ->label('Taxed as')
+                    ->options(TaxRegimes::ALL)
+                    ->visible(fn ($get) => $get('type') === 'income'
+                        && ((Filament::getTenant() ?? Company::current())?->isPersonal() ?? false))
+                    ->helperText('Which Pakistani schedule income booked here falls under. Set it once and every entry against this account is classified on the Tax Estimate. Left blank, that income is listed as unclassified rather than guessed at.'),
 
                 // Nova: BelongsTo parent → Account — nullable, searchable.
                 //

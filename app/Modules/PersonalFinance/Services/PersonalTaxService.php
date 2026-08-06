@@ -2,7 +2,8 @@
 
 namespace App\Modules\PersonalFinance\Services;
 
-use App\Modules\PersonalFinance\Models\PersonalAccount;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
 use RuntimeException;
 
@@ -39,7 +40,7 @@ class PersonalTaxService
      */
     public function incomeByRegime(int $fiscalYearId): array
     {
-        $accounts = PersonalAccount::ofType(PersonalAccount::TYPE_INCOME)->get();
+        $accounts = Account::ofType('income')->get();
 
         $byRegime = [];
         $unclassified = 0.0;
@@ -161,16 +162,23 @@ class PersonalTaxService
         ];
     }
 
-    /** What was credited to an income account inside one tax year. */
-    private function creditedInYear(PersonalAccount $account, int $fiscalYearId): float
+    /**
+     * What was credited to an income account inside one tax year.
+     *
+     * Posted entries only, matching every other report in the app: an entry that
+     * has not been posted has not happened as far as the books are concerned,
+     * and taxing it would be taxing an intention.
+     */
+    private function creditedInYear(Account $account, int $fiscalYearId): float
     {
-        $credits = (float) $account->lines()
-            ->whereHas('entry', fn ($query) => $query->where('fiscal_year_id', $fiscalYearId))
-            ->sum('credit');
+        $lines = JournalEntryLine::query()
+            ->where('account_id', $account->id)
+            ->whereHas('journalEntry', fn ($query) => $query
+                ->where('is_posted', true)
+                ->where('fiscal_year_id', $fiscalYearId));
 
-        $debits = (float) $account->lines()
-            ->whereHas('entry', fn ($query) => $query->where('fiscal_year_id', $fiscalYearId))
-            ->sum('debit');
+        $credits = (float) (clone $lines)->sum('credit_amount');
+        $debits = (float) (clone $lines)->sum('debit_amount');
 
         // Debits against an income account are refunds or corrections.
         return round($credits - $debits, 2);
