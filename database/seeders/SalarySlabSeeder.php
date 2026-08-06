@@ -35,6 +35,26 @@ class SalarySlabSeeder extends Seeder
         // ==========================================
         // 2. Fiscal Year 2026-2027 Slabs
         // ==========================================
+        //
+        // UNVERIFIED — these rates need confirming against the Finance Act before
+        // anyone relies on them, and this is the year payroll actually uses.
+        //
+        // FiscalYearSeeder marks both years active and FiscalYear::booted() stands
+        // down whichever was activated first, so 2026-2027 wins and is what
+        // FiscalYear::current() returns. Every payslip is being taxed on the rows
+        // below (TaxCalculatorTest says as much: "the shared base uses 2026-2027").
+        //
+        // What is verifiable from here: the 2025-2026 set above matches the
+        // Finance Act 2025 salaried schedule exactly. This set does not — it has
+        // eight brackets rather than six, and 20/25/29/32 in the middle where the
+        // enacted salaried schedule has 23/30/35. It is not the non-salaried
+        // schedule either; that one opens at 15% on the second bracket, and this
+        // opens at 1%, which is the salaried marker.
+        //
+        // Most likely these are provisional figures for a tax year whose Finance
+        // Act had not been enacted when they were written. Deliberately left as
+        // found: guessing at tax rates is worse than flagging them. Confirm
+        // against the Act, then delete this comment.
         $fy2026 = FiscalYear::where('name', '2026-2027')->first();
 
         if ($fy2026) {
