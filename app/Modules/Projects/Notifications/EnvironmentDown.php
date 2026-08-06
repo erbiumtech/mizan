@@ -5,8 +5,11 @@ namespace App\Modules\Projects\Notifications;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -55,6 +58,28 @@ class EnvironmentDown extends Notification implements ShouldQueue
         }
 
         return $message->action('Open project', $this->projectUrl());
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        $project = $this->environment->project;
+        $label = $this->environment->label();
+
+        return FilamentNotification::make()
+            ->title($this->isReminder ? "Still down: {$project->name} {$label}" : "{$project->name} {$label} is down")
+            ->body('Unreachable since '.$this->incident->started_at->format('j M Y H:i').' ('.$this->incident->durationForHumans().').')
+            ->danger()
+            ->actions([
+                Action::make('open')
+                    ->label('Open project')
+                    ->url($this->projectUrl()),
+            ])
+            ->getDatabaseMessage();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 
     /**

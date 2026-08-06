@@ -3,8 +3,10 @@
 namespace App\Modules\Expenses\Notifications;
 
 use App\Modules\Expenses\Models\ExpenseClaim;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -16,14 +18,12 @@ class ExpenseClaimSubmitted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $employee = $this->claim->employee?->user?->name
-            ?? $this->claim->employee?->employee_id
-            ?? 'An employee';
+        $employee = $this->employeeName();
 
         $mail = (new MailMessage)
             ->subject("Expense claim #{$this->claim->id} from {$employee} awaits approval")
@@ -43,5 +43,25 @@ class ExpenseClaimSubmitted extends Notification implements ShouldQueue
             : 'No receipt was attached.');
 
         return $mail->line('Approve it, or refuse it with a reason, from Expense Claims.');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return FilamentNotification::make()
+            ->title("Expense claim from {$this->employeeName()} awaits approval")
+            ->body(number_format((float) $this->claim->amount, 2).' — '.$this->claim->description)
+            ->getDatabaseMessage();
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
+    }
+
+    private function employeeName(): string
+    {
+        return $this->claim->employee?->user?->name
+            ?? $this->claim->employee?->employee_id
+            ?? 'An employee';
     }
 }
