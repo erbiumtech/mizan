@@ -18,6 +18,8 @@ use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Modules\Accounting\Models\Loan;
+use App\Modules\Accounting\Models\LoanInstalment;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\ScheduledTransaction;
 use App\Modules\Accounting\Models\ScheduledTransactionLine;
@@ -35,6 +37,8 @@ use App\Modules\Accounting\Policies\CurrencyPolicy;
 use App\Modules\Accounting\Policies\FixedAssetPolicy;
 use App\Modules\Accounting\Policies\JournalEntryLinePolicy;
 use App\Modules\Accounting\Policies\JournalEntryPolicy;
+use App\Modules\Accounting\Policies\LoanInstalmentPolicy;
+use App\Modules\Accounting\Policies\LoanPolicy;
 use App\Modules\Accounting\Policies\PaymentPolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
@@ -68,6 +72,8 @@ class AccountingServiceProvider extends ServiceProvider
         FixedAsset::class => FixedAssetPolicy::class,
         JournalEntryLine::class => JournalEntryLinePolicy::class,
         JournalEntry::class => JournalEntryPolicy::class,
+        Loan::class => LoanPolicy::class,
+        LoanInstalment::class => LoanInstalmentPolicy::class,
         Payment::class => PaymentPolicy::class,
         ScheduledTransaction::class => ScheduledTransactionPolicy::class,
         ScheduledTransactionLine::class => ScheduledTransactionLinePolicy::class,
