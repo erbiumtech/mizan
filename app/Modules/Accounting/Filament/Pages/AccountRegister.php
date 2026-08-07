@@ -11,11 +11,13 @@ use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
 use UnitEnum;
@@ -40,18 +42,24 @@ class AccountRegister extends Page
     public ?array $data = [];
 
     /**
-     * The blank row at the foot of the register.
+     * The entry strip under the register.
      *
-     * Plain Livewire state rather than a second Filament form, and deliberately.
-     * What makes a register a register is that the entry row IS the last row of
-     * the table — same columns, same alignment, same typography — and a form
-     * component brings its own label, wrapper and error markup that has to be
-     * fought back out of a table cell. Six bare inputs bound to an array is less
-     * machinery and a closer result.
+     * A real Filament form, sitting directly beneath the table with its fields
+     * lined up under the columns they belong to. The first version put bare
+     * inputs inside the last `<tr>`, which looked closer to GnuCash and carried
+     * one flaw that mattered more than the look: a native `<select>` only
+     * type-jumps on the *start* of a label, and every label here begins with the
+     * account type — "Expense:5700 Rent Expense". Typing "rent" found nothing.
+     * With 43 accounts in the stock chart and more in a real one, picking the
+     * other side of an entry meant scrolling.
      *
-     * @var array<string, mixed>
+     * A Filament Select searches anywhere in the label and shows a search box,
+     * so "rent" finds Rent Expense. That is worth more than the fields being
+     * inside the table element.
+     *
+     * @var array<string, mixed>|null
      */
-    public array $newRow = [];
+    public ?array $newRowData = [];
 
     /**
      * The entry the inline row just booked, so the table can point at it.
@@ -173,9 +181,104 @@ class AccountRegister extends Page
             && (auth()->user()?->can('RegisterPost') ?? false);
     }
 
+    /**
+     * The strip's fields, laid out under the columns they belong to.
+     *
+     * Twelve columns echoing the table above: Date, Num, Description, Transfer,
+     * Debit, Credit, then the buttons. Labels are hidden because the table
+     * header two rows up is already labelling these columns, and repeating it
+     * would push the strip out of line with the thing it is meant to continue.
+     */
+    public function newRowForm(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                DatePicker::make('date')
+                    ->label('Date')
+                    ->hiddenLabel()
+                    ->native(false)
+                    ->required()
+                    // Filled by resetNewRow(), not ->default(now()) — the same
+                    // trap the To filter above carries a note about. A Carbon
+                    // default puts a time of day in the state, so the entry date
+                    // arrives as "2026-08-07 10:09:43" instead of a date.
+                    ->columnSpan(2),
+
+                TextInput::make('num')
+                    ->label('Num')
+                    ->hiddenLabel()
+                    ->placeholder('Num')
+                    ->maxLength(50)
+                    ->columnSpan(1),
+
+                TextInput::make('description')
+                    ->label('Description')
+                    ->hiddenLabel()
+                    ->placeholder('Description')
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(3),
+
+                Select::make('transfer_account_id')
+                    ->label('Transfer')
+                    ->hiddenLabel()
+                    ->placeholder('Transfer account')
+                    ->options(fn (): array => $this->transferOptions()->groupBy('type')->mapWithKeys(fn ($opts, $type): array => [
+                        ucfirst($type) => $opts->pluck('label', 'id')->all(),
+                    ])->all())
+                    // The whole reason this is a Filament field rather than a
+                    // bare <select>: it searches anywhere in the label, so "rent"
+                    // finds "Expense:5700 Rent Expense". A native select only
+                    // jumps on the first characters, which here are the type.
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->required()
+                    ->columnSpan(3),
+
+                TextInput::make('debit')
+                    ->label('Debit')
+                    ->hiddenLabel()
+                    ->placeholder('Debit (in)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.01)
+                    ->columnSpan(1),
+
+                TextInput::make('credit')
+                    ->label('Credit')
+                    ->hiddenLabel()
+                    ->placeholder('Credit (out)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.01)
+                    ->columnSpan(1),
+
+                Actions::make([
+                    FormAction::make('book')
+                        ->label('Book')
+                        ->icon('heroicon-m-check')
+                        ->color('success')
+                        ->size('sm')
+                        ->action('saveNewRow'),
+                    FormAction::make('clearRow')
+                        ->label('Clear')
+                        ->icon('heroicon-m-x-mark')
+                        ->color('gray')
+                        ->size('sm')
+                        ->link()
+                        ->action('resetNewRow'),
+                ])
+                    ->columnSpan(1)
+                    ->verticallyAlignCenter(),
+            ])
+            ->statePath('newRowData')
+            ->columns(12);
+    }
+
     public function resetNewRow(): void
     {
-        $this->newRow = [
+        $this->newRowForm->fill([
             // Today, not the last row's date. A register is usually being caught
             // up from paperwork on the desk today, and a date that quietly
             // inherits from whatever was entered last is how a whole afternoon of
@@ -186,7 +289,7 @@ class AccountRegister extends Page
             'transfer_account_id' => null,
             'debit' => null,
             'credit' => null,
-        ];
+        ]);
     }
 
     /**
@@ -220,11 +323,13 @@ class AccountRegister extends Page
     }
 
     /**
-     * Book the blank row and leave a fresh one ready.
+     * Book the strip and leave a fresh one ready.
      *
-     * Errors land on the fields rather than in a toast: the row is still on
-     * screen with what was typed in it, so "which box is wrong" is a question
-     * the screen can answer directly, and a notification that disappears cannot.
+     * Validation is the form's own, so a missing description marks the
+     * description box rather than raising a toast that disappears while what
+     * was typed is still on screen. The one rule the form cannot express — an
+     * amount in exactly one of two columns — is put back on a field afterwards,
+     * for the same reason.
      */
     public function saveNewRow(): void
     {
@@ -232,40 +337,27 @@ class AccountRegister extends Page
             abort(403);
         }
 
-        $this->validate([
-            'newRow.date' => ['required', 'date'],
-            'newRow.num' => ['nullable', 'string', 'max:50'],
-            'newRow.description' => ['required', 'string', 'max:255'],
-            'newRow.transfer_account_id' => ['required'],
-            'newRow.debit' => ['nullable', 'numeric', 'min:0'],
-            'newRow.credit' => ['nullable', 'numeric', 'min:0'],
-        ], attributes: [
-            'newRow.date' => 'date',
-            'newRow.description' => 'description',
-            'newRow.transfer_account_id' => 'transfer account',
-            'newRow.debit' => 'debit',
-            'newRow.credit' => 'credit',
-        ]);
+        $data = $this->newRowForm->getState();
 
         try {
             ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
-                $this->newRow['debit'] ?? null,
-                $this->newRow['credit'] ?? null,
+                $data['debit'] ?? null,
+                $data['credit'] ?? null,
             );
         } catch (\InvalidArgumentException $e) {
-            $this->addError('newRow.debit', $e->getMessage());
+            $this->addError('newRowData.debit', $e->getMessage());
 
             return;
         }
 
-        $transfer = $this->transferOptions()->firstWhere('id', (int) $this->newRow['transfer_account_id']);
+        $transfer = $this->transferOptions()->firstWhere('id', (int) $data['transfer_account_id']);
 
         if ($transfer === null) {
-            // Not just "required": the account has to be one this register is
-            // allowed to post against, and the list is scoped per register
-            // account. A stale id from a switched account would otherwise reach
-            // the service and fail there with a less useful message.
-            $this->addError('newRow.transfer_account_id', 'Choose an account from the list.');
+            // Not just "required": the list is scoped to what this register may
+            // post against, and a stale id left over from switching account
+            // would otherwise reach the service and fail there with a message
+            // about the ledger rather than about the box that is wrong.
+            $this->addError('newRowData.transfer_account_id', 'Choose an account from the list.');
 
             return;
         }
@@ -275,15 +367,20 @@ class AccountRegister extends Page
                 $this->currentAccount(),
                 Account::findOrFail($transfer['id']),
                 [
-                    'date' => $this->newRow['date'],
-                    'description' => $this->newRow['description'],
-                    'num' => $this->newRow['num'] ?: null,
+                    // Normalised, not passed through. The picker hands back
+                    // "2026-08-07 10:11:00" rather than a plain date, and while
+                    // entry_date casts that away, the same value is compared
+                    // against the From/To filter below — where a time of day is
+                    // the difference between an entry showing and not.
+                    'date' => \Illuminate\Support\Carbon::parse($data['date'])->toDateString(),
+                    'description' => $data['description'],
+                    'num' => $data['num'] ?: null,
                     'direction' => $direction,
                     'amount' => $amount,
                 ],
             );
         } catch (\InvalidArgumentException $e) {
-            $this->addError('newRow.description', $e->getMessage());
+            $this->addError('newRowData.description', $e->getMessage());
 
             return;
         }
@@ -291,8 +388,8 @@ class AccountRegister extends Page
         $this->justAdded = $entry->getKey();
         $this->resetNewRow();
 
-        // Focus back to Date, so the next one can be typed without reaching for
-        // the mouse. A register is used in runs of twenty, not one at a time.
+        // Focus back to the first field, so the next one can be typed without
+        // reaching for the mouse. A register is worked in runs of twenty.
         $this->dispatch('register-row-saved');
 
         Notification::make()

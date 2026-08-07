@@ -52,7 +52,7 @@ class RegisterInlineRowTest extends AccountingTestCase
     /** @param array<string, mixed> $row */
     private function typeRow(array $row = [])
     {
-        return $this->page()->set('newRow', $row + [
+        return $this->page()->set('newRowData', $row + [
             'date' => '2026-07-10',
             'num' => 'CHQ-1',
             'description' => 'Office rent',
@@ -101,20 +101,29 @@ class RegisterInlineRowTest extends AccountingTestCase
         $component = $this->typeRow()->call('saveNewRow');
 
         $component
-            ->assertSet('newRow.description', null)
-            ->assertSet('newRow.credit', null)
-            ->assertSet('newRow.num', null)
-            ->assertSet('newRow.date', now()->toDateString())
+            ->assertSet('newRowData.description', null)
+            ->assertSet('newRowData.credit', null)
+            ->assertSet('newRowData.num', null)
             ->assertDispatched('register-row-saved');
+
+        // The date portion, because Filament's picker keeps a time of day in
+        // state. What matters is which day it resets to.
+        $this->assertSame(
+            now()->toDateString(),
+            \Illuminate\Support\Carbon::parse($component->get('newRowData.date'))->toDateString(),
+        );
     }
 
     public function test_the_date_resets_to_today_rather_than_inheriting(): void
     {
         // A date that quietly carries over from the last entry is how an
         // afternoon of transactions ends up on one wrong day.
-        $this->typeRow(['date' => '2026-07-01'])
-            ->call('saveNewRow')
-            ->assertSet('newRow.date', now()->toDateString());
+        $component = $this->typeRow(['date' => '2026-07-01'])->call('saveNewRow');
+
+        $this->assertSame(
+            now()->toDateString(),
+            \Illuminate\Support\Carbon::parse($component->get('newRowData.date'))->toDateString(),
+        );
     }
 
     public function test_the_saved_row_is_marked_so_a_back_dated_one_can_be_found(): void
@@ -132,7 +141,7 @@ class RegisterInlineRowTest extends AccountingTestCase
     {
         $this->typeRow(['debit' => 100, 'credit' => 100])
             ->call('saveNewRow')
-            ->assertHasErrors('newRow.debit');
+            ->assertHasErrors('newRowData.debit');
 
         $this->assertSame(0, JournalEntry::count());
     }
@@ -141,7 +150,7 @@ class RegisterInlineRowTest extends AccountingTestCase
     {
         $this->typeRow(['debit' => null, 'credit' => null])
             ->call('saveNewRow')
-            ->assertHasErrors('newRow.debit');
+            ->assertHasErrors('newRowData.debit');
 
         $this->assertSame(0, JournalEntry::count());
     }
@@ -150,7 +159,7 @@ class RegisterInlineRowTest extends AccountingTestCase
     {
         $this->typeRow(['description' => null])
             ->call('saveNewRow')
-            ->assertHasErrors('newRow.description');
+            ->assertHasErrors('newRowData.description');
 
         $this->assertSame(0, JournalEntry::count());
     }
@@ -159,7 +168,7 @@ class RegisterInlineRowTest extends AccountingTestCase
     {
         $this->typeRow(['transfer_account_id' => null])
             ->call('saveNewRow')
-            ->assertHasErrors('newRow.transfer_account_id');
+            ->assertHasErrors('newRowData.transfer_account_id');
     }
 
     public function test_an_account_outside_the_offered_list_is_refused(): void
@@ -169,7 +178,7 @@ class RegisterInlineRowTest extends AccountingTestCase
         // the service and fail there with a worse message.
         $this->typeRow(['transfer_account_id' => $this->register()->id])
             ->call('saveNewRow')
-            ->assertHasErrors('newRow.transfer_account_id');
+            ->assertHasErrors('newRowData.transfer_account_id');
 
         $this->assertSame(0, JournalEntry::count());
     }
@@ -180,8 +189,8 @@ class RegisterInlineRowTest extends AccountingTestCase
         // still there, so the screen can point at the box that is wrong.
         $this->typeRow(['debit' => 100, 'credit' => 100])
             ->call('saveNewRow')
-            ->assertSet('newRow.description', 'Office rent')
-            ->assertSet('newRow.debit', 100);
+            ->assertSet('newRowData.description', 'Office rent')
+            ->assertSet('newRowData.debit', 100);
     }
 
     // ── access ──────────────────────────────────────────────────────────────
@@ -225,7 +234,7 @@ class RegisterInlineRowTest extends AccountingTestCase
 
         $this->assertTrue(AccountRegister::canAccess());
         $this->assertFalse($this->page()->instance()->canAddInline());
-        $this->page()->assertDontSee('Book this transaction');
+        $this->page()->assertDontSee('Enter books it and clears the line');
     }
 
     public function test_a_reader_cannot_post_through_it_anyway(): void
@@ -283,6 +292,35 @@ class RegisterInlineRowTest extends AccountingTestCase
         $this->assertSame(
             ['direction' => 'out', 'amount' => 750.0],
             AccountRegister::sideAndAmount(null, 750),
+        );
+    }
+
+    // ── the reason this is a Filament field ─────────────────────────────────
+
+    public function test_the_transfer_account_is_searchable(): void
+    {
+        // The bug that moved this out of the table. A native <select> only
+        // type-jumps on the start of a label, and every label here begins with
+        // the account type — "Expense:5700 Rent Expense" — so typing "rent"
+        // matched nothing and 43 accounts had to be scrolled.
+        $field = collect($this->page()->instance()->newRowForm->getFlatComponents())
+            ->first(fn ($component): bool => $component instanceof \Filament\Forms\Components\Select
+                && $component->getName() === 'transfer_account_id');
+
+        $this->assertNotNull($field, 'The transfer field is not in the strip.');
+        $this->assertTrue($field->isSearchable(), 'Turning search off here makes the account unfindable by name.');
+    }
+
+    public function test_an_account_can_be_found_by_its_name_not_only_its_type(): void
+    {
+        // The labels are what search runs against, so the name has to be in
+        // them. It is the second half of the fix and would survive a rename of
+        // the field without this.
+        $labels = $this->page()->instance()->transferOptions()->pluck('label');
+
+        $this->assertTrue(
+            $labels->contains(fn (string $label): bool => str_contains(strtolower($label), 'rent')),
+            'No option mentions "rent", so no search for it can succeed.',
         );
     }
 
