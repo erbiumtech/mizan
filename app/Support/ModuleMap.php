@@ -231,6 +231,7 @@ final class ModuleMap
         ],
         'accounting' => [
             'App\Filament\Pages\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
+            'App\Filament\Pages\FindTransactions' => \App\Modules\Accounting\Filament\Pages\FindTransactions::class,
             'App\Filament\Pages\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
             'App\Filament\Pages\ContractorPayments' => \App\Modules\Accounting\Filament\Pages\ContractorPayments::class,
             'App\Filament\Pages\CurrencyRevaluation' => \App\Modules\Accounting\Filament\Pages\CurrencyRevaluation::class,

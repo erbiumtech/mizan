@@ -65,6 +65,12 @@ budgeting chapter.
   balance. This is the closest thing to a traditional ledger card, and unlike the
   other reports it can also *edit* the rows it booked itself. See the ledger
   chapter for the limits on that.
+- **Find Transactions** — search the whole ledger at once: by account, dates,
+  amount range, side or wording. The Account Register answers "what happened in
+  this account"; this answers "where in the books is the thing I am looking
+  for". It only finds — it never changes anything. Note that it shows **posted
+  entries only** until you clear the status filter, so a draft you are hunting
+  for will not appear until you do.
 - **Petty Cash Book** — the float: what was spent, what is left, and
   replenishment.
 - **Currency Revaluation** — foreign balances at the rate on a date. It is filed

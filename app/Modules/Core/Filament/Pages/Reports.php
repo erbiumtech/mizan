@@ -11,6 +11,7 @@ use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
+use App\Modules\Accounting\Filament\Pages\FindTransactions;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
@@ -90,6 +91,7 @@ class Reports extends Page
         ],
         'Ledgers & books' => [
             AccountRegister::class => 'One account, every transaction against it, running balance — and edits.',
+            FindTransactions::class => 'Search the whole ledger by account, date, amount or wording.',
             PettyCashBook::class => 'The cash float: what was spent, what is left, and replenishment.',
             CurrencyRevaluation::class => 'Foreign balances at the rate on a date, and the difference posted.',
         ],
