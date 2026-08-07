@@ -212,19 +212,39 @@ class PersonalTaxServiceTest extends TestCase
         $this->assertSame($result['tax'], $result['total']);
     }
 
-    public function test_the_salaried_surcharge_is_gone_in_2026_27_but_the_business_one_remains(): void
+    public function test_no_surcharge_survives_into_2026_27(): void
     {
-        // The Finance Act 2026 withdrew it for salary income only. Expressed as an
-        // absent row rather than a branch, so this asserts the data as much as the
-        // arithmetic.
+        // Section 4AB is abolished outright from this year. It applied in
+        // 2025-26 at 9% on salary and 10% on everything else, so this is the
+        // whole of it going rather than the salaried half — which is what the
+        // first reading of the Act had.
+        //
+        // Expressed as absent rows rather than a code branch, so this asserts
+        // the data as much as the arithmetic: the next Finance Act that brings
+        // a surcharge back does it by seeding a row, and this test is what
+        // notices.
         $year = FiscalYear::where('name', '2026-2027')->firstOrFail();
 
-        $salaried = $this->tax()->taxFor(12000000, TaxSchedule::REGIME_SALARIED, $year->id);
-        $business = $this->tax()->taxFor(12000000, TaxSchedule::REGIME_BUSINESS, $year->id);
+        foreach ([
+            TaxSchedule::REGIME_SALARIED,
+            TaxSchedule::REGIME_BUSINESS,
+            TaxSchedule::REGIME_RENTAL,
+        ] as $regime) {
+            $result = $this->tax()->taxFor(12000000, $regime, $year->id);
 
-        $this->assertSame(0.0, $salaried['surcharge'], 'The salaried surcharge was withdrawn for 2026-27.');
-        $this->assertGreaterThan(0.0, $business['surcharge'], 'The non-salaried surcharge was not withdrawn.');
-        $this->assertSame(10.0, $business['surcharge_rate']);
+            $this->assertSame(0.0, $result['surcharge'], "A surcharge still applies to {$regime} in 2026-27.");
+            $this->assertSame(0.0, $result['surcharge_rate']);
+        }
+    }
+
+    public function test_the_surcharge_did_apply_in_2025_26(): void
+    {
+        // The other side of the change. Without this, "no surcharge" would pass
+        // just as well against a seeder that had never created one.
+        $year = FiscalYear::where('name', '2025-2026')->firstOrFail();
+
+        $this->assertSame(9.0, $this->tax()->taxFor(12000000, TaxSchedule::REGIME_SALARIED, $year->id)['surcharge_rate']);
+        $this->assertSame(10.0, $this->tax()->taxFor(12000000, TaxSchedule::REGIME_BUSINESS, $year->id)['surcharge_rate']);
     }
 
     public function test_rental_income_is_taxed_after_the_repair_allowance(): void
