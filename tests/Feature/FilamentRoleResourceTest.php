@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Core\Filament\Resources\Roles\Pages\CreateRole;
 use App\Modules\Core\Filament\Resources\Roles\Pages\EditRole;
 use App\Modules\Core\Filament\Resources\Roles\Schemas\RoleForm;
+use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
@@ -29,6 +30,55 @@ class FilamentRoleResourceTest extends TestCase
         Permission::create(['name' => 'AlphaView', 'group' => 'Alpha', 'guard_name' => 'web']);
         Permission::create(['name' => 'AlphaEdit', 'group' => 'Alpha', 'guard_name' => 'web']);
         Permission::create(['name' => 'BetaView', 'group' => 'Beta', 'guard_name' => 'web']);
+    }
+
+    /**
+     * Every company has a role called Employee. Editing one of them must not
+     * collide with the others.
+     *
+     * The name field was `unique(ignoreRecord: true)`, which excludes only the row
+     * being edited and then checks the whole roles table — so with more than one
+     * company in the installation, opening any seeded role and pressing Save
+     * failed with "The name has already been taken." Nothing about the message
+     * points at the real cause, and the role being edited is plainly the only one
+     * of its name in the company you are looking at.
+     *
+     * Roles are per-company (company_id is spatie's team key) and the resource's
+     * own getEloquentQuery() scopes to it, but a Filament unique rule builds its
+     * own query and never goes through that.
+     */
+    public function test_a_role_can_be_edited_when_another_company_has_one_of_the_same_name(): void
+    {
+        $mine = Role::create([
+            'name' => 'Employee',
+            'guard_name' => 'web',
+            'company_id' => Company::current()?->getKey() ?? $this->tenant->getKey(),
+        ]);
+
+        // A second company with the same role name — the ordinary state of this
+        // application, not an edge case.
+        $other = Company::factory()->create();
+        Role::create(['name' => 'Employee', 'guard_name' => 'web', 'company_id' => $other->getKey()]);
+
+        Livewire::test(EditRole::class, ['record' => $mine->getKey()])
+            ->fillForm(['name' => 'Employee', 'guard_name' => 'web'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+    }
+
+    public function test_two_roles_in_the_same_company_still_cannot_share_a_name(): void
+    {
+        $companyId = Company::current()?->getKey() ?? $this->tenant->getKey();
+
+        Role::create(['name' => 'Auditor', 'guard_name' => 'web', 'company_id' => $companyId]);
+        $second = Role::create(['name' => 'Reviewer', 'guard_name' => 'web', 'company_id' => $companyId]);
+
+        // The rule still has to do its job within a company; scoping it must not
+        // turn it off.
+        Livewire::test(EditRole::class, ['record' => $second->getKey()])
+            ->fillForm(['name' => 'Auditor', 'guard_name' => 'web'])
+            ->call('save')
+            ->assertHasFormErrors(['name']);
     }
 
     public function test_create_role_assigns_grouped_permissions(): void

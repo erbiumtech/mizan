@@ -4,10 +4,12 @@ namespace App\Modules\PersonalFinance\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\PersonalFinance\Models\PersonalTaxProfile;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
 use App\Modules\PersonalFinance\Services\PersonalTaxService;
+use Filament\Facades\Filament;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
@@ -48,6 +50,18 @@ class TaxEstimate extends Page
     public static function canAccess(): bool
     {
         if (! static::moduleIsAvailable()) {
+            return false;
+        }
+
+        // Only on a personal account. The brackets here are the *individual*
+        // schedules, so offering them inside a business would invite somebody to
+        // read a company's income as one person's taxable income.
+        // Filament's tenant first, Spatie's current second: the panel sets the
+        // former and the multitenancy middleware the latter, and only one of
+        // them is set outside a real request. Same idiom as Impersonation.
+        $company = Filament::getTenant() ?? Company::current();
+
+        if (! ($company?->isPersonal() ?? false)) {
             return false;
         }
 

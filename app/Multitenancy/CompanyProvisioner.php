@@ -4,13 +4,16 @@ namespace App\Multitenancy;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Support\Modules;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\PersonalBaselineSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\TenantBaselineSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 use PDO;
 use RuntimeException;
 
@@ -21,8 +24,13 @@ use RuntimeException;
  */
 class CompanyProvisioner
 {
-    public function provision(string $name, ?string $slug = null, ?User $creator = null, bool $seedBaseline = true): Company
-    {
+    public function provision(
+        string $name,
+        ?string $slug = null,
+        ?User $creator = null,
+        bool $seedBaseline = true,
+        string $type = Company::TYPE_BUSINESS,
+    ): Company {
         $connection = $this->tenantConnectionName();
 
         if (! $connection || $connection === config('database.default')) {
@@ -43,6 +51,7 @@ class CompanyProvisioner
         $company = Company::create([
             'name' => $name,
             'slug' => $slug,
+            'type' => $type,
             'database' => $database,
             'status' => 1,
         ]);
@@ -51,7 +60,12 @@ class CompanyProvisioner
         // it has bought. Written before the tenant database exists because these
         // rows are landlord-side and must survive a provisioning rollback being
         // skipped — rollBack() deletes the company, which cascades them away.
-        modules()->seedDefaults($company->getKey());
+        modules()->seedDefaults(
+            $company->getKey(),
+            // A personal account starts with a ledger, staff records and the tax
+            // estimate rather than the business defaults — see PERSONAL_DEFAULTS.
+            $company->isPersonal() ? Modules::PERSONAL_DEFAULTS : null,
+        );
 
         // Only tear down a database this call brought into existence.
         $createdDatabase = ! $this->databaseExists($database, $connection);
@@ -69,7 +83,13 @@ class CompanyProvisioner
 
             if ($seedBaseline) {
                 Artisan::call('db:seed', [
-                    '--class' => TenantBaselineSeeder::class,
+                    // A household has no use for the business chart of accounts,
+                    // supplier transaction types, the bank list or payroll's
+                    // salary slabs. See PersonalBaselineSeeder for what it gets
+                    // instead.
+                    '--class' => $company->isPersonal()
+                        ? PersonalBaselineSeeder::class
+                        : TenantBaselineSeeder::class,
                     '--force' => true,
                 ]);
             }
@@ -134,6 +154,18 @@ class CompanyProvisioner
             }
 
             $company->users()->detach();
+
+            // Roles too. They are landlord rows carrying company_id as a plain
+            // column — spatie's team key, with no foreign key to cascade from —
+            // so deleting the company leaves them behind belonging to nobody.
+            // Invisible, but not harmless: they are still rows named
+            // Administrator and Employee, and they broke editing a real
+            // company's roles by counting towards the name uniqueness check.
+            Role::where(
+                config('permission.column_names.team_foreign_key', 'company_id'),
+                $company->getKey(),
+            )->delete();
+
             $company->delete();
         } catch (\Throwable) {
             // Swallowed on purpose: the caller is about to see the real failure.

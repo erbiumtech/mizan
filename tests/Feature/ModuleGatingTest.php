@@ -114,7 +114,14 @@ class ModuleGatingTest extends TestCase
     {
         // Proves the gate is not simply stuck shut. Per module rather than per
         // class because several pages require a specific permission on top.
-        $company = Company::factory()->create();
+        //
+        // Runs against a personal account rather than a business, because that
+        // is the only tenant type on which every module can surface. Personal
+        // Finance offers the *individual* Pakistani tax brackets, so its page is
+        // deliberately hidden inside a business — showing them there would
+        // invite somebody to read a company's income as one person's taxable
+        // income. Nothing else cares which type it is.
+        $company = Company::factory()->create(['type' => Company::TYPE_PERSONAL]);
         $this->actAsSuperAdminOf($company);
 
         foreach ($this->gatedModules() as $module) {

@@ -2,8 +2,10 @@
 
 namespace App\Modules\PersonalFinance\Services;
 
-use App\Modules\PersonalFinance\Models\PersonalAccount;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
+use App\Modules\PersonalFinance\Models\TaxSurcharge;
 use RuntimeException;
 
 /**
@@ -21,12 +23,27 @@ use RuntimeException;
  *    top bracket was left bounded, and that failure was invisible for as long as
  *    it existed.
  *
- * This is an estimate. It does not know about tax already withheld at source,
- * credits, deductible allowances, or the surcharge on high salaried income, and
- * it says so on screen.
+ * This is an estimate. It applies the section 4AB surcharge and the automatic
+ * repair allowance on property income, both as data rather than code. It does
+ * NOT know about tax already withheld at source, tax credits, or the receipted
+ * deductions specific to a property — and it says so on screen.
  */
 class PersonalTaxService
 {
+    /**
+     * The repair allowance on property income: one fifth of the rent, allowed
+     * automatically with no receipts (s.15A).
+     *
+     * Applied here because rental income for an individual is not taxed on the
+     * gross. Ignoring it overstates the liability by a fifth of the rent, which
+     * on any real rent is a large number to be wrong by.
+     *
+     * The other s.15A deductions — property tax, insurance, loan interest, ground
+     * rent, collection charges, irrecoverable rent — are receipted and specific to
+     * the property, so the estimate cannot know them. It says so on screen.
+     */
+    private const RENTAL_REPAIR_ALLOWANCE = 0.20;
+
     /**
      * Income for the year grouped by the schedule it is taxed under.
      *
@@ -39,7 +56,7 @@ class PersonalTaxService
      */
     public function incomeByRegime(int $fiscalYearId): array
     {
-        $accounts = PersonalAccount::ofType(PersonalAccount::TYPE_INCOME)->get();
+        $accounts = Account::ofType('income')->get();
 
         $byRegime = [];
         $unclassified = 0.0;
@@ -80,6 +97,9 @@ class PersonalTaxService
             return [
                 'taxable' => 0.0,
                 'tax' => 0.0,
+                'surcharge' => 0.0,
+                'surcharge_rate' => 0.0,
+                'total' => 0.0,
                 'bracket' => null,
                 'marginal_rate' => 0.0,
                 'effective_rate' => 0.0,
@@ -114,12 +134,26 @@ class PersonalTaxService
 
         $tax = round(max(0, $tax), 2);
 
+        // Section 4AB, a percentage OF THE TAX once taxable income passes a
+        // threshold. Absent for a year and regime where it does not apply — the
+        // 2026 Act withdrew it for salaried individuals — so no row means none.
+        $surcharge = TaxSurcharge::where('fiscal_year_id', $fiscalYearId)
+            ->where('regime', $regime)
+            ->first();
+
+        $surchargeAmount = $surcharge?->amountOn($taxable, $tax) ?? 0.0;
+        $total = round($tax + $surchargeAmount, 2);
+
         return [
             'taxable' => $taxable,
             'tax' => $tax,
+            'surcharge' => $surchargeAmount,
+            'surcharge_rate' => $surchargeAmount > 0 ? (float) $surcharge->percentage : 0.0,
+            'total' => $total,
             'bracket' => $bracket,
             'marginal_rate' => (float) $bracket->percentage,
-            'effective_rate' => $taxable > 0 ? round($tax / $taxable * 100, 2) : 0.0,
+            // Against the total, since that is what would actually be paid.
+            'effective_rate' => $taxable > 0 ? round($total / $taxable * 100, 2) : 0.0,
         ];
     }
 
@@ -140,17 +174,24 @@ class PersonalTaxService
         $totalIncome = 0.0;
         $totalTax = 0.0;
 
+        $totalSurcharge = 0.0;
+
         foreach ($income['by_regime'] as $regime => $amount) {
-            $result = $this->taxFor($amount, $regime, $fiscalYearId);
+            $taxable = $this->taxableAmountFor($regime, $amount);
+            $result = $this->taxFor($taxable, $regime, $fiscalYearId);
 
             $regimes[] = [
                 'regime' => $regime,
                 'label' => TaxSchedule::REGIMES[$regime] ?? $regime,
+                // Gross and taxable are both shown, because for rental they
+                // differ and a reader has to see why the tax is not on the rent.
                 'income' => $amount,
+                'allowance' => round($amount - $taxable, 2),
             ] + $result;
 
             $totalIncome += $amount;
             $totalTax += $result['tax'];
+            $totalSurcharge += $result['surcharge'];
         }
 
         return [
@@ -158,19 +199,45 @@ class PersonalTaxService
             'unclassified' => $income['unclassified'],
             'total_income' => round($totalIncome, 2),
             'total_tax' => round($totalTax, 2),
+            'total_surcharge' => round($totalSurcharge, 2),
+            'total_payable' => round($totalTax + $totalSurcharge, 2),
         ];
     }
 
-    /** What was credited to an income account inside one tax year. */
-    private function creditedInYear(PersonalAccount $account, int $fiscalYearId): float
+    /**
+     * What of this income is actually taxable.
+     *
+     * Only rental differs: property income carries an automatic repair allowance
+     * of one fifth of the rent, so the tax is never on the gross. Everything else
+     * is taxable as earned, as far as this estimate can know — it cannot see
+     * receipted deductions.
+     */
+    private function taxableAmountFor(string $regime, float $amount): float
     {
-        $credits = (float) $account->lines()
-            ->whereHas('entry', fn ($query) => $query->where('fiscal_year_id', $fiscalYearId))
-            ->sum('credit');
+        if ($regime !== TaxSchedule::REGIME_RENTAL) {
+            return $amount;
+        }
 
-        $debits = (float) $account->lines()
-            ->whereHas('entry', fn ($query) => $query->where('fiscal_year_id', $fiscalYearId))
-            ->sum('debit');
+        return round($amount * (1 - self::RENTAL_REPAIR_ALLOWANCE), 2);
+    }
+
+    /**
+     * What was credited to an income account inside one tax year.
+     *
+     * Posted entries only, matching every other report in the app: an entry that
+     * has not been posted has not happened as far as the books are concerned,
+     * and taxing it would be taxing an intention.
+     */
+    private function creditedInYear(Account $account, int $fiscalYearId): float
+    {
+        $lines = JournalEntryLine::query()
+            ->where('account_id', $account->id)
+            ->whereHas('journalEntry', fn ($query) => $query
+                ->where('is_posted', true)
+                ->where('fiscal_year_id', $fiscalYearId));
+
+        $credits = (float) (clone $lines)->sum('credit_amount');
+        $debits = (float) (clone $lines)->sum('debit_amount');
 
         // Debits against an income account are refunds or corrections.
         return round($credits - $debits, 2);

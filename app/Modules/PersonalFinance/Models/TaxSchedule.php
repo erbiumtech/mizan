@@ -4,6 +4,7 @@ namespace App\Modules\PersonalFinance\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\TaxRegimes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -18,20 +19,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TaxSchedule extends Model
 {
-    public const REGIME_SALARIED = 'salaried';
+    // Aliases onto the shared list. Accounting needs the same names to offer
+    // the setting on an income account, and neither module should depend on the
+    // other, so App\Support\TaxRegimes owns them.
+    public const REGIME_SALARIED = TaxRegimes::SALARIED;
 
-    public const REGIME_BUSINESS = 'business';
+    public const REGIME_BUSINESS = TaxRegimes::BUSINESS;
 
-    public const REGIME_RENTAL = 'rental';
+    public const REGIME_RENTAL = TaxRegimes::RENTAL;
 
-    public const REGIME_CAPITAL_GAINS = 'capital_gains';
+    public const REGIME_CAPITAL_GAINS = TaxRegimes::CAPITAL_GAINS;
 
-    public const REGIMES = [
-        self::REGIME_SALARIED => 'Salaried',
-        self::REGIME_BUSINESS => 'Business / self-employed',
-        self::REGIME_RENTAL => 'Rental / property income',
-        self::REGIME_CAPITAL_GAINS => 'Capital gains',
-    ];
+    public const REGIMES = TaxRegimes::ALL;
 
     protected $fillable = [
         'fiscal_year_id',

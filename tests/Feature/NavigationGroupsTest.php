@@ -22,12 +22,17 @@ class NavigationGroupsTest extends TestCase
     use InteractsWithTenant;
     use RefreshDatabase;
 
-    /** @return array<string, array<int, string>> group label => item labels */
-    private function navigation(): array
+    /**
+     * @param  string  $type  Which kind of tenant to look at. Personal accounts
+     *                        get a group business ones do not, so the two views
+     *                        are genuinely different and both need asserting.
+     * @return array<string, array<int, string>> group label => item labels
+     */
+    private function navigation(string $type = Company::TYPE_BUSINESS): array
     {
         $this->seed(PermissionSeeder::class);
 
-        $company = Company::factory()->create();
+        $company = Company::factory()->create(['type' => $type]);
         app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
         (new RoleSeeder)->run();
 
@@ -157,6 +162,14 @@ class NavigationGroupsTest extends TestCase
         $this->assertContains('Payslips', $navigation['Employee'] ?? []);
     }
 
+    public function test_mpr_sits_with_the_other_employee_records(): void
+    {
+        $navigation = $this->navigation();
+
+        $this->assertArrayNotHasKey('MPR', $navigation);
+        $this->assertContains('MPR', $navigation['Employee'] ?? []);
+    }
+
     public function test_gnucash_import_sits_with_the_other_import(): void
     {
         $navigation = $this->navigation();
@@ -195,19 +208,44 @@ class NavigationGroupsTest extends TestCase
 
         // No Reports: the fourteen report pages are reached through the single
         // top-level Reports link instead, which ReportsHubTest covers.
+        //
+        // No Personal either, and that is the assertion rather than an omission:
+        // this runs against a business, and the individual tax brackets have no
+        // business being offered there. See the personal case below.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
             'Employee',
             'Invoicing & Inventory',
-            'MPR',
-            // A person's own books, not the company's. Its own group rather than
-            // a corner of Accounting precisely because the money in it is not
-            // the company's money.
-            'Personal',
             'Settings',
         ], $labels);
+    }
+
+    /**
+     * Two tests rather than one, because the panel is booted once per test and
+     * asking it about a second tenant mid-test gets the first one's answer.
+     * The pair matters more than either half: offering the individual tax
+     * schedules inside a business would invite somebody to read a company's
+     * income as one person's taxable income, and withholding them from a
+     * personal account would leave it with no screen of its own.
+     */
+    public function test_a_personal_account_gets_the_personal_group(): void
+    {
+        $this->assertContains(
+            'Personal',
+            array_keys($this->navigation(Company::TYPE_PERSONAL)),
+            'A personal account has no Personal group, so it has no screen of its own.',
+        );
+    }
+
+    public function test_a_business_is_not_offered_the_personal_group(): void
+    {
+        $this->assertNotContains(
+            'Personal',
+            array_keys($this->navigation(Company::TYPE_BUSINESS)),
+            'A business is being offered the individual tax schedules.',
+        );
     }
 
     /**
@@ -219,7 +257,7 @@ class NavigationGroupsTest extends TestCase
     {
         $navigation = $this->navigation();
 
-        $this->assertGreaterThanOrEqual(8, count($navigation));
+        $this->assertGreaterThanOrEqual(7, count($navigation));
         $this->assertGreaterThanOrEqual(30, collect($navigation)->flatten()->count());
         $this->assertContains('Dashboard', collect($navigation)->flatten()->all());
     }

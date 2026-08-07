@@ -125,15 +125,17 @@ return [
         'plugin' => \App\Modules\Mpr\MprPlugin::class,
     ],
 
-    // Deliberately requires nothing. It keeps its own ledger tables, its own tax
-    // schedules and its own calculator rather than reaching into Accounting or
-    // Payroll — a person's own money is not the company's money, and coupling
-    // the two would mean a company that has not licensed Accounting could not
-    // let its staff track their own expenses.
+    // Requires Accounting, and genuinely so rather than for tidiness: a personal
+    // account keeps its books in the tenant's own chart of accounts and journal
+    // entries, and the tax estimate is computed by reading the income posted
+    // there. Without Accounting there is nothing for it to add up.
+    //
+    // It briefly had its own parallel ledger and therefore no dependency. That
+    // was the wrong shape — see docs/personal-finance-plan.md.
     'personal_finance' => [
         'label' => 'Personal Finance',
-        'description' => 'A person\'s own income, expenses, balance sheet and Pakistani income tax estimate.',
-        'requires' => [],
+        'description' => 'Individual Pakistani income tax estimate over a personal account\'s own books.',
+        'requires' => ['accounting'],
         'licensed_by_default' => false,
         'plugin' => \App\Modules\PersonalFinance\PersonalFinancePlugin::class,
     ],

@@ -10,14 +10,32 @@ know about:
 - **Tax already deducted at source** — if your employer withholds tax from your
   salary each month, that is not subtracted here. The figure shown is total
   liability for the year, not what is still outstanding.
-- **Tax credits and deductible allowances** — pension contributions, charitable
-  donations, Zakat and the rest.
-- **The surcharge on high salaried income** introduced by the Finance Act 2025.
+
+- **Tax credits** — pension contributions, charitable donations and the rest.
+- **Receipted property deductions** — insurance, loan interest, property tax,
+  collection charges. The automatic one-fifth repair allowance on rent **is**
+  applied; these specific ones cannot be, because your ledger does not record
+  them.
 - **Anything you have not recorded.** Income you never entered is income this
   screen cannot see.
 
 For anything that matters — filing, planning around a large sum, a disagreement
 with FBR — talk to somebody qualified.
+
+## What it does apply
+
+- **The section 4AB surcharge**, where it is due: a percentage of the *tax*, not
+  of your income, once taxable income passes PKR 10,000,000. It was 9% for
+  salaried income up to tax year 2026 and was withdrawn for salary from tax year
+  2027; 10% continues for business and rental income. Where it applies, the
+  screen shows the tax and the surcharge separately so the arithmetic is
+  checkable.
+- **The repair allowance on rent** — one fifth of the rent, allowed automatically
+  with no receipts. Rental income is never taxed on the gross, and the
+  breakdown shows the allowance deducted.
+- **Ordinary slab rates on rental income.** Property income has had no separate
+  rate table since 2019: net rent is added to income and taxed at the normal
+  schedule.
 
 ## How your income gets classified
 
