@@ -19,9 +19,43 @@ stop there too. A transaction dated ahead of today (a payment scheduled for
 next week, say) is therefore invisible by default; a banner says so, and
 **"Show later entries"** clears the end date to bring it back into view.
 
-## Recording money directly on the register <!-- requires: JournalEntryCreate -->
+## Typing straight into the register <!-- requires: JournalEntryCreate -->
 
-- **Add Transaction** — books a balanced two-line journal entry immediately:
+A **blank entry line sits directly under the table**, with its boxes lined up
+under the columns they belong to. Fill it in and press **Enter**, or the **Book**
+button.
+
+That is the fast way when you are working through a stack of paperwork: the row
+clears itself, the cursor goes back to Date, and you type the next one. No dialog
+to open and close twenty times.
+
+Six boxes, left to right:
+
+| Box | What goes in it |
+|---|---|
+| Date | Starts at today. **It resets to today after every save** rather than keeping the last date — a date that quietly carries over is how an afternoon of entries lands on one wrong day |
+| Num | A cheque or voucher number. Optional |
+| Description | What it was. Required |
+| Transfer | The account on the other side. **Type any part of its name** — "rent" finds Rent Expense |
+| Debit | Money **into** this account |
+| Credit | Money **out of** this account |
+
+**An amount goes in Debit or Credit, never both.** Anything else is refused, and
+the message appears under the row with what you typed still in place, so you can
+see which box to fix.
+
+It posts on the spot — no draft, no approval — exactly like Add Transaction.
+
+**If a saved entry does not appear at the bottom**, it is dated earlier and has
+sorted into its own place in the ledger. It is tinted so you can find it. If it
+is dated outside the From/To range on screen it will not be in the list at all,
+and the confirmation says so.
+
+## The buttons at the top <!-- requires: JournalEntryCreate -->
+
+- **Add Transaction** — the same thing as the entry line, in a dialog. Use
+  whichever suits; they book identically and refuse identically. It
+  books a balanced two-line journal entry immediately:
   enter the amount in **Debit** for money coming in, **Credit** for money
   going out (never both), pick the account on the other side of the entry,
   and it posts on the spot. There is no draft or approval step for this path.

@@ -104,7 +104,7 @@ class ReportsHubTest extends TestCase
         // the same. GnuCash Import is deliberately absent — it is an import, and
         // it lives in Settings now; NavigationGroupsTest holds that end of it.
         foreach ([
-            'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance',
+            'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance', 'Budget vs Actual',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
             'Account Register', 'Petty Cash Book',

@@ -3,32 +3,45 @@
 namespace App\Modules\Accounting;
 
 use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
+use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Bank;
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\Budget;
+use App\Modules\Accounting\Models\BudgetLine;
 use App\Modules\Accounting\Models\BeneficiarySubscription;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Modules\Accounting\Models\Loan;
+use App\Modules\Accounting\Models\LoanInstalment;
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Models\ScheduledTransaction;
+use App\Modules\Accounting\Models\ScheduledTransactionLine;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Policies\AccountPolicy;
 use App\Modules\Accounting\Policies\BankPolicy;
 use App\Modules\Accounting\Policies\BankStatementLinePolicy;
 use App\Modules\Accounting\Policies\BankStatementPolicy;
 use App\Modules\Accounting\Policies\BeneficiaryPolicy;
+use App\Modules\Accounting\Policies\BudgetLinePolicy;
+use App\Modules\Accounting\Policies\BudgetPolicy;
 use App\Modules\Accounting\Policies\BeneficiarySubscriptionPolicy;
 use App\Modules\Accounting\Policies\CompanyBankAccountPolicy;
 use App\Modules\Accounting\Policies\CurrencyPolicy;
 use App\Modules\Accounting\Policies\FixedAssetPolicy;
 use App\Modules\Accounting\Policies\JournalEntryLinePolicy;
 use App\Modules\Accounting\Policies\JournalEntryPolicy;
+use App\Modules\Accounting\Policies\LoanInstalmentPolicy;
+use App\Modules\Accounting\Policies\LoanPolicy;
 use App\Modules\Accounting\Policies\PaymentPolicy;
+use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
+use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -51,13 +64,19 @@ class AccountingServiceProvider extends ServiceProvider
         BankStatementLine::class => BankStatementLinePolicy::class,
         BankStatement::class => BankStatementPolicy::class,
         Beneficiary::class => BeneficiaryPolicy::class,
+        Budget::class => BudgetPolicy::class,
+        BudgetLine::class => BudgetLinePolicy::class,
         Currency::class => CurrencyPolicy::class,
         BeneficiarySubscription::class => BeneficiarySubscriptionPolicy::class,
         CompanyBankAccount::class => CompanyBankAccountPolicy::class,
         FixedAsset::class => FixedAssetPolicy::class,
         JournalEntryLine::class => JournalEntryLinePolicy::class,
         JournalEntry::class => JournalEntryPolicy::class,
+        Loan::class => LoanPolicy::class,
+        LoanInstalment::class => LoanInstalmentPolicy::class,
         Payment::class => PaymentPolicy::class,
+        ScheduledTransaction::class => ScheduledTransactionPolicy::class,
+        ScheduledTransactionLine::class => ScheduledTransactionLinePolicy::class,
         TransactionType::class => TransactionTypePolicy::class,
     ];
 
@@ -67,7 +86,11 @@ class AccountingServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
-        $this->commands([BackfillPaymentEntriesCommand::class, RaiseSubscriptionPayments::class]);
+        $this->commands([
+            BackfillPaymentEntriesCommand::class,
+            RaiseScheduledTransactions::class,
+            RaiseSubscriptionPayments::class,
+        ]);
 
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');

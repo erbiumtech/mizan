@@ -11,11 +11,13 @@ use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
 use UnitEnum;
@@ -38,6 +40,36 @@ class AccountRegister extends Page
     protected static ?int $navigationSort = 6;
 
     public ?array $data = [];
+
+    /**
+     * The entry strip under the register.
+     *
+     * A real Filament form, sitting directly beneath the table with its fields
+     * lined up under the columns they belong to. The first version put bare
+     * inputs inside the last `<tr>`, which looked closer to GnuCash and carried
+     * one flaw that mattered more than the look: a native `<select>` only
+     * type-jumps on the *start* of a label, and every label here begins with the
+     * account type — "Expense:5700 Rent Expense". Typing "rent" found nothing.
+     * With 43 accounts in the stock chart and more in a real one, picking the
+     * other side of an entry meant scrolling.
+     *
+     * A Filament Select searches anywhere in the label and shows a search box,
+     * so "rent" finds Rent Expense. That is worth more than the fields being
+     * inside the table element.
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $newRowData = [];
+
+    /**
+     * The entry the inline row just booked, so the table can point at it.
+     *
+     * A row dated last week does not appear at the bottom where it was typed —
+     * it sorts into its own place in the middle of the ledger. Without something
+     * marking it, a correctly saved back-dated transaction looks like nothing
+     * happened at all.
+     */
+    public ?int $justAdded = null;
 
     public static function canAccess(): bool
     {
@@ -64,6 +96,8 @@ class AccountRegister extends Page
             // brings them back.
             'to' => now()->toDateString(),
         ]);
+
+        $this->resetNewRow();
     }
 
     public function registerAccounts(): Collection
@@ -124,6 +158,18 @@ class AccountRegister extends Page
         ]);
     }
 
+    /**
+     * Clear the highlight when the view changes.
+     *
+     * It marks the entry just booked so a back-dated one can be found. Switch
+     * account or move the dates and it is pointing at a row that is no longer
+     * on screen, or worse, at whichever row now happens to share its id.
+     */
+    public function updatedData(): void
+    {
+        $this->justAdded = null;
+    }
+
     public function getLedger(): array
     {
         return app(RegisterEntryService::class)->registerRows(
@@ -136,6 +182,252 @@ class AccountRegister extends Page
     public function transferOptions(): Collection
     {
         return app(RegisterEntryService::class)->transferOptions($this->currentAccount());
+    }
+
+    // ── the blank entry row ─────────────────────────────────────────────────
+
+    /** Whoever may open the Add Transaction dialog may type in the row. */
+    public function canAddInline(): bool
+    {
+        return (auth()->user()?->can('JournalEntryCreate') ?? false)
+            && (auth()->user()?->can('RegisterPost') ?? false);
+    }
+
+    /**
+     * The strip's fields, laid out under the columns they belong to.
+     *
+     * Twelve columns echoing the table above: Date, Num, Description, Transfer,
+     * Debit, Credit, then the buttons. Labels are hidden because the table
+     * header two rows up is already labelling these columns, and repeating it
+     * would push the strip out of line with the thing it is meant to continue.
+     */
+    public function newRowForm(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                DatePicker::make('date')
+                    ->label('Date')
+                    ->hiddenLabel()
+                    ->native(false)
+                    ->required()
+                    // Filled by resetNewRow(), not ->default(now()) — the same
+                    // trap the To filter above carries a note about. A Carbon
+                    // default puts a time of day in the state, so the entry date
+                    // arrives as "2026-08-07 10:09:43" instead of a date.
+                    ->columnSpan(2),
+
+                TextInput::make('num')
+                    ->label('Num')
+                    ->hiddenLabel()
+                    ->placeholder('Num')
+                    ->maxLength(50)
+                    ->columnSpan(1),
+
+                TextInput::make('description')
+                    ->label('Description')
+                    ->hiddenLabel()
+                    ->placeholder('Description')
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(3),
+
+                Select::make('transfer_account_id')
+                    ->label('Transfer')
+                    ->hiddenLabel()
+                    ->placeholder('Transfer account')
+                    ->options(fn (): array => $this->transferOptions()->groupBy('type')->mapWithKeys(fn ($opts, $type): array => [
+                        ucfirst($type) => $opts->pluck('label', 'id')->all(),
+                    ])->all())
+                    // The whole reason this is a Filament field rather than a
+                    // bare <select>: it searches anywhere in the label, so "rent"
+                    // finds "Expense:5700 Rent Expense". A native select only
+                    // jumps on the first characters, which here are the type.
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->required()
+                    ->columnSpan(3),
+
+                TextInput::make('debit')
+                    ->label('Debit')
+                    ->hiddenLabel()
+                    ->placeholder('Debit (in)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.01)
+                    ->columnSpan(1),
+
+                TextInput::make('credit')
+                    ->label('Credit')
+                    ->hiddenLabel()
+                    ->placeholder('Credit (out)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.01)
+                    ->columnSpan(1),
+
+                Actions::make([
+                    FormAction::make('book')
+                        ->label('Book')
+                        ->icon('heroicon-m-check')
+                        ->color('success')
+                        ->size('sm')
+                        ->action('saveNewRow'),
+                    FormAction::make('clearRow')
+                        ->label('Clear')
+                        ->icon('heroicon-m-x-mark')
+                        ->color('gray')
+                        ->size('sm')
+                        ->link()
+                        ->action('resetNewRow'),
+                ])
+                    ->columnSpan(1)
+                    ->verticallyAlignCenter(),
+            ])
+            ->statePath('newRowData')
+            ->columns(12);
+    }
+
+    public function resetNewRow(): void
+    {
+        $this->newRowForm->fill([
+            // Today, not the last row's date. A register is usually being caught
+            // up from paperwork on the desk today, and a date that quietly
+            // inherits from whatever was entered last is how a whole afternoon of
+            // transactions ends up on one wrong day.
+            'date' => now()->toDateString(),
+            'num' => null,
+            'description' => null,
+            'transfer_account_id' => null,
+            'debit' => null,
+            'credit' => null,
+        ]);
+    }
+
+    /**
+     * Which side an amount was typed on, and how much.
+     *
+     * Shared by all three ways in — the dialog, the row, and Edit — so the one
+     * rule a register has (an amount goes in exactly one of the two columns)
+     * cannot come to mean different things on different screens.
+     *
+     * @return array{direction: string, amount: float}
+     *
+     * @throws \InvalidArgumentException
+     */
+    public static function sideAndAmount(mixed $debit, mixed $credit): array
+    {
+        $debit = (float) ($debit ?: 0);
+        $credit = (float) ($credit ?: 0);
+
+        if (($debit > 0) === ($credit > 0)) {
+            throw new \InvalidArgumentException(
+                $debit > 0
+                    ? 'An amount goes in Debit or in Credit, not both.'
+                    : 'Enter an amount in Debit (money in) or Credit (money out).'
+            );
+        }
+
+        return [
+            'direction' => $debit > 0 ? 'in' : 'out',
+            'amount' => $debit > 0 ? $debit : $credit,
+        ];
+    }
+
+    /**
+     * Book the strip and leave a fresh one ready.
+     *
+     * Validation is the form's own, so a missing description marks the
+     * description box rather than raising a toast that disappears while what
+     * was typed is still on screen. The one rule the form cannot express — an
+     * amount in exactly one of two columns — is put back on a field afterwards,
+     * for the same reason.
+     */
+    public function saveNewRow(): void
+    {
+        if (! $this->canAddInline()) {
+            abort(403);
+        }
+
+        $data = $this->newRowForm->getState();
+
+        try {
+            ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
+                $data['debit'] ?? null,
+                $data['credit'] ?? null,
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->addError('newRowData.debit', $e->getMessage());
+
+            return;
+        }
+
+        $transfer = $this->transferOptions()->firstWhere('id', (int) $data['transfer_account_id']);
+
+        if ($transfer === null) {
+            // Not just "required": the list is scoped to what this register may
+            // post against, and a stale id left over from switching account
+            // would otherwise reach the service and fail there with a message
+            // about the ledger rather than about the box that is wrong.
+            $this->addError('newRowData.transfer_account_id', 'Choose an account from the list.');
+
+            return;
+        }
+
+        try {
+            $entry = app(RegisterEntryService::class)->bookRow(
+                $this->currentAccount(),
+                Account::findOrFail($transfer['id']),
+                [
+                    // Normalised, not passed through. The picker hands back
+                    // "2026-08-07 10:11:00" rather than a plain date, and while
+                    // entry_date casts that away, the same value is compared
+                    // against the From/To filter below — where a time of day is
+                    // the difference between an entry showing and not.
+                    'date' => \Illuminate\Support\Carbon::parse($data['date'])->toDateString(),
+                    'description' => $data['description'],
+                    'num' => $data['num'] ?: null,
+                    'direction' => $direction,
+                    'amount' => $amount,
+                ],
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->addError('newRowData.description', $e->getMessage());
+
+            return;
+        }
+
+        $this->justAdded = $entry->getKey();
+        $this->resetNewRow();
+
+        // Focus back to the first field, so the next one can be typed without
+        // reaching for the mouse. A register is worked in runs of twenty.
+        $this->dispatch('register-row-saved');
+
+        Notification::make()
+            ->success()
+            ->title("Booked {$entry->entry_number}.")
+            ->body($this->outsideCurrentRange($entry->entry_date?->toDateString())
+                ? 'It is dated outside the range on screen, so it is not in the list below.'
+                : null)
+            ->send();
+    }
+
+    /**
+     * Would an entry on this date be filtered out of the view it was just typed
+     * into? Saving something into invisibility, with a success message, is the
+     * one outcome here that reads as a bug.
+     */
+    private function outsideCurrentRange(?string $date): bool
+    {
+        if ($date === null) {
+            return false;
+        }
+
+        $from = $this->data['from'] ?? null;
+        $to = $this->data['to'] ?? null;
+
+        return ($from !== null && $date < $from) || ($to !== null && $date > $to);
     }
 
     /**
@@ -187,23 +479,19 @@ class AccountRegister extends Page
                     return;
                 }
 
-                $debit = (float) ($data['debit'] ?? 0);
-                $credit = (float) ($data['credit'] ?? 0);
-
-                if (($debit > 0) === ($credit > 0)) {
-                    Notification::make()->danger()->title('Enter an amount in exactly one of Debit or Credit.')->send();
-
-                    return;
-                }
-
                 try {
+                    ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
+                        $data['debit'] ?? null,
+                        $data['credit'] ?? null,
+                    );
+
                     app(RegisterEntryService::class)->updateRow($entry, $this->currentAccount(), [
                         'date' => $data['date'],
                         'description' => $data['description'],
                         'num' => $data['num'] ?? null,
                         'transfer_account_id' => $data['transfer_account_id'],
-                        'direction' => $debit > 0 ? 'in' : 'out',
-                        'amount' => $debit > 0 ? $debit : $credit,
+                        'direction' => $direction,
+                        'amount' => $amount,
                     ]);
                 } catch (\InvalidArgumentException $e) {
                     Notification::make()->danger()->title($e->getMessage())->send();
@@ -396,24 +684,20 @@ class AccountRegister extends Page
                     .', or Credit for money out. Posts immediately as a balanced 2-line journal entry.')
                 ->schema(fn (): array => $this->rowFields())
                 ->action(function (array $data): void {
-                    $debit = (float) ($data['debit'] ?? 0);
-                    $credit = (float) ($data['credit'] ?? 0);
-
-                    if (($debit > 0) === ($credit > 0)) {
-                        Notification::make()->danger()->title('Enter an amount in exactly one of Debit or Credit.')->send();
-
-                        return;
-                    }
-
                     $transfer = Account::findOrFail($data['transfer_account_id']);
 
                     try {
+                        ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
+                            $data['debit'] ?? null,
+                            $data['credit'] ?? null,
+                        );
+
                         $entry = app(RegisterEntryService::class)->bookRow($this->currentAccount(), $transfer, [
                             'date' => $data['date'],
                             'description' => $data['description'],
                             'num' => $data['num'] ?? null,
-                            'direction' => $debit > 0 ? 'in' : 'out',
-                            'amount' => $debit > 0 ? $debit : $credit,
+                            'direction' => $direction,
+                            'amount' => $amount,
                         ]);
                     } catch (\InvalidArgumentException $e) {
                         Notification::make()->danger()->title($e->getMessage())->send();

@@ -67,4 +67,20 @@
             </table>
         </div>
     </x-filament::section>
+
+    {{-- The table answers "how much was each". These answer "which ones
+         mattered", which is what the statement is actually opened for. --}}
+    <x-reports.composition
+        heading="Where the money went"
+        :rows="$report['expenses']['rows']"
+        :total="$report['expenses']['total']"
+        color="danger"
+    />
+
+    <x-reports.composition
+        heading="Where the money came from"
+        :rows="$report['income']['rows']"
+        :total="$report['income']['total']"
+        color="success"
+    />
 </x-filament-panels::page>

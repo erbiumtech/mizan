@@ -70,7 +70,21 @@
                         </tr>
                     @endif
                     @forelse($ledger['rows'] as $row)
-                        <tr class="transition hover:bg-gray-50 dark:hover:bg-white/5">
+                        {{-- Striped, because a register is read across nine columns
+                             and the eye needs the line to follow. The just-added row
+                             is tinted instead: a back-dated entry sorts into the
+                             middle of the ledger rather than appearing where it was
+                             typed, and without this a correct save looks like
+                             nothing happened. --}}
+                        {{-- Whole class names only, and only ones that survive the
+                             build. dark:even:bg-white/[0.02] was the obvious choice
+                             for a subtle stripe and Tailwind emits nothing for it,
+                             so the stripe would simply not exist in dark mode. --}}
+                        <tr @class([
+                                'transition hover:bg-gray-100 dark:hover:bg-white/10',
+                                'even:bg-gray-50 dark:even:bg-white/5' => $row['entry_id'] !== $this->justAdded,
+                                'bg-primary-50 dark:bg-primary-500/10' => $row['entry_id'] === $this->justAdded,
+                            ])>
                             <td class="whitespace-nowrap px-3 py-2">{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
                             <td class="px-3 py-2">
                                 @if($row['num'])
@@ -118,6 +132,7 @@
                     @empty
                         <tr><td class="px-3 py-6 text-center text-gray-400" colspan="9">No posted transactions in this range.</td></tr>
                     @endforelse
+
                 </tbody>
                 <tfoot>
                     <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold dark:border-white/10 dark:bg-white/5">
@@ -130,6 +145,35 @@
                 </tfoot>
             </table>
         </div>
+
+        {{-- The entry strip.
+
+             Directly under the table and joined to it — same ring, no gap, its
+             own tint — so it reads as the next line of the register rather than
+             a form that happens to be nearby. Its fields sit under the columns
+             they belong to, and the table header above is doing the labelling,
+             which is why they carry none of their own.
+
+             Under the table rather than inside it, because the Transfer column
+             needs a real search box: 43 accounts in the stock chart, more in a
+             real one, and a native <select> only jumps on the first characters
+             of a label that begins with the account type. --}}
+        @if($this->canAddInline())
+            <div
+                x-data
+                x-on:register-row-saved.window="$nextTick(() => $el.querySelector('input, button')?.focus())"
+                wire:keydown.enter.prevent="saveNewRow"
+                class="-mt-px rounded-b-lg bg-warning-50 p-3 ring-1 ring-gray-950/5 dark:bg-warning-500/10 dark:ring-white/10"
+            >
+                {{ $this->newRowForm }}
+
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Enter books it and clears the line for the next one. An amount
+                    goes in Debit (money in) or Credit (money out), never both.
+                    Posts immediately — no draft, no approval.
+                </p>
+            </div>
+        @endif
 
         {{-- Said out loud rather than silently left off: a payment scheduled ahead
              is dated at its value date, so it sits beyond the To date and shows in

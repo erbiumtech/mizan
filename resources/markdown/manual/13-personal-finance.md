@@ -90,7 +90,38 @@ All of these are the app's existing reports, working on your own books:
 - **Cash Flow** — where the money actually came from and went.
 - **Account Register** — one account, every transaction, running balance.
 
-## 6. Estimating your tax
+## 6. Planning, and money you have borrowed
+
+Two screens under Accounting are as useful to a household as to a company, and
+neither is mentioned anywhere else in this chapter because they are not special
+to personal accounts — they simply work here too.
+
+**Budgets.** Set a figure for the year against Food, Rent, Education, Domestic
+Staff Wages, and **Reports → Budget vs Actual** tells you where you stand. "I
+set 50,000 a month for food and I have spent 62,000" is most of why anyone keeps
+personal accounts at all.
+
+It counts a part month as a part month, so asking on the 7th compares you
+against seven days of the month's budget rather than all of it — which is the
+difference between an honest answer and a flattering one. School fees that land
+in three months rather than twelve go on the **Monthly Plan** tab.
+
+**Loans.** A car on finance or a house on a mortgage is a loan like any other.
+Enter the amount, the rate and the term under **Accounting → Loans** and it
+works out the repayment schedule, splitting each instalment into interest and
+principal the way the bank does. Each month can then be recorded in one click.
+
+The split is the point. Every instalment is the same amount but the share going
+to interest shrinks as the balance falls, so a flat split — the usual guess —
+overstates what you are actually paying off for years. Read the help panel on
+that screen before relying on it: it deliberately does not model variable rates,
+early settlement or a payment holiday, all of which are common in Pakistan.
+
+**Scheduled Entries** is there too, for rent or a loan instalment that goes out
+the same day every month. It raises a draft rather than posting, which for a
+household is a reminder that the money is due.
+
+## 7. Estimating your tax
 
 **Personal → Tax Estimate** works out roughly what you owe for a tax year.
 

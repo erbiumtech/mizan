@@ -66,6 +66,64 @@ one — reaching for the journal entry itself is the wrong end of the problem.
 | Import a CSV of transactions | CSV Import | Reverse the imported entries |
 | Book or replenish a petty cash voucher | Petty Cash Book | Edit or delete the voucher |
 
+## Standing entries that repeat
+
+Rent, a loan instalment, an annual licence fee — anything that is the same entry
+on a rhythm — belongs under **Accounting → Scheduled Entries** rather than being
+typed twelve times a year.
+
+A schedule holds the lines and a cadence: monthly, quarterly, every six months
+or yearly, on a nominated day. Every night it raises whatever it owes, and
+unlike the table above **what it raises is a draft**. It goes into the approval
+queue exactly as if somebody had typed it, because an entry reaching the books is
+a decision somebody makes after reading it, and a nightly job is not somebody.
+
+Three things about it are worth knowing:
+
+- **Nothing is raised twice.** Whether an occurrence exists is asked of the
+  ledger, not tracked on the schedule. Delete a draft and it comes back; restore
+  a backup and nothing doubles.
+- **It catches up.** Cron down for a week means the week's entries appear the
+  next night, correctly dated. Capped at 24 per schedule per run so a mistyped
+  start date cannot flood the ledger, and the command says when it has stopped
+  at the cap.
+- **An unbalanced schedule raises nothing** and shows a cross in the Balances
+  column. The form will not let you save one, but an account deactivated
+  underneath a saved schedule can break it later.
+
+## Borrowing, and the instalments that repay it
+
+A loan repayment is not one of the repeating entries above, because it is not the
+same entry every month. The instalment is level; the split inside it moves. Interest
+is charged on what is still owed, so it shrinks month by month while the principal
+portion grows — on a twenty-year loan the first payment is over 90% interest and
+the last is under 10%.
+
+**Accounting → Loans** takes the amount, the annual rate, the term and the first
+due date, and works the whole table out. Each row can then be recorded in one
+click, which raises a three-sided draft:
+
+| | Account | Amount |
+|---|---|---|
+| Dr | The loan liability | The principal portion — what is no longer owed |
+| Dr | Interest expense | The cost of having borrowed it this month |
+| Cr | Cash or bank | The whole instalment, which is what actually left |
+
+Booking a flat split instead — the usual spreadsheet shortcut — puts the wrong
+figure in interest expense every month and leaves the loan account nowhere near
+zero at the end.
+
+Two properties worth knowing. **Still owed** on the list is what the *agreement*
+says is left, not a restatement of the loan account: it is the figure to
+reconcile that account against, and a disagreement means something reached the
+account from outside. And the schedule **cannot be rebuilt once anything has been
+recorded**, because half of it is already in the ledger. To restructure a loan
+part way through, mark it inactive and set up a new one for the balance.
+
+The help panel on the Loans screen lists what the schedule deliberately does not
+model — variable rates, early settlement, fees, payment holidays. Read it before
+relying on the figures for anything but bookkeeping.
+
 ## Correcting a posted entry
 
 Posted entries are immutable. There is no unpost, no edit and no delete — the

@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
 use Illuminate\Support\Facades\Schedule;
 
@@ -15,4 +16,17 @@ use Illuminate\Support\Facades\Schedule;
  */
 Schedule::command(RaiseSubscriptionPayments::class)
     ->monthlyOn(26, '02:10')
+    ->withoutOverlapping();
+
+/**
+ * Standing journal entries are raised daily, not monthly, for two reasons: a
+ * schedule may name any day of the month, and a daily run makes catching up
+ * after an outage the ordinary path instead of a repair job.
+ *
+ * 02:20, keeping out of the way of payroll at 02:00 and the standing payments
+ * at 02:10 — three commands opening every tenant database at once is a race
+ * worth not having.
+ */
+Schedule::command(RaiseScheduledTransactions::class)
+    ->dailyAt('02:20')
     ->withoutOverlapping();
