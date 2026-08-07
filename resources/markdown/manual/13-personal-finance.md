@@ -64,8 +64,7 @@ record together.
 payroll: there are no payslips, no acknowledgement step, and nothing to accept or
 reject. When you pay the cook, you record it like any other expense, against the
 **Domestic Staff Wages** account. That keeps their pay in your books and on your
-Income & Expenditure without dragging in a payroll cycle a household has no use
-for.
+Profit & Loss without dragging in a payroll cycle a household has no use for.
 
 ## 4. Recording what happens
 
@@ -106,11 +105,21 @@ left untagged on purpose: there is no honest default for it, so income booked
 there is reported as unclassified rather than guessed at. Set **Taxed as** on the
 account to include it.
 
-**It is an estimate, not tax advice**, and the screen says so. It does not know
-about tax already deducted from you at source, tax credits, deductible
-allowances, or the surcharge on high salaried income. Rental and capital gains
-use indicative flat rates rather than the full schedules, which depend on the
-asset and how long it was held.
+It does apply two things people often miss. The **section 4AB surcharge** — a
+percentage of the *tax*, not of your income, once taxable income passes
+PKR 10,000,000 — is added where it is due, and shown separately so the total can
+be checked against a bracket table. And rental income gets its **automatic
+one-fifth repair allowance**, so the tax is never charged on the gross rent;
+property income has had no separate rate table since 2019, so what is left is
+taxed at the ordinary slabs.
+
+**It is still an estimate, not tax advice**, and the screen says so. It does not
+know about tax already deducted from you at source, tax credits, or the receipted
+deductions specific to a property — insurance, loan interest, property tax.
+Capital gains assume you are a filer and acquired the asset on or after
+1 July 2024, which is a flat 15%; older assets use holding-period rates and
+non-filers are taxed at slab rates, neither of which can be worked out from your
+ledger.
 
 If a year has no brackets set up, the screen says so plainly instead of showing
 zero — "nothing is configured" and "you owe nothing" look identical if a tool
