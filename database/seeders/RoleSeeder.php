@@ -92,6 +92,10 @@ class RoleSeeder extends Seeder
             // below, for the same reason account deletion is: a plan that has
             // been reported against is evidence of what was agreed.
             'BudgetView', 'BudgetCreate', 'BudgetUpdate',
+            // The accountant sets a loan up and reads its schedule. Recording
+            // an instalment writes to the ledger, so it sits with the approval
+            // powers on Manager below.
+            'LoanView', 'LoanCreate', 'LoanUpdate',
             'BankView', 'BankCreate', 'BankUpdate',
             'TransactionTypeView', 'TransactionTypeCreate', 'TransactionTypeUpdate',
             'CompanyBankAccountView', 'CompanyBankAccountCreate', 'CompanyBankAccountUpdate',
@@ -128,6 +132,7 @@ class RoleSeeder extends Seeder
         // Manager: everything the Accountant has + approve/reject/post/reverse.
         $managerPermissions = array_merge($accountantRole->permissions->pluck('name')->all(), [
             'JournalEntryApprove', 'JournalEntryReject', 'JournalEntryPost', 'JournalEntryReverse',
+            'LoanRecord',
             'PettyCashReplenish',
             'StockAdjust',
             'InvoiceVoid',
@@ -144,6 +149,6 @@ class RoleSeeder extends Seeder
         // Deliberately no JournalEntryDelete: deleting a ledger transaction —
         // including from the account register — is Administrator-only. The CEO
         // corrects the books by reversing, which leaves both rows on the ledger.
-        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'BudgetDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete', 'ProjectDelete']));
+        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'BudgetDelete', 'LoanDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete', 'ProjectDelete']));
     }
 }

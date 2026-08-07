@@ -88,6 +88,8 @@ final class ModuleMap
             'App\Models\BankStatement' => \App\Modules\Accounting\Models\BankStatement::class,
             'App\Models\BankStatementLine' => \App\Modules\Accounting\Models\BankStatementLine::class,
             'App\Models\PettyCashVoucher' => \App\Modules\Accounting\Models\PettyCashVoucher::class,
+            'App\Models\Loan' => \App\Modules\Accounting\Models\Loan::class,
+            'App\Models\LoanInstalment' => \App\Modules\Accounting\Models\LoanInstalment::class,
             'App\Models\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
             'App\Models\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
         ],
@@ -176,6 +178,7 @@ final class ModuleMap
             'App\Filament\Resources\FixedAssets\FixedAssetResource' => \App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource::class,
             'App\Filament\Resources\BankStatements\BankStatementResource' => \App\Modules\Accounting\Filament\Resources\BankStatements\BankStatementResource::class,
             'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => \App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
+            'App\Filament\Resources\Loans\LoanResource' => \App\Modules\Accounting\Filament\Resources\Loans\LoanResource::class,
             'App\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource' => \App\Modules\Accounting\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource::class,
         ],
         'invoicing' => [
@@ -291,7 +294,7 @@ final class ModuleMap
         'payroll' => ['Payslip', 'SalarySlab', 'AnnualTax'],
         'accounting' => [
             'Account', 'Bank', 'BankStatement', 'Beneficiary', 'CompanyBankAccount',
-            'Budget', 'FixedAsset', 'JournalEntry', 'Payment', 'TransactionType', 'PettyCash',
+            'Budget', 'FixedAsset', 'JournalEntry', 'Loan', 'Payment', 'TransactionType', 'PettyCash',
             'Report', 'Register', 'Import',
         ],
         'invoicing' => ['Invoicing'],

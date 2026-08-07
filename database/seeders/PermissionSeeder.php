@@ -110,6 +110,15 @@ class PermissionSeeder extends Seeder
             ['name' => 'BudgetCreate', 'group' => 'Budget'],
             ['name' => 'BudgetUpdate', 'group' => 'Budget'],
             ['name' => 'BudgetDelete', 'group' => 'Budget'],
+
+            // Borrowings and their repayment schedules. LoanRecord is the one
+            // that writes to the ledger, so it is separated from Update the way
+            // posting is separated from editing everywhere else here.
+            ['name' => 'LoanView', 'group' => 'Loan'],
+            ['name' => 'LoanCreate', 'group' => 'Loan'],
+            ['name' => 'LoanUpdate', 'group' => 'Loan'],
+            ['name' => 'LoanDelete', 'group' => 'Loan'],
+            ['name' => 'LoanRecord', 'group' => 'Loan'],
             ['name' => 'BankView', 'group' => 'Bank'],
             ['name' => 'BankCreate', 'group' => 'Bank'],
             ['name' => 'BankUpdate', 'group' => 'Bank'],
