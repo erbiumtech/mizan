@@ -88,6 +88,10 @@ class RoleSeeder extends Seeder
         $accountantRole->syncPermissions([
             'AccountView', 'AccountCreate', 'AccountUpdate',
             'ReportView',
+            // The accountant draws the budget up. Deleting one is the CEO's,
+            // below, for the same reason account deletion is: a plan that has
+            // been reported against is evidence of what was agreed.
+            'BudgetView', 'BudgetCreate', 'BudgetUpdate',
             'BankView', 'BankCreate', 'BankUpdate',
             'TransactionTypeView', 'TransactionTypeCreate', 'TransactionTypeUpdate',
             'CompanyBankAccountView', 'CompanyBankAccountCreate', 'CompanyBankAccountUpdate',
@@ -140,6 +144,6 @@ class RoleSeeder extends Seeder
         // Deliberately no JournalEntryDelete: deleting a ledger transaction —
         // including from the account register — is Administrator-only. The CEO
         // corrects the books by reversing, which leaves both rows on the ledger.
-        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete', 'ProjectDelete']));
+        $ceoRole->syncPermissions(array_merge($managerPermissions, ['AccountDelete', 'BudgetDelete', 'FixedAssetDelete', 'BankStatementDelete', 'BankDelete', 'TransactionTypeDelete', 'CompanyBankAccountDelete', 'BeneficiaryDelete', 'ProductDelete', 'ContactDelete', 'ProjectDelete']));
     }
 }

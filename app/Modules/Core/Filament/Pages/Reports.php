@@ -7,6 +7,7 @@ use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Pages\AccountRegister;
 use App\Modules\Accounting\Filament\Pages\BalanceSheet;
 use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
@@ -75,6 +76,7 @@ class Reports extends Page
             ProfitAndLoss::class => 'Income less expenses over a period, and the profit that leaves.',
             CashFlow::class => 'Where the money actually came from and went, period by period.',
             TrialBalance::class => 'Every account with its balance, and the proof that the books add up.',
+            BudgetVsActual::class => 'What was planned against what was spent, by account and by month.',
         ],
         'Receivables & payables' => [
             AgedReceivables::class => 'What customers owe, bucketed by how late it is.',
