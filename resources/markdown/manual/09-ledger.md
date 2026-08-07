@@ -66,6 +66,31 @@ one — reaching for the journal entry itself is the wrong end of the problem.
 | Import a CSV of transactions | CSV Import | Reverse the imported entries |
 | Book or replenish a petty cash voucher | Petty Cash Book | Edit or delete the voucher |
 
+## Standing entries that repeat
+
+Rent, a loan instalment, an annual licence fee — anything that is the same entry
+on a rhythm — belongs under **Accounting → Scheduled Entries** rather than being
+typed twelve times a year.
+
+A schedule holds the lines and a cadence: monthly, quarterly, every six months
+or yearly, on a nominated day. Every night it raises whatever it owes, and
+unlike the table above **what it raises is a draft**. It goes into the approval
+queue exactly as if somebody had typed it, because an entry reaching the books is
+a decision somebody makes after reading it, and a nightly job is not somebody.
+
+Three things about it are worth knowing:
+
+- **Nothing is raised twice.** Whether an occurrence exists is asked of the
+  ledger, not tracked on the schedule. Delete a draft and it comes back; restore
+  a backup and nothing doubles.
+- **It catches up.** Cron down for a week means the week's entries appear the
+  next night, correctly dated. Capped at 24 per schedule per run so a mistyped
+  start date cannot flood the ledger, and the command says when it has stopped
+  at the cap.
+- **An unbalanced schedule raises nothing** and shows a cross in the Balances
+  column. The form will not let you save one, but an account deactivated
+  underneath a saved schedule can break it later.
+
 ## Correcting a posted entry
 
 Posted entries are immutable. There is no unpost, no edit and no delete — the

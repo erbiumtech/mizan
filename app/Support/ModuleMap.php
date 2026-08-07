@@ -88,6 +88,8 @@ final class ModuleMap
             'App\Models\BankStatement' => \App\Modules\Accounting\Models\BankStatement::class,
             'App\Models\BankStatementLine' => \App\Modules\Accounting\Models\BankStatementLine::class,
             'App\Models\PettyCashVoucher' => \App\Modules\Accounting\Models\PettyCashVoucher::class,
+            'App\Models\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
+            'App\Models\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
         ],
         'invoicing' => [
             'App\Models\Contact' => \App\Modules\Invoicing\Models\Contact::class,
@@ -174,6 +176,7 @@ final class ModuleMap
             'App\Filament\Resources\FixedAssets\FixedAssetResource' => \App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource::class,
             'App\Filament\Resources\BankStatements\BankStatementResource' => \App\Modules\Accounting\Filament\Resources\BankStatements\BankStatementResource::class,
             'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => \App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
+            'App\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource' => \App\Modules\Accounting\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource::class,
         ],
         'invoicing' => [
             'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
