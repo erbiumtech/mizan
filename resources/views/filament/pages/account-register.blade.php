@@ -70,7 +70,21 @@
                         </tr>
                     @endif
                     @forelse($ledger['rows'] as $row)
-                        <tr class="transition hover:bg-gray-50 dark:hover:bg-white/5">
+                        {{-- Striped, because a register is read across nine columns
+                             and the eye needs the line to follow. The just-added row
+                             is tinted instead: a back-dated entry sorts into the
+                             middle of the ledger rather than appearing where it was
+                             typed, and without this a correct save looks like
+                             nothing happened. --}}
+                        {{-- Whole class names only, and only ones that survive the
+                             build. dark:even:bg-white/[0.02] was the obvious choice
+                             for a subtle stripe and Tailwind emits nothing for it,
+                             so the stripe would simply not exist in dark mode. --}}
+                        <tr @class([
+                                'transition hover:bg-gray-100 dark:hover:bg-white/10',
+                                'even:bg-gray-50 dark:even:bg-white/5' => $row['entry_id'] !== $this->justAdded,
+                                'bg-primary-50 dark:bg-primary-500/10' => $row['entry_id'] === $this->justAdded,
+                            ])>
                             <td class="whitespace-nowrap px-3 py-2">{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
                             <td class="px-3 py-2">
                                 @if($row['num'])
@@ -118,6 +132,138 @@
                     @empty
                         <tr><td class="px-3 py-6 text-center text-gray-400" colspan="9">No posted transactions in this range.</td></tr>
                     @endforelse
+
+                    {{-- The blank entry row.
+
+                         The last row of the table, not a form under it: same
+                         columns, same alignment, same type. That is what makes a
+                         register a register — you read down to the bottom and
+                         keep typing.
+
+                         Bare inputs rather than Filament components, because a
+                         form field brings a label, a wrapper and an error block
+                         that all have to be fought back out of a table cell.
+                         wire:model is deferred by default, so typing costs
+                         nothing until Enter — which matters here, since every
+                         render of this page recomputes the whole ledger. --}}
+                    @if($this->canAddInline())
+                        @php($newRowInput = 'w-full border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:italic placeholder:text-gray-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder:text-gray-500')
+                        <tr
+                            x-data
+                            x-on:register-row-saved.window="$nextTick(() => $refs.newRowDate?.focus())"
+                            wire:key="register-new-row"
+                            class="bg-warning-50 dark:bg-warning-500/10"
+                        >
+                            <td class="whitespace-nowrap px-3 py-2">
+                                <input
+                                    type="date"
+                                    x-ref="newRowDate"
+                                    wire:model="newRow.date"
+                                    wire:keydown.enter.prevent="saveNewRow"
+                                    class="{{ $newRowInput }}"
+                                >
+                            </td>
+                            <td class="px-3 py-2">
+                                <input
+                                    type="text"
+                                    placeholder="Num"
+                                    maxlength="50"
+                                    wire:model="newRow.num"
+                                    wire:keydown.enter.prevent="saveNewRow"
+                                    class="{{ $newRowInput }}"
+                                >
+                            </td>
+                            <td class="px-3 py-2">
+                                <input
+                                    type="text"
+                                    placeholder="Description"
+                                    maxlength="255"
+                                    wire:model="newRow.description"
+                                    wire:keydown.enter.prevent="saveNewRow"
+                                    class="{{ $newRowInput }}"
+                                >
+                            </td>
+                            <td class="px-3 py-2">
+                                {{-- A native select, grouped by account type. It is
+                                     type-to-search on every platform for free, which
+                                     is what this column needs. --}}
+                                <select
+                                    wire:model="newRow.transfer_account_id"
+                                    wire:keydown.enter.prevent="saveNewRow"
+                                    class="{{ $newRowInput }} text-right"
+                                >
+                                    <option value="">Transfer</option>
+                                    @foreach($this->transferOptions()->groupBy('type') as $type => $options)
+                                        <optgroup label="{{ ucfirst($type) }}">
+                                            @foreach($options as $option)
+                                                <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="px-3 py-2 text-center text-gray-400 dark:text-gray-500">n</td>
+                            <td class="px-3 py-2">
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="Debit"
+                                    wire:model="newRow.debit"
+                                    wire:keydown.enter.prevent="saveNewRow"
+                                    class="{{ $newRowInput }} text-right tabular-nums"
+                                >
+                            </td>
+                            <td class="px-3 py-2">
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="Credit"
+                                    wire:model="newRow.credit"
+                                    wire:keydown.enter.prevent="saveNewRow"
+                                    class="{{ $newRowInput }} text-right tabular-nums"
+                                >
+                            </td>
+                            <td class="px-3 py-2 text-right text-sm italic text-gray-400 dark:text-gray-500">Balance</td>
+                            <td class="whitespace-nowrap px-3 py-2 text-right">
+                                <div class="inline-flex items-center justify-end gap-0.5">
+                                    <x-filament::icon-button
+                                        icon="heroicon-m-check"
+                                        color="success"
+                                        size="sm"
+                                        label="Book this transaction"
+                                        wire:click="saveNewRow"
+                                        wire:loading.attr="disabled"
+                                    />
+                                    <x-filament::icon-button
+                                        icon="heroicon-m-x-mark"
+                                        color="gray"
+                                        size="sm"
+                                        label="Clear the row"
+                                        wire:click="resetNewRow"
+                                    />
+                                </div>
+                            </td>
+                        </tr>
+
+                        {{-- Errors under the row rather than in a toast: what was
+                             typed is still on screen, so the screen can point at
+                             the box that is wrong. A notification cannot, and it
+                             disappears. --}}
+                        @php($newRowErrors = collect($errors->keys())->filter(fn (string $key): bool => str_starts_with($key, 'newRow.')))
+                        @if($newRowErrors->isNotEmpty())
+                            <tr class="bg-warning-50 dark:bg-warning-500/10">
+                                <td colspan="9" class="px-3 pb-2 pt-0">
+                                    <ul class="space-y-0.5 text-xs text-danger-600 dark:text-danger-400">
+                                        @foreach($newRowErrors as $key)
+                                            <li>{{ $errors->first($key) }}</li>
+                                        @endforeach
+                                    </ul>
+                                </td>
+                            </tr>
+                        @endif
+                    @endif
                 </tbody>
                 <tfoot>
                     <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold dark:border-white/10 dark:bg-white/5">
