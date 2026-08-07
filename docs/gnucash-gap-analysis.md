@@ -1,6 +1,7 @@
 # What GnuCash has that we do not
 
 **Created:** 2026-08-07
+**Status:** every gap in §4 has since been built — see §7 for what landed.
 
 Read against [gnucash.org/features.phtml](https://www.gnucash.org/features.phtml)
 — the feature list GnuCash advertises for itself — and checked claim by claim
@@ -9,7 +10,7 @@ against this codebase.
 **The headline: we are not behind on accounting.** GnuCash is a single-user
 desktop application; most of what it advertises is either already here, here in a
 stronger form, or irrelevant to a multi-tenant web app serving Pakistani
-businesses. There is **one real hole**, and it is budgeting.
+businesses. There was **one real hole**, and it was budgeting.
 
 A caution about the source: this is a marketing page, not a manual. It says what
 GnuCash wants credit for, at the granularity of a bullet. Where a feature is
@@ -24,11 +25,11 @@ against the depth of the implementation. See §5.
 |---|---|---|
 | Double Entry | ✅ | `JournalEntry` + lines, balance enforced in `JournalEntryService::validateLines()` |
 | Checkbook-style register, splits, cleared/reconciled, autofill | ✅ | Account Register; ≥2 lines with no upper bound; `journal_entry_lines.reconciled_at` |
-| Scheduled Transactions + reminders | ⚠️ | Recurring **invoices** and subscription payments only. No general scheduled entry |
-| Reports, Graphs (bar, pie, scatter) | ✅ / ⚠️ | Reports strong; only three charts exist, none on a report |
+| Scheduled Transactions + reminders | ✅ | `ScheduledTransaction`, nightly, raises drafts. Was invoices only |
+| Reports, Graphs (bar, pie, scatter) | ✅ | Composition bars on the P&L, plan-vs-actual bars on the budget report |
 | Statement Reconciliation | ✅ | `BankStatement` → lines → auto-match → complete |
 | Income/Expense account types | ✅ | Five types, hierarchy, normal-balance derivation |
-| Small business: customers, vendors, jobs, invoicing, bills, terms, payroll, budgeting | ⚠️ | See §2 — most present, **budgeting entirely absent** |
+| Small business: customers, vendors, jobs, invoicing, bills, terms, payroll, budgeting | ✅ | See §2. Budgeting and billing terms both built; only *jobs* remains partial |
 | Multiple Currencies, fully balanced | ✅ | `Currency`, `ExchangeRate`, revaluation, realised/unrealised FX accounts |
 | Stock / Mutual Fund Portfolios | ❌ | Nothing. Deliberate — see §4 |
 | Online Stock & Mutual Fund Quotes | ❌ | Not our business |
@@ -37,9 +38,9 @@ against the depth of the implementation. See §5.
 | HBCI (German home banking) | ❌ | Irrelevant |
 | Multiplatform | n/a | Web |
 | 61 languages | ❌ | Single language. Large effort, no signal of demand |
-| Transaction Finder (query search) | ⚠️ | ⌘K palette + per-table filters. No cross-ledger query |
+| Transaction Finder (query search) | ✅ | Reports → Find Transactions, over postings, with amount and date ranges |
 | Check Printing | ❌ | We produce **IBFT bank payment files**, which is how Pakistan actually pays |
-| Mortgage & Loan Repayment Assistant | ❌ | Narrow, but a real fit for personal accounts |
+| Mortgage & Loan Repayment Assistant | ✅ | `Loan` + amortisation schedule, each instalment bookable |
 
 **Where we are ahead**, and it is worth saying because the table above does not
 show it: journal entries carry a draft → pending → approved → posted → reversed
@@ -64,10 +65,10 @@ GnuCash lists this as one bullet. Broken out:
 | Billing terms | ❌ No payment-terms concept on a contact or invoice |
 | **Budgeting** | ❌ **Nothing** |
 
-On budgeting being *nothing* rather than *thin* — grepping `budget` across `app/`
-and `database/migrations` returns exactly one file, and it is an unrelated local
-variable in `ExpenseClaimService` holding a reimbursement cap. There is no table,
-no model, no screen, no report.
+At the time of writing, budgeting was *nothing* rather than thin: grepping
+`budget` across `app/` and `database/migrations` returned exactly one file, an
+unrelated local variable in `ExpenseClaimService` holding a reimbursement cap. No
+table, no model, no screen, no report. It has since been built — §7.
 
 ## 3. The recommendation: budgeting
 
@@ -167,3 +168,67 @@ a deliberate isolation decision, not a limitation to fix.
 - **Nothing here is weighted by what users have asked for.** The ranking is my
   judgement about fit and cost, not evidence of demand. If somebody has been
   asking for one of the items in §4, that should outrank my ordering.
+
+---
+
+## 7. What was built
+
+All six items from §3 and §4, in the order they were ranked. Each is one commit
+with its own tests; the suite went from 1,391 to 1,462 passing.
+
+| # | Feature | Where | Tests |
+|---|---|---|---|
+| 1 | **Budgeting** | Accounting → Budgets; Reports → Budget vs Actual | `BudgetTest`, `BudgetScreensTest`, `BudgetAccessTest` |
+| 2 | **Scheduled entries** | Accounting → Scheduled Entries; nightly at 02:20 | `ScheduledTransactionTest` |
+| 3 | **Charts on reports** | Composition bars on Profit & Loss | `ReportCompositionTest` |
+| 4 | **Transaction finder** | Reports → Find Transactions | `FindTransactionsTest` |
+| 5 | **Loan amortisation** | Accounting → Loans | `LoanTest`, `LoanScreensTest` |
+| 6 | **Billing terms** | `contacts.payment_terms_days` → invoice due date | `PaymentTermsTest` |
+
+### Decisions worth remembering
+
+**Everything automatic raises a draft.** Scheduled entries and loan instalments
+both go into the approval queue rather than the ledger. That follows the rule
+recurring invoices already set — an entry reaching the books is a decision
+somebody makes after reading it, and a cron job is not somebody — and it is also
+what stops a schedule being a route into the accounts with no approver.
+
+**Idempotency is asked of the ledger, never of a cursor.** "Has this occurrence
+been raised" is a lookup on `journal_entries` by source and date. A `last_run`
+column is wrong the first time anybody deletes a draft, runs the command by hand,
+or restores a backup.
+
+**Part periods are counted as part periods.** The budget report measures 7 August
+against seven days of August's plan, not all of it. Counting the whole month is
+the ordinary way an overspend is made to look like an underspend.
+
+**Variance is signed by whether it is good news.** Under plan on an expense and
+over plan on income are opposite subtractions and both green.
+
+**Null is not zero.** On payment terms, "none agreed" and "due on receipt" are
+different facts; collapsing them puts every contact nobody has thought about into
+the overdue bucket on day one.
+
+### Three bugs the tests found, that reading did not
+
+- `bg-success-500` and `bg-primary-500` **were not in the built CSS at all**, so
+  the first set of bars shipped as correctly sized invisible divs. Same shape as
+  the earlier `.help-content` rename. Two guards now hold it: one asserts the
+  classes are in the built stylesheet, one refuses any view that builds a
+  Tailwind class by interpolation.
+- `Loan::scheduledOutstanding()` appended `orderByDesc` to a relation already
+  sorted ascending, so a **fully repaid loan reported the balance it had after
+  its first instalment**. `reorder()` is the fix.
+- My own hand-computed annuity payment in the first loan test was wrong and the
+  code was right. Worth recording because the instinct on a red test is to
+  distrust the code.
+
+### Still not done, deliberately
+
+Everything in §5, unchanged — portfolios, check printing, QIF/OFX, HBCI, multiple
+backends, 61 languages.
+
+Plus **jobs**: `Project` exists but is still not linked to billing, and §6 notes
+that the match to GnuCash's meaning was guessed at rather than confirmed. It is
+the one row of §2 that did not get built, because it is the one where nobody has
+established what it should do here.
