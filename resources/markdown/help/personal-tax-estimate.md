@@ -26,12 +26,12 @@ with FBR — talk to somebody qualified.
 
 ## What it does apply
 
-- **The section 4AB surcharge**, where it is due: a percentage of the *tax*, not
-  of your income, once taxable income passes PKR 10,000,000. It was 9% for
-  salaried income up to tax year 2026 and was withdrawn for salary from tax year
-  2027; 10% continues for business and rental income. Where it applies, the
-  screen shows the tax and the surcharge separately so the arithmetic is
-  checkable.
+- **The section 4AB surcharge**, for the years it existed: a percentage of the
+  *tax*, not of your income, once taxable income passes PKR 10,000,000. It was
+  9% on salary and 10% on business and rental income, and **it is abolished from
+  tax year 2027** — so an estimate for 2025-26 carries it and one for 2026-27
+  does not. Where it applies, the screen shows the tax and the surcharge
+  separately so the arithmetic is checkable.
 - **The repair allowance on rent** — one fifth of the rent, allowed automatically
   with no receipts. Rental income is never taxed on the gross, and the
   breakdown shows the allowance deducted.
