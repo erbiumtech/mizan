@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting;
 
 use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
+use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Bank;
@@ -18,6 +19,8 @@ use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Models\ScheduledTransaction;
+use App\Modules\Accounting\Models\ScheduledTransactionLine;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Policies\AccountPolicy;
 use App\Modules\Accounting\Policies\BankPolicy;
@@ -33,6 +36,8 @@ use App\Modules\Accounting\Policies\FixedAssetPolicy;
 use App\Modules\Accounting\Policies\JournalEntryLinePolicy;
 use App\Modules\Accounting\Policies\JournalEntryPolicy;
 use App\Modules\Accounting\Policies\PaymentPolicy;
+use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
+use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -64,6 +69,8 @@ class AccountingServiceProvider extends ServiceProvider
         JournalEntryLine::class => JournalEntryLinePolicy::class,
         JournalEntry::class => JournalEntryPolicy::class,
         Payment::class => PaymentPolicy::class,
+        ScheduledTransaction::class => ScheduledTransactionPolicy::class,
+        ScheduledTransactionLine::class => ScheduledTransactionLinePolicy::class,
         TransactionType::class => TransactionTypePolicy::class,
     ];
 
@@ -73,7 +80,11 @@ class AccountingServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
-        $this->commands([BackfillPaymentEntriesCommand::class, RaiseSubscriptionPayments::class]);
+        $this->commands([
+            BackfillPaymentEntriesCommand::class,
+            RaiseScheduledTransactions::class,
+            RaiseSubscriptionPayments::class,
+        ]);
 
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');
