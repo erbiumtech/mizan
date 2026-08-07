@@ -1,3 +1,5 @@
+![Tax Estimate](/images/help/personal-tax-estimate.png)
+
 ## This is an estimate, not tax advice
 
 Read this part before you rely on any number on this screen.
