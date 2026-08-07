@@ -158,6 +158,18 @@ class AccountRegister extends Page
         ]);
     }
 
+    /**
+     * Clear the highlight when the view changes.
+     *
+     * It marks the entry just booked so a back-dated one can be found. Switch
+     * account or move the dates and it is pointing at a row that is no longer
+     * on screen, or worse, at whichever row now happens to share its id.
+     */
+    public function updatedData(): void
+    {
+        $this->justAdded = null;
+    }
+
     public function getLedger(): array
     {
         return app(RegisterEntryService::class)->registerRows(
