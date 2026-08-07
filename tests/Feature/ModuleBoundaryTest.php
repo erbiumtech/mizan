@@ -94,7 +94,13 @@ class ModuleBoundaryTest extends TestCase
         'accounting' => ['employees', 'payroll', 'invoicing', 'inventory'],
         'core' => ['accounting', 'payroll', 'invoicing', 'inventory', 'employees', 'mpr'],
         'employees' => ['projects', 'accounting'],
-        'invoicing' => ['inventory'],
+        // Invoicing -> Projects is guarded, not debt: an invoice may name the
+        // engagement it belongs to (GnuCash's "job"), and every surface that
+        // offers the field checks modules()->enabled('projects') first. Invoicing
+        // stays sellable to a company that runs no projects — the column exists
+        // in every tenant, because licensing decides what is offered rather than
+        // what is migrated, and it simply stays empty.
+        'invoicing' => ['inventory', 'projects'],
         'mpr' => ['employees'],
     ];
 

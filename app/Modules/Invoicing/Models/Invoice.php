@@ -8,6 +8,7 @@ use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Projects\Models\Project;
 use App\Support\ModuleMap;
 use App\Traits\Auditable;
 use Illuminate\Support\Carbon;
@@ -32,7 +33,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'recurring_invoice_id', 'period',
-        'invoice_number', 'kind', 'currency_code', 'exchange_rate', 'contact_id', 'invoice_date', 'due_date',
+        'invoice_number', 'kind', 'currency_code', 'exchange_rate', 'contact_id', 'project_id', 'invoice_date', 'due_date',
         'status', 'subtotal', 'tax_amount', 'tax_inclusive', 'total', 'amount_paid', 'memo',
         'journal_entry_id', 'fiscal_year_id',
     ];
@@ -98,6 +99,27 @@ class Invoice extends Model
     public function contact()
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * The engagement this invoice belongs to — GnuCash's "job".
+     *
+     * A guarded soft dependency on Projects, the same shape as Billing's on
+     * Advances: Invoicing must stay sellable to a company that does not run
+     * projects, so every surface that offers this field checks
+     * modules()->enabled('projects') first and the column is simply never
+     * filled. The relation itself is harmless either way — the table exists in
+     * every tenant, because licensing decides what is offered, not what is
+     * migrated.
+     */
+    public function project()
+    {
+        // Imported properly rather than written as an inline FQCN. The first
+        // version used the long form and ModuleBoundaryTest reported the
+        // coupling as not existing — the lint reads `use` statements, so an
+        // inline reference is a dependency the tool built to track them cannot
+        // see. Hiding it would have been worse than declaring it.
+        return $this->belongsTo(Project::class);
     }
 
     public function lines()

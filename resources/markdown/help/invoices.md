@@ -75,6 +75,23 @@ scheduled job rather than by hand. There is no screen yet to create or edit a
 recurring template — once raised, a recurring invoice is an ordinary Draft and
 goes through Issue / Payment / Void exactly like any other.
 
+## Billing against a project <!-- requires: InvoiceCreate, InvoiceUpdate -->
+
+An invoice can name the **Project** it belongs to. Optional, and only offered
+when the Projects module is licensed.
+
+It answers a question ageing cannot: a client with four pieces of work running
+has one balance owing and four different answers to "what has this one been
+worth". Set the project on each invoice and the **Project** filter on the list
+gives you everything billed against that engagement.
+
+The project is a lens, not a change to the books — the client's total, the
+ledger and the ageing buckets are all exactly as they were.
+
+Deleting a project does **not** delete its invoices. The link is simply cleared:
+an invoice is a document that went to a customer, and the file it was kept under
+going away must not take the money with it.
+
 ## Roles and permissions
 
 | Role | View | Create / edit drafts | Issue | Record payment | Void |
