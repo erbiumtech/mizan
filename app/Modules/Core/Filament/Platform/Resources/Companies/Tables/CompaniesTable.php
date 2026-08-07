@@ -22,6 +22,18 @@ class CompaniesTable
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
+
+                // Two kinds of tenant with the same name shape and different
+                // books inside. Without this the list cannot tell you which is
+                // which, and the type is fixed at creation — so noticing later
+                // means re-provisioning.
+                TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn (Company $record): string => $record->typeLabel())
+                    ->color(fn (Company $record): string => $record->isPersonal() ? 'warning' : 'gray')
+                    ->sortable(),
+
                 TextColumn::make('slug')->searchable()->toggleable(),
                 TextColumn::make('users_count')->label('Members')->counts('users')->sortable(),
 
@@ -38,6 +50,11 @@ class CompaniesTable
                     ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')
                     ->color(fn ($state) => $state ? 'success' : 'gray'),
                 TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                \Filament\Tables\Filters\SelectFilter::make('type')
+                    ->label('Type')
+                    ->options(Company::TYPE_LABELS),
             ])
             ->recordActions([
                 Action::make('open')

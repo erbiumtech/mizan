@@ -20,6 +20,30 @@ class CompanyForm
                 ->required()
                 ->maxLength(255),
 
+            // What kind of books these are. The provisioner has taken this since
+            // personal accounts were added, and nothing ever passed it — so every
+            // company made from this screen came out a business, and a personal
+            // account could only be created from tinker.
+            //
+            // Create-only, and that is a constraint rather than an omission:
+            // the type decides which chart of accounts, which spending
+            // categories and which modules are seeded, all of which happen once.
+            // Switching afterwards would leave a household chart labelled as a
+            // business, or a business with no salary slabs.
+            Select::make('type')
+                ->label('Type')
+                ->options(Company::TYPE_LABELS)
+                ->default(Company::TYPE_BUSINESS)
+                ->required()
+                ->selectablePlaceholder(false)
+                ->helperText(fn (?Company $record): string => $record !== null
+                    ? 'Fixed once created — the chart of accounts and starting modules follow from it.'
+                    : 'A company gets the trading chart, banks, transaction types and payroll slabs. '
+                        .'A personal account gets a household chart (Food, Rent, Education, Domestic Staff Wages), '
+                        .'the individual tax estimate, and no payroll.')
+                ->disabled(fn (?Company $record): bool => $record !== null)
+                ->dehydrated(fn (?Company $record): bool => $record === null),
+
             // Only asked on create — the assigned user becomes this company's
             // Administrator (attached + given the Administrator role in its team).
             Select::make('admin_user_id')

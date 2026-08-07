@@ -108,15 +108,27 @@ class Company extends SpatieTenant
     }
 
     /**
-     * What to call this on screen.
+     * What to call each kind on screen.
      *
      * "Company" is wrong for somebody's household, and being addressed as a
      * company while recording your grocery bill is the kind of small wrongness
      * that makes software feel like it was not meant for you.
+     *
+     * A constant rather than a match inside typeLabel(), because the create
+     * form and the companies list both need the pair as options — and when they
+     * each wrote their own, the form offered "Business" and "Personal account"
+     * while every other screen said "Company" and "Personal Account".
+     *
+     * @var array<string, string>
      */
+    public const TYPE_LABELS = [
+        self::TYPE_BUSINESS => 'Company',
+        self::TYPE_PERSONAL => 'Personal Account',
+    ];
+
     public function typeLabel(): string
     {
-        return $this->isPersonal() ? 'Personal Account' : 'Company';
+        return self::TYPE_LABELS[$this->type] ?? self::TYPE_LABELS[self::TYPE_BUSINESS];
     }
 
     public function scopePersonal($query)
