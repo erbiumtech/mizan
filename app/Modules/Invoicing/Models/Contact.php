@@ -19,12 +19,57 @@ class Contact extends Model
 
     protected $fillable = [
         'name', 'kind', 'email', 'phone', 'address_line_1', 'address_line_2',
-        'ntn', 'cnic', 'bank_id', 'is_active',
+        'ntn', 'cnic', 'bank_id', 'is_active', 'payment_terms_days',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'payment_terms_days' => 'integer',
     ];
+
+    /**
+     * The terms worth offering as a choice. Anything else can be typed.
+     *
+     * Null is deliberately absent from the list and offered as its own option on
+     * the form: "none agreed" and "due on receipt" are different facts, and a
+     * dropdown that silently treats one as the other would put every contact
+     * nobody has thought about into the overdue bucket on day one.
+     *
+     * @var array<int, string>
+     */
+    public const TERMS = [
+        0 => 'Due on receipt',
+        7 => 'Net 7 days',
+        15 => 'Net 15 days',
+        30 => 'Net 30 days',
+        45 => 'Net 45 days',
+        60 => 'Net 60 days',
+        90 => 'Net 90 days',
+    ];
+
+    public function paymentTermsLabel(): string
+    {
+        if ($this->payment_terms_days === null) {
+            return 'None agreed';
+        }
+
+        return self::TERMS[$this->payment_terms_days] ?? "Net {$this->payment_terms_days} days";
+    }
+
+    /**
+     * When an invoice dated $invoiceDate falls due under this contact's terms,
+     * or null when none are agreed.
+     */
+    public function dueDateFor(\Illuminate\Support\Carbon|string $invoiceDate): ?\Illuminate\Support\Carbon
+    {
+        if ($this->payment_terms_days === null) {
+            return null;
+        }
+
+        return \Illuminate\Support\Carbon::parse($invoiceDate)
+            ->startOfDay()
+            ->addDays($this->payment_terms_days);
+    }
 
     public function people()
     {

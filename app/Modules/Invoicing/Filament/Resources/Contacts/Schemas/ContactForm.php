@@ -53,6 +53,14 @@ class ContactForm
                     ->label('CNIC')
                     ->nullable(),
 
+                Select::make('payment_terms_days')
+                    ->label('Payment terms')
+                    ->options(Contact::TERMS)
+                    ->placeholder('None agreed')
+                    ->selectablePlaceholder()
+                    ->nullable()
+                    ->helperText('Fills the due date on their invoices. "None agreed" leaves it blank — which is not the same as due on receipt, and keeps them out of the overdue buckets until somebody decides.'),
+
                 Select::make('bank_id')
                     ->label('Bank')
                     ->relationship('bank', 'bank_name')

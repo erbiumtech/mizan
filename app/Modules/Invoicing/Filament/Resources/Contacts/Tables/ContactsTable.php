@@ -21,6 +21,12 @@ class ContactsTable
                     ->sortable()
                     ->searchable(),
 
+                TextColumn::make('payment_terms_days')
+                    ->label('Terms')
+                    ->state(fn (Contact $record): string => $record->paymentTermsLabel())
+                    ->color(fn (Contact $record): string => $record->payment_terms_days === null ? 'gray' : 'primary')
+                    ->toggleable(),
+
                 TextColumn::make('kind')
                     ->label('Kind')
                     ->badge()

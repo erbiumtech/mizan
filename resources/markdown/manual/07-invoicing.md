@@ -20,8 +20,16 @@ revisit rarely.
 
 1. **A contact**, on the Contacts screen. Each one is marked as a **customer**,
    a **supplier**, or **both** — that is what makes it offerable on the right
-   kind of invoice. Beyond the name you can hold NTN and CNIC, an address, and
-   a bank. Needs `ContactCreate`.
+   kind of invoice. Beyond the name you can hold NTN and CNIC, an address, a
+   bank, and **payment terms**. Needs `ContactCreate`.
+
+   Payment terms are worth setting properly: they fill the due date on every
+   invoice for that contact, and the due date is what the aged reports bucket
+   by. Note that **"none agreed" and "due on receipt" are different**. Due on
+   receipt means overdue from day one. None agreed leaves the due date blank,
+   and the ageing falls back to the invoice date without treating the contact
+   as having broken a promise nobody made — which is what you want for a
+   contact nobody has decided about yet.
 2. **Named people on that contact**, optionally, on the contact's own screen.
    Correspondence goes to the primary named person if there is one, and to the
    contact's own address if there is not — so adding people changes who is

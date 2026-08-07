@@ -17,8 +17,27 @@ else is optional:
 - **NTN** / **CNIC** — tax identifiers, printed on invoices where required.
 - **Bank** — only relevant for a supplier: it is what the bank payment file
   flow uses to pay them.
+- **Payment terms** — how long they have to pay. See below.
 - **Active** — switch off to stop a contact appearing in new invoice/billing
   pickers without deleting its history.
+
+## Payment terms
+
+Set once here and every invoice for this contact gets its due date filled in:
+invoice date plus the agreed days.
+
+**"None agreed" is not "due on receipt", and the difference matters.** Due on
+receipt means the money is expected the same day, so the invoice is overdue from
+day one. None agreed means nobody has decided — the due date is left blank, and
+the aged reports fall back to the invoice date without treating the contact as
+having broken a promise nobody made.
+
+Changing the terms does not touch invoices already raised. It applies from the
+next one.
+
+On an invoice, the due date is filled from the terms **only while it is empty**.
+A date somebody typed is left alone, because it may have been negotiated — the
+**Apply terms** button beside the field puts it back when that is what you want.
 
 ## People <!-- requires: ContactUpdate -->
 
