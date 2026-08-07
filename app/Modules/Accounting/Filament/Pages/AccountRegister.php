@@ -39,6 +39,30 @@ class AccountRegister extends Page
 
     public ?array $data = [];
 
+    /**
+     * The blank row at the foot of the register.
+     *
+     * Plain Livewire state rather than a second Filament form, and deliberately.
+     * What makes a register a register is that the entry row IS the last row of
+     * the table — same columns, same alignment, same typography — and a form
+     * component brings its own label, wrapper and error markup that has to be
+     * fought back out of a table cell. Six bare inputs bound to an array is less
+     * machinery and a closer result.
+     *
+     * @var array<string, mixed>
+     */
+    public array $newRow = [];
+
+    /**
+     * The entry the inline row just booked, so the table can point at it.
+     *
+     * A row dated last week does not appear at the bottom where it was typed —
+     * it sorts into its own place in the middle of the ledger. Without something
+     * marking it, a correctly saved back-dated transaction looks like nothing
+     * happened at all.
+     */
+    public ?int $justAdded = null;
+
     public static function canAccess(): bool
     {
         if (! static::moduleIsAvailable()) {
@@ -64,6 +88,8 @@ class AccountRegister extends Page
             // brings them back.
             'to' => now()->toDateString(),
         ]);
+
+        $this->resetNewRow();
     }
 
     public function registerAccounts(): Collection
@@ -138,6 +164,163 @@ class AccountRegister extends Page
         return app(RegisterEntryService::class)->transferOptions($this->currentAccount());
     }
 
+    // ── the blank entry row ─────────────────────────────────────────────────
+
+    /** Whoever may open the Add Transaction dialog may type in the row. */
+    public function canAddInline(): bool
+    {
+        return (auth()->user()?->can('JournalEntryCreate') ?? false)
+            && (auth()->user()?->can('RegisterPost') ?? false);
+    }
+
+    public function resetNewRow(): void
+    {
+        $this->newRow = [
+            // Today, not the last row's date. A register is usually being caught
+            // up from paperwork on the desk today, and a date that quietly
+            // inherits from whatever was entered last is how a whole afternoon of
+            // transactions ends up on one wrong day.
+            'date' => now()->toDateString(),
+            'num' => null,
+            'description' => null,
+            'transfer_account_id' => null,
+            'debit' => null,
+            'credit' => null,
+        ];
+    }
+
+    /**
+     * Which side an amount was typed on, and how much.
+     *
+     * Shared by all three ways in — the dialog, the row, and Edit — so the one
+     * rule a register has (an amount goes in exactly one of the two columns)
+     * cannot come to mean different things on different screens.
+     *
+     * @return array{direction: string, amount: float}
+     *
+     * @throws \InvalidArgumentException
+     */
+    public static function sideAndAmount(mixed $debit, mixed $credit): array
+    {
+        $debit = (float) ($debit ?: 0);
+        $credit = (float) ($credit ?: 0);
+
+        if (($debit > 0) === ($credit > 0)) {
+            throw new \InvalidArgumentException(
+                $debit > 0
+                    ? 'An amount goes in Debit or in Credit, not both.'
+                    : 'Enter an amount in Debit (money in) or Credit (money out).'
+            );
+        }
+
+        return [
+            'direction' => $debit > 0 ? 'in' : 'out',
+            'amount' => $debit > 0 ? $debit : $credit,
+        ];
+    }
+
+    /**
+     * Book the blank row and leave a fresh one ready.
+     *
+     * Errors land on the fields rather than in a toast: the row is still on
+     * screen with what was typed in it, so "which box is wrong" is a question
+     * the screen can answer directly, and a notification that disappears cannot.
+     */
+    public function saveNewRow(): void
+    {
+        if (! $this->canAddInline()) {
+            abort(403);
+        }
+
+        $this->validate([
+            'newRow.date' => ['required', 'date'],
+            'newRow.num' => ['nullable', 'string', 'max:50'],
+            'newRow.description' => ['required', 'string', 'max:255'],
+            'newRow.transfer_account_id' => ['required'],
+            'newRow.debit' => ['nullable', 'numeric', 'min:0'],
+            'newRow.credit' => ['nullable', 'numeric', 'min:0'],
+        ], attributes: [
+            'newRow.date' => 'date',
+            'newRow.description' => 'description',
+            'newRow.transfer_account_id' => 'transfer account',
+            'newRow.debit' => 'debit',
+            'newRow.credit' => 'credit',
+        ]);
+
+        try {
+            ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
+                $this->newRow['debit'] ?? null,
+                $this->newRow['credit'] ?? null,
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->addError('newRow.debit', $e->getMessage());
+
+            return;
+        }
+
+        $transfer = $this->transferOptions()->firstWhere('id', (int) $this->newRow['transfer_account_id']);
+
+        if ($transfer === null) {
+            // Not just "required": the account has to be one this register is
+            // allowed to post against, and the list is scoped per register
+            // account. A stale id from a switched account would otherwise reach
+            // the service and fail there with a less useful message.
+            $this->addError('newRow.transfer_account_id', 'Choose an account from the list.');
+
+            return;
+        }
+
+        try {
+            $entry = app(RegisterEntryService::class)->bookRow(
+                $this->currentAccount(),
+                Account::findOrFail($transfer['id']),
+                [
+                    'date' => $this->newRow['date'],
+                    'description' => $this->newRow['description'],
+                    'num' => $this->newRow['num'] ?: null,
+                    'direction' => $direction,
+                    'amount' => $amount,
+                ],
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->addError('newRow.description', $e->getMessage());
+
+            return;
+        }
+
+        $this->justAdded = $entry->getKey();
+        $this->resetNewRow();
+
+        // Focus back to Date, so the next one can be typed without reaching for
+        // the mouse. A register is used in runs of twenty, not one at a time.
+        $this->dispatch('register-row-saved');
+
+        Notification::make()
+            ->success()
+            ->title("Booked {$entry->entry_number}.")
+            ->body($this->outsideCurrentRange($entry->entry_date?->toDateString())
+                ? 'It is dated outside the range on screen, so it is not in the list below.'
+                : null)
+            ->send();
+    }
+
+    /**
+     * Would an entry on this date be filtered out of the view it was just typed
+     * into? Saving something into invisibility, with a success message, is the
+     * one outcome here that reads as a bug.
+     */
+    private function outsideCurrentRange(?string $date): bool
+    {
+        if ($date === null) {
+            return false;
+        }
+
+        $from = $this->data['from'] ?? null;
+        $to = $this->data['to'] ?? null;
+
+        return ($from !== null && $date < $from) || ($to !== null && $date > $to);
+    }
+
     /**
      * Per-row edit. Mounted with ['entry' => id] from the register table.
      *
@@ -187,23 +370,19 @@ class AccountRegister extends Page
                     return;
                 }
 
-                $debit = (float) ($data['debit'] ?? 0);
-                $credit = (float) ($data['credit'] ?? 0);
-
-                if (($debit > 0) === ($credit > 0)) {
-                    Notification::make()->danger()->title('Enter an amount in exactly one of Debit or Credit.')->send();
-
-                    return;
-                }
-
                 try {
+                    ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
+                        $data['debit'] ?? null,
+                        $data['credit'] ?? null,
+                    );
+
                     app(RegisterEntryService::class)->updateRow($entry, $this->currentAccount(), [
                         'date' => $data['date'],
                         'description' => $data['description'],
                         'num' => $data['num'] ?? null,
                         'transfer_account_id' => $data['transfer_account_id'],
-                        'direction' => $debit > 0 ? 'in' : 'out',
-                        'amount' => $debit > 0 ? $debit : $credit,
+                        'direction' => $direction,
+                        'amount' => $amount,
                     ]);
                 } catch (\InvalidArgumentException $e) {
                     Notification::make()->danger()->title($e->getMessage())->send();
@@ -396,24 +575,20 @@ class AccountRegister extends Page
                     .', or Credit for money out. Posts immediately as a balanced 2-line journal entry.')
                 ->schema(fn (): array => $this->rowFields())
                 ->action(function (array $data): void {
-                    $debit = (float) ($data['debit'] ?? 0);
-                    $credit = (float) ($data['credit'] ?? 0);
-
-                    if (($debit > 0) === ($credit > 0)) {
-                        Notification::make()->danger()->title('Enter an amount in exactly one of Debit or Credit.')->send();
-
-                        return;
-                    }
-
                     $transfer = Account::findOrFail($data['transfer_account_id']);
 
                     try {
+                        ['direction' => $direction, 'amount' => $amount] = static::sideAndAmount(
+                            $data['debit'] ?? null,
+                            $data['credit'] ?? null,
+                        );
+
                         $entry = app(RegisterEntryService::class)->bookRow($this->currentAccount(), $transfer, [
                             'date' => $data['date'],
                             'description' => $data['description'],
                             'num' => $data['num'] ?? null,
-                            'direction' => $debit > 0 ? 'in' : 'out',
-                            'amount' => $debit > 0 ? $debit : $credit,
+                            'direction' => $direction,
+                            'amount' => $amount,
                         ]);
                     } catch (\InvalidArgumentException $e) {
                         Notification::make()->danger()->title($e->getMessage())->send();
