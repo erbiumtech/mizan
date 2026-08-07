@@ -33,8 +33,10 @@ distinction to keep straight:
 | **Trial Balance** | Every account with its balance, and proof the books add up | As of a date |
 | **Profit & Loss** | Income less expenses, and the profit left over | Over a period |
 | **Cash Flow** | Where money actually came from and went | Over a period |
+| **Budget vs Actual** | What was planned against what was spent | Over a period |
 
-All four can additionally be scoped to a **fiscal year**.
+The first four can additionally be scoped to a **fiscal year**; Budget vs
+Actual always belongs to the year its budget plans.
 
 The Trial Balance is the one to reach for first when something does not tie: it
 shows total debits against total credits and whether they agree. It is also what
@@ -46,7 +48,10 @@ Retained Earnings. A Profit & Loss for a closed year still reports that year
 correctly, because it reads the postings dated inside it; but the *balances* on
 those accounts start again from nothing in the next year, by design.
 
-All four require `ReportView`.
+The first four require `ReportView`. **Budget vs Actual requires `BudgetView`
+instead** — what the company intended to spend is a plan somebody may be
+trusted to read the accounts without being shown. It is covered in full in the
+budgeting chapter.
 
 ## Receivables and payables
 

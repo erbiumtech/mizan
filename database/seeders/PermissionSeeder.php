@@ -103,6 +103,13 @@ class PermissionSeeder extends Seeder
             ['name' => 'AccountUpdate', 'group' => 'Account'],
             ['name' => 'AccountDelete', 'group' => 'Account'],
             ['name' => 'ReportView', 'group' => 'Report'],
+            // Planning, separate from ReportView: the budget says what the
+            // company intends to do, which is not the same thing as being
+            // allowed to read what it has already done.
+            ['name' => 'BudgetView', 'group' => 'Budget'],
+            ['name' => 'BudgetCreate', 'group' => 'Budget'],
+            ['name' => 'BudgetUpdate', 'group' => 'Budget'],
+            ['name' => 'BudgetDelete', 'group' => 'Budget'],
             ['name' => 'BankView', 'group' => 'Bank'],
             ['name' => 'BankCreate', 'group' => 'Bank'],
             ['name' => 'BankUpdate', 'group' => 'Bank'],
