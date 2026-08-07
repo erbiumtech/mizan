@@ -198,6 +198,22 @@ Two things will refuse:
 To correct an invoice that has been issued: void it and raise a new one. There
 is no edit.
 
+## Grouping invoices under a piece of work
+
+If you run Projects, an invoice can name the **project** it belongs to — what
+GnuCash calls a *job*. It is optional, and the field only appears when that
+module is licensed.
+
+Ageing answers "what does this client owe". This answers "what has this piece of
+work been billed", which for a client with several engagements running at once is
+a different question with a different answer. Set it on each invoice, then filter
+the Invoices list by project.
+
+Nothing else changes: the ledger, the client balance and the ageing buckets are
+untouched. And deleting a project clears the link rather than deleting the
+invoices — the document went to a customer, so it outlives the folder it was
+filed in.
+
 ## Seeing what is still owed
 
 **Aged Receivables** (money in) and **Aged Payables** (money out) show every

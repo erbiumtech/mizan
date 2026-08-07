@@ -65,6 +65,19 @@ class InvoiceForm
                         return $terms === null ? null : "Payment terms: {$terms}.";
                     }),
 
+                // GnuCash's "job": which engagement this invoice belongs to.
+                // Hidden entirely when Projects is not licensed — the column
+                // still exists (every tenant gets every migration) and simply
+                // stays empty, which is what keeps Invoicing sellable on its own.
+                Select::make('project_id')
+                    ->label('Project')
+                    ->relationship('project', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->visible(fn (): bool => modules()->enabled('projects'))
+                    ->helperText('Optional. Lets you ask what one piece of work has been billed, not just what the client owes.'),
+
                 DatePicker::make('invoice_date')
                     ->label('Invoice Date')
                     ->required()
