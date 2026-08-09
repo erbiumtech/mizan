@@ -138,11 +138,13 @@ account to include it.
 
 It does apply two things people often miss. The **section 4AB surcharge** — a
 percentage of the *tax*, not of your income, once taxable income passes
-PKR 10,000,000 — is added where it is due, and shown separately so the total can
-be checked against a bracket table. And rental income gets its **automatic
-one-fifth repair allowance**, so the tax is never charged on the gross rent;
-property income has had no separate rate table since 2019, so what is left is
-taxed at the ordinary slabs.
+PKR 10,000,000 — is added for the years it existed, and shown separately so the
+total can be checked against a bracket table. **It is abolished from tax year
+2027**, so an estimate for 2025-26 carries it and one for 2026-27 does not; if
+you are comparing the two years, that is most of the difference at the top end.
+And rental income gets its **automatic one-fifth repair allowance**, so the tax
+is never charged on the gross rent; property income has had no separate rate
+table since 2019, so what is left is taxed at the ordinary slabs.
 
 **It is still an estimate, not tax advice**, and the screen says so. It does not
 know about tax already deducted from you at source, tax credits, or the receipted

@@ -160,22 +160,14 @@ class TaxScheduleSeeder extends Seeder
             TaxSchedule::REGIME_CAPITAL_GAINS => self::CAPITAL_GAINS_BRACKETS,
         ]);
 
-        // Tax year 2027: NO salaried row, because the Finance Act 2026 withdrew
-        // the 9% surcharge for individuals deriving salary income. Expressing
-        // that as an absent row rather than a code branch is the point of keeping
-        // surcharges as data.
+        // Tax year 2027: NO surcharge rows at all. Section 4AB is abolished
+        // outright from this year — not merely withdrawn for salary income, which
+        // is how the first reading of it landed here.
         //
-        // The non-salaried 10% is kept. Reporting on this is less consistent than
-        // on the salaried withdrawal — one summary says s.4AB is abolished
-        // outright from tax year 2027, others describe only the salaried
-        // withdrawal. Kept because an estimate that overstates is the safer error
-        // for somebody planning around it, and because removing a charge on the
-        // strength of one ambiguous sentence is the worse bet. Confirm and delete
-        // these two rows if it did go.
-        $this->seedSurcharges('2026-2027', [
-            TaxSchedule::REGIME_BUSINESS => ['threshold' => 10000000, 'percentage' => 10],
-            TaxSchedule::REGIME_RENTAL => ['threshold' => 10000000, 'percentage' => 10],
-        ]);
+        // Deliberately a call to seedSurcharges() with nothing in it rather than
+        // no call. An absent call reads as an oversight; this reads as the
+        // decision it is, and it is where the next Finance Act puts a row back.
+        $this->seedSurcharges('2026-2027', []);
     }
 
     /**

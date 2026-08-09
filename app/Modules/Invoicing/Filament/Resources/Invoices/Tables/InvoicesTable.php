@@ -15,6 +15,7 @@ use Filament\Forms\Components\Field;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
@@ -44,6 +45,13 @@ class InvoicesTable
                 TextColumn::make('contact.name')
                     ->label('Contact')
                     ->sortable(),
+
+                TextColumn::make('project.name')
+                    ->label('Project')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable()
+                    ->visible(fn (): bool => modules()->enabled('projects')),
 
                 TextColumn::make('invoice_date')
                     ->label('Invoice Date')
@@ -117,7 +125,16 @@ class InvoicesTable
                 Group::make('kind')->label('Kind'),
             ])
             ->filters([
-                //
+                // The half of "jobs" that does the work: pick a project and the
+                // list becomes everything billed against that engagement. Hidden
+                // with the module, so a company without Projects sees no filter
+                // for a field it can never fill.
+                SelectFilter::make('project_id')
+                    ->label('Project')
+                    ->relationship('project', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn (): bool => modules()->enabled('projects')),
             ])
             ->recordActions([
                 EditAction::make(),
