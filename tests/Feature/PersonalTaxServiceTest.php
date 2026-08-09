@@ -1,0 +1,371 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Services\JournalEntryService;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Core\Models\User;
+use App\Modules\PersonalFinance\Models\TaxSchedule;
+use App\Modules\PersonalFinance\Models\TaxSurcharge;
+use App\Modules\PersonalFinance\Services\PersonalTaxService;
+use Database\Seeders\FiscalYearSeeder;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\PersonalChartOfAccountsSeeder;
+use Database\Seeders\RoleSeeder;
+use Database\Seeders\TaxScheduleSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use RuntimeException;
+use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\InteractsWithTenant;
+use Tests\TestCase;
+
+/**
+ * The individual tax estimate, computed over the tenant's real ledger.
+ *
+ * The salaried expectations are the same arithmetic TaxCalculatorTest pins for
+ * payroll, deliberately: the two calculators are separate code over separate
+ * tables, and if they ever disagreed on the same schedule one would be wrong.
+ */
+class PersonalTaxServiceTest extends TestCase
+{
+    use InteractsWithTenant;
+    use RefreshDatabase;
+
+    private FiscalYear $year;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $company = Company::factory()->create(['type' => Company::TYPE_PERSONAL]);
+        $this->seed([PermissionSeeder::class, FiscalYearSeeder::class]);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
+        (new RoleSeeder)->run();
+
+        $user = User::factory()->create(['status' => 1]);
+        $company->users()->syncWithoutDetaching([$user->getKey()]);
+        $this->actingAs($user);
+        $user->assignRole('Administrator');
+        $this->setCurrentTenant($company);
+
+        $this->seed([PersonalChartOfAccountsSeeder::class, TaxScheduleSeeder::class]);
+
+        $this->year = FiscalYear::where('name', '2025-2026')->firstOrFail();
+    }
+
+    private function tax(): PersonalTaxService
+    {
+        return app(PersonalTaxService::class);
+    }
+
+    /** Book income against a category, posted, in the 2025-2026 year. */
+    private function earn(string $incomeCode, float $amount): void
+    {
+        $bank = Account::where('code', '1100')->firstOrFail();
+        $income = Account::where('code', $incomeCode)->firstOrFail();
+
+        $entry = app(JournalEntryService::class)->create(
+            ['entry_date' => '2025-09-15', 'memo' => 'Income'],
+            [
+                ['account_id' => $bank->id, 'debit_amount' => $amount, 'credit_amount' => 0],
+                ['account_id' => $income->id, 'debit_amount' => 0, 'credit_amount' => $amount],
+            ],
+        );
+
+        $entry->update(['status' => 'approved', 'approved_at' => now()]);
+        app(JournalEntryService::class)->post($entry);
+    }
+
+    public function test_salaried_brackets_match_the_payroll_calculator(): void
+    {
+        $cases = [
+            500000 => 0.0,
+            1000000 => 4000.0,     // 1% of (1,000,000 - 600,000)
+            2000000 => 94000.0,    // 6,000 + 11% of 800,000
+            3000000 => 300000.0,   // 116,000 + 23% of 800,000
+            10000000 => 2681000.0, // 616,000 + 35% of 5,900,000
+        ];
+
+        foreach ($cases as $income => $expected) {
+            $result = $this->tax()->taxFor($income, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+            $this->assertSame($expected, $result['tax'], "salaried tax on {$income}");
+        }
+    }
+
+    public function test_the_breakdown_shows_its_working(): void
+    {
+        $result = $this->tax()->taxFor(3000000, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+        $this->assertSame(300000.0, $result['tax']);
+        $this->assertSame(23.0, $result['marginal_rate']);
+        $this->assertSame(10.0, $result['effective_rate']);
+        $this->assertNotNull($result['bracket']);
+    }
+
+    public function test_business_income_uses_its_own_schedule(): void
+    {
+        $income = 2000000.0;
+
+        $salaried = $this->tax()->taxFor($income, TaxSchedule::REGIME_SALARIED, $this->year->id);
+        $business = $this->tax()->taxFor($income, TaxSchedule::REGIME_BUSINESS, $this->year->id);
+
+        $this->assertSame(290000.0, $business['tax']);
+        $this->assertNotSame($salaried['tax'], $business['tax']);
+    }
+
+    public function test_income_above_the_top_bracket_is_taxed_not_ignored(): void
+    {
+        $result = $this->tax()->taxFor(500000000, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+        $this->assertGreaterThan(0.0, $result['tax']);
+        $this->assertSame(35.0, $result['marginal_rate']);
+    }
+
+    public function test_a_missing_schedule_raises_rather_than_returning_zero(): void
+    {
+        // A year nobody has seeded rates for. Both shipped years now have them,
+        // which is the point — but the guard still has to hold, because silently
+        // answering "you owe nothing" is how payroll's equivalent bug stayed
+        // invisible.
+        $unseeded = FiscalYear::create([
+            'name' => '2030-2031',
+            'start_date' => '2030-07-01',
+            'end_date' => '2031-06-30',
+            'is_active' => false,
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No Salaried tax bracket covers');
+
+        $this->tax()->taxFor(3000000, TaxSchedule::REGIME_SALARIED, $unseeded->id);
+    }
+
+    public function test_both_shipped_years_have_rates_for_every_regime(): void
+    {
+        // The gap this closes: the Tax Estimate used to open on the active year
+        // and find nothing, because only 2025-2026 was seeded. Somebody's first
+        // visit was an error message on a feature that had never worked.
+        $missing = [];
+
+        foreach (['2025-2026', '2026-2027'] as $yearName) {
+            $year = FiscalYear::where('name', $yearName)->firstOrFail();
+
+            foreach (array_keys(TaxSchedule::REGIMES) as $regime) {
+                $exists = TaxSchedule::where('fiscal_year_id', $year->id)
+                    ->where('regime', $regime)
+                    ->exists();
+
+                if (! $exists) {
+                    $missing[] = "{$yearName} / {$regime}";
+                }
+            }
+        }
+
+        $this->assertSame([], $missing, 'No brackets seeded for: '.implode(', ', $missing));
+    }
+
+    public function test_the_2026_27_salaried_schedule_matches_the_enacted_act(): void
+    {
+        // Finance Act 2026 restructured the salaried brackets from six to eight.
+        // Pinned here as well as in payroll's TaxCalculatorTest so the two
+        // calculators cannot drift apart on the same year.
+        $year = FiscalYear::where('name', '2026-2027')->firstOrFail();
+
+        $cases = [
+            1000000 => 4000.0,      // 1% of 400,000
+            3000000 => 276000.0,    // 116,000 + 20% of 800,000
+            5000000 => 802000.0,    // 541,000 + 29% of 900,000
+            8000000 => 1774000.0,   // 1,424,000 + 35% of 1,000,000
+        ];
+
+        foreach ($cases as $income => $expected) {
+            $this->assertSame(
+                $expected,
+                $this->tax()->taxFor($income, TaxSchedule::REGIME_SALARIED, $year->id)['tax'],
+                "2026-2027 salaried tax on {$income}",
+            );
+        }
+    }
+
+    public function test_the_surcharge_is_a_percentage_of_the_tax_not_the_income(): void
+    {
+        // s.4AB for tax year 2026: 9% of the TAX for a salaried individual once
+        // taxable income passes 10,000,000. The distinction matters — 9% of the
+        // income would be an order of magnitude out.
+        $result = $this->tax()->taxFor(12000000, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+        // 616,000 + 35% of (12,000,000 - 4,100,000) = 3,381,000
+        $this->assertSame(3381000.0, $result['tax']);
+        $this->assertSame(round(3381000.0 * 0.09, 2), $result['surcharge']);
+        $this->assertSame(9.0, $result['surcharge_rate']);
+        $this->assertSame(round(3381000.0 * 1.09, 2), $result['total']);
+    }
+
+    public function test_the_surcharge_does_not_apply_below_the_threshold(): void
+    {
+        $result = $this->tax()->taxFor(9000000, TaxSchedule::REGIME_SALARIED, $this->year->id);
+
+        $this->assertSame(0.0, $result['surcharge']);
+        $this->assertSame($result['tax'], $result['total']);
+    }
+
+    public function test_no_surcharge_survives_into_2026_27(): void
+    {
+        // Section 4AB is abolished outright from this year. It applied in
+        // 2025-26 at 9% on salary and 10% on everything else, so this is the
+        // whole of it going rather than the salaried half — which is what the
+        // first reading of the Act had.
+        //
+        // Expressed as absent rows rather than a code branch, so this asserts
+        // the data as much as the arithmetic: the next Finance Act that brings
+        // a surcharge back does it by seeding a row, and this test is what
+        // notices.
+        $year = FiscalYear::where('name', '2026-2027')->firstOrFail();
+
+        foreach ([
+            TaxSchedule::REGIME_SALARIED,
+            TaxSchedule::REGIME_BUSINESS,
+            TaxSchedule::REGIME_RENTAL,
+        ] as $regime) {
+            $result = $this->tax()->taxFor(12000000, $regime, $year->id);
+
+            $this->assertSame(0.0, $result['surcharge'], "A surcharge still applies to {$regime} in 2026-27.");
+            $this->assertSame(0.0, $result['surcharge_rate']);
+        }
+    }
+
+    public function test_the_surcharge_did_apply_in_2025_26(): void
+    {
+        // The other side of the change. Without this, "no surcharge" would pass
+        // just as well against a seeder that had never created one.
+        $year = FiscalYear::where('name', '2025-2026')->firstOrFail();
+
+        $this->assertSame(9.0, $this->tax()->taxFor(12000000, TaxSchedule::REGIME_SALARIED, $year->id)['surcharge_rate']);
+        $this->assertSame(10.0, $this->tax()->taxFor(12000000, TaxSchedule::REGIME_BUSINESS, $year->id)['surcharge_rate']);
+    }
+
+    public function test_rental_income_is_taxed_after_the_repair_allowance(): void
+    {
+        $this->earn('4200', 1000000);
+
+        $estimate = $this->tax()->estimate($this->year->id);
+        $rental = collect($estimate['regimes'])->firstWhere('regime', TaxSchedule::REGIME_RENTAL);
+
+        // One fifth of the rent is allowed automatically, so the tax is never on
+        // the gross. Getting this wrong overstates the liability by 20% of rent.
+        $this->assertSame(1000000.0, $rental['income'], 'gross rent');
+        $this->assertSame(200000.0, $rental['allowance'], '20% repair allowance');
+        $this->assertSame(800000.0, $rental['taxable'], 'net rent');
+    }
+
+    public function test_rental_uses_the_ordinary_slabs_not_a_rate_of_its_own(): void
+    {
+        // Property income has had no separate rate table since 2019: net rental is
+        // added to total income and taxed at the ordinary slabs. It was briefly a
+        // made-up flat 15% here, which was simply wrong.
+        $amount = 2000000.0;
+
+        $rental = $this->tax()->taxFor($amount, TaxSchedule::REGIME_RENTAL, $this->year->id);
+        $business = $this->tax()->taxFor($amount, TaxSchedule::REGIME_BUSINESS, $this->year->id);
+
+        $this->assertSame($business['tax'], $rental['tax']);
+    }
+
+    public function test_the_estimate_totals_tax_and_surcharge_separately(): void
+    {
+        $this->earn('4000', 12000000);
+
+        $estimate = $this->tax()->estimate($this->year->id);
+
+        $this->assertGreaterThan(0.0, $estimate['total_surcharge']);
+        $this->assertSame(
+            round($estimate['total_tax'] + $estimate['total_surcharge'], 2),
+            $estimate['total_payable'],
+        );
+    }
+
+    public function test_capital_gains_is_a_flat_fifteen_percent(): void
+    {
+        // The enacted rate for a filer on assets acquired from 1 July 2024, for
+        // both securities and immovable property — not a placeholder.
+        $result = $this->tax()->taxFor(1000000, TaxSchedule::REGIME_CAPITAL_GAINS, $this->year->id);
+
+        $this->assertSame(150000.0, $result['tax']);
+        $this->assertSame(15.0, $result['marginal_rate']);
+        // A separate block charge; the surcharge does not sit on top of it.
+        $this->assertSame(0.0, $result['surcharge']);
+    }
+
+    public function test_income_is_grouped_by_the_regime_on_its_account(): void
+    {
+        // The starter chart already tags Salary as salaried and Rental as rental.
+        $this->earn('4000', 1500000);
+        $this->earn('4200', 400000);
+
+        $income = $this->tax()->incomeByRegime($this->year->id);
+
+        $this->assertSame(1500000.0, $income['by_regime'][TaxSchedule::REGIME_SALARIED]);
+        $this->assertSame(400000.0, $income['by_regime'][TaxSchedule::REGIME_RENTAL]);
+    }
+
+    public function test_untagged_income_is_reported_not_silently_taxed_as_salary(): void
+    {
+        // 4900 Other Income ships with no regime, on purpose.
+        $this->earn('4900', 250000);
+
+        $estimate = $this->tax()->estimate($this->year->id);
+
+        $this->assertSame(250000.0, $estimate['unclassified']);
+        $this->assertSame(0.0, $estimate['total_tax']);
+    }
+
+    public function test_the_estimate_totals_every_regime(): void
+    {
+        $this->earn('4000', 3000000);
+
+        $estimate = $this->tax()->estimate($this->year->id);
+
+        $this->assertSame(3000000.0, $estimate['total_income']);
+        $this->assertSame(300000.0, $estimate['total_tax']);
+        $this->assertSame('Salaried', $estimate['regimes'][0]['label']);
+    }
+
+    public function test_unposted_income_is_not_taxed(): void
+    {
+        $bank = Account::where('code', '1100')->firstOrFail();
+        $salary = Account::where('code', '4000')->firstOrFail();
+
+        // Created but never posted. Every other report in the app ignores
+        // unposted entries, and taxing one would be taxing an intention.
+        app(JournalEntryService::class)->create(
+            ['entry_date' => '2025-09-15', 'memo' => 'Draft'],
+            [
+                ['account_id' => $bank->id, 'debit_amount' => 900000, 'credit_amount' => 0],
+                ['account_id' => $salary->id, 'debit_amount' => 0, 'credit_amount' => 900000],
+            ],
+        );
+
+        $this->assertSame(0.0, $this->tax()->estimate($this->year->id)['total_income']);
+    }
+
+    public function test_every_seeded_schedule_has_an_unbounded_top_bracket(): void
+    {
+        $bounded = [];
+
+        foreach (array_keys(TaxSchedule::REGIMES) as $regime) {
+            $top = TaxSchedule::where('fiscal_year_id', $this->year->id)
+                ->where('regime', $regime)
+                ->orderByDesc('min_amount')
+                ->first();
+
+            if ($top !== null && $top->max_amount !== null) {
+                $bounded[] = $regime;
+            }
+        }
+
+        $this->assertSame([], $bounded, 'Bounded top bracket: '.implode(', ', $bounded));
+    }
+}

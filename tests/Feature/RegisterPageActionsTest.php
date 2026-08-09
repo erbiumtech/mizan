@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\AccountRegister;
-use App\Models\Account;
-use App\Services\RegisterEntryService;
+use App\Modules\Accounting\Filament\Pages\AccountRegister;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Services\RegisterEntryService;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;

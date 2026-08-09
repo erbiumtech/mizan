@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
-use App\Models\TransactionType;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\TransactionType;
 use Illuminate\Database\Seeder;
 
 class TransactionTypeSeeder extends Seeder
@@ -25,7 +25,7 @@ class TransactionTypeSeeder extends Seeder
             ['code' => 'tax-payment', 'name' => 'Tax Payment', 'account_code' => '2100', 'description' => 'FBR withholding tax remittance'],
             ['code' => 'cleaning', 'name' => 'Cleaning', 'account_code' => '5860', 'description' => 'Cleaning & janitorial'],
             ['code' => 'petty-cash-replenishment', 'name' => 'Petty Cash Replenishment', 'account_code' => '1150', 'description' => 'Restores the petty cash imprest'],
-            ['code' => 'miscellaneous', 'name' => 'Miscellaneous', 'account_code' => null, 'description' => 'Everything else'],
+            ['code' => 'miscellaneous', 'name' => 'Miscellaneous', 'account_code' => '5900', 'description' => 'Everything else'],
         ];
 
         foreach ($types as $type) {

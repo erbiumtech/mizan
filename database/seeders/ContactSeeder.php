@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Contact;
+use App\Modules\Invoicing\Models\Contact;
 use Illuminate\Database\Seeder;
 
 /**

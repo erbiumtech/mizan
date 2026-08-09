@@ -2,9 +2,9 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Pages\Auth\EditProfile;
-use App\Filament\Pages\Tenancy\RegisterCompany;
-use App\Models\Company;
+use App\Modules\Core\Filament\Pages\Auth\EditProfile;
+use App\Modules\Core\Models\Company;
+use App\Support\Modules;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -65,8 +65,11 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Company::class, slugAttribute: 'slug')
             // Company switcher for users who belong to more than one company.
             ->tenantMenu()
-            // Admin-only company creation is enforced by RegisterCompany::canView().
-            ->tenantRegistration(RegisterCompany::class)
+            // No tenant registration. Creating a company provisions a database,
+            // migrates it and seeds its roles — installation-level work, which now
+            // happens on the platform panel where there is no company in scope to
+            // confuse it with. Two routes to the same act meant two places to keep the
+            // super-admin check.
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             // Self-service password change (user menu → Change Password).
@@ -91,12 +94,18 @@ class AdminPanelProvider extends PanelProvider
             // getGloballySearchableAttributes() — canGloballySearch() does not
             // consult this setting, so the palette still finds records.
             ->globalSearch(false)
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
+            // instantly; polling is just the fallback if a socket drops.
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('60s')
+            // Every resource, page and widget now belongs to a module and is
+            // registered by that module's plugin — there is no app-level discovery
+            // left. Registration is unconditional regardless of licence state; see
+            // any Plugin class for why that cannot be otherwise.
+            ->plugins(Modules::plugins())
             ->pages([
                 Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
             // Impersonation banner, above everything else on the page. PAGE_START
             // would put it inside the content area; this sits at the top of the

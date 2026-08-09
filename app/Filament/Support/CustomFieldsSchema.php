@@ -2,7 +2,7 @@
 
 namespace App\Filament\Support;
 
-use App\Models\CustomField;
+use App\Modules\Core\Models\CustomField;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;

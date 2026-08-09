@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
@@ -22,12 +22,17 @@ class NavigationGroupsTest extends TestCase
     use InteractsWithTenant;
     use RefreshDatabase;
 
-    /** @return array<string, array<int, string>> group label => item labels */
-    private function navigation(): array
+    /**
+     * @param  string  $type  Which kind of tenant to look at. Personal accounts
+     *                        get a group business ones do not, so the two views
+     *                        are genuinely different and both need asserting.
+     * @return array<string, array<int, string>> group label => item labels
+     */
+    private function navigation(string $type = Company::TYPE_BUSINESS): array
     {
         $this->seed(PermissionSeeder::class);
 
-        $company = Company::factory()->create();
+        $company = Company::factory()->create(['type' => $type]);
         app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
         (new RoleSeeder)->run();
 
@@ -96,15 +101,56 @@ class NavigationGroupsTest extends TestCase
         $this->assertContains('Annual Taxes', $merged);
     }
 
-    public function test_users_sit_with_roles_and_permissions(): void
+    public function test_users_sit_with_roles(): void
     {
         $navigation = $this->navigation();
 
         // A group holding Users alone said nothing its own label did not.
         $this->assertArrayNotHasKey('User', $navigation);
 
-        foreach (['Users', 'Roles', 'Permissions'] as $item) {
+        foreach (['Users', 'Roles'] as $item) {
             $this->assertContains($item, $navigation['Access Control'] ?? []);
+        }
+    }
+
+    /**
+     * Permissions is not here. The set of permissions is what the *code* checks — inventing
+     * one does nothing and deleting one breaks every company at once — so it is
+     * administered on the platform panel, while which of a company's roles hold which
+     * permissions stays with that company.
+     */
+    public function test_permissions_are_not_offered_to_a_company(): void
+    {
+        $this->assertNotContains('Permissions', $this->navigation()['Access Control'] ?? []);
+    }
+
+    /** The platform panel has its own, much shorter, set of groups. */
+    public function test_the_platform_panel_carries_only_installation_level_things(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        $this->actingAs(User::factory()->create(['is_super_admin' => true, 'status' => 1]));
+
+        Filament::setCurrentPanel(Filament::getPanel('platform'));
+        Filament::bootCurrentPanel();
+
+        $navigation = [];
+
+        foreach (Filament::getPanel('platform')->getNavigation() as $group) {
+            $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
+                ->map(fn ($item): string => $item->getLabel())
+                ->all();
+        }
+
+        $merged = array_merge(...array_values($navigation));
+
+        foreach (['Companies', 'Users', 'Permissions', 'Activity'] as $item) {
+            $this->assertContains($item, $merged, "the platform panel offers {$item}");
+        }
+
+        // Nothing that needs a company's database, which this panel has not connected.
+        foreach (['Payslips', 'Invoices', 'Fiscal Years', 'Email Templates', 'Company Settings'] as $item) {
+            $this->assertNotContains($item, $merged, "{$item} needs a tenant connection");
         }
     }
 
@@ -114,6 +160,27 @@ class NavigationGroupsTest extends TestCase
 
         $this->assertArrayNotHasKey('Payslip', $navigation);
         $this->assertContains('Payslips', $navigation['Employee'] ?? []);
+    }
+
+    public function test_mpr_sits_with_the_other_employee_records(): void
+    {
+        $navigation = $this->navigation();
+
+        $this->assertArrayNotHasKey('MPR', $navigation);
+        $this->assertContains('MPR', $navigation['Employee'] ?? []);
+    }
+
+    public function test_gnucash_import_sits_with_the_other_import(): void
+    {
+        $navigation = $this->navigation();
+
+        // It spent a while under Reports, which is where the accounting odds and
+        // ends had collected. It reads a file and writes a ledger; the page it
+        // belongs next to is Import from CSV.
+        $settings = $navigation['Settings'] ?? [];
+
+        $this->assertContains('GnuCash Import', $settings);
+        $this->assertContains('Import from CSV', $settings);
     }
 
     public function test_table_views_is_nowhere_in_the_sidebar(): void
@@ -139,16 +206,46 @@ class NavigationGroupsTest extends TestCase
 
         sort($labels);
 
+        // No Reports: the fourteen report pages are reached through the single
+        // top-level Reports link instead, which ReportsHubTest covers.
+        //
+        // No Personal either, and that is the assertion rather than an omission:
+        // this runs against a business, and the individual tax brackets have no
+        // business being offered there. See the personal case below.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
             'Employee',
             'Invoicing & Inventory',
-            'MPR',
-            'Reports',
             'Settings',
         ], $labels);
+    }
+
+    /**
+     * Two tests rather than one, because the panel is booted once per test and
+     * asking it about a second tenant mid-test gets the first one's answer.
+     * The pair matters more than either half: offering the individual tax
+     * schedules inside a business would invite somebody to read a company's
+     * income as one person's taxable income, and withholding them from a
+     * personal account would leave it with no screen of its own.
+     */
+    public function test_a_personal_account_gets_the_personal_group(): void
+    {
+        $this->assertContains(
+            'Personal',
+            array_keys($this->navigation(Company::TYPE_PERSONAL)),
+            'A personal account has no Personal group, so it has no screen of its own.',
+        );
+    }
+
+    public function test_a_business_is_not_offered_the_personal_group(): void
+    {
+        $this->assertNotContains(
+            'Personal',
+            array_keys($this->navigation(Company::TYPE_BUSINESS)),
+            'A business is being offered the individual tax schedules.',
+        );
     }
 
     /**
@@ -160,7 +257,7 @@ class NavigationGroupsTest extends TestCase
     {
         $navigation = $this->navigation();
 
-        $this->assertGreaterThanOrEqual(8, count($navigation));
+        $this->assertGreaterThanOrEqual(7, count($navigation));
         $this->assertGreaterThanOrEqual(30, collect($navigation)->flatten()->count());
         $this->assertContains('Dashboard', collect($navigation)->flatten()->all());
     }

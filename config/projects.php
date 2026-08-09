@@ -37,7 +37,7 @@ return [
         'max_reminders' => (int) env('PROJECT_ALERT_MAX_REMINDERS', 3),
 
         // Channels. 'slack' additionally needs laravel/slack-notification-channel.
-        'channels' => ['mail'],
+        'channels' => ['mail', 'database', 'broadcast'],
 
         // Used when a project has no primary or secondary manager, so an alert
         // is never silently dropped.

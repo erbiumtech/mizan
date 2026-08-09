@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Models\Employee;
+use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use Tests\AccountingTestCase;
 

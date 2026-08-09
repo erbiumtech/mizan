@@ -11,14 +11,33 @@ use Illuminate\Database\Seeder;
  */
 class TenantBaselineSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * The list, exposed so tenants:seed-baseline can top up an existing company
+     * while skipping the one seeder that is destructive to re-run.
+     *
+     * @return array<int, class-string>
+     */
+    public static function seeders(): array
     {
-        $this->call([
+        return [
             FiscalYearSeeder::class,
             ChartOfAccountsSeeder::class,
+            // Without this a company has no currencies at all: nothing to show on the
+            // Currencies screen, and no row saying which one its books are kept in.
+            CurrencySeeder::class,
             TransactionTypeSeeder::class,
             SalarySlabSeeder::class,
             BankSeeder::class,
-        ]);
+            // Tax brackets for the Personal Finance estimate. Reference data
+            // shared by everyone in the company, unlike the per-person chart of
+            // accounts, which is seeded for a user the first time they open the
+            // module.
+            TaxScheduleSeeder::class,
+        ];
+    }
+
+    public function run(): void
+    {
+        $this->call(static::seeders());
     }
 }

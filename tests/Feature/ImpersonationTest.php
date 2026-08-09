@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Users\Pages\ListUsers;
-use App\Models\Beneficiary;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Core\Filament\Resources\Users\Pages\ListUsers;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use App\Support\Impersonation;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -67,7 +67,7 @@ class ImpersonationTest extends TestCase
             'status' => 1,
             'password' => 'secret-'.uniqid(),
         ]);
-        $this->company->users()->attach($user);
+        $this->company->users()->syncWithoutDetaching([$user->getKey()]);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
         $user->assignRole($role);
@@ -79,6 +79,13 @@ class ImpersonationTest extends TestCase
     {
         $this->actingAs($user);
         $this->setCurrentTenant($this->company);
+    }
+
+    /** Standing where the installation is administered: no company in context. */
+    private function onThePlatformPanel(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('platform'));
+        Filament::bootCurrentPanel();
     }
 
     // --- who may ------------------------------------------------------------
@@ -134,7 +141,7 @@ class ImpersonationTest extends TestCase
         (new RoleSeeder)->run();
 
         $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
-        $otherCompany->users()->attach($theirStaff);
+        $otherCompany->users()->syncWithoutDetaching([$theirStaff->getKey()]);
 
         $this->assertFalse(
             $superAdmin->companies()->whereKey($otherCompany->getKey())->exists(),
@@ -151,27 +158,59 @@ class ImpersonationTest extends TestCase
         $this->assertAuthenticatedAs($theirStaff);
     }
 
-    /** And from their own company, without switching first. */
-    public function test_a_super_admin_reaches_another_companys_user_from_where_they_stand(): void
+    /**
+     * Reach follows the panel you are standing in.
+     *
+     * A super admin inside one customer's company is looking at that company's people, and
+     * signing in as a different customer's staff from that URL is the confusion the platform
+     * panel exists to remove. The reach itself is not lost — the test below exercises it
+     * from where it now belongs.
+     */
+    public function test_a_super_admin_in_a_company_is_bound_to_that_companys_people(): void
     {
         $superAdmin = $this->member('Employee', ['is_super_admin' => true]);
 
         $otherCompany = Company::factory()->create();
         $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
-        $otherCompany->users()->attach($theirStaff);
+        $otherCompany->users()->syncWithoutDetaching([$theirStaff->getKey()]);
 
         $this->actAs($superAdmin);
 
+        $this->assertFalse($this->impersonation->allows($superAdmin, $theirStaff));
+    }
+
+    /** And from the platform panel, where there is no company to narrow it. */
+    public function test_a_super_admin_reaches_any_companys_user_from_the_platform_panel(): void
+    {
+        $superAdmin = $this->member('Employee', ['is_super_admin' => true]);
+
+        $otherCompany = Company::factory()->create();
+        $theirStaff = User::factory()->create(['status' => 1, 'password' => 'secret-'.uniqid()]);
+        $otherCompany->users()->syncWithoutDetaching([$theirStaff->getKey()]);
+
+        $this->actingAs($superAdmin);
+        $this->onThePlatformPanel();
+
         $this->assertTrue($this->impersonation->allows($superAdmin, $theirStaff));
 
-        // The swap lands them in a company the target can actually access, not the
-        // one that was being served.
+        // The swap lands them in a company the target can actually access — this panel
+        // would refuse the person they have just become.
         $this->impersonation->start($theirStaff);
 
         $this->assertSame(
             Filament::getPanel('admin')->getUrl($otherCompany),
             Filament::getPanel('admin')->getUrl(),
         );
+    }
+
+    public function test_a_company_administrator_cannot_reach_the_platform_panel_to_widen_theirs(): void
+    {
+        // The reach above is a super admin's because the panel is. Nothing about
+        // impersonation needs to re-state that, but it is worth pinning that the door is
+        // what limits it.
+        $admin = $this->member('Administrator');
+
+        $this->assertFalse($admin->canAccessPanel(Filament::getPanel('platform')));
     }
 
     /**
@@ -216,7 +255,7 @@ class ImpersonationTest extends TestCase
 
         $otherCompany = Company::factory()->create();
         $outsider = User::factory()->create(['status' => 1]);
-        $otherCompany->users()->attach($outsider);
+        $otherCompany->users()->syncWithoutDetaching([$outsider->getKey()]);
 
         $this->actAs($admin);
 
@@ -400,9 +439,8 @@ class ImpersonationTest extends TestCase
         // takes, without needing payroll fixtures to prove it.
         $record = Beneficiary::create(['name' => 'Utility Co', 'payment_type' => 'IBFT']);
 
-        $entry = \App\Models\ActivityLog::query()
-            ->where('subject_type', Beneficiary::class)
-            ->where('subject_id', $record->getKey())
+        $entry = \App\Modules\Core\Models\ActivityLog::query()
+            ->whereMorphedTo('subject', $record)
             ->latest('id')
             ->first();
 
@@ -422,9 +460,8 @@ class ImpersonationTest extends TestCase
 
         $record = Beneficiary::create(['name' => 'Landlord', 'payment_type' => 'IBFT']);
 
-        $entry = \App\Models\ActivityLog::query()
-            ->where('subject_type', Beneficiary::class)
-            ->where('subject_id', $record->getKey())
+        $entry = \App\Modules\Core\Models\ActivityLog::query()
+            ->whereMorphedTo('subject', $record)
             ->latest('id')
             ->first();
 
@@ -474,8 +511,10 @@ class ImpersonationTest extends TestCase
 
         Livewire::test(ListUsers::class)
             ->assertActionVisible(TestAction::make('impersonate')->table($employee->getKey()))
-            ->assertActionHidden(TestAction::make('impersonate')->table($superAdmin->getKey()))
             ->assertActionHidden(TestAction::make('impersonate')->table($inactive->getKey()))
-            ->assertActionHidden(TestAction::make('impersonate')->table($admin->getKey()));
+            ->assertActionHidden(TestAction::make('impersonate')->table($admin->getKey()))
+            // Stronger than hiding the action: a platform account is not in a
+            // company's user list at all (UserResource::exceptPlatformAdmins).
+            ->assertCanNotSeeTableRecords([$superAdmin]);
     }
 }

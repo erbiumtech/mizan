@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\BankPaymentFile;
-use App\Filament\Pages\SalaryBankFile;
-use App\Models\Beneficiary;
-use App\Models\Employee;
-use App\Models\Payment;
-use App\Models\Payslip;
-use App\Models\TransactionType;
-use App\Services\PaymentService;
+use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\PaymentService;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
+use App\Modules\Payroll\Models\Payslip;
 use Database\Seeders\TransactionTypeSeeder;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
@@ -141,6 +141,90 @@ class PaymentBatchTest extends AccountingTestCase
         $this->assertSame($second->id, $releasable->first()['payslip_id']);
     }
 
+    /**
+     * The summary line has to say why each held row is held.
+     *
+     * It read "Held back until accepted" for every held row whatever the reason, so a month
+     * whose salaries had already gone out in an earlier batch was described as waiting for an
+     * acceptance that had nothing to do with it — while the rows immediately above said
+     * "Released in SAL-…". Somebody went looking for a screen to accept them on.
+     */
+    public function test_an_already_released_row_is_not_described_as_awaiting_acceptance(): void
+    {
+        $employee = $this->payslip($this->employee('released@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $this->salaryFile()
+            ->assertSee('Already released in an earlier batch')
+            ->assertDontSee('Held back until accepted');
+    }
+
+    public function test_a_row_that_really_is_waiting_says_so(): void
+    {
+        $this->payslip($this->employee('pending@test.local'), Payslip::REVIEW_PENDING);
+
+        $this->salaryFile()
+            ->assertSee('Held back until accepted')
+            ->assertDontSee('Already released in an earlier batch');
+    }
+
+    public function test_a_rejected_row_is_named_as_rejected(): void
+    {
+        // Neither released nor waiting: accepting it is not what has to happen next, the
+        // payslip has to be corrected.
+        $this->payslip($this->employee('rejected@test.local'), Payslip::REVIEW_REJECTED);
+
+        $this->salaryFile()
+            ->assertSee('Rejected by the employee')
+            ->assertDontSee('Held back until accepted');
+    }
+
+    public function test_two_reasons_at_once_are_reported_separately(): void
+    {
+        // The case that makes one lumped total wrong: the figures have to add up per reason,
+        // or the person reading cannot tell what is owed from what is merely unsent.
+        $paid = $this->payslip($this->employee('paid@test.local'), Payslip::REVIEW_ACCEPTED);
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $this->payslip($this->employee('waiting@test.local'), Payslip::REVIEW_PENDING);
+
+        $this->salaryFile()
+            ->assertSee('Already released in an earlier batch')
+            ->assertSee('Held back until accepted');
+    }
+
+    public function test_the_categories_come_from_the_payment_itself(): void
+    {
+        // Grouped on a category rather than the sentence, which names the batch and would
+        // make "Released in SAL-…-B1" and "…-B2" two different groups for one fact.
+        $accepted = $this->payslip($this->employee('cat@test.local'), Payslip::REVIEW_ACCEPTED);
+        $this->salaryFile()->callAction(TestAction::make('csv'));
+
+        $payment = Payment::where('payslip_id', $accepted->id)->firstOrFail();
+
+        $this->assertSame(Payment::BLOCK_RELEASED, $payment->releaseBlockedCategory());
+        $this->assertStringContainsString('SAL-', $payment->releaseBlockedReason());
+        $this->assertSame(
+            'Already released in an earlier batch',
+            Payment::blockLabel($payment->releaseBlockedCategory()),
+        );
+    }
+
+    public function test_a_releasable_payment_has_no_reason_at_all(): void
+    {
+        $this->payslip($this->employee('ready@test.local'), Payslip::REVIEW_ACCEPTED);
+
+        // Opening the page is what creates the Payment: release state needs somewhere to
+        // live even for a month nobody has opened before.
+        $this->salaryFile()->instance()->getPayments();
+
+        $payment = Payment::whereNotNull('payslip_id')->firstOrFail();
+
+        $this->assertNull($payment->releaseBlockedCategory());
+        $this->assertNull($payment->releaseBlockedReason());
+    }
+
     public function test_batches_are_numbered_in_sequence(): void
     {
         $this->payslip($this->employee('b1@test.local'), Payslip::REVIEW_ACCEPTED);
@@ -162,7 +246,7 @@ class PaymentBatchTest extends AccountingTestCase
         $accepted = $this->payslip($this->employee('in-file@test.local'), Payslip::REVIEW_ACCEPTED);
         $pending = $this->payslip($this->employee('not-in-file@test.local'), Payslip::REVIEW_PENDING);
 
-        $csv = app(\App\Services\SalaryBankExportService::class)->export(
+        $csv = app(\App\Modules\Payroll\Services\SalaryBankExportService::class)->export(
             'July',
             $this->fiscalYear,
             null,
@@ -628,13 +712,13 @@ class PaymentBatchTest extends AccountingTestCase
         $exportedPayment = Payment::where('payslip_id', $exported->id)->firstOrFail();
         $draftPayment = Payment::where('payslip_id', $draft->id)->firstOrFail();
 
-        Livewire::test(\App\Filament\Resources\Payments\Pages\ListPayments::class)
+        Livewire::test(\App\Modules\Accounting\Filament\Resources\Payments\Pages\ListPayments::class)
             ->assertActionVisible(TestAction::make('revertExport')->table($exportedPayment->getKey()))
             ->assertActionHidden(TestAction::make('revertExport')->table($draftPayment->getKey()));
     }
 
     private function yearOfJuly(): string
     {
-        return app(\App\Services\SalaryBankExportService::class)->yearForMonth('July', $this->fiscalYear);
+        return app(\App\Modules\Payroll\Services\SalaryBankExportService::class)->yearForMonth('July', $this->fiscalYear);
     }
 }
