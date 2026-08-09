@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use App\Multitenancy\CompanyProvisioner;
 use Illuminate\Database\Seeder;
 

@@ -85,8 +85,21 @@ return [
     |
     */
 
-    'links' => [
-        public_path('storage') => storage_path('app/public'),
-    ],
+    /*
+     * Deliberately empty, so `storage:link` creates nothing.
+     *
+     * The shipped default links public/storage to storage/app/public, which serves
+     * every company's uploads straight off the web root and bypasses
+     * TenantFileController's membership check — a company's files live at
+     * storage/app/public/tenants/{id}/…, so /storage/tenants/2/payslips/… would
+     * answer to anybody. That directory existed once and had made four employees'
+     * payslips public.
+     *
+     * Leaving the mapping here would mean one `php artisan storage:link` — the
+     * standard command, present in most hosts' default deploy recipes — quietly
+     * putting it back. Uploads are addressed through TenantStorage::urlRoot()
+     * instead, which needs no symlink at all.
+     */
+    'links' => [],
 
 ];

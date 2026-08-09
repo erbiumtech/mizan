@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\CompanySettings;
-use App\Filament\Resources\CustomFields\CustomFieldResource;
-use App\Filament\Resources\Users\Pages\ListUsers;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Filament\Pages\CompanySettings;
+use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
+use App\Modules\Core\Filament\Resources\Users\Pages\ListUsers;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
@@ -85,7 +85,7 @@ class SuperAdminReachTest extends TestCase
     public function test_the_activate_deactivate_action_is_offered(): void
     {
         $member = User::factory()->create(['status' => 1]);
-        $this->company->users()->attach($member);
+        $this->company->users()->syncWithoutDetaching([$member->getKey()]);
 
         Livewire::test(ListUsers::class)
             ->assertActionVisible(TestAction::make('toggleStatus')->table($member->getKey()));
@@ -95,7 +95,7 @@ class SuperAdminReachTest extends TestCase
     public function test_a_company_administrator_is_unaffected(): void
     {
         $admin = User::factory()->create(['status' => 1]);
-        $this->company->users()->attach($admin);
+        $this->company->users()->syncWithoutDetaching([$admin->getKey()]);
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
         $admin->assignRole('Administrator');
 
@@ -109,7 +109,7 @@ class SuperAdminReachTest extends TestCase
     public function test_an_employee_is_still_kept_out(): void
     {
         $employee = User::factory()->create(['status' => 1]);
-        $this->company->users()->attach($employee);
+        $this->company->users()->syncWithoutDetaching([$employee->getKey()]);
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
         $employee->assignRole('Employee');
 

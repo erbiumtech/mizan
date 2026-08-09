@@ -2,24 +2,25 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\AccountRegister;
-use App\Filament\Pages\BankPaymentFile;
-use App\Filament\Pages\FbrTaxFile;
-use App\Filament\Pages\GnuCashImport;
-use App\Filament\Pages\PettyCashBook;
-use App\Filament\Pages\ProfitAndLoss;
-use App\Filament\Pages\SalaryBankFile;
-use App\Filament\Pages\TrialBalance;
-use App\Models\User;
+use App\Modules\Accounting\Filament\Pages\AccountRegister;
+use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
+use App\Modules\Accounting\Filament\Pages\GnuCashImport;
+use App\Modules\Accounting\Filament\Pages\PettyCashBook;
+use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
+use App\Modules\Accounting\Filament\Pages\TrialBalance;
+use App\Modules\Core\Models\User;
 use Database\Seeders\ChartOfAccountsSeeder;
-use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
+use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
 class FilamentReportPagesSmokeTest extends TestCase
 {
+    use InteractsWithTenant;
     use RefreshDatabase;
 
     public function test_all_report_pages_render(): void
@@ -28,7 +29,12 @@ class FilamentReportPagesSmokeTest extends TestCase
         $this->seed(ChartOfAccountsSeeder::class);
         $user = User::factory()->create();
         $this->actingAs($user);
-        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        // With a tenant, because the panel is tenant-scoped and there is no such
+        // thing as one of its pages rendering without one. These pages link out to
+        // the report routes, which now name the company in the path — a render
+        // with no tenant cannot build those URLs, and neither can a browser.
+        $this->setCurrentTenant();
 
         $pages = [
             TrialBalance::class,

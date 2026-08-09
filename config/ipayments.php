@@ -26,7 +26,7 @@ return [
      *
      * Those are intra-bank transfers and the file must carry the plain account
      * number; every other beneficiary is an inter-bank IBFT and needs the IBAN.
-     * See App\Support\BankFileAccount.
+     * See App\Modules\Accounting\Support\BankFileAccount.
      *
      * SCB is not in the IBFT bank directory (BankSeeder lists the banks you
      * transfer out to), so the match is attempted on the bank's short code, its

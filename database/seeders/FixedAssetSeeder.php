@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
-use App\Models\FiscalYear;
-use App\Models\FixedAsset;
-use App\Services\DepreciationService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Accounting\Models\FixedAsset;
+use App\Modules\Accounting\Services\DepreciationService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 

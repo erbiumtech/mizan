@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\PermissionCache;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 
@@ -14,6 +15,17 @@ class PermissionSeeder extends Seeder
             ['name' => 'MPRCreate', 'group' => 'MPR'],
             ['name' => 'MPRUpdate', 'group' => 'MPR'],
             ['name' => 'MPRDelete', 'group' => 'MPR'],
+
+            // A person's own books. These grant access to your *own* records
+            // only — which rows you can reach is decided by the owner scope on
+            // the models, not by holding a permission. PersonalFinanceViewAny is
+            // the exception: it is the read-only cross-user view, and no seeded
+            // role but Administrator holds it.
+            ['name' => 'PersonalFinanceView', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceCreate', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceUpdate', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceDelete', 'group' => 'PersonalFinance'],
+            ['name' => 'PersonalFinanceViewAny', 'group' => 'PersonalFinance'],
 
             ['name' => 'UserView', 'group' => 'User'],
             ['name' => 'UserCreate', 'group' => 'User'],
@@ -44,6 +56,25 @@ class PermissionSeeder extends Seeder
             ['name' => 'updatePermission', 'group' => 'Permission'],
             ['name' => 'deletePermission', 'group' => 'Permission'],
 
+            ['name' => 'BillingRunView', 'group' => 'BillingRun'],
+            ['name' => 'BillingRunCreate', 'group' => 'BillingRun'],
+            ['name' => 'BillingRunUpdate', 'group' => 'BillingRun'],
+            ['name' => 'BillingRunDelete', 'group' => 'BillingRun'],
+
+            ['name' => 'ExpenseClaimView', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimCreate', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimUpdate', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimDelete', 'group' => 'ExpenseClaim'],
+            ['name' => 'ExpenseClaimApprove', 'group' => 'ExpenseClaim'],
+
+            ['name' => 'AdvanceView', 'group' => 'Advance'],
+            ['name' => 'AdvanceCreate', 'group' => 'Advance'],
+            ['name' => 'AdvanceUpdate', 'group' => 'Advance'],
+            ['name' => 'AdvanceDelete', 'group' => 'Advance'],
+
+            ['name' => 'PayrollRunView', 'group' => 'Payslip'],
+            ['name' => 'PayrollRunLock', 'group' => 'Payslip'],
+
             ['name' => 'PayslipView', 'group' => 'Payslip'],
             ['name' => 'PayslipCreate', 'group' => 'Payslip'],
             ['name' => 'PayslipUpdate', 'group' => 'Payslip'],
@@ -72,6 +103,22 @@ class PermissionSeeder extends Seeder
             ['name' => 'AccountUpdate', 'group' => 'Account'],
             ['name' => 'AccountDelete', 'group' => 'Account'],
             ['name' => 'ReportView', 'group' => 'Report'],
+            // Planning, separate from ReportView: the budget says what the
+            // company intends to do, which is not the same thing as being
+            // allowed to read what it has already done.
+            ['name' => 'BudgetView', 'group' => 'Budget'],
+            ['name' => 'BudgetCreate', 'group' => 'Budget'],
+            ['name' => 'BudgetUpdate', 'group' => 'Budget'],
+            ['name' => 'BudgetDelete', 'group' => 'Budget'],
+
+            // Borrowings and their repayment schedules. LoanRecord is the one
+            // that writes to the ledger, so it is separated from Update the way
+            // posting is separated from editing everywhere else here.
+            ['name' => 'LoanView', 'group' => 'Loan'],
+            ['name' => 'LoanCreate', 'group' => 'Loan'],
+            ['name' => 'LoanUpdate', 'group' => 'Loan'],
+            ['name' => 'LoanDelete', 'group' => 'Loan'],
+            ['name' => 'LoanRecord', 'group' => 'Loan'],
             ['name' => 'BankView', 'group' => 'Bank'],
             ['name' => 'BankCreate', 'group' => 'Bank'],
             ['name' => 'BankUpdate', 'group' => 'Bank'],
@@ -153,5 +200,12 @@ class PermissionSeeder extends Seeder
         foreach ($permissions as $permissionData) {
             Permission::firstOrCreate($permissionData, ['guard_name' => 'web']);
         }
+
+        // Once, at the end, and across every company. Spatie invalidates its own cache on
+        // write, but only the copy belonging to the context doing the writing — and a seeder
+        // has no company, so each company kept serving the list it had cached before this ran.
+        // A permission added here and not visible there is not a stale menu: policies call
+        // hasPermissionTo(), which throws for a name it cannot find, and the panel 500s.
+        PermissionCache::flushEverywhere();
     }
 }

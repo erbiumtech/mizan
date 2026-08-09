@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Bank;
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;

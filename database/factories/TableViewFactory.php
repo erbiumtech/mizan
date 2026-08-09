@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\TableView;
+use App\Modules\Core\Models\TableView;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TableViewFactory extends Factory

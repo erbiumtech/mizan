@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\ActivityLog;
-use App\Models\Company;
+use App\Modules\Core\Models\ActivityLog;
+use App\Modules\Core\Models\Company;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

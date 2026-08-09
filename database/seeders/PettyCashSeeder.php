@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\FiscalYear;
-use App\Models\PettyCashVoucher;
-use App\Models\TransactionType;
-use App\Services\PettyCashService;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Accounting\Models\PettyCashVoucher;
+use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Accounting\Services\PettyCashService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 

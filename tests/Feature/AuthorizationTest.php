@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\Comment;
-use App\Models\Employee;
-use App\Models\JournalEntry;
-use App\Models\Payslip;
-use App\Models\User;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\Comment;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Core\Models\User;
 use Tests\AccountingTestCase;
 
 class AuthorizationTest extends AccountingTestCase
@@ -121,10 +121,11 @@ class AuthorizationTest extends AccountingTestCase
         $account = Account::where('code', '5100')->firstOrFail();
         $account->update(['name' => 'Changed Name']);
 
+        // whereMorphedTo rather than a literal subject_type: the column holds the
+        // model's morph alias, which is deliberately not its current class name.
         $activity = \Spatie\Activitylog\Models\Activity::where('log_name', 'Account')
             ->where('event', 'updated')
-            ->where('subject_type', Account::class)
-            ->where('subject_id', $account->id)
+            ->whereMorphedTo('subject', $account)
             ->latest('id')
             ->firstOrFail();
 

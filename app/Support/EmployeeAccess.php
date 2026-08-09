@@ -2,9 +2,9 @@
 
 namespace App\Support;
 
-use App\Models\Company;
-use App\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -79,6 +79,11 @@ class EmployeeAccess
 
         return $this->userIdCache[$key] ??= Employee::query()
             ->whereIn('id', $this->accessibleEmployeeIds($user)->all())
+            // Staff with no login — a household's driver or cook — have a null
+            // user_id, and the cast below would turn that into user 0. Excluded
+            // here rather than filtered afterwards so the id list only ever
+            // contains real users.
+            ->whereNotNull('user_id')
             ->pluck('user_id')
             ->map(fn ($id) => (int) $id)
             ->unique()

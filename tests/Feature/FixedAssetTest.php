@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\Account;
-use App\Models\FixedAsset;
-use App\Models\JournalEntry;
-use App\Services\DepreciationService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\FixedAsset;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\DepreciationService;
 use Carbon\Carbon;
 use InvalidArgumentException;
 use Tests\AccountingTestCase;

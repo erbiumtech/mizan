@@ -31,6 +31,10 @@
         .loss { color: #742a2a; }
         .back { font-size: .85rem; margin-bottom: 1rem; display: inline-block; color: #4c51bf; text-decoration: none; }
         @media print { body { background: #fff; padding: 0; } .toolbar, .back { display: none; } .report { box-shadow: none; } }
+
+        {{-- A report that needs more than the shared styles adds it here rather
+             than carrying its own copy of the layout. --}}
+        @yield('styles')
     </style>
 
     @if (($pdfEngine ?? null) === 'dompdf')
@@ -40,7 +44,15 @@
 <body>
 <div class="report">
     @unless($pdf)
-        <a class="back" href="{{ url('/cpi') }}">&larr; Back to Nova</a>
+        {{-- Back to wherever the reader came from. The default is the panel;
+             /cpi, which this pointed at, was the Nova app that Filament replaced
+             and has not been a route here for some time. A report with somewhere
+             more specific to return to overrides the section. --}}
+        @hasSection('back')
+            @yield('back')
+        @else
+            <a class="back" href="{{ \Filament\Facades\Filament::getPanel('admin')->getUrl() }}">&larr; Back</a>
+        @endif
     @endunless
     @yield('content')
 </div>

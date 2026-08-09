@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
-use App\Models\FiscalYear;
-use App\Models\JournalEntry;
-use App\Models\User;
-use App\Services\JournalEntryService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Core\Models\User;
+use App\Modules\Accounting\Services\JournalEntryService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 

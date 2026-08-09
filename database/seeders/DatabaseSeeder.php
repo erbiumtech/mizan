@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -45,21 +45,24 @@ class DatabaseSeeder extends Seeder
     protected array $tenantSeeders = [
         FiscalYearSeeder::class,
         SalarySlabSeeder::class,
+        PayComponentSeeder::class,
         BankSeeder::class,
-        EmployeeSeeder::class,
-        EmployeeSettingSeeder::class,
+        // EmployeeSeeder::class,
+        // EmployeeSettingSeeder::class,
+        CurrencySeeder::class,
         ChartOfAccountsSeeder::class,
-        //            TransactionTypeSeeder::class,
+                    TransactionTypeSeeder::class,
         CompanyBankAccountSeeder::class,
-        //            BeneficiarySeeder::class,
+                    // BeneficiarySeeder::class,
         AccountSeeder::class,
-        //            JournalEntrySeeder::class,
-        //            PayslipSeeder::class,
-        //            FixedAssetSeeder::class,
-        //            PettyCashSeeder::class,
-        //            InventorySeeder::class,
-        ContactSeeder::class,
-        //            InvoiceSeeder::class,
+                    // JournalEntrySeeder::class,
+                    // PayslipSeeder::class,
+                    // FixedAssetSeeder::class,
+                    // PettyCashSeeder::class,
+                    // InventorySeeder::class,
+        // ContactSeeder::class,
+        TaxRateSeeder::class,
+                    // InvoiceSeeder::class,
     ];
 
     public function run(): void

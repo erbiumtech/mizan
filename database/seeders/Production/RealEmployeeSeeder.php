@@ -2,9 +2,9 @@
 
 namespace Database\Seeders\Production;
 
-use App\Models\Company;
-use App\Models\Employee;
-use App\Models\User;
+use App\Modules\Core\Models\Company;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Core\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -35,7 +35,7 @@ class RealEmployeeSeeder extends Seeder
             ['name' => 'Muhammad Mujahid', 'email' => 'mmujahid@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
             ['name' => 'Hammad Arshad', 'email' => 'harshad@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
             ['name' => 'Nabeel Ahmad', 'email' => 'nahmad@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
-            ['name' => 'Umer Farooq', 'email' => 'ufarooq@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager
+            ['name' => 'Umer Farooq', 'email' => 'ufarooq@erbium.ch', 'role' => 'Employee', 'status' => 1], // Manager — the salaries sheet lists him twice, as "Muhammad Umer Farooq" in PKR and as "Muzafar Ali" in EUR; one person, one record
             ['name' => 'Nadeem Yahya', 'email' => 'nyahya@erbium.ch', 'role' => 'Employee', 'status' => 1], // Employee
             ['name' => 'Arooj Fatima', 'email' => 'arooj.fatima@erbium.ch', 'role' => 'Employee', 'status' => 1], // Employee
             ['name' => 'Fatima Tauqeer', 'email' => 'fatimamohid03@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'nahmad@erbium.ch'], // Employee — reports to Nabeel Ahmad
@@ -44,6 +44,15 @@ class RealEmployeeSeeder extends Seeder
             ['name' => 'Maryam Zahid', 'email' => 'maryamzzahid987@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'mbakar@erbium.ch'], // Employee — reports to Muhammad AbuBakar
             ['name' => 'Muhammad Usman', 'email' => 'usmanqaisrani555@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'ufarooq@erbium.ch'], // Employee — reports to Umer Farooq
             ['name' => 'Syed Rahat Fatima', 'email' => 'rahatrashid78600@gmail.com', 'role' => 'Employee', 'status' => 1, 'manager' => 'rbukhari@erbium.ch'], // Employee — reports to Rashid Bukhari
+
+            // Support staff, on the payroll and on the salaries sheet but with no
+            // company mailbox. The addresses below are placeholders on the reserved
+            // `example.test` domain, so a notification can never reach a real inbox
+            // that happens to match a guess. Replace them with real addresses if
+            // either of these two ever needs to sign in — everything else about
+            // them (their package, payslips, and the client bill) works either way.
+            ['name' => 'Muhammad Abid', 'email' => 'muhammad.abid@example.test', 'role' => 'Employee', 'status' => 1], // Cook, helper and office boy
+            ['name' => 'Ahmad Ishtiaq', 'email' => 'ahmad.ishtiaq@example.test', 'role' => 'Employee', 'status' => 1], // Internee
         ];
 
         /** @var array<string, Employee> $created keyed by email, to resolve managers */

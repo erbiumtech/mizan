@@ -3,7 +3,7 @@
 namespace App\Support;
 
 use App\Http\Controllers\TenantFileController;
-use App\Models\Company;
+use App\Modules\Core\Models\Company;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 

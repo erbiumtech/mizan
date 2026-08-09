@@ -2,9 +2,9 @@
 
 namespace App\Models\Concerns;
 
-use App\Models\Company;
-use App\Models\CustomField;
-use App\Models\CustomFieldValue;
+use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\CustomField;
+use App\Modules\Core\Models\CustomFieldValue;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
 

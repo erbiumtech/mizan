@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\FiscalYear;
+use App\Modules\Core\Models\FiscalYear;
 use Illuminate\Database\Seeder;
 
 class FiscalYearSeeder extends Seeder

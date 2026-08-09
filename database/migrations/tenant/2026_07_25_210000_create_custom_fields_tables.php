@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('custom_fields', function (Blueprint $table) {
             $table->id();
-            $table->string('model_type');            // e.g. App\Models\Contact
+            $table->string('model_type');            // e.g. App\Modules\Invoicing\Models\Contact
             $table->string('code');                  // machine key, unique per model
             $table->string('name');                  // label
             $table->string('type')->default('text'); // text|textarea|number|date|boolean|select

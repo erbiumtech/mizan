@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Account;
-use App\Models\FiscalYear;
-use App\Models\Product;
-use App\Services\InventoryService;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Services\InventoryService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 

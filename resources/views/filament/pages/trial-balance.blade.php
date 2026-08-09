@@ -7,7 +7,7 @@
         <x-slot name="heading">
             As of {{ \Carbon\Carbon::parse($report['as_of'])->format('d M Y') }}
         </x-slot>
-        <x-slot name="headerEnd">
+        <x-slot name="afterHeader">
             @if($report['balanced'])
                 <x-filament::badge color="success">Balanced</x-filament::badge>
             @else

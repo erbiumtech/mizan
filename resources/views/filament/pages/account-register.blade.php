@@ -42,7 +42,7 @@
     <x-filament::section>
         <x-slot name="heading">{{ $account->code }} {{ $account->name }}</x-slot>
         <x-slot name="description">GnuCash-style register — every transaction from one screen</x-slot>
-        <x-slot name="headerEnd">
+        <x-slot name="afterHeader">
             <x-filament::badge color="gray">{{ $rows->count() }} {{ \Illuminate\Support\Str::plural('entry', $rows->count()) }}</x-filament::badge>
         </x-slot>
 
@@ -70,7 +70,21 @@
                         </tr>
                     @endif
                     @forelse($ledger['rows'] as $row)
-                        <tr class="transition hover:bg-gray-50 dark:hover:bg-white/5">
+                        {{-- Striped, because a register is read across nine columns
+                             and the eye needs the line to follow. The just-added row
+                             is tinted instead: a back-dated entry sorts into the
+                             middle of the ledger rather than appearing where it was
+                             typed, and without this a correct save looks like
+                             nothing happened. --}}
+                        {{-- Whole class names only, and only ones that survive the
+                             build. dark:even:bg-white/[0.02] was the obvious choice
+                             for a subtle stripe and Tailwind emits nothing for it,
+                             so the stripe would simply not exist in dark mode. --}}
+                        <tr @class([
+                                'transition hover:bg-gray-100 dark:hover:bg-white/10',
+                                'even:bg-gray-50 dark:even:bg-white/5' => $row['entry_id'] !== $this->justAdded,
+                                'bg-primary-50 dark:bg-primary-500/10' => $row['entry_id'] === $this->justAdded,
+                            ])>
                             <td class="whitespace-nowrap px-3 py-2">{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
                             <td class="px-3 py-2">
                                 @if($row['num'])
@@ -118,6 +132,7 @@
                     @empty
                         <tr><td class="px-3 py-6 text-center text-gray-400" colspan="9">No posted transactions in this range.</td></tr>
                     @endforelse
+
                 </tbody>
                 <tfoot>
                     <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold dark:border-white/10 dark:bg-white/5">
@@ -130,5 +145,69 @@
                 </tfoot>
             </table>
         </div>
+
+        {{-- The entry strip.
+
+             Directly under the table and joined to it — same ring, no gap, its
+             own tint — so it reads as the next line of the register rather than
+             a form that happens to be nearby. Its fields sit under the columns
+             they belong to, and the table header above is doing the labelling,
+             which is why they carry none of their own.
+
+             Under the table rather than inside it, because the Transfer column
+             needs a real search box: 43 accounts in the stock chart, more in a
+             real one, and a native <select> only jumps on the first characters
+             of a label that begins with the account type. --}}
+        @if($this->canAddInline())
+            <div
+                x-data
+                x-on:register-row-saved.window="$nextTick(() => $el.querySelector('input, button')?.focus())"
+                wire:keydown.enter.prevent="saveNewRow"
+                class="-mt-px rounded-b-lg bg-warning-50 p-3 ring-1 ring-gray-950/5 dark:bg-warning-500/10 dark:ring-white/10"
+            >
+                {{ $this->newRowForm }}
+
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Enter books it and clears the line for the next one. An amount
+                    goes in Debit (money in) or Credit (money out), never both.
+                    Posts immediately — no draft, no approval.
+                </p>
+            </div>
+        @endif
+
+        {{-- Said out loud rather than silently left off: a payment scheduled ahead
+             is dated at its value date, so it sits beyond the To date and shows in
+             neither this register nor the Profit & Loss until it arrives.
+
+             Loud, and with the button, because grey small print under the table was
+             not enough — a payment dated a few days out reads as a payment that was
+             never recorded, and the person looking for it goes hunting through the
+             ledger rather than noticing a footnote. --}}
+        @if ($beyond = ($ledger['beyond'] ?? null))
+            <div class="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning-300 bg-warning-50 p-3 text-sm dark:border-warning-500/30 dark:bg-warning-500/10">
+                <x-filament::icon
+                    icon="heroicon-o-clock"
+                    class="h-5 w-5 flex-shrink-0 text-warning-600 dark:text-warning-400"
+                />
+
+                <span class="text-gray-700 dark:text-gray-200">
+                    Not shown:
+                    <span class="font-medium">{{ $beyond['count'] }} {{ \Illuminate\Support\Str::plural('entry', $beyond['count']) }}</span>
+                    dated after {{ \Illuminate\Support\Carbon::parse($this->data['to'])->toFormattedDateString() }},
+                    worth <span class="font-medium tabular-nums">{{ number_format($beyond['total'], 2) }}</span>.
+                    Payments are dated at their value date, so anything scheduled ahead — or entered with a
+                    later date — sits past the To date.
+                </span>
+
+                <x-filament::button
+                    wire:click="includeLaterEntries"
+                    size="xs"
+                    color="warning"
+                    icon="heroicon-m-eye"
+                >
+                    Show them
+                </x-filament::button>
+            </div>
+        @endif
     </x-filament::section>
 </x-filament-panels::page>
