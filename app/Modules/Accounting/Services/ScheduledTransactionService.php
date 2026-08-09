@@ -34,7 +34,27 @@ class ScheduledTransactionService
      */
     public const MAX_PER_RUN = 24;
 
-    public function __construct(private JournalEntryService $entries) {}
+    public function __construct(
+        private JournalEntryService $entries,
+        private SecondApproverRule $secondApprover,
+    ) {}
+
+    /**
+     * Approve without naming an approver, then post.
+     *
+     * Mirrors PendingPayrollPoster::approveAsSystem(): stamping some person as
+     * `approved_by` would record an approval nobody gave, so the column stays
+     * null and the entry says it was posted by the system.
+     */
+    private function postAsSystem(JournalEntry $entry): JournalEntry
+    {
+        $entry->update([
+            'status' => JournalEntry::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+
+        return $this->entries->post($entry->fresh());
+    }
 
     /**
      * Schedules with at least one occurrence outstanding on or before $upTo.
@@ -124,7 +144,7 @@ class ScheduledTransactionService
         }
 
         try {
-            return $this->entries->create(
+            $entry = $this->entries->create(
                 [
                     'entry_date' => $date->toDateString(),
                     'entry_type' => $schedule->entry_type,
@@ -135,6 +155,16 @@ class ScheduledTransactionService
                 ],
                 $lines,
             );
+
+            // A draft is the right output where somebody will read it before it
+            // reaches the books. Where the company has said there is no second
+            // approver, nobody will — the draft would wait for a person who does
+            // not exist while the rent it describes has already left the bank.
+            // Posted with no approver named, which is the honest record: the
+            // system posted this under the company's own policy.
+            return $this->secondApprover->isRequired()
+                ? $entry
+                : $this->postAsSystem($entry);
         } catch (\Throwable) {
             // An account switched to "no manual entry", or a closed fiscal year.
             // Both are real states, and neither is a reason to abandon the rest

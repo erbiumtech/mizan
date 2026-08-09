@@ -141,7 +141,13 @@ class JournalEntryService
             throw new InvalidArgumentException("Only pending entries can be approved (entry is {$entry->status}).");
         }
 
-        if ($entry->created_by !== null && $entry->created_by === $approver->id) {
+        // Segregation of duties, unless the company has said it has nobody to
+        // segregate with. A one-operator company that keeps this on cannot post
+        // anything it writes — the entry waits forever for an approver who does
+        // not exist, while the money it describes has already moved.
+        $selfApproved = $entry->created_by !== null && $entry->created_by === $approver->id;
+
+        if ($selfApproved && app(SecondApproverRule::class)->isRequired()) {
             throw new InvalidArgumentException('An entry cannot be approved by its creator (segregation of duties).');
         }
 
@@ -155,8 +161,16 @@ class JournalEntryService
             ->performedOn($entry)
             ->causedBy($approver)
             ->event('approved')
-            ->withProperties(['entry_number' => $entry->entry_number])
-            ->log("Journal entry {$entry->entry_number} approved");
+            // Recorded as a self-approval when that is what it was. A waived
+            // control that leaves no trace is worse than no control: the point
+            // of turning it off is to keep working, not to make the books look
+            // like two people checked them.
+            ->withProperties(array_filter([
+                'entry_number' => $entry->entry_number,
+                'self_approved' => $selfApproved ?: null,
+            ]))
+            ->log("Journal entry {$entry->entry_number} approved"
+                .($selfApproved ? ' by its own author (no second approver required for this company)' : ''));
 
         return $entry;
     }
