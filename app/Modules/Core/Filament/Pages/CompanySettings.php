@@ -180,7 +180,10 @@ class CompanySettings extends Page
                                 .'approve, entries wait forever while the money they describe has already '
                                 .'moved. Self-approvals are recorded as such in the audit trail, and '
                                 .'scheduled entries and loan instalments post themselves rather than '
-                                .'queueing for an approver who does not exist.'),
+                                .'queueing for an approver who does not exist. It starts at whatever '
+                                .'this installation was set up with (ACCOUNTING_REQUIRE_SECOND_APPROVER '
+                                .'in .env); saving here is this company answering for itself, and that '
+                                .'answer stands whatever the installation default later becomes.'),
                     ]),
 
                 Section::make('Payroll')
