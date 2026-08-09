@@ -28,8 +28,14 @@ jobs:
       run: |
         mkdir -p database
         touch database/database.sqlite
+    # No `env:` block here, deliberately. phpunit.xml already pins the landlord
+    # and tenant connections, and it pins them so the suite cannot depend on
+    # whose machine — or which runner — it happens to run on.
+    #
+    # Setting DB_DATABASE here defeated that. PHPUnit's <env> does not overwrite
+    # a variable the process already has, so a real environment variable from a
+    # workflow step wins over the pin, and the whole suite ran against a shared
+    # file instead of :memory:. TestEnvironmentTest exists to catch exactly that
+    # and was the one failure that told the truth.
     - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
-      env:
-        DB_CONNECTION: sqlite
-        DB_DATABASE: database/database.sqlite
       run: php artisan test
