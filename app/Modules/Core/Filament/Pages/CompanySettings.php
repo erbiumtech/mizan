@@ -114,6 +114,7 @@ class CompanySettings extends Page
             'base_currency' => Currency::baseCode(),
             'petty_cash_float_amount' => setting('petty_cash.float_amount'),
             'accounting_auto_post_payroll' => (bool) setting('accounting.auto_post_payroll'),
+            'accounting_require_second_approver' => (bool) setting('accounting.require_second_approver'),
             'accounting_payroll_accounts' => setting('accounting.payroll_accounts'),
             'ipayments' => static::editableIpayments(),
             'projects_status_page_enabled' => (bool) setting('projects.status_page.enabled', false),
@@ -167,6 +168,19 @@ class CompanySettings extends Page
                             ->numeric()
                             ->required()
                             ->helperText('The imprest the petty cash box is restored to each month.'),
+                    ]),
+
+                Section::make('Approvals')
+                    ->description('Who has to sign an entry off before it reaches the ledger.')
+                    ->schema([
+                        Toggle::make('accounting_require_second_approver')
+                            ->label('Require a second person to approve journal entries')
+                            ->helperText('On, whoever writes an entry cannot be the one who approves it. '
+                                .'Turn it OFF only if one person runs the books alone: with nobody else to '
+                                .'approve, entries wait forever while the money they describe has already '
+                                .'moved. Self-approvals are recorded as such in the audit trail, and '
+                                .'scheduled entries and loan instalments post themselves rather than '
+                                .'queueing for an approver who does not exist.'),
                     ]),
 
                 Section::make('Payroll')
@@ -348,6 +362,7 @@ class CompanySettings extends Page
         $settings = app(TenantSettings::class);
         $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);
         $settings->set('accounting.auto_post_payroll', (bool) $state['accounting_auto_post_payroll']);
+        $settings->set('accounting.require_second_approver', (bool) $state['accounting_require_second_approver']);
         $settings->set('accounting.payroll_accounts', $state['accounting_payroll_accounts']);
         // Scalars only: the nested own_bank matching rules are not editable here,
         // and TenantSettings merges them back from config.

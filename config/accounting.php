@@ -10,6 +10,19 @@ return [
     'auto_post_payroll' => env('ACCOUNTING_AUTO_POST_PAYROLL', false),
 
     /*
+    | When true, a journal entry must be approved by somebody other than the
+    | person who wrote it. True is the right default and the one every
+    | accounting control here assumes.
+    |
+    | It also assumes a second person exists. A company run by one operator has
+    | nobody to route an entry to, so the rule becomes a dead end rather than a
+    | control — the entry sits at pending_approval forever while the money has
+    | already moved. Such a company turns this off, and the audit trail records
+    | each self-approval as one. See SecondApproverRule.
+    */
+    'require_second_approver' => env('ACCOUNTING_REQUIRE_SECOND_APPROVER', true),
+
+    /*
     | Account codes used by payroll posting (must exist in the chart of
     | accounts — see ChartOfAccountsSeeder).
     */

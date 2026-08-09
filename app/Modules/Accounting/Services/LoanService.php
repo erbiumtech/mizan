@@ -14,7 +14,10 @@ use RuntimeException;
  */
 class LoanService
 {
-    public function __construct(private JournalEntryService $entries) {}
+    public function __construct(
+        private JournalEntryService $entries,
+        private SecondApproverRule $secondApprover,
+    ) {}
 
     /**
      * The level instalment: the same amount every month that clears the loan in
@@ -196,6 +199,14 @@ class LoanService
                 ],
                 $lines,
             );
+
+            // Same rule as scheduled entries: a draft is right where somebody
+            // will read it, and a dead end where the company has said there is
+            // no second approver. Posted with no approver named.
+            if (! $this->secondApprover->isRequired()) {
+                $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);
+                $entry = $this->entries->post($entry->fresh());
+            }
 
             $instalment->update(['journal_entry_id' => $entry->getKey()]);
 

@@ -124,6 +124,21 @@ The help panel on the Loans screen lists what the schedule deliberately does not
 model — variable rates, early settlement, fees, payment holidays. Read it before
 relying on the figures for anything but bookkeeping.
 
+## When one person runs the books
+
+The approval workflow assumes two people: whoever writes an entry cannot approve
+it. Where only one person keeps the books there is nobody to route an entry to,
+and it waits at *pending approval* forever — while the money it describes has
+already moved. A month's payroll paid with its accrual unposted shows up as a
+**negative** Salaries Payable, which reads as a bug and is really a queue nobody
+can clear.
+
+**Settings → Company Settings → Approvals** has the switch: *Require a second
+person to approve journal entries*. Leave it on wherever two people exist. Turn
+it off and one person can approve their own entries — every such approval is
+recorded as a self-approval in the audit trail, and scheduled entries and loan
+instalments post themselves rather than queueing.
+
 ## Correcting a posted entry
 
 Posted entries are immutable. There is no unpost, no edit and no delete — the

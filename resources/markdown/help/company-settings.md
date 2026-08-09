@@ -19,6 +19,32 @@ amount rather than restate it.
 replenishment — see the Petty Cash Book help for how that plays out day to
 day.
 
+## Approvals
+
+**Require a second person to approve journal entries** — on by default, and it
+should stay on wherever two people are available.
+
+On, whoever writes an entry cannot be the one who waves it through. That is
+segregation of duties, and it is the control most of this application's
+accounting behaviour assumes.
+
+**Turn it off only if one person runs the books alone.** The rule assumes a
+second person exists; where none does, it stops being a control and becomes a
+dead end — the entry sits waiting for an approver who will never come, while the
+money it describes has already left the bank. That is how a month's payroll can
+end up paid with its accrual unposted, showing a negative Salaries Payable.
+
+With it off:
+
+- Whoever writes an entry may approve it, and the audit trail records each of
+  those as a **self-approval** — a waived control that left no trace would be
+  worse than no control.
+- **Scheduled entries** and **loan instalments** post themselves instead of
+  queueing, for the same reason: nobody is coming to read them.
+
+Payments, the Account Register and payroll (when auto-posting is on) already post
+immediately and are unaffected either way.
+
 ## Payroll
 
 **Auto-post payroll journal entries**: on, a payroll run's journal entry is
