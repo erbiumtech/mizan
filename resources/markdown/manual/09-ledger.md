@@ -139,6 +139,12 @@ it off and one person can approve their own entries — every such approval is
 recorded as a self-approval in the audit trail, and scheduled entries and loan
 instalments post themselves rather than queueing.
 
+Whoever installs the application can set the starting position for every company
+on it, with `ACCOUNTING_REQUIRE_SECOND_APPROVER` in `.env` — worth setting to
+`false` on an installation put up for a single operator, so nothing queues before
+anyone finds the switch. A company that has used the switch keeps its own answer
+regardless of what that value is later changed to.
+
 ## Correcting a posted entry
 
 Posted entries are immutable. There is no unpost, no edit and no delete — the

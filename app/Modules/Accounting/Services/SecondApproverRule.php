@@ -23,6 +23,17 @@ use App\Support\TenantSettings;
  * happened, because a waived control that leaves no trace is worse than no
  * control at all.
  *
+ * Two places answer the question, in this order:
+ *
+ *   1. the company's own choice, saved from Company Settings → Approvals;
+ *   2. ACCOUNTING_REQUIRE_SECOND_APPROVER in .env, the installation default,
+ *      for every company that has never chosen.
+ *
+ * An installation that only ever serves the one-operator company sets the env
+ * var to false and never touches the page; a company that opts out on the page
+ * stays opted out whatever the env later says, because it has answered the
+ * question for itself and a deploy should not answer it again.
+ *
  * Deliberately separate from accounting.auto_post_payroll, which answers a
  * narrower question: whether PAYROLL entries skip the queue. This one decides
  * whether the queue can be cleared by one person at all, and it applies to
@@ -49,7 +60,10 @@ class SecondApproverRule
         app(TenantSettings::class)->set(self::SETTING_KEY, $required);
     }
 
-    /** What a company falls back to when it has never chosen. */
+    /**
+     * What a company falls back to when it has never chosen — the installation
+     * default, from ACCOUNTING_REQUIRE_SECOND_APPROVER in .env.
+     */
     public function default(): bool
     {
         return (bool) config(self::SETTING_KEY);

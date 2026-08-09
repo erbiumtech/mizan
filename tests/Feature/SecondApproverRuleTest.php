@@ -212,4 +212,52 @@ class SecondApproverRuleTest extends AccountingTestCase
         $this->assertFalse($this->rule()->isRequired());
         $this->assertTrue($this->rule()->default(), 'The shipped default is untouched by one company opting out.');
     }
+
+    // ── the installation default, from .env ─────────────────────────────────
+
+    /**
+     * ACCOUNTING_REQUIRE_SECOND_APPROVER reaches config/accounting.php, and a
+     * company that has never chosen follows it. This is how an installation
+     * that only ever serves the one-operator company is set up: edit .env once,
+     * never open Company Settings.
+     */
+    public function test_a_company_that_has_never_chosen_follows_the_installation_default(): void
+    {
+        config(['accounting.require_second_approver' => false]);
+
+        $this->assertFalse($this->rule()->default());
+        $this->assertFalse($this->rule()->isRequired(), 'No override saved, so the .env value decides.');
+
+        // And it decides for real work, not just the flag: the author clears
+        // their own entry without anybody having touched the settings page.
+        $entry = app(JournalEntryService::class)->approve($this->draft(), $this->author);
+
+        $this->assertTrue($entry->isApproved());
+    }
+
+    public function test_a_company_that_has_chosen_keeps_its_choice_when_the_installation_default_changes(): void
+    {
+        // The company has answered the question for itself. A later deploy that
+        // flips the env var must not answer it again — least of all by turning
+        // a control back on for a company that has nobody to satisfy it.
+        $this->rule()->set(false);
+
+        config(['accounting.require_second_approver' => true]);
+
+        $this->assertFalse($this->rule()->isRequired());
+        $this->assertTrue(
+            app(JournalEntryService::class)->approve($this->draft(), $this->author)->isApproved(),
+        );
+    }
+
+    public function test_a_company_can_still_be_stricter_than_the_installation_default(): void
+    {
+        config(['accounting.require_second_approver' => false]);
+        $this->rule()->set(true);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/segregation of duties/');
+
+        app(JournalEntryService::class)->approve($this->draft(), $this->author);
+    }
 }

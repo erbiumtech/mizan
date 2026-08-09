@@ -45,6 +45,11 @@ With it off:
 Payments, the Account Register and payroll (when auto-posting is on) already post
 immediately and are unaffected either way.
 
+The toggle starts wherever this installation was set up
+(`ACCOUNTING_REQUIRE_SECOND_APPROVER` in `.env`, on unless changed). Saving it
+here is this company answering the question for itself, and that answer stands
+whatever the installation is later changed to.
+
 ## Payroll
 
 **Auto-post payroll journal entries**: on, a payroll run's journal entry is
