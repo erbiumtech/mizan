@@ -47,9 +47,14 @@ final class ModuleMap
             'App\Models\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
             'App\Models\Comment' => \App\Modules\Core\Models\Comment::class,
             'App\Models\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
+            // Core for the same reason FiscalYear is: leave, attendance and any
+            // future timesheet validation all ask "is this a working day", and
+            // none of them owns the answer. See docs/hrms-plan.md §3.
+            'App\Models\Holiday' => \App\Modules\Core\Models\Holiday::class,
             'App\Models\Setting' => \App\Modules\Core\Models\Setting::class,
         ],
         'employees' => [
+            'App\Models\EmployeeJobHistory' => \App\Modules\Employees\Models\EmployeeJobHistory::class,
             'App\Models\Employee' => \App\Modules\Employees\Models\Employee::class,
             'App\Models\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
             'App\Models\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
@@ -146,6 +151,7 @@ final class ModuleMap
             'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
             'App\Filament\Resources\Comments\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
             'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
+            'App\Filament\Resources\Holidays\HolidayResource' => \App\Modules\Core\Filament\Resources\Holidays\HolidayResource::class,
         ],
         'employees' => [
             'App\Filament\Resources\Employees\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
@@ -289,7 +295,7 @@ final class ModuleMap
      * @var array<string, array<int, string>>
      */
     private const PERMISSION_GROUPS = [
-        'core' => ['User', 'Role', 'Permission', 'ActivityLog', 'Comment', 'FiscalYear'],
+        'core' => ['User', 'Role', 'Permission', 'ActivityLog', 'Comment', 'FiscalYear', 'Holiday'],
         'employees' => ['Employee', 'EmployeeSetting'],
         'advances' => ['Advance'],
         'expenses' => ['ExpenseClaim'],

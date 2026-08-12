@@ -52,18 +52,41 @@ cannot buy a part of — and the parts genuinely sell separately: a software hou
 wants leave and timesheets and no attendance clock; a factory wants attendance
 and no timesheets.
 
-| Module | Owns | `requires` | Guarded (soft) |
-|---|---|---|---|
-| `leave` | leave types, entitlements, requests, balances, encashment | `employees` | `payroll` (LOP, encashment), `attendance` |
-| `attendance` | work patterns, daily attendance, overtime | `employees` | `payroll`, `leave` |
-| `timesheets` | time against a project, billable/non-billable | `employees`, `projects` | `billing`, `invoicing` |
-| `recruitment` | vacancies, applicants, stages, interviews, offers | — | `employees` (offer → hire) |
-| `performance` | review cycles, goals, ratings, one-to-ones | `employees` | `mpr` |
-| `lifecycle` | onboarding/exit checklists, issued assets, documents with expiry, final settlement | `employees` | `payroll`, `leave`, `accounting` |
+| Module | Owns | `requires` | Guarded (soft) | Company profiles |
+|---|---|---|---|---|
+| `leave` | leave types, entitlements, requests, balances, encashment | `employees` | `payroll` (LOP, encashment), `attendance` | all with employees |
+| `attendance` | work patterns, daily attendance, overtime | `employees` | `payroll`, `leave` | manufacturing, trading, staffing |
+| `timesheets` | time against a project, billable/non-billable | `employees`, `projects` | `billing`, `invoicing` | services, software house |
+| `recruitment` | vacancies, applicants, stages, interviews, offers | — | `employees` (offer → hire) | all with employees |
+| `performance` | review cycles, goals, ratings, one-to-ones | `employees` | `mpr` | services, software house |
+| `lifecycle` | onboarding/exit checklists, issued assets, documents with expiry, final settlement | `employees` | `payroll`, `leave`, `accounting` | all with employees |
 
 `recruitment` requires nothing: an applicant is not an employee, and a company
 hiring its first employee has no `employees` licence yet. The conversion step is
 the guarded part — the "Hire" action is hidden when `employees` is off.
+
+**The profile column is not decoration, and it is the strongest evidence for this
+section's own argument.** Every module here has to appear in at least one entry
+of `config/company_profiles.php` or `CompanyProfileTest` fails — see
+`docs/new-module-checklist.md` §1a. Filling it in forced the split to be justified
+per module rather than in the abstract, and two rows are what a single `hrms`
+module could never express:
+
+- **`attendance` is not for a software house.** A daily row per employee with
+  check-in times is what a factory floor needs and what an office of salaried
+  engineers will never fill in — leaving `not_marked` accumulating, which §4.2
+  spends a paragraph explaining is the state to avoid.
+- **`timesheets` is not for a factory.** Time against a project only means
+  anything where the project is the billable unit.
+
+One `hrms` module would sell both to both. The profiles say plainly that no
+company wants all six, which is the case for six modules stated as a licensing
+fact rather than an opinion about tidiness.
+
+`leave`, `recruitment` and `lifecycle` go to every profile that licenses
+`employees` — a household with a cook does not run a leave policy, so the
+`personal` profile is excluded throughout, and `bookkeeping` has no employees at
+all.
 
 Statutory contribution schemes (EOBI, provincial social security, provident fund,
 gratuity) are **not** a module. They are money, they post to the ledger, and they
@@ -83,6 +106,24 @@ company-wide list of dates that several modules read.
 holidays        id, date, name, is_recurring, notes            (tenant)
 ```
 
+**Built.** `HolidayCalendar` in Core exposes `isHoliday()`, `between()` and
+`datesBetween()` — the last for fast set membership when the leave generator
+loops over a range. Deliberately **no `isWorkingDay()`**: weekends come from work
+patterns, which `attendance` owns and which do not exist yet, so this service
+answers only what its own table knows.
+
+Types, since §3 originally gave none and `leave` is about to depend on them:
+`date` is unique (two rows for one day is a support call), `name` required (an
+unnamed holiday is its own support call), `notes` nullable, `is_recurring`
+defaults false. The unique constraint is the index the range scans use; there is
+no second index on `date`.
+
+**Assumption, now stated: the calendar is company-wide.** Multi-site companies in
+Pakistan do observe different local holidays, and this table cannot express that.
+Adding `location_id` after `leave_days` have been generated from the calendar is
+a data migration, not a column — so if a company with sites in more than one
+province is on the roadmap, decide before phase 1, not after.
+
 *Rejected:* a shared `hr_foundation` module that leave and attendance both
 require. A module whose only purpose is to be depended on is a licence nobody
 buys and a toggle that must never be off — which is what Core already is.
@@ -93,6 +134,15 @@ holidays disagreeing about Eid is a support call, not a design.
 Recurring dates are marked but not computed: Eid moves, and a calendar that
 guesses lunar dates would be wrong every year in a way nobody notices until
 payroll. `is_recurring` seeds next year's list as a draft for someone to confirm.
+Asserted as built — a recurring 2026 Eid produces no 2027 row on its own.
+
+**Open, and it leans on this section: `leave_days` records no calendar version.**
+§4.1 promises days are "recomputed from the calendar when the request is
+approved, and never after — a holiday added retroactively must not silently
+change a settled month". The never-after half is enforceable, but nothing records
+*which* calendar produced a given set of days, so "why does last March differ
+from this March" has no answer in the data. Either accept that and say so, or
+stamp the generating calendar on the request. Cheap now, a backfill later.
 
 ### An employee needs a leaving date
 
@@ -109,6 +159,60 @@ employees   + left_on            date, nullable
 `is_active` stays as the flag every existing query uses; `left_on` is the date it
 happened. Backfill leaves `left_on` null for everyone already inactive — an
 invented date would look like a fact.
+
+### Only salary is effective-dated. Nothing else about the job is.
+
+The sharpest gap in this plan, found late and affecting three sections above it.
+
+`employee_settings` versions the *package* by fiscal year, and that is the only
+history an employee has. Everything else about their job is a live value on
+`employees` and is **overwritten in place**:
+
+| Fact | Stored as | What is lost on change |
+|---|---|---|
+| `designation` | plain nullable string | when they were promoted, and to what from |
+| `department` | plain nullable string | which department a past cost belongs to |
+| `manager_id` | live pointer, reparented on delete | who could approve for them, at any past date |
+
+So "who reported to whom in March" is unanswerable, and nothing records that it
+was ever different.
+
+**This is not a reporting nicety, it is load-bearing for what this plan builds.**
+Leave approval routes through `manager_id` via `EmployeeAccess` (§4.1, §7). A
+request approved in March by a manager who has since moved keeps its
+`decided_by` — the approval survives — but the *authority* for it does not, and
+there is no way to reconstruct it. Every other approval chain this plan adds
+inherits the same hole.
+
+```
+employee_job_history   id, employee_id, effective_from, designation, department,
+                       manager_id, employment_type, reason, recorded_by
+```
+
+The `employees` columns stay exactly as they are and become the *current* row —
+denormalised on purpose, because every existing query reads them and none of them
+should have to learn about history to keep working.
+
+Three things this subsumes rather than adds to:
+
+- **`left_on` is one more row**, with `reason = 'separation'`, rather than three
+  new columns. The columns above are still worth having for the reasons given —
+  payroll must read the date without the lifecycle module — but they become a
+  projection of the last row rather than an independent fact.
+- **Gratuity needs continuous service** (§6), which is the span from the first
+  row to the last, and is not derivable from a joining date alone once
+  re-employment exists.
+- **`department` in cost reporting.** Attributing a past payslip to the
+  department the employee was in *then* is only possible with this.
+
+*Rejected:* versioning these on `employee_settings` alongside salary. The package
+is versioned by fiscal year because tax slabs are; a promotion happens on a
+Tuesday. Forcing job changes onto the fiscal-year boundary would either backdate
+them to July or hold them until it.
+
+**Where it goes: `employees`, not `lifecycle`.** Same argument as the leaving
+date — payroll, leave and every approval chain read it, and none of them may
+depend on a licence the company might not have.
 
 ## 4. The modules
 
@@ -255,6 +359,59 @@ already answered.
 because nothing else in this system measures pay in hours except
 `extra_work_hours`, and a two-hour leave that cannot reduce pay is a note, not a
 leave record.
+
+**Sandwich leave — a company setting, and it belongs here rather than later.**
+Taking Friday and Monday off, and the weekend between counting as leave too, is a
+common policy in this market. It is absent from the design above, and it is not
+an additive feature: it changes which days `leave_days` generates, which §4.1
+calls the point of the design. Bolting it on afterwards means regenerating days
+for requests that have already been approved and already reached a payslip.
+
+`leave.sandwich_rule`, defaulting **off** — the pilot has not asked for it and a
+policy that quietly consumes two extra days is the wrong default to impose:
+
+| Value | A Friday + Monday request consumes |
+|---|---|
+| `off` | 2 days. Non-working days between are skipped, exactly as designed |
+| `enclosed` | 4 days. Non-working days *between* two leave days are consumed |
+
+`enclosed` is the only variant offered. The stricter reading some policies take —
+a holiday adjacent to leave is consumed even at the edges — is deliberately not
+built: it makes a single Friday's leave cost three days, which nobody expects,
+and no policy anyone here has read asks for it.
+
+The setting is read once, when the request is approved and `leave_days` are
+generated, and never again — the same rule the holiday calendar already follows.
+Changing the policy must not restate leave somebody has already taken.
+
+**Compensatory off.** Working a weekly off or a public holiday earns a day back.
+Not a new mechanism: it is a `leave_type` with `accrual_method = 'compensatory'`,
+credited by an approved `attendance_day` whose `status` is `weekly_off` or
+`holiday` and whose `worked_minutes` are non-zero. Every input already exists in
+§4.2.
+
+Two constraints that make it safe rather than a second balance nobody can
+explain. It accrues **only from approved attendance**, so it cannot be
+self-granted by typing a day in. And it needs an **expiry**, which is the one
+place this plan admits a lapse date it refused for carry-forward: a comp-off
+earned in March and taken three years later is not time off in lieu of anything.
+`leave.comp_off_expiry_days`, defaulting to 90.
+
+**When each lands, and they are not the same answer.** An earlier draft said
+"both phase 2 or later", which contradicts the paragraph above it: if sandwich
+changes what `leave_days` generates, deferring it means regenerating days for
+requests already approved and already on a payslip.
+
+- **Sandwich: the setting and the generation branch land in phase 1, with the
+  generator**, shipped `off`. Building the branch while the generator is being
+  written costs almost nothing; retrofitting it costs a data migration over
+  settled months. Switching it on for a company is then a policy decision, any
+  time.
+- **Comp-off is phase 2 or later**, genuinely — it accrues from approved
+  attendance rows, which do not exist until then.
+
+Neither is needed for the pilot. The difference is that one of them is cheap now
+and expensive later, and the other is the same price whenever it is built.
 
 ### 4.2 `attendance`
 
@@ -734,10 +891,12 @@ join last within each phase, because it is the only part that moves money.
 
 | Phase | Work | Risk |
 |---|---|---|
-| **0** | `holidays` in Core; `left_on` + `leaving_reason` on `employees`; `docs/new-module-checklist.md` walked once end to end | none |
-| **1** | `leave`: types, entitlements, requests, `leave_days`, computed balances, the year-end reset with carry-forward behind its setting, approval with the self-approval setting, employee self-service | low |
-| **2** | `attendance`: work patterns, daily rows, CSV import, `not_marked` handling, pruning | low |
+| **0** | `holidays` in Core; `left_on` + `leaving_reason` and **`employee_job_history`** on `employees` (§3); `docs/new-module-checklist.md` walked once end to end | none |
+| **1** | `leave`: types, entitlements, **adjustments as rows**, requests, `leave_days` **including the sandwich branch, shipped off**, computed balances, the year-end reset with carry-forward behind its setting, approval with the self-approval setting, employee self-service | low |
+| **2** | `attendance`: work patterns, daily rows, CSV import, `not_marked` handling, **regularization requests**, pruning | low |
+| **2a** | Compensatory off: the accrual method and its expiry, on top of phase 2's approved attendance | low |
 | **3** *(off the critical path — see below)* | **The payroll join** — `payroll.prorate_on_attendance`, `pay_components.prorates`, divisor setting, off for existing companies | **high — money** |
+| **3a** | **Overtime reaches pay** — the derived hourly rate recorded on the payslip, `attendance.overtime_multiplier`, and caps that warn (§4.2). Independent of phase 3: overtime *adds* pay where pro-rating *removes* it, so neither blocks the other | **high — money** |
 | **4** | `timesheets` + the hours-based billing line | medium |
 | **5** | `lifecycle`: checklists, documents with expiry, issued assets | low |
 | **6** | Final settlement (needs 1, 5 and `advances`; leave encashment needs 1, not 3) | medium — money |
@@ -746,8 +905,16 @@ join last within each phase, because it is the only part that moves money.
 | **9** | Statutory schemes: EOBI, social security, PF, gratuity provision | **high — money and law** |
 
 Phases 1, 2, 4, 5, 7 and 8 are independent of each other and can ship in any
-order. 6 and 9 need a payroll month run in parallel against the old figures before
-anyone trusts them.
+order. 6, 9 and **3a** need a payroll month run in parallel against the old
+figures before anyone trusts them.
+
+**Phase 0 carries more than it looks.** `employee_job_history` is the one item
+here that everything else quietly assumes: leave approval routes through
+`manager_id`, final settlement needs continuous service, and department cost
+reporting needs to know which department someone was in at the time. It is
+cheap while `employees` is small and irreversible-in-practice once a year of
+promotions has been overwritten, which is why it is phase 0 rather than filed
+with `lifecycle`.
 
 **Phase 3 is now optional, and that is a change.** It was written as the phase that
 made 1 and 2 worth having; the company in production docks nothing for unpaid
@@ -808,11 +975,36 @@ Beyond the eight `Module*` tests every module must satisfy:
     and the activity log records the self-approval.
 12. An attendance import cannot mark `present` a day covered by approved leave.
 13. A month with no attendance rows reads `not_marked`, never `absent`.
+13a. **Adjustments are rows and none of them is lost** (§4.1): two adjustments in
+    one leave year both exist, both reasons survive, and the balance is their sum
+    — the assertion the single `adjustment_days` column could not have passed.
+13b. **Sandwich, both directions, because it is a setting** (§4.1): a Friday +
+    Monday request consumes 2 days with the rule off and 4 with it on; and
+    **switching the rule on does not restate a request already approved**, which
+    is §10.8 applied to the setting that regenerates `leave_days`.
+13c. **Comp-off accrues only from approved attendance** — a `weekly_off` day with
+    worked minutes credits a day, a day typed in by hand does not, and a credit
+    older than `leave.comp_off_expiry_days` is not spendable.
+13d. **Regularization refuses what it must** (§4.2): a day covered by approved
+    leave, and a day inside a settled payroll month. Approved, it writes the day
+    with `source = self_service` and the original values stay on the request.
+13e. **A job change is a row, not an overwrite** (§3): changing a manager leaves
+    the previous row intact with its own `effective_from`, and "who was this
+    employee's manager on date X" answers correctly for a date before the change.
+    Without this, an approval's authority is unreconstructable.
 14. **Pro-rating off: net is identical to today's**, for a fixture payslip with
     `lop_days > 0`. Already written and passing —
     `PayslipAttendanceProrationTest` and `PayslipCalculationSeamTest` (§5).
 15. Pro-rating on: earnings scale by the recorded divisor; non-prorating components
     do not; `total_working_days = 0` pro-rates nothing.
+15a. **Overtime reaches pay only through the rate** (§4.2, phase 3a): with the
+    multiplier at 2.0 an hour of overtime pays twice the derived hourly rate; the
+    rate used is recorded on the payslip and a later package change does not
+    restate it; and a cap **warns without reducing** the amount — silently
+    capping would hide a compliance problem and underpay somebody.
+15b. **`extra_work_hours` stays a rupee amount.** A regression test on the column
+    itself, because its name says otherwise and one draft of this plan already
+    read it as hours.
 16. Tax and `AnnualTax` follow a pro-rated gross without extrapolating the dip.
 17. Leave approved after a `PayrollRun` lock lands in the next month.
 18. Payroll with `leave` and `attendance` unlicensed behaves exactly as today
@@ -830,7 +1022,14 @@ Beyond the eight `Module*` tests every module must satisfy:
   the payslip. What changed is that the pilot docks nothing today (§5), which both
   removes the double-deduction risk and removes the reason to build it early. Two
   tests hold the current behaviour in place until somebody deliberately asks
-  (`PayslipAttendanceProrationTest`, `PayslipCalculationSeamTest`).
+  (`PayslipAttendanceProrationTest`, `PayslipCalculationSeamTest`) — **10 tests,
+  110 assertions, verified passing**.
+
+  **They are untracked in git.** The files exist and pass; `git status` shows
+  both as `??`. So this plan rests on a guard that is on one machine and in no
+  repository, which is the same thing as not having it — a clean checkout runs
+  neither. Commit them or delete them; leaving them is the one thing that
+  cannot be right.
 - ~~**`leaves_taken` vs `lop_days` overlap.**~~ **Settled** — the company in
   production asked for the ordinary convention, so that is what these mean from
   here on:
@@ -859,6 +1058,17 @@ Beyond the eight `Module*` tests every module must satisfy:
   CEO) is a real request and is not designed here; adding it later means a
   `leave_approvals` table, not a column, so do not put `approved_by` to work as
   if it were the only approval.
+
+  **Do not build a generic approval engine for it.** The instinct is to
+  consolidate, since `EmployeeChangeRequest`, `expenses`, `advances` and
+  `journal_entries` each carry their own approver logic — but they *disagree*,
+  not merely duplicate: `rejected` vs `refused`, `reviewed_by` vs `decided_by`
+  vs `approved_by`, and `advances` has no approval at all. Reconciling four
+  vocabularies across four working modules would add to
+  `ModuleBoundaryTest::KNOWN_COUPLINGS`, not shorten it. §4.1 already takes the
+  cheap half of the win by copying `ExpenseClaim`'s vocabulary verbatim; the
+  reusable asset is `SecondApproverRule`, and it is worth generalising when
+  `leave` becomes its second caller, not before.
 - **Half-day payroll interaction.** A half day of LOP is 0.5 in `lop_days`, which
   the divisor handles, but the PDF prints integers today.
 - **Mobile/API.** `/api/my-payslips` and `/api/my-profile` exist; leave balance

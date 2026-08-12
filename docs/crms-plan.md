@@ -70,16 +70,37 @@ come from" is a lead-source question asked years later.
 
 ## 2. Module map
 
-| Module | Owns | `requires` | Guarded (soft) |
-|---|---|---|---|
-| `crm` | leads, opportunities, pipelines and stages, activities, next actions, win/loss, targets | — | `invoicing` (conversion, deal→invoice), `employees` (owner as employee), `projects` (won deal → project) |
-| `quotations` | quotes, versions, validity, quote → invoice | `invoicing` | `inventory` (product lines), `crm` (quote from an opportunity) |
-| `support` | tickets, categories, SLA clocks | — | `invoicing`, `projects`, `crm` |
-| `campaigns` | segments, sends, consent | `crm` | — |
+| Module | Owns | `requires` | Guarded (soft) | Company profiles |
+|---|---|---|---|---|
+| `crm` | leads, opportunities, pipelines and stages, activities, next actions, win/loss, targets | — | `invoicing` (conversion, deal→invoice), `employees` (owner as employee), `projects` (won deal → project) | every business profile |
+| `quotations` | quotes, versions, validity, quote → invoice | `invoicing` | `inventory` (product lines), `crm` (quote from an opportunity) | services, software house, trading, manufacturing |
+| `support` | tickets, categories, SLA clocks | — | `invoicing`, `projects`, `crm` | software house, services |
+| `campaigns` | segments, sends, consent | `crm` | — | trading, manufacturing, services |
 
 `crm` requires nothing on purpose (§1). `quotations` requires `invoicing` because
 a quote's whole point is becoming an invoice, and a quote that can never convert
 is a PDF generator.
+
+**On the profile column.** Every module must appear in at least one entry of
+`config/company_profiles.php` or `CompanyProfileTest` fails —
+`docs/new-module-checklist.md` §1a. Three of the four rows above are
+uncontroversial; the fourth is worth stating because it is a judgement, not a
+derivation:
+
+- **`crm` goes to every business profile, including `bookkeeping`.** That looks
+  wrong at first — a bookkeeping-only company has no sales pipeline. But §1's
+  whole argument is that `crm` requires nothing and must be sellable to a company
+  with neither Invoicing nor Accounting, and phases 1–4 are explicitly "a usable
+  CRM on their own". A bookkeeping practice has clients it is pitching to. If
+  `crm` is genuinely unsellable there, then §1's independence is theoretical and
+  the requirement should be declared instead.
+- **`support` is not for a trading company.** Tickets with SLA clocks are what a
+  company selling ongoing service commits to. A distributor's after-sales problem
+  is a return, which is Invoicing's, not a ticket.
+- **`campaigns` is not for a staffing company.** Its outreach is to a handful of
+  named client contacts, which is `activities`, not a segment and a send.
+
+The `personal` profile takes none of these: a household has no customers.
 
 ## 3. `crm`
 
@@ -115,10 +136,16 @@ the terminal stages so reports do not pattern-match on names. `rot_after_days`
 powers the only pipeline report that changes behaviour: deals that have not moved.
 
 **`activities` is polymorphic over Lead, Contact and Opportunity** — so its
-`subject_type` needs `ModuleMap` morph entries with short aliases (`lead`,
-`opportunity`), and `Contact`'s existing `App\Models\Contact` alias is reused
-unchanged. `enforceMorphMap()` throws for anything missing, which is the intended
-safety net.
+`subject_type` needs `ModuleMap` morph entries for both new models, and
+`Contact`'s existing `App\Models\Contact` alias is reused unchanged.
+`enforceMorphMap()` throws for anything missing, which is the intended safety net.
+
+**Corrected:** an earlier draft said to give the new models short aliases
+(`lead`, `opportunity`). That fails CI —
+`ModuleCoverageTest::test_morph_map_aliases_are_the_legacy_class_names` asserts
+`App\Models\{ClassBasename}` unconditionally, with no exemption for models that
+never existed there. Write `'App\Models\Lead'` and `'App\Models\Opportunity'`.
+`docs/new-module-checklist.md` §4 has the reasoning and the same correction.
 
 *Rejected:* reusing `comments` for activity logging. A comment is a discussion
 thread on a record; a call at 14:20 that lasted nine minutes and ended in "send
@@ -135,6 +162,37 @@ activity is history and never changes; an action is a mutable intention with a d
 date, an assignee and a snooze. Cramming both into one table gives every list
 query an `is_done`-plus-`due`-plus-`occurred` filter that is wrong somewhere.
 
+**Leads have to arrive from somewhere, and today the only way in is typing.**
+§13 flags spreadsheet import as undesigned; the sharper gap is that there is no
+capture channel at all — no form, no endpoint. A CRM whose leads are all
+hand-keyed records the ones somebody remembered to key.
+
+The precedent is already in this codebase and is already cited by this plan:
+`/status/{company}/{token}` is unauthenticated, token-gated, and additionally
+gated by a per-company setting (§7). A lead-capture endpoint is that exact shape
+and invents nothing:
+
+```
+POST /leads/{company}/{token}    -> creates a lead with lead_source = 'web'
+```
+
+Four constraints, each of which is a way this becomes a spam sink otherwise:
+
+- **Two gates, not one**, exactly as the status page has: the token *and* a
+  per-company setting, so a leaked token can be closed without a deploy.
+- **Rate limited per token**, and rejected silently rather than 429 — an endpoint
+  that says how it is throttled tells a bot how to pace itself.
+- **Fixed field list**, mapped to `leads` columns. Not a JSON blob: a payload
+  nobody validates becomes a column nobody can query.
+- **Never converts.** It creates a lead, and a person qualifies it. That is
+  §10's rule, and a public endpoint is precisely where it would be tempting to
+  break it.
+
+**Deduplication ships with it, not after it.** §13 called dedup "phase 3.5 at
+the latest", which was written when every lead was typed by a person who might
+notice. An open endpoint removes that. Match on email, phone and company name;
+merge activities and next actions; keep the older record's id.
+
 **Ownership is an employee, not a user.** `owner_employee_id` throughout, so
 `EmployeeAccess` scoping applies unchanged: a sales manager sees their downline's
 pipeline and no further, using the same BFS every other resource uses. Guarded —
@@ -145,6 +203,32 @@ with `employees` unlicensed the field falls back to the landlord user id, the wa
 currency. An opportunity stores its own currency and the rate used, because a
 forecast in mixed currencies has to be summed at *some* rate and a rate that
 moves silently rewrites last quarter's forecast.
+
+**Renewals belong to `crm`, and this is where that gets decided.** §13 says to
+"name the CRM surface renewals and link to the recurring invoice", and until now
+that requirement lived only in the risks section — which is how a requirement
+gets built by accident, or not at all.
+
+It owns no table. A renewal is a **view over `recurring_invoices`**, which
+already carry the schedule and the next issue date, surfaced next to the pipeline
+because renewing is a sales activity and losing one is a lost deal. What `crm`
+adds is what Invoicing has no opinion about: an owner, a next action, and the
+fact that a renewal is *at risk*.
+
+Three rules keep it from becoming a second subscription system:
+
+- **No renewal table.** The recurring invoice is the record. A parallel one would
+  be a second answer to "when does this renew", and the invoice would win.
+- **Guarded on `invoicing`.** With Invoicing unlicensed the surface is absent
+  rather than empty — there are no recurring invoices to be a view of.
+- **`beneficiary_subscriptions` is not this.** That table is what *we* pay for.
+  Two things called subscriptions in one codebase will be confused at least once,
+  which is exactly why §13 asked for the name.
+
+Losing a renewal is recorded as an opportunity with `is_lost`, so churn shows up
+in win/loss (§8) alongside new business rather than in a report of its own.
+
+Phase 6, with the other Invoicing hand-offs.
 
 **Targets and commission — the HR join.** `sales_targets` per employee per period
 answers attainment. Paying it does **not** need new machinery: `pay_components`
@@ -333,9 +417,10 @@ becomes a decision the moment somebody sorts by it.
 | **1** | Leads, sources, owners, conversion to Contact (guarded on `invoicing`) | low |
 | **2** | Pipelines, stages, opportunities, the exactly-one-party rule, stage history, board UI | low |
 | **3** | Activities and next actions, including "open deal with no next action" | low |
+| **3.5** | **Lead capture endpoint + deduplication**, together (§3). Dedup is not optional once leads arrive unattended | low |
 | **4** | Pipeline / forecast / win-loss / rotting reports | low |
 | **5** | `quotations`, versioning, quote → invoice conversion | medium — touches Invoicing, and **blocked on the FBR question below** |
-| **6** | Won deal → project / invoice hand-offs, all guarded | low |
+| **6** | Won deal → project / invoice hand-offs, all guarded, **plus renewals** (§3) | low |
 | **7** | `sales_targets` + attainment; commission as a payroll component (manual) | low |
 | **8** | `support` | low |
 | **9** | `campaigns` with consent and WhatsApp templates | medium — external, reputational |
@@ -370,7 +455,24 @@ Beyond the eight `Module*` tests:
 13. `is_internal` ticket replies are never returned by any customer-facing query
     (guards the portal decision in advance).
 14. Activity `subject_type` round-trips through the morph map for all three
-    subject types.
+    subject types — and the aliases are `App\Models\Lead` /
+    `App\Models\Opportunity`, which `ModuleCoverageTest` already asserts (§3).
+15. **Lead capture is gated twice** (§3): a valid token with the company setting
+    off creates nothing, and an invalid token with the setting on creates
+    nothing. Both must be true — a single gate cannot be closed without a deploy.
+16. **The capture endpoint never converts.** A posted payload creates a lead and
+    no Contact, whatever it contains. This is §10's rule at the one door where
+    breaking it would be most tempting.
+17. **Throttling is silent.** A rate-limited request is rejected without
+    disclosing the limit, so the response to an over-limit caller is
+    indistinguishable from an ordinary rejection.
+18. **Dedup keeps the older record's id** and moves activities and next actions
+    onto it — asserted by counting activities before and after a merge, because
+    the failure mode is losing history rather than losing the duplicate.
+19. **A renewal owns no row.** The renewals surface returns a view over
+    `recurring_invoices`; with `invoicing` unlicensed it is absent rather than
+    empty (`ModuleDegradationTest`), and a lost renewal is an opportunity with
+    `is_lost` so it appears in win/loss.
 
 ## 13. Risks and open questions
 
@@ -378,14 +480,30 @@ Beyond the eight `Module*` tests:
   *and* wants full customer records, option B (moving `Contact`) comes back — and
   it comes back with the permission-group data migration described in §1. Nothing
   in phases 1–4 makes that harder, which is why they are first.
-- **`beneficiary_subscriptions` is not renewals.** That table is what *we* pay for
-  (vendor subscriptions). Customer renewals ride on `recurring_invoices`. Two
-  things called subscriptions in one codebase will be confused at least once —
-  name the CRM surface "renewals" and link to the recurring invoice.
-- **Deduplication.** Leads arrive twice. This plan has no merge tool, and a CRM
-  without one grows duplicates until people stop trusting it. Phase 3.5 at the
-  latest: match on email/phone/company name, merge activities and next actions,
-  keep the older record's id.
+- ~~**`beneficiary_subscriptions` is not renewals.**~~ **Settled** — renewals are
+  a `crm` view over `recurring_invoices`, owning no table of their own, in phase
+  6. See §3. The warning stands: `beneficiary_subscriptions` is what *we* pay for
+  and must never be confused with what a customer renews.
+- ~~**Deduplication.**~~ **Settled** — it ships with the lead-capture endpoint in
+  phase 3.5 rather than "at the latest", because an open endpoint removes the
+  person who would have noticed the duplicate. Match on email/phone/company name,
+  merge activities and next actions, keep the older record's id.
+- **Three tables that are all a person who is not yet a record.** `leads`,
+  `applicants` (`hrms §4.4`) and `contacts` each hold a name, an email, a phone,
+  a source and notes, and each converts into something else. §1 rejected merging
+  `contacts` for a specific reason — the `permissions` table has no unique index,
+  so re-grouping `ContactView` silently duplicates it — but that argument does
+  not reach `leads` and `applicants`, which are both new.
+
+  **Decided: three tables, and not merged.** A lead is an organisation with a
+  person attached; an applicant is a person with no organisation; a contact is a
+  party the ledger can bill. They share a shape, not a meaning, and the join that
+  would justify one table — "this lead is also a job applicant" — is a
+  coincidence, not a relationship anybody queries.
+
+  Recorded here rather than left implicit, because the day somebody notices the
+  overlap, the cheap-looking fix is a `parties` table that Invoicing then has to
+  reach into for something it already owns.
 - **Stage probability is a company-level guess** applied to every deal. Fine at
   this scale; do not let it become a forecasting claim.
 - **Multi-currency forecasting** is honest only because the rate is stored per
@@ -396,7 +514,8 @@ Beyond the eight `Module*` tests:
   `(subject_type, subject_id, occurred_at)` from the start.
 - **Import.** Every CRM's first day is a spreadsheet import. Not designed here;
   `GnuCashImport` is the local precedent for how one should behave (dry-run
-  preview, idempotent re-import).
+  preview, idempotent re-import). It shares the dedup built in phase 3.5 — an
+  import is the other unattended way leads arrive.
 - **FBR digital invoicing — an open blocker on phase 5.** Now researched and
   designed in **`docs/fbr-digital-invoicing-plan.md`**; read that before planning
   phase 5. The short version: mandatory digital invoicing applies to sales-tax

@@ -5,10 +5,15 @@
 > restating *how* a module is wired every time. Every item below is a thing that,
 > left out, fails silently or fails at 00:00 in a queue worker rather than in CI.
 
-A module is a commercial boundary here, not a folder. Ten of the twelve steps
+A module is a commercial boundary here, not a folder. Ten of the thirteen steps
 exist because something in this application stores a class name in a database
 column, or because Filament resolves things at boot while the tenant is resolved
 per request.
+
+The other three are the commercial boundary itself: the registry entry (§1) says
+the module exists, the profile entry (§1a) says who is ever sold it, and the
+permissions (§6) say who inside a company may use it. A module missing any of the
+three is built, deployed, and reachable by nobody.
 
 ## 1. Registry entry — `config/modules.php`
 
@@ -44,6 +49,49 @@ plan is explicit about the difference). Declare it only when the module is
 genuinely unsellable without the other one; otherwise guard the call site and
 record the coupling in `ModuleBoundaryTest::KNOWN_COUPLINGS`.
 
+## 1a. Company profiles — `config/company_profiles.php`
+
+A registry entry says the module *exists*. A profile entry says which kind of
+company is ever *sold* it. Without one the module is licensed to nobody: it is
+absent from every profile preset, so no company provisioned from a profile ever
+gets it, and the only route in is a super admin toggling it by hand for one
+company at a time.
+
+**This fails CI, which is the point.**
+`CompanyProfileTest::test_every_module_is_recommended_by_at_least_one_profile`
+asserts every non-locked module appears in at least one profile. It exists
+because the alternative — a `profiles` key on each module entry — makes adding a
+*profile* an edit to every module, and this way round is the cheaper mistake to
+catch.
+
+Add the module to the profiles whose businesses actually use it:
+
+```php
+'services' => [
+    ...
+    'modules' => [..., 'leave', 'timesheets'],
+],
+'manufacturing' => [
+    ...
+    'modules' => [..., 'leave', 'attendance'],
+],
+```
+
+Two rules the same test enforces, both of which fail silently in production:
+
+- **Closed under `requires`.** `Modules::enabledFor()` recurses into
+  requirements, so a profile licensing `leave` without `employees` produces a
+  module that is licensed, shows a toggle on the company's own Modules page, and
+  can never be switched on. It reads as a broken toggle, not a bad preset.
+- **Seeders agree with modules.** A profile's `seeders` list is checked against
+  what it licenses — `SalarySlabSeeder` iff `payroll`, and the chart of accounts
+  must match the profile's company type. A new module that ships reference data
+  adds its seeder to the profiles that license it and to no others.
+
+`docs/company-profiles-plan.md` has the reasoning; §5 there is why a profile is a
+preset and never a restriction, so this is about what gets *sold*, never about
+what a company is *allowed*.
+
 ## 2. Plugin — `app/Modules/{Name}/{Name}Plugin.php`
 
 Registers resources, pages and widgets by discovery. **Unconditional** — one
@@ -67,12 +115,28 @@ happened in this codebase before (`AppServiceProvider.php:55`) and
 `PAGES`, `WIDGETS`, and the module's permission group names in
 `PERMISSION_GROUPS`. A resource with no entry fails `ModuleCoverageTest`.
 
-**Morph aliases for new models: use short keys.** The existing keys are legacy
-`App\Models\…` strings because that is what is already stored in customer data.
-A model that has never shipped has no legacy rows to preserve, so inventing
-`App\Models\LeaveRequest` would be a lie that the eventual normalisation pass has
-to migrate anyway. Write `'leave_request' => LeaveRequest::class` and update the
-`ModuleMap` docblock to say the map holds two conventions and why.
+**Morph aliases: `App\Models\{ClassBasename}`, including for models that have
+never shipped.**
+
+> **Corrected.** This section previously said to use short keys
+> (`'leave_request' => LeaveRequest::class`) for new models, on the reasoning
+> that a model with no legacy rows has no legacy string to preserve. That
+> reasoning is sound and the instruction was still wrong: **following it fails
+> CI on the first run.** `ModuleCoverageTest::test_morph_map_aliases_are_the_legacy_class_names`
+> asserts the form unconditionally, for every entry in the map, with no exemption
+> for new classes. All 64 model aliases use the legacy form and none is short.
+> This was found by hitting it — adding `FbrSubmission` to Invoicing.
+
+So write `'App\Models\LeaveRequest' => \App\Modules\Leave\Models\LeaveRequest::class`
+even though `App\Models\LeaveRequest` never existed.
+
+Keeping the uniform rule is the right resolution rather than teaching the test
+about new models, for two reasons. The alias is an opaque storage token — its
+dishonesty costs nothing at runtime, and nobody reads it except the map. And a
+test with an exemption list is a test that gets edited to pass; an unconditional
+one cannot be. If the aliases are ever normalised to short keys, that is the
+whole map at once as its own migration — `docs/modules-plan.md` §11 phase 6
+already scopes it that way — not one convention leaking in per module.
 
 `Relation::enforceMorphMap(ModuleMap::morphMap())` runs at
 `app/Providers/AppServiceProvider.php:123`. *Enforce*, not `morphMap`: a model
@@ -182,6 +246,7 @@ manager sees their downline and no further.
 | `ModuleStateTest` | licensed AND enabled; `NULL` enabled means "never chosen" |
 | `ModuleDegradationTest` | with a soft dependency off, the write still succeeds and skips the optional part |
 | `ModulePermissionFilteringTest` | trap 2 above |
+| `CompanyProfileTest` | the module must appear in at least one profile, every profile stays closed under `requires`, and its seeders must agree with what it licenses — §1a |
 
 The suite runs one in-memory SQLite database with tenant migrations auto-loaded,
 so **anything that needs a real per-tenant connection cannot be covered** —
@@ -191,6 +256,7 @@ per-company command fan-out included. Those paths are verified by hand.
 
 ```
 config/modules.php              registry entry
+config/company_profiles.php     which kinds of company are sold it
 {Name}Plugin.php                discover resources/pages/widgets
 {Name}ServiceProvider.php       policies (explicit!), routes, commands
 bootstrap/providers.php         list the provider

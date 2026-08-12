@@ -90,6 +90,14 @@ class PermissionSeeder extends Seeder
             ['name' => 'FiscalYearUpdate', 'group' => 'FiscalYear'],
             ['name' => 'FiscalYearDelete', 'group' => 'FiscalYear'],
 
+            // The company holiday calendar. Core, like FiscalYear, because leave
+            // and attendance both need "is this a working day" and neither owns
+            // the answer — docs/hrms-plan.md §3.
+            ['name' => 'HolidayCreate', 'group' => 'Holiday'],
+            ['name' => 'HolidayView', 'group' => 'Holiday'],
+            ['name' => 'HolidayUpdate', 'group' => 'Holiday'],
+            ['name' => 'HolidayDelete', 'group' => 'Holiday'],
+
             ['name' => 'AnnualTaxCreate', 'group' => 'AnnualTax'],
             ['name' => 'AnnualTaxView', 'group' => 'AnnualTax'],
             ['name' => 'AnnualTaxUpdate', 'group' => 'AnnualTax'],
