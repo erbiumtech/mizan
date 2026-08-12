@@ -102,6 +102,7 @@ final class ModuleMap
             'App\Models\ContactPerson' => \App\Modules\Invoicing\Models\ContactPerson::class,
             'App\Models\RecurringInvoice' => \App\Modules\Invoicing\Models\RecurringInvoice::class,
             'App\Models\RecurringInvoiceLine' => \App\Modules\Invoicing\Models\RecurringInvoiceLine::class,
+            'App\Models\FbrSubmission' => \App\Modules\Invoicing\Models\FbrSubmission::class,
         ],
         'billing' => [
             'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
@@ -228,6 +229,7 @@ final class ModuleMap
         'invoicing' => [
             'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
             'App\Filament\Pages\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
+            'App\Filament\Pages\FbrInvoiceReporting' => \App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting::class,
         ],
         'personal_finance' => [
             'App\Filament\Pages\TaxEstimate' => \App\Modules\PersonalFinance\Filament\Pages\TaxEstimate::class,

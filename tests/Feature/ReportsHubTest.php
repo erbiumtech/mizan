@@ -96,6 +96,10 @@ class ReportsHubTest extends TestCase
             'Financial statements',
             'Receivables & payables',
             'Payroll & tax',
+            // Separate from Payroll & tax on purpose: that section's FBR entry is
+            // a file a human downloads and uploads, this one watches an
+            // integration that reports on its own.
+            'Statutory reporting',
             'Ledgers & books',
             'Bank files',
         ], array_keys(Reports::sections()));
@@ -107,6 +111,7 @@ class ReportsHubTest extends TestCase
             'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance', 'Budget vs Actual',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
+            'FBR Invoice Reporting',
             'Account Register', 'Petty Cash Book',
             'Bank Payment File',
         ] as $report) {

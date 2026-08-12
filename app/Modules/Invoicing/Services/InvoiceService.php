@@ -425,6 +425,8 @@ class InvoiceService
             throw new InvalidArgumentException('Invoices with recorded payments cannot be voided.');
         }
 
+        $this->assertFbrAllowsVoid($invoice);
+
         return TenantTransaction::run(function () use ($invoice, $user) {
             foreach ($invoice->stockMovements()->get() as $movement) {
                 $this->undoMovement($invoice, $movement);
@@ -440,6 +442,66 @@ class InvoiceService
 
             return $invoice;
         });
+    }
+
+    /**
+     * Refuse a void that FBR would not accept.
+     *
+     * Voiding used to be purely local, and for an invoice nobody reported it
+     * still is. Once an invoice has been accepted by FBR it may only be
+     * cancelled inside FBR's own system, and only within the correction window;
+     * after that the correction needs the prior approval of the Commissioner
+     * Inland Revenue. Neither of those is something this application can do.
+     *
+     * So the refusal is the feature. A void button that quietly produces a
+     * locally-voided invoice which FBR still considers live leaves the books and
+     * the tax authority disagreeing permanently, with nothing reporting the
+     * divergence — strictly worse than an error message telling somebody what
+     * they actually have to do.
+     *
+     * See docs/fbr-digital-invoicing-plan.md §2.
+     */
+    private function assertFbrAllowsVoid(Invoice $invoice): void
+    {
+        $status = $invoice->fbr_status;
+
+        // Never live at FBR. `rejected` belongs here: FBR refused it, so there
+        // is nothing on their side to withdraw and the local record is the only
+        // record. Null covers a row written before the columns existed.
+        if (in_array($status, [null, Invoice::FBR_NOT_REQUIRED, Invoice::FBR_REJECTED], true)) {
+            return;
+        }
+
+        // Already withdrawn at FBR, so the books may now follow. This is the
+        // second half of a within-window cancellation: cancel there, then void
+        // here.
+        if ($status === Invoice::FBR_CANCELLED) {
+            return;
+        }
+
+        if (in_array($status, [Invoice::FBR_PENDING, Invoice::FBR_SUBMITTED], true)) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} is being reported to FBR and cannot be voided until "
+                .'that finishes. Wait for it to be accepted or rejected, then try again.'
+            );
+        }
+
+        // Accepted, and still correctable — but only at FBR, and not from here.
+        if ($invoice->fbrCorrectionWindowOpen()) {
+            $closesAt = $invoice->fbrCorrectionWindowClosesAt();
+
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} has been reported to FBR and must be cancelled in the "
+                ."FBR system first — the window closes at {$closesAt->toDayDateTimeString()}. "
+                .'Once FBR shows it cancelled, void it here to reverse the posting.'
+            );
+        }
+
+        throw new InvalidArgumentException(
+            "Invoice {$invoice->invoice_number} was reported to FBR and the correction window has closed, "
+            .'so it can no longer be cancelled — a correction now needs the prior approval of the '
+            .'Commissioner Inland Revenue. Issue a credit note against it instead.'
+        );
     }
 
     /**

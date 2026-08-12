@@ -5,9 +5,13 @@ namespace App\Modules\Core\Filament\Platform\Resources\Companies\Pages;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource;
 use App\Modules\Core\Models\CompanyModule;
+use App\Support\CompanyProfiles;
 use App\Support\Modules;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\HtmlString;
 
 class EditCompany extends EditRecord
 {
@@ -18,8 +22,122 @@ class EditCompany extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->applyProfileAction(),
             DeleteAction::make(),
         ];
+    }
+
+    /**
+     * Bring this company's licences up to what its profile recommends.
+     *
+     * GRANT ONLY. It never revokes and never writes `enabled`, which makes it
+     * safe to run twice and safe to run on a company that has switched things
+     * off. Revoking is a billing event and belongs to a toggle somebody
+     * deliberately moved, not to a button that says "apply".
+     *
+     * This is the answer to "we set the profile up wrong" and to "they changed
+     * shape" — the licences re-sync on demand while the tenant database, seeded
+     * once at provisioning, is left alone.
+     */
+    private function applyProfileAction(): Action
+    {
+        return Action::make('applyProfileLicences')
+            ->label('Apply profile licences')
+            ->icon('heroicon-o-sparkles')
+            ->color('gray')
+            ->visible(fn (): bool => $this->record->hasProfile()
+                && (auth()->user()?->isSuperAdmin() ?? false))
+            ->requiresConfirmation()
+            ->modalHeading(fn (): string => 'Apply the '.$this->record->profileLabel().' profile')
+            ->modalDescription(fn (): HtmlString => new HtmlString($this->applyProfileSummary()))
+            ->modalSubmitActionLabel('Grant')
+            ->action(fn () => $this->applyProfileLicences());
+    }
+
+    /**
+     * Exactly what the button will do, listed before it is pressed — the same
+     * rule the Modules page and the fiscal-year close modal follow.
+     */
+    private function applyProfileSummary(): string
+    {
+        $grant = $this->modulesToGrant();
+
+        if ($grant === []) {
+            return 'Everything the <strong>'.e($this->record->profileLabel()).'</strong> profile '
+                .'recommends is already licensed. Nothing to do.';
+        }
+
+        return 'Grants '.e($this->labels($grant)).'.<br><br>'
+            .'Nothing is revoked, and no module the company has switched off is switched back on — '
+            .'their own choices survive this.';
+    }
+
+    /**
+     * The profile's modules and everything those require, minus what is already
+     * licensed and minus Core, which is never a grant.
+     *
+     * Requirements are pulled in here rather than left to the cascade so the
+     * confirmation modal names them: granting Billing quietly also granting
+     * Invoicing is fine, doing it without saying so is not.
+     *
+     * @return array<int, string>
+     */
+    private function modulesToGrant(): array
+    {
+        $state = modules()->stateFor($this->record->getKey());
+        $wanted = [];
+
+        foreach (CompanyProfiles::modules($this->record->profile) ?? [] as $module) {
+            $wanted[] = $module;
+            $wanted = array_merge($wanted, $this->allRequirements($module));
+        }
+
+        return array_values(array_filter(
+            array_unique($wanted),
+            fn (string $module): bool => in_array($module, Modules::names(), true)
+                && ! Modules::isLocked($module)
+                && ! ($state[$module]['licensed'] ?? false),
+        ));
+    }
+
+    private function applyProfileLicences(): void
+    {
+        $grant = $this->modulesToGrant();
+
+        if ($grant === []) {
+            Notification::make()
+                ->title('Already licensed.')
+                ->body('The '.$this->record->profileLabel().' profile adds nothing this company does not have.')
+                ->success()
+                ->send();
+
+            return;
+        }
+
+        $state = modules()->stateFor($this->record->getKey());
+        $desired = [];
+
+        foreach (Modules::names() as $module) {
+            if (Modules::isLocked($module)) {
+                continue;
+            }
+
+            // The union, never the profile alone: a module granted outside the
+            // profile was a deliberate sale and must survive this.
+            $desired[$module] = ($state[$module]['licensed'] ?? false)
+                || in_array($module, $grant, true);
+        }
+
+        $this->writeLicences($desired);
+
+        // Re-read, so the toggles below the button show what just happened.
+        $this->fillForm();
+
+        Notification::make()
+            ->title('Profile licences applied.')
+            ->body('Granted '.$this->labels($grant).'.')
+            ->success()
+            ->send();
     }
 
     /**
@@ -64,7 +182,22 @@ class EditCompany extends EditRecord
 
     protected function afterSave(): void
     {
-        foreach ($this->cascade($this->licenceState) as $module => $licensed) {
+        $this->writeLicences($this->licenceState);
+    }
+
+    /**
+     * Write a desired licence set, closed under requirements, and log what
+     * changed.
+     *
+     * Shared by the form save and by "Apply profile licences" so there is one
+     * definition of what granting means — in particular the `enabled` rule
+     * below, which is the whole reason a revoke is not destructive.
+     *
+     * @param  array<string, bool>  $desired
+     */
+    private function writeLicences(array $desired): void
+    {
+        foreach ($this->cascade($desired) as $module => $licensed) {
             if (! in_array($module, Modules::names(), true) || Modules::isLocked($module)) {
                 continue;
             }
@@ -92,6 +225,14 @@ class EditCompany extends EditRecord
         }
 
         modules()->flush();
+    }
+
+    /**
+     * @param  array<int, string>  $modules
+     */
+    private function labels(array $modules): string
+    {
+        return implode(', ', array_map(fn (string $m): string => Modules::label($m), $modules));
     }
 
     /**

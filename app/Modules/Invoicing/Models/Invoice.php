@@ -31,16 +31,37 @@ class Invoice extends Model
 
     public const STATUS_VOID = 'void';
 
+    /**
+     * FBR reporting state — a second axis, deliberately not more values on
+     * `status`. See the migration and docs/fbr-digital-invoicing-plan.md §2.
+     *
+     * `not_required` is the default and covers every invoice at a company that
+     * is not integrated, which today is all of them.
+     */
+    public const FBR_NOT_REQUIRED = 'not_required';
+
+    public const FBR_PENDING = 'pending';
+
+    public const FBR_SUBMITTED = 'submitted';
+
+    public const FBR_ACCEPTED = 'accepted';
+
+    public const FBR_REJECTED = 'rejected';
+
+    public const FBR_CANCELLED = 'cancelled';
+
     protected $fillable = [
         'recurring_invoice_id', 'period',
         'invoice_number', 'kind', 'currency_code', 'exchange_rate', 'contact_id', 'project_id', 'invoice_date', 'due_date',
         'status', 'subtotal', 'tax_amount', 'tax_inclusive', 'total', 'amount_paid', 'memo',
         'journal_entry_id', 'fiscal_year_id',
+        'fbr_status', 'fbr_irn', 'fbr_usin', 'fbr_reported_at', 'fbr_qr_payload',
     ];
 
     protected $attributes = [
         'status' => self::STATUS_DRAFT,
         'amount_paid' => 0,
+        'fbr_status' => self::FBR_NOT_REQUIRED,
     ];
 
     protected $casts = [
@@ -53,6 +74,7 @@ class Invoice extends Model
         'total' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'exchange_rate' => 'decimal:8',
+        'fbr_reported_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -155,6 +177,58 @@ class Invoice extends Model
     public function isOpen(): bool
     {
         return in_array($this->status, [self::STATUS_ISSUED, self::STATUS_PARTIALLY_PAID]);
+    }
+
+    public function fbrSubmissions()
+    {
+        return $this->hasMany(FbrSubmission::class)->latest('id');
+    }
+
+    /**
+     * Does FBR currently consider this invoice a live sales-tax invoice?
+     *
+     * Only `accepted` counts. A rejected one never landed, a cancelled one has
+     * been withdrawn, and `pending` / `submitted` are in flight — none of those
+     * is something FBR is holding against the company, which is why only this
+     * one constrains what may be done locally.
+     */
+    public function isFbrLive(): bool
+    {
+        return $this->fbr_status === self::FBR_ACCEPTED;
+    }
+
+    /**
+     * When the 72-hour correction window closes, or null if it never opened.
+     *
+     * Counted from FBR's acceptance rather than from local issuance — see
+     * config/fbr.php, where that assumption is flagged as still needing
+     * confirmation.
+     */
+    public function fbrCorrectionWindowClosesAt(): ?Carbon
+    {
+        if (! $this->isFbrLive() || $this->fbr_reported_at === null) {
+            return null;
+        }
+
+        return $this->fbr_reported_at->copy()->addHours(
+            (int) setting('fbr.correction_window_hours', 72),
+        );
+    }
+
+    /**
+     * May this invoice still be cancelled or edited at FBR without going to the
+     * Commissioner?
+     *
+     * False when it was never reported, which is deliberate: callers ask this to
+     * decide whether a *remote* correction is available, and for an unreported
+     * invoice there is nothing remote to correct. Whether a LOCAL void is
+     * allowed is a different question, and InvoiceService owns it.
+     */
+    public function fbrCorrectionWindowOpen(): bool
+    {
+        $closesAt = $this->fbrCorrectionWindowClosesAt();
+
+        return $closesAt !== null && $closesAt->isFuture();
     }
 
     public function outstanding(): float
