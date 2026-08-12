@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees;
 
+use App\Modules\Employees\Console\Commands\ApplyDueJobChanges;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Modules\Employees\Models\EmployeeSetting;
@@ -36,5 +37,11 @@ class EmployeesServiceProvider extends ServiceProvider
         }
 
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/routes/console.php');
+
+        // Laravel auto-discovers commands only in app/Console/Commands, so one
+        // living in a module has to be registered here or it exists and cannot
+        // be run — including by the schedule entry that names it.
+        $this->commands([ApplyDueJobChanges::class]);
     }
 }

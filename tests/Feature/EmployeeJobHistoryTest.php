@@ -149,15 +149,22 @@ class EmployeeJobHistoryTest extends TestCase
     {
         $employee = $this->makeEmployee('EMP-5');
 
-        $this->history->record($employee, ['designation' => 'Senior Developer'], '2026-03-01', 'promotion');
-        $this->history->record($employee, ['designation' => 'Team Lead'], '2026-09-01', 'promotion');
+        // Relative dates, all in the past, and that is not cosmetic. This test
+        // originally used fixed 2026 dates that straddled the real "today", so a
+        // row meant to be the newest was in fact future-dated — and it passed only
+        // because record() used to project future rows immediately. Fixing that
+        // broke it. Anchoring to now() keeps the test about ordering, which is
+        // what it is for, and stops it drifting into the same trap as the clock
+        // moves.
+        $this->history->record($employee, ['designation' => 'Senior Developer'], now()->subMonths(5)->toDateString(), 'promotion');
+        $this->history->record($employee, ['designation' => 'Team Lead'], now()->subMonth()->toDateString(), 'promotion');
 
         $this->assertSame(2, EmployeeJobHistory::where('employee_id', $employee->id)->count());
 
         // The earlier change is not overwritten by the later one — the failure
         // mode the `employees` columns have today, restated as an assertion.
-        $this->assertSame('Senior Developer', $this->history->designationOn($employee, '2026-05-01'));
-        $this->assertSame('Team Lead', $this->history->designationOn($employee, '2026-10-01'));
+        $this->assertSame('Senior Developer', $this->history->designationOn($employee, now()->subMonths(3)->toDateString()));
+        $this->assertSame('Team Lead', $this->history->designationOn($employee, now()->toDateString()));
 
         // The sharp edge of the fallback, pinned here so it cannot change
         // unnoticed: a date *before* the first row has no row in force, so the
@@ -167,8 +174,8 @@ class EmployeeJobHistoryTest extends TestCase
         // some, it answers about a period the history does not cover, and it
         // answers with the newest value rather than the nearest. Callers that
         // must tell "unknown" from "known" ask `rowOn()`, which is null here.
-        $this->assertNull($this->history->rowOn($employee, '2026-02-01'));
-        $this->assertSame('Team Lead', $this->history->designationOn($employee, '2026-02-01'));
+        $this->assertNull($this->history->rowOn($employee, now()->subMonths(9)->toDateString()));
+        $this->assertSame('Team Lead', $this->history->designationOn($employee, now()->subMonths(9)->toDateString()));
     }
 
     /**
@@ -180,22 +187,26 @@ class EmployeeJobHistoryTest extends TestCase
     {
         $employee = $this->makeEmployee('EMP-6');
 
-        $this->history->record($employee, ['designation' => 'Team Lead'], '2026-09-01', 'promotion');
-        $this->history->record($employee, ['department' => 'Platform'], '2026-04-01', 'transfer, recorded late');
+        // Both in the past, for the reason given in the test above.
+        $recent = now()->subMonth()->toDateString();
+        $older = now()->subMonths(4)->toDateString();
 
-        // The September promotion is still what is current, even though the April
+        $this->history->record($employee, ['designation' => 'Team Lead'], $recent, 'promotion');
+        $this->history->record($employee, ['department' => 'Platform'], $older, 'transfer, recorded late');
+
+        // The recent promotion is still what is current, even though the older
         // row was written after it.
         $this->assertSame('Team Lead', $employee->fresh()->designation);
 
         // What the backdated row was actually for does land on its own date.
-        $this->assertSame('Platform', $this->history->departmentOn($employee, '2026-05-01'));
+        $this->assertSame('Platform', $this->history->departmentOn($employee, now()->subMonths(3)->toDateString()));
 
         // The limits of backdating, asserted rather than left to be discovered.
         //
-        // Inserting behind an existing row does not rewrite it: September was
+        // Inserting behind an existing row does not rewrite it: the promotion was
         // recorded when IT was all anyone knew, so it carried IT forward, and both
         // that row and the `employees` projection of it still say IT.
-        $this->assertSame('IT', $this->history->departmentOn($employee, '2026-10-01'));
+        $this->assertSame('IT', $this->history->departmentOn($employee, now()->toDateString()));
         $this->assertSame('IT', $employee->fresh()->department);
 
         // And the columns the caller left out of a backdated row are filled from
@@ -206,7 +217,7 @@ class EmployeeJobHistoryTest extends TestCase
         // existed, which is the whole problem it was built for. Backdating past
         // an existing change is therefore a correction to make explicitly —
         // pass every attribute, or record the changes in date order.
-        $this->assertSame('Team Lead', $this->history->designationOn($employee, '2026-04-01'));
+        $this->assertSame('Team Lead', $this->history->designationOn($employee, $older));
     }
 
     /**
@@ -305,6 +316,116 @@ class EmployeeJobHistoryTest extends TestCase
         $this->assertCount(1, $rows);
         $this->assertSame('Principal', $rows->first()->designation);
         $this->assertSame('Platform', $rows->first()->department);
+    }
+
+    // ------------------------------------------- employment type and future dates
+
+    public function test_employment_type_is_a_job_fact_like_the_others(): void
+    {
+        // It sat in employee_job_history with no counterpart on `employees`, so
+        // every row stored null and the column could never fill. This is the
+        // assertion that it now does.
+        $employee = $this->makeEmployee('EMP-14', ['employment_type' => 'probation']);
+
+        $employee->update(['employment_type' => 'permanent']);
+
+        $row = $employee->jobHistory()->first();
+
+        $this->assertNotNull($row, 'Coming off probation left no history row.');
+        $this->assertSame('permanent', $row->employment_type);
+        $this->assertSame('permanent', $employee->fresh()->employment_type);
+    }
+
+    public function test_a_future_dated_change_does_not_apply_yet(): void
+    {
+        // A transfer agreed today and effective next month must not read as
+        // already having happened — the difference between what is true and what
+        // was decided is the whole reason this table exists.
+        $employee = $this->makeEmployee('EMP-15');
+
+        $this->history->record(
+            $employee,
+            ['designation' => 'Head of Engineering', 'department' => 'Platform'],
+            now()->addMonth()->toDateString(),
+        );
+
+        $employee->refresh();
+
+        $this->assertSame('Developer', $employee->designation);
+        $this->assertSame('IT', $employee->department);
+        $this->assertSame(1, $employee->jobHistory()->count(), 'The row itself should still be recorded.');
+    }
+
+    public function test_a_change_today_still_applies_while_a_future_one_is_pending(): void
+    {
+        // The bug an earlier "is any row later than this" check would have had:
+        // with next month's transfer already recorded, today's promotion would
+        // find that future row "later" and refuse to apply the change that is
+        // actually true now.
+        $employee = $this->makeEmployee('EMP-16');
+
+        $this->history->record($employee, ['department' => 'Platform'], now()->addMonth()->toDateString());
+        $this->history->record($employee, ['designation' => 'Lead'], now()->toDateString());
+
+        $employee->refresh();
+
+        $this->assertSame('Lead', $employee->designation, 'Today\'s change was withheld by a pending future one.');
+        $this->assertSame('IT', $employee->department, 'Next month\'s transfer leaked into today.');
+    }
+
+    /*
+     * The next two exercise `applyDueChanges()` rather than
+     * `artisan('employees:apply-job-changes')`, and that is a limit of the suite
+     * rather than a preference. The command is TenantAware, which switches tenant
+     * databases; this suite runs one in-memory SQLite database with the tenant
+     * migrations loaded into it, so spatie throws
+     * `tenantConnectionIsEmptyOrEqualsToLandlordConnection` before the handler is
+     * reached. `docs/new-module-checklist.md` §12 states the constraint: per-company
+     * command fan-out is not coverable here and is verified by hand.
+     *
+     * What that leaves untested is the fan-out itself — that the command reaches
+     * every tenant and skips companies without the module. The logic it fans out
+     * to is what these cover.
+     */
+
+    public function test_a_change_is_applied_once_its_date_arrives(): void
+    {
+        $employee = $this->makeEmployee('EMP-17');
+
+        $this->history->record($employee, ['designation' => 'Head of Engineering'], now()->addDays(3)->toDateString());
+
+        $this->assertSame('Developer', $employee->fresh()->designation);
+
+        $this->travel(4)->days();
+
+        $this->assertSame(['EMP-17'], $this->history->applyDueChanges());
+        $this->assertSame('Head of Engineering', $employee->fresh()->designation);
+    }
+
+    public function test_applying_due_changes_is_idempotent(): void
+    {
+        // It runs every day over employees whose rows mostly applied months ago,
+        // so a settled company must be touched not at all — and a second run must
+        // never record a history row of its own.
+        $employee = $this->makeEmployee('EMP-18');
+        $this->history->record($employee, ['designation' => 'Lead'], now()->toDateString());
+
+        // Already in force and already projected, so the first sweep has nothing
+        // to do either — an empty return is the assertion that it is a no-op.
+        $this->assertSame([], $this->history->applyDueChanges());
+        $this->assertSame([], $this->history->applyDueChanges());
+
+        $this->assertSame('Lead', $employee->fresh()->designation);
+        $this->assertSame(1, $employee->jobHistory()->count());
+    }
+
+    public function test_an_employee_with_no_history_is_never_touched(): void
+    {
+        // The sweep must not write to the entire existing employee base, whose
+        // columns are the only truth there is.
+        $this->makeEmployee('EMP-19');
+
+        $this->assertSame([], $this->history->applyDueChanges());
     }
 
     public function test_a_manager_change_is_captured_and_readable_afterwards(): void

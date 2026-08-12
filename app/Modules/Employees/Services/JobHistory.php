@@ -212,11 +212,7 @@ class JobHistory
 
         $snapshot = [];
         foreach (self::TRACKED as $column) {
-            // employment_type has no column on `employees`, so it can only be
-            // carried from the row being superseded — never invented here.
-            $snapshot[$column] = $column === 'employment_type'
-                ? $existingToday?->employment_type ?? $this->rowOn($employee, $today)?->employment_type
-                : $employee->getAttribute($column);
+            $snapshot[$column] = $employee->getAttribute($column);
         }
 
         if ($existingToday !== null) {
@@ -238,12 +234,13 @@ class JobHistory
 
     /**
      * The subset of TRACKED that `employees` also carries, and so the subset the
-     * denormalised current state can hold. `employment_type` is absent
-     * deliberately — there is no such column on `employees` today, and adding one
-     * is a schema change for the employee form to make, not something this service
-     * should do behind it.
+     * denormalised current state can hold.
+     *
+     * All four, since `add_employment_type_to_employees` gave the fourth a
+     * counterpart. Before that this list was three and every history row stored a
+     * null `employment_type`, because there was nothing to snapshot it from.
      */
-    private const DENORMALISED = ['designation', 'department', 'manager_id'];
+    private const DENORMALISED = ['designation', 'department', 'manager_id', 'employment_type'];
 
     /**
      * Copies the row onto `employees`, but only when it is the newest one.
@@ -253,28 +250,24 @@ class JobHistory
      * superseded in June. `employees` holds a projection of the *last* row, so it
      * only moves when the row just written is that last row.
      *
-     * Known limit: a change dated in the future takes effect on `employees` at once
-     * rather than on the day it applies, because nothing schedules a catch-up yet.
-     * Until something does, do not future-date rows through this method.
+     * A **future**-dated row does not move it either, and that is the other half:
+     * a transfer agreed today and effective next month must not read as already
+     * having happened. `employees:apply-job-changes` runs daily and moves the
+     * columns on the day the row applies — see App\Modules\Employees\Console\Commands\ApplyDueJobChanges.
      */
     private function syncCurrentValues(Employee $employee, EmployeeJobHistory $row): void
     {
-        // Date strings on both sides, never a bound Carbon: the column holds
-        // `Y-m-d` (see the model's set mutator) and Carbon binds as `Y-m-d H:i:s`,
-        // so the `=` arm of the tie-break would never match.
-        $effectiveFrom = $row->effective_from->toDateString();
-
-        $supersededByLaterRow = EmployeeJobHistory::query()
-            ->where('employee_id', $employee->getKey())
-            ->where('id', '!=', $row->getKey())
-            ->where(fn ($query) => $query
-                ->where('effective_from', '>', $effectiveFrom)
-                ->orWhere(fn ($tie) => $tie
-                    ->where('effective_from', '=', $effectiveFrom)
-                    ->where('id', '>', $row->getKey())))
-            ->exists();
-
-        if ($supersededByLaterRow) {
+        // One question, asked the same way the readers ask it: is this row the one
+        // in force *today*?
+        //
+        // That single check covers both refusals. A backdated row is not in force
+        // (a later one is), and a future-dated row is not in force (rowOn only
+        // looks at `effective_from <= today`, so it returns an earlier row or
+        // none). An earlier version asked "is any row later than this one",
+        // which got the future case exactly backwards: writing today's change
+        // while a transfer was already recorded for next month would find the
+        // future row "later" and refuse to apply the change that is true now.
+        if ($this->rowOn($employee, Carbon::now())?->getKey() !== $row->getKey()) {
             return;
         }
 
@@ -299,6 +292,66 @@ class JobHistory
         Employee::withoutApprovalRouting(fn () => Employee::withoutJobHistory(
             fn () => $employee->forceFill($current)->save(),
         ));
+    }
+
+    /**
+     * Bring every employee's denormalised columns up to the row in force today.
+     *
+     * What makes future-dating real. `record()` refuses to project a row that has
+     * not started, so a transfer agreed in August and effective in September sits
+     * in the table until September — this is what moves it, run daily by
+     * `employees:apply-job-changes`.
+     *
+     * Idempotent, and it has to be: it runs every day over employees whose rows
+     * mostly applied long ago. An employee already matching their in-force row is
+     * not written at all, so a daily sweep over a settled company touches nothing
+     * and logs nothing.
+     *
+     * @return array<int, string> The employee_id of each record actually changed.
+     */
+    public function applyDueChanges(): array
+    {
+        $applied = [];
+        $today = Carbon::now();
+
+        // Only employees who have any history at all — for everybody else the
+        // columns are the only truth there is and there is nothing to apply.
+        $employees = Employee::query()
+            ->whereIn(
+                'id',
+                EmployeeJobHistory::query()->select('employee_id')->distinct(),
+            )
+            ->get();
+
+        foreach ($employees as $employee) {
+            $row = $this->rowOn($employee, $today);
+
+            if ($row === null) {
+                continue;
+            }
+
+            $changes = [];
+            foreach (self::DENORMALISED as $column) {
+                if ($employee->getAttribute($column) != $row->getAttribute($column)) {
+                    $changes[$column] = $row->getAttribute($column);
+                }
+            }
+
+            if ($changes === []) {
+                continue;
+            }
+
+            // Same two bypasses as syncCurrentValues, for the same two reasons:
+            // the row is the authority, and this save is its projection rather
+            // than a new change to record.
+            Employee::withoutApprovalRouting(fn () => Employee::withoutJobHistory(
+                fn () => $employee->forceFill($changes)->save(),
+            ));
+
+            $applied[] = $employee->employee_id;
+        }
+
+        return $applied;
     }
 
     /** Accepts either form callers have to hand and normalises to a date string. */

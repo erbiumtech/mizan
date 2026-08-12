@@ -20,7 +20,7 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id', 'name', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
-        'is_active', 'designation', 'department',
+        'is_active', 'designation', 'department', 'employment_type',
         'left_on', 'leaving_reason', 'notice_served_until',
         'date_of_joining', 'date_of_birth', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',
@@ -103,7 +103,25 @@ class Employee extends Model
      *
      * @var array<int, string>
      */
-    public const JOB_FACTS = ['designation', 'department', 'manager_id'];
+    public const JOB_FACTS = ['designation', 'department', 'manager_id', 'employment_type'];
+
+    /**
+     * What kinds of employment a company records, as value => label.
+     *
+     * A constant rather than an enum column: an enum change is a table rebuild on
+     * MySQL and unsupported on SQLite, and the list varies by company. Kept here
+     * rather than in the form so the form and any future report agree — the
+     * lesson `Company::TYPE_LABELS` records, where two screens each wrote their
+     * own pair and disagreed.
+     *
+     * @var array<string, string>
+     */
+    public const EMPLOYMENT_TYPES = [
+        'permanent' => 'Permanent',
+        'contract' => 'Contract',
+        'probation' => 'Probation',
+        'intern' => 'Intern',
+    ];
 
     /** Set while JobHistory writes its own denormalised sync back to this row. */
     protected static bool $skipJobHistory = false;
