@@ -189,6 +189,33 @@ employee_job_history   id, employee_id, effective_from, designation, department,
                        manager_id, employment_type, reason, recorded_by
 ```
 
+**Built.** `App\Modules\Employees\Services\JobHistory` answers `managerOn()`,
+`designationOn()`, `departmentOn()` and `rowOn()`. Three things the plan did not
+say, all of which turned out to be load-bearing:
+
+- **`employment_type` needed a column on `employees` too.** It was listed here
+  only, so nothing could snapshot it and every row stored null — the state the
+  `invoice_events` migration already refuses ("a column that never fills would be
+  worse than its absence"). `employees.employment_type` now exists, admin-only
+  like the other job facts, and deliberately outside
+  `EmployeeChangeRequest::ALLOWED_FIELDS`: nobody promotes themselves off
+  probation.
+- **The writer belongs on the model, not the form.** These columns are written by
+  the employee form, by an approved change request, by the CSV importer and by
+  tinker; a hook on any one leaves the other three overwriting history silently,
+  which is the failure this table exists to end. `Employee::booted()` records on
+  `updated`, and `Employee::withoutJobHistory()` stops the projection writing a
+  second row for the same change.
+- **Future-dating needs a job.** A transfer agreed in August and effective in
+  September must record now and apply then, so `record()` refuses to project a
+  row that has not started and `employees:apply-job-changes` (daily, TenantAware)
+  moves the columns on the day it does. Without that command, future-dating
+  records a row that never takes effect.
+
+Not built: any UI for the history itself. The rows accumulate from the ordinary
+employee form, so the natural next step is a read-only relation manager on
+`ViewEmployee`, not a resource — job history is written by a change, never typed.
+
 The `employees` columns stay exactly as they are and become the *current* row —
 denormalised on purpose, because every existing query reads them and none of them
 should have to learn about history to keep working.
