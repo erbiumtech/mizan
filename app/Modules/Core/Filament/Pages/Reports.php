@@ -17,6 +17,7 @@ use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
+use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
 use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
 use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Payroll\Filament\Pages\TaxSummary;
@@ -88,6 +89,14 @@ class Reports extends Page
             TaxSummary::class => 'Tax withheld per employee for the year, with the slab it fell in.',
             FbrTaxFile::class => 'The withholding statement, in the format FBR accepts.',
             SalaryBankFile::class => 'Salary payments as a bank upload file, for a payroll month.',
+        ],
+        // Separate from "Payroll & tax", which is where the withholding statement
+        // lives: that one is a payroll report a human downloads and uploads, and
+        // this one watches an invoice integration that reports on its own. Filing
+        // them together would suggest they work the same way, and the difference
+        // between a pull and a push is the whole reason this report exists.
+        'Statutory reporting' => [
+            FbrInvoiceReporting::class => 'Invoices FBR has not accepted, and issued invoices it never received.',
         ],
         'Ledgers & books' => [
             AccountRegister::class => 'One account, every transaction against it, running balance — and edits.',

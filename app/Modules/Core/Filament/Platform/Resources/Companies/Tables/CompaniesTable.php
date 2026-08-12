@@ -34,6 +34,18 @@ class CompaniesTable
                     ->color(fn (Company $record): string => $record->isPersonal() ? 'warning' : 'gray')
                     ->sortable(),
 
+                // What shape of business it is, which is what decides whether a
+                // missing module is an oversight or the point. Toggleable
+                // because it is null for every company created before profiles
+                // existed and a column of dashes helps nobody.
+                TextColumn::make('profile')
+                    ->label('Profile')
+                    ->badge()
+                    ->color('gray')
+                    ->formatStateUsing(fn (Company $record): string => $record->profileLabel())
+                    ->toggleable()
+                    ->sortable(),
+
                 TextColumn::make('slug')->searchable()->toggleable(),
                 TextColumn::make('users_count')->label('Members')->counts('users')->sortable(),
 

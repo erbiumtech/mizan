@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Models;
 
+use App\Support\CompanyProfiles;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Multitenancy\Models\Tenant as SpatieTenant;
@@ -27,6 +28,7 @@ class Company extends SpatieTenant
         'name',
         'slug',
         'type',
+        'profile',
         'database',
         'status',
     ];
@@ -131,13 +133,37 @@ class Company extends SpatieTenant
         return self::TYPE_LABELS[$this->type] ?? self::TYPE_LABELS[self::TYPE_BUSINESS];
     }
 
-    public function scopePersonal($query)
+    /**
+     * What shape of business this is — the companion to type, and the thing that
+     * decided its starting modules and baseline.
+     *
+     * Null for every company created before profiles existed, which is honest:
+     * they were licensed from the registry defaults by hand. CompanyProfiles
+     * reads null as "no preset", never as an error.
+     */
+    public function profileLabel(): string
     {
-        return $query->where('type', self::TYPE_PERSONAL);
+        return CompanyProfiles::label($this->profile);
     }
 
-    public function scopeBusiness($query)
+    public function hasProfile(): bool
     {
-        return $query->where('type', self::TYPE_BUSINESS);
+        return CompanyProfiles::has($this->profile);
     }
+
+    /*
+     * There were scopePersonal() and scopeBusiness() here. Both were dead from
+     * the commit that added them and are deleted rather than kept for a caller
+     * that never arrived — `isPersonal()` answers this about a record, and a
+     * query wanting it is one where() away.
+     *
+     * scopeBusiness() was worth removing on its own account. It read as "not a
+     * personal account" and meant "type is exactly business", which are the same
+     * set only while there are exactly two types. Nothing enforced that, so the
+     * scope was a correct-looking query waiting for a third type to make it
+     * silently wrong — it would have dropped the new kind from both scopes at
+     * once. Company profiles exist so that the *shape* of a business is not more
+     * values of `type`, which keeps the pair honest; this removes the trap that
+     * would have been sprung if anyone decided otherwise.
+     */
 }

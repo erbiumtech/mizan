@@ -33,6 +33,10 @@ class CreateCompany extends CreateRecord
             // form said — and the only way to make a personal account was to
             // call the provisioner by hand.
             type: $data['type'] ?? Company::TYPE_BUSINESS,
+            // Decides the starting licences and the baseline seeders. Null is a
+            // real answer, not a missing one: the company then starts with Core
+            // alone and is licensed by hand.
+            profile: $data['profile'] ?? null,
         );
     }
 }

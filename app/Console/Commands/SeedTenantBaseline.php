@@ -3,12 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Modules\Core\Models\Company;
-use Database\Seeders\PersonalBaselineSeeder;
+use App\Support\CompanyProfiles;
+use App\Support\TenantTransaction;
 use Database\Seeders\SalarySlabSeeder;
-use Database\Seeders\TenantBaselineSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
-use App\Support\TenantTransaction;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -58,7 +57,7 @@ class SeedTenantBaseline extends Command
         $pretend = (bool) $this->option('pretend');
 
         foreach ($companies as $company) {
-            $this->line("<fg=gray>—</> {$company->name} <fg=gray>({$company->typeLabel()})</>");
+            $this->line("<fg=gray>—</> {$company->name} <fg=gray>({$company->profileLabel()})</>");
 
             try {
                 $company->makeCurrent();
@@ -105,9 +104,11 @@ class SeedTenantBaseline extends Command
      */
     private function seedersFor(Company $company): array
     {
-        $seeders = $company->isPersonal()
-            ? PersonalBaselineSeeder::seeders()
-            : TenantBaselineSeeder::seeders();
+        // The company's own profile decides its baseline, so a Bookkeeping Only
+        // company is not topped up with the salary slabs it has no payroll for.
+        // A company with no profile falls back to the type-based pair, which is
+        // what it was provisioned from.
+        $seeders = CompanyProfiles::seeders($company->profile, $company->type);
 
         if ($this->hasSalarySlabs()) {
             $seeders = array_values(array_filter(
@@ -146,9 +147,14 @@ class SeedTenantBaseline extends Command
         // Only what this kind of tenant is meant to have. A personal account has
         // no salary slabs on purpose — it does not run payroll — and listing that
         // as a gap would send somebody chasing data that is absent by design.
+        //
+        // Read from the baseline rather than from isPersonal(), so the same is
+        // true of a Bookkeeping Only company: the question is "does this
+        // company's baseline include slabs", and its seeder list is the only
+        // thing that actually knows.
         $tables = ['fiscal_years', 'currencies', 'accounts', 'banks', 'transaction_types', 'tax_schedules'];
 
-        if (! $company->isPersonal()) {
+        if (in_array(SalarySlabSeeder::class, CompanyProfiles::seeders($company->profile, $company->type), true)) {
             $tables[] = 'salary_slabs';
         }
 
