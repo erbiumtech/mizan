@@ -121,6 +121,10 @@ class RoleSeeder extends Seeder
             'BankStatementView', 'BankStatementCreate', 'BankStatementUpdate', 'BankStatementImport', 'BankStatementMatch',
             'CommentView', 'CommentCreate', 'CommentResolve',
             'ActivityLogView',
+            // Read only. Everyone needs to know which days are holidays; setting
+            // the company calendar is Administrator's, who gets it via
+            // Permission::all() above.
+            'HolidayView',
             // Their own books, same as everybody else. Manager and CEO are built
             // from this list, so they inherit it.
             'PersonalFinanceView',
