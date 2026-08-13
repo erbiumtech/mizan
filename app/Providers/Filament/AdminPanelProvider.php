@@ -8,6 +8,7 @@ use App\Modules\Core\Filament\Pages\Auth\EditProfile;
 use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
+use App\Support\NavigationTree;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -108,6 +109,11 @@ class AdminPanelProvider extends PanelProvider
             // default because it now shows one domain at a time rather than every group at once —
             // see NavigationDomains, and the rail registered at LAYOUT_START below.
             ->sidebarWidth('248px')
+            // The column folds away entirely, leaving the rail. "Fully" rather than Filament's other
+            // collapsible mode on purpose: that one shrinks the column to a strip of icons, and beside
+            // an 84px rail of icons that is two icon columns saying different things. Remembered per
+            // person by Filament's own sidebar store.
+            ->sidebarFullyCollapsibleOnDesktop()
             ->login()
             // Self-service password change (user menu → Change Password).
             // Simple layout: the profile route sits outside the tenant prefix.
@@ -140,6 +146,11 @@ class AdminPanelProvider extends PanelProvider
             // left. Registration is unconditional regardless of licence state; see
             // any Plugin class for why that cannot be otherwise.
             ->plugins(Modules::plugins())
+            // The order the branches appear in each column. Filament sorts groups by their position
+            // in this list and by nothing else — left out, the branches would come out ordered by
+            // whichever of their items happened to have the lowest sort, which was chosen back when
+            // each group was one flat list. See NavigationTree.
+            ->navigationGroups(NavigationTree::order())
             ->pages([
                 Dashboard::class,
             ])
@@ -158,6 +169,13 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_START,
                 fn (): string => view('filament.partials.domain-heading')->render(),
+            )
+            // Groups are seeded closed (see DomainNavigationManager::collapsed); this opens the one
+            // holding the current page, which Filament does not do on its own. Must stay at
+            // SIDEBAR_NAV_END — see the partial for why the position is load bearing.
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_NAV_END,
+                fn (): string => view('filament.partials.sidebar-open-active-group')->render(),
             )
             // The Reports screen's search and grid/list toggle, beside its heading. Scoped to that
             // page, and rendered inside its Livewire component so the controls can drive its state.

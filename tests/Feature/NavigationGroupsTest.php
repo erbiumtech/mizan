@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Navigation\DomainNavigationManager;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Support\NavigationTree;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
@@ -59,10 +60,22 @@ class NavigationGroupsTest extends TestCase
             fn (): array => Filament::getPanel('admin')->getNavigation(),
         );
 
+        // Folded back to the groups the classes declare. The columns now show those groups split into
+        // branches — Employee as Employees / Payroll / Leave / … — see NavigationTree. What this file
+        // is about is which groups the application organises its screens into and which screen belongs
+        // to which, and that is unchanged by how a column chooses to show them; every assertion below
+        // and the reasoning attached to it still holds at this level.
+        //
+        // Read from the rendered navigation rather than from the classes, because half of these
+        // assertions are about what a *particular* company and role are offered, and that only comes
+        // out of navigation Filament has actually filtered.
         foreach ($groups as $group) {
-            $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
-                ->map(fn ($item): string => $item->getLabel())
-                ->all();
+            $label = NavigationTree::declaredFor($group->getLabel() ?? '');
+
+            $navigation[$label] = [
+                ...$navigation[$label] ?? [],
+                ...collect($group->getItems())->map(fn ($item): string => $item->getLabel())->all(),
+            ];
         }
 
         return $navigation;

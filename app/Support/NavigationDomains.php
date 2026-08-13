@@ -135,6 +135,16 @@ class NavigationDomains
             if (in_array($label, $domain['groups'], true)) {
                 return $key;
             }
+
+            // Also by branch label, so this answers for either name. Pages resolve their domain
+            // through here from the group they *declare* ("Employee"), while anything reading a
+            // rendered group sees the branch it was split into ("Payroll") — both have to land in
+            // the same domain or the rail and the column disagree about where you are.
+            foreach ($domain['groups'] as $group) {
+                if (in_array($label, NavigationTree::labelsFor($group), true)) {
+                    return $key;
+                }
+            }
         }
 
         return null;
@@ -183,6 +193,19 @@ class NavigationDomains
         $definition = self::DOMAINS[$domain];
         $kept = [];
 
+        // The labels this domain actually owns at render time. A domain claims the group labels the
+        // classes declare — "Employee" — and NavigationTree may have split that into branches by the
+        // time the groups exist, so each claim is expanded through it. Keeping the declaration in
+        // terms of declared labels is what lets a branch be added to the tree without a second edit
+        // here, and what keeps the coverage test comparing like with like.
+        $owned = [];
+
+        foreach ($definition['groups'] as $group) {
+            foreach (NavigationTree::labelsFor($group) as $label) {
+                $owned[] = $label;
+            }
+        }
+
         // Hoisted: this resolves a URL per claimed page and each resolution asks canAccess().
         $claimed = self::urlsFor($definition['items']);
 
@@ -190,7 +213,7 @@ class NavigationDomains
             $label = $group->getLabel();
 
             if (filled($label)) {
-                if (in_array($label, $definition['groups'], true)) {
+                if (in_array($label, $owned, true)) {
                     $kept[$key] = $group;
                 }
 
