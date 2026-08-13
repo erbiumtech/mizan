@@ -119,6 +119,17 @@ class CompanySettings extends Page
             'ipayments' => static::editableIpayments(),
             'projects_status_page_enabled' => (bool) setting('projects.status_page.enabled', false),
             'projects_status_page_token' => setting('projects.status_page.token'),
+            'leave_year_basis' => setting('leave.year_basis'),
+            'leave_carry_forward' => (bool) setting('leave.carry_forward'),
+            'leave_prorate_first_year' => (bool) setting('leave.prorate_first_year'),
+            'leave_require_second_approver' => (bool) setting('leave.require_second_approver'),
+            'leave_min_notice_enforced' => (bool) setting('leave.min_notice_enforced'),
+            'leave_sandwich_rule' => setting('leave.sandwich_rule'),
+            'payroll_prorate_on_attendance' => (bool) setting('payroll.prorate_on_attendance'),
+            'payroll_proration_divisor' => setting('payroll.proration_divisor'),
+            'payroll_pay_overtime' => (bool) setting('payroll.pay_overtime'),
+            'attendance_overtime_multiplier' => setting('attendance.overtime_multiplier'),
+            'attendance_retention_months' => setting('attendance.retention_months'),
         ]);
     }
 
@@ -184,6 +195,106 @@ class CompanySettings extends Page
                                 .'this installation was set up with (ACCOUNTING_REQUIRE_SECOND_APPROVER '
                                 .'in .env); saving here is this company answering for itself, and that '
                                 .'answer stands whatever the installation default later becomes.'),
+                    ]),
+
+                // This page belongs to Core, which serves every company — so without
+                // the visible() guard a company that never bought Leave would be
+                // offered leave policy to set. docs/hrms-plan.md §4.7 and its test.
+                //
+                // Everything here obeys one rule: a setting decides what happens
+                // next, never what already happened. Each field's helper text says
+                // when its change takes effect, at the point of saving, because the
+                // alternative is somebody switching a basis in June and asking why
+                // last month's leave moved.
+                Section::make('Leave')
+                    ->description('Policy this company sets for itself. Day counts, notice periods and which types exist are reference data — edit those under Leave Types.')
+                    ->visible(fn (): bool => modules()->enabled('leave'))
+                    ->schema([
+                        Select::make('leave_year_basis')
+                            ->label('When the leave year starts')
+                            ->options([
+                                'calendar' => 'Calendar year (1 January – 31 December)',
+                                'fiscal' => 'Fiscal year (1 July – 30 June)',
+                                'anniversary' => 'Each employee\'s joining anniversary',
+                            ])
+                            ->selectablePlaceholder(false)
+                            ->native(false)
+                            ->helperText('Changing this affects leave years opened from now on. Entitlements already open keep the window they were created with, so balances that are part-way through a year do not move.'),
+
+                        Toggle::make('leave_carry_forward')
+                            ->label('Let unused days carry into the next leave year')
+                            ->helperText('Off, unused days lapse at the year end and nothing is paid for them. On, each type carries up to its own "days that may carry forward" cap — a cap of 0 carries nothing even then. Switching this on does not give back days that have already lapsed.'),
+
+                        Toggle::make('leave_prorate_first_year')
+                            ->label('Pro-rate a mid-year joiner\'s first year')
+                            ->helperText('On, somebody joining part-way through gets a share of the year\'s days: the joining month counts if they started on or before the 15th. Off, they get the full year from day one. Either way, entitlements already granted are not restated.'),
+
+                        Toggle::make('leave_require_second_approver')
+                            ->label('Require somebody else to approve leave')
+                            ->helperText('On, nobody may approve their own leave — a manager\'s own request routes to their manager. Turn it OFF only if there is nobody above to approve: the person at the top of the reporting tree otherwise cannot have leave approved at all. Self-approvals are recorded as such in the audit trail. It starts at whatever this installation was set up with (LEAVE_REQUIRE_SECOND_APPROVER in .env); saving here is this company answering for itself, and that answer stands whatever the installation default later becomes.'),
+
+                        Toggle::make('leave_min_notice_enforced')
+                            ->label('Enforce the notice each leave type asks for')
+                            ->helperText('Off, short notice is a warning and the request is still recorded — which is usually right, since casual and sick leave are asked for late by their nature. On, a request with less than the type\'s notice is refused outright.'),
+
+                        Select::make('leave_sandwich_rule')
+                            ->label('Weekends and holidays inside a leave')
+                            ->options([
+                                'off' => 'Not counted — Friday plus Monday uses 2 days',
+                                'enclosed' => 'Counted when enclosed — Friday plus Monday uses 4 days',
+                            ])
+                            ->selectablePlaceholder(false)
+                            ->native(false)
+                            ->helperText('Applies to leave approved from now on. Requests already approved keep the days they were given — changing this does not restate leave somebody has already taken. Only days *between* two leave days are ever counted; a single Friday always costs one day.'),
+                    ]),
+
+                // The two switches in this application that can reduce or increase a
+                // payslip. Both ship OFF, and the wording here is deliberately blunt
+                // about what turning them on does — somebody reading this page is
+                // deciding whether people get paid less next month.
+                //
+                // Visible only when there is something to feed them: without
+                // `attendance` there is no work pattern to say how long a month or a
+                // day is, so pro-rating would have nothing to divide by and overtime no
+                // rate to derive.
+                Section::make('Attendance and pay')
+                    ->description('Whether the attendance record changes what people are paid. Both of these are off until you turn them on.')
+                    ->visible(fn (): bool => modules()->enabled('attendance') && modules()->enabled('payroll'))
+                    ->schema([
+                        Toggle::make('payroll_prorate_on_attendance')
+                            ->label('Reduce pay for unpaid absence')
+                            ->helperText('OFF by default, and this is the setting to think hardest about. On, a month with unpaid absence pays less: the basic wage and any pay component marked "pro-rates" scale by the days paid. Fixed allowances, bonuses, overtime and every deduction are left alone. A month where attendance has not been filled in pays in FULL — an unmarked day is not a day anybody missed. Turning this on applies from the next payroll month; months already calculated keep the figures they were paid on.'),
+
+                        Select::make('payroll_proration_divisor')
+                            ->label('Divide the month by')
+                            ->options([
+                                'working_days' => 'The working days in the month, from the work pattern',
+                                'calendar_days' => 'The calendar days in the month',
+                                'fixed_26' => 'A fixed 26 days',
+                                'fixed_30' => 'A fixed 30 days',
+                            ])
+                            ->selectablePlaceholder(false)
+                            ->native(false)
+                            ->visible(fn ($get): bool => (bool) $get('payroll_prorate_on_attendance'))
+                            ->helperText('Recorded on each payslip as it is calculated, so changing this later never restates a month that has already been paid.'),
+
+                        Toggle::make('payroll_pay_overtime')
+                            ->label('Pay for recorded overtime')
+                            ->helperText('OFF by default. Until this is on, overtime is recorded and not paid — which is honest rather than lazy, because minutes have no defined value until a rate exists. On, the hourly rate is worked out from the basic wage and the work pattern\'s expected hours, multiplied by the figure below. The rate used is recorded on the payslip, so a later change to a package or a pattern does not restate a month already paid. Independent of pro-rating: overtime adds pay where pro-rating removes it.'),
+
+                        TextInput::make('attendance_overtime_multiplier')
+                            ->label('Overtime multiplier')
+                            ->numeric()
+                            ->step(0.25)
+                            ->minValue(1)
+                            ->visible(fn ($get): bool => (bool) $get('payroll_pay_overtime'))
+                            ->helperText('2.0 as shipped, because the Factories Act mandates double the ordinary rate. Provincial establishments differ — confirm what applies to you. Daily and weekly caps WARN and never reduce the amount: capping quietly would hide a compliance problem and underpay somebody at the same time.'),
+
+                        TextInput::make('attendance_retention_months')
+                            ->label('Keep daily attendance for (months)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->helperText('Daily rows are pruned after this. It is the only table here that grows with usage rather than headcount, so it is cleaned up automatically — three years covers a payroll dispute, and longer has never been asked for.'),
                     ]),
 
                 Section::make('Payroll')
@@ -373,6 +484,20 @@ class CompanySettings extends Page
         $settings->set('projects.status_page.enabled', (bool) ($state['projects_status_page_enabled'] ?? false));
         $settings->set('projects.status_page.token', $state['projects_status_page_token'] ?: null);
 
+        // Only when the section was actually rendered. Saving these for a company
+        // without the module would write leave policy it can never see or change,
+        // and the array keys are absent from $state when visible() hid the section.
+        if (array_key_exists('leave_year_basis', $state)) {
+            $this->saveLeaveSettings($settings, $state);
+        }
+
+        // Same guard, same reason: the keys are absent from $state when visible() hid
+        // the section, and writing pay policy for a company that cannot see it would be
+        // a figure nobody chose.
+        if (array_key_exists('payroll_prorate_on_attendance', $state)) {
+            $this->savePayPolicySettings($settings, $state);
+        }
+
         // A stale cached payload would otherwise keep serving after the page is
         // switched off or its token rotated.
         if (Company::current()) {
@@ -380,5 +505,97 @@ class CompanySettings extends Page
         }
 
         Notification::make()->title('Settings saved.')->success()->send();
+    }
+
+    /**
+     * The two settings that move money, with every change recorded and named.
+     *
+     * "Who turned pro-rating on, and when" is where an incident about a short payslip
+     * begins — §4.7 says exactly that, and it is the reason this is logged separately
+     * from an ordinary settings save rather than folded into one entry.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function savePayPolicySettings(TenantSettings $settings, array $state): void
+    {
+        $changes = [];
+
+        $booleans = [
+            'payroll.prorate_on_attendance' => 'payroll_prorate_on_attendance',
+            'payroll.pay_overtime' => 'payroll_pay_overtime',
+        ];
+
+        foreach ($booleans as $key => $field) {
+            $was = (bool) setting($key);
+            $now = (bool) ($state[$field] ?? false);
+
+            if ($was !== $now) {
+                $changes[$key] = ['from' => $was, 'to' => $now];
+            }
+
+            $settings->set($key, $now);
+        }
+
+        $settings->set('payroll.proration_divisor', $state['payroll_proration_divisor'] ?? 'working_days');
+        $settings->set('attendance.overtime_multiplier', (float) ($state['attendance_overtime_multiplier'] ?? 2.0));
+        $settings->set('attendance.retention_months', (int) ($state['attendance_retention_months'] ?? 36));
+
+        if ($changes !== []) {
+            activity('CompanySettings')
+                ->causedBy(auth()->user())
+                ->event('pay_policy_changed')
+                ->withProperties($changes)
+                // Spelled out rather than keyed, because this is the entry somebody
+                // reads months later while working out why a payslip was short.
+                ->log('Pay policy changed: '.implode(', ', array_map(
+                    fn (string $key, array $change): string => $key.' '.($change['to'] ? 'ON' : 'OFF'),
+                    array_keys($changes),
+                    $changes,
+                )));
+        }
+    }
+
+    /**
+     * Leave policy, with every change recorded.
+     *
+     * "Who turned this on, and when" is where an incident about a short payslip or a
+     * disputed balance begins — the modules page already takes this position for
+     * licence changes, and these settings move the same kind of number. Only what
+     * actually changed is logged, because an entry per save on every field would bury
+     * the one change somebody is looking for.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function saveLeaveSettings(TenantSettings $settings, array $state): void
+    {
+        $keys = [
+            'leave.year_basis' => ['leave_year_basis', 'string'],
+            'leave.carry_forward' => ['leave_carry_forward', 'bool'],
+            'leave.prorate_first_year' => ['leave_prorate_first_year', 'bool'],
+            'leave.require_second_approver' => ['leave_require_second_approver', 'bool'],
+            'leave.min_notice_enforced' => ['leave_min_notice_enforced', 'bool'],
+            'leave.sandwich_rule' => ['leave_sandwich_rule', 'string'],
+        ];
+
+        $changed = [];
+
+        foreach ($keys as $key => [$field, $type]) {
+            $was = $type === 'bool' ? (bool) setting($key) : (string) setting($key);
+            $now = $type === 'bool' ? (bool) ($state[$field] ?? false) : (string) ($state[$field] ?? '');
+
+            if ($was !== $now) {
+                $changed[$key] = ['from' => $was, 'to' => $now];
+            }
+
+            $settings->set($key, $now);
+        }
+
+        if ($changed !== []) {
+            activity('CompanySettings')
+                ->causedBy(auth()->user())
+                ->event('leave_policy_changed')
+                ->withProperties($changed)
+                ->log('Leave policy changed: '.implode(', ', array_keys($changed)));
+        }
     }
 }

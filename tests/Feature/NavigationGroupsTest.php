@@ -212,12 +212,35 @@ class NavigationGroupsTest extends TestCase
         // No Personal either, and that is the assertion rather than an omission:
         // this runs against a business, and the individual tax brackets have no
         // business being offered there. See the personal case below.
+        //
+        // `Sales` is CRM's, added deliberately rather than folded into
+        // "Invoicing & Inventory". The two answer different questions: Invoicing is
+        // what has been sold and what is owed for it, Sales is who has not bought yet.
+        // Putting leads beside invoices would also make the group appear for a company
+        // that licensed CRM without Invoicing, which docs/crms-plan.md §1 requires to
+        // be possible. It holds leads and their sources now, and the pipeline, deals
+        // and quotes of later phases.
+        //
+        // Leave went into the existing `Employee` group rather than getting one of its
+        // own, beside payslips and expense claims — an employee looking for their leave
+        // balance is looking where they look for their payslip.
+        // `Hiring` and `Performance` are their own groups rather than more of `Employee`,
+        // and for the same reason `Sales` is not part of Invoicing: they answer different
+        // questions about different people. Everything under `Employee` is about somebody
+        // the company employs — their payslip, their leave, their attendance, their kit.
+        // Hiring is about people it does not employ, and might not. Performance is a
+        // separate conversation with its own cycle, and folding it in would put appraisal
+        // ratings next to salary settings, which is the exact adjacency §4.5 spends its
+        // length arguing against.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
             'Employee',
+            'Hiring',
             'Invoicing & Inventory',
+            'Performance',
+            'Sales',
             'Settings',
         ], $labels);
     }

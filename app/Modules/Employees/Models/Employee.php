@@ -21,6 +21,9 @@ class Employee extends Model
     protected $fillable = [
         'user_id', 'name', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
         'is_active', 'designation', 'department', 'employment_type',
+        // What this employee's time bills at, when the project does not say. Nullable
+        // and unused by any company that bills by headcount rather than by the hour.
+        'hourly_rate',
         'left_on', 'leaving_reason', 'notice_served_until',
         'date_of_joining', 'date_of_birth', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',

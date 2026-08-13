@@ -66,6 +66,27 @@ final class ModuleMap
         'expenses' => [
             'App\Models\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
         ],
+        // The aliases are the legacy App\Models\… form even though none of these
+        // classes ever lived there. ModuleCoverageTest asserts that form
+        // unconditionally, with no exemption for new models, and keeping the rule
+        // uniform is the right resolution — the alias is an opaque storage token
+        // nobody reads but this map, and a test with an exemption list is a test
+        // that gets edited to pass. See docs/new-module-checklist.md §4, which
+        // records the same correction being hit when FbrSubmission was added.
+        'leave' => [
+            'App\Models\LeaveType' => \App\Modules\Leave\Models\LeaveType::class,
+            'App\Models\LeaveEntitlement' => \App\Modules\Leave\Models\LeaveEntitlement::class,
+            'App\Models\LeaveAdjustment' => \App\Modules\Leave\Models\LeaveAdjustment::class,
+            'App\Models\LeaveRequest' => \App\Modules\Leave\Models\LeaveRequest::class,
+            'App\Models\LeaveDay' => \App\Modules\Leave\Models\LeaveDay::class,
+        ],
+        'attendance' => [
+            'App\Models\WorkPattern' => \App\Modules\Attendance\Models\WorkPattern::class,
+            'App\Models\WorkPatternDay' => \App\Modules\Attendance\Models\WorkPatternDay::class,
+            'App\Models\EmployeeWorkPattern' => \App\Modules\Attendance\Models\EmployeeWorkPattern::class,
+            'App\Models\AttendanceDay' => \App\Modules\Attendance\Models\AttendanceDay::class,
+            'App\Models\AttendanceRegularization' => \App\Modules\Attendance\Models\AttendanceRegularization::class,
+        ],
         'payroll' => [
             'App\Models\PayrollRun' => \App\Modules\Payroll\Models\PayrollRun::class,
             'App\Models\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
@@ -116,6 +137,35 @@ final class ModuleMap
             'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
             'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
         ],
+        'crm' => [
+            'App\Models\Lead' => \App\Modules\Crm\Models\Lead::class,
+            'App\Models\LeadSource' => \App\Modules\Crm\Models\LeadSource::class,
+        ],
+        'recruitment' => [
+            'App\Models\Vacancy' => \App\Modules\Recruitment\Models\Vacancy::class,
+            'App\Models\Applicant' => \App\Modules\Recruitment\Models\Applicant::class,
+            'App\Models\Application' => \App\Modules\Recruitment\Models\Application::class,
+            'App\Models\Interview' => \App\Modules\Recruitment\Models\Interview::class,
+            'App\Models\Offer' => \App\Modules\Recruitment\Models\Offer::class,
+        ],
+        'performance' => [
+            'App\Models\ReviewCycle' => \App\Modules\Performance\Models\ReviewCycle::class,
+            'App\Models\Review' => \App\Modules\Performance\Models\Review::class,
+            'App\Models\Goal' => \App\Modules\Performance\Models\Goal::class,
+            'App\Models\OneToOne' => \App\Modules\Performance\Models\OneToOne::class,
+        ],
+        'lifecycle' => [
+            'App\Models\ChecklistTemplate' => \App\Modules\Lifecycle\Models\ChecklistTemplate::class,
+            'App\Models\ChecklistItem' => \App\Modules\Lifecycle\Models\ChecklistItem::class,
+            'App\Models\EmployeeChecklist' => \App\Modules\Lifecycle\Models\EmployeeChecklist::class,
+            'App\Models\EmployeeChecklistItem' => \App\Modules\Lifecycle\Models\EmployeeChecklistItem::class,
+            'App\Models\EmployeeDocument' => \App\Modules\Lifecycle\Models\EmployeeDocument::class,
+            'App\Models\IssuedAsset' => \App\Modules\Lifecycle\Models\IssuedAsset::class,
+            'App\Models\FinalSettlement' => \App\Modules\Lifecycle\Models\FinalSettlement::class,
+        ],
+        'timesheets' => [
+            'App\Models\TimesheetEntry' => \App\Modules\Timesheets\Models\TimesheetEntry::class,
+        ],
         'projects' => [
             'App\Models\Project' => \App\Modules\Projects\Models\Project::class,
             'App\Models\ProjectEnvironment' => \App\Modules\Projects\Models\ProjectEnvironment::class,
@@ -164,6 +214,16 @@ final class ModuleMap
         'expenses' => [
             'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
         ],
+        'leave' => [
+            'App\Filament\Resources\LeaveRequests\LeaveRequestResource' => \App\Modules\Leave\Filament\Resources\LeaveRequests\LeaveRequestResource::class,
+            'App\Filament\Resources\LeaveTypes\LeaveTypeResource' => \App\Modules\Leave\Filament\Resources\LeaveTypes\LeaveTypeResource::class,
+            'App\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource' => \App\Modules\Leave\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource::class,
+        ],
+        'attendance' => [
+            'App\Filament\Resources\AttendanceDays\AttendanceDayResource' => \App\Modules\Attendance\Filament\Resources\AttendanceDays\AttendanceDayResource::class,
+            'App\Filament\Resources\AttendanceRegularizations\AttendanceRegularizationResource' => \App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\AttendanceRegularizationResource::class,
+            'App\Filament\Resources\WorkPatterns\WorkPatternResource' => \App\Modules\Attendance\Filament\Resources\WorkPatterns\WorkPatternResource::class,
+        ],
         'payroll' => [
             'App\Filament\Resources\PayComponents\PayComponentResource' => \App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource::class,
             'App\Filament\Resources\PayrollRuns\PayrollRunResource' => \App\Modules\Payroll\Filament\Resources\PayrollRuns\PayrollRunResource::class,
@@ -200,6 +260,30 @@ final class ModuleMap
         'inventory' => [
             'App\Filament\Resources\Products\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,
             'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource::class,
+        ],
+        'crm' => [
+            'App\Filament\Resources\Leads\LeadResource' => \App\Modules\Crm\Filament\Resources\Leads\LeadResource::class,
+            'App\Filament\Resources\LeadSources\LeadSourceResource' => \App\Modules\Crm\Filament\Resources\LeadSources\LeadSourceResource::class,
+        ],
+        'recruitment' => [
+            'App\Filament\Resources\Vacancies\VacancyResource' => \App\Modules\Recruitment\Filament\Resources\Vacancies\VacancyResource::class,
+            'App\Filament\Resources\Applicants\ApplicantResource' => \App\Modules\Recruitment\Filament\Resources\Applicants\ApplicantResource::class,
+            'App\Filament\Resources\Applications\ApplicationResource' => \App\Modules\Recruitment\Filament\Resources\Applications\ApplicationResource::class,
+        ],
+        'performance' => [
+            'App\Filament\Resources\ReviewCycles\ReviewCycleResource' => \App\Modules\Performance\Filament\Resources\ReviewCycles\ReviewCycleResource::class,
+            'App\Filament\Resources\Reviews\ReviewResource' => \App\Modules\Performance\Filament\Resources\Reviews\ReviewResource::class,
+            'App\Filament\Resources\Goals\GoalResource' => \App\Modules\Performance\Filament\Resources\Goals\GoalResource::class,
+            'App\Filament\Resources\OneToOnes\OneToOneResource' => \App\Modules\Performance\Filament\Resources\OneToOnes\OneToOneResource::class,
+        ],
+        'lifecycle' => [
+            'App\Filament\Resources\ChecklistTemplates\ChecklistTemplateResource' => \App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\ChecklistTemplateResource::class,
+            'App\Filament\Resources\EmployeeDocuments\EmployeeDocumentResource' => \App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments\EmployeeDocumentResource::class,
+            'App\Filament\Resources\IssuedAssets\IssuedAssetResource' => \App\Modules\Lifecycle\Filament\Resources\IssuedAssets\IssuedAssetResource::class,
+            'App\Filament\Resources\FinalSettlements\FinalSettlementResource' => \App\Modules\Lifecycle\Filament\Resources\FinalSettlements\FinalSettlementResource::class,
+        ],
+        'timesheets' => [
+            'App\Filament\Resources\TimesheetEntries\TimesheetEntryResource' => \App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource::class,
         ],
         'projects' => [
             'App\Filament\Resources\Projects\ProjectResource' => \App\Modules\Projects\Filament\Resources\Projects\ProjectResource::class,
@@ -299,6 +383,13 @@ final class ModuleMap
         'employees' => ['Employee', 'EmployeeSetting'],
         'advances' => ['Advance'],
         'expenses' => ['ExpenseClaim'],
+        // LeaveAdjustment and LeaveDay have no group of their own on purpose: one
+        // borrows the entitlement's permissions and the other the request's, because
+        // eight more permission names for two tables nobody navigates to would be
+        // eight more rows in every role form for no decision anybody makes
+        // separately.
+        'leave' => ['LeaveRequest', 'LeaveType', 'LeaveEntitlement'],
+        'attendance' => ['Attendance', 'AttendanceRegularization', 'WorkPattern'],
         'payroll' => ['Payslip', 'SalarySlab', 'AnnualTax'],
         'accounting' => [
             'Account', 'Bank', 'BankStatement', 'Beneficiary', 'CompanyBankAccount',
@@ -308,6 +399,11 @@ final class ModuleMap
         'invoicing' => ['Invoicing'],
         'billing' => ['BillingRun'],
         'inventory' => ['Inventory'],
+        'crm' => ['Lead', 'LeadSource'],
+        'recruitment' => ['Vacancy', 'Applicant', 'Offer'],
+        'performance' => ['Review'],
+        'lifecycle' => ['Checklist', 'EmployeeDocument', 'IssuedAsset', 'Settlement'],
+        'timesheets' => ['Timesheet'],
         'projects' => ['Project'],
         'mpr' => ['MPR'],
         'personal_finance' => ['PersonalFinance'],

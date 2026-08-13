@@ -27,6 +27,16 @@ class TenantBaselineSeeder extends Seeder
             CurrencySeeder::class,
             TransactionTypeSeeder::class,
             SalarySlabSeeder::class,
+            // The statutory pay COMPONENTS — EOBI, social security, provident fund — and
+            // no amounts: creating them says this company may deduct EOBI, and deducts
+            // nothing until somebody puts a figure on a package. After the chart, because
+            // each posts to its own liability account.
+            //
+            // Kept in step with the $business list in config/company_profiles.php, which
+            // this method is the no-profile mirror of. A company provisioned without a
+            // profile runs payroll too, and would otherwise have the accounts with no
+            // components to post through them.
+            StatutoryComponentSeeder::class,
             BankSeeder::class,
             // Tax brackets for the Personal Finance estimate. Reference data
             // shared by everyone in the company, unlike the per-person chart of

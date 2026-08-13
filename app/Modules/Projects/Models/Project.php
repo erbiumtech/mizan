@@ -42,6 +42,14 @@ class Project extends Model
         'code', 'name', 'description', 'status',
         'manager_employee_id', 'secondary_employee_id',
         'start_date', 'end_date',
+        // Which client this project is for, and what an hour on it bills at. Both
+        // nullable: an internal project has no client, and a company billing by
+        // headcount never sets a rate.
+        //
+        // Deliberately no Contact relation on this model. The id is only ever compared
+        // (BillableHours filters projects by the run's contact), and declaring the
+        // relation would make Projects import Invoicing for nothing.
+        'contact_id', 'hourly_rate',
     ];
 
     protected $attributes = [

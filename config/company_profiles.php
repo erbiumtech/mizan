@@ -33,9 +33,12 @@ use Database\Seeders\BankSeeder;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Database\Seeders\CurrencySeeder;
 use Database\Seeders\FiscalYearSeeder;
+use Database\Seeders\LeadSourceSeeder;
+use Database\Seeders\LeaveTypeSeeder;
 use Database\Seeders\PersonalChartOfAccountsSeeder;
 use Database\Seeders\PersonalTransactionTypeSeeder;
 use Database\Seeders\SalarySlabSeeder;
+use Database\Seeders\StatutoryComponentSeeder;
 use Database\Seeders\TaxScheduleSeeder;
 use Database\Seeders\TransactionTypeSeeder;
 
@@ -50,6 +53,10 @@ $business = [
     CurrencySeeder::class,
     TransactionTypeSeeder::class,
     SalarySlabSeeder::class,
+    // Phase 9. The statutory pay COMPONENTS, not any amount: creating them says this
+    // company may deduct EOBI, and deducts nothing. After the chart, because each posts
+    // to its own liability account.
+    StatutoryComponentSeeder::class,
     BankSeeder::class,
     TaxScheduleSeeder::class,
 ];
@@ -57,6 +64,27 @@ $business = [
 // No payroll, so no slabs — the only profile that diverges from the business
 // baseline. Derived rather than retyped so it cannot drift from the list above.
 $businessWithoutPayroll = array_values(array_diff($business, [SalarySlabSeeder::class]));
+
+// The business baseline plus the leave types, for every profile that licenses
+// `leave`. Derived rather than retyped for the same reason as above.
+//
+// Deliberately NOT folded into $business: that list is also what the no-profile
+// path seeds (TenantBaselineSeeder, asserted equal by CompanyProfileTest), and a
+// company provisioned without a profile licenses no leave — so seeding leave types
+// there would create reference data for a module nobody bought.
+//
+// The day counts are provincial defaults a company's HR must confirm; see
+// LeaveTypeSeeder.
+$businessWithLeave = [...$business, LeaveTypeSeeder::class, LeadSourceSeeder::class];
+
+// Bookkeeping licenses `crm` but not `leave`, so it needs the lead sources without
+// the leave types — and it has no payroll either. docs/crms-plan.md §2 argues the
+// inclusion explicitly rather than deriving it: a bookkeeping-only company looks
+// like it has no sales pipeline, but §1's whole case is that `crm` requires nothing
+// and phases 1-4 are a usable CRM on their own. A bookkeeping practice has clients
+// it is pitching to. If that turns out to be false, then §1's independence is
+// theoretical and the requirement should be declared instead.
+$bookkeepingSeeders = [...$businessWithoutPayroll, LeadSourceSeeder::class];
 
 $personal = [
     FiscalYearSeeder::class,
@@ -81,48 +109,48 @@ return [
         'label' => 'Services / Consultancy',
         'description' => 'Billable people on client work: projects, monthly progress reports, expense claims and salary advances.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'advances'],
-        'seeders' => $business,
+        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'advances', 'leave', 'crm', 'timesheets', 'lifecycle', 'recruitment', 'performance'],
+        'seeders' => $businessWithLeave,
     ],
 
     'software_house' => [
         'label' => 'Software House / Agency',
         'description' => 'Project delivery with environment health and certificate tracking. Services without the advances.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses'],
-        'seeders' => $business,
+        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'leave', 'crm', 'timesheets', 'lifecycle', 'recruitment', 'performance'],
+        'seeders' => $businessWithLeave,
     ],
 
     'staffing' => [
         'label' => 'Staffing / Outsourcing',
         'description' => 'Staff placed with clients and billed on at full cost: client billing, advances and expense claims.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'billing', 'advances', 'expenses'],
-        'seeders' => $business,
+        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'billing', 'advances', 'expenses', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment'],
+        'seeders' => $businessWithLeave,
     ],
 
     'trading' => [
         'label' => 'Trading / Distribution',
         'description' => 'Buying and selling goods: stock movements valued through the ledger, invoices and payroll.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll'],
-        'seeders' => $business,
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment'],
+        'seeders' => $businessWithLeave,
     ],
 
     'manufacturing' => [
         'label' => 'Manufacturing',
         'description' => 'Trading plus the expense claims a production floor generates.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'expenses'],
-        'seeders' => $business,
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'expenses', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment'],
+        'seeders' => $businessWithLeave,
     ],
 
     'bookkeeping' => [
         'label' => 'Bookkeeping Only',
         'description' => 'The books and the invoices, nothing else. No employees, so no payroll and no salary slabs.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing'],
-        'seeders' => $businessWithoutPayroll,
+        'modules' => ['accounting', 'invoicing', 'crm'],
+        'seeders' => $bookkeepingSeeders,
     ],
 
 ];

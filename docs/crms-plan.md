@@ -1,9 +1,20 @@
 # CRMS: plan
 
-> **Not built.** Research and design only. Mechanics common to any new module are
-> in `docs/new-module-checklist.md`; the HR side is `docs/hrms-plan.md`. This
-> document decides what the customer-facing modules are and, more importantly,
-> what they must not duplicate.
+> **Phases 0 and 1 are built.** The **`crm` module** exists and requires nothing
+> (§1's bet, and `CrmLeadTest` is what holds it): `lead_sources` and `leads`, an
+> employee owner scoped through `EmployeeAccess`, lead → `Contact` conversion
+> guarded on `invoicing`, and lost/reopen with a required reason. 16 tests in
+> `tests/Feature/CrmLeadTest.php`, including that conversion raises **no** invoice
+> and posts **no** journal entry, and that leads work fully with `invoicing`
+> unlicensed.
+>
+> Phases 2 onwards (pipelines and opportunities, activities and next actions, the
+> capture endpoint and dedup, the reports, `quotations`, `support`, `campaigns`)
+> are **research and design only**.
+>
+> Mechanics common to any new module are in `docs/new-module-checklist.md`; the HR
+> side is `docs/hrms-plan.md`. This document decides what the customer-facing
+> modules are and, more importantly, what they must not duplicate.
 
 Three findings shape it:
 
@@ -192,6 +203,26 @@ Four constraints, each of which is a way this becomes a spam sink otherwise:
 the latest", which was written when every lead was typed by a person who might
 notice. An open endpoint removes that. Match on email, phone and company name;
 merge activities and next actions; keep the older record's id.
+
+**Built, with two deviations from this section's letter, both deliberate:**
+
+- **There is no `owner_user_id` fallback.** This section says the owner field "falls
+  back to the landlord user id" when `employees` is unlicensed. Implemented as
+  written, that is two columns for one concept and two answers to "who owns this
+  lead", which every report would then have to coalesce. Instead
+  `owner_employee_id` is simply not offered when the module is off, and
+  `leads.created_by` — a soft user reference, the `invoice_events.caused_by` shape —
+  answers ownership. Same fallback, one column per concept.
+- **`lost_reason` is free text at this phase, not `lost_reason_id`.** §3 makes
+  `lost_reasons` a table because win/loss by reason is worth more than the forecast —
+  but that report is phase 4, and shipping the table now with nothing reading it is
+  the column-that-never-fills the `invoice_events` migration refused. Phase 4 adds
+  `lost_reason_id` beside the text column and backfills.
+
+The `Sales` navigation group is CRM's own rather than part of "Invoicing &
+Inventory": the two answer different questions, and folding them together would show
+the group to a company that licensed CRM *without* Invoicing, which §1 requires to be
+possible. `NavigationGroupsTest` records the choice.
 
 **Ownership is an employee, not a user.** `owner_employee_id` throughout, so
 `EmployeeAccess` scoping applies unchanged: a sales manager sees their downline's
@@ -413,8 +444,8 @@ becomes a decision the moment somebody sorts by it.
 
 | Phase | Work | Risk |
 |---|---|---|
-| **0** | `crm` module skeleton per the checklist; morph aliases for `lead`, `opportunity`, `activity`; permission groups | none |
-| **1** | Leads, sources, owners, conversion to Contact (guarded on `invoicing`) | low |
+| **0** | **BUILT.** `crm` module skeleton per the checklist; morph aliases (`App\Models\Lead`, `App\Models\LeadSource`); permission groups `Lead` and `LeadSource` | none |
+| **1** | **BUILT.** Leads, sources, owners, conversion to Contact (guarded on `invoicing`), plus lost/reopen with a required reason | low |
 | **2** | Pipelines, stages, opportunities, the exactly-one-party rule, stage history, board UI | low |
 | **3** | Activities and next actions, including "open deal with no next action" | low |
 | **3.5** | **Lead capture endpoint + deduplication**, together (§3). Dedup is not optional once leads arrive unattended | low |

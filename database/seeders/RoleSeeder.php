@@ -67,6 +67,45 @@ class RoleSeeder extends Seeder
             'ExpenseClaimView',
             'ExpenseClaimCreate',
             'ExpenseClaimUpdate',
+            // Their own leave, on the same principle: file it, see what was decided,
+            // correct it while it is still pending. LeaveRequestApprove is absent for
+            // the same reason ExpenseClaimApprove is — and note that the
+            // leave.require_second_approver setting is a *second* guard on top of
+            // this one, not a substitute: it is what stops somebody who holds the
+            // approve permission deciding their own.
+            'LeaveRequestView',
+            'LeaveRequestCreate',
+            'LeaveRequestUpdate',
+            // Read-only. The form has to show what somebody is asking for, and the
+            // balance panel has to name the type — but the day counts are HR's.
+            'LeaveTypeView',
+            // Their own balance. Read-only and deliberately without Update, which is
+            // what grants an adjustment: nobody credits themselves days.
+            'LeaveEntitlementView',
+            // Their own attendance, read-only, and the right to ask about a day that
+            // was recorded wrongly. AttendanceUpdate is absent: correcting a day is a
+            // request somebody else approves, which is the whole point of
+            // `not_marked` having a way out that is not an admin editing rows.
+            'AttendanceView',
+            'AttendanceRegularizationView',
+            'AttendanceRegularizationCreate',
+            // The form has to name the pattern somebody is on.
+            'WorkPatternView',
+            // Booking your own time is the ordinary case, so every employee may.
+            // TimesheetApprove is not here: approved time becomes an invoice line.
+            'TimesheetView',
+            'TimesheetCreate',
+            // Their own kit, so somebody can see what they were issued and what is
+            // still outstanding against their name. Documents and settlements are
+            // absent: a passport scan and a leaving figure are not an employee's to
+            // browse, even their own — those go through HR.
+            'IssuedAssetView',
+            // CRM is deliberately absent from this role. Leave, payslips and expense
+            // claims are things every member of staff has; a sales pipeline is not —
+            // a machine operator has no leads. Granting LeadView here would put every
+            // employee's name in the owner dropdown and every prospect in front of
+            // them. A company that sells creates a Sales role and grants the Lead and
+            // LeadSource groups to it; Administrator holds them already.
             'CommentCreate',
             'CommentView',
             'ProjectView',

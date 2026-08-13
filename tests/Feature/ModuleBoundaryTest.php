@@ -86,7 +86,14 @@ class ModuleBoundaryTest extends TestCase
     private const KNOWN_COUPLINGS = [
         // Guarded soft dependencies, by design — see PayrollPostingService, and
         // MonthlyBillingService::creditLines() for Billing.
-        'payroll' => ['accounting'],
+        // Payroll -> Attendance and Payroll -> Leave are phase 3's join, and guarded
+        // rather than declared for the same reason as everything else here: payroll is
+        // sold to companies that run neither. AttendanceFigures returns the zeros
+        // MonthlyPayrollService always raised when the modules are off, and
+        // AttendanceProration refuses to divide by them — so the *default* behaviour of
+        // a company with neither module is byte-identical to before phase 3, which
+        // PayslipAttendanceProrationTest asserts.
+        'payroll' => ['accounting', 'attendance', 'leave'],
         'billing' => ['advances'],
         'expenses' => ['accounting'],
 
@@ -101,6 +108,51 @@ class ModuleBoundaryTest extends TestCase
         // in every tenant, because licensing decides what is offered rather than
         // what is migrated, and it simply stays empty.
         'invoicing' => ['inventory', 'projects'],
+        // CRM -> Invoicing and CRM -> Employees are guarded, not debt, and not
+        // declared as requirements: docs/crms-plan.md §1 makes `crm` sellable to a
+        // company that has bought neither. Converting a lead creates a Contact and the
+        // action is hidden when invoicing is off (LeadConversion::isAvailable); a
+        // lead's owner is an employee and the field is not offered when employees is
+        // off, with `leads.created_by` answering ownership instead. Same shape as
+        // invoicing -> projects above.
+        'crm' => ['invoicing', 'employees'],
+        // Attendance -> Leave and Attendance -> Payroll are guarded, not declared.
+        // A day covered by approved leave cannot be overwritten (AttendanceRecorder),
+        // and a correction inside a locked payroll month is refused
+        // (RegularizationService) — both check modules()->enabled() first, so
+        // attendance stays sellable to a factory that runs neither.
+        'attendance' => ['leave', 'payroll', 'employees'],
+        // Leave -> Attendance is the other half of the same coupling: with attendance
+        // licensed the leave-day generator reads the employee's work pattern instead
+        // of leave.weekend_days, which config/leave.php always described as a stopgap.
+        'leave' => ['attendance'],
+        // Timesheets -> Billing and -> Attendance are guarded. BillableHours takes a
+        // BillingRun to price a month, and the utilisation report compares booked time
+        // with the attendance record; both are absent rather than broken without those
+        // modules. Note the direction: Billing does NOT import Timesheets — it asks for
+        // the hours lines through the container behind modules()->enabled('timesheets'),
+        // so Billing stays sellable to a headcount-billed client.
+        'timesheets' => ['billing', 'attendance'],
+        // Lifecycle -> Leave/Advances/Accounting are guarded, and each one missing
+        // makes the final settlement a smaller document rather than a broken one:
+        // FinalSettlementBuilder returns 0 for encashment without `leave` and 0 for the
+        // advance balance without `advances`, and the fixed-asset link is hidden
+        // without `accounting`.
+        //
+        // Payroll is deliberately NOT listed. `final_settlements.payslip_id` is a
+        // nullable column recording which existing path paid a settlement, and no PHP
+        // here imports a Payslip — the settlement never writes one. That is the whole
+        // of §4.6's "a proposal, not a posting", visible in the import graph.
+        'lifecycle' => ['leave', 'advances', 'accounting', 'employees'],
+        // Recruitment -> Employees/Payroll is the hire conversion, guarded so the
+        // pipeline works at a company hiring its very first person: HireService::
+        // isAvailable() hides the action without `employees`, and createPackage()
+        // returns null without `payroll` rather than failing the hire.
+        'recruitment' => ['employees', 'payroll'],
+        // Performance -> MPR is the whole integration — a cycle READS the monthly
+        // reports in its period rather than duplicating them — and -> Employees for the
+        // reviewer. Both guarded; a cycle without MPR simply has no evidence attached.
+        'performance' => ['mpr', 'employees'],
         'mpr' => ['employees'],
     ];
 
@@ -180,7 +232,17 @@ class ModuleBoundaryTest extends TestCase
         // NOT declared and NOT guarded is a licence hole, so the guarded pairs are
         // named here explicitly rather than assumed.
         $guarded = [
-            'payroll' => ['accounting'],
+            // Accounting for the posting, and Attendance and Leave for phase 3's pay
+            // join. All three degrade, and the two new ones do so in the strongest
+            // available sense: AttendanceFigures returns the zeros MonthlyPayrollService
+            // always raised when the modules are off, and AttendanceProration then
+            // refuses to divide by a zero `total_working_days` — so a company with
+            // neither module gets the pre-phase-3 behaviour exactly, which
+            // PayslipAttendanceProrationTest and ModuleDegradationTest both assert.
+            //
+            // The guards are in AttendanceFigures::for(), ::monthIsComplete(),
+            // ::overtimeMinutes() and OvertimeRate::contractedHoursIn().
+            'payroll' => ['accounting', 'attendance', 'leave'],
             // A client with no advances has nothing to credit back, so Billing has
             // to be sellable without the module; creditLines() returns none when it
             // is off. Note that Payroll reaches Advances the other way — through the
