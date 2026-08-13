@@ -240,11 +240,49 @@ Three things were preserved on the way, each because a test insisted:
   being the other time.
 
 **Not done: the eleven shipped pay components still have their old columns beside
-them.** Dropping them is a migration of live payroll data across `PayslipService`,
-the payslip PDF, the exports and every test that reads `$payslip->basic_wage`, and
-the plan's own gate — *"once every payslip has been cross-checked"* — is a release
-boundary rather than a refactor. What has changed is that Billing no longer reads
-those columns, so there is one less consumer to migrate when it happens.
+them — and the wording above understates what removing them means.** Measured
+before starting, then not started, for a reason worth recording:
+
+> **The eleven columns are not duplicated truth. They are the payroll input model.**
+
+All eleven are fields on the payslip form, and eight of them — `bonus`,
+`extra_work_hours`, `device_allowance`, `petrol_allowance`, `advances`,
+`meal_deduction`, `esi_health_insurance`, `expense_reimbursement` — are read back
+off the model and passed *into* `PayslipService::calculateByParams()` as that
+month's overrides, then written back. A clerk typing a bonus for one month is
+typing into `payslips.bonus`. `PayComponent`'s own docblock says as much: the
+shipped components are `is_column_backed` because *"the calculation still reads
+those"*, and the component rows exist so the set of things pay is made of is
+"complete, reportable, and knows where it posts".
+
+So the components are a **reporting projection over the input**, not a replacement
+for it, and dropping the columns is not a clean-up — it is moving payroll input
+onto `payslip_components`, which means a new `calculateByParams()` contract, a
+payslip form that edits component rows, and an ordering problem the current design
+does not have (the recorder writes those rows on `saved`, so they would become both
+the input to a recalculation and its output). That is item 9's original "1.5–2
+weeks", of which only the additive half shipped. It is a release-boundary project
+with a real chance of moving somebody's net pay, not a refactor.
+
+**What was done instead is the gate that project needs**, and that this plan
+specified and nobody built — *"every existing payslip's gross and net are
+identical"*:
+
+- `ComponentReconciliation` — for every payslip, do its recorded components add up
+  to its stored gross and deductions? Reads only, writes nothing.
+- `payroll:verify-components` (`--tenant=*`, `--all`) — runs it against a real
+  company and exits non-zero on any discrepancy, so a deploy step can gate on it.
+  Not scheduled: a clean run is silent and a dirty one needs a person, so a nightly
+  version would either say nothing for years or say the same thing every morning.
+- `PayComponentReconciliationTest` — 14 tests, every drift case induced *behind*
+  the model, because `PayComponentRecorder` makes columns and components agree by
+  construction for anything saved through it. What can actually drift is a raw
+  `UPDATE` at 11pm, a component row deleted after it was paid, or a restore from a
+  backup taken mid-backfill.
+
+That check now matters on its own account, not only as a precondition: since the
+billing statement reads components, a drift here mis-bills a client. Run it clean
+against a company's full history before anyone opens the column-retirement project.
 
 ### Ongoing, small
 

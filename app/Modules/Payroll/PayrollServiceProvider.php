@@ -6,6 +6,7 @@ use App\Modules\Payroll\Console\Commands\CheckPayrollAccounts;
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
 use App\Modules\Payroll\Console\Commands\PostPendingPayrollEntries;
 use App\Modules\Payroll\Console\Commands\SetPayrollAutoPosting;
+use App\Modules\Payroll\Console\Commands\VerifyPayComponents;
 use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\PayrollRun;
@@ -58,6 +59,7 @@ class PayrollServiceProvider extends ServiceProvider
             OpenPayrollMonth::class,
             PostPendingPayrollEntries::class,
             SetPayrollAutoPosting::class,
+            VerifyPayComponents::class,
         ]);
     }
 }
