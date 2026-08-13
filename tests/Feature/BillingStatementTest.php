@@ -328,6 +328,16 @@ class BillingStatementTest extends AccountingTestCase
         $payslip = $this->payslip($employee);
         $payslip->update(['expense_reimbursement' => 15000]);
 
+        // Asserted first, so this test cannot pass by the reimbursement never having been
+        // recorded at all — which is what it would prove if the column were not fillable.
+        $this->assertSame(
+            15000.0,
+            (float) $payslip->refresh()->components()
+                ->whereHas('component', fn ($q) => $q->where('code', 'expense_reimbursement'))
+                ->value('amount'),
+            'the reimbursement was never recorded, so excluding it proves nothing',
+        );
+
         $statement = $this->billing->statement($this->billingRun());
 
         $this->assertArrayNotHasKey('expense_reimbursement', $statement['columns']);
