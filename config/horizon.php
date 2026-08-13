@@ -193,8 +193,10 @@ return [
      * successfully". Queued work would have limped along or stalled with nothing in the log to
      * explain it.
      *
-     * 256 leaves headroom over the ~66MB idle cost for the largest jobs here (a monthly billing
-     * statement across every employee, a PDF render through Browsershot).
+     * 256 leaves headroom over that ~66MB idle cost for the heaviest thing this application
+     * queues: a payslip notification, which renders its own PDF through headless Chrome inside
+     * the job (PayslipIssued::toMail calls PayslipService::renderPdf rather than attaching a
+     * stored file).
      */
     'memory_limit' => 256,
 
@@ -228,10 +230,15 @@ return [
              * 3, not 1.
              *
              * `tries => 1` means the first transient failure is final: a Redis blip, a locked
-             * row, an SMTP timeout, and that payslip notification is simply never sent. Most of
-             * what this application queues is a notification or a PDF render, and both are safe
-             * to retry — they are idempotent in the sense that matters, producing the same
-             * document or message again rather than a second charge.
+             * row, an SMTP timeout, and that payslip notification is simply never sent. What
+             * this application queues is almost entirely notifications — payslips issued and
+             * rejected, leave and expense decisions, document and certificate expiry — and
+             * re-sending one produces the same message again rather than a second charge.
+             *
+             * This is a *default*, and the jobs that must not be retried already say so
+             * themselves: CheckEnvironmentHealth and CheckEnvironmentCertificate both declare
+             * `$tries = 1`, because a slow host retried is a pile-up. A per-job property wins
+             * over this, which is the right way round.
              *
              * Deliberately not higher: a job that fails three times is failing for a reason a
              * fourth attempt will not fix, and it should reach the failed-jobs table where
@@ -240,9 +247,18 @@ return [
             'tries' => 3,
 
             /*
-             * 300 rather than 60. Two things here take longer than a minute: a Browsershot PDF
-             * render on a cold Chrome, and a monthly billing statement across every employee.
-             * At 60s those are killed mid-flight and retried into the same timeout.
+             * 300 rather than 60, because 60 is not even enough for the render alone.
+             *
+             * A payslip notification renders its PDF inside the job, and `config('pdf.timeout')`
+             * already allows headless Chrome 60 seconds on its own — before Chrome's cold start,
+             * before the mail is handed to SMTP with a few hundred kilobytes attached. A worker
+             * timeout of 60 therefore kills that job at best occasionally and at worst always,
+             * and each kill is retried into the same wall.
+             *
+             * **This value is coupled to `retry_after` in config/queue.php, which must stay
+             * larger than it.** `retry_after` is when Redis considers a reserved job abandoned
+             * and hands it to another worker; if it fires while this job is still rendering, the
+             * employee is emailed their payslip twice. See the comment there.
              */
             'timeout' => 300,
 
