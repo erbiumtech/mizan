@@ -44,8 +44,29 @@ class InvoiceCreditNoteTest extends AccountingTestCase
     {
         parent::setUp();
 
+        // Time is frozen, and this is a fix rather than tidiness.
+        //
+        // Several tests below build a fixture from `now()` and then assert against `now()`
+        // again — `invoice_date` at 200 days ago, expected deadline at 200 days ago plus 180.
+        // Both calls have to land on the same day or the two disagree by one. The full suite
+        // takes eleven minutes, so a run that straddles midnight failed exactly one of these
+        // and passed on the next attempt, which is the worst kind of failure: real, and gone
+        // before anybody can look at it.
+        //
+        // Frozen to the ordinary middle of a month, inside the seeded 2026-2027 fiscal year,
+        // so nothing else in the file shifts meaning. Same convention as
+        // DashboardReceivablesWidgetTest.
+        Carbon::setTestNow('2026-08-13 10:00:00');
+
         $this->service = app(InvoiceService::class);
         $this->customer = Contact::create(['name' => 'Credit Note Customer', 'kind' => 'customer']);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     /**
