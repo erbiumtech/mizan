@@ -211,10 +211,40 @@ Each item: what, why now, the sketch, the risk, and what proves it done.
 ### Where this stands
 
 Items 1–10, 12 and 13–16 are shipped; **item 11 (pay calendars) is not, by its own
-gate — nobody is paid other than monthly.** Two clean-ups the plan created and left:
-the eleven shipped pay components still have their old columns beside them, to be
-dropped in a later release once every payslip has been cross-checked, and
-`MonthlyBillingService::SALARY_COLUMNS` with its "Other" bucket goes with them.
+gate — nobody is paid other than monthly.**
+
+Of the two clean-ups the plan created and left, **the second is now done and the
+first is not.**
+
+**Done: `MonthlyBillingService::SALARY_COLUMNS` and its "Other" bucket are gone.**
+The statement now reads `payslip_components` — which `PayComponentRecorder` writes
+on every save — so a data-driven allowance reaches the client under its own label.
+This was not only tidying: it was a live defect. The statement read six named
+payslip columns and lumped the entire remainder into "Other", so pay components,
+whose whole point is that *"a new allowance is a row, not a migration and twelve
+edits"*, arrived at the client as an unexplained lump. A company that added Housing
+Allowance billed its client "Other: 40,000".
+
+Three things were preserved on the way, each because a test insisted:
+
+- **The client's five columns keep the client's order**, which is not the
+  components' `sort` order. This statement is meant to look like the sheet they have
+  read for years.
+- **"Other" survives as a reconciling residual**, shown only when non-zero. Gross
+  the components cannot explain — a payslip edited in the database, or one left by
+  an older calculation — still has to appear, or the row stops adding up to what is
+  billed.
+- **`expense_reimbursement` is excluded.** It is an earning component that
+  `PayslipService` deliberately leaves out of `total_earnings`, being the employee's
+  own money coming back. Billing it would charge the client twice, the expense line
+  being the other time.
+
+**Not done: the eleven shipped pay components still have their old columns beside
+them.** Dropping them is a migration of live payroll data across `PayslipService`,
+the payslip PDF, the exports and every test that reads `$payslip->basic_wage`, and
+the plan's own gate — *"once every payslip has been cross-checked"* — is a release
+boundary rather than a refactor. What has changed is that Billing no longer reads
+those columns, so there is one less consumer to migrate when it happens.
 
 ### Ongoing, small
 

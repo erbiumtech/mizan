@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Payment;
 use App\Modules\Advances\Models\AdvanceRecovery;
 use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\TenantTransaction;
 use Illuminate\Support\Collection;
@@ -26,29 +27,33 @@ use InvalidArgumentException;
 class MonthlyBillingService
 {
     /**
-     * The employee columns of the client's statement, in the order the client
-     * reads them, keyed by the payslip column each is drawn from.
+     * The five the client's sheet always carries, empty or not, by component code.
      *
-     * `bonus` and `other` are held back unless a month actually has them: the
-     * statement is meant to look like the sheet the client is used to, which has
-     * five columns. They are never dropped when there is money in them — see
-     * statement(), where `other` catches any part of the gross the named columns
-     * do not account for, so the row always adds up to what is billed.
+     * Everything else appears only in a month that has money in it, which is what keeps
+     * the statement looking like the sheet the client is used to.
      */
-    public const SALARY_COLUMNS = [
-        'basic_wage' => 'Basic Salary',
-        'extra_work_hours' => 'Extra Work',
-        'petrol_allowance' => 'Petrol Allowance',
-        'medical_allowance' => 'Medical Allowance',
-        'device_allowance' => 'Device Allowance',
-        'bonus' => 'Bonus',
-        'other' => 'Other',
-    ];
-
-    /** The five the client's sheet always carries, empty or not. */
-    private const ALWAYS_SHOWN_COLUMNS = [
+    private const ALWAYS_SHOWN_COMPONENTS = [
         'basic_wage', 'extra_work_hours', 'petrol_allowance', 'medical_allowance', 'device_allowance',
     ];
+
+    /**
+     * Earning components paid with salary that are **not** part of the gross.
+     *
+     * Exactly one today, and it is not an oversight: a reimbursement is the employee's own
+     * money coming back, so `PayslipService` leaves it out of `total_earnings` (see the
+     * component's own comment in `PayComponentSeeder::SHIPPED`). It must be left out here too
+     * or every row would be billed higher than the payslip it came from.
+     *
+     * Named here rather than flagged on `pay_components`, deliberately. A column saying
+     * "counts toward gross" that `PayslipService` did not read would be a second source of
+     * truth for the same fact, and the two would drift — which is the failure this whole
+     * refactor is undoing. `BillingStatementTest` asserts each row sums to `total_earnings`,
+     * so if that formula ever changes, this list fails loudly rather than quietly mis-billing.
+     */
+    private const NOT_IN_GROSS = ['expense_reimbursement'];
+
+    /** Not a component: the reconciling residual. See `employeeRows()`. */
+    private const RESIDUAL_COLUMN = 'other';
 
     /**
      * The bill as the client reads it: a row per employee broken into what makes
@@ -76,12 +81,22 @@ class MonthlyBillingService
     public function statement(BillingRun $run): array
     {
         $employees = $this->employeeRows($run);
+        $columns = $this->salaryColumns($employees);
+
+        // Every displayed column present on every row. The view indexes
+        // `$employee['amounts'][$key]` for each column it draws, so an employee who was
+        // never paid a component another employee was would otherwise be a missing key.
+        foreach ($employees as $index => $employee) {
+            foreach (array_keys($columns) as $code) {
+                $employees[$index]['amounts'][$code] = $employee['amounts'][$code] ?? 0.0;
+            }
+        }
 
         $columnTotals = [];
 
-        foreach (array_keys(self::SALARY_COLUMNS) as $column) {
-            $columnTotals[$column] = round(
-                array_sum(array_column(array_column($employees, 'amounts'), $column)),
+        foreach (array_keys($columns) as $code) {
+            $columnTotals[$code] = round(
+                array_sum(array_column(array_column($employees, 'amounts'), $code)),
                 2,
             );
         }
@@ -99,14 +114,7 @@ class MonthlyBillingService
         $rate = (float) $run->exchange_rate;
 
         return [
-            'columns' => array_intersect_key(
-                self::SALARY_COLUMNS,
-                array_flip(array_filter(
-                    array_keys(self::SALARY_COLUMNS),
-                    fn (string $column): bool => in_array($column, self::ALWAYS_SHOWN_COLUMNS, true)
-                        || $columnTotals[$column] != 0.0,
-                )),
-            ),
+            'columns' => $columns,
             'employees' => $employees,
             'column_totals' => $columnTotals,
             'salary_total' => $salaryTotal,
@@ -297,13 +305,39 @@ class MonthlyBillingService
 
             $amounts = [];
 
-            foreach (array_keys(self::SALARY_COLUMNS) as $column) {
-                $amounts[$column] = $column === 'other'
-                    ? 0.0
-                    : round((float) $payslip->{$column}, 2);
+            // What this payslip actually paid, component by component, rather than six named
+            // columns and a bucket. `payslip_components` is written on every save by
+            // PayComponentRecorder, so a data-driven allowance — the whole point of pay
+            // components being data — reaches the client's statement under its own label
+            // instead of appearing as an unexplained "Other".
+            foreach ($payslip->components as $row) {
+                $component = $row->component;
+
+                if (! $component
+                    || ! $component->isEarning()
+                    || in_array($component->code, self::NOT_IN_GROSS, true)) {
+                    continue;
+                }
+
+                $amounts[$component->code] = round(
+                    ($amounts[$component->code] ?? 0.0) + (float) $row->amount,
+                    2,
+                );
             }
 
-            $amounts['other'] = round($total - array_sum($amounts), 2);
+            // The reconciling residual, and it is no longer the same thing it was.
+            //
+            // It used to hold every data-driven component, because the statement only knew
+            // six columns — so the feature whose whole point is that a new allowance is a row
+            // reached the client as an unexplained "Other". Now the components are named, and
+            // this catches only gross the components genuinely cannot account for: a payslip
+            // edited in the database, or one left by an older calculation. Hidden when zero,
+            // which is every ordinary month.
+            //
+            // Kept rather than dropped because the row has to add up to what is billed. A
+            // statement whose parts silently fall short of its own total is worse than an
+            // ugly column.
+            $amounts[self::RESIDUAL_COLUMN] = round($total - array_sum($amounts), 2);
 
             return [
                 'name' => $payslip->employee?->user?->name ?? 'Unnamed employee',
@@ -322,9 +356,81 @@ class MonthlyBillingService
      *
      * @return Collection<int, Payslip>
      */
+    /**
+     * Which salary columns this month's statement shows, and in what order.
+     *
+     * **The client's five come first, in the client's order** — which is not the components'
+     * `sort` order, and that difference is deliberate. This statement is meant to look like
+     * the sheet the client has been reading for years; re-ordering their columns to match an
+     * internal sort field would be a change they notice and nobody asked for. Everything
+     * after them is ordered by `sort`, so a new allowance lands where somebody decided it
+     * should rather than wherever the first employee to receive it put it.
+     *
+     * **Not filtered to active components.** A company that retires an allowance in March
+     * must still see it on January's statement — the month was billed with it, and a
+     * statement that silently drops a column no longer in use stops adding up to the invoice
+     * beside it. `is_active` governs what can be *paid* next month, not what was paid last.
+     *
+     * @param  array<int, array{amounts: array<string, float>}>  $employees
+     * @return array<string, string> component code => label
+     */
+    private function salaryColumns(array $employees): array
+    {
+        $totals = [];
+
+        foreach ($employees as $employee) {
+            foreach ($employee['amounts'] as $code => $amount) {
+                $totals[$code] = round(($totals[$code] ?? 0.0) + $amount, 2);
+            }
+        }
+
+        $labels = PayComponent::query()
+            ->where('kind', PayComponent::KIND_EARNING)
+            ->whereNotIn('code', self::NOT_IN_GROSS)
+            ->orderBy('sort')
+            ->orderBy('id')
+            ->pluck('label', 'code');
+
+        $columns = [];
+
+        // The client's five, in the client's order, whether or not this month has money in
+        // them. A label from the component where there is one, so renaming "Petrol Allowance"
+        // renames it here too.
+        foreach (self::ALWAYS_SHOWN_COMPONENTS as $code) {
+            $columns[$code] = $labels[$code] ?? $code;
+        }
+
+        // Then everything else that has money in it, in the components' own order.
+        foreach ($labels as $code => $label) {
+            if (! isset($columns[$code]) && ($totals[$code] ?? 0.0) != 0.0) {
+                $columns[$code] = $label;
+            }
+        }
+
+        // A component paid on a payslip but since deleted outright would leave money in a row
+        // with no column to show it in, and the row would stop adding up. Shown under its own
+        // code, which is ugly on purpose: it means somebody deleted a component that had been
+        // paid, and the statement should say so rather than lose the money.
+        foreach ($totals as $code => $amount) {
+            if (! isset($columns[$code]) && $code !== self::RESIDUAL_COLUMN && $amount != 0.0) {
+                $columns[$code] = $code;
+            }
+        }
+
+        // Last, and only when it has something in it.
+        if (($totals[self::RESIDUAL_COLUMN] ?? 0.0) != 0.0) {
+            $columns[self::RESIDUAL_COLUMN] = 'Other';
+        }
+
+        return $columns;
+    }
+
     protected function billablePayslips(BillingRun $run): Collection
     {
-        return Payslip::with('employee.user')
+        // components.component eager-loaded: employeeRows() reads every payslip's components,
+        // and a statement for forty employees would otherwise be forty queries plus one each
+        // per component.
+        return Payslip::with(['employee.user', 'components.component'])
             ->where('month', $run->month)
             ->where('fiscal_year_id', $run->fiscal_year_id)
             ->get()
