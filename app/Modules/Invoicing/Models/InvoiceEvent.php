@@ -25,6 +25,16 @@ class InvoiceEvent extends Model
 
     public const VOIDED = 'voided';
 
+    /**
+     * A credit note was raised against this invoice.
+     *
+     * Recorded against the **invoice**, not the credit note — the credit note gets its own
+     * `created` and `issued` events like any document. This is the entry that makes the
+     * invoice's own history say it was corrected, which is the thing somebody reading a
+     * reported invoice a year later needs to see without knowing to go looking elsewhere.
+     */
+    public const CREDITED = 'credited';
+
     protected $fillable = ['invoice_id', 'event', 'description', 'amount', 'caused_by'];
 
     protected $casts = ['amount' => 'decimal:2'];

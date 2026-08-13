@@ -57,9 +57,19 @@ class OperationsOverview extends StatsOverviewWidget
 
         if ($user?->can('InvoiceView')) {
             // Single aggregate query instead of loading every open invoice.
-            $open = Invoice::where('kind', Invoice::KIND_SALE)
+            //
+            // Credit notes are subtracted from the money and left out of the count, which is
+            // two different decisions. The money has to net or this figure overstates what is
+            // owed by every credit outstanding. The count must not, because "3 open" should
+            // mean three invoices somebody can chase — counting a credit note among them
+            // invites a call about a document the customer is owed rather than owes.
+            $open = Invoice::whereIn('kind', [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE])
                 ->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])
-                ->selectRaw('COUNT(*) as cnt, COALESCE(SUM(total - amount_paid), 0) as outstanding_total')
+                ->selectRaw(
+                    'COALESCE(SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END), 0) as cnt, '
+                    .'COALESCE(SUM((total - amount_paid) * CASE WHEN kind = ? THEN -1 ELSE 1 END), 0) as outstanding_total',
+                    [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE]
+                )
                 ->first();
 
             $stats[] = Stat::make(

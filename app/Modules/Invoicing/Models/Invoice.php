@@ -21,6 +21,17 @@ class Invoice extends Model
 
     public const KIND_PURCHASE = 'purchase';
 
+    /**
+     * A credit note: the mirror of a sale, and the only correction available once an
+     * invoice has been reported to FBR and the 72-hour window has closed.
+     *
+     * Stored with **positive** amounts and posted as the reverse — credit A/R, debit
+     * revenue, debit the tax accounts. Negative totals were the other option and they
+     * break `postSystemEntry()`, which drops legs that are not greater than zero.
+     * See the migration for the full argument.
+     */
+    public const KIND_CREDIT_NOTE = 'credit_note';
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_ISSUED = 'issued';
@@ -52,7 +63,9 @@ class Invoice extends Model
 
     protected $fillable = [
         'recurring_invoice_id', 'period',
-        'invoice_number', 'kind', 'currency_code', 'exchange_rate', 'contact_id', 'project_id', 'invoice_date', 'due_date',
+        'invoice_number', 'kind', 'credits_invoice_id', 'credit_reason',
+        'commissioner_approval_ref', 'commissioner_approved_on',
+        'currency_code', 'exchange_rate', 'contact_id', 'project_id', 'invoice_date', 'due_date',
         'status', 'subtotal', 'tax_amount', 'tax_inclusive', 'total', 'amount_paid', 'memo',
         'journal_entry_id', 'fiscal_year_id',
         'fbr_status', 'fbr_irn', 'fbr_usin', 'fbr_reported_at', 'fbr_qr_payload',
@@ -75,6 +88,7 @@ class Invoice extends Model
         'amount_paid' => 'decimal:2',
         'exchange_rate' => 'decimal:8',
         'fbr_reported_at' => 'datetime',
+        'commissioner_approved_on' => 'date',
     ];
 
     protected static function booted()
@@ -89,7 +103,11 @@ class Invoice extends Model
             InvoiceEvent::record(
                 $invoice,
                 InvoiceEvent::CREATED,
-                ($invoice->kind === self::KIND_PURCHASE ? 'Bill' : 'Invoice').' raised as a draft',
+                match ($invoice->kind) {
+                    self::KIND_PURCHASE => 'Bill',
+                    self::KIND_CREDIT_NOTE => 'Credit note',
+                    default => 'Invoice',
+                }.' raised as a draft',
             );
         });
     }
@@ -106,7 +124,14 @@ class Invoice extends Model
 
     public static function nextInvoiceNumber(string $kind, $date = null): string
     {
-        $prefix = $kind === self::KIND_PURCHASE ? 'BILL' : 'INV';
+        // CN- rather than INV-: a credit note is a different document, and a customer
+        // holding one needs to be able to say so on the phone. It also keeps the two
+        // series from interleaving, so "invoice 41 is missing" is never the answer.
+        $prefix = match ($kind) {
+            self::KIND_PURCHASE => 'BILL',
+            self::KIND_CREDIT_NOTE => 'CN',
+            default => 'INV',
+        };
         $year = Carbon::parse($date ?? now())->format('Y');
 
         $last = static::where('invoice_number', 'like', "{$prefix}-{$year}-%")
@@ -234,6 +259,114 @@ class Invoice extends Model
     public function outstanding(): float
     {
         return round((float) $this->total - (float) $this->amount_paid, 2);
+    }
+
+    public function isSale(): bool
+    {
+        return $this->kind === self::KIND_SALE;
+    }
+
+    public function isCreditNote(): bool
+    {
+        return $this->kind === self::KIND_CREDIT_NOTE;
+    }
+
+    /** The invoice this credit note reverses. Null on an ordinary invoice. */
+    public function creditedInvoice()
+    {
+        return $this->belongsTo(self::class, 'credits_invoice_id');
+    }
+
+    /** Credit notes raised against this invoice. */
+    public function creditNotes()
+    {
+        return $this->hasMany(self::class, 'credits_invoice_id');
+    }
+
+    /**
+     * How much of this invoice has been credited, counting drafts.
+     *
+     * Drafts count, and that is the deliberate half. A draft credit note has not posted,
+     * so it changes no balance — but it exists because somebody has decided to give this
+     * money back, and letting a second person raise another one for the full amount while
+     * the first sits unissued is how an invoice ends up credited twice. Voided ones do not
+     * count: a void has been reversed out of the ledger and abandoned.
+     */
+    public function creditedTotal(): float
+    {
+        return round((float) $this->creditNotes()
+            ->where('status', '!=', self::STATUS_VOID)
+            ->sum('total'), 2);
+    }
+
+    /** What is still available to credit — the guard against crediting more than was billed. */
+    public function creditableAmount(): float
+    {
+        return round((float) $this->total - $this->creditedTotal(), 2);
+    }
+
+    public function isFullyCredited(): bool
+    {
+        return $this->creditableAmount() <= 0.004 && $this->creditedTotal() > 0;
+    }
+
+    /**
+     * The last day a credit note against this invoice can still adjust output tax.
+     *
+     * Rule 22 of the Sales Tax Rules 2006: 180 days from the supply. Counted from
+     * `invoice_date` rather than `fbr_reported_at`, and that is the deliberate part — the rule
+     * is about the *supply*, not about when it was reported, so an invoice reported late has
+     * less time left, not more. Using the reporting date would quietly extend the window for
+     * exactly the companies that were slow to report.
+     */
+    public function creditNoteDeadline(): Carbon
+    {
+        return Carbon::parse($this->invoice_date)
+            ->addDays((int) setting('fbr.credit_note_days', 180))
+            ->endOfDay();
+    }
+
+    /** The furthest that deadline can be pushed, once, with the Commissioner's extension. */
+    public function creditNoteExtendedDeadline(): Carbon
+    {
+        return $this->creditNoteDeadline()
+            ->copy()
+            ->addDays((int) setting('fbr.credit_note_extension_days', 180));
+    }
+
+    public function creditNoteWindowOpen(?Carbon $on = null): bool
+    {
+        return ($on ?? now())->lessThanOrEqualTo($this->creditNoteDeadline());
+    }
+
+    /** Whether a rule 22 extension has been recorded against this document. */
+    public function hasCommissionerApproval(): bool
+    {
+        return filled($this->commissioner_approval_ref);
+    }
+
+    /**
+     * What this document does to the receivable, sign included.
+     *
+     * A credit note reduces what the customer owes, so anything that adds invoices up —
+     * aged receivables, the dashboard's unpaid total — has to subtract it. Reading
+     * `outstanding()` and forgetting the sign is the one way this feature makes the books
+     * wrong rather than merely incomplete, so the sign lives on the model where every
+     * caller gets it, rather than in each caller.
+     */
+    public function ledgerSign(): int
+    {
+        return $this->isCreditNote() ? -1 : 1;
+    }
+
+    public function signedOutstanding(): float
+    {
+        return round($this->outstanding() * $this->ledgerSign(), 2);
+    }
+
+    public function signedBaseOutstanding(): float
+    {
+        return round($this->baseOutstanding() * $this->ledgerSign(), 2);
     }
 
     /**

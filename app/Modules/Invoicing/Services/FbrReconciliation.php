@@ -118,7 +118,12 @@ class FbrReconciliation
      * invoice history is a compliance gap, which for a company below the
      * threshold is false and alarming.
      *
-     * Sales only. A purchase invoice is somebody else's obligation to report.
+     * Sales and credit notes. A purchase invoice is somebody else's obligation to report; a
+     * credit note is ours, and is the one document here that has to be reported *because* an
+     * invoice already was. Leaving it out would hide the exact gap this list exists to
+     * surface: an invoice correctly reported, corrected in our books, and the correction never
+     * transmitted — so FBR still holds the original figure and the return will not agree with
+     * the ledger.
      */
     public function unreported(): Collection
     {
@@ -127,7 +132,7 @@ class FbrReconciliation
         }
 
         return $this->base()
-            ->where('kind', Invoice::KIND_SALE)
+            ->whereIn('kind', [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE])
             ->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID, Invoice::STATUS_PAID])
             ->where(fn ($q) => $q->whereNull('fbr_status')->orWhere('fbr_status', Invoice::FBR_NOT_REQUIRED))
             ->get();
