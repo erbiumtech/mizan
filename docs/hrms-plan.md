@@ -1029,6 +1029,9 @@ Beyond the eight `Module*` tests every module must satisfy:
 7. **A paid leave request never writes `lop_days`, and an unpaid one never writes
    `leaves_taken`.** The two columns meant the same thing for as long as nothing
    read them (§11); this is what keeps them apart now that something does.
+   **Built and tested** — `PayrollLeaveColumnsTest`, enforced in `AttendanceFigures`.
+   Note the `is_paid` recorded on the *day* decides, not the type as it reads today,
+   so correcting a type cannot restate a settled month.
 8. **A setting decides what happens next, never what already happened** (§4.7) —
    one case per setting that could restate history:
    - changing `leave.year_basis` mid-year leaves every existing entitlement's
@@ -1045,6 +1048,11 @@ Beyond the eight `Module*` tests every module must satisfy:
 10. **The Leave section is absent from Company Settings when the module is not
     licensed**, and present when it is. Core owns that page, so nothing else
     stops it offering leave policy to a company that never bought Leave.
+    **Built and tested** — `HrSettingsAndRetentionTest`, asserted through the rendered
+    page rather than the schema, because `visible()` is evaluated at render and a
+    schema assertion would pass while the field still appeared. The same test covers
+    the pay-policy section, which needs *both* `attendance` and `payroll`, and that a
+    save with the section hidden writes no leave policy at all.
 11. A manager cannot approve their own leave with the setting on; can with it off,
     and the activity log records the self-approval.
 12. An attendance import cannot mark `present` a day covered by approved leave.
@@ -1081,11 +1089,27 @@ Beyond the eight `Module*` tests every module must satisfy:
     read it as hours.
 16. Tax and `AnnualTax` follow a pro-rated gross without extrapolating the dip.
 17. Leave approved after a `PayrollRun` lock lands in the next month.
+    **Built and tested** — and it needed a column to be keepable at all. §5's promise
+    that "the leave record says which month it was settled in" had nothing saying it,
+    which left only two possible behaviours and both wrong: count the day in its own
+    locked month, where the figure is simply lost; or count it in the current month
+    every time figures are pulled, so it is counted again for ever.
+    `leave_days.settled_payslip_id` fixes that — a day is counted exactly once, by the
+    payslip that counted it, and an unsettled day belonging to a *closed* month carries
+    to the next open one. A day in an earlier **open** month is deliberately left
+    alone, because that month's payslip can still take it. Reading the figures settles
+    nothing; only writing a payslip does. `PayrollLeaveColumnsTest`.
 18. Payroll with `leave` and `attendance` unlicensed behaves exactly as today
     (`ModuleDegradationTest`).
 19. Offer acceptance creates employee + setting + optional user in one
     transaction, and rolls all of it back on failure.
 20. Applicant pruning deletes the resume file, not just the row.
+    **Built and tested** — `HrSettingsAndRetentionTest`. A pruned row that left its
+    file on disk would mean the company still holds a stranger's CV while believing it
+    does not, which is worse than not pruning. The clock runs from the **rejection**,
+    not the row's age, so somebody still in a process or already hired is never pruned
+    however long ago they applied; and the window is a company setting, because a
+    company entitled to keep less is entitled to say so.
 21. An employee cannot read `private_notes` about themselves.
 
 ## 11. Risks and open questions

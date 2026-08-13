@@ -1,16 +1,33 @@
 # CRMS: plan
 
-> **Phases 0 and 1 are built.** The **`crm` module** exists and requires nothing
-> (§1's bet, and `CrmLeadTest` is what holds it): `lead_sources` and `leads`, an
-> employee owner scoped through `EmployeeAccess`, lead → `Contact` conversion
-> guarded on `invoicing`, and lost/reopen with a required reason. 16 tests in
-> `tests/Feature/CrmLeadTest.php`, including that conversion raises **no** invoice
-> and posts **no** journal entry, and that leads work fully with `invoicing`
-> unlicensed.
+> **BUILT — every phase, 0 through 9.** Four modules: `crm` (leads, pipelines,
+> deals, activities, next actions, targets, reports), `quotations`, `support` and
+> `campaigns`. Around 95 feature tests across `CrmLeadTest`, `CrmPipelineTest`,
+> `CrmLeadCaptureTest`, `CrmQuotationAndHandoffTest` and
+> `CrmSupportAndCampaignTest`; full suite 1846 passing.
 >
-> Phases 2 onwards (pipelines and opportunities, activities and next actions, the
-> capture endpoint and dedup, the reports, `quotations`, `support`, `campaigns`)
-> are **research and design only**.
+> **§1's bet holds, and is tested.** `crm` requires nothing: leads and deals work
+> with `invoicing` unlicensed, and conversion is absent rather than broken.
+> `quotations` requires `invoicing` (§2 — a quote that can never convert is a PDF
+> generator) and `campaigns` requires `crm`; `support` requires nothing.
+>
+> **§10's seven prohibitions all hold**, each with a test: no second customer
+> table, no second revenue number, no journal entry from a quote or a won deal, no
+> automatic invoice, no automatic commission, no portal, no mail server.
+>
+> **Phase 5's FBR block, resolved narrowly rather than dismissed.** §13 said quote →
+> invoice was blocked because a reported invoice may only be cancelled within 72
+> hours. The resolution: conversion produces a **draft** invoice and stops. Issuing
+> — which transmits — stays the deliberate act it already was in Invoicing. **The
+> credit-note gap is real and remains Invoicing's**; nothing here brings it closer,
+> and nothing here papers over it.
+>
+> Two deliberate narrowings, each argued at its call site: `lost_reason` was free
+> text in phase 1 and is now the `lost_reasons` table §3 specified, with the text
+> column kept beside it; and renewals are asked period-by-period through
+> `RecurringInvoice::coversPeriod()` rather than through a `next_issue_date` column,
+> because no such column exists and adding one would be the second answer to "when
+> does this renew" that §3 refuses.
 >
 > Mechanics common to any new module are in `docs/new-module-checklist.md`; the HR
 > side is `docs/hrms-plan.md`. This document decides what the customer-facing
@@ -446,15 +463,15 @@ becomes a decision the moment somebody sorts by it.
 |---|---|---|
 | **0** | **BUILT.** `crm` module skeleton per the checklist; morph aliases (`App\Models\Lead`, `App\Models\LeadSource`); permission groups `Lead` and `LeadSource` | none |
 | **1** | **BUILT.** Leads, sources, owners, conversion to Contact (guarded on `invoicing`), plus lost/reopen with a required reason | low |
-| **2** | Pipelines, stages, opportunities, the exactly-one-party rule, stage history, board UI | low |
-| **3** | Activities and next actions, including "open deal with no next action" | low |
-| **3.5** | **Lead capture endpoint + deduplication**, together (§3). Dedup is not optional once leads arrive unattended | low |
-| **4** | Pipeline / forecast / win-loss / rotting reports | low |
-| **5** | `quotations`, versioning, quote → invoice conversion | medium — touches Invoicing, and **blocked on the FBR question below** |
-| **6** | Won deal → project / invoice hand-offs, all guarded, **plus renewals** (§3) | low |
-| **7** | `sales_targets` + attainment; commission as a payroll component (manual) | low |
-| **8** | `support` | low |
-| **9** | `campaigns` with consent and WhatsApp templates | medium — external, reputational |
+| **2** | **BUILT.** Pipelines and stages as rows, opportunities with the exactly-one-party rule asserted in `booted()`, stage history recording moves backwards with `days_in_stage` | low |
+| **3** | **BUILT.** Activities and next actions, polymorphic over Lead/Contact/Opportunity, with "open deal, nothing planned" shown in red and in the rotting report | low |
+| **3.5** | **BUILT.** `POST /leads/{company}/{token}` — gated twice, throttled silently, fixed field list, never converts — with deduplication shipping alongside it | low |
+| **4** | **BUILT.** Pipeline by stage, weighted forecast at the stored rate, win/loss by source, owner and lost reason, rotting deals, activity as effort | low |
+| **5** | **BUILT.** `quotations` with supersession versioning; conversion produces a **draft** invoice and stops — the narrow resolution of the FBR block, which is recorded rather than dismissed | medium — touches Invoicing |
+| **6** | **BUILT.** Won-deal hand-offs to project and draft invoice, both guarded and both a human act; renewals as a view over `recurring_invoices`, owning no table | low |
+| **7** | **BUILT.** `sales_targets` with attainment computed on read; commission stays a payroll component a human enters | low |
+| **8** | **BUILT.** `support` — SLA measured and never enforced, internal replies that do not start the response clock and are never customer-visible | low |
+| **9** | **BUILT.** `campaigns` — consent as append-only rows re-checked at send time, WhatsApp template-gated on the model, skips reported as their own figure | medium — external, reputational |
 
 Phases 1–4 are a usable CRM on their own and can ship to a company that has
 neither Invoicing nor Accounting.

@@ -137,9 +137,25 @@ final class ModuleMap
             'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
             'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
         ],
+        // The aliases are the legacy App\Models\… form even though none of these classes
+        // ever lived there — ModuleCoverageTest asserts that unconditionally. §3 records the
+        // same correction being hit here: an earlier draft of the plan said to use short
+        // keys like 'lead' and 'opportunity', and following it fails CI on the first run.
+        //
+        // Activity and NextAction are polymorphic over Lead, Contact and Opportunity, so
+        // their `subject_type` stores one of these aliases. enforceMorphMap() throws for
+        // anything missing, which is the intended safety net.
         'crm' => [
             'App\Models\Lead' => \App\Modules\Crm\Models\Lead::class,
             'App\Models\LeadSource' => \App\Modules\Crm\Models\LeadSource::class,
+            'App\Models\Pipeline' => \App\Modules\Crm\Models\Pipeline::class,
+            'App\Models\PipelineStage' => \App\Modules\Crm\Models\PipelineStage::class,
+            'App\Models\LostReason' => \App\Modules\Crm\Models\LostReason::class,
+            'App\Models\Opportunity' => \App\Modules\Crm\Models\Opportunity::class,
+            'App\Models\OpportunityStageHistory' => \App\Modules\Crm\Models\OpportunityStageHistory::class,
+            'App\Models\Activity' => \App\Modules\Crm\Models\Activity::class,
+            'App\Models\NextAction' => \App\Modules\Crm\Models\NextAction::class,
+            'App\Models\SalesTarget' => \App\Modules\Crm\Models\SalesTarget::class,
         ],
         'recruitment' => [
             'App\Models\Vacancy' => \App\Modules\Recruitment\Models\Vacancy::class,
@@ -165,6 +181,21 @@ final class ModuleMap
         ],
         'timesheets' => [
             'App\Models\TimesheetEntry' => \App\Modules\Timesheets\Models\TimesheetEntry::class,
+        ],
+        'quotations' => [
+            'App\Models\Quotation' => \App\Modules\Quotations\Models\Quotation::class,
+            'App\Models\QuotationLine' => \App\Modules\Quotations\Models\QuotationLine::class,
+        ],
+        'support' => [
+            'App\Models\TicketCategory' => \App\Modules\Support\Models\TicketCategory::class,
+            'App\Models\Ticket' => \App\Modules\Support\Models\Ticket::class,
+            'App\Models\TicketReply' => \App\Modules\Support\Models\TicketReply::class,
+        ],
+        'campaigns' => [
+            'App\Models\Segment' => \App\Modules\Campaigns\Models\Segment::class,
+            'App\Models\Campaign' => \App\Modules\Campaigns\Models\Campaign::class,
+            'App\Models\CampaignSend' => \App\Modules\Campaigns\Models\CampaignSend::class,
+            'App\Models\Consent' => \App\Modules\Campaigns\Models\Consent::class,
         ],
         'projects' => [
             'App\Models\Project' => \App\Modules\Projects\Models\Project::class,
@@ -264,6 +295,10 @@ final class ModuleMap
         'crm' => [
             'App\Filament\Resources\Leads\LeadResource' => \App\Modules\Crm\Filament\Resources\Leads\LeadResource::class,
             'App\Filament\Resources\LeadSources\LeadSourceResource' => \App\Modules\Crm\Filament\Resources\LeadSources\LeadSourceResource::class,
+            'App\Filament\Resources\Opportunities\OpportunityResource' => \App\Modules\Crm\Filament\Resources\Opportunities\OpportunityResource::class,
+            'App\Filament\Resources\Pipelines\PipelineResource' => \App\Modules\Crm\Filament\Resources\Pipelines\PipelineResource::class,
+            'App\Filament\Resources\NextActions\NextActionResource' => \App\Modules\Crm\Filament\Resources\NextActions\NextActionResource::class,
+            'App\Filament\Resources\SalesTargets\SalesTargetResource' => \App\Modules\Crm\Filament\Resources\SalesTargets\SalesTargetResource::class,
         ],
         'recruitment' => [
             'App\Filament\Resources\Vacancies\VacancyResource' => \App\Modules\Recruitment\Filament\Resources\Vacancies\VacancyResource::class,
@@ -284,6 +319,15 @@ final class ModuleMap
         ],
         'timesheets' => [
             'App\Filament\Resources\TimesheetEntries\TimesheetEntryResource' => \App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource::class,
+        ],
+        'quotations' => [
+            'App\Filament\Resources\Quotations\QuotationResource' => \App\Modules\Quotations\Filament\Resources\Quotations\QuotationResource::class,
+        ],
+        'support' => [
+            'App\Filament\Resources\Tickets\TicketResource' => \App\Modules\Support\Filament\Resources\Tickets\TicketResource::class,
+        ],
+        'campaigns' => [
+            'App\Filament\Resources\Campaigns\CampaignResource' => \App\Modules\Campaigns\Filament\Resources\Campaigns\CampaignResource::class,
         ],
         'projects' => [
             'App\Filament\Resources\Projects\ProjectResource' => \App\Modules\Projects\Filament\Resources\Projects\ProjectResource::class,
@@ -399,11 +443,14 @@ final class ModuleMap
         'invoicing' => ['Invoicing'],
         'billing' => ['BillingRun'],
         'inventory' => ['Inventory'],
-        'crm' => ['Lead', 'LeadSource'],
+        'crm' => ['Lead', 'LeadSource', 'Pipeline', 'Opportunity', 'SalesTarget'],
         'recruitment' => ['Vacancy', 'Applicant', 'Offer'],
         'performance' => ['Review'],
         'lifecycle' => ['Checklist', 'EmployeeDocument', 'IssuedAsset', 'Settlement'],
         'timesheets' => ['Timesheet'],
+        'quotations' => ['Quotation'],
+        'support' => ['Ticket'],
+        'campaigns' => ['Campaign'],
         'projects' => ['Project'],
         'mpr' => ['MPR'],
         'personal_finance' => ['PersonalFinance'],
