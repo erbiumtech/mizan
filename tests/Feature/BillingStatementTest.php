@@ -12,6 +12,8 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Payroll\Models\EmployeeSettingComponent;
+use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\ModuleMap;
 use Tests\AccountingTestCase;
@@ -264,6 +266,108 @@ class BillingStatementTest extends AccountingTestCase
         $this->assertArrayHasKey('bonus', $statement['columns']);
         $this->assertSame(50000.0, $statement['column_totals']['bonus']);
         $this->assertSame(450000.0, $statement['salary_total']);
+    }
+
+    /**
+     * A data-driven allowance is billed under its own name.
+     *
+     * This is the clean-up `docs/akaunting-gap-plan.md` left behind, and the defect it left
+     * behind with it. The statement used to read six named payslip columns and lump the whole
+     * remainder into "Other" — so pay components, whose entire point is that *"a new allowance
+     * is a row, not a migration and twelve edits"*, arrived at the client as an unexplained
+     * lump. A company that added Housing Allowance billed its client "Other: 40,000".
+     *
+     * The statement now reads `payslip_components`, which `PayComponentRecorder` writes on
+     * every save, so the allowance appears as Housing Allowance and "Other" is left for gross
+     * that genuinely cannot be explained.
+     */
+    public function test_a_data_driven_allowance_is_billed_under_its_own_label(): void
+    {
+        $employee = $this->employee('Ayesha Khan', 'EMP-1', 400000);
+
+        $component = PayComponent::create([
+            'code' => 'housing_allowance',
+            'label' => 'Housing Allowance',
+            'kind' => PayComponent::KIND_EARNING,
+            'account_key' => 'bonus_overtime',
+        ]);
+
+        EmployeeSettingComponent::create([
+            'employee_setting_id' => EmployeeSetting::where('employee_id', $employee->id)->firstOrFail()->getKey(),
+            'pay_component_id' => $component->getKey(),
+            'amount' => 40000,
+        ]);
+
+        $this->payslip($employee);
+
+        $statement = $this->billing->statement($this->billingRun());
+
+        $this->assertSame('Housing Allowance', $statement['columns']['housing_allowance'] ?? null);
+        $this->assertSame(40000.0, $statement['employees'][0]['amounts']['housing_allowance']);
+        $this->assertSame(40000.0, $statement['column_totals']['housing_allowance']);
+
+        // The whole point: nothing unexplained is left over.
+        $this->assertArrayNotHasKey('other', $statement['columns']);
+
+        // And the row still adds up to what is billed, which is the invariant the "Other"
+        // bucket was there to keep.
+        $this->assertSame(440000.0, $statement['employees'][0]['total']);
+        $this->assertSame(440000.0, round(array_sum($statement['employees'][0]['amounts']), 2));
+        $this->assertSame(440000.0, $statement['salary_total']);
+    }
+
+    /**
+     * A reimbursement is paid with salary but is not part of the gross — it is the employee's
+     * own money coming back. Billing it would charge the client for it twice, since the
+     * expense it reimburses is billed as an expense line.
+     */
+    public function test_an_expense_reimbursement_is_not_billed_as_salary(): void
+    {
+        $employee = $this->employee('Ayesha Khan', 'EMP-1', 400000);
+
+        $payslip = $this->payslip($employee);
+        $payslip->update(['expense_reimbursement' => 15000]);
+
+        $statement = $this->billing->statement($this->billingRun());
+
+        $this->assertArrayNotHasKey('expense_reimbursement', $statement['columns']);
+        $this->assertSame(400000.0, $statement['salary_total']);
+        $this->assertArrayNotHasKey('other', $statement['columns'], 'the reimbursement leaked into the residual');
+    }
+
+    /**
+     * A component retired mid-year still appears on the months it was paid in.
+     *
+     * `is_active` governs what can be paid next month, not what was paid last. A statement
+     * that silently dropped the column would stop adding up to the invoice beside it.
+     */
+    public function test_a_retired_component_still_shows_on_a_month_it_was_paid_in(): void
+    {
+        $employee = $this->employee('Ayesha Khan', 'EMP-1', 400000);
+
+        $component = PayComponent::create([
+            'code' => 'housing_allowance',
+            'label' => 'Housing Allowance',
+            'kind' => PayComponent::KIND_EARNING,
+            'account_key' => 'bonus_overtime',
+        ]);
+
+        EmployeeSettingComponent::create([
+            'employee_setting_id' => EmployeeSetting::where('employee_id', $employee->id)->firstOrFail()->getKey(),
+            'pay_component_id' => $component->getKey(),
+            'amount' => 40000,
+        ]);
+
+        $this->payslip($employee);
+
+        // Retired after the month was paid.
+        $component->update(['is_active' => false]);
+
+        $statement = $this->billing->statement($this->billingRun());
+
+        $this->assertSame('Housing Allowance', $statement['columns']['housing_allowance'] ?? null);
+        $this->assertSame(40000.0, $statement['column_totals']['housing_allowance']);
+        $this->assertSame(440000.0, $statement['salary_total']);
     }
 
     /**
