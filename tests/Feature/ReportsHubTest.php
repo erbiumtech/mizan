@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Navigation\DomainNavigationManager;
 use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
@@ -50,7 +51,14 @@ class ReportsHubTest extends TestCase
     {
         $navigation = [];
 
-        foreach (Filament::getPanel('admin')->getNavigation() as $group) {
+        // Unfiltered: the sidebar shows one domain at a time now (see NavigationDomains), and what
+        // this file asserts is that the panel registers one Reports link and no Reports group —
+        // a fact about the whole tree rather than about whichever domain is open.
+        $groups = DomainNavigationManager::withoutFiltering(
+            fn (): array => Filament::getPanel('admin')->getNavigation(),
+        );
+
+        foreach ($groups as $group) {
             $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
                 ->map(fn ($item): string => $item->getLabel())
                 ->all();

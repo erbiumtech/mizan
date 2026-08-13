@@ -23,6 +23,7 @@ use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Payroll\Filament\Pages\TaxSummary;
 use BackedEnum;
 use Filament\Pages\Page;
+use Livewire\Attributes\Url;
 
 /**
  * One door to every report.
@@ -122,6 +123,165 @@ class Reports extends Page
         return array_merge(...array_map('array_keys', array_values(self::SECTIONS)));
     }
 
+    // ------------------------------------------------------------ the 3a screen
+
+    /**
+     * Which section is showing. Null is all of them.
+     *
+     * In the query string rather than in component state alone, so that a filtered view can be
+     * linked to and lands filtered — "the payroll ones" is a thing people send each other. #[Url]
+     * also means the browser's back button steps back through the filters, which is what a person
+     * expects from something that changes what is on screen.
+     */
+    #[Url]
+    public ?string $section = null;
+
+    /** Grid or list. Kept in the URL for the same reason, and because it is a lasting preference. */
+    #[Url]
+    public string $display = 'grid';
+
+    /** The filter box. Deliberately not in the URL: a half-typed word is not a place to return to. */
+    public string $query = '';
+
+    /** The report whose panel is open, by key. */
+    public ?string $selected = null;
+
+    /**
+     * Every report as one flat list, with a key.
+     *
+     * Keyed on the class basename rather than the label: the key travels in the URL and in
+     * wire:click, and renaming a report's title should not break a link somebody kept.
+     *
+     * @return array<string, array{key: string, label: string, description: string, url: string, icon: string|BackedEnum|null, section: string}>
+     */
+    public static function catalogue(): array
+    {
+        $catalogue = [];
+
+        foreach (static::sections() as $heading => $links) {
+            foreach ($links as $link) {
+                $catalogue[$link['key']] = $link + ['section' => $heading];
+            }
+        }
+
+        return $catalogue;
+    }
+
+    /**
+     * The section filter, once it has been checked against the sections that exist.
+     *
+     * `section` arrives from the query string, so it can say anything. An unrecognised value is
+     * treated as no filter rather than as a filter that matches nothing: a section this company has
+     * lost — payroll unlicensed, a role without the permission — is the ordinary way to arrive here
+     * with a stale link, and answering it with an empty screen reads as "the reports are gone".
+     */
+    public function currentSection(): ?string
+    {
+        return array_key_exists((string) $this->section, static::sections())
+            ? $this->section
+            : null;
+    }
+
+    /**
+     * The sections to draw, after the section filter and the search box.
+     *
+     * Search covers the description as well as the title, which is the point of having written
+     * descriptions: "how late" finds the two ageing reports without knowing they are called ageing.
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function visibleSections(): array
+    {
+        $query = trim(mb_strtolower($this->query));
+        $section = $this->currentSection();
+        $visible = [];
+
+        foreach (static::sections() as $heading => $links) {
+            if (filled($section) && $section !== $heading) {
+                continue;
+            }
+
+            $matching = array_values(array_filter($links, function (array $link) use ($query): bool {
+                if ($query === '') {
+                    return true;
+                }
+
+                return str_contains(mb_strtolower($link['label']), $query)
+                    || str_contains(mb_strtolower($link['description']), $query);
+            }));
+
+            if ($matching !== []) {
+                $visible[$heading] = $matching;
+            }
+        }
+
+        return $visible;
+    }
+
+    /**
+     * Flat, for the list view — the same set the grid shows, without the headings.
+     *
+     * The section travels with each row rather than being implied by position: the list view has a
+     * Category column, which is what it shows there.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function visibleReports(): array
+    {
+        $reports = [];
+
+        foreach ($this->visibleSections() as $heading => $links) {
+            foreach ($links as $link) {
+                $reports[] = $link + ['section' => $heading];
+            }
+        }
+
+        return $reports;
+    }
+
+    /**
+     * Section name => how many reports in it, for the column.
+     *
+     * Counted before the search filter: a category showing 0 while you type is noise, and the
+     * counts are there to say how big each section is, not how many matched.
+     *
+     * @return array<string, int>
+     */
+    public static function sectionCounts(): array
+    {
+        return array_map('count', static::sections());
+    }
+
+    public static function total(): int
+    {
+        return array_sum(static::sectionCounts());
+    }
+
+    /** @return array<string, mixed>|null */
+    public function selectedReport(): ?array
+    {
+        return static::catalogue()[$this->selected] ?? null;
+    }
+
+    public function select(string $key): void
+    {
+        // Only a key that is actually on offer. `selected` arrives from the browser, and the panel
+        // it opens carries a link to the report — so an unfiltered value here would be a way to
+        // have this page render a URL for a report the role cannot open.
+        $this->selected = array_key_exists($key, static::catalogue()) ? $key : null;
+    }
+
+    public function deselect(): void
+    {
+        $this->selected = null;
+    }
+
+    public function updatedQuery(): void
+    {
+        // A filter that hides the open report should not leave its panel open over the results.
+        $this->deselect();
+    }
+
     public static function canAccess(): bool
     {
         if (! static::moduleIsAvailable()) {
@@ -148,6 +308,31 @@ class Reports extends Page
     }
 
     /**
+     * The heading follows the filter, so the page says what it is showing.
+     *
+     * Filament's own header carries it rather than the view drawing a second one: that keeps one
+     * title on the page, in the place every other page in this panel puts it, and leaves the search
+     * and the grid/list toggle to sit beside it through PAGE_HEADER_ACTIONS_BEFORE — which is 3a's
+     * single header row.
+     */
+    public function getHeading(): string
+    {
+        return $this->currentSection() ?? 'All reports';
+    }
+
+    public function getSubheading(): ?string
+    {
+        $showing = count($this->visibleReports());
+        $total = static::total();
+
+        if ($showing === $total) {
+            return trans_choice(':count report|:count reports', $total);
+        }
+
+        return "Showing {$showing} of {$total}";
+    }
+
+    /**
      * The links to render, with empty sections dropped.
      *
      * Static so that canAccess() above and the view below ask the same question
@@ -169,6 +354,9 @@ class Reports extends Page
                 }
 
                 $links[] = [
+                    // Stable across a rename of the title, because it travels in the URL. See
+                    // catalogue().
+                    'key' => class_basename($page),
                     'label' => (string) $page::getNavigationLabel(),
                     'description' => $description,
                     'url' => $page::getUrl(),
