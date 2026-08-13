@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Navigation\DomainNavigationManager;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -48,7 +49,17 @@ class NavigationGroupsTest extends TestCase
         // getNavigation(), not buildNavigation(): the latter answers only when
         // a custom navigation builder closure is registered, and returns an empty
         // array otherwise — a test asserting against it would pass on nothing.
-        foreach (Filament::getPanel('admin')->getNavigation() as $group) {
+        //
+        // Read unfiltered, because what this file is about is which groups the panel *offers* a
+        // company type. The sidebar now shows one domain at a time (see NavigationDomains), so
+        // getNavigation() on its own answers "what is in the domain this request is in" — which
+        // for a test with no panel route is Home, and would reduce every assertion here to three
+        // items. The subject did not change; the way to see all of it did.
+        $groups = DomainNavigationManager::withoutFiltering(
+            fn (): array => Filament::getPanel('admin')->getNavigation(),
+        );
+
+        foreach ($groups as $group) {
             $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
                 ->map(fn ($item): string => $item->getLabel())
                 ->all();

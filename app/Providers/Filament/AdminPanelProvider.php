@@ -2,13 +2,17 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Navigation\DomainNavigationManager;
+use App\Filament\Navigation\NavigationSnapshot;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
+use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationManager;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -56,6 +60,35 @@ class AdminPanelProvider extends PanelProvider
         950 => '#1C3E23',
     ];
 
+    /**
+     * The two-level navigation's two bindings.
+     *
+     * In register() rather than in panel(), because both are container concerns and panel() is
+     * called while the panel is being built — Filament resolves the navigation manager later, per
+     * request, which is exactly what lets the substitution below work without a published view.
+     */
+    public function register(): void
+    {
+        parent::register();
+
+        // Narrows the sidebar to one domain. Guarded to this panel inside the class.
+        //
+        // `scoped`, matching how Filament registers the class this replaces, and it has to be:
+        // Panel::getNavigation() resolves the manager, assigns it to the panel, and then resolves
+        // it *again* to call get() — while every page and resource registers its navigation items
+        // into whichever instance the panel is holding. A transient binding hands out two objects,
+        // so every registration lands in the first and get() returns the second, empty. The sidebar
+        // then renders blank with nothing failing anywhere.
+        $this->app->scoped(
+            NavigationManager::class,
+            fn (): NavigationManager => new DomainNavigationManager,
+        );
+
+        // Assembles the tree once per request for the rail and the column to share. `scoped`, not
+        // `singleton` — see the class.
+        $this->app->scoped(NavigationSnapshot::class);
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -71,6 +104,10 @@ class AdminPanelProvider extends PanelProvider
             // confuse it with. Two routes to the same act meant two places to keep the
             // super-admin check.
             ->viteTheme('resources/css/filament/admin/theme.css')
+            // 248px, the width of 3a's contextual column. The column is narrower than Filament's
+            // default because it now shows one domain at a time rather than every group at once —
+            // see NavigationDomains, and the rail registered at LAYOUT_START below.
+            ->sidebarWidth('248px')
             ->login()
             // Self-service password change (user menu → Change Password).
             // Simple layout: the profile route sits outside the tenant prefix.
@@ -107,6 +144,28 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->widgets([])
+            // The domain rail — the first level of the two-level shell. LAYOUT_START puts it as
+            // the first child of `.fi-layout`, which is a flex row containing the sidebar and the
+            // content, so the rail becomes a peer of both and no Filament view needed publishing.
+            // What it contains is decided by App\Support\NavigationDomains; the sidebar beside it
+            // is narrowed to the same domain by DomainNavigationManager, bound in register().
+            ->renderHook(
+                PanelsRenderHook::LAYOUT_START,
+                fn (): string => view('filament.partials.domain-rail')->render(),
+            )
+            // Says which domain the column is showing. Above the groups, below the company
+            // switcher — the rail alone leaves "what am I looking at" unanswered in words.
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_NAV_START,
+                fn (): string => view('filament.partials.domain-heading')->render(),
+            )
+            // The Reports screen's search and grid/list toggle, beside its heading. Scoped to that
+            // page, and rendered inside its Livewire component so the controls can drive its state.
+            ->renderHook(
+                PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
+                fn (): string => view('filament.partials.report-controls')->render(),
+                scopes: Reports::class,
+            )
             // Impersonation banner, above everything else on the page. PAGE_START
             // would put it inside the content area; this sits at the top of the
             // body so it is present on every panel page including the ones that

@@ -1,8 +1,1044 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 
 @source '../../../../app/Filament/**/*';
+@source '../../../../app/Modules/**/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../resources/views/components/**/*';
+
+/*
+ * ============================================================================
+ * The two-level shell (3a)
+ * ============================================================================
+ *
+ * 3a's geometry — an 84px domain rail, a 248px contextual column, content to the right of both —
+ * in this application's own palette rather than the design's. The design is dark-only with a mint
+ * accent; the accent here stays the logo green, and light mode keeps working, so every surface
+ * below is expressed as a token that has a value in both modes.
+ *
+ * The widths are the design's and they are shared, so they are declared once: the rail is sized
+ * from --fi-domain-rail-width, and everything that has to stand clear of it is offset by the same
+ * variable rather than by a repeated 84px.
+ */
+:root {
+    --fi-domain-rail-width: 5.25rem; /* 84px */
+}
+
+/*
+ * Making room for a fixed rail.
+ *
+ * The obvious approach — offsetting `.fi-sidebar` — does nothing, and it is worth writing down why:
+ * at desktop that element is `position: sticky` and a flex item of `.fi-layout`, so an
+ * inset-inline-start on it is honoured by the computed style and ignored by the layout. What has to
+ * move is the flex container, which carries the column and the content together.
+ *
+ * Scoped with :has() so a panel that renders no rail — one domain visible, or the platform panel —
+ * is untouched. Without it, a company licensed for a single module would get an 84px gap where the
+ * rail was not drawn.
+ */
+body:has(.fi-domain-rail) {
+    .fi-layout {
+        padding-inline-start: var(--fi-domain-rail-width);
+    }
+
+    /*
+     * The topbar is rendered outside `.fi-layout`, so it does not inherit that padding and is
+     * shifted on its own. At desktop it clears the column as well as the rail, which is 3a's
+     * arrangement: the toolbar belongs to the content, and the column runs the full height of the
+     * window beside it rather than starting below a bar that spans everything.
+     *
+     * --sidebar-width is Filament's own variable, set from ->sidebarWidth() in the panel, so the
+     * two cannot drift apart.
+     */
+    .fi-topbar {
+        margin-inline-start: var(--fi-domain-rail-width);
+    }
+
+    @media (width >= 1024px) {
+        .fi-topbar {
+            margin-inline-start: calc(var(--fi-domain-rail-width) + var(--sidebar-width));
+        }
+
+        /*
+         * Pulls the column up into the row the toolbar left free. -4rem is the topbar's own height:
+         * `.fi-topbar-ctn` is sticky and still occupies its space in the flow, which is what puts
+         * `.fi-layout` — and so the column — 4rem down the page.
+         */
+        .fi-sidebar {
+            margin-block-start: -4rem;
+            top: 0;
+            height: 100dvh;
+            z-index: 31; /* over the topbar container (30), which it now overlaps */
+        }
+    }
+
+    /*
+     * Narrow screens: the column becomes a fixed overlay and the content goes full width. The rail
+     * stays put — with the column closed it is the only navigation on screen — so the overlay opens
+     * beside it rather than underneath it.
+     */
+    @media (width < 1024px) {
+        .fi-sidebar {
+            inset-inline-start: var(--fi-domain-rail-width);
+        }
+    }
+
+    /*
+     * The rail carries the brand mark, so the column's copy of it goes: two logos stacked in the
+     * top-left corner is what the shipped arrangement would give. The tenant menu directly below it
+     * stays — the company switcher is in 3a's column too.
+     */
+    .fi-sidebar-header-ctn {
+        display: none;
+    }
+}
+
+.fi-domain-rail {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 40; /* above the sidebar (30) — the rail is never covered by the column */
+    width: var(--fi-domain-rail-width);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding-block: 0.875rem;
+    background-color: var(--color-gray-50);
+    border-inline-end: 1px solid var(--color-gray-200);
+
+    /*
+     * 3a's rail is the darkest surface on the screen, a step below the column beside it. In dark
+     * mode that reads as near-black; in light mode the same *relationship* means a step darker
+     * than the white column, which is why this is a gray ramp rather than one fixed colour.
+     */
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-950);
+        border-inline-end-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-domain-rail-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-block-end: 0.5rem;
+    flex-shrink: 0;
+}
+
+.fi-domain-rail-brand-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.fi-domain-rail-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.fi-domain-rail-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3125rem;
+    width: 4.25rem; /* 68px, the design's */
+    padding-block: 0.5625rem;
+    border-radius: 0.5625rem;
+    color: var(--color-gray-500);
+    transition:
+        background-color 75ms ease,
+        color 75ms ease;
+
+    .fi-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    &:hover {
+        background-color: var(--color-gray-100);
+        color: var(--color-gray-700);
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+
+        &:hover {
+            background-color: var(--color-gray-800);
+            color: var(--color-white);
+        }
+    }
+
+    /*
+     * The active marker is 3a's: a filled tile plus a 2px bar down the leading edge. The bar is
+     * what makes the active domain readable at a glance in a column of six identical tiles, and it
+     * is drawn with an inset shadow rather than a border so it does not shift the icon by a pixel.
+     */
+    &.fi-active {
+        background-color: var(--color-primary-50);
+        color: var(--color-primary-600);
+        box-shadow: inset 2px 0 0 0 var(--color-primary-600);
+        font-weight: 600;
+
+        &:where(.dark, .dark *) {
+            background-color: color-mix(in oklab, var(--color-primary-400) 12%, transparent);
+            color: var(--color-primary-300);
+            box-shadow: inset 2px 0 0 0 var(--color-primary-400);
+        }
+    }
+}
+
+.fi-domain-rail-item-label {
+    font-size: 0.625rem; /* 10px */
+    line-height: 1;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* The column's own header — which domain, and how much is in it. */
+.fi-domain-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+    padding-inline: 0.75rem;
+    padding-block-end: 0.75rem;
+    margin-block-end: 0.25rem;
+    border-block-end: 1px solid var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        border-block-end-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-domain-heading-label {
+    font-size: 1.0625rem; /* 17px, the design's */
+    line-height: 1;
+    font-weight: 700;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-white);
+    }
+}
+
+.fi-domain-heading-count {
+    margin-inline-start: auto;
+    font-size: 0.6875rem;
+    line-height: 1;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+    }
+}
+
+/*
+ * ============================================================================
+ * The Reports screen (3a)
+ * ============================================================================
+ */
+
+/* The categories in the column. When they are present the single Reports nav item is redundant. */
+.fi-report-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0 0;
+}
+
+body:has(.fi-report-categories) .fi-sidebar-nav-groups {
+    display: none;
+}
+
+.fi-report-category {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.125rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.4375rem;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    font-weight: 500;
+    color: var(--color-gray-700);
+    transition:
+        background-color 75ms ease,
+        color 75ms ease;
+
+    &:hover {
+        background-color: var(--color-gray-100);
+        color: var(--color-gray-950);
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-300);
+
+        &:hover {
+            background-color: var(--color-gray-800);
+            color: var(--color-white);
+        }
+    }
+
+    /* The same marker the rail uses for the open domain, one level down. */
+    &.fi-active {
+        background-color: var(--color-primary-50);
+        color: var(--color-primary-700);
+        box-shadow: inset 2px 0 0 0 var(--color-primary-600);
+
+        &:where(.dark, .dark *) {
+            background-color: color-mix(in oklab, var(--color-primary-400) 12%, transparent);
+            color: var(--color-primary-300);
+            box-shadow: inset 2px 0 0 0 var(--color-primary-400);
+        }
+    }
+}
+
+.fi-report-category-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.fi-report-category-count {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-gray-400);
+}
+
+/* ------------------------------------------------------------------ the page */
+
+.fi-reports {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.fi-reports-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.fi-reports-header-text {
+    flex: 1;
+    min-width: 12rem;
+}
+
+.fi-reports-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-white);
+    }
+}
+
+.fi-reports-subtitle {
+    margin-block-start: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+    }
+}
+
+.fi-reports-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fi-reports-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.125rem;
+    width: 16rem;
+    max-width: 100%;
+    padding-inline: 0.75rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+    background-color: var(--color-white);
+
+    &:focus-within {
+        border-color: var(--color-primary-600);
+        outline: 2px solid color-mix(in oklab, var(--color-primary-600) 30%, transparent);
+        outline-offset: -1px;
+    }
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+        background-color: var(--color-gray-900);
+    }
+}
+
+.fi-reports-search-icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-gray-400);
+}
+
+.fi-reports-search-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-size: 0.8125rem;
+    color: var(--color-gray-950);
+
+    &:focus {
+        outline: none;
+    }
+
+    &::-webkit-search-cancel-button {
+        appearance: none;
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--color-white);
+    }
+}
+
+.fi-reports-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.1875rem;
+    padding: 0.1875rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+    }
+}
+
+.fi-reports-toggle-btn {
+    padding: 0.375rem 0.6875rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    font-weight: 500;
+    color: var(--color-gray-500);
+    cursor: pointer;
+
+    &.fi-active {
+        background-color: var(--color-gray-100);
+        color: var(--color-gray-950);
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+
+        &.fi-active {
+            background-color: var(--color-gray-800);
+            color: var(--color-white);
+        }
+    }
+}
+
+.fi-reports-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.fi-reports-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-block-end: 0.6875rem;
+}
+
+.fi-reports-group-title {
+    font-size: 0.875rem;
+    line-height: 1;
+    font-weight: 700;
+    color: var(--color-gray-900);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-100);
+    }
+}
+
+.fi-reports-group-count {
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--color-gray-400);
+}
+
+.fi-reports-group-rule {
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+/*
+ * 3a's four-up grid, stepping down rather than squeezing: four columns is right beside a 248px
+ * column on a wide screen and unreadable on a laptop, and these cards carry two lines of
+ * description each.
+ */
+.fi-reports-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+
+    @media (width >= 640px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (width >= 1280px) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (width >= 1600px) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.fi-report-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5625rem;
+    padding: 0.8125rem;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.625rem;
+    background-color: var(--color-white);
+    text-align: start;
+    cursor: pointer;
+    transition:
+        border-color 75ms ease,
+        background-color 75ms ease;
+
+    &:hover {
+        border-color: var(--color-primary-500);
+        background-color: var(--color-gray-50);
+    }
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        background-color: var(--color-gray-900);
+
+        &:hover {
+            border-color: var(--color-primary-500);
+            background-color: var(--color-gray-800);
+        }
+    }
+}
+
+.fi-report-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+}
+
+.fi-report-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.4375rem;
+    background-color: var(--color-gray-100);
+    color: var(--color-primary-600);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-800);
+        color: var(--color-primary-400);
+    }
+}
+
+.fi-report-card-icon-svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.fi-report-card-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.fi-report-card-name {
+    display: block;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-white);
+    }
+}
+
+.fi-report-card-desc {
+    display: block;
+    margin-block-start: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+    }
+}
+
+.fi-report-card-foot {
+    display: flex;
+    align-items: center;
+    padding-block-start: 0.5rem;
+    border-block-start: 1px solid var(--color-gray-100);
+
+    &:where(.dark, .dark *) {
+        border-block-start-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-report-card-open {
+    margin-inline-start: auto;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-primary-600);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-primary-400);
+    }
+}
+
+/* --------------------------------------------------------------- the list view */
+
+.fi-reports-list {
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    overflow: hidden;
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-reports-list-head,
+.fi-reports-list-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 12rem 6rem;
+    gap: 1rem;
+    align-items: center;
+}
+
+.fi-reports-list-head {
+    padding: 0.625rem 1rem;
+    background-color: var(--color-gray-50);
+    border-block-end: 1px solid var(--color-gray-200);
+    font-size: 0.625rem;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-900);
+        border-block-end-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        color: var(--color-gray-400);
+    }
+}
+
+.fi-reports-list-row {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-block-end: 1px solid var(--color-gray-100);
+    text-align: start;
+    cursor: pointer;
+
+    &:last-child {
+        border-block-end: none;
+    }
+
+    &:hover {
+        background-color: var(--color-gray-50);
+    }
+
+    &:where(.dark, .dark *) {
+        border-block-end-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+
+        &:hover {
+            background-color: var(--color-gray-800);
+        }
+    }
+}
+
+.fi-reports-list-report {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.fi-reports-list-text {
+    min-width: 0;
+}
+
+.fi-reports-list-desc {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-gray-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+    }
+}
+
+.fi-reports-list-section {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-gray-600);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-300);
+    }
+}
+
+.fi-reports-list-action {
+    justify-self: end;
+    height: 1.75rem;
+    padding-inline: 0.75rem;
+    border-radius: 0.4375rem;
+    border: 1px solid color-mix(in oklab, var(--color-primary-600) 40%, transparent);
+    background-color: var(--color-primary-50);
+    font-size: 0.75rem;
+    line-height: 1.625rem;
+    font-weight: 600;
+    color: var(--color-primary-700);
+
+    &:where(.dark, .dark *) {
+        background-color: color-mix(in oklab, var(--color-primary-400) 12%, transparent);
+        color: var(--color-primary-300);
+    }
+}
+
+.fi-reports-empty {
+    padding: 2.5rem 1rem;
+    border: 1px dashed var(--color-gray-300);
+    border-radius: 0.75rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+        color: var(--color-gray-400);
+    }
+}
+
+.fi-reports-empty-reset {
+    margin-inline-start: 0.375rem;
+    font-weight: 600;
+    color: var(--color-primary-600);
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:where(.dark, .dark *) {
+        color: var(--color-primary-400);
+    }
+}
+
+/* ---------------------------------------------------------------- the run panel */
+
+.fi-report-panel-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 50; /* over the rail (40), which a modal panel must cover */
+    display: flex;
+    justify-content: flex-end;
+    background-color: rgb(4 7 12 / 0.55);
+}
+
+.fi-report-panel-dismiss {
+    flex: 1;
+    cursor: default;
+}
+
+.fi-report-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 26.25rem; /* 420px, the design's */
+    max-width: 100%;
+    padding: 1.25rem 1.375rem;
+    background-color: var(--color-white);
+    border-inline-start: 1px solid var(--color-gray-200);
+    box-shadow: -24px 0 60px rgb(0 0 0 / 0.25);
+    overflow-y: auto;
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-900);
+        border-inline-start-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-report-panel-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.fi-report-panel-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 2.375rem;
+    width: 2.375rem;
+    height: 2.375rem;
+    border-radius: 0.625rem;
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-600);
+
+    &:where(.dark, .dark *) {
+        background-color: color-mix(in oklab, var(--color-primary-400) 12%, transparent);
+        color: var(--color-primary-300);
+    }
+}
+
+.fi-report-panel-icon-svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.fi-report-panel-heading {
+    flex: 1;
+    min-width: 0;
+}
+
+.fi-report-panel-title {
+    font-size: 1.125rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-white);
+    }
+}
+
+.fi-report-panel-desc {
+    margin-block-start: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+    }
+}
+
+.fi-report-panel-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1.625rem;
+    width: 1.625rem;
+    height: 1.625rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.4375rem;
+    color: var(--color-gray-500);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--color-gray-950);
+    }
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+        color: var(--color-gray-400);
+
+        &:hover {
+            color: var(--color-white);
+        }
+    }
+}
+
+.fi-report-panel-close-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.fi-report-panel-meta {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-gray-400);
+}
+
+.fi-report-panel-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.fi-report-panel-open {
+    flex: 1;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-primary-600);
+    font-size: 0.8125rem;
+    line-height: 2.25rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--color-white);
+
+    &:hover {
+        background-color: var(--color-primary-500);
+    }
+}
+
+.fi-report-panel-note {
+    padding-block-start: 0.875rem;
+    border-block-start: 1px solid var(--color-gray-100);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        border-block-start-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        color: var(--color-gray-400);
+    }
+}
+
+/*
+ * ============================================================================
+ * Page internals (3a's treatment, applied panel-wide)
+ * ============================================================================
+ *
+ * 3a specifies a shell and one screen. The other hundred-odd screens in this panel are resource
+ * tables and forms the design never draws, so what is applied here is the design's *vocabulary*
+ * rather than invented layouts: the corner radius, the border weight, the small uppercase column
+ * label, tabular figures, and the tighter type scale it uses throughout.
+ *
+ * Done at the theme layer on purpose. The alternative — editing 75 resources and 26 pages — would be
+ * a hundred files to review, a hundred places for this to drift, and no single place to change it
+ * back. Everything below overrides Filament's own classes, so a page added tomorrow inherits it
+ * without knowing this file exists.
+ */
+
+/* ------------------------------------------------------------------- tables */
+
+/*
+ * 3a's column headers: small, uppercase, letter-spaced. This is the strongest single signal that a
+ * table belongs to the design, and it costs nothing in comprehension — the labels are short.
+ */
+/*
+ * The sort button is included, not just the cell: a sortable column renders its label inside a
+ * button with its own type styles, so styling the cell alone gives a header row where the sortable
+ * columns look like body text and the rest look like labels.
+ */
+.fi-ta-header-cell,
+.fi-ta-header-cell-sort-btn {
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-gray-500);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+    }
+}
+
+/*
+ * Figures line up. This application is full of money in tables — balances, ageing buckets, payroll
+ * — and proportional digits make two amounts of the same magnitude look different lengths.
+ * Deliberately on the cell rather than on a numeric-only class: there is no such class, and tabular
+ * digits are harmless in text.
+ */
+.fi-ta-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+.fi-ta-row {
+    transition: background-color 75ms ease;
+
+    &:hover {
+        background-color: var(--color-gray-50);
+    }
+
+    &:where(.dark, .dark *):hover {
+        background-color: color-mix(in oklab, var(--color-gray-800) 60%, transparent);
+    }
+}
+
+/* 3a's radius on the table container, matching the report list on the Reports screen. */
+.fi-ta-ctn {
+    border-radius: 0.75rem;
+}
+
+/* --------------------------------------------------------- sections and cards */
+
+/*
+ * 10px corners and a 1px border, which is what every panel in 3a uses. Filament's own section is a
+ * ring rather than a border; the radius is what carries the look, and the ring is left alone so that
+ * focus and validation states keep working.
+ */
+.fi-section,
+.fi-wi-stats-overview-stat {
+    border-radius: 0.625rem;
+}
+
+/* ---------------------------------------------------------- inputs and buttons */
+
+/*
+ * 8px, the design's control radius, on the wrapper Filament actually paints — and on the controls
+ * that draw their own box rather than sitting inside one.
+ */
+.fi-input-wrp,
+.fi-btn,
+.fi-badge {
+    border-radius: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ headings */
+
+/*
+ * 3a's page title is 25px against Filament's 30px, and its section titles are 14px. The whole design
+ * runs a step tighter than the default, which is what lets a report grid and a column of categories
+ * sit on one screen without either shouting.
+ */
+.fi-header-heading {
+    font-size: 1.5625rem;
+    line-height: 1.2;
+}
+
+.fi-section-header-heading {
+    font-size: 0.875rem;
+    font-weight: 700;
+}
 
 /*
  * Markdown-rendered help content (see App\Filament\Support\HelpAction) has no
