@@ -16,6 +16,7 @@
         "predis/predis": "^3.5",
         "spatie/browsershot": "^5.3",
         "spatie/laravel-activitylog": "^4.12",
+        "spatie/laravel-backup": "^10.3",
         "spatie/laravel-multitenancy": "^4.1",
         "spatie/laravel-pdf": "^2.8",
         "spatie/laravel-permission": "^6.0"
