@@ -172,7 +172,20 @@ class InvoiceService
 
         // Before the totals are checked, so an invoice built from rates is issued
         // with the tax those rates give rather than whatever was last saved.
-        $this->applyTaxes($invoice);
+        //
+        // A credit note is totalled differently, and the difference is the point of one. Its
+        // line tax was taken from the invoice it reverses — the tax actually charged and
+        // posted — so re-deriving it from the rate table would credit today's rate against
+        // yesterday's posting and leave the tax account permanently out by the difference
+        // whenever a rate has been edited in between. The whole value of a correction is that
+        // it equals what it corrects.
+        //
+        // The document totals are still re-derived, from the lines' own figures, because the
+        // draft is editable: somebody trimming a full credit down to the two lines that were
+        // wrong must not have to make the header agree by hand.
+        $invoice->isCreditNote()
+            ? $this->totalFromLines($invoice)
+            : $this->applyTaxes($invoice);
 
         $lines = $invoice->lines()->with(['product', 'taxRate'])->get();
 
@@ -187,9 +200,11 @@ class InvoiceService
         $this->fixRate($invoice);
 
         return TenantTransaction::run(function () use ($invoice, $lines) {
-            $entryLines = $this->translateDocument($invoice, $invoice->kind === Invoice::KIND_SALE
-                ? $this->saleEntryLines($invoice, $lines)
-                : $this->purchaseEntryLines($invoice, $lines));
+            $entryLines = $this->translateDocument($invoice, match ($invoice->kind) {
+                Invoice::KIND_SALE => $this->saleEntryLines($invoice, $lines),
+                Invoice::KIND_CREDIT_NOTE => $this->creditNoteEntryLines($invoice, $lines),
+                default => $this->purchaseEntryLines($invoice, $lines),
+            });
 
             $entry = $this->postSystemEntry(
                 $invoice->invoice_date->toDateString(),
@@ -197,9 +212,19 @@ class InvoiceService
                 $entryLines
             );
 
-            foreach ($lines as $line) {
-                if ($line->product_id) {
-                    $this->recordMovement($invoice, $line, $entry);
+            // A credit note moves no stock, and that is a decision rather than an omission.
+            // Crediting a customer and taking goods back are two different events that
+            // usually but not always happen together: a credit for a damaged consignment,
+            // an overcharge, or a service that was billed twice returns nothing to the
+            // shelf. Assuming the goods came back would put quantity into inventory that
+            // is not there and hand the valuation engine lots at a made-up cost — wrong in
+            // a way nobody notices until a stock count. If goods genuinely return, that is
+            // a stock movement somebody records, and it says so.
+            if (! $invoice->isCreditNote()) {
+                foreach ($lines as $line) {
+                    if ($line->product_id) {
+                        $this->recordMovement($invoice, $line, $entry);
+                    }
                 }
             }
 
@@ -244,6 +269,27 @@ class InvoiceService
 
         if ($amount <= 0) {
             throw new InvalidArgumentException('Payment amount must be positive.');
+        }
+
+        // A credit note is not paid, and refusing is deliberate rather than unfinished.
+        //
+        // Nobody pays a credit note: it reduces what the customer owes, and the balance it
+        // leaves is a credit they hold. Left to fall through, the branch below would treat it
+        // as a purchase and relieve accounts payable — crediting a supplier balance that has
+        // nothing to do with this customer, in a way that reconciles to nothing.
+        //
+        // Handing the money back is a real thing, and it is a **refund**: a bank payment out,
+        // with its own account and, on a foreign invoice, its own realised difference at the
+        // rate the bank actually gave. That is a money path this method does not model for
+        // outgoing customer payments, and guessing at its FX treatment would produce a number
+        // that looks authoritative and is wrong. So it says so, and the credit stands against
+        // the customer's balance until somebody records the refund as what it is.
+        if ($invoice->isCreditNote()) {
+            throw new InvalidArgumentException(
+                "Credit note {$invoice->invoice_number} is not paid — it reduces what this customer owes, "
+                .'and shows as a credit against their balance. If you are handing the money back, record '
+                .'that as a payment from the bank account it left.'
+            );
         }
 
         if ($amount > $invoice->outstanding() + 0.001) {
@@ -425,6 +471,19 @@ class InvoiceService
             throw new InvalidArgumentException('Invoices with recorded payments cannot be voided.');
         }
 
+        // An invoice that has already been credited must not also be voided: both reverse
+        // the same posting, so doing both takes the revenue out twice and leaves the
+        // receivable negative by the invoice total. The order is the fix — void the credit
+        // note, then void the invoice — and it has to be explicit, because from here there
+        // is no way to tell which of the two the person actually meant to undo.
+        if ($invoice->creditedTotal() > 0) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} has been credited, and voiding it as well would "
+                .'reverse the same posting twice. Void the credit note first if the credit was raised '
+                .'in error.'
+            );
+        }
+
         $this->assertFbrAllowsVoid($invoice);
 
         return TenantTransaction::run(function () use ($invoice, $user) {
@@ -442,6 +501,342 @@ class InvoiceService
 
             return $invoice;
         });
+    }
+
+    /**
+     * Raise a credit note against a sale invoice.
+     *
+     * This is the answer to the third row of the correction table in
+     * `docs/fbr-digital-invoicing-plan.md` §2 — the reported invoice, past 72 hours, that
+     * `void()` refuses to touch. It is also the ordinary answer to an overcharge, a duplicate
+     * bill, or a consignment that arrived damaged, none of which need FBR to be involved at
+     * all.
+     *
+     * **It creates a draft and stops.** `issue()` is what posts, exactly as for an invoice,
+     * and for the same reason `QuotationService::convertToInvoice()` stops at draft: the thing
+     * that transmits is the thing that cannot be taken back, so it stays a deliberate second
+     * act. A credit note nobody has issued has changed no balance and can simply be deleted.
+     *
+     * **The rate is inherited, never re-fetched.** A foreign-currency invoice booked its
+     * receivable at the rate fixed on the day it was issued. Crediting it at today's rate
+     * would clear a different amount than was booked and leave a permanent stub in A/R that
+     * looks like an unpaid balance and can never be collected — while quietly recognising an
+     * exchange gain nobody earned. `fixRate()` leaves a rate that is already set alone, so
+     * copying it here is sufficient and the two documents translate identically.
+     *
+     * @param  string  $reason  Why. Required — see the column comment.
+     * @param  array<int, array<string, mixed>>|null  $lines  Explicit lines for a partial
+     *                                                        credit. Null credits the whole
+     *                                                        invoice by copying its lines.
+     * @param  array{ref?: string, granted_on?: string}|null  $approval  A rule 22 extension
+     *                                                                   from the Commissioner,
+     *                                                                   needed only past 180
+     *                                                                   days. See
+     *                                                                   `assertAdjustmentWindowAllows()`.
+     */
+    public function creditNote(Invoice $invoice, string $reason, ?array $lines = null, ?array $approval = null): Invoice
+    {
+        if (! $invoice->isSale()) {
+            throw new InvalidArgumentException(
+                $invoice->isCreditNote()
+                    ? 'A credit note cannot be credited. Void it if it was raised in error.'
+                    : 'Only a customer invoice can be credited — a purchase bill is corrected by the '
+                        .'supplier, who issues the credit note to you.'
+            );
+        }
+
+        if ($invoice->isDraft()) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} is still a draft, so it has posted nothing and there "
+                .'is nothing to credit. Edit or delete the draft instead.'
+            );
+        }
+
+        if ($invoice->status === Invoice::STATUS_VOID) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} has been voided, so its posting is already reversed. "
+                .'A credit note on top of it would reverse the same money twice.'
+            );
+        }
+
+        if (trim($reason) === '') {
+            throw new InvalidArgumentException(
+                'A credit note needs a reason. It is the first thing asked about a reversed sale, and '
+                .'the only part of it that cannot be reconstructed from the figures.'
+            );
+        }
+
+        $available = $invoice->creditableAmount();
+
+        if ($available <= 0.004) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} has already been credited in full."
+            );
+        }
+
+        $this->assertAdjustmentWindowAllows($invoice, $approval);
+
+        $rows = $this->creditLines($invoice, $lines);
+
+        if ($rows === []) {
+            throw new InvalidArgumentException('A credit note with no lines credits nothing.');
+        }
+
+        ['subtotal' => $subtotal, 'tax_amount' => $tax, 'total' => $total]
+            = $this->totalsFromRows((bool) $invoice->tax_inclusive, $rows);
+
+        // Before anything is written, and against what is *left* rather than the invoice
+        // total, so two partial credits cannot together exceed it. Checking after creation
+        // would work — the transaction would roll back — but the figure in the message is
+        // clearer when nothing has been built from it yet.
+        if ($total > round($available, 2) + 0.004) {
+            throw new InvalidArgumentException(
+                "This credit note comes to {$total}, but only {$available} of invoice "
+                ."{$invoice->invoice_number} is left to credit."
+            );
+        }
+
+        if ($total <= 0) {
+            throw new InvalidArgumentException('A credit note must credit something. This one comes to nothing.');
+        }
+
+        return TenantTransaction::run(function () use ($invoice, $reason, $rows, $subtotal, $tax, $total, $approval) {
+            $note = Invoice::create([
+                'kind' => Invoice::KIND_CREDIT_NOTE,
+                'credits_invoice_id' => $invoice->getKey(),
+                'credit_reason' => trim($reason),
+                // Stamped on the document, not looked up later. The extension was granted for
+                // this correction, and a settings flag saying "we have approvals" would not say
+                // which — the same rule as the leave-year window and the proration divisor.
+                'commissioner_approval_ref' => $approval['ref'] ?? null,
+                'commissioner_approved_on' => $approval['granted_on'] ?? null,
+                'status' => Invoice::STATUS_DRAFT,
+                'contact_id' => $invoice->contact_id,
+                'project_id' => $invoice->project_id,
+                'currency_code' => $invoice->currency_code,
+                // Inherited, not re-fetched. See the docblock.
+                'exchange_rate' => $invoice->exchange_rate,
+                // The tax treatment has to match the invoice's, or the reversal of the tax
+                // will not equal what was charged.
+                'tax_inclusive' => $invoice->tax_inclusive,
+                'invoice_date' => now()->toDateString(),
+                'fiscal_year_id' => FiscalYear::where('is_active', true)->value('id'),
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'total' => $total,
+                'memo' => "Credit note against {$invoice->invoice_number}",
+            ]);
+
+            foreach ($rows as $row) {
+                $note->lines()->create($row);
+            }
+
+            InvoiceEvent::record(
+                $invoice,
+                InvoiceEvent::CREDITED,
+                "Credit note {$note->invoice_number} raised: {$note->credit_reason}",
+                $total,
+            );
+
+            return $note->refresh();
+        });
+    }
+
+    /**
+     * The rule 22 adjustment window, and the one thing the Commissioner can be recorded as
+     * having permitted.
+     *
+     * This answers §9.7 of the plan, which asked whether a credit note is sufficient after 72
+     * hours or whether Commissioner approval is needed even for that. The question contained a
+     * conflation, and separating it is the whole of this method:
+     *
+     *  - **72 hours** (STGO 01 of 2026) governs amending or cancelling the *e-invoice*. Past
+     *    it, changing the invoice needs the Commissioner's prior approval, and
+     *    `assertFbrAllowsVoid()` refuses — this application cannot obtain that approval and
+     *    must not act as though the invoice changed.
+     *  - **180 days** (section 9 of the Sales Tax Act 1990, rules 20–22 of the Sales Tax Rules
+     *    2006) governs the *credit note*, which is not an amendment at all but a second
+     *    document adjusting the tax. It needs no approval to issue. What it needs is to be
+     *    within 180 days of the supply — and the proviso to rule 22 lets the Commissioner
+     *    extend that once, by a further 180 days, on written request with reasons recorded.
+     *
+     * So the answer is: **sufficient, and unapproved, until day 180.** After that the company
+     * still does not need permission to correct its books — it needs permission to be *late*,
+     * and that is a different thing, obtained outside this application and recorded here.
+     *
+     * **Only enforced where reporting is on.** The same reasoning as
+     * `FbrReconciliation::unreported()`: rule 22 binds a sales-tax-registered person making
+     * taxable supplies, so applying it to a company below the threshold would refuse a
+     * perfectly ordinary correction by citing a rule that does not reach them. Off by default,
+     * so a company that touches nothing behaves exactly as before.
+     *
+     * @param  array{ref?: string, granted_on?: string}|null  $approval
+     */
+    protected function assertAdjustmentWindowAllows(Invoice $invoice, ?array $approval): void
+    {
+        if (! (bool) setting('fbr.enabled', false)) {
+            return;
+        }
+
+        if ($invoice->creditNoteWindowOpen()) {
+            return;
+        }
+
+        $deadline = $invoice->creditNoteDeadline();
+        $days = (int) setting('fbr.credit_note_days', 180);
+
+        if (! filled($approval['ref'] ?? null)) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} was supplied on {$invoice->invoice_date->format('d M Y')}, "
+                ."more than {$days} days ago, so a credit note against it no longer adjusts output tax on its "
+                .'own (rule 22 of the Sales Tax Rules 2006). The Commissioner may extend that period by a '
+                .'further '.(int) setting('fbr.credit_note_extension_days', 180)
+                .' days on written request — record the reference of that extension here and the credit note '
+                .'can be raised.'
+            );
+        }
+
+        // Beyond the extension there is nothing left to record. Rule 22's proviso allows one
+        // further period, not a renewable one, so accepting a reference here would be storing
+        // evidence for an adjustment that is inadmissible anyway — which is worse than
+        // refusing, because it looks like it was checked.
+        if (now()->greaterThan($invoice->creditNoteExtendedDeadline())) {
+            throw new InvalidArgumentException(
+                "Invoice {$invoice->invoice_number} is past even the extended adjustment period, which ended on "
+                .$invoice->creditNoteExtendedDeadline()->format('d M Y')
+                .'. Rule 22 allows one further period of '
+                .(int) setting('fbr.credit_note_extension_days', 180)
+                .' days, not a renewable one, so a credit note raised now would not adjust output tax. This '
+                .'needs your tax advisor rather than this screen.'
+            );
+        }
+
+        // Recorded rather than merely permitted: an unexplained credit note raised on day 300
+        // is indistinguishable from an authorised one, and exactly one of them is admissible.
+        activity('Invoice')
+            ->performedOn($invoice)
+            ->causedBy(auth()->user())
+            ->event('commissioner-extension-relied-on')
+            ->withProperties([
+                'deadline' => $deadline->toDateString(),
+                'approval_ref' => $approval['ref'],
+                'approved_on' => $approval['granted_on'] ?? null,
+            ])
+            ->log("Credit note against {$invoice->invoice_number} raised outside the {$days}-day adjustment "
+                ."period under Commissioner extension {$approval['ref']}");
+    }
+
+    /**
+     * Document totals from line figures, the way `validateTotals()` defines them.
+     *
+     * Extracted because two callers must agree exactly: `creditNote()` totals the rows it is
+     * about to write, and `issue()` re-totals whatever the draft ended up containing. If those
+     * two disagreed by a rounding step, a credit note would be created happily and then refuse
+     * to issue, complaining about arithmetic nobody performed.
+     *
+     * Subtotal is net of tax on an inclusive document and gross on an exclusive one — the same
+     * asymmetry as `validateTotals()`, in the same direction, because that is the check this
+     * has to survive.
+     *
+     * @param  array<int, array<string, mixed>>  $rows  Each with `line_total` and `tax_amount`.
+     * @return array{subtotal: float, tax_amount: float, total: float}
+     */
+    protected function totalsFromRows(bool $taxInclusive, array $rows): array
+    {
+        $subtotal = round(array_sum(array_map(
+            fn (array $row): float => $taxInclusive
+                ? round((float) $row['line_total'] - (float) $row['tax_amount'], 2)
+                : (float) $row['line_total'],
+            $rows
+        )), 2);
+
+        $tax = round(array_sum(array_map(fn (array $row): float => (float) $row['tax_amount'], $rows)), 2);
+
+        return ['subtotal' => $subtotal, 'tax_amount' => $tax, 'total' => round($subtotal + $tax, 2)];
+    }
+
+    /**
+     * Re-total a document from its lines, trusting the tax each line already carries.
+     *
+     * The credit-note counterpart to `applyTaxes()`. Same job, one deliberate difference: it
+     * never consults a tax rate. See `issue()`.
+     */
+    protected function totalFromLines(Invoice $invoice): Invoice
+    {
+        $rows = $invoice->lines()->get()->map(fn (InvoiceLine $line): array => [
+            'line_total' => (float) $line->line_total,
+            'tax_amount' => (float) $line->tax_amount,
+        ])->all();
+
+        $invoice->forceFill($this->totalsFromRows((bool) $invoice->tax_inclusive, $rows))->save();
+
+        return $invoice->refresh();
+    }
+
+    /**
+     * The lines a credit note is made of, normalised.
+     *
+     * With no lines given this is a **full credit: the invoice's own lines, copied**. Copied
+     * rather than recomputed, and that is the important half. `account_id` and `tax_rate_id`
+     * come across so the credit debits the same revenue account the sale credited, and
+     * `tax_amount` comes across as the figure actually charged rather than what the rate says
+     * today — if a rate has been edited since, or a product repointed at a different revenue
+     * account, recomputing would net the invoice against something else and leave both
+     * accounts permanently wrong by the difference. A correction that does not reverse what
+     * was posted is not a correction.
+     *
+     * With lines given this is a partial credit, and they are normalised rather than trusted:
+     * `line_total` is always derived from quantity × unit price, because `validateTotals()`
+     * checks exactly that at issue and a caller-supplied total that disagrees would fail there
+     * instead of here. Tax is computed from the line's rate only when the caller did not say —
+     * an explicit zero is honoured, since crediting an exempt portion of a taxed invoice is a
+     * real thing.
+     *
+     * @param  array<int, array<string, mixed>>|null  $lines
+     * @return array<int, array<string, mixed>>
+     */
+    protected function creditLines(Invoice $invoice, ?array $lines): array
+    {
+        if ($lines === null) {
+            return $invoice->lines()->get()->map(fn (InvoiceLine $line): array => [
+                'product_id' => $line->product_id,
+                'description' => $line->description,
+                'quantity' => (float) $line->quantity,
+                'unit_price' => (float) $line->unit_price,
+                'line_total' => (float) $line->line_total,
+                'account_id' => $line->account_id,
+                'tax_rate_id' => $line->tax_rate_id,
+                'tax_amount' => (float) $line->tax_amount,
+            ])->all();
+        }
+
+        return array_values(array_map(function (array $row) use ($invoice): array {
+            $quantity = (float) ($row['quantity'] ?? 1);
+            $unitPrice = (float) ($row['unit_price'] ?? 0);
+            $lineTotal = round($quantity * $unitPrice, 2);
+            $rateId = $row['tax_rate_id'] ?? null;
+
+            if (array_key_exists('tax_amount', $row) && $row['tax_amount'] !== null) {
+                $taxAmount = round((float) $row['tax_amount'], 2);
+            } elseif ($rateId && $rate = TaxRate::find($rateId)) {
+                $taxAmount = $invoice->tax_inclusive
+                    ? $rate->taxWithin($lineTotal)
+                    : $rate->taxOn($lineTotal);
+            } else {
+                $taxAmount = 0.0;
+            }
+
+            return [
+                'product_id' => $row['product_id'] ?? null,
+                'description' => $row['description'] ?? 'Credit',
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'line_total' => $lineTotal,
+                'account_id' => $row['account_id'] ?? null,
+                'tax_rate_id' => $rateId,
+                'tax_amount' => $taxAmount,
+            ];
+        }, $lines));
     }
 
     /**
@@ -497,10 +892,14 @@ class InvoiceService
             );
         }
 
+        // The third row of the correction table, and the one that now has an answer. Until
+        // credit notes existed this message named a document nobody could raise; "Credit" on
+        // the invoice does exactly what it says.
         throw new InvalidArgumentException(
             "Invoice {$invoice->invoice_number} was reported to FBR and the correction window has closed, "
             .'so it can no longer be cancelled — a correction now needs the prior approval of the '
-            .'Commissioner Inland Revenue. Issue a credit note against it instead.'
+            .'Commissioner Inland Revenue. Use Credit instead: a credit note reverses the sale in your '
+            .'books and is itself reported, leaving both records agreeing.'
         );
     }
 
@@ -524,7 +923,16 @@ class InvoiceService
         $buckets = ['current' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
         $invoices = [];
 
-        foreach (Invoice::where('kind', $kind)->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])->with('contact')->get() as $invoice) {
+        // Receivables include credit notes; payables do not, because a credit note in this
+        // schema is always ours against a customer. They are bucketed by their own date and
+        // subtracted rather than added — see `signedOutstanding()`. Leaving them out would
+        // overstate every receivable figure in the application by exactly the credits
+        // outstanding, which is the reading a company chases a customer for money over.
+        $kinds = $kind === Invoice::KIND_SALE
+            ? [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE]
+            : [$kind];
+
+        foreach (Invoice::whereIn('kind', $kinds)->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])->with('contact')->get() as $invoice) {
             $days = (int) Carbon::parse($invoice->due_date ?? $invoice->invoice_date)->diffInDays($asOf, false);
             $bucket = match (true) {
                 $days <= 30 => 'current',
@@ -536,13 +944,13 @@ class InvoiceService
             // The buckets are in base currency. Adding up invoices in a mixture of
             // currencies also produces a number, which is exactly how that goes wrong
             // without anybody noticing.
-            $buckets[$bucket] = round($buckets[$bucket] + $invoice->baseOutstanding(), 2);
+            $buckets[$bucket] = round($buckets[$bucket] + $invoice->signedBaseOutstanding(), 2);
             $invoices[] = [
                 'invoice_number' => $invoice->invoice_number,
                 'contact' => $invoice->contact->name,
-                'outstanding' => $invoice->outstanding(),
+                'outstanding' => $invoice->signedOutstanding(),
                 'currency_code' => $invoice->currencyCode(),
-                'outstanding_base' => $invoice->baseOutstanding(),
+                'outstanding_base' => $invoice->signedBaseOutstanding(),
                 'days_overdue' => max(0, $days),
                 'bucket' => $bucket,
             ];
@@ -606,6 +1014,59 @@ class InvoiceService
                 'account_id' => $accountId,
                 'credit_amount' => $amount,
                 'description' => "Sales tax {$invoice->invoice_number}",
+                '_fx' => self::FX_LINE,
+            ];
+        }
+
+        return $entryLines;
+    }
+
+    /**
+     * Credit note: the sale, mirrored. Credit A/R for the total; debit revenue per line;
+     * debit the sales tax accounts.
+     *
+     * Every leg is the opposite of `saleEntryLines()` and nothing else differs, which is the
+     * property that matters: a full credit note against an invoice nets the receivable, the
+     * revenue and the output tax to exactly zero. That is what makes it a correction rather
+     * than a second, differently-shaped transaction that happens to be about the same money.
+     *
+     * **No COGS leg**, matching the absence of a stock movement in `issue()`. Reversing COGS
+     * would say the goods are back and worth what they cost; nothing here knows that. So the
+     * cost of the original sale stays charged, which is the right answer whenever the credit
+     * is for an overcharge, a duplicate, or goods that were never coming back — and the
+     * conservative one otherwise.
+     */
+    protected function creditNoteEntryLines(Invoice $invoice, $lines): array
+    {
+        $entryLines = [[
+            'account_id' => $this->accountId('1250'),
+            'credit_amount' => (float) $invoice->total,
+            'description' => $invoice->invoice_number,
+            '_fx' => self::FX_CONTROL,
+        ]];
+
+        foreach ($lines as $line) {
+            // Net of the line's own tax on an inclusive document, for the same reason as the
+            // sale: debiting the gross to revenue would take the tax out of income instead of
+            // out of the tax account, and leave the entry short by exactly the tax.
+            $amount = $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total;
+
+            // Mirrored, including the negative case. A negative line on a credit note is a
+            // credit against a credit — an item excluded from the refund — so it goes back on
+            // the credit side rather than being posted as a negative debit and dropped.
+            $entryLines[] = [
+                'account_id' => $this->revenueAccountId($line),
+                $amount < 0 ? 'credit_amount' : 'debit_amount' => abs($amount),
+                'description' => $line->description,
+                '_fx' => self::FX_LINE,
+            ];
+        }
+
+        foreach ($this->taxByAccount($invoice, $lines) as $accountId => $amount) {
+            $entryLines[] = [
+                'account_id' => $accountId,
+                'debit_amount' => $amount,
+                'description' => "Sales tax reversed {$invoice->invoice_number}",
                 '_fx' => self::FX_LINE,
             ];
         }
