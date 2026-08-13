@@ -205,6 +205,142 @@ class NavigationDomainsTest extends TestCase
         $this->assertSame('Home', $this->activeDomainOn(Filament::getPanel('admin')->getUrl($this->company)));
     }
 
+    // ---------------------------------------------------------------- the flyouts
+
+    /**
+     * The rail carries every domain's whole tree, not just the open one's.
+     *
+     * This is what changed when the column stopped being permanent: the rail is the only navigation on
+     * screen by default, so hovering Finance from an Employees page has to be able to offer Finance's
+     * screens. Asserted from a People page against Finance's and Admin's contents, so it fails if the
+     * flyouts ever narrow to the current domain.
+     */
+    public function test_the_rail_carries_every_domains_tree(): void
+    {
+        $html = $this->get(
+            \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::getUrl('index'),
+        )->assertOk()->getContent();
+
+        // One flyout per domain in the rail.
+        $this->assertSame(
+            count(\App\Support\NavigationDomains::rail($this->fullNavigation())),
+            substr_count($html, 'class="fi-domain-flyout"'),
+            'a domain in the rail has no flyout',
+        );
+
+        // Contents from three different domains, none of them the one being viewed.
+        foreach (['Chart Of Accounts', 'Journal Entries', 'Roles', 'Fiscal Years', 'Leads'] as $elsewhere) {
+            $this->assertStringContainsString($elsewhere, $html, "the rail cannot reach {$elsewhere}");
+        }
+    }
+
+    /**
+     * Every flyout fits without scrolling.
+     *
+     * A scroll inside a hover panel is worse than the column it replaced — it is lost the moment the
+     * pointer leaves, and you cannot see what you are choosing between. The packing in
+     * NavigationDomains::columns is what prevents it, so what is asserted is its output: a column is
+     * either within the row budget or holds exactly one group that is too big for any column, which is
+     * the one case the packer is documented not to fix.
+     */
+    public function test_no_flyout_column_overflows_its_row_budget(): void
+    {
+        $navigation = $this->fullNavigation();
+
+        foreach (\App\Support\NavigationDomains::keys() as $domain) {
+            $columns = \App\Support\NavigationDomains::columns(
+                \App\Support\NavigationDomains::filter($navigation, $domain),
+            );
+
+            foreach ($columns as $index => $column) {
+                $rows = 0;
+
+                foreach ($column as $group) {
+                    $rows += 1 + count(collect($group->getItems())->all());
+                }
+
+                if (count($column) === 1) {
+                    continue;
+                }
+
+                $this->assertLessThanOrEqual(
+                    14,
+                    $rows,
+                    "[{$domain}] flyout column {$index} holds {$rows} rows and would scroll",
+                );
+            }
+        }
+    }
+
+    /** A group is never split across two columns — a heading without its items reads as a new group. */
+    public function test_a_group_is_never_split_across_flyout_columns(): void
+    {
+        $navigation = $this->fullNavigation();
+
+        foreach (\App\Support\NavigationDomains::keys() as $domain) {
+            $columns = \App\Support\NavigationDomains::columns(
+                \App\Support\NavigationDomains::filter($navigation, $domain),
+            );
+
+            $seen = [];
+
+            foreach ($columns as $column) {
+                foreach ($column as $group) {
+                    $label = $group->getLabel() ?? '';
+
+                    $this->assertNotContains($label, $seen, "[{$domain}] {$label} appears in two columns");
+
+                    $seen[] = $label;
+                }
+            }
+        }
+    }
+
+    /**
+     * The Reports flyout carries the report categories, not the hub's single link.
+     *
+     * Those categories used to live in the column, and the column is closed by default — so without
+     * them here, filtering reports by category would need a panel opened to work around the rail that
+     * replaced it. The domain holds one navigation entry, so this is also the one flyout that would
+     * otherwise say less than its own icon.
+     */
+    public function test_the_reports_flyout_carries_the_categories(): void
+    {
+        $html = $this->get(Reports::getUrl())->assertOk()->getContent();
+
+        preg_match('/<div class="fi-domain-flyout" role="group" aria-label="Reports">(.*?)<\/div>\s*<\/li>/s', $html, $flyout);
+
+        $this->assertNotEmpty($flyout, 'the Reports domain has no flyout');
+
+        // Decoded, because "Receivables & payables" is escaped in the markup.
+        $panel = html_entity_decode($flyout[1], ENT_QUOTES);
+
+        foreach (array_keys(Reports::sectionCounts()) as $section) {
+            $this->assertStringContainsString($section, $panel, "the Reports flyout omits {$section}");
+        }
+
+        $this->assertStringContainsString('All reports', $panel);
+
+        // Linked with the filter the page reads, so the flyout and the column agree.
+        $this->assertStringContainsString('section='.urlencode('Payroll & tax'), $panel);
+    }
+
+    /**
+     * The column starts closed, which is what hands the width back.
+     *
+     * Seeded in the browser rather than configured on the panel — Filament has no "start collapsed"
+     * option and the state lives in localStorage — so what is asserted is that the seeding is present
+     * and that it only applies when nothing is stored, leaving it a preference rather than a reset on
+     * every page load.
+     */
+    public function test_the_column_starts_closed_without_overriding_a_choice(): void
+    {
+        $html = $this->get(Filament::getPanel('admin')->getUrl($this->company))->assertOk()->getContent();
+
+        $this->assertStringContainsString("localStorage.setItem(key, 'false')", $html);
+        $this->assertStringContainsString('localStorage.getItem(key) === null', $html);
+    }
+
     // ------------------------------------------------------------- other panels
 
     /**

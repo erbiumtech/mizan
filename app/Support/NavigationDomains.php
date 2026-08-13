@@ -245,8 +245,13 @@ class NavigationDomains
      * one of these for most companies, and an icon that opens a blank column is worse than an icon
      * that is not there.
      *
+     * Each entry carries its domain's whole tree as well, because the rail is now the only navigation
+     * on screen by default: hovering an icon opens that domain's tree in a flyout, so every domain's
+     * groups are needed on every page rather than just the open one's. They come out of the same
+     * per-request snapshot the column reads, so this costs a filter per domain and no extra queries.
+     *
      * @param  array<NavigationGroup>  $groups  the panel's full, unfiltered navigation
-     * @return array<int, array{key: string, label: string, icon: string, url: string, active: bool}>
+     * @return array<int, array{key: string, label: string, icon: string, url: string, active: bool, columns: array<int, array<NavigationGroup>>}>
      */
     public static function rail(array $groups): array
     {
@@ -254,7 +259,8 @@ class NavigationDomains
         $rail = [];
 
         foreach (self::DOMAINS as $key => $domain) {
-            $url = self::firstUrl(self::filter($groups, $key));
+            $owned = self::filter($groups, $key);
+            $url = self::firstUrl($owned);
 
             if ($url === null) {
                 continue;
@@ -266,10 +272,65 @@ class NavigationDomains
                 'icon' => $domain['icon'],
                 'url' => $url,
                 'active' => $key === $current,
+                'columns' => self::columns($owned),
             ];
         }
 
         return $rail;
+    }
+
+    /**
+     * How many rows a flyout column may hold before the next group starts a new one.
+     *
+     * 14 is what fits above the fold at the smallest laptop height this application is used on
+     * (768px) once the flyout's own padding is taken off. It is a *row* budget rather than a pixel
+     * one because the rows are a fixed height, which is what lets this be decided in PHP and
+     * asserted in a test instead of measured in a browser.
+     */
+    private const COLUMN_ROWS = 14;
+
+    /**
+     * Splits a domain's groups into columns that fit without scrolling.
+     *
+     * This is the whole point of the flyout: People holds 27 screens across eight branches, and a
+     * flyout that scrolls is worse than the column it replaced — you cannot see what you are choosing
+     * between, and a scroll inside a hover panel is lost the moment the pointer leaves it. So the
+     * groups are packed into columns here and the flyout grows sideways, where there is room.
+     *
+     * Greedy rather than balanced: groups stay in their declared order, and a group is never split
+     * across two columns, because a heading in one column with its items in the next reads as two
+     * different groups. A group longer than the budget gets a column to itself and overflows it,
+     * which is the one case this cannot fix without breaking that rule — NavigationTree keeps the
+     * branches short enough that it does not arise, and NavigationDomainsTest fails if it starts to.
+     *
+     * @param  array<NavigationGroup>  $groups
+     * @return array<int, array<NavigationGroup>>
+     */
+    public static function columns(array $groups): array
+    {
+        $columns = [];
+        $column = [];
+        $rows = 0;
+
+        foreach ($groups as $group) {
+            // The heading counts as a row; so does every item under it.
+            $height = 1 + count(collect($group->getItems())->all());
+
+            if ($column !== [] && $rows + $height > self::COLUMN_ROWS) {
+                $columns[] = $column;
+                $column = [];
+                $rows = 0;
+            }
+
+            $column[] = $group;
+            $rows += $height;
+        }
+
+        if ($column !== []) {
+            $columns[] = $column;
+        }
+
+        return $columns;
     }
 
     /**
