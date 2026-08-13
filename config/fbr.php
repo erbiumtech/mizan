@@ -47,6 +47,45 @@ return [
     'correction_window_hours' => 72,
 
     /**
+     * Days from the supply within which a credit note may still adjust output tax.
+     *
+     * 180, per rule 22 of the Sales Tax Rules 2006. This is a **different rule from
+     * the 72 hours above and rests on different law**, which is the distinction that
+     * took a while to see clearly:
+     *
+     *  - the 72 hours is STGO 01 of 2026 and governs amending or cancelling the
+     *    e-invoice itself. Past it, changing the invoice needs the Commissioner's
+     *    prior approval, and this application refuses rather than pretending;
+     *  - these 180 days are section 9 of the Sales Tax Act 1990 with rules 20–22,
+     *    and govern the debit/credit note route — cancellation of supply, return of
+     *    goods, or a change in the nature or value of the supply. A credit note is
+     *    not an amendment of the invoice; it is a second document that adjusts the
+     *    tax. That is why it remains available when the 72 hours have gone.
+     *
+     * So the Commissioner appears twice, doing two different jobs. Past 72 hours
+     * they may permit the invoice to be changed. Past 180 days they may extend the
+     * credit-note window — see `credit_note_extension_days` below.
+     */
+    'credit_note_days' => 180,
+
+    /**
+     * A further period the Commissioner may allow for a credit note, on the
+     * supplier's written request and with reasons recorded.
+     *
+     * 180 again, per the proviso to rule 22: the Collector "may, at the request of
+     * the supplier, in specific cases, by giving reasons in writing, extend the
+     * period of one hundred and eighty days by a further one hundred and eighty
+     * days". Once, not repeatedly — which is why this is a single further period
+     * rather than a multiplier.
+     *
+     * This is the only place in the application where Commissioner approval is
+     * something a company can actually record and act on, as opposed to something
+     * it must go and obtain outside the system. It does not grant the extension; it
+     * records that one was granted, and refuses beyond it.
+     */
+    'credit_note_extension_days' => 180,
+
+    /**
      * How long a submission may sit in `pending` or `submitted` before the
      * reconciliation report calls it stuck.
      *
