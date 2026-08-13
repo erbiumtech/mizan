@@ -59,6 +59,19 @@ body:has(.fi-domain-rail) {
         }
 
         /*
+         * Column folded away: the toolbar and the content close the gap, and the rail stays.
+         *
+         * Keyed off the class Filament puts on the content container when its sidebar store says
+         * open, because that is the only signal for a state held entirely in the browser — the
+         * server renders the same HTML either way.
+         */
+        &:not(:has(.fi-main-ctn-sidebar-open)) {
+            .fi-topbar {
+                margin-inline-start: var(--fi-domain-rail-width);
+            }
+        }
+
+        /*
          * Pulls the column up into the row the toolbar left free. -4rem is the topbar's own height:
          * `.fi-topbar-ctn` is sticky and still occupies its space in the flow, which is what puts
          * `.fi-layout` — and so the column — 4rem down the page.

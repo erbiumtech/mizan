@@ -131,12 +131,20 @@ class NavigationDomainsTest extends TestCase
     {
         $groups = $this->columnGroupsOn(\App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::getUrl('index'));
 
-        $this->assertContains('Accounting', $groups);
+        // Branch labels rather than "Accounting": NavigationTree splits that group, and the column
+        // shows what it was split into. Two branches from two different declared groups, both of
+        // which Finance owns.
+        $this->assertContains('Ledger', $groups);
 
-        // The three that would have been directly above and below it in the old one-level sidebar.
-        $this->assertNotContains('Employee', $groups);
-        $this->assertNotContains('Access Control', $groups);
-        $this->assertNotContains('Settings', $groups);
+        // Not split, and deliberately so — see NavigationTree. Finance owns it whole.
+        $this->assertContains('Invoicing & Inventory', $groups);
+
+        // Branches belonging to the other domains, including two that are easy to confuse with
+        // Finance's: People has a Payroll branch and Admin has Payroll setup.
+        $this->assertNotContains('Payroll', $groups);
+        $this->assertNotContains('Payroll setup', $groups);
+        $this->assertNotContains('Employees', $groups);
+        $this->assertNotContains('Company', $groups);
     }
 
     public function test_the_whole_sidebar_is_still_reachable_one_domain_at_a_time(): void
@@ -275,7 +283,12 @@ class NavigationDomainsTest extends TestCase
         // test's own, so a second getNavigation() here would answer for the wrong screen.
         preg_match_all('/fi-sidebar-group-label">\s*([^<]+?)\s*</s', $html, $matches);
 
-        return array_map('trim', $matches[1] ?? []);
+        // Decoded: labels with an ampersand — "Invoicing & Inventory", "Attendance & time" — arrive
+        // as entities, and comparing against the entity form would be asserting the escaping.
+        return array_map(
+            fn (string $label): string => html_entity_decode(trim($label), ENT_QUOTES),
+            $matches[1] ?? [],
+        );
     }
 
     /**
