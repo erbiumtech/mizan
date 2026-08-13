@@ -67,6 +67,115 @@ class PermissionSeeder extends Seeder
             ['name' => 'ExpenseClaimDelete', 'group' => 'ExpenseClaim'],
             ['name' => 'ExpenseClaimApprove', 'group' => 'ExpenseClaim'],
 
+            // CRM. Converting is its own permission: working a lead is not deciding
+            // that it becomes a customer the ledger can bill.
+            ['name' => 'LeadView', 'group' => 'Lead'],
+            ['name' => 'LeadCreate', 'group' => 'Lead'],
+            ['name' => 'LeadUpdate', 'group' => 'Lead'],
+            ['name' => 'LeadDelete', 'group' => 'Lead'],
+            ['name' => 'LeadConvert', 'group' => 'Lead'],
+
+            ['name' => 'LeadSourceView', 'group' => 'LeadSource'],
+            ['name' => 'LeadSourceCreate', 'group' => 'LeadSource'],
+            ['name' => 'LeadSourceUpdate', 'group' => 'LeadSource'],
+            ['name' => 'LeadSourceDelete', 'group' => 'LeadSource'],
+
+            // Hiring. Applicants, applications, interviews and offers share ONE group:
+            // splitting them would invite a role that can read CVs without being trusted
+            // with the rest, and a CV is the most sensitive record here.
+            ['name' => 'VacancyView', 'group' => 'Vacancy'],
+            ['name' => 'VacancyCreate', 'group' => 'Vacancy'],
+            ['name' => 'VacancyUpdate', 'group' => 'Vacancy'],
+            ['name' => 'VacancyDelete', 'group' => 'Vacancy'],
+
+            ['name' => 'ApplicantView', 'group' => 'Applicant'],
+            ['name' => 'ApplicantCreate', 'group' => 'Applicant'],
+            ['name' => 'ApplicantUpdate', 'group' => 'Applicant'],
+            ['name' => 'ApplicantDelete', 'group' => 'Applicant'],
+
+            // Its own permission: creating an employee, and a salary package with them,
+            // is a bigger decision than moving somebody through a pipeline.
+            ['name' => 'OfferHire', 'group' => 'Offer'],
+
+            // Appraisals. ReviewPrivateNotes is separate because it is the one thing an
+            // employee must never hold about themselves, whatever else they can see.
+            ['name' => 'ReviewView', 'group' => 'Review'],
+            ['name' => 'ReviewCreate', 'group' => 'Review'],
+            ['name' => 'ReviewUpdate', 'group' => 'Review'],
+            ['name' => 'ReviewDelete', 'group' => 'Review'],
+            ['name' => 'ReviewPrivateNotes', 'group' => 'Review'],
+
+            // Joining and leaving. Documents get their own group because a passport
+            // scan is not the same sensitivity as an onboarding tick-box, and the
+            // settlement gets one because it is money.
+            ['name' => 'ChecklistView', 'group' => 'Checklist'],
+            ['name' => 'ChecklistCreate', 'group' => 'Checklist'],
+            ['name' => 'ChecklistUpdate', 'group' => 'Checklist'],
+            ['name' => 'ChecklistDelete', 'group' => 'Checklist'],
+
+            ['name' => 'EmployeeDocumentView', 'group' => 'EmployeeDocument'],
+            ['name' => 'EmployeeDocumentCreate', 'group' => 'EmployeeDocument'],
+            ['name' => 'EmployeeDocumentUpdate', 'group' => 'EmployeeDocument'],
+            ['name' => 'EmployeeDocumentDelete', 'group' => 'EmployeeDocument'],
+
+            ['name' => 'IssuedAssetView', 'group' => 'IssuedAsset'],
+            ['name' => 'IssuedAssetCreate', 'group' => 'IssuedAsset'],
+            ['name' => 'IssuedAssetUpdate', 'group' => 'IssuedAsset'],
+            ['name' => 'IssuedAssetDelete', 'group' => 'IssuedAsset'],
+
+            ['name' => 'SettlementView', 'group' => 'Settlement'],
+            ['name' => 'SettlementCreate', 'group' => 'Settlement'],
+            ['name' => 'SettlementUpdate', 'group' => 'Settlement'],
+            ['name' => 'SettlementApprove', 'group' => 'Settlement'],
+            ['name' => 'SettlementDelete', 'group' => 'Settlement'],
+
+            // Timesheets. Approving is separate for the usual reason, and it matters
+            // more here than most: approved time becomes an invoice line a client pays.
+            ['name' => 'TimesheetView', 'group' => 'Timesheet'],
+            ['name' => 'TimesheetCreate', 'group' => 'Timesheet'],
+            ['name' => 'TimesheetApprove', 'group' => 'Timesheet'],
+
+            // Attendance. Corrections are their own group because an employee holds
+            // Create on them and nothing else here — asking about your own past is not
+            // the same privilege as writing anybody's day.
+            ['name' => 'AttendanceView', 'group' => 'Attendance'],
+            ['name' => 'AttendanceCreate', 'group' => 'Attendance'],
+            ['name' => 'AttendanceUpdate', 'group' => 'Attendance'],
+            ['name' => 'AttendanceDelete', 'group' => 'Attendance'],
+
+            ['name' => 'AttendanceRegularizationView', 'group' => 'AttendanceRegularization'],
+            ['name' => 'AttendanceRegularizationCreate', 'group' => 'AttendanceRegularization'],
+            ['name' => 'AttendanceRegularizationApprove', 'group' => 'AttendanceRegularization'],
+
+            ['name' => 'WorkPatternView', 'group' => 'WorkPattern'],
+            ['name' => 'WorkPatternCreate', 'group' => 'WorkPattern'],
+            ['name' => 'WorkPatternUpdate', 'group' => 'WorkPattern'],
+            ['name' => 'WorkPatternDelete', 'group' => 'WorkPattern'],
+
+            // Leave. Approving is its own permission, exactly as it is for expense
+            // claims: filing leave is not deciding it, and the Employee role gets
+            // the first four and never the fifth.
+            ['name' => 'LeaveRequestView', 'group' => 'LeaveRequest'],
+            ['name' => 'LeaveRequestCreate', 'group' => 'LeaveRequest'],
+            ['name' => 'LeaveRequestUpdate', 'group' => 'LeaveRequest'],
+            ['name' => 'LeaveRequestDelete', 'group' => 'LeaveRequest'],
+            ['name' => 'LeaveRequestApprove', 'group' => 'LeaveRequest'],
+
+            // Leave types are reference data: HR edits the day counts, an employee
+            // reads them so the form can say what they are asking for.
+            ['name' => 'LeaveTypeView', 'group' => 'LeaveType'],
+            ['name' => 'LeaveTypeCreate', 'group' => 'LeaveType'],
+            ['name' => 'LeaveTypeUpdate', 'group' => 'LeaveType'],
+            ['name' => 'LeaveTypeDelete', 'group' => 'LeaveType'],
+
+            // Entitlements and their adjustment rows. LeaveEntitlementUpdate is what
+            // grants an adjustment — the row that moves somebody's balance — so it is
+            // deliberately not in the Employee role.
+            ['name' => 'LeaveEntitlementView', 'group' => 'LeaveEntitlement'],
+            ['name' => 'LeaveEntitlementCreate', 'group' => 'LeaveEntitlement'],
+            ['name' => 'LeaveEntitlementUpdate', 'group' => 'LeaveEntitlement'],
+            ['name' => 'LeaveEntitlementDelete', 'group' => 'LeaveEntitlement'],
+
             ['name' => 'AdvanceView', 'group' => 'Advance'],
             ['name' => 'AdvanceCreate', 'group' => 'Advance'],
             ['name' => 'AdvanceUpdate', 'group' => 'Advance'],

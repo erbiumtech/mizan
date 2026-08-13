@@ -32,7 +32,13 @@ class Payslip extends Model
 
     protected $fillable = [
         'employee_id', 'month', 'fiscal_year_id', 'total_working_days', 'paid_days', 'lop_days',
-        'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
+        'leaves_taken',
+        // Phase 3/3a: what the calculation RECORDED about this month, so a
+        // recalculation reproduces it rather than re-deriving it from settings that
+        // may since have changed. See AttendanceProration::recordedBasis().
+        'proration_divisor', 'proration_basis_days',
+        'overtime_minutes', 'overtime_hourly_rate', 'overtime_multiplier',
+        'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
         'total_deductions', 'net_salary',
@@ -237,7 +243,21 @@ class Payslip extends Model
                 $payslip->meal_deduction,
                 $payslip->esi_health_insurance,
                 $payslip->expense_reimbursement,
-                $payslip->id
+                $payslip->id,
+                // Phase 3/3a. What the payslip knows about the month: the pro-rating
+                // inputs, and whatever it has already recorded about how it was
+                // calculated. Passing the recorded values is what stops a settled
+                // month moving when a company later changes the divisor — this hook
+                // re-runs on EVERY save, including a clerk fixing a typo.
+                [
+                    'total_working_days' => $payslip->total_working_days,
+                    'lop_days' => $payslip->lop_days,
+                    'proration_divisor' => $payslip->proration_divisor,
+                    'proration_basis_days' => $payslip->proration_basis_days,
+                    'overtime_minutes' => $payslip->overtime_minutes,
+                    'overtime_hourly_rate' => $payslip->overtime_hourly_rate,
+                    'overtime_multiplier' => $payslip->overtime_multiplier,
+                ]
             );
 
             if ($calculatedData) {
@@ -255,6 +275,16 @@ class Payslip extends Model
                 $payslip->total_earnings = $calculatedData['total_earnings'];
                 $payslip->total_deductions = $calculatedData['total_deductions'];
                 $payslip->net_salary = $calculatedData['net_salary'];
+
+                // Written back so the next recalculation reproduces this one. Null
+                // when nothing was pro-rated or no overtime was paid, which clears a
+                // stale basis on a payslip whose attendance was corrected to a full
+                // month.
+                $payslip->proration_divisor = $calculatedData['proration_divisor'] ?? null;
+                $payslip->proration_basis_days = $calculatedData['proration_basis_days'] ?? null;
+                $payslip->overtime_minutes = $calculatedData['overtime_minutes'] ?? null;
+                $payslip->overtime_hourly_rate = $calculatedData['overtime_hourly_rate'] ?? null;
+                $payslip->overtime_multiplier = $calculatedData['overtime_multiplier'] ?? null;
             }
         };
 

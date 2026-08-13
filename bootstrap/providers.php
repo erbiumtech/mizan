@@ -2,16 +2,23 @@
 
 use App\Modules\Accounting\AccountingServiceProvider;
 use App\Modules\Advances\AdvancesServiceProvider;
+use App\Modules\Attendance\AttendanceServiceProvider;
 use App\Modules\Billing\BillingServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
+use App\Modules\Crm\CrmServiceProvider;
 use App\Modules\Employees\EmployeesServiceProvider;
 use App\Modules\Expenses\ExpensesServiceProvider;
 use App\Modules\Inventory\InventoryServiceProvider;
 use App\Modules\Invoicing\InvoicingServiceProvider;
+use App\Modules\Leave\LeaveServiceProvider;
+use App\Modules\Lifecycle\LifecycleServiceProvider;
 use App\Modules\Mpr\MprServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
+use App\Modules\Performance\PerformanceServiceProvider;
 use App\Modules\PersonalFinance\PersonalFinanceServiceProvider;
 use App\Modules\Projects\ProjectsServiceProvider;
+use App\Modules\Recruitment\RecruitmentServiceProvider;
+use App\Modules\Timesheets\TimesheetsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\PlatformPanelProvider;
@@ -29,6 +36,13 @@ return [
     MprServiceProvider::class,
     EmployeesServiceProvider::class,
     ExpensesServiceProvider::class,
+    LeaveServiceProvider::class,
+    AttendanceServiceProvider::class,
+    TimesheetsServiceProvider::class,
+    LifecycleServiceProvider::class,
+    RecruitmentServiceProvider::class,
+    PerformanceServiceProvider::class,
+    CrmServiceProvider::class,
     PayrollServiceProvider::class,
     ProjectsServiceProvider::class,
     AccountingServiceProvider::class,

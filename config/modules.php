@@ -67,6 +67,34 @@ return [
         'plugin' => \App\Modules\Payroll\PayrollPlugin::class,
     ],
 
+    // Requires Employees and nothing else. Payroll is deliberately NOT declared:
+    // leave is worth having for the register, the balances and the approvals on
+    // their own, and the company running this in production docks nothing for
+    // unpaid absence today. The payroll join — pro-rating pay on lop_days — is a
+    // later phase, guarded at its call site rather than declared here, so leave
+    // stays sellable to a company that runs no payroll at all.
+    // See docs/hrms-plan.md §2 and §5.
+    'leave' => [
+        'label' => 'Leave',
+        'description' => 'Leave types, entitlements, requests, per-day records and computed balances.',
+        'requires' => ['employees'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Leave\LeavePlugin::class,
+    ],
+
+    // Requires Employees, and guarded on `leave` and `payroll` rather than
+    // requiring them: attendance is worth having for the register alone, and the
+    // company running this in production docks nothing for absence today. A factory
+    // wants attendance and no timesheets; a software house wants the reverse — which
+    // is the licensing fact that made this a module rather than part of one HRMS.
+    'attendance' => [
+        'label' => 'Attendance',
+        'description' => 'Work patterns, daily attendance, overtime recorded, and corrections an employee can ask for.',
+        'requires' => ['employees'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Attendance\AttendancePlugin::class,
+    ],
+
     'accounting' => [
         'label' => 'Accounting',
         'description' => 'Chart of accounts, journal entries, payments, banks, fixed assets, petty cash and financial reports.',
@@ -108,6 +136,79 @@ return [
         'requires' => ['employees'],
         'licensed_by_default' => false,
         'plugin' => \App\Modules\Projects\ProjectsPlugin::class,
+    ],
+
+    // Requires Employees and Projects, genuinely: time booked against no project is
+    // attendance, which is a different module. Guarded on `billing` and `invoicing`
+    // for the hours-based invoice line — Billing asks for those lines through the
+    // container behind a licence check, so the dependency points the way the licence
+    // does and Billing stays sellable without this.
+    //
+    // Not for a factory: time against a project only means anything where the project
+    // is the billable unit. That, and attendance not being for a software house, is
+    // the licensing fact that made these separate modules rather than one HRMS.
+    'timesheets' => [
+        'label' => 'Timesheets',
+        'description' => 'Time booked against projects, billable or not, and the hours-based invoice line.',
+        'requires' => ['employees', 'projects'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Timesheets\TimesheetsPlugin::class,
+    ],
+
+    // Requires Employees. Guarded on `payroll`, `leave` and `accounting`: the final
+    // settlement reads encashable leave and an advance balance when those exist, and
+    // links issued kit to the fixed-asset register when the books are kept here. Each
+    // one missing makes the settlement a smaller document, not a broken one.
+    'lifecycle' => [
+        'label' => 'Joining & Leaving',
+        'description' => 'Onboarding and exit checklists, documents that expire, issued assets, and the final settlement.',
+        'requires' => ['employees'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Lifecycle\LifecyclePlugin::class,
+    ],
+
+    // Requires NOTHING, deliberately: an applicant is not an employee, and a company
+    // hiring its first person has no `employees` licence yet. The CONVERSION is the
+    // guarded part — the Hire action is absent without `employees`, and the salary
+    // package is skipped without `payroll`.
+    'recruitment' => [
+        'label' => 'Recruitment',
+        'description' => 'Vacancies, applicants, applications, interviews, offers, and the hire that creates an employee.',
+        'requires' => [],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Recruitment\RecruitmentPlugin::class,
+    ],
+
+    // Requires Employees. Guarded on `mpr`, which is the whole of the integration: a
+    // review cycle READS the monthly progress reports in its period as evidence rather
+    // than asking somebody to write the same thing twice. Guarded on `payroll` for the
+    // suggested increment, which is a suggestion and writes nothing.
+    'performance' => [
+        'label' => 'Performance',
+        'description' => 'Review cycles, goals, ratings and one-to-ones. Ratings never touch pay.',
+        'requires' => ['employees'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Performance\PerformancePlugin::class,
+    ],
+
+    // Requires NOTHING, and that is the plan's one architectural decision
+    // (docs/crms-plan.md §1). A prospect is not a contact you can invoice, so CRM
+    // owns its own `leads` table and must be sellable to a company that has bought
+    // neither Invoicing nor Accounting — a bookkeeping practice still has clients it
+    // is pitching to.
+    //
+    // Two soft couplings, both guarded at the call site and recorded in
+    // ModuleBoundaryTest::KNOWN_COUPLINGS rather than declared here:
+    //   - `invoicing` — converting a lead creates a Contact. Absent without it.
+    //   - `employees` — a lead's owner is an employee, so EmployeeAccess scoping
+    //     applies unchanged. Without it, ownership falls back to who created the row.
+    // The precedent for guarding rather than requiring is invoicing -> projects.
+    'crm' => [
+        'label' => 'CRM',
+        'description' => 'Leads, their sources and owners, and conversion into a customer.',
+        'requires' => [],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Crm\CrmPlugin::class,
     ],
 
     // MPR keys on user_id rather than employee_id, so it does not actually need

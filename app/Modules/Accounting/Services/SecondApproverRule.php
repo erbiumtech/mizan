@@ -2,7 +2,7 @@
 
 namespace App\Modules\Accounting\Services;
 
-use App\Support\TenantSettings;
+use App\Support\SelfApprovalPolicy;
 
 /**
  * Whether a journal entry needs a second person to approve it, per company.
@@ -38,34 +38,19 @@ use App\Support\TenantSettings;
  * narrower question: whether PAYROLL entries skip the queue. This one decides
  * whether the queue can be cleared by one person at all, and it applies to
  * every entry — manual, scheduled, or a loan instalment.
+ *
+ * The mechanics — read the tenant setting, fall back to the env default, save a
+ * company's answer — now live in App\Support\SelfApprovalPolicy, extracted when
+ * `leave` became the second thing asking the same question. Everything public
+ * about this class is unchanged, including SETTING_KEY, because the reasoning
+ * above is Accounting's and only the plumbing was shared.
  */
-class SecondApproverRule
+class SecondApproverRule extends SelfApprovalPolicy
 {
     public const SETTING_KEY = 'accounting.require_second_approver';
 
-    /** True when an entry must be approved by somebody other than its author. */
-    public function isRequired(): bool
+    public function settingKey(): string
     {
-        return (bool) setting(self::SETTING_KEY);
-    }
-
-    /** The mirror image, for call sites that read better in the positive. */
-    public function allowsSelfApproval(): bool
-    {
-        return ! $this->isRequired();
-    }
-
-    public function set(bool $required): void
-    {
-        app(TenantSettings::class)->set(self::SETTING_KEY, $required);
-    }
-
-    /**
-     * What a company falls back to when it has never chosen — the installation
-     * default, from ACCOUNTING_REQUIRE_SECOND_APPROVER in .env.
-     */
-    public function default(): bool
-    {
-        return (bool) config(self::SETTING_KEY);
+        return self::SETTING_KEY;
     }
 }

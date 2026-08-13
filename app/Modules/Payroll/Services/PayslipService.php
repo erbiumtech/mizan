@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Services;
 
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\Payslip;
@@ -95,11 +96,35 @@ class PayslipService
 
     /**
      * Calculate payslip data based on employee settings for a specific month and fiscal year using date ranges.
+     *
+     * ── `$attendance`: the phase 3 and 3a join ──────────────────────────────────
+     *
+     * ONE new input rather than seven, carrying what the payslip knows about the
+     * month. Seven positional parameters on a method that already has eleven would be
+     * seven chances to pass them in the wrong order, and the failure would be a wrong
+     * payslip rather than a type error.
+     *
+     * Keys, all optional:
+     *   total_working_days, lop_days       — the pro-rating inputs
+     *   proration_divisor, proration_basis_days
+     *                                      — what a payslip ALREADY recorded. Present
+     *                                        means "reproduce this exactly", which is
+     *                                        what stops a settled month moving when the
+     *                                        company later changes the divisor.
+     *   overtime_minutes                   — what attendance recorded
+     *   overtime_hourly_rate, overtime_multiplier
+     *                                      — likewise already-recorded, same reason
+     *
+     * With `payroll.prorate_on_attendance` off — the default — every one of these is
+     * ignored and this method behaves exactly as it did before phase 3. That is what
+     * PayslipAttendanceProrationTest holds in place.
+     *
+     * @param  array<string, mixed>|null  $attendance
      */
     public function calculateByParams(
         $employeeId, $month, $fiscalYearId, $bonus = null, $extraWorkHours = null,
         $deviceAllowance = null, $petrolAllowance = null, $advances = null, $mealDeduction = null, $esiInsurance = null, $expenseReimbursement = null,
-        ?int $payslipId = null
+        ?int $payslipId = null, ?array $attendance = null
     ) {
         $fiscalYear = FiscalYear::find($fiscalYearId);
 
@@ -137,10 +162,84 @@ class PayslipService
                 : $this->expenseClaimsFor($employeeId, $payslipId),
         ];
 
+        // ── Phase 3a: overtime, before pro-rating ────────────────────────────────
+        //
+        // Before, because the two answer different questions and must not compound:
+        // pro-rating reduces the agreed package for days not worked, and overtime pays
+        // for hours worked *beyond* it. Scaling an overtime payment by the same factor
+        // would reduce pay for time somebody actually gave.
+        //
+        // Follows the pattern `advances` and `expense_reimbursement` already set: from
+        // the records when there are records, with an explicit amount still winning
+        // because a clerk overriding one month is a legitimate correction.
+        $overtime = $this->overtimeFor($employeeId, $month, $fiscalYear, $attendance);
+
+        if ($overtime && (float) $extraWorkHours <= 0) {
+            $data['extra_work_hours'] = $overtime['amount'];
+        }
+
+        $data['overtime_minutes'] = $overtime['minutes'] ?? null;
+        $data['overtime_hourly_rate'] = $overtime['hourly_rate'] ?? null;
+        $data['overtime_multiplier'] = $overtime['multiplier'] ?? null;
+
         // Allowances and deductions added as components rather than columns.
         $components = $this->componentTotals($setting);
         $data['component_earnings'] = $components['earnings'];
         $data['component_deductions'] = $components['deductions'];
+
+        // ── Phase 3: pro-rating ──────────────────────────────────────────────────
+        //
+        // Applied HERE, on the component amounts, and never to the totals below.
+        //
+        // Scaling basic_wage, total_earnings and net_salary after the calculation is
+        // the obvious shortcut and it breaks the ledger: PayrollPostingService books
+        // debits from the earning figures and credits from the deductions and net
+        // payable, so scaling one side leaves the other where it was and payslip
+        // creation dies mid-run on "Entry is not balanced". That was measured by
+        // deliberately mutating Payslip::booted(); PayslipCalculationSeamTest exists
+        // to catch anybody who tries it again.
+        //
+        // Deductions are deliberately untouched. Tax follows the reduced gross of its
+        // own accord, because the annual projection below reads $data['total_earnings']
+        // — which is computed after this block from the already-scaled figures.
+        $basis = $this->prorationBasisFor($month, $fiscalYear, $attendance);
+
+        if ($basis) {
+            // **Only the basic wage, of the fixed columns.** That is the conservative
+            // reading and a deliberate one: §5 says a fixed medical or device allowance
+            // often does NOT pro-rate, and those columns have no `prorates` flag to ask
+            // — so scaling them would be deciding on the company's behalf, in the
+            // direction that costs the employee.
+            //
+            // `bonus` and `extra_work_hours` are untouched for stronger reasons: a
+            // bonus is discretionary and already a decided amount, and overtime is
+            // time actually worked (scaling it would charge somebody for their own
+            // absence twice).
+            //
+            // A company that wants an allowance to scale moves it to a pay component
+            // and sets `prorates` — which is what "pay as data, not columns" is for,
+            // and it is already how this application prefers allowances to be
+            // expressed.
+            $data['basic_wage'] = $basis->apply($data['basic_wage']);
+
+            // Only the components a company said should scale. `prorates` defaults
+            // false, so an existing allowance keeps paying in full until somebody
+            // decides otherwise.
+            $prorated = $this->prorateComponents($setting, $basis, $components);
+            $components['earnings'] = $prorated['earnings'];
+            $components['taxable_earnings'] = $prorated['taxable_earnings'];
+
+            $data['component_earnings'] = $components['earnings'];
+
+            $data['proration_divisor'] = $basis->divisor;
+            $data['proration_basis_days'] = $basis->basisDays;
+        } else {
+            // Null rather than absent, so a payslip that stops being pro-rated —
+            // because attendance was corrected to a full month — clears what it
+            // recorded rather than keeping a divisor it no longer used.
+            $data['proration_divisor'] = null;
+            $data['proration_basis_days'] = null;
+        }
 
         // What of this month's earnings is taxable. Only components can be
         // non-taxable, so this is the month's total less the untaxed part of them —
@@ -256,6 +355,160 @@ class PayslipService
         $data['net_salary'] = round($data['total_earnings'] + $data['expense_reimbursement'] - $data['total_deductions'], 2);
 
         return $data;
+    }
+
+    /**
+     * The pro-rating basis for this payslip, or null to pay the month in full.
+     *
+     * Prefers what the payslip ALREADY recorded over what the settings say today. That
+     * is the whole of §4.7's rule applied to the riskiest setting in the application:
+     * Payslip::booted() re-runs this calculation on every save — a clerk correcting a
+     * phone number re-saves the payslip — so reading today's divisor would restate last
+     * March the moment somebody changed it.
+     *
+     * @param  array<string, mixed>|null  $attendance
+     */
+    private function prorationBasisFor(string $month, ?FiscalYear $fiscalYear, ?array $attendance): ?ProrationBasis
+    {
+        if ($attendance === null) {
+            return null;
+        }
+
+        $proration = app(AttendanceProration::class);
+
+        // A payslip that already carries a divisor keeps it, whatever the setting now
+        // says — including when the setting has since been switched off. A month that
+        // was pro-rated when it was paid stays pro-rated in the record.
+        $recorded = $proration->recordedBasis(
+            $attendance['proration_divisor'] ?? null,
+            isset($attendance['proration_basis_days']) ? (float) $attendance['proration_basis_days'] : null,
+            isset($attendance['lop_days']) ? (float) $attendance['lop_days'] : null,
+        );
+
+        if ($recorded) {
+            return $recorded;
+        }
+
+        return $proration->basisFor(
+            isset($attendance['total_working_days']) ? (float) $attendance['total_working_days'] : null,
+            isset($attendance['lop_days']) ? (float) $attendance['lop_days'] : null,
+            $month,
+            $fiscalYear,
+        );
+    }
+
+    /**
+     * Scale the components that say they should scale, and leave the rest.
+     *
+     * Deductions are excluded outright: a deduction never pro-rates by attendance,
+     * because being away does not reduce what somebody owes.
+     *
+     * The taxable total is reduced alongside the gross, and that matters more than it
+     * looks — the annual projection below reads the taxable figure, so reducing the
+     * gross alone would leave somebody paying tax on money they were not paid.
+     *
+     * The query deliberately mirrors componentTotals() exactly, including the
+     * `is_column_backed` filter: a component counted there and missed here (or the
+     * reverse) would put the earnings total and its own parts out of step.
+     *
+     * @param  array{earnings: float, deductions: float, taxable_earnings: float}  $components
+     * @return array{earnings: float, taxable_earnings: float}
+     */
+    private function prorateComponents(?EmployeeSetting $setting, ProrationBasis $basis, array $components): array
+    {
+        $unchanged = [
+            'earnings' => $components['earnings'],
+            'taxable_earnings' => $components['taxable_earnings'],
+        ];
+
+        if (! $setting) {
+            return $unchanged;
+        }
+
+        $prorating = EmployeeSettingComponent::with('component')
+            ->where('employee_setting_id', $setting->getKey())
+            ->get()
+            ->filter(fn (EmployeeSettingComponent $row): bool => $row->component
+                && $row->component->is_active
+                && ! $row->component->is_column_backed
+                && $row->component->isEarning()
+                && $row->component->prorates);
+
+        if ($prorating->isEmpty()) {
+            return $unchanged;
+        }
+
+        // Reductions are computed and subtracted rather than the totals being rebuilt,
+        // so a component this method does not recognise cannot silently fall out of
+        // the sum.
+        $reduction = 0.0;
+        $taxableReduction = 0.0;
+
+        foreach ($prorating as $row) {
+            $amount = round((float) $row->amount, 2);
+            $lost = round($amount - $basis->apply($amount), 2);
+
+            $reduction += $lost;
+
+            if ($row->component->is_taxable) {
+                $taxableReduction += $lost;
+            }
+        }
+
+        return [
+            'earnings' => round($components['earnings'] - $reduction, 2),
+            'taxable_earnings' => round($components['taxable_earnings'] - $taxableReduction, 2),
+        ];
+    }
+
+    /**
+     * The month's overtime, as an amount plus the terms that produced it.
+     *
+     * Prefers an already-recorded rate and multiplier, for the same reason the divisor
+     * does: a rate recomputed next year against a changed package or a changed work
+     * pattern would restate a settled month.
+     *
+     * @param  array<string, mixed>|null  $attendance
+     * @return array{amount: float, minutes: int, hourly_rate: float, multiplier: float}|null
+     */
+    private function overtimeFor($employeeId, string $month, ?FiscalYear $fiscalYear, ?array $attendance): ?array
+    {
+        if ($attendance === null || ! $fiscalYear || ! setting('payroll.pay_overtime')) {
+            return null;
+        }
+
+        $minutes = (int) ($attendance['overtime_minutes'] ?? 0);
+
+        if ($minutes <= 0) {
+            return null;
+        }
+
+        $recordedRate = isset($attendance['overtime_hourly_rate']) ? (float) $attendance['overtime_hourly_rate'] : null;
+        $recordedMultiplier = isset($attendance['overtime_multiplier']) ? (float) $attendance['overtime_multiplier'] : null;
+
+        if ($recordedRate !== null && $recordedRate > 0 && $recordedMultiplier !== null) {
+            return [
+                'amount' => round($recordedRate * $recordedMultiplier * ($minutes / 60), 2),
+                'minutes' => $minutes,
+                'hourly_rate' => $recordedRate,
+                'multiplier' => $recordedMultiplier,
+            ];
+        }
+
+        $employee = Employee::find($employeeId);
+
+        if (! $employee) {
+            return null;
+        }
+
+        $pay = app(OvertimeRate::class)->amountFor($employee, $month, $fiscalYear, $minutes);
+
+        return $pay ? [
+            'amount' => $pay->amount,
+            'minutes' => $pay->minutes,
+            'hourly_rate' => $pay->hourlyRate,
+            'multiplier' => $pay->multiplier,
+        ] : null;
     }
 
     /**

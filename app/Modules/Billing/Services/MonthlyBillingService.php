@@ -132,21 +132,27 @@ class MonthlyBillingService
     public function breakdown(BillingRun $run): array
     {
         $salaries = $this->salaryLines($run);
+        $hours = $this->hoursLines($run);
         $expenses = $this->expenseLines($run);
         $credits = $this->creditLines($run);
 
         $salaryTotal = $this->sum($salaries);
+        $hoursTotal = $this->sum($hours);
         $expenseTotal = $this->sum($expenses);
         $creditTotal = $this->sum($credits);
 
         return [
             'salaries' => $salaries,
+            // Empty for every company without `timesheets`, which is what keeps a
+            // headcount-billed client's invoice byte-identical to before phase 4.
+            'hours' => $hours,
             'expenses' => $expenses,
             'credits' => $credits,
             'salary_total' => $salaryTotal,
+            'hours_total' => $hoursTotal,
             'expense_total' => $expenseTotal,
             'credit_total' => $creditTotal,
-            'subtotal' => round($salaryTotal + $expenseTotal + $creditTotal, 2),
+            'subtotal' => round($salaryTotal + $hoursTotal + $expenseTotal + $creditTotal, 2),
         ];
     }
 
@@ -166,7 +172,12 @@ class MonthlyBillingService
         }
 
         $breakdown = $this->breakdown($run);
-        $lines = array_merge($breakdown['salaries'], $breakdown['expenses'], $breakdown['credits']);
+        $lines = array_merge(
+            $breakdown['salaries'],
+            $breakdown['hours'] ?? [],
+            $breakdown['expenses'],
+            $breakdown['credits'],
+        );
 
         if ($lines === []) {
             throw new InvalidArgumentException(
@@ -208,6 +219,14 @@ class MonthlyBillingService
 
             $run->update(['invoice_id' => $invoice->id]);
 
+            // Locked here, inside the transaction that writes the invoice, and nowhere
+            // else. Previewing a breakdown must never burn the hours — a clerk looking
+            // at next month's figures would otherwise find them gone. Guarded, so a
+            // company without Timesheets does nothing.
+            if (modules()->enabled('timesheets')) {
+                app(\App\Modules\Timesheets\Services\BillableHours::class)->lockFor($run);
+            }
+
             return $invoice->refresh();
         });
     }
@@ -219,6 +238,33 @@ class MonthlyBillingService
      *
      * @return array<int, array{description: string, amount: float}>
      */
+    /**
+     * Time-and-materials lines: hours × rate, per employee per project.
+     *
+     * Guarded on `timesheets`, and empty without it — which is why a headcount-billed
+     * client is completely unaffected by this module existing. docs/hrms-plan.md §4.3
+     * is explicit that Billing requires Timesheets *for this line type only*.
+     *
+     * Two refusals rather than a guess:
+     *
+     *  - **Time with no rate is not billed, and says so.** A made-up rate produces an
+     *    invoice that looks right and charges the wrong amount. The line is skipped and
+     *    named in `unpriced` so somebody sees forty hours did not make it.
+     *  - **Entries are locked only when the invoice is actually built**, not when the
+     *    breakdown is previewed, or a clerk looking at next month's figures would burn
+     *    the hours.
+     *
+     * @return array<int, array{description: string, amount: float}>
+     */
+    protected function hoursLines(BillingRun $run): array
+    {
+        if (! modules()->enabled('timesheets')) {
+            return [];
+        }
+
+        return app(\App\Modules\Timesheets\Services\BillableHours::class)->linesFor($run);
+    }
+
     protected function salaryLines(BillingRun $run): array
     {
         return $this->billablePayslips($run)->map(fn (Payslip $payslip): array => [

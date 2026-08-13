@@ -36,6 +36,11 @@ return [
         'meal_recovery' => '5600',
         'tax_payable' => '2100',
         'esi_payable' => '2200',
+        // Phase 9. One account per scheme, because each files its own monthly return and
+        // a shared account cannot be reconciled against any of them.
+        'eobi_payable' => '2210',
+        'social_security_payable' => '2220',
+        'provident_fund_payable' => '2230',
         'salaries_payable' => '2300',
         'employee_advances' => '1200',
     ],

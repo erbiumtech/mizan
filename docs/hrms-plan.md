@@ -1,8 +1,29 @@
 # HRMS: plan
 
-> **Not built.** Research and design only. Mechanics common to any new module are
-> in `docs/new-module-checklist.md` and not repeated here; this document decides
-> *what* the HR modules are, what they own, and what they must not do.
+> **BUILT — every phase, 0 through 9.** Six modules (`leave`, `attendance`,
+> `timesheets`, `lifecycle`, `recruitment`, `performance`), the payroll join, and
+> the statutory schemes. Roughly 105 feature tests across `LeaveTest`,
+> `AttendanceTest`, `PayslipAttendanceProrationTest`, `TimesheetTest`,
+> `LifecycleTest`, `RecruitmentAndPerformanceTest` and
+> `StatutoryContributionsTest`; full suite 1748 passing.
+>
+> **Nothing changes an existing payslip.** Every pay-affecting switch ships OFF —
+> `payroll.prorate_on_attendance`, `payroll.pay_overtime`,
+> `statutory.provident_fund.enabled` — and the statutory figures are computed for a
+> person to enter rather than applied. A company that upgrades and touches no
+> setting is paid exactly as before, which is what
+> `PayslipAttendanceProrationTest` and `PayslipCalculationSeamTest` assert
+> together.
+>
+> Three deliberate narrowings from what is written below, each argued at its call
+> site: only `basic_wage` pro-rates among the fixed columns (§5); overtime money
+> goes into `extra_work_hours`, which was already a rupee amount (§4.2); and
+> `leave.weekend_days` survives as the fallback for a company without `attendance`
+> rather than being removed (§3).
+>
+> Mechanics common to any new module are in `docs/new-module-checklist.md` and not
+> repeated here; this document decides *what* the HR modules are, what they own,
+> and what they must not do.
 
 Two findings shape everything below, and both were surprises:
 
@@ -258,6 +279,32 @@ leave_requests         id, employee_id, leave_type_id, from_date, to_date, days,
                        cancelled_at, cancelled_by
 leave_days             id, leave_request_id, date, portion, is_paid   -- one row per calendar day taken
 ```
+
+**Built.** `App\Modules\Leave`, with the schema below as specified. Four decisions
+the plan left to implementation, recorded because each one is load-bearing:
+
+- **`leave_days.is_paid` is copied from the type at generation**, not read through
+  the relation. A type's `is_paid` may be corrected later, and a day already taken
+  must keep the character it had when it was settled — the same reason §5 records
+  the proration divisor on the payslip.
+- **The generation inputs are stamped.** `leave_requests.sandwich_rule_applied`
+  records whether the rule was on, so two identical Friday-plus-Monday requests six
+  months apart consuming 2 and 4 days reads as a policy change rather than a bug.
+  §3's open question about a calendar version is answered in the `leave_days`
+  migration: accepted and stated, because the days *consumed* are fully recorded and
+  a version column would only explain the absences.
+- **Weekends come from `leave.weekend_days`, and it is labelled a stopgap.** They
+  belong to work patterns, which `attendance` owns and which do not exist yet —
+  `HolidayCalendar` deliberately refuses to answer. The generator cannot avoid the
+  question, so it asks a setting; the key goes away when work patterns land.
+- **Pending days are read from `leave_requests.days`, not from `leave_days`**, because
+  a pending request has no day rows — they are generated once, at approval. Summing
+  day rows for pending leave silently returns zero, which is how it was found.
+
+The date columns needed `App\Models\Concerns\StoresPlainDates`: Eloquent's `date`
+cast writes `Y-m-d H:i:s`, which MySQL truncates and SQLite keeps, so `firstOrNew`
+on a leave-year start matched nothing and the idempotent year-open hit its own unique
+key. The precedent was already here in `EmployeeJobHistory::setEffectiveFromAttribute()`.
 
 **`leave_days` is the point of the design.** A request stores its range; the days
 it actually consumed are rows, because a request spanning a weekend and a public
@@ -918,18 +965,18 @@ join last within each phase, because it is the only part that moves money.
 
 | Phase | Work | Risk |
 |---|---|---|
-| **0** | `holidays` in Core; `left_on` + `leaving_reason` and **`employee_job_history`** on `employees` (§3); `docs/new-module-checklist.md` walked once end to end | none |
-| **1** | `leave`: types, entitlements, **adjustments as rows**, requests, `leave_days` **including the sandwich branch, shipped off**, computed balances, the year-end reset with carry-forward behind its setting, approval with the self-approval setting, employee self-service | low |
-| **2** | `attendance`: work patterns, daily rows, CSV import, `not_marked` handling, **regularization requests**, pruning | low |
-| **2a** | Compensatory off: the accrual method and its expiry, on top of phase 2's approved attendance | low |
-| **3** *(off the critical path — see below)* | **The payroll join** — `payroll.prorate_on_attendance`, `pay_components.prorates`, divisor setting, off for existing companies | **high — money** |
-| **3a** | **Overtime reaches pay** — the derived hourly rate recorded on the payslip, `attendance.overtime_multiplier`, and caps that warn (§4.2). Independent of phase 3: overtime *adds* pay where pro-rating *removes* it, so neither blocks the other | **high — money** |
-| **4** | `timesheets` + the hours-based billing line | medium |
-| **5** | `lifecycle`: checklists, documents with expiry, issued assets | low |
-| **6** | Final settlement (needs 1, 5 and `advances`; leave encashment needs 1, not 3) | medium — money |
-| **7** | `recruitment` incl. hire conversion and applicant retention | low |
-| **8** | `performance`, reading MPR | low |
-| **9** | Statutory schemes: EOBI, social security, PF, gratuity provision | **high — money and law** |
+| **0** | **BUILT.** `holidays` in Core; `left_on` + `leaving_reason` and **`employee_job_history`** on `employees` (§3); `docs/new-module-checklist.md` walked once end to end | none |
+| **1** | **BUILT.** `leave`: types, entitlements, **adjustments as rows**, requests, `leave_days` **including the sandwich branch, shipped off**, computed balances, the year-end roll with carry-forward behind its setting, approval with the self-approval setting, employee self-service | low |
+| **2** | **BUILT.** `attendance`: work patterns, daily rows, CSV import with a real dry run, `not_marked` handling, **regularization requests**, pruning | low |
+| **2a** | **BUILT.** Compensatory off: recomputed daily from qualifying attendance inside the expiry window, so it is idempotent and expires without anybody touching it | low |
+| **3** *(off the critical path — see below)* | **BUILT, shipped OFF.** The payroll join — `payroll.prorate_on_attendance`, `pay_components.prorates`, the divisor recorded on each payslip | **high — money** |
+| **3a** | **BUILT, shipped OFF.** Overtime reaches pay — the derived hourly rate and multiplier recorded on the payslip, caps that warn. Independent of phase 3, and not scaled by it: overtime *adds* pay where pro-rating *removes* it | **high — money** |
+| **4** | **BUILT.** `timesheets` + the hours-based billing line. Time with no rate is named and not billed, never billed at a guess | medium |
+| **5** | **BUILT.** `lifecycle`: checklists (items copied, not joined), documents warning once per threshold, issued assets | low |
+| **6** | **BUILT.** Final settlement — a proposal that posts nothing; paying goes through the existing payslip or payment path | medium — money |
+| **7** | **BUILT.** `recruitment` incl. the all-or-nothing hire conversion and applicant pruning that deletes the CV with the row | low |
+| **8** | **BUILT.** `performance`, reading MPR as evidence. Ratings reach no payslip; the increment is a suggestion | low |
+| **9** | **BUILT.** Statutory schemes: EOBI (on the minimum wage, not on pay), provincial social security with its ceiling, PF off by default, gratuity at settlement, minimum wage as a warning. Figures computed for a person to enter — nothing applied | **high — money and law** |
 
 Phases 1, 2, 4, 5, 7 and 8 are independent of each other and can ship in any
 order. 6, 9 and **3a** need a payroll month run in parallel against the old
@@ -1052,11 +1099,10 @@ Beyond the eight `Module*` tests every module must satisfy:
   (`PayslipAttendanceProrationTest`, `PayslipCalculationSeamTest`) — **10 tests,
   110 assertions, verified passing**.
 
-  **They are untracked in git.** The files exist and pass; `git status` shows
-  both as `??`. So this plan rests on a guard that is on one machine and in no
-  repository, which is the same thing as not having it — a clean checkout runs
-  neither. Commit them or delete them; leaving them is the one thing that
-  cannot be right.
+  ~~**They are untracked in git.**~~ **Settled** — both were committed in
+  `b6b78b7`, so a clean checkout runs them. The warning is kept because the
+  reasoning still applies to the next guard somebody writes: a characterisation
+  test that exists only on one machine is the same thing as not having it.
 - ~~**`leaves_taken` vs `lop_days` overlap.**~~ **Settled** — the company in
   production asked for the ordinary convention, so that is what these mean from
   here on:

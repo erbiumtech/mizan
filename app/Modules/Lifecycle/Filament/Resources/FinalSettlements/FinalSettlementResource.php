@@ -1,0 +1,197 @@
+<?php
+
+namespace App\Modules\Lifecycle\Filament\Resources\FinalSettlements;
+
+use App\Filament\Concerns\BelongsToModule;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Lifecycle\Filament\Resources\FinalSettlements\Pages\ListFinalSettlements;
+use App\Modules\Lifecycle\Models\FinalSettlement;
+use App\Modules\Lifecycle\Services\FinalSettlementBuilder;
+use App\Support\LandlordUserColumn;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use InvalidArgumentException;
+use UnitEnum;
+
+/**
+ * What somebody is owed, or owes, on leaving.
+ *
+ * **A proposal, not a posting.** Nothing on this screen writes to the ledger. Approving
+ * records that a figure was agreed; paying it goes through the existing payslip or
+ * payment path, which posts correctly. A second money path with its own journal entries
+ * is how a ledger stops reconciling — docs/hrms-plan.md §4.6.
+ */
+class FinalSettlementResource extends Resource
+{
+    use BelongsToModule;
+
+    protected static ?string $model = FinalSettlement::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Employee';
+
+    protected static ?string $modelLabel = 'Final settlement';
+
+    protected static ?int $navigationSort = 63;
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make('Who, and when')
+                ->schema([
+                    Select::make('employee_id')
+                        ->label('Employee')
+                        ->options(fn (): array => Employee::query()
+                            ->orderBy('employee_id')
+                            ->get()
+                            ->mapWithKeys(fn (Employee $e): array => [$e->id => $e->display_label])
+                            ->all())
+                        ->searchable()
+                        ->required()
+                        ->disabledOn('edit'),
+
+                    DatePicker::make('left_on')->native(false)->required(),
+                ])
+                ->columns(2),
+
+            Section::make('Owed to them')
+                ->schema([
+                    TextInput::make('leave_encashment_days')->label('Encashable leave (days)')->numeric()->step(0.5)->default(0),
+                    TextInput::make('leave_encashment_amount')->label('Leave encashment')->numeric()->default(0),
+                    TextInput::make('gratuity_amount')
+                        ->label('Gratuity')
+                        ->numeric()
+                        ->default(0)
+                        ->helperText('One month per completed year as shipped — a convention, not a statement of law. Confirm what applies where you operate.'),
+                ])
+                ->columns(3),
+
+            Section::make('Owed back')
+                ->schema([
+                    TextInput::make('outstanding_advance')->label('Unrecovered advance')->numeric()->default(0),
+                    TextInput::make('unreturned_asset_value')->label('Unreturned kit')->numeric()->default(0),
+                    TextInput::make('notice_recovery')
+                        ->label('Notice not served')
+                        ->numeric()
+                        ->default(0)
+                        ->helperText('Never computed for you: whether notice was served, and what to do about it, is a judgement somebody makes.'),
+                    TextInput::make('other_deductions')->numeric()->default(0),
+                ])
+                ->columns(2),
+
+            Textarea::make('notes')->rows(3)->columnSpanFull(),
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('employee.display_label')
+                    ->label('Employee')
+                    ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
+                    ->sortable(),
+
+                TextColumn::make('left_on')->label('Left')->date('d M Y')->sortable(),
+
+                TextColumn::make('leave_encashment_amount')->label('Leave')->money('PKR')->alignEnd()->toggleable(),
+                TextColumn::make('gratuity_amount')->label('Gratuity')->money('PKR')->alignEnd()->toggleable(),
+                TextColumn::make('outstanding_advance')->label('Advance')->money('PKR')->alignEnd()->toggleable(),
+                TextColumn::make('unreturned_asset_value')->label('Kit')->money('PKR')->alignEnd()->toggleable(),
+
+                TextColumn::make('net_amount')
+                    ->label('Net')
+                    ->money('PKR')
+                    ->alignEnd()
+                    ->weight('bold')
+                    // A settlement can legitimately be negative: somebody leaving with an
+                    // unrecovered advance and an unreturned laptop may owe the company.
+                    // Shown as it falls rather than clamped, because clamping quietly
+                    // writes off a debt nobody decided to write off.
+                    ->color(fn (FinalSettlement $record): string => $record->isOwedToCompany() ? 'danger' : 'success')
+                    ->description(fn (FinalSettlement $record): ?string => $record->isOwedToCompany()
+                        ? 'owed to the company'
+                        : null),
+
+                TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        FinalSettlement::STATUS_DRAFT => 'warning',
+                        FinalSettlement::STATUS_APPROVED => 'info',
+                        default => 'success',
+                    })
+                    ->sortable(),
+            ])
+            ->defaultSort('left_on', 'desc')
+            ->filters([
+                SelectFilter::make('status')->options([
+                    FinalSettlement::STATUS_DRAFT => 'Draft',
+                    FinalSettlement::STATUS_APPROVED => 'Approved',
+                    FinalSettlement::STATUS_PAID => 'Paid',
+                ]),
+            ])
+            ->recordActions([
+                Action::make('rebuild')
+                    ->label('Recalculate')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('Gathers the figures again from leave, advances and the asset register. Only while this is a draft.')
+                    ->visible(fn (FinalSettlement $record): bool => $record->isDraft()
+                        && (auth()->user()?->can('update', $record) ?? false))
+                    ->action(function (FinalSettlement $record): void {
+                        try {
+                            app(FinalSettlementBuilder::class)->build($record->employee, $record->left_on);
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title('Recalculated from the current records.')->send();
+                    }),
+
+                Action::make('approve')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalDescription('Approving records that this figure was agreed. It does NOT pay anything and posts nothing to the ledger — pay it through a payslip or a payment as usual.')
+                    ->visible(fn (FinalSettlement $record): bool => auth()->user()?->can('approve', $record) ?? false)
+                    ->action(function (FinalSettlement $record): void {
+                        $record->update([
+                            'status' => FinalSettlement::STATUS_APPROVED,
+                            'approved_by' => auth()->id(),
+                            'approved_at' => now(),
+                            'net_amount' => $record->computedNet(),
+                        ]);
+
+                        Notification::make()->success()
+                            ->title('Approved. Pay it through a payslip or a payment — nothing has been posted.')
+                            ->send();
+                    }),
+
+                \Filament\Actions\EditAction::make(),
+            ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListFinalSettlements::route('/'),
+        ];
+    }
+}
