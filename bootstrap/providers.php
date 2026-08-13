@@ -4,6 +4,7 @@ use App\Modules\Accounting\AccountingServiceProvider;
 use App\Modules\Advances\AdvancesServiceProvider;
 use App\Modules\Attendance\AttendanceServiceProvider;
 use App\Modules\Billing\BillingServiceProvider;
+use App\Modules\Campaigns\CampaignsServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Crm\CrmServiceProvider;
 use App\Modules\Employees\EmployeesServiceProvider;
@@ -17,7 +18,9 @@ use App\Modules\Payroll\PayrollServiceProvider;
 use App\Modules\Performance\PerformanceServiceProvider;
 use App\Modules\PersonalFinance\PersonalFinanceServiceProvider;
 use App\Modules\Projects\ProjectsServiceProvider;
+use App\Modules\Quotations\QuotationsServiceProvider;
 use App\Modules\Recruitment\RecruitmentServiceProvider;
+use App\Modules\Support\SupportServiceProvider;
 use App\Modules\Timesheets\TimesheetsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
@@ -43,6 +46,9 @@ return [
     RecruitmentServiceProvider::class,
     PerformanceServiceProvider::class,
     CrmServiceProvider::class,
+    QuotationsServiceProvider::class,
+    SupportServiceProvider::class,
+    CampaignsServiceProvider::class,
     PayrollServiceProvider::class,
     ProjectsServiceProvider::class,
     AccountingServiceProvider::class,

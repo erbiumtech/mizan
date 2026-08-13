@@ -211,6 +211,42 @@ return [
         'plugin' => \App\Modules\Crm\CrmPlugin::class,
     ],
 
+    // Requires `invoicing`, and GENUINELY so rather than for tidiness: §2 — a quote whose
+    // whole point is becoming an invoice, and which can never convert, is a PDF generator.
+    // Guarded on `inventory` for product lines and on `crm` for a quote raised from a deal.
+    'quotations' => [
+        'label' => 'Quotations',
+        'description' => 'Quotes with supersession versioning, validity, and conversion into a draft invoice.',
+        'requires' => ['invoicing'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Quotations\QuotationsPlugin::class,
+    ],
+
+    // Requires nothing: a company can run a helpdesk without invoicing anybody through this
+    // application. Guarded on `invoicing` for the customer, `projects` for the engagement and
+    // `employees` for the assignee — each absent rather than broken.
+    'support' => [
+        'label' => 'Support',
+        'description' => 'Tickets, categories with SLA clocks that are measured rather than enforced, and internal replies.',
+        'requires' => [],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Support\SupportPlugin::class,
+    ],
+
+    // Requires `crm`: a campaign with no leads or customers to send to has no audience.
+    //
+    // **The only module here that can damage the company's reputation** — §6 puts it last for
+    // that reason. Consent is a row and every send checks it; WhatsApp sends approved templates
+    // only, because Meta's API refuses free text outside a service window and repeated attempts
+    // risk the number.
+    'campaigns' => [
+        'label' => 'Campaigns',
+        'description' => 'Segments, campaigns and consent as a record. WhatsApp is template-gated.',
+        'requires' => ['crm'],
+        'licensed_by_default' => false,
+        'plugin' => \App\Modules\Campaigns\CampaignsPlugin::class,
+    ],
+
     // MPR keys on user_id rather than employee_id, so it does not actually need
     // the Employees module — the dependency in the module map is presentational,
     // not structural, and is deliberately not declared here.
