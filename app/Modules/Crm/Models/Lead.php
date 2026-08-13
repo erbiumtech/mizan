@@ -119,6 +119,28 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * The CRM timeline for this lead.
+     *
+     * `timeline()` rather than `activities()`: the Auditable trait already defines the latter
+     * as spatie's audit-trail relation, and reusing the name shadows it.
+     */
+    public function timeline(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(Activity::class, 'subject')->orderByDesc('occurred_at');
+    }
+
+    public function nextActions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(NextAction::class, 'subject');
+    }
+
+    /** Deals against this lead. New business lives here until the lead converts. */
+    public function opportunities(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Opportunity::class);
+    }
+
     /** Still worth somebody's time: not converted, not lost. */
     public function scopeOpen(Builder $query): Builder
     {

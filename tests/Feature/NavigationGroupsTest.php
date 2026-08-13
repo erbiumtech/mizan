@@ -232,6 +232,11 @@ class NavigationGroupsTest extends TestCase
         // separate conversation with its own cycle, and folding it in would put appraisal
         // ratings next to salary settings, which is the exact adjacency §4.5 spends its
         // length arguing against.
+        // `Support` is its own group rather than more of `Sales`, on the same reasoning that
+        // separates Sales from Invoicing: they are about different moments with the same people.
+        // Sales is winning the work; Support is what happens after it is delivered, and the
+        // people doing the two are usually not the same. Quotes and campaigns DO sit under
+        // Sales, because both are things you send while trying to win something.
         $this->assertSame([
             'Access Control',
             'Accounting',
@@ -242,6 +247,7 @@ class NavigationGroupsTest extends TestCase
             'Performance',
             'Sales',
             'Settings',
+            'Support',
         ], $labels);
     }
 

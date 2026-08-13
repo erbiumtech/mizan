@@ -75,6 +75,50 @@ class PermissionSeeder extends Seeder
             ['name' => 'LeadDelete', 'group' => 'Lead'],
             ['name' => 'LeadConvert', 'group' => 'Lead'],
 
+            // Quotes. Converting is separate: it starts something that, once issued and
+            // transmitted to FBR, cannot be freely undone after 72 hours.
+            ['name' => 'QuotationView', 'group' => 'Quotation'],
+            ['name' => 'QuotationCreate', 'group' => 'Quotation'],
+            ['name' => 'QuotationUpdate', 'group' => 'Quotation'],
+            ['name' => 'QuotationDelete', 'group' => 'Quotation'],
+            ['name' => 'QuotationConvert', 'group' => 'Quotation'],
+
+            // Tickets, their categories and their replies.
+            ['name' => 'TicketView', 'group' => 'Ticket'],
+            ['name' => 'TicketCreate', 'group' => 'Ticket'],
+            ['name' => 'TicketUpdate', 'group' => 'Ticket'],
+            ['name' => 'TicketDelete', 'group' => 'Ticket'],
+
+            // Campaigns. SENDING is separate from creating, because drafting a campaign is a
+            // writing task and sending it is irreversible and reaches people outside the
+            // company — on WhatsApp, one that can cost the company its number.
+            ['name' => 'CampaignView', 'group' => 'Campaign'],
+            ['name' => 'CampaignCreate', 'group' => 'Campaign'],
+            ['name' => 'CampaignUpdate', 'group' => 'Campaign'],
+            ['name' => 'CampaignDelete', 'group' => 'Campaign'],
+            ['name' => 'CampaignSend', 'group' => 'Campaign'],
+
+            // The pipeline family: a pipeline, its stages and the lost reasons are one
+            // piece of setup, so one group covers all three.
+            ['name' => 'PipelineView', 'group' => 'Pipeline'],
+            ['name' => 'PipelineCreate', 'group' => 'Pipeline'],
+            ['name' => 'PipelineUpdate', 'group' => 'Pipeline'],
+            ['name' => 'PipelineDelete', 'group' => 'Pipeline'],
+
+            // Deals, and the activities and next actions that hang off them — one group,
+            // because logging a call and moving a deal are the same job. Closing is
+            // separate: it is what targets are measured on and commission calculated from.
+            ['name' => 'OpportunityView', 'group' => 'Opportunity'],
+            ['name' => 'OpportunityCreate', 'group' => 'Opportunity'],
+            ['name' => 'OpportunityUpdate', 'group' => 'Opportunity'],
+            ['name' => 'OpportunityDelete', 'group' => 'Opportunity'],
+            ['name' => 'OpportunityClose', 'group' => 'Opportunity'],
+
+            // A salesperson works deals; they do not edit the number they are measured
+            // against, which is why this is not part of the Opportunity group.
+            ['name' => 'SalesTargetView', 'group' => 'SalesTarget'],
+            ['name' => 'SalesTargetUpdate', 'group' => 'SalesTarget'],
+
             ['name' => 'LeadSourceView', 'group' => 'LeadSource'],
             ['name' => 'LeadSourceCreate', 'group' => 'LeadSource'],
             ['name' => 'LeadSourceUpdate', 'group' => 'LeadSource'],

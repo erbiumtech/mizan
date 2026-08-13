@@ -115,7 +115,11 @@ class ModuleBoundaryTest extends TestCase
         // lead's owner is an employee and the field is not offered when employees is
         // off, with `leads.created_by` answering ownership instead. Same shape as
         // invoicing -> projects above.
-        'crm' => ['invoicing', 'employees'],
+        // `projects` joins the same set for phase 6's won-deal hand-off: a won deal may
+        // become a project, and `opportunities.project_id` names it. Guarded like the other
+        // two — the action is absent without the module, and the column simply stays empty,
+        // exactly as invoicing -> projects already works in the other direction.
+        'crm' => ['invoicing', 'employees', 'projects'],
         // Attendance -> Leave and Attendance -> Payroll are guarded, not declared.
         // A day covered by approved leave cannot be overwritten (AttendanceRecorder),
         // and a correction inside a locked payroll month is refused
@@ -153,6 +157,16 @@ class ModuleBoundaryTest extends TestCase
         // reports in its period rather than duplicating them — and -> Employees for the
         // reviewer. Both guarded; a cycle without MPR simply has no evidence attached.
         'performance' => ['mpr', 'employees'],
+        // Quotations -> CRM/Inventory are guarded: a quote may be raised from a deal or
+        // against a lead, and may carry product lines. Invoicing is a declared REQUIREMENT
+        // rather than a coupling — §2: a quote that can never convert is a PDF generator.
+        'quotations' => ['crm', 'inventory', 'invoicing'],
+        // Support requires nothing and reaches three modules for optional context: the
+        // customer, the engagement and the assignee. Each absent rather than broken.
+        'support' => ['invoicing', 'projects', 'employees'],
+        // Campaigns declares `crm` as a requirement (no audience without it) and reaches
+        // Invoicing for the contacts half of a segment, which is guarded.
+        'campaigns' => ['crm', 'invoicing'],
         'mpr' => ['employees'],
     ];
 
