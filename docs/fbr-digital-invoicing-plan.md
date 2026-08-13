@@ -67,10 +67,51 @@ The third row is the one to get right, and it is a refusal rather than a feature
 A `void` button that silently produces a locally-voided invoice FBR still
 considers live is worse than no button.
 
-**A credit note does not exist in this codebase.** `Invoice` has `KIND_SALE` and
+~~**A credit note does not exist in this codebase.** `Invoice` has `KIND_SALE` and
 `KIND_PURCHASE` and nothing negative. That is a real gap this creates, and it
 belongs to Invoicing rather than here — but it is a prerequisite, not a
-follow-up, because without it the "past 72 hours" row has no answer at all.
+follow-up, because without it the "past 72 hours" row has no answer at all.~~
+
+**Built.** `Invoice::KIND_CREDIT_NOTE`, `InvoiceService::creditNote()`,
+`InvoiceCreditNoteTest` (25 tests). The third row now has an answer, and the
+refusal in `assertFbrAllowsVoid()` names a button that exists.
+
+Four decisions inside it are worth knowing before reading the code, each argued
+at its call site:
+
+- **A third `kind`, not a negative sale invoice.** A negative total would be
+  numbered `INV-`, would be dropped by `postSystemEntry()`'s "greater than zero"
+  filter and fail the balance check with nothing to point at, and would misreport
+  the FBR document type. The credit note gets its own `CN-` series and the
+  mirrored posting (credit A/R, debit revenue, debit output tax).
+- **It creates a draft and stops**, exactly as quote → invoice conversion does,
+  and for the same reason: the act that transmits stays deliberate. A partial
+  credit is made by trimming the draft's lines, so `issue()` re-totals a credit
+  note from its lines.
+- **Its tax is never re-derived from the rate table.** `issue()` runs
+  `applyTaxes()` on every document except this one. A credit note carries the tax
+  that was actually charged and posted; re-deriving it would credit today's rate
+  against yesterday's posting and leave the tax account permanently out by the
+  difference. Same reasoning fixes the exchange rate: inherited from the invoice,
+  never re-fetched.
+- **No stock movement and no COGS reversal.** Crediting a customer and taking
+  goods back are different events. Assuming the goods returned would put quantity
+  into inventory that is not there and hand the valuation engine lots at a
+  made-up cost — wrong until somebody does a stock count.
+
+Two things it deliberately does not do. **A credit note is not paid** —
+`recordPayment()` refuses it rather than falling through to the purchase branch
+and relieving accounts payable; handing money back is a refund, a bank payment
+out with its own FX treatment, and guessing at that would produce an
+authoritative-looking wrong number. And **it is gated on `InvoiceVoid`** rather
+than a permission of its own, because past the window crediting *is* the void;
+splitting them would mean every existing role lost the ability until somebody
+re-seeded.
+
+Receivables were taught the sign in the same change — `aging()`,
+`OperationsOverview` and `FbrReconciliation::unreported()` — because a credit
+note added instead of subtracted overstates every receivable figure in the
+application by the credits outstanding.
 
 ### `issued` currently means two things it can no longer mean
 
@@ -197,7 +238,7 @@ see failing is worse than no submission.
 |---|---|---|---|
 | **0** | `fbr_status` / IRN / USIN / `fbr_reported_at` / `fbr_qr_payload` columns, `fbr_submissions` table, `not_required` as the default for every existing invoice | none | **built** |
 | **1** | The driver interface + a null driver | low | **deliberately not built — see below** |
-| **2** | **The correction rules** — `void()` gains the three-way branch and refuses what FBR would not allow | medium — changes an existing operation | **built**, minus credit notes |
+| **2** | **The correction rules** — `void()` gains the three-way branch and refuses what FBR would not allow | medium — changes an existing operation | **built**, credit notes included |
 | **3** | Reconciliation report: refused, stuck, accepted-without-IRN, and issued-but-never-reported | low | **built** |
 | **4** | A real integrator driver, per-tenant credentials, FBR registration and testing | **high — external, legal** | blocked on §9 |
 | **5** | Queued submission on issue, with backoff; QR on the PDF | medium | — |
@@ -268,9 +309,55 @@ Questions for the tax advisor, not for this repository:
 6. Does the 72-hour window run from local issuance or from FBR acceptance?
    §4 assumes acceptance (`fbr_reported_at`); if it is issuance, the column and
    the branch in §2 both change.
-7. What is the accepted mechanism for correcting a reported invoice after 72
+7. ~~What is the accepted mechanism for correcting a reported invoice after 72
    hours — is a credit note sufficient, or is Commissioner approval required
-   even for that?
+   even for that?~~
+
+   **Answered, and the question contained a conflation.** There are *two* rules,
+   they rest on different law, and the Commissioner appears in both doing
+   different jobs. Separating them is what the answer consists of:
+
+   | | 72 hours | 180 days |
+   |---|---|---|
+   | Authority | STGO 01 of 2026 | s.9 Sales Tax Act 1990, rules 20–22 Sales Tax Rules 2006 |
+   | Governs | Amending or cancelling **the e-invoice itself** | Issuing **a credit note**, a second document adjusting the tax |
+   | Counted from | FBR acceptance (`fbr_reported_at`) | The **supply** (`invoice_date`) |
+   | Past it | Changing the invoice needs the Commissioner's **prior approval** | The adjustment is inadmissible unless the Commissioner **extends**, once, by a further 180 days |
+   | Built | `assertFbrAllowsVoid()` refuses — this application cannot obtain that approval | `assertAdjustmentWindowAllows()` refuses, or records the extension |
+
+   **A credit note is not an amendment.** That is the load-bearing point. Rule 20
+   lists its grounds — cancellation of supply, return of goods, or a change in the
+   nature or value of the supply — and none of them is "editing the invoice". So a
+   credit note needs no approval to issue, and remains available precisely when
+   the 72 hours are gone. What it needs is to be **within 180 days of the supply**,
+   per rule 22, whose proviso lets the Commissioner extend that "by a further one
+   hundred and eighty days" on written request with reasons recorded.
+
+   So: **sufficient, and unapproved, until day 180.** After that the company does
+   not need permission to correct its books — it needs permission to be *late*.
+   `invoices.commissioner_approval_ref` and `commissioner_approved_on` are where
+   that permission is recorded, it prints on the credit note, and relying on it is
+   written to the activity log. Past the extended period the refusal is absolute:
+   rule 22 allows one further period, not a renewable one, so accepting a
+   reference there would store evidence for an inadmissible adjustment — worse
+   than refusing, because it looks checked.
+
+   Two things this does **not** settle, both still for a tax advisor:
+
+   - **Whether a credit note must be transmitted to FBR to be effective.** EY's
+     alert on SRO 69(I)/2025 says debit and credit notes "must also be issued
+     electronically through the integrated system", which this application cannot
+     do — there is still no integrator driver (§3). So
+     `FbrReconciliation::unreported()` lists issued credit notes as a gap, and the
+     books being correct is not the same as the return being right.
+   - **Whether the 180 days run from the invoice date or the tax period.** This
+     assumes the invoice date, which is the conservative reading — it never grants
+     more time than the rule allows.
+
+   The gate is `fbr.enabled`, off by default, because rule 22 binds a
+   sales-tax-registered person making taxable supplies. A company below the
+   threshold refused an ordinary correction by a rule that does not reach it would
+   be the same false alarm §5 spends its length avoiding.
 
 Sources consulted, all August 2026:
 [VATupdate on STGO 01 of 2026](https://www.vatupdate.com/2026/04/11/pakistan-clarifies-integration-and-amendment-rules-for-mandatory-e-invoicing/),
@@ -279,3 +366,17 @@ Sources consulted, all August 2026:
 [EDICOM on the mandatory schedule](https://edicomgroup.com/blog/pakistan-b2b-electronic-invoicing),
 [KPMG on compliance deadlines](https://kpmg.com/us/en/taxnewsflash/news/2025/08/pakistan-compliance-deadlines-e-invoicing.html),
 [Regfollower on the updated schedule](https://regfollower.com/pakistan-fbr-updates-e-invoicing-implementation-schedule/).
+
+Added for the credit-note answer in §9.7:
+[Sales Tax Rules 2006, updated to 06-08-2025 (rules 20–22)](https://download1.fbr.gov.pk/Docs/2025881385446623STR-2006-UpdatedUpto06-08-2025(ver-iv).pdf),
+[Sales Tax Act 1990, updated 2025-26 (section 9)](https://download1.fbr.gov.pk/Docs/202586148252375SalesTaxActupdatedupto2025-26.pdf),
+[EY on SRO 69(I)/2025 — credit notes must be issued through the integrated system](https://www.ey.com/en_gl/technical/tax-alerts/pakistan-amends-sales-tax-rules-for-implementation-of-electronic-invoicing),
+[VATupdate on the 72-hour edit limit](https://www.vatupdate.com/2026/04/27/fbr-tightens-e-invoicing-controls-limits-invoice-edits-to-72-hours/).
+
+**A caveat on the 180 days, recorded because it affects how much to trust the
+figure.** The proviso was read from secondary sources quoting rule 22 rather than
+from the rule text directly — the FBR PDF is a scanned document that would not
+extract. The 180 + 180 structure and the Commissioner's power to extend are
+consistent across sources, and both figures are config keys rather than
+constants (`config/fbr.php`) precisely so a correction is a settings change. Have
+a tax advisor confirm the numbers before a company relies on them.

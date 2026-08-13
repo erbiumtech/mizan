@@ -25,10 +25,29 @@
 <body>
     <div class="header">
         <div>
-            <h1>{{ $invoice->kind === 'purchase' ? 'Bill' : 'Invoice' }} {{ $invoice->invoice_number }}</h1>
+            {{-- A credit note titled "Invoice" is a document that lies about what it is: the
+                 customer files it as a bill and pays it. --}}
+            <h1>{{ $invoice->isCreditNote() ? 'Credit Note' : ($invoice->kind === 'purchase' ? 'Bill' : 'Invoice') }} {{ $invoice->invoice_number }}</h1>
             <div class="muted">Date: {{ $invoice->invoice_date->format('d M Y') }}</div>
-            @if ($invoice->due_date)
+            @if ($invoice->due_date && ! $invoice->isCreditNote())
                 <div class="muted">Due: {{ $invoice->due_date->format('d M Y') }}</div>
+            @endif
+            @if ($invoice->isCreditNote() && $invoice->creditedInvoice)
+                <div class="muted">Against invoice: {{ $invoice->creditedInvoice->invoice_number }}</div>
+            @endif
+            @if ($invoice->credit_reason)
+                <div class="muted">Reason: {{ $invoice->credit_reason }}</div>
+            @endif
+            {{-- The rule 22 extension, on the document itself. It is the evidence that makes a
+                 late adjustment admissible, and evidence filed only in the database is evidence
+                 the person defending the return does not have in front of them. --}}
+            @if ($invoice->commissioner_approval_ref)
+                <div class="muted">
+                    Commissioner extension: {{ $invoice->commissioner_approval_ref }}
+                    @if ($invoice->commissioner_approved_on)
+                        ({{ $invoice->commissioner_approved_on->format('d M Y') }})
+                    @endif
+                </div>
             @endif
             <div class="status">{{ str_replace('_', ' ', $invoice->status) }}</div>
         </div>
@@ -65,9 +84,13 @@
     <table class="totals">
         <tr><td>Subtotal</td><td class="num">{{ number_format($invoice->subtotal, 2) }}</td></tr>
         <tr><td>Tax</td><td class="num">{{ number_format($invoice->tax_amount, 2) }}</td></tr>
-        <tr class="grand"><td>Total (PKR)</td><td class="num">{{ number_format($invoice->total, 2) }}</td></tr>
-        <tr><td>Paid</td><td class="num">{{ number_format($invoice->amount_paid, 2) }}</td></tr>
-        <tr><td>Outstanding</td><td class="num">{{ number_format($invoice->outstanding(), 2) }}</td></tr>
+        <tr class="grand"><td>{{ $invoice->isCreditNote() ? 'Total credited (PKR)' : 'Total (PKR)' }}</td><td class="num">{{ number_format($invoice->total, 2) }}</td></tr>
+        {{-- Suppressed on a credit note. Nobody pays one, so "Paid 0.00 / Outstanding 1,000.00"
+             reads as a demand for money on a document that is the opposite of one. --}}
+        @unless ($invoice->isCreditNote())
+            <tr><td>Paid</td><td class="num">{{ number_format($invoice->amount_paid, 2) }}</td></tr>
+            <tr><td>Outstanding</td><td class="num">{{ number_format($invoice->outstanding(), 2) }}</td></tr>
+        @endunless
     </table>
 
     @if ($invoice->memo)

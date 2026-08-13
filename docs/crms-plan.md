@@ -15,12 +15,17 @@
 > table, no second revenue number, no journal entry from a quote or a won deal, no
 > automatic invoice, no automatic commission, no portal, no mail server.
 >
-> **Phase 5's FBR block, resolved narrowly rather than dismissed.** §13 said quote →
-> invoice was blocked because a reported invoice may only be cancelled within 72
-> hours. The resolution: conversion produces a **draft** invoice and stops. Issuing
-> — which transmits — stays the deliberate act it already was in Invoicing. **The
-> credit-note gap is real and remains Invoicing's**; nothing here brings it closer,
-> and nothing here papers over it.
+> **Phase 5's FBR block, resolved on both sides.** §13 said quote → invoice was
+> blocked because a reported invoice may only be cancelled within 72 hours. The CRM
+> half: conversion produces a **draft** invoice and stops. Issuing — which
+> transmits — stays the deliberate act it already was in Invoicing. The Invoicing
+> half, which was the actual gap: **the credit note now exists** —
+> `Invoice::KIND_CREDIT_NOTE`, `InvoiceService::creditNote()`, 25 tests — so an
+> invoice past the window has a correction rather than a dead end. It was built in
+> Invoicing where it belongs, and CRM depends on none of it. See
+> `docs/fbr-digital-invoicing-plan.md` §2, which carries the design and the one
+> question it does **not** answer: whether a credit note is a sufficient remedy in
+> law, or whether Commissioner approval is needed even for that.
 >
 > Two deliberate narrowings, each argued at its call site: `lost_reason` was free
 > text in phase 1 and is now the `lost_reasons` table §3 specified, with the text
@@ -575,7 +580,10 @@ Beyond the eight `Module*` tests:
   invoices that must be transmitted, and once transmitted they lose the free
   `void()` this codebase currently offers — so the conversion cannot be designed
   as if an invoice raised in error is locally reversible. It is not, after 72
-  hours, and the answer is a credit note that does not exist yet.
+  hours, and the answer is a credit note that ~~does not exist yet~~ **now
+  exists** (`Invoice::KIND_CREDIT_NOTE`, `InvoiceService::creditNote()`).
 
   It belongs to **Invoicing, not CRM**, so phases 1–4 are unaffected and remain
-  shippable.
+  shippable — and it was built there, not here. `QuotationService` still stops at
+  a draft invoice, which remains right for its own reason: the act that transmits
+  should be deliberate, whether or not a correction is available afterwards.
