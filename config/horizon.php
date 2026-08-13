@@ -183,7 +183,20 @@ return [
     |
     */
 
-    'memory_limit' => 64,
+    /*
+     * 256, not the shipped 64.
+     *
+     * Found by starting it: `Memory limit exceeded: Using 66/64MB` within seconds of boot, with
+     * no jobs processed at all. Booting this application costs more than 64MB before it does any
+     * work — Filament's panels plus twenty-two module service providers — so the master
+     * supervisor was terminating and restarting itself continuously while reporting "started
+     * successfully". Queued work would have limped along or stalled with nothing in the log to
+     * explain it.
+     *
+     * 256 leaves headroom over the ~66MB idle cost for the largest jobs here (a monthly billing
+     * statement across every employee, a PDF render through Browsershot).
+     */
+    'memory_limit' => 256,
 
     /*
     |--------------------------------------------------------------------------
@@ -205,9 +218,34 @@ return [
             'maxProcesses' => 1,
             'maxTime' => 0,
             'maxJobs' => 0,
-            'memory' => 128,
-            'tries' => 1,
-            'timeout' => 60,
+
+            // Per worker, raised for the same reason as memory_limit above: a worker that boots
+            // this application starts around 66MB before touching a job, so 128 left very little
+            // for the job itself and would have shown up as workers dying mid-payroll.
+            'memory' => 256,
+
+            /*
+             * 3, not 1.
+             *
+             * `tries => 1` means the first transient failure is final: a Redis blip, a locked
+             * row, an SMTP timeout, and that payslip notification is simply never sent. Most of
+             * what this application queues is a notification or a PDF render, and both are safe
+             * to retry — they are idempotent in the sense that matters, producing the same
+             * document or message again rather than a second charge.
+             *
+             * Deliberately not higher: a job that fails three times is failing for a reason a
+             * fourth attempt will not fix, and it should reach the failed-jobs table where
+             * somebody sees it.
+             */
+            'tries' => 3,
+
+            /*
+             * 300 rather than 60. Two things here take longer than a minute: a Browsershot PDF
+             * render on a cold Chrome, and a monthly billing statement across every employee.
+             * At 60s those are killed mid-flight and retried into the same timeout.
+             */
+            'timeout' => 300,
+
             'nice' => 0,
         ],
     ],
