@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use App\Filament\Navigation\DomainNavigationManager;
 use App\Filament\Navigation\NavigationSnapshot;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
-use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 use App\Support\NavigationTree;
@@ -215,13 +214,6 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_END,
                 fn (): string => view('filament.partials.sidebar-open-active-group')->render(),
-            )
-            // The Reports screen's search and grid/list toggle, beside its heading. Scoped to that
-            // page, and rendered inside its Livewire component so the controls can drive its state.
-            ->renderHook(
-                PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
-                fn (): string => view('filament.partials.report-controls')->render(),
-                scopes: Reports::class,
             )
             // Impersonation banner, above everything else on the page. PAGE_START
             // would put it inside the content area; this sits at the top of the
