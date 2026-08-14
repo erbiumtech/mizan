@@ -32,12 +32,21 @@ class ActivityLogInfolist
 
                 TextEntry::make('subject')
                     ->label('Subject')
-                    ->state(fn (Activity $record): string => $record->subject
+                    // Read from the columns rather than from the relation. The
+                    // subject is a morphTo over every audited model in the
+                    // application — some of them in a tenant database, some
+                    // since deleted — and loading one to print a class name and
+                    // an id it already has is a query that can fail for reasons
+                    // that have nothing to do with this screen. It is also a
+                    // lazy load, which is an exception outside production.
+                    ->state(fn (Activity $record): string => filled($record->subject_type)
                         ? class_basename($record->subject_type).' #'.$record->subject_id
                         : '—'),
 
                 TextEntry::make('causer')
                     ->label('Causer')
+                    // Eager-loaded by ActivityLogResource::getEloquentQuery(), which
+                    // is what resolves this page's record too.
                     ->state(fn (Activity $record): string => $record->causer?->name ?? 'System'),
 
                 TextEntry::make('changes')

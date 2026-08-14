@@ -45,10 +45,10 @@ class ComparativeStatement
     {
         return match ($key) {
             'BalanceSheet' => $this->balanceSheet($asOf, $comparison),
-            // The period runs from the start of the financial year the date falls in, which is what
-            // makes a P&L comparable to the same months a year earlier rather than to a different span.
+            // The financial year to date — *not* the calendar year. These years run 1 July to 30 June, so
+            // starting at 1 January would report six months of trading as twelve. See ReportPeriod.
             'ProfitAndLoss' => $this->profitAndLoss(
-                Carbon::parse($asOf)->startOfYear()->toDateString(),
+                ReportPeriod::toDate($asOf)['from'],
                 $asOf,
                 $comparison,
             ),
@@ -104,8 +104,7 @@ class ComparativeStatement
     {
         $current = $this->reports->profitAndLoss($from, $to);
 
-        $previousFrom = Carbon::parse($from)->subYear()->toDateString();
-        $previousTo = Carbon::parse($to)->subYear()->toDateString();
+        ['from' => $previousFrom, 'to' => $previousTo] = ReportPeriod::previous($from, $to);
         $previous = $comparison ? $this->reports->profitAndLoss($previousFrom, $previousTo) : null;
 
         return [

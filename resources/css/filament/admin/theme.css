@@ -1052,6 +1052,53 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     }
 }
 
+/*
+ * The trial balance is three columns and the ageing four of a different width, so each kind states its
+ * own grid rather than inheriting the statement's account/current/prior/change.
+ */
+.fi-explorer-ledger .fi-explorer-statement-head,
+.fi-explorer-ledger .fi-explorer-line,
+.fi-explorer-ledger .fi-explorer-total {
+    grid-template-columns: minmax(0, 1fr) 9rem 9rem;
+}
+
+/*
+ * The table kind states its grid inline, per report: an account name wants the slack and a figure wants a
+ * fixed width, and only the report knows which of its columns are which. Six columns for a revaluation,
+ * two for contractor payments.
+ */
+.fi-explorer-select {
+    height: 2.25rem;
+    max-width: 14rem;
+    padding-inline: 0.625rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+    background-color: var(--color-white);
+    font-size: 0.75rem;
+    color: var(--color-gray-700);
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+        background-color: var(--color-gray-950);
+        color: var(--color-gray-200);
+    }
+}
+
+/* A file report has no table at all — just what it would contain, and the way to produce it. */
+.fi-explorer-file {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 1.25rem;
+    border: 1px dashed var(--color-gray-300);
+    border-radius: 0.6875rem;
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+    }
+}
+
 .fi-explorer-statement .fi-num {
     text-align: end;
     font-variant-numeric: tabular-nums;
@@ -1114,6 +1161,22 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* A line you can open. Underlined on hover only — fifty underlined rows would read as a link farm. */
+.fi-explorer-drill {
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--color-primary-700);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    &:where(.dark, .dark *):hover {
+        color: var(--color-primary-300);
+    }
 }
 
 .fi-explorer-change {
