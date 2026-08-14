@@ -218,6 +218,27 @@ class ComparativeStatementTest extends AccountingTestCase
         $this->assertNull(app(ComparativeStatement::class)->for('TrialBalance', '2026-06-30'));
     }
 
+    /**
+     * The profit and loss covers the *financial* year to date, not the calendar year.
+     *
+     * The fiscal years here run 1 July to 30 June. Built from `startOfYear()` — 1 January — a statement to
+     * 30 June reports six months of trading as twelve, and the figure looks entirely plausible: the income
+     * posted in the first half of the year is simply absent. This posts income in August, which only
+     * appears if the period starts where the fiscal year does.
+     */
+    public function test_the_profit_and_loss_covers_the_financial_year_not_the_calendar_year(): void
+    {
+        // August 2025 falls in FY 2025-2026 (1 Jul 2025 – 30 Jun 2026) and *before* 1 January 2026.
+        $this->postEntry('2025-08-31', [['1100', 'debit_amount', 700000], ['4100', 'credit_amount', 700000]]);
+
+        $statement = app(ComparativeStatement::class)->for('ProfitAndLoss', '2026-06-30');
+
+        $income = collect($statement['sections'])->firstWhere('label', 'INCOME')['total'];
+
+        $this->assertSame(700000.0, $income['current'], 'income from the first half of the fiscal year was dropped');
+        $this->assertStringContainsString('1 Jul 2025', $statement['subtitle']);
+    }
+
     /** The profit and loss reads the same way, over a range rather than to a date. */
     public function test_the_profit_and_loss_compares_the_same_range_a_year_earlier(): void
     {

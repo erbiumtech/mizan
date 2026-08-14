@@ -9,12 +9,16 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PayrollRunsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            // The Period column renders `periodLabel()`, which reads the fiscal year — one query per row
+            // without this, and a lazy-loading violation with the guard on.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('fiscalYear'))
             ->columns([
                 TextColumn::make('month')
                     ->label('Period')
@@ -30,8 +34,13 @@ class PayrollRunsTable
                 // is the question worth answering before signing it off.
                 TextColumn::make('accepted')
                     ->label('Accepted')
-                    ->state(fn (PayrollRun $record): string => $record->totals()['accepted']
-                        .' of '.$record->totals()['payslips'])
+                    // One call, not two: totals() is five aggregates, and asking twice per row doubled
+                    // them. It is memoised on the model now, but reading it once here says so.
+                    ->state(function (PayrollRun $record): string {
+                        $totals = $record->totals();
+
+                        return $totals['accepted'].' of '.$totals['payslips'];
+                    })
                     ->alignEnd(),
 
                 TextColumn::make('gross')

@@ -15,7 +15,7 @@ use App\Modules\Accounting\Filament\Pages\FindTransactions;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
-use App\Modules\Accounting\Support\ComparativeStatement;
+use App\Modules\Accounting\Support\ReportPane;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
@@ -165,6 +165,22 @@ class Reports extends Page
     #[Url]
     public bool $comparison = true;
 
+    /**
+     * What the three reports that need more than a date are looking at.
+     *
+     * The account register needs an account, find-transactions a search, budget-vs-actual a budget. In the
+     * URL with the rest, so a register of one account at one date is as linkable as a balance sheet is —
+     * and `null` means "whatever the pane would pick", which is what makes them open without a form.
+     */
+    #[Url]
+    public int|string|null $account = null;
+
+    #[Url]
+    public int|string|null $budget = null;
+
+    #[Url]
+    public string $find = '';
+
     public function mount(): void
     {
         $this->asOf ??= now()->toDateString();
@@ -181,7 +197,8 @@ class Reports extends Page
      * The statement for the selected report, with its comparison column.
      *
      * Null covers three cases the pane draws differently: nothing selected yet, a report whose shape
-     * this cannot render (see ComparativeStatement — it says so and offers the report's own page), and a
+     * this cannot draw without asking for input first (see ReportPane — it offers that report's own
+     * page instead), and a
      * report the role cannot open, which select() has already refused.
      *
      * @return array<string, mixed>|null
@@ -190,21 +207,39 @@ class Reports extends Page
     {
         $report = $this->selectedReport();
 
-        if ($report === null || ! ComparativeStatement::supports($report['key'])) {
+        if ($report === null || ! ReportPane::supports($report['key'])) {
             return null;
         }
 
-        return app(ComparativeStatement::class)->for(
+        return app(ReportPane::class)->for(
             $report['key'],
             $this->asOf ?: now()->toDateString(),
             $this->comparison,
+            ['account' => $this->account, 'budget' => $this->budget, 'search' => $this->find],
         );
+    }
+
+    /**
+     * What the pane has to ask for before it can draw the selected report: an account, a budget, a search
+     * — or nothing, which is the usual case.
+     */
+    public function asksFor(): ?string
+    {
+        return ReportPane::asks($this->selectedReport()['key'] ?? null);
+    }
+
+    /** @return array<int|string, string> */
+    public function askOptions(): array
+    {
+        $key = $this->selectedReport()['key'] ?? null;
+
+        return $key === null ? [] : app(ReportPane::class)->options($key);
     }
 
     /** Whether the selected report can be shown in the pane at all. */
     public function statementIsAvailable(): bool
     {
-        return ComparativeStatement::supports($this->selectedReport()['key'] ?? null);
+        return ReportPane::supports($this->selectedReport()['key'] ?? null);
     }
 
     /**
@@ -220,7 +255,7 @@ class Reports extends Page
         // sheet" while the list is filtered to payroll — or while a search has emptied it — points at
         // something the person cannot see, and quietly contradicts the filter they just set.
         foreach ($this->visibleReports() as $report) {
-            if (ComparativeStatement::supports($report['key'])) {
+            if (ReportPane::supports($report['key'])) {
                 return $report['key'];
             }
         }
@@ -351,6 +386,31 @@ class Reports extends Page
         // it opens carries a link to the report — so an unfiltered value here would be a way to
         // have this page render a URL for a report the role cannot open.
         $this->selected = array_key_exists($key, static::catalogue()) ? $key : null;
+    }
+
+    /**
+     * Open the transactions behind a figure.
+     *
+     * A statement answers "how much" and immediately raises "of what" — so a line on the balance sheet or
+     * the trial balance switches the pane to that account's register, at the same date. The date is what
+     * makes it a drill rather than a jump: the register opens on the period the figure came from.
+     *
+     * Refused for a code the register cannot open — see ReportPane::drillableCodes(). Silently, because
+     * the view does not render the affordance for those rows in the first place; this is the guard for a
+     * code that arrives anyway.
+     */
+    public function drillInto(string $code): void
+    {
+        $account = \App\Modules\Accounting\Models\Account::query()
+            ->where('code', $code)
+            ->first();
+
+        if ($account === null || ! in_array($code, app(ReportPane::class)->drillable(), true)) {
+            return;
+        }
+
+        $this->account = $account->getKey();
+        $this->select('AccountRegister');
     }
 
     public function deselect(): void

@@ -105,12 +105,46 @@
                             <input type="date" wire:model.live="asOf" value="{{ $this->asOf }}" class="fi-explorer-date-input">
                         </label>
 
-                        <button
-                            type="button"
-                            wire:click="$toggle('comparison')"
-                            @class(['fi-explorer-toggle', 'fi-active' => $this->comparison])
-                            aria-pressed="{{ $this->comparison ? 'true' : 'false' }}"
-                        >vs previous year</button>
+                        {{--
+                            What this report needs beyond the date. An account to register, a budget to
+                            compare against, or something to find — asked here rather than on a form the
+                            person has to submit, so the pane stays a view.
+                        --}}
+                        @if ($this->asksFor() === 'account' || $this->asksFor() === 'budget')
+                            <select
+                                wire:model.live="{{ $this->asksFor() === 'account' ? 'account' : 'budget' }}"
+                                class="fi-explorer-select"
+                                aria-label="{{ $this->asksFor() === 'account' ? 'Account' : 'Budget' }}"
+                            >
+                                @foreach ($this->askOptions() as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        @elseif ($this->asksFor() === 'search')
+                            <label class="fi-explorer-date">
+                                <span class="fi-sr-only">Find in the ledger</span>
+                                <input
+                                    type="search"
+                                    wire:model.live.debounce.300ms="find"
+                                    placeholder="Find in the ledger"
+                                    class="fi-explorer-date-input"
+                                >
+                            </label>
+                        @endif
+
+                        {{--
+                            Only where a prior year is drawn. A trial balance proves this period adds up and
+                            a bank file is a file — a toggle that changed nothing on either would be a
+                            control that lies about what it does.
+                        --}}
+                        @if ($statement['kind'] === 'statement')
+                            <button
+                                type="button"
+                                wire:click="$toggle('comparison')"
+                                @class(['fi-explorer-toggle', 'fi-active' => $this->comparison])
+                                aria-pressed="{{ $this->comparison ? 'true' : 'false' }}"
+                            >vs previous year</button>
+                        @endif
 
                         <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
                     </div>
@@ -130,6 +164,7 @@
                         </div>
                     </div>
 
+                    @if ($statement['kind'] === 'statement')
                     <div class="fi-explorer-statement">
                         <div class="fi-explorer-statement-head">
                             <span>Account</span>
@@ -151,10 +186,27 @@
                                             rows are keyed on the code, so the code is what distinguishes
                                             them on screen too.
                                         --}}
-                                        <span class="fi-explorer-line-label">
-                                            <span class="fi-explorer-line-code">{{ str_starts_with($row['code'], 'zzz') ? '' : $row['code'] }}</span>
-                                            {{ $row['label'] }}
-                                        </span>
+                                        {{--
+                                            Drillable lines are buttons: a figure on a statement provokes
+                                            "of what", and the register answers it. Only where the register
+                                            can actually open that account — see ReportPane::drillable().
+                                        --}}
+                                        @if (in_array($row['code'], $statement['drillable'] ?? [], true))
+                                            <button
+                                                type="button"
+                                                wire:click="drillInto('{{ $row['code'] }}')"
+                                                class="fi-explorer-line-label fi-explorer-drill"
+                                                title="Show the transactions behind this"
+                                            >
+                                                <span class="fi-explorer-line-code">{{ $row['code'] }}</span>
+                                                {{ $row['label'] }}
+                                            </button>
+                                        @else
+                                            <span class="fi-explorer-line-label">
+                                                <span class="fi-explorer-line-code">{{ str_starts_with($row['code'], 'zzz') ? '' : $row['code'] }}</span>
+                                                {{ $row['label'] }}
+                                            </span>
+                                        @endif
                                         <span class="fi-num">{{ $row['current'] === null ? '' : number_format($row['current'], 0) }}</span>
                                         <span class="fi-num">{{ $row['previous'] === null ? '' : number_format($row['previous'], 0) }}</span>
                                         <span class="fi-num fi-explorer-change">{{ $row['change'] === null ? '—' : sprintf('%+.1f%%', $row['change']) }}</span>
@@ -187,6 +239,119 @@
                             complete statement
                         </div>
                     </div>
+
+                    {{--
+                        The trial balance: a debit *and* a credit per account. It gets its own table rather
+                        than being folded into the statement above, because squeezing it into one amount
+                        column means choosing a side per account and calling that the figure.
+                    --}}
+                    @elseif ($statement['kind'] === 'ledger')
+                    <div class="fi-explorer-statement fi-explorer-ledger">
+                        <div class="fi-explorer-statement-head">
+                            <span>{{ $statement['columns'][0] }}</span>
+                            <span class="fi-num">{{ $statement['columns'][1] }}</span>
+                            <span class="fi-num">{{ $statement['columns'][2] }}</span>
+                        </div>
+
+                        <div class="fi-explorer-statement-body">
+                            @forelse ($statement['sections'] as $section)
+                                <div class="fi-explorer-section">{{ $section['label'] }}</div>
+
+                                @foreach ($section['rows'] as $row)
+                                    <div class="fi-explorer-line">
+                                        @if (in_array($row['code'], $statement['drillable'] ?? [], true))
+                                            <button
+                                                type="button"
+                                                wire:click="drillInto('{{ $row['code'] }}')"
+                                                class="fi-explorer-line-label fi-explorer-drill"
+                                                title="Show the transactions behind this"
+                                            >
+                                                <span class="fi-explorer-line-code">{{ $row['code'] }}</span>
+                                                {{ $row['label'] }}
+                                            </button>
+                                        @else
+                                            <span class="fi-explorer-line-label">
+                                                <span class="fi-explorer-line-code">{{ $row['code'] }}</span>
+                                                {{ $row['label'] }}
+                                            </span>
+                                        @endif
+                                        <span class="fi-num">{{ $row['debit'] ? number_format($row['debit'], 0) : '' }}</span>
+                                        <span class="fi-num">{{ $row['credit'] ? number_format($row['credit'], 0) : '' }}</span>
+                                    </div>
+                                @endforeach
+
+                                <div class="fi-explorer-total">
+                                    <span>{{ $section['total']['label'] }}</span>
+                                    <span class="fi-num">{{ number_format($section['total']['debit'], 0) }}</span>
+                                    <span class="fi-num">{{ number_format($section['total']['credit'], 0) }}</span>
+                                </div>
+                            @empty
+                                <p class="fi-explorer-empty">Nothing is posted to this date yet.</p>
+                            @endforelse
+                        </div>
+
+                        <div class="fi-explorer-statement-foot">
+                            Figures in {{ \App\Modules\Core\Models\Company::current()?->currency_code ?? 'PKR' }}
+                        </div>
+                    </div>
+
+                    {{-- Columns and rows that are not accounts: the ageing, by invoice. --}}
+                    @elseif ($statement['kind'] === 'table')
+                    @php($grid = 'grid-template-columns: '.$statement['grid'])
+                    <div class="fi-explorer-statement fi-explorer-table">
+                        <div class="fi-explorer-statement-head" style="{{ $grid }}">
+                            @foreach ($statement['columns'] as $i => $column)
+                                <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $column }}</span>
+                            @endforeach
+                        </div>
+
+                        <div class="fi-explorer-statement-body">
+                            @forelse ($statement['rows'] as $row)
+                                <div class="fi-explorer-line" style="{{ $grid }}">
+                                    @foreach ($row as $i => $cell)
+                                        <span @class([
+                                            'fi-num' => in_array($i, $statement['numeric'], true),
+                                            'fi-explorer-line-label' => $i === 0,
+                                        ])>{{ $cell }}</span>
+                                    @endforeach
+                                </div>
+                            @empty
+                                <p class="fi-explorer-empty">{{ $statement['empty'] }}</p>
+                            @endforelse
+
+                            @if ($statement['total'])
+                                <div class="fi-explorer-total fi-explorer-closing" style="{{ $grid }}">
+                                    <span>{{ $statement['total']['label'] }}</span>
+                                    @foreach (array_slice($statement['columns'], 1) as $i => $column)
+                                        <span class="fi-num">{{ $loop->last ? number_format($statement['total']['value'], 0) : '' }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="fi-explorer-statement-foot">{{ $statement['note'] }}</div>
+                    </div>
+
+                    {{--
+                        A file report. The pane says what the file would contain; releasing it stays on the
+                        report's own screen, where the confirmation and the batch reference live.
+                    --}}
+                    @elseif ($statement['kind'] === 'file')
+                    <div class="fi-explorer-file">
+                        <p class="fi-explorer-placeholder-text">
+                            @if ($statement['rows_count'] > 0)
+                                This file is ready to be produced. It is released from the report's own
+                                screen, which records the batch it went out as.
+                            @else
+                                There is nothing to send for this period, so no file would be produced.
+                            @endif
+                        </p>
+
+                        <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open fi-explorer-open-lg">
+                            Open {{ $statement['title'] }} ↗
+                        </a>
+                    </div>
+                    @endif
                 </div>
             @elseif ($report)
                 {{-- Selected, but not a statement this pane can draw. Say which, and hand over. --}}
