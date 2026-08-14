@@ -18,6 +18,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -105,6 +106,20 @@ class AdminPanelProvider extends PanelProvider
             // confuse it with. Two routes to the same act meant two places to keep the
             // super-admin check.
             ->viteTheme('resources/css/filament/admin/theme.css')
+            /*
+             * Pages use the whole window, rather than being capped at 1280px and centred.
+             *
+             * Filament's default is Width::SevenExtraLarge, which on a large display leaves the content in
+             * a column down the middle with the rest empty — and the screens here are the ones that most
+             * want the room: a statement with a comparison column, a register of transactions, a table of
+             * twenty payroll figures. Width::Full lifts the cap (`:is(.fi-main).fi-width-full` is a
+             * max-width of 100%), so the width is decided by the content and the rail beside it.
+             *
+             * A page that wants a narrower measure can still say so — this is the panel's default, not a
+             * rule — and Filament's own sections and forms keep their internal widths.
+             */
+            ->maxContentWidth(Width::Full)
+
             // Soft navigation. Every link Filament renders gains `wire:navigate`
             // (Filament\Support\generate_href_html), so moving between pages swaps the body over
             // fetch instead of throwing the document away: the 649KB theme stays parsed, Alpine and
