@@ -181,6 +181,15 @@ class Reports extends Page
     #[Url]
     public string $find = '';
 
+    /**
+     * The filing month, for the two reports that are read a month at a time.
+     *
+     * Null is the whole fiscal year, which is the more useful default of the two: a tax summary is
+     * reconciled for the year and filed for a month, and only one of those can be the thing that opens.
+     */
+    #[Url]
+    public ?string $month = null;
+
     public function mount(): void
     {
         $this->asOf ??= now()->toDateString();
@@ -215,25 +224,60 @@ class Reports extends Page
             $report['key'],
             $this->asOf ?: now()->toDateString(),
             $this->comparison,
-            ['account' => $this->account, 'budget' => $this->budget, 'search' => $this->find],
+            [
+                'account' => $this->account,
+                'budget' => $this->budget,
+                'search' => $this->find,
+                'month' => $this->month,
+            ],
         );
     }
 
     /**
-     * What the pane has to ask for before it can draw the selected report: an account, a budget, a search
-     * — or nothing, which is the usual case.
+     * The filters the open report carries, ready to render.
+     *
+     * Each report declares what it needs (ReportPane::ASKS) and this turns that into controls: an account
+     * picker, a budget picker, a month picker, a search box. Built here rather than in the view because the
+     * view should not know that a budget is a model and a month is a name — and because the *set* differs
+     * per report, which is the whole reason the bar exists. The date and the comparison column are not in
+     * here: they apply to nearly everything and the pane offers them unconditionally.
+     *
+     * @return array<int, array{ask: string, control: string, label: string, model: string, placeholder: string, options: array<int|string, string>}>
      */
-    public function asksFor(): ?string
-    {
-        return ReportPane::asks($this->selectedReport()['key'] ?? null);
-    }
-
-    /** @return array<int|string, string> */
-    public function askOptions(): array
+    public function filters(): array
     {
         $key = $this->selectedReport()['key'] ?? null;
 
-        return $key === null ? [] : app(ReportPane::class)->options($key);
+        if ($key === null) {
+            return [];
+        }
+
+        $pane = app(ReportPane::class);
+        $asOf = $this->asOf ?: now()->toDateString();
+
+        return array_map(fn (string $ask): array => [
+            'ask' => $ask,
+            // Which control to draw, decided here rather than inferred from whether there is anything to
+            // pick: a company with no registerable account has an account picker with nothing in it, and
+            // inferring from an empty list turned that into a *search box bound to the account id*.
+            'control' => $ask === 'search' ? 'search' : 'select',
+            'label' => match ($ask) {
+                'account' => 'Account',
+                'budget' => 'Budget',
+                'month' => 'Month',
+                'search' => 'Search',
+                default => ucfirst($ask),
+            },
+            // Which property the control is bound to. `search` binds to `find` because `search` is a
+            // Livewire-adjacent name and this page already had one.
+            'model' => $ask === 'search' ? 'find' : $ask,
+            'placeholder' => match ($ask) {
+                'month' => 'The whole year',
+                'search' => 'Account, description or amount',
+                default => 'Choose one',
+            },
+            'options' => $pane->options($key, $ask, $asOf),
+        ], ReportPane::asks($key));
     }
 
     /** Whether the selected report can be shown in the pane at all. */

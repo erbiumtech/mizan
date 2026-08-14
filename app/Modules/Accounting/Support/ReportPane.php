@@ -82,14 +82,19 @@ class ReportPane
      * Everything else derives what it needs from the date: the fiscal year containing it, or its month.
      */
     public const ASKS = [
-        'AccountRegister' => 'account',
-        'FindTransactions' => 'search',
-        'BudgetVsActual' => 'budget',
+        'AccountRegister' => ['account'],
+        'FindTransactions' => ['search'],
+        'BudgetVsActual' => ['budget'],
+        // Both of these are filed monthly as well as read for the year, so the month is a filter rather
+        // than a derived period: "the whole year" is a legitimate answer and the pane has to allow it.
+        'TaxSummary' => ['month'],
+        'PettyCashBook' => ['month'],
     ];
 
-    public static function asks(?string $key): ?string
+    /** @return array<int, string> the controls the pane must offer for a report */
+    public static function asks(?string $key): array
     {
-        return self::ASKS[$key] ?? null;
+        return self::ASKS[$key] ?? [];
     }
 
     public static function kindFor(?string $key): ?string
@@ -103,11 +108,9 @@ class ReportPane
     }
 
     /**
+     * @param  array<string, mixed>  $asked  what the pane's filter bar collected for the reports that ask:
+     *                                       an account id, a budget id, a search term, a month
      * @return array<string, mixed>|null null when the report needs input before it can be drawn
-     */
-    /**
-     * @param  array<string, mixed>  $asked  what the pane collected for the reports that need it: an
-     *                                       account id, a budget id, a search term
      */
     public function for(string $key, string $asOf, bool $comparison = true, array $asked = []): ?array
     {
@@ -115,11 +118,11 @@ class ReportPane
             'BalanceSheet', 'ProfitAndLoss', 'CashFlow' => $this->statement($key, $asOf, $comparison),
             'TrialBalance' => $this->trialBalance($asOf),
             'AgedReceivables', 'AgedPayables' => $this->ageing($key, $asOf),
-            'TaxSummary' => $this->taxSummary($asOf),
+            'TaxSummary' => $this->taxSummary($asOf, $asked['month'] ?? null),
             'ContractorPayments' => $this->contractorPayments($asOf),
             'BudgetVsActual' => $this->budgetVsActual($asOf, $asked['budget'] ?? null),
             'FbrInvoiceReporting' => $this->fbrReconciliation($asOf),
-            'PettyCashBook' => $this->pettyCash($asOf),
+            'PettyCashBook' => $this->pettyCash($asOf, $asked['month'] ?? null),
             'CurrencyRevaluation' => $this->revaluation($asOf),
             'AccountRegister' => $this->accountRegister($asOf, $asked['account'] ?? null),
             'FindTransactions' => $this->findTransactions($asOf, (string) ($asked['search'] ?? '')),
@@ -129,20 +132,29 @@ class ReportPane
     }
 
     /**
-     * The options a picker needs, for the two reports that ask for one.
+     * The options behind one of a report's pickers.
      *
-     * @return array<int|string, string>
+     * @return array<int|string, string> value => label, empty for a filter that is typed rather than picked
      */
-    public function options(string $key): array
+    public function options(string $key, ?string $ask = null, ?string $asOf = null): array
     {
-        return match ($key) {
-            'AccountRegister' => app(RegisterEntryService::class)->registerAccounts()
+        // Defaults to the report's first filter, so a report with one of them can be asked without
+        // naming it — which is every caller but the pane's own filter bar.
+        $ask ??= self::asks($key)[0] ?? null;
+
+        return match ($ask) {
+            'account' => app(RegisterEntryService::class)->registerAccounts()
                 ->mapWithKeys(fn (Account $account): array => [$account->getKey() => $account->code.' '.$account->name])
                 ->all(),
-            'BudgetVsActual' => Budget::query()
+            'budget' => Budget::query()
                 ->orderByDesc('id')
                 ->get()
                 ->mapWithKeys(fn (Budget $budget): array => [$budget->getKey() => $budget->name ?? ('Budget '.$budget->getKey())])
+                ->all(),
+            // Keyed by name because that is what a payslip's month is stored as, and in fiscal order
+            // because that is the order these are filed in. See ReportPeriod::months().
+            'month' => collect(ReportPeriod::months($asOf ?? now()->toDateString()))
+                ->mapWithKeys(fn (string $month): array => [$month => $month])
                 ->all(),
             default => [],
         };
@@ -355,9 +367,11 @@ class ReportPane
             ? app(InvoiceService::class)->outstandingReceivables($asOf)
             : app(InvoiceService::class)->outstandingPayables($asOf);
 
+        // Every outstanding invoice, oldest first. Capped at twenty-five once and that was the wrong
+        // call: the reason to open an ageing report is to work through it, and a list that stops at
+        // twenty-five silently omits the invoices at the end — which on this report are the worst ones.
         $invoices = collect($report['invoices'])
             ->sortByDesc('days_overdue')
-            ->take(25)
             ->values();
 
         return [
@@ -384,10 +398,13 @@ class ReportPane
                 ])
                 ->values()
                 ->all(),
-            'total' => ['label' => 'Total outstanding', 'value' => (float) $report['total']],
-            'note' => count($report['invoices']) > $invoices->count()
-                ? mb_strtoupper('showing the '.$invoices->count().' latest of '.count($report['invoices']).' invoices')
-                : mb_strtoupper(count($report['invoices']).' invoices outstanding'),
+            'footer' => [
+                'Total outstanding — '.$invoices->count().' invoices',
+                '',
+                '',
+                number_format((float) $report['total'], 0),
+            ],
+            'note' => mb_strtoupper($invoices->count().' invoices outstanding'),
             'balanced' => true,
         ];
     }
@@ -434,7 +451,7 @@ class ReportPane
         array $rows,
         array $tiles,
         string $note,
-        ?array $total = null,
+        ?array $footer = null,
         string $empty = 'Nothing to show for this period.',
     ): array {
         return [
@@ -448,22 +465,45 @@ class ReportPane
             'rows' => $rows,
             'tiles' => $tiles,
             'note' => $note,
-            'total' => $total,
+            // A row across the bottom, one cell per column, so a figure sits under the column it totals
+            // rather than in a single "total" cell that lines up with nothing.
+            'footer' => $footer,
+            'footer_span' => $footer === null ? 1 : self::span($footer),
             'empty' => $empty,
             'balanced' => true,
         ];
     }
 
-    /** Tax withheld per employee for the year, with what it was withheld on. */
-    private function taxSummary(string $asOf): array
+    /**
+     * How many columns the footer's label runs across: itself plus the blank cells after it.
+     *
+     * A register's figures start in the fourth column, so its label has three columns of room and needs
+     * them — the first of those is 7rem wide, which fits "Closing" and not the rest of the sentence. Worked
+     * out from the footer rather than declared per report so a report cannot state one and mean the other.
+     *
+     * @param  array<int, string>  $footer
+     */
+    private static function span(array $footer): int
     {
-        $report = app(WithholdingTaxSummary::class)->summary($this->fiscalYear($asOf)?->getKey());
+        $span = 1;
+
+        while ($span < count($footer) && $footer[$span] === '') {
+            $span++;
+        }
+
+        return $span;
+    }
+
+    /** Tax withheld per employee for the year, with what it was withheld on. */
+    private function taxSummary(string $asOf, ?string $month = null): array
+    {
+        $report = app(WithholdingTaxSummary::class)->summary($this->fiscalYear($asOf)?->getKey(), $month);
         $employees = collect($report['employees'] ?? []);
 
         return $this->table(
             'TaxSummary',
             'Tax Summary',
-            $this->subtitle('fiscal year '.($report['fiscal_year'] ?? '—')),
+            $this->subtitle('fiscal year '.($report['fiscal_year'] ?? '—').($month ? ' · '.$month : ' · the whole year')),
             ['Employee', 'Taxable', 'Tax withheld'],
             'minmax(0, 1fr) 10rem 10rem',
             [1, 2],
@@ -477,8 +517,15 @@ class ReportPane
                 ['label' => 'TAX WITHHELD', 'value' => (float) ($report['tax_total'] ?? 0), 'accent' => true],
             ],
             mb_strtoupper($employees->count().' employees with tax withheld'),
-            ['label' => 'Total withheld', 'value' => (float) ($report['tax_total'] ?? 0)],
-            'No tax has been withheld in this year yet.',
+            // Each figure under the column it totals, which is what a filing is checked against.
+            [
+                'Total — '.$employees->count().' employees',
+                number_format((float) ($report['taxable_total'] ?? 0), 0),
+                number_format((float) ($report['tax_total'] ?? 0), 0),
+            ],
+            $month
+                ? "No tax was withheld in {$month}."
+                : 'No tax has been withheld in this year yet.',
         );
     }
 
@@ -501,7 +548,7 @@ class ReportPane
             ])->all(),
             [['label' => 'TOTAL PAID', 'value' => (float) ($report['total'] ?? 0), 'accent' => true]],
             mb_strtoupper($contractors->count().' contractors paid'),
-            ['label' => 'Total paid', 'value' => (float) ($report['total'] ?? 0)],
+            ['Total — '.$contractors->count().' contractors', number_format((float) ($report['total'] ?? 0), 0)],
             'No contractor has been paid in this year yet.',
         );
     }
@@ -547,6 +594,12 @@ class ReportPane
                 ['label' => 'ACTUAL', 'value' => (float) ($report['net_actual'] ?? 0), 'accent' => true],
             ],
             mb_strtoupper($rows->count().' accounts in this budget'),
+            [
+                'Net — '.$rows->count().' accounts',
+                number_format((float) ($report['net_planned'] ?? 0), 0),
+                number_format((float) ($report['net_actual'] ?? 0), 0),
+                number_format((float) (($report['net_actual'] ?? 0) - ($report['net_planned'] ?? 0)), 0),
+            ],
         );
     }
 
@@ -597,9 +650,31 @@ class ReportPane
     }
 
     /** The cash float for the month the date falls in: what was spent, and what is left. */
-    private function pettyCash(string $asOf): array
+    private function pettyCash(string $asOf, ?string $month = null): array
     {
-        $summary = app(PettyCashService::class)->monthSummary(Carbon::parse($asOf));
+        // The month filter names a month of the fiscal year; without one the date's own month is used.
+        $date = $month
+            ? Carbon::parse($month.' '.Carbon::parse($asOf)->year)
+            : Carbon::parse($asOf);
+
+        // The float lives in one nominated account, and a company whose chart does not have it has no
+        // petty cash book. The service says so by throwing, which is right for a caller that needs the
+        // account and wrong for this one: on a screen that draws every report in turn, one company's
+        // missing account would take the whole explorer down with it — including the sixteen reports
+        // that have nothing to do with petty cash. Said rather than thrown, like the missing budget and
+        // the switched-off integration above.
+        try {
+            $summary = app(PettyCashService::class)->monthSummary($date);
+        } catch (\Throwable $exception) {
+            return $this->table(
+                'PettyCashBook', 'Petty Cash Book', $this->subtitle('no float account'),
+                ['Voucher', 'Date', 'Details', 'Paid'],
+                '7rem 7rem minmax(0, 1fr) 8rem', [3], [], [],
+                'THE PETTY CASH ACCOUNT IS NOT SET UP', null,
+                'This company\'s chart of accounts has no petty cash account ('
+                .PettyCashService::ACCOUNT_CODE.'), so there is no float to report on.',
+            );
+        }
         $paid = collect($summary['paid'] ?? []);
 
         return $this->table(
@@ -621,7 +696,7 @@ class ReportPane
                 ['label' => 'CLOSING', 'value' => (float) ($summary['closing_balance'] ?? 0), 'accent' => true],
             ],
             ($summary['replenished'] ?? false) ? 'THE FLOAT HAS BEEN REPLENISHED THIS MONTH' : 'THE FLOAT HAS NOT BEEN REPLENISHED THIS MONTH',
-            ['label' => 'Paid out', 'value' => (float) ($summary['paid_total'] ?? 0)],
+            ['Paid out — '.$paid->count().' vouchers', '', '', number_format((float) ($summary['paid_total'] ?? 0), 0)],
             'Nothing was paid out of the float this month.',
         );
     }
@@ -651,7 +726,11 @@ class ReportPane
             filled($preview['problems'] ?? [])
                 ? mb_strtoupper(count($preview['problems']).' accounts have no rate for this date')
                 : mb_strtoupper($rows->count().' foreign balances'),
-            null,
+            [
+                'Net adjustment — '.$rows->count().' balances',
+                '', '', '', '',
+                number_format((float) ($preview['net'] ?? 0), 0),
+            ],
             'No account holds a foreign balance at this date.',
         );
     }
@@ -698,7 +777,18 @@ class ReportPane
                 ['label' => 'CLOSING', 'value' => (float) ($register['closing_balance'] ?? 0), 'accent' => true],
             ],
             mb_strtoupper($rows->count().' transactions in this period'),
-            null,
+            // The row a register is read for: what went in, what went out, what is left.
+            [
+                'Closing — '.$rows->count().' transactions',
+                '',
+                '',
+                // Summed from the register's own figures rather than from the formatted cells above:
+                // parsing "1,250" back into a number to add it up is a bug waiting for a thousands
+                // separator to change.
+                number_format((float) collect($register['rows'] ?? [])->sum(fn (array $row): float => (float) ($row['debit'] ?? 0)), 0),
+                number_format((float) collect($register['rows'] ?? [])->sum(fn (array $row): float => (float) ($row['credit'] ?? 0)), 0),
+                number_format((float) ($register['closing_balance'] ?? 0), 0),
+            ],
             'Nothing has been posted to this account in this period.',
         );
     }
@@ -718,7 +808,7 @@ class ReportPane
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('code', 'like', "%{$search}%"))))
             ->latest('id')
-            ->limit(50)
+            ->limit(200)
             ->get();
 
         return $this->table(
@@ -736,10 +826,21 @@ class ReportPane
                 $line->credit_amount ? number_format((float) $line->credit_amount, 0) : '',
             ])->all(),
             [['label' => 'LINES SHOWN', 'value' => (float) $lines->count(), 'accent' => false]],
-            $lines->count() === 50
-                ? 'SHOWING THE 50 MOST RECENT MATCHES — NARROW THE SEARCH TO SEE FEWER'
+            // Bounded, and this one stays bounded on purpose: every other report here is limited by a
+            // period or by what is outstanding, but an unfiltered ledger search is limited by nothing —
+            // a mature book would try to render every line ever posted. The bound is stated rather than
+            // silent, which is the part that matters.
+            $lines->count() === 200
+                ? 'SHOWING THE 200 MOST RECENT MATCHES — SEARCH TO NARROW THEM'
                 : mb_strtoupper($lines->count().' matching lines'),
-            null,
+            // Of the lines shown, which is what the label says: with a bound in play a "total" that claimed
+            // to be the total of everything matching would be false.
+            [
+                'Shown — '.$lines->count().' lines',
+                '', '',
+                number_format((float) $lines->sum(fn (JournalEntryLine $line): float => (float) $line->debit_amount), 0),
+                number_format((float) $lines->sum(fn (JournalEntryLine $line): float => (float) $line->credit_amount), 0),
+            ],
             filled($search) ? 'Nothing in the ledger matches that.' : 'Nothing has been posted yet.',
         );
     }

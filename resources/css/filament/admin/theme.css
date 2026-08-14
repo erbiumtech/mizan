@@ -762,6 +762,12 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
 
 /* ------------------------------------------------------------- the statement pane */
 
+/*
+ * `clip` rather than `hidden` for the same reason as the statement inside it: `hidden` makes this the
+ * scroll container for everything below, and the sticky column header and record row would then stick to a
+ * box that never scrolls — which is indistinguishable from sticky being ignored. Both still round off the
+ * corners of the header, which is what the overflow is here for.
+ */
 .fi-explorer-pane {
     display: flex;
     flex-direction: column;
@@ -769,7 +775,7 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     border: 1px solid var(--color-gray-200);
     border-radius: 0.75rem;
     background-color: var(--color-white);
-    overflow: hidden;
+    overflow: clip;
 
     &:where(.dark, .dark *) {
         border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
@@ -1025,13 +1031,20 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
  * The statement itself. A grid rather than a table so each kind of row — section heading, line,
  * subtotal, closing identity — carries its own treatment with the columns still aligned.
  */
+/*
+ * `clip` rather than `hidden`, and that one word is doing something specific: both round the corners off
+ * the head and foot inside, but `hidden` makes this a scroll container, and a sticky descendant sticks to
+ * its own scroll container — so the header below would stick to a box that never scrolls, which looks
+ * exactly like sticky not working. `clip` is not a scroll container, so the page remains the scrollport and
+ * the header sticks to the viewport, which is what a long report needs.
+ */
 .fi-explorer-statement {
     display: flex;
     flex-direction: column;
     min-width: 0;
     border: 1px solid var(--color-gray-200);
     border-radius: 0.6875rem;
-    overflow: hidden;
+    overflow: clip;
 
     &:where(.dark, .dark *) {
         border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
@@ -1105,7 +1118,18 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     white-space: nowrap;
 }
 
+/*
+ * The column headings follow a long report down.
+ *
+ * These reports used to be capped — the ageing at twenty-five rows — so they always fitted and this never
+ * mattered. Uncapped, a register of six hundred lines scrolls its headings away in the first screenful and
+ * every column after the first becomes an unlabelled number. Offset by the topbar, which is what the page
+ * scrolls under.
+ */
 .fi-explorer-statement-head {
+    position: sticky;
+    top: 4rem;
+    z-index: 2;
     padding: 0.6875rem 1.25rem;
     background-color: var(--color-gray-50);
     border-block-end: 1px solid var(--color-gray-200);
@@ -1203,6 +1227,19 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
 }
 
 /* The identity line: what everything above has to add up to. */
+/*
+ * And the record row stays on screen from the bottom.
+ *
+ * A total that is only visible once you have scrolled past every row is a total you have to go looking for;
+ * on a long ageing or register the figure at the bottom is often the reason the report was opened at all.
+ * It parks itself against the foot of the viewport until its own place in the document arrives.
+ */
+.fi-explorer-table .fi-explorer-closing {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+}
+
 .fi-explorer-closing {
     background-color: var(--color-primary-50);
     border-block-end: none;
@@ -1341,6 +1378,66 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     color: var(--color-gray-400);
+}
+
+/*
+ * The reports themselves, under their category.
+ *
+ * Indented against a rule down the left, which is the same device the nested navigation branches use
+ * elsewhere in this column — a list of seventeen links with no structure would read as one list of
+ * seventeen, and the categories are the only thing that makes it scannable at a glance.
+ */
+.fi-report-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    list-style: none;
+    margin: 0.125rem 0 0.375rem;
+    padding: 0 0 0 0.9375rem;
+    border-inline-start: 1px solid var(--color-gray-200);
+    margin-inline-start: 0.625rem;
+
+    &:where(.dark, .dark *) {
+        border-inline-start-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-report-link {
+    display: block;
+    padding: 0.3125rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--color-gray-500);
+    transition:
+        background-color 75ms ease,
+        color 75ms ease;
+
+    &:hover {
+        background-color: var(--color-gray-100);
+        color: var(--color-gray-950);
+    }
+
+    /* The report whose own page is open. */
+    &.fi-active {
+        background-color: var(--color-primary-50);
+        font-weight: 600;
+        color: var(--color-primary-700);
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-400);
+
+        &:hover {
+            background-color: var(--color-gray-800);
+            color: var(--color-white);
+        }
+
+        &.fi-active {
+            background-color: color-mix(in oklab, var(--color-primary-400) 12%, transparent);
+            color: var(--color-primary-300);
+        }
+    }
 }
 
 /* ------------------------------------------------------------------ the page */

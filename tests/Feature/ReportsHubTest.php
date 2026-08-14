@@ -170,6 +170,40 @@ class ReportsHubTest extends TestCase
             ->assertSee('What the company owns, owes and is worth, on a date.');
     }
 
+    /**
+     * The Reports column names every report and links each to its own page.
+     *
+     * The column used to list the six categories and their counts alone, so the sidebar could say a company
+     * had seventeen reports without naming one — and a report's own page, which is where its actions live,
+     * was reachable only from inside the explorer.
+     *
+     * Asserted through a real request rather than through the page component, because the column is rendered
+     * by the panel's own sidebar and a Livewire test of the page never draws it.
+     */
+    public function test_the_reports_column_lists_every_report_with_a_link_to_its_page(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $response = $this->get(Reports::getUrl())->assertOk();
+        $html = html_entity_decode($response->getContent());
+
+        foreach (Reports::sections() as $section => $links) {
+            // The category still filters the explorer, which is a different destination on purpose.
+            $this->assertStringContainsString($section, $html);
+
+            foreach ($links as $link) {
+                $this->assertStringContainsString(
+                    'href="'.$link['url'].'"',
+                    $html,
+                    "the column does not link to {$link['label']}'s own page",
+                );
+            }
+        }
+
+        // Guards the loop: an empty catalogue would satisfy it.
+        $this->assertGreaterThanOrEqual(17, Reports::total());
+    }
+
     public function test_a_disabled_module_takes_its_reports_out_of_the_hub(): void
     {
         $company = Company::factory()->create();
