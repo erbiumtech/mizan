@@ -15,6 +15,7 @@ use App\Modules\Accounting\Filament\Pages\FindTransactions;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
+use App\Modules\Accounting\Support\ComparativeStatement;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
@@ -123,7 +124,7 @@ class Reports extends Page
         return array_merge(...array_map('array_keys', array_values(self::SECTIONS)));
     }
 
-    // ------------------------------------------------------------ the 3a screen
+    // -------------------------------------------------------- the 4c explorer
 
     /**
      * Which section is showing. Null is all of them.
@@ -136,15 +137,96 @@ class Reports extends Page
     #[Url]
     public ?string $section = null;
 
-    /** Grid or list. Kept in the URL for the same reason, and because it is a lasting preference. */
-    #[Url]
-    public string $display = 'grid';
-
     /** The filter box. Deliberately not in the URL: a half-typed word is not a place to return to. */
     public string $query = '';
 
-    /** The report whose panel is open, by key. */
+    /**
+     * The report being read, by key.
+     *
+     * In the URL for the same reason as the date beside it: "the balance sheet as of 30 June" is a link
+     * somebody sends, and 4c's whole premise is that the pane is a view of a report rather than a step
+     * in a flow. Which means the key arrives from the browser — so mount() puts it through the same
+     * check select() applies, and for the same reason.
+     */
+    #[Url]
     public ?string $selected = null;
+
+    /**
+     * The date the statement in the right-hand pane is drawn to.
+     *
+     * In the URL, because a statement at a date is the thing people send each other — "the balance sheet
+     * at the end of June" is a link, not an instruction. Defaults in mount() rather than here so it is
+     * today's date at the moment of asking rather than at the moment the class was loaded.
+     */
+    #[Url]
+    public ?string $asOf = null;
+
+    /** Whether the prior year's column is shown. A preference, so it travels too. */
+    #[Url]
+    public bool $comparison = true;
+
+    public function mount(): void
+    {
+        $this->asOf ??= now()->toDateString();
+
+        // The key came off the query string, so it gets the same treatment as one that came off a click:
+        // anything not in this role's catalogue is refused. Without this, `?selected=` would be a way to
+        // have the pane render a link to a report the role cannot open — see select().
+        if (filled($this->selected)) {
+            $this->select($this->selected);
+        }
+    }
+
+    /**
+     * The statement for the selected report, with its comparison column.
+     *
+     * Null covers three cases the pane draws differently: nothing selected yet, a report whose shape
+     * this cannot render (see ComparativeStatement — it says so and offers the report's own page), and a
+     * report the role cannot open, which select() has already refused.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function statement(): ?array
+    {
+        $report = $this->selectedReport();
+
+        if ($report === null || ! ComparativeStatement::supports($report['key'])) {
+            return null;
+        }
+
+        return app(ComparativeStatement::class)->for(
+            $report['key'],
+            $this->asOf ?: now()->toDateString(),
+            $this->comparison,
+        );
+    }
+
+    /** Whether the selected report can be shown in the pane at all. */
+    public function statementIsAvailable(): bool
+    {
+        return ComparativeStatement::supports($this->selectedReport()['key'] ?? null);
+    }
+
+    /**
+     * The first report the pane can actually draw, so the screen never opens empty.
+     *
+     * Chosen from what this role may open rather than hard-coded to the balance sheet: a company
+     * without the accounting module, or a role without ReportView, would otherwise land on a pane
+     * pointing at a report that is not in their catalogue.
+     */
+    public function defaultStatementKey(): ?string
+    {
+        // From what is currently *in view*, not from the whole catalogue. Offering "show the balance
+        // sheet" while the list is filtered to payroll — or while a search has emptied it — points at
+        // something the person cannot see, and quietly contradicts the filter they just set.
+        foreach ($this->visibleReports() as $report) {
+            if (ComparativeStatement::supports($report['key'])) {
+                return $report['key'];
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Every report as one flat list, with a key.
@@ -315,21 +397,16 @@ class Reports extends Page
      * and the grid/list toggle to sit beside it through PAGE_HEADER_ACTIONS_BEFORE — which is 3a's
      * single header row.
      */
+    /**
+     * Just the page's name.
+     *
+     * 4c gives each pane its own title — "Reports" over the list, the statement's own name over the
+     * figures — so a heading that restated the filter ("All reports · showing 17 of 17") said the same
+     * thing a third time, directly above two places that said it better.
+     */
     public function getHeading(): string
     {
-        return $this->currentSection() ?? 'All reports';
-    }
-
-    public function getSubheading(): ?string
-    {
-        $showing = count($this->visibleReports());
-        $total = static::total();
-
-        if ($showing === $total) {
-            return trans_choice(':count report|:count reports', $total);
-        }
-
-        return "Showing {$showing} of {$total}";
+        return 'Reports';
     }
 
     /**

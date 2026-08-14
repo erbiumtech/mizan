@@ -155,12 +155,18 @@ class ReportsHubTest extends TestCase
     {
         $this->actAsSuperAdminOf(Company::factory()->create());
 
-        Livewire::test(Reports::class)
+        $page = Livewire::test(Reports::class)
             ->assertSuccessful()
+            // The section is a filter chip now rather than a heading over a grid of cards, but it is
+            // still on the page and still names the same set.
             ->assertSee('Financial statements')
-            ->assertSee('Balance Sheet')
-            // The descriptions are the reason the page exists rather than being a
-            // list of the same titles the sidebar already had.
+            ->assertSee('Balance Sheet');
+
+        // The descriptions are the reason the page exists rather than being a list of the same titles
+        // the sidebar already had. 4c's list rows are two lines and have no room for one, so the
+        // selected report's description is shown in the pane beside them — asserted here rather than
+        // dropped, because it is the claim that matters.
+        $page->call('select', 'BalanceSheet')
             ->assertSee('What the company owns, owes and is worth, on a date.');
     }
 

@@ -68,7 +68,8 @@ class ReportsScreenTest extends TestCase
             $page->assertSee($heading);
         }
 
-        $page->assertSee('All reports');
+        // "All" is the chip that clears the filter, and it is the active one with no section set.
+        $page->assertSee('All');
     }
 
     /**
@@ -109,8 +110,11 @@ class ReportsScreenTest extends TestCase
     {
         Livewire::test(Reports::class)
             ->set('section', 'Nonsense')
-            ->assertSee('All reports')
+            // Unfiltered: reports from more than one section are listed, and nothing says the list is
+            // empty. Asserted on the contents rather than on a heading, because 4c's heading is just
+            // the page's name.
             ->assertSee('Balance Sheet')
+            ->assertSee('Tax Summary')
             ->assertDontSee('Nothing matches');
     }
 
@@ -124,28 +128,47 @@ class ReportsScreenTest extends TestCase
         $this->assertSame($before, Reports::sectionCounts());
     }
 
-    // -------------------------------------------------------------- the layouts
+    // -------------------------------------------------------------- the statement
 
-    public function test_both_layouts_render_the_same_reports(): void
+    /**
+     * Both panes on one screen: the list and the statement it selected.
+     *
+     * The grid/list toggle this used to assert is gone with 3a's card grid — 4c has one list, and the
+     * space the second layout used is where the statement now goes.
+     */
+    public function test_the_list_and_the_statement_share_the_screen(): void
     {
         Livewire::test(Reports::class)
-            ->set('display', 'list')
-            ->assertSee('Balance Sheet')
-            // The list view names the section per row, which the grid says once per group.
-            ->assertSee('Financial statements')
-            ->set('display', 'grid')
-            ->assertSee('Balance Sheet');
+            ->call('select', 'BalanceSheet')
+            // the list, still filterable beside the statement
+            ->assertSee('Profit & Loss')
+            ->assertSee('Search reports')
+            // and the statement itself
+            ->assertSee('Total assets')
+            ->assertSee('Account');
     }
 
     // ------------------------------------------------------------- the run panel
 
-    public function test_selecting_a_report_opens_its_panel(): void
+    /**
+     * Selecting a report draws it in the pane.
+     *
+     * The slide-over this used to assert is gone: 4c reads the whole statement in the right-hand pane
+     * instead of previewing it in a panel over the list. What survives is the part that mattered — the
+     * report's own description is still shown, and the report's own page is still one click away.
+     */
+    public function test_selecting_a_report_draws_it_in_the_pane(): void
     {
         Livewire::test(Reports::class)
             ->call('select', 'BalanceSheet')
             ->assertSet('selected', 'BalanceSheet')
             ->assertSee('What the company owns, owes and is worth, on a date.')
-            ->assertSee('Open report');
+            // The statement itself: its sections, and the identity it has to satisfy.
+            ->assertSee('ASSETS')
+            ->assertSee('LIABILITIES')
+            ->assertSee('EQUITY')
+            ->assertSee('Total liabilities and equity')
+            ->assertSee('Open in full page');
     }
 
     public function test_the_panel_closes(): void
@@ -169,7 +192,28 @@ class ReportsScreenTest extends TestCase
         Livewire::test(Reports::class)
             ->call('select', 'NotAReport')
             ->assertSet('selected', null)
-            ->assertDontSee('Open report');
+            ->assertDontSee('Open in full page');
+    }
+
+    /**
+     * The same refusal when the key arrives in the URL rather than from a click.
+     *
+     * `selected` is a #[Url] property now, so it is hydrated straight from the query string before any
+     * method of this class runs — which would make `?selected=` a way around select()'s check if mount()
+     * did not apply it too.
+     */
+    public function test_an_unknown_key_in_the_url_opens_nothing(): void
+    {
+        Livewire::test(Reports::class, ['selected' => 'NotAReport'])
+            ->assertSet('selected', null);
+    }
+
+    /** And a real one does open, straight from the URL — the point of it being linkable. */
+    public function test_a_report_can_be_opened_by_url(): void
+    {
+        Livewire::test(Reports::class, ['selected' => 'BalanceSheet'])
+            ->assertSet('selected', 'BalanceSheet')
+            ->assertSee('ASSETS');
     }
 
     public function test_a_report_from_a_disabled_module_cannot_be_opened(): void
