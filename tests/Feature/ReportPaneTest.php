@@ -27,16 +27,20 @@ class ReportPaneTest extends AccountingTestCase
     use InteractsWithTenant;
 
     /**
-     * Reports that need something the date cannot supply, and what they need.
+     * Reports that carry a filter of their own, and which one.
      *
-     * Not an exception to being drawn — all three are drawn — but the pane has to offer a control for
-     * them, and a report that quietly loses its control renders whatever the fallback picks while looking
-     * perfectly fine. That is what the assertion below is for.
+     * Not an exception to being drawn — every one of them is drawn — but the pane has to offer the control,
+     * and a report that quietly loses it renders whatever the fallback picks while looking perfectly fine.
+     * That is what the assertion below is for.
+     *
+     * @var array<string, array<int, string>>
      */
     private const ASKS = [
-        'AccountRegister' => 'account',
-        'FindTransactions' => 'search',
-        'BudgetVsActual' => 'budget',
+        'AccountRegister' => ['account'],
+        'FindTransactions' => ['search'],
+        'BudgetVsActual' => ['budget'],
+        'TaxSummary' => ['month'],
+        'PettyCashBook' => ['month'],
     ];
 
     protected function setUp(): void
@@ -127,7 +131,7 @@ class ReportPaneTest extends AccountingTestCase
         // And nothing else asks for one, so a stray control cannot appear on a report that ignores it.
         foreach (array_keys(Reports::catalogue()) as $key) {
             if (! array_key_exists($key, self::ASKS)) {
-                $this->assertNull(ReportPane::asks($key), "[{$key}] asks for something it does not use");
+                $this->assertSame([], ReportPane::asks($key), "[{$key}] asks for something it does not use");
             }
         }
     }
@@ -182,12 +186,116 @@ class ReportPaneTest extends AccountingTestCase
             ->assertSet('selected', 'BalanceSheet');
     }
 
-    /** A picker with no options is a dead control, so the two that have one must fill it. */
+    /** A picker with no options is a dead control, so every one that is a picker must fill it. */
     public function test_the_pickers_have_options(): void
     {
+        $pane = app(ReportPane::class);
+
         $this->assertNotEmpty(
-            app(ReportPane::class)->options('AccountRegister'),
+            $pane->options('AccountRegister'),
             'the register has no account to offer, though the seeded chart has postable assets',
+        );
+
+        $this->assertNotEmpty(
+            $pane->options('TaxSummary', 'month', '2026-06-30'),
+            'the month filter has no months to offer',
+        );
+
+        // A typed filter has no options on purpose, and the view branches on exactly that.
+        $this->assertSame([], $pane->options('FindTransactions'));
+    }
+
+    /**
+     * The month filter offers the fiscal year's months, in the order they are paid.
+     *
+     * Fiscal order is the assertion. These years run 1 July to 30 June, so a picker in calendar order puts
+     * the last six months of the year first and asks somebody to scroll past December to reach July.
+     */
+    public function test_the_month_filter_is_in_fiscal_order(): void
+    {
+        $months = array_keys(app(ReportPane::class)->options('TaxSummary', 'month', '2026-06-30'));
+
+        $this->assertCount(12, $months);
+        $this->assertSame(
+            $this->fiscalYear->start_date->format('F'),
+            $months[0],
+            'the month picker does not start where the fiscal year does',
+        );
+    }
+
+    /**
+     * Filtering the tax summary to a month narrows it to that month.
+     *
+     * Both directions matter: the year has to include what the month has, and the month has to exclude
+     * what another month has — a filter that is read but ignored shows the year's figure under a month's
+     * heading, which is a wrong number on something that gets filed.
+     */
+    public function test_the_tax_summary_can_be_filtered_to_a_month(): void
+    {
+        $year = $this->pane('TaxSummary');
+        $months = array_keys(app(ReportPane::class)->options('TaxSummary', 'month', '2026-06-30'));
+
+        $filtered = app(ReportPane::class)->for('TaxSummary', '2026-06-30', true, ['month' => $months[0]]);
+
+        $this->assertStringContainsString($months[0], $filtered['subtitle']);
+        $this->assertLessThanOrEqual(
+            count($year['rows']),
+            count($filtered['rows']),
+            'filtering to one month returned more employees than the whole year has',
+        );
+    }
+
+    /**
+     * The reports that end in a record row have one, and it lines up.
+     *
+     * A footer cell per column is the whole point of it: a total in the wrong cell is worse than no total,
+     * because it reads as the total of the column it is sitting under.
+     */
+    public function test_the_record_row_has_a_cell_per_column(): void
+    {
+        $this->postEntry('2026-03-31', [['1100', 'debit_amount', 120000], ['3100', 'credit_amount', 120000]]);
+
+        $withFooters = ['TaxSummary', 'AccountRegister', 'AgedReceivables', 'AgedPayables', 'ContractorPayments'];
+
+        foreach ($withFooters as $key) {
+            $pane = $this->pane($key);
+
+            $this->assertNotNull($pane['footer'] ?? null, "[{$key}] has no record row");
+            $this->assertCount(
+                count($pane['columns']),
+                $pane['footer'],
+                "[{$key}]'s record row does not line up with its columns",
+            );
+        }
+    }
+
+    /**
+     * The register's record row is the debits, the credits and what is left.
+     *
+     * Asserted against the register service rather than against a figure written here: the row exists to be
+     * reconciled against the account, and summing the pane's own formatted cells back into numbers — which
+     * is how this was first written — breaks the moment a thousands separator appears.
+     */
+    public function test_the_registers_record_row_totals_its_columns(): void
+    {
+        $this->postEntry('2026-03-31', [['1100', 'debit_amount', 250000], ['3100', 'credit_amount', 250000]]);
+
+        $pane = app(ReportPane::class)->for('AccountRegister', '2026-06-30', true, []);
+        $footer = $pane['footer'];
+
+        $this->assertNotEmpty($pane['rows'], 'nothing was posted to the register, so this proves nothing');
+
+        $debits = collect($pane['rows'])->sum(fn (array $row): float => (float) str_replace(',', '', $row[3] ?: '0'));
+        $credits = collect($pane['rows'])->sum(fn (array $row): float => (float) str_replace(',', '', $row[4] ?: '0'));
+
+        $this->assertSame(number_format($debits, 0), $footer[3], 'the debit total is not the debits shown');
+        $this->assertSame(number_format($credits, 0), $footer[4], 'the credit total is not the credits shown');
+
+        // And the balance is the closing balance, not the last row's running total by coincidence.
+        $this->assertSame(
+            $footer[5],
+            (string) collect($pane['rows'])->last()[5],
+            'the closing figure disagrees with the last running balance',
         );
     }
 
@@ -287,7 +395,7 @@ class ReportPaneTest extends AccountingTestCase
 
             $this->assertSame('table', $pane['kind'], $key);
             $this->assertSame(['Invoice', 'Contact', 'Days overdue', 'Outstanding'], $pane['columns']);
-            $this->assertArrayHasKey('total', $pane);
+            $this->assertArrayHasKey('footer', $pane);
 
             // Every bucket the service cuts the ageing into becomes a tile — the count comes from the
             // service rather than from a number written here, because the buckets are its decision.

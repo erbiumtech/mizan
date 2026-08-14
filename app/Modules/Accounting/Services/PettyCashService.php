@@ -21,12 +21,15 @@ use RuntimeException;
  */
 class PettyCashService
 {
+    /** The nominated float account. Named so a caller can say which account is missing without repeating it. */
+    public const ACCOUNT_CODE = '1150';
+
     public function __construct(private RegisterEntryService $register) {}
 
     public function account(): Account
     {
-        return Account::where('code', '1150')->firstOr(function () {
-            throw new RuntimeException('Account 1150 Petty Cash not found. Run ChartOfAccountsSeeder.');
+        return Account::where('code', self::ACCOUNT_CODE)->firstOr(function () {
+            throw new RuntimeException('Account '.self::ACCOUNT_CODE.' Petty Cash not found. Run ChartOfAccountsSeeder.');
         });
     }
 

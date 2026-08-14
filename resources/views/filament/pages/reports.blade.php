@@ -106,31 +106,45 @@
                         </label>
 
                         {{--
-                            What this report needs beyond the date. An account to register, a budget to
-                            compare against, or something to find — asked here rather than on a form the
-                            person has to submit, so the pane stays a view.
+                            Every filter the open report carries, in one bar: an account to register, a
+                            budget to compare against, a month to file, something to find. Built from the
+                            report's own declaration (ReportPane::ASKS via Reports::filters()) rather than
+                            branched on here, so a report that gains a filter gains a control — and so the
+                            bar shows *all* of them where a report has more than one.
                         --}}
-                        @if ($this->asksFor() === 'account' || $this->asksFor() === 'budget')
-                            <select
-                                wire:model.live="{{ $this->asksFor() === 'account' ? 'account' : 'budget' }}"
-                                class="fi-explorer-select"
-                                aria-label="{{ $this->asksFor() === 'account' ? 'Account' : 'Budget' }}"
-                            >
-                                @foreach ($this->askOptions() as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        @elseif ($this->asksFor() === 'search')
-                            <label class="fi-explorer-date">
-                                <span class="fi-sr-only">Find in the ledger</span>
-                                <input
-                                    type="search"
-                                    wire:model.live.debounce.300ms="find"
-                                    placeholder="Find in the ledger"
-                                    class="fi-explorer-date-input"
+                        @foreach ($this->filters() as $filter)
+                            @if ($filter['control'] === 'select')
+                                <select
+                                    wire:model.live="{{ $filter['model'] }}"
+                                    wire:key="filter-{{ $report['key'] }}-{{ $filter['ask'] }}"
+                                    class="fi-explorer-select"
+                                    aria-label="{{ $filter['label'] }}"
                                 >
-                            </label>
-                        @endif
+                                    {{--
+                                        A blank option only where blank means something. On a month it means
+                                        the whole year, which is the default and a thing to come back to; on
+                                        an account it would mean a register of nothing.
+                                    --}}
+                                    @if ($filter['ask'] === 'month' || $filter['options'] === [])
+                                        <option value="">{{ $filter['options'] === [] ? 'Nothing to choose' : $filter['placeholder'] }}</option>
+                                    @endif
+
+                                    @foreach ($filter['options'] as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <label class="fi-explorer-date" wire:key="filter-{{ $report['key'] }}-{{ $filter['ask'] }}">
+                                    <span class="fi-sr-only">{{ $filter['label'] }}</span>
+                                    <input
+                                        type="search"
+                                        wire:model.live.debounce.300ms="{{ $filter['model'] }}"
+                                        placeholder="{{ $filter['placeholder'] }}"
+                                        class="fi-explorer-date-input"
+                                    >
+                                </label>
+                            @endif
+                        @endforeach
 
                         {{--
                             Only where a prior year is drawn. A trial balance proves this period adds up and
@@ -319,11 +333,28 @@
                                 <p class="fi-explorer-empty">{{ $statement['empty'] }}</p>
                             @endforelse
 
-                            @if ($statement['total'])
+                            {{--
+                                The record row across the bottom, one cell per column, on the same grid as
+                                the rows above it — so a figure sits directly under the column it totals.
+                                It used to be a single label with one value dropped in the last column,
+                                which put a tax total under "tax withheld" only by luck and a debit total
+                                nowhere at all.
+                            --}}
+                            @if (($statement['footer'] ?? null) && $statement['rows'] !== [])
                                 <div class="fi-explorer-total fi-explorer-closing" style="{{ $grid }}">
-                                    <span>{{ $statement['total']['label'] }}</span>
-                                    @foreach (array_slice($statement['columns'], 1) as $i => $column)
-                                        <span class="fi-num">{{ $loop->last ? number_format($statement['total']['value'], 0) : '' }}</span>
+                                    {{--
+                                        The label spans the blank cells that follow it, which is why the
+                                        pane computes a span (see ReportPane::table). Confined to the first
+                                        column it would be cut off on any report whose first column is
+                                        narrow — on a register that is the 7rem date, and "Closing — 40
+                                        transactions" arrived as "Closing…".
+                                    --}}
+                                    <span class="fi-explorer-line-label" style="grid-column: span {{ $statement['footer_span'] }}">
+                                        {{ $statement['footer'][0] }}
+                                    </span>
+
+                                    @foreach (array_slice($statement['footer'], $statement['footer_span'], null, true) as $i => $cell)
+                                        <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
                                     @endforeach
                                 </div>
                             @endif

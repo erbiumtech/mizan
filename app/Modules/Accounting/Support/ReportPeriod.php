@@ -54,6 +54,25 @@ class ReportPeriod
         ];
     }
 
+    /**
+     * The twelve months of the fiscal year containing a date, in the order they are paid.
+     *
+     * Fiscal order, not calendar order — a filing month picker on a 1 July year that opens on January is
+     * asking somebody to scroll past the second half of the year to reach the first. Month *names* because
+     * that is what payslips are stamped with in this application, and what the tax summary filters on.
+     *
+     * @return array<int, string>
+     */
+    public static function months(Carbon|string $date): array
+    {
+        $start = self::yearFor($date)?->start_date?->copy()
+            ?? Carbon::parse($date instanceof Carbon ? $date->toDateString() : $date)->startOfYear();
+
+        return collect(range(0, 11))
+            ->map(fn (int $i): string => Carbon::parse($start)->addMonths($i)->format('F'))
+            ->all();
+    }
+
     /** The fiscal year covering a date, or the current one. */
     public static function yearFor(Carbon|string $date): ?FiscalYear
     {

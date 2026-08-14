@@ -171,6 +171,74 @@ class ReportsScreenTest extends TestCase
             ->assertSee('Open in full page');
     }
 
+    /**
+     * Every report actually renders in the pane.
+     *
+     * ReportPaneTest asserts the *payload* for all seventeen; this asserts the view draws it, which is not
+     * the same thing and was found out the hard way — a Blade change compiled to broken PHP and every report
+     * on the screen returned a 500 while every payload test stayed green.
+     *
+     * The heading is what is asserted per report: it comes from the pane rather than from the list, so
+     * seeing it means the right-hand side rendered rather than the row on the left.
+     */
+    public function test_every_report_renders_in_the_pane(): void
+    {
+        foreach (Reports::catalogue() as $key => $report) {
+            Livewire::test(Reports::class)
+                ->call('select', $key)
+                ->assertSuccessful()
+                ->assertSee($report['label']);
+        }
+
+        $this->assertGreaterThanOrEqual(17, count(Reports::catalogue()));
+    }
+
+    /**
+     * The open report's own filters are on screen, and only its own.
+     *
+     * The bar used to branch on a single "what does this report ask for" string, so a report could only
+     * ever have one control and the two monthly reports had none at all. This asserts the bar is built from
+     * what the report declares — including that a report which declares nothing gets nothing, since a month
+     * picker on a balance sheet would be a control that changes nothing.
+     */
+    public function test_the_open_report_carries_its_own_filters(): void
+    {
+        // The register asks for an account, and offers the accounts it can register.
+        Livewire::test(Reports::class)
+            ->call('select', 'AccountRegister')
+            ->assertSee('wire:model.live="account"', escape: false)
+            ->assertDontSee('wire:model.live="month"', escape: false);
+
+        // The tax summary asks for a month, and lets it be left off.
+        Livewire::test(Reports::class)
+            ->call('select', 'TaxSummary')
+            ->assertSee('wire:model.live="month"', escape: false)
+            ->assertSee('The whole year')
+            ->assertSee('July')
+            ->assertDontSee('wire:model.live="account"', escape: false);
+
+        // The balance sheet asks for nothing beyond the date it already has.
+        Livewire::test(Reports::class)
+            ->call('select', 'BalanceSheet')
+            ->assertDontSee('wire:model.live="month"', escape: false)
+            ->assertDontSee('wire:model.live="account"', escape: false);
+    }
+
+    /**
+     * The month a report is filtered to survives in the URL.
+     *
+     * "The tax summary for July" is the thing somebody sends before a filing, and the pane's whole premise
+     * is that what is on screen is a link.
+     */
+    public function test_a_month_can_be_opened_by_url(): void
+    {
+        Livewire::withQueryParams(['selected' => 'TaxSummary', 'month' => 'August'])
+            ->test(Reports::class)
+            ->assertSet('selected', 'TaxSummary')
+            ->assertSet('month', 'August')
+            ->assertSee('August');
+    }
+
     public function test_the_panel_closes(): void
     {
         Livewire::test(Reports::class)
