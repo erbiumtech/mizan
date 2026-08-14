@@ -9,6 +9,7 @@ use App\Modules\Crm\Filament\Resources\NextActions\Pages\EditNextAction;
 use App\Modules\Crm\Filament\Resources\NextActions\Pages\ListNextActions;
 use App\Modules\Crm\Models\NextAction;
 use App\Modules\Employees\Models\Employee;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -59,9 +60,7 @@ class NextActionResource extends Resource
     /** What is due today or overdue — the number somebody should act on. */
     public static function getNavigationBadge(): ?string
     {
-        $due = static::getEloquentQuery()->due()->count();
-
-        return $due > 0 ? (string) $due : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->due()->count());
     }
 
     public static function getNavigationBadgeColor(): ?string

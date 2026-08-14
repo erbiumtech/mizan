@@ -11,6 +11,7 @@ use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Offer;
 use App\Modules\Recruitment\Models\Vacancy;
 use App\Modules\Recruitment\Services\HireService;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
@@ -49,9 +50,7 @@ class ApplicationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $open = static::getEloquentQuery()->open()->count();
-
-        return $open > 0 ? (string) $open : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
     }
 
     public static function form(Schema $schema): Schema

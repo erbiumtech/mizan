@@ -43,7 +43,13 @@
     </script>
 
     <nav class="fi-domain-rail" aria-label="{{ __('Domains') }}">
-        <a href="{{ filament()->getUrl() }}" class="fi-domain-rail-brand" aria-label="{{ filament()->getBrandName() }}">
+        <a
+            {{-- The panel is in SPA mode; without this the brand mark is the one link in the shell
+                 that reloads the document. --}}
+            {{ \Filament\Support\generate_href_html(filament()->getUrl()) }}
+            class="fi-domain-rail-brand"
+            aria-label="{{ filament()->getBrandName() }}"
+        >
             <img src="{{ filament()->getBrandLogo() }}" alt="" class="fi-domain-rail-brand-logo">
         </a>
 

@@ -191,6 +191,23 @@ return [
             'database' => env('REDIS_CACHE_DB', '1'),
         ],
 
+        /*
+         * Sessions, on a database of their own.
+         *
+         * Not on the `cache` connection, and the distance is the point: `cache:clear` and a
+         * cache eviction policy both operate on that database, and either one taking sessions
+         * with it logs every user in the company out mid-form. The queue (`default`, db 0) is
+         * kept clear of both for the same reason.
+         */
+        'sessions' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_SESSION_DB', '2'),
+        ],
+
     ],
 
 ];

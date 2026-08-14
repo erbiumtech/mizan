@@ -306,6 +306,16 @@ class Employee extends Model
      */
     public function fullName(): string
     {
+        // Loaded explicitly rather than read lazily. This is called from selects, columns and labels
+        // all over the panel, on records that arrive from anywhere, so it cannot assume the caller
+        // eager-loaded the user — and reading it lazily is a violation the moment the guard is on.
+        //
+        // Note what this does *not* fix: one query per employee is still one query per employee, and
+        // `loadMissing` only makes that explicit rather than fatal. Anywhere this is called over a
+        // list — a table column, a select's options — the query behind the list should eager-load
+        // `user`, and this stays as the safety net for the single-record callers.
+        $this->loadMissing('user');
+
         return (string) ($this->user?->name ?? $this->name ?? '');
     }
 

@@ -9,6 +9,7 @@ use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 use App\Support\NavigationTree;
+use App\Support\TenantStorage;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -105,6 +106,40 @@ class AdminPanelProvider extends PanelProvider
             // confuse it with. Two routes to the same act meant two places to keep the
             // super-admin check.
             ->viteTheme('resources/css/filament/admin/theme.css')
+            // Soft navigation. Every link Filament renders gains `wire:navigate`
+            // (Filament\Support\generate_href_html), so moving between pages swaps the body over
+            // fetch instead of throwing the document away: the 649KB theme stays parsed, Alpine and
+            // Livewire stay booted, and the Reverb socket stays open. The domain rail was already
+            // navigating this way on its own — this is the rest of the shell catching up.
+            //
+            // Prefetching is deliberately off. `wire:navigate.hover` fetches on hover, and a full
+            // page render here costs 25 database statements before the page does any work of its
+            // own (see PanelPerformanceTest); a person sweeping down the sidebar would issue that
+            // several times over for pages they never open. Turn it on once the sidebar badge
+            // counts are cached — docs/page-load-performance-plan.md, Phase 2.
+            ->spa(hasPrefetching: false)
+            // What must stay a real browser navigation.
+            //
+            // A soft navigation replaces the body with whatever came back, so a URL that answers
+            // with a PDF or a spreadsheet leaves the user on a blank page holding a file the
+            // browser never offered to save. Every download in this application is listed here.
+            //
+            // Matched with str()->is() against the whole URL, so each pattern needs a leading * for
+            // the scheme and host (ViewManager::hasSpaMode).
+            ->spaUrlExceptions([
+                // Filament's own export/import downloads.
+                '*/filament/exports/*',
+                '*/filament/imports/*',
+                // The DomPDF statements and the invoice/payslip PDFs — see routes/web.php and each
+                // module's report controller.
+                '*/reports/*',
+                '*/api/*',
+                // Company uploads, streamed through TenantFileController rather than off disk.
+                '*/'.TenantStorage::URL_PREFIX.'/*',
+                // A different panel: different assets, different navigation. Swapping this panel's
+                // body for that one's would run new markup against JS that was booted for neither.
+                '*/platform*',
+            ])
             // 248px, the width of 3a's contextual column. The column is narrower than Filament's
             // default because it now shows one domain at a time rather than every group at once —
             // see NavigationDomains, and the rail registered at LAYOUT_START below.
@@ -138,9 +173,13 @@ class AdminPanelProvider extends PanelProvider
             // consult this setting, so the palette still finds records.
             ->globalSearch(false)
             // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
-            // instantly; polling is just the fallback if a socket drops.
+            // instantly over Reverb; this is only the fallback for a dropped socket,
+            // so it is five minutes rather than one. At 60s every open tab in the
+            // company made a Livewire round trip a minute for something that had
+            // already arrived — and with SPA navigation on, tabs now stay open for
+            // much longer than they used to.
             ->databaseNotifications()
-            ->databaseNotificationsPolling('60s')
+            ->databaseNotificationsPolling('300s')
             // Every resource, page and widget now belongs to a module and is
             // registered by that module's plugin — there is no app-level discovery
             // left. Registration is unconditional regardless of licence state; see

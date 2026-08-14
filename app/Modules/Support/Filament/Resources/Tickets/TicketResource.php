@@ -12,6 +12,7 @@ use App\Modules\Support\Filament\Resources\Tickets\Pages\ListTickets;
 use App\Modules\Support\Models\Ticket;
 use App\Modules\Support\Models\TicketCategory;
 use App\Modules\Support\Services\TicketService;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -57,9 +58,7 @@ class TicketResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $open = static::getEloquentQuery()->open()->count();
-
-        return $open > 0 ? (string) $open : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
     }
 
     public static function form(Schema $schema): Schema

@@ -17,7 +17,17 @@ class AttendanceDaysTable
 {
     public static function configure(Table $table): Table
     {
+        // Painted before it is filled.
+        //
+        // Without this the whole page waits on this table's query, its count and
+        // its filters before a single pixel arrives; with it the shell and the
+        // heading render immediately and the rows follow in a second request.
+        // Applied to the long lists rather than to every table — on a table of
+        // twenty rows it buys a round trip and nothing else.
+        //
+        // See docs/page-load-performance-plan.md.
         return $table
+            ->deferLoading()
             ->columns([
                 TextColumn::make('date')
                     ->date('d M Y')

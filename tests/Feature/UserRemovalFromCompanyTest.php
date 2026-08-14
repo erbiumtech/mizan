@@ -139,7 +139,7 @@ class UserRemovalFromCompanyTest extends TestCase
         $this->assertTrue(Employee::query()->whereKey($employee->getKey())->exists());
         $this->assertSame('Shared Person', $employee->fresh()->user?->name);
 
-        Livewire::test(ListEmployees::class)->assertCanSeeTableRecords([$employee]);
+        Livewire::test(ListEmployees::class)->loadTable()->assertCanSeeTableRecords([$employee]);
     }
 
     /** The one removal that would lock the person doing it out of this company. */

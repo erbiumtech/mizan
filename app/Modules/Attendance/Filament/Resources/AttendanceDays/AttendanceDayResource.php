@@ -10,6 +10,7 @@ use App\Modules\Attendance\Filament\Resources\AttendanceDays\Pages\ListAttendanc
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Schemas\AttendanceDayForm;
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Tables\AttendanceDaysTable;
 use App\Modules\Attendance\Models\AttendanceDay;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -56,15 +57,13 @@ class AttendanceDayResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
-        $unknown = static::getEloquentQuery()
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
             ->unknown()
             ->whereBetween('date', [
                 now()->startOfMonth()->toDateString(),
                 now()->endOfMonth()->toDateString(),
             ])
-            ->count();
-
-        return $unknown > 0 ? (string) $unknown : null;
+            ->count());
     }
 
     public static function getNavigationBadgeColor(): ?string
