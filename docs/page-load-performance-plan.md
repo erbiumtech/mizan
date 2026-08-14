@@ -1,6 +1,6 @@
 # Faster Page Loads — SPA Navigation and Render Cost — Plan
 
-**Status:** Proposed
+**Status:** Phases 0–5 implemented (2026-08-13); Phase 6 outstanding — see [What landed](#what-landed)
 **Created:** 2026-08-13
 
 Goal: make moving around the panel feel instant. Today every click on a sidebar entry is a full
@@ -241,6 +241,19 @@ rendered sidebar link contains `wire:navigate`.
   will stack across navigations. The audit in Phase 1.4 is the mitigation; the failure mode is
   subtle, so it wants a manual pass through the app (open ten pages in a row, then use a modal, a
   file upload, an export, and the palette).
+
+  *Audited 2026-08-14, and the list in Phase 1.4 was wrong:* `command-palette.blade.php`,
+  `report-controls.blade.php`, `impersonation-banner.blade.php`, `saved-views-bar.blade.php` and
+  `account-register.blade.php` contain no `<script>` tag at all. The only two inline scripts rendered
+  on panel pages are `domain-rail.blade.php` (seeds the sidebar's collapsed state in localStorage) and
+  `sidebar-open-active-group.blade.php`, and both are idempotent by construction — one only writes a
+  key that is already absent, the other only ever *opens* a branch. Nothing binds to `document`. The
+  manual pass is still worth doing for Filament's own components; this application's scripts are clear.
+- **Redis is now a hard dependency for signing in.** Phase 4 moved sessions there from files, so Redis
+  being down no longer means a slower cache — it means every session is gone and nobody can log in.
+  The queue was already on Redis, but a queue that stops is a delay and a session store that stops is
+  an outage. Whatever monitors Redis should page someone, and the separate database index for sessions
+  matters mainly so a `FLUSHDB` aimed at the queue does not take the logins with it.
 - **Prefetching amplifies server cost.** Hover-prefetch multiplies full page renders by however many
   links a user sweeps past. Ship it after Phase 2, or not at all if the badge work slips.
 - **Cross-tenant caching.** Every cache key introduced in Phase 2 must contain the company id *and*
@@ -250,13 +263,142 @@ rendered sidebar link contains `wire:navigate`.
 - **`validate_timestamps=0` without a deploy hook** serves the previous release forever. Only turn
   it on together with the deploy script.
 
+  *Still outstanding as of 2026-08-14, and this one is live:* `deploy/deploy.sh` does not reset OPcache.
+  It ends by **printing** `sudo systemctl reload php8.3-fpm` for the operator to run. So the mitigation
+  for "serves the previous release forever" is a person reading the last four lines of a deploy log,
+  which is not a mitigation. Either put the reload in the script (and fail the deploy if it does not
+  succeed) or leave `validate_timestamps` at its default and accept the stat calls. Shipping the ini
+  file and the reminder together is the one combination that silently serves stale code.
+
 ## Results
 
-_To be filled in by Phase 0 and after each phase: queries and server time for dashboard, Employees
-index and Reports hub; transferred bytes and LCP for a cold load and for a same-session navigation._
+Measured by `tests/Feature/PanelPerformanceTest.php`, which is also the guard: the budgets in that
+file are these numbers with a little headroom, so a regression fails the suite rather than being
+noticed months later. Counts are statements per request as a seeded administrator with the whole
+navigation visible.
 
-| Page | Baseline queries | Baseline server ms | After | Notes |
-| --- | --- | --- | --- | --- |
-| Dashboard | | | | |
-| Employees index | | | | |
-| Reports hub | | | | |
+| Page | Before | After (cold cache) | After (warm, second page within the minute) |
+| --- | --- | --- | --- |
+| Dashboard | 25 | 21 | 10 |
+| Employees index | 27 | 24 | 13 |
+| Reports hub | 22 | 19 | 8 |
+
+Where the difference went:
+
+- **11 statements** on every page were sidebar badge counts, now cached per company and per user for
+  a minute (`App\Support\NavigationBadge`). They run on the first page load of the minute and on
+  none of the ones after it, which is the case that matters — nobody loads one page.
+- **4 statements** were `Company::all()`, run once for each place Filament asks who the user may
+  switch to. `User::getTenants()` now answers from an instance memo.
+- The rest is unchanged and is mostly the permission list, the module map and the tenant lookup —
+  all cache reads in production now that the cache is Redis rather than MySQL.
+
+Not captured in the table, because a query count cannot see them:
+
+- Soft navigation. Moving between pages no longer re-downloads or re-parses the 649KB stylesheet and
+  the ~250KB of JavaScript, and no longer re-boots Alpine, Livewire and the Reverb socket. This is
+  the largest thing a person actually feels and it does not show up as a single statement.
+- `optimize` and OPcache remove ~190ms of framework bootstrap per request (measured on a developer
+  machine with neither).
+- `deferLoading()` on the long tables moves the table's own query out of the initial render, so the
+  page paints before it runs rather than after.
+
+## What landed
+
+| Phase | State |
+| --- | --- |
+| 0 — Measurable | `tests/Feature/PanelPerformanceTest.php`, budgets and warm/cold assertions |
+| 1 — SPA navigation | `->spa()` + `spaUrlExceptions` in `AdminPanelProvider`, `tests/Feature/SpaNavigationTest.php` |
+| 2 — Sidebar cost | `App\Support\NavigationBadge` + `tests/Feature/NavigationBadgeTest.php`; `User::getTenants()` memo |
+| 3 — Deferral | `deferLoading()` on Employees, Attendance days, Journal entries, Invoices; notification polling 60s → 300s |
+| 4 — Infrastructure | `CACHE_STORE=redis`, `SESSION_DRIVER=redis` on its own database, `deploy/deploy.sh`, `deploy/php/opcache.ini` |
+| 5 — Transport | `deploy/nginx/assets.conf` |
+| 6 — Query hygiene | `Model::preventLazyLoading(! isProduction())` + the eight fixes below |
+
+## Phase 6 — done 2026-08-14
+
+The guard is on in `AppServiceProvider::boot()`, in the `! $this->app->isProduction()` form. It
+replaces an unconditional `preventLazyLoading(true)` left over from the probe — that version throws in
+production too, where a relation nobody happened to exercise in development would take a customer's
+page down rather than serve it a little slower.
+
+The 20+ failures resolved to **eight relationships**, and the shape is worth naming because the next
+one will look identical: a *model method* that reads a relation, called from a table row, a service, a
+report and a test, where only one of those callers eager-loaded it.
+
+| Where | Relation | Fix |
+| --- | --- | --- |
+| `Account::descendants()`, `getCalculatedBalanceAttribute()` | `children` | walk `childrenRecursive` — one query per depth instead of one per node |
+| `Payment::accountProblem()`, `beneficiaryDetails()`, `isReleasable()` | `payable`, `payable.bank`, `payable.user`, `payslip` | `loadMissing` in the model; `morphWith` in the page that lists them |
+| `LoanService::recordInstalment()` | `loan` | `loadMissing('loan')` |
+| `OpportunityStageHistory::isBackwards()` | `fromStage`, `toStage` | `loadMissing` both |
+| `Employee::fullName()` | `user` | `loadMissing('user')` — a safety net, not a fix; see below |
+| `EditRole::mutateFormDataBeforeFill()` | `permissions` | `loadMissing` on the route-bound record |
+| `PayComponentsTable` | `account` | `modifyQueryUsing(->with('account'))` |
+| `HelpIsRoleAwareTest` | `permissions` | `->with('permissions')` — that violation was in the test |
+
+Two limits, stated so a green suite is not read as more than it is:
+
+- `Employee::fullName()` is called from selects and columns across the panel. `loadMissing` there makes
+  it explicit and non-fatal, not cheap: over a list it is still a query per employee, and the guard is
+  now *satisfied* so it will not point at the places that should eager-load `user`. That is the honest
+  limit of this tool.
+- The guard only sees what the suite exercises. Screens without tests lazy-load until somebody opens
+  them in development.
+
+**Phase 6.2 (indexes) is a no-op.** Every column the eleven badge counts filter on is already indexed:
+`status` across six tables, plus `stage`, `outcome`, `expires_on`, `completed_at`/`due_on` and `date`.
+Checked against the tenant migrations.
+
+**Phase 6.3 (prefetching) is measured, not decided.** A prefetch is one warm render, and a warm render
+now costs **6 queries, ~56 ms, 301 KB of HTML** (median of five; test environment, empty tables). The
+argument against it was 23-query pages; they are 6. What remains is a bytes question rather than a
+database one — a five-link sweep pulls ~1.5 MB raw / ~175 KB compressed, and ~118 KB of every page is
+the rail's flyouts. Left off: that decision wants production traffic, not another laptop number.
+
+## Two guards added 2026-08-14
+
+Both close holes in this plan's own measurements rather than making anything faster.
+
+1. **Row scaling** (`test_a_pages_query_count_does_not_grow_with_its_rows`). Every other number in this
+   document was measured against **empty tables**, where a query per row multiplies by nothing — so a
+   per-row lookup passes every budget here. Worse, since Phase 6 the lazy-loading guard cannot catch it
+   either: the fixes that satisfy it include `loadMissing` inside model methods, which is explicit,
+   legal, and still one query per row when the method is called down a list. This renders a table with
+   two rows and then with ten and asserts the count barely moves. Verified by removing the eager load
+   it guards and watching it fail.
+2. **Payload size** (`test_the_rendered_pages_stay_within_their_size_budget`). Nothing was watching
+   bytes: the domain rail's flyouts added ~118 KB to every page and no test noticed. Under SPA mode that
+   is the payload of every navigation and under hover prefetching the payload of every *hover*, which
+   makes it the number most likely to undo Phase 1's win. Ceilings are the measured 207/301/231 KB plus
+   headroom, uncompressed so they fail on a laptop.
+
+### Still outstanding
+
+- **The employee name is an N+1 in 14 tables and every employee select.** `display_label` resolves
+  through `Employee::fullName()`, which reads `user` — and `TextColumn::make('employee.display_label')`
+  eager-loads `employee` but not `employee.user`, so the name costs a query per row. Fourteen files use
+  that column; `App\Support\EmployeeOptions::search()` has the same shape for select options. Phase 6's
+  `loadMissing` made this legal rather than fatal, which is why it now needs finding by hand.
+  The one-line candidate is `protected $with = ['user']` on `Employee`: it fixes all fifteen sites at
+  once, and costs one extra eager load on employee queries that never read a name. Worth measuring
+  against the row-scaling test above, extended to the attendance-days table, before committing to it.
+- **Nothing measures this in production.** The only observability package installed is
+  `barryvdh/laravel-debugbar`, which is dev-only — no Pulse, no APM, no per-request query log. Every
+  figure in this document comes from a laptop running sqlite against empty tables, while production is
+  MySQL with a per-tenant connection switch on top. Until something records query count and duration
+  per route in staging or production, the Results table above describes a machine nobody uses.
+- **The 60-second badge TTL may not match how this application is used.** The headline warm figures
+  assume the next page arrives within a minute. This is an accounting and payroll application: reading
+  a P&L, filling in a leave request, reviewing a payslip are all easily longer than that, and every
+  navigation after such a pause pays all eleven counts again. The realistic figure for intermittent use
+  is the *cold* column, not the warm one. Either measure real think-time or raise the TTL — a
+  pending-approvals count five minutes stale is no more misleading than one a minute stale.
+- Turning hover prefetching on, per above — a judgement about traffic, with the cost now known.
+- Automating the OPcache reset in `deploy/deploy.sh`, per the Risks note. Currently a printed reminder.
+- A test asserting every permission named in `app/` exists in `PermissionSeeder`. Not a performance
+  item, but Phase 0 was blocked by a seeder 96 permissions behind whose only symptom was a 500 on
+  every page.
+- A client-side baseline (Phase 0.4), still never taken: LCP, transferred bytes and scripting time for
+  a cold load and a same-session navigation. The goal of this plan is that moving around *feels*
+  instant, and that is the only measurement of it.

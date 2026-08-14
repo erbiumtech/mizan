@@ -10,6 +10,7 @@ use App\Modules\Leave\Filament\Resources\LeaveRequests\Pages\ListLeaveRequests;
 use App\Modules\Leave\Filament\Resources\LeaveRequests\Schemas\LeaveRequestForm;
 use App\Modules\Leave\Filament\Resources\LeaveRequests\Tables\LeaveRequestsTable;
 use App\Modules\Leave\Models\LeaveRequest;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -57,9 +58,7 @@ class LeaveRequestResource extends Resource
     /** Pending requests, so an approver sees there is something waiting. */
     public static function getNavigationBadge(): ?string
     {
-        $pending = static::getEloquentQuery()->pending()->count();
-
-        return $pending > 0 ? (string) $pending : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->pending()->count());
     }
 
     public static function getNavigationBadgeColor(): ?string

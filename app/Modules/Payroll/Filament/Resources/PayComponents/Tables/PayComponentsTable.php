@@ -8,12 +8,16 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PayComponentsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            // The posting-account column renders `$record->account`, which without this is one query
+            // per row on a table people leave open.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('account'))
             ->columns([
                 TextColumn::make('label')->searchable()->sortable(),
                 TextColumn::make('code')->fontFamily('mono')->size('xs')->searchable()->toggleable(),

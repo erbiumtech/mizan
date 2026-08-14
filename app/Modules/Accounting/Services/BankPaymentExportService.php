@@ -2,9 +2,12 @@
 
 namespace App\Modules\Accounting\Services;
 
+use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Services\SalaryBankExportService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -29,7 +32,28 @@ class BankPaymentExportService extends SalaryBankExportService
         $rows = [$this->row(['record_type' => 'H', 'payment_type' => 'P'])];
         $total = 0.0;
 
-        foreach ($payments->values() as $i => $payment) {
+        /*
+         * Everything this file reads per row, loaded for the whole set first.
+         *
+         * The loop below asks each payment for its debit account and, through beneficiaryDetails(),
+         * for the employee or beneficiary behind it and their bank — four relations, once per row, on
+         * a set that is a whole month of salaries. Loaded here it is four queries whatever the size.
+         *
+         * Rebuilt as an Eloquent collection because the parameter is a plain Support collection,
+         * which has no loadMissing: callers hand this whatever they happened to have.
+         */
+        $payments = EloquentCollection::make($payments->values()->all());
+
+        // `payable` in this first call, and it has to be: loadMorph() below starts by plucking the
+        // relation off every model to group them by class, which is itself a lazy read — so calling it
+        // on an unloaded morph throws the very violation it is here to avoid.
+        $payments->loadMissing(['companyBankAccount', 'payslip', 'payable']);
+        $payments->loadMorph('payable', [
+            Employee::class => ['bank', 'user'],
+            Beneficiary::class => ['bank'],
+        ]);
+
+        foreach ($payments as $i => $payment) {
             $beneficiary = $payment->beneficiaryDetails();
             $debit = $payment->companyBankAccount;
             $total += (float) $payment->amount;

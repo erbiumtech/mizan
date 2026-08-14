@@ -7,6 +7,7 @@ use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Pages\ListEm
 use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Schemas\EmployeeChangeRequestForm;
 use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Tables\EmployeeChangeRequestsTable;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -68,9 +69,9 @@ class EmployeeChangeRequestResource extends Resource
             return null;
         }
 
-        $count = EmployeeChangeRequest::where('status', EmployeeChangeRequest::STATUS_PENDING)->count();
-
-        return $count > 0 ? (string) $count : null;
+        return NavigationBadge::of(static::class, fn (): int => EmployeeChangeRequest::query()
+            ->where('status', EmployeeChangeRequest::STATUS_PENDING)
+            ->count());
     }
 
     public static function getNavigationBadgeColor(): ?string

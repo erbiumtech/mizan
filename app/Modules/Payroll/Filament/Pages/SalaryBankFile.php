@@ -5,8 +5,10 @@ namespace App\Modules\Payroll\Filament\Pages;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Concerns\VoidsPaymentBatches;
+use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\PaymentService;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
 use App\Modules\Payroll\Services\SalaryBankExportService;
 use BackedEnum;
@@ -16,6 +18,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use UnitEnum;
 
 class SalaryBankFile extends Page
@@ -97,7 +100,20 @@ class SalaryBankFile extends Page
 
         $rows = app(SalaryBankExportService::class)->paymentsForMonth($month, $fiscalYear);
 
-        $payments = Payment::with('payslip')
+        // `payable` as well as `payslip`, and the bank behind the payable: isReleasable() and
+        // releaseBlockedReason() below both reach through the morph for the account details, so
+        // without this the page ran two queries per row to answer whether each payment could go.
+        //
+        // morphWith rather than `payable.bank`, because a morphTo has to be told which relation to
+        // load on which side — both an Employee and a Beneficiary have a `bank`, and Eloquent will not
+        // guess that for you.
+        $payments = Payment::with([
+            'payslip',
+            'payable' => fn (MorphTo $morph) => $morph->morphWith([
+                Employee::class => ['bank', 'user'],
+                Beneficiary::class => ['bank'],
+            ]),
+        ])
             ->whereIn('payslip_id', collect($rows)->pluck('payslip_id')->all())
             ->get()
             ->keyBy('payslip_id');

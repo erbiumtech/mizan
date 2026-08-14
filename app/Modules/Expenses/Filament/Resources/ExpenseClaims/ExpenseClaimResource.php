@@ -10,6 +10,7 @@ use App\Modules\Expenses\Filament\Resources\ExpenseClaims\Pages\ListExpenseClaim
 use App\Modules\Expenses\Filament\Resources\ExpenseClaims\Schemas\ExpenseClaimForm;
 use App\Modules\Expenses\Filament\Resources\ExpenseClaims\Tables\ExpenseClaimsTable;
 use App\Modules\Expenses\Models\ExpenseClaim;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -52,9 +53,9 @@ class ExpenseClaimResource extends Resource
     /** Pending claims, so an approver sees there is something waiting. */
     public static function getNavigationBadge(): ?string
     {
-        $pending = static::getEloquentQuery()->where('status', ExpenseClaim::STATUS_PENDING)->count();
-
-        return $pending > 0 ? (string) $pending : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
+            ->where('status', ExpenseClaim::STATUS_PENDING)
+            ->count());
     }
 
     public static function getNavigationBadgeColor(): ?string

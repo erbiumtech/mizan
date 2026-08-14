@@ -79,7 +79,9 @@ class Payment extends Model
             return false;
         }
 
-        $payslip = $this->payslip;
+        // Explicit, for the same reason as the morph in accountProblem(): a payment reaches this from
+        // a batch, a table and a service, and only the bank-file page eager-loads its payslip.
+        $payslip = $this->loadMissing('payslip')->payslip;
 
         return $payslip === null || $payslip->employee_review === Payslip::REVIEW_ACCEPTED;
     }
@@ -91,6 +93,12 @@ class Payment extends Model
      */
     public function accountProblem(): ?string
     {
+        // Explicitly loaded: this is asked of payments from a batch, a table row, a service and a
+        // test, and only some of those eager-load the morph. Even the `! $this->payable` check below
+        // would trigger the load. Where this is asked over a list — the bank file page — the query
+        // eager-loads `payable` and this is then free.
+        $this->loadMissing('payable');
+
         if (! $this->payable) {
             return null;
         }
@@ -280,7 +288,17 @@ class Payment extends Model
      */
     public function beneficiaryDetails(): array
     {
-        $payable = $this->payable;
+        // See accountProblem(): same morph, same reason, and this one is also called directly.
+        //
+        // `bank` too, on whichever side the morph landed — both an Employee and a Beneficiary have
+        // one, and the account resolution below reads it. Over a list this is already loaded by the
+        // caller's morphWith (see SalaryBankFile) and this line does nothing.
+        $payable = $this->loadMissing('payable')->payable;
+
+        // `bank` on either side, and `user` on the employee side for the name and email this puts in
+        // the file. Guarded by type rather than loaded blindly: a Beneficiary has no user, and asking
+        // for one throws a RelationNotFoundException rather than returning null.
+        $payable?->loadMissing($payable instanceof Employee ? ['bank', 'user'] : ['bank']);
 
         if ($payable instanceof Employee) {
             $account = BankFileAccount::resolve(

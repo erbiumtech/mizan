@@ -163,7 +163,10 @@ class LoanService
             throw new RuntimeException("Instalment {$instalment->number} has already been recorded.");
         }
 
-        $loan = $instalment->loan;
+        // loadMissing rather than a bare `->loan`: this is handed an instalment from wherever the
+        // caller had one — a table row, a relation manager, a test — and half of those arrive without
+        // the parent loaded. An explicit load says so and costs one query at most.
+        $loan = $instalment->loadMissing('loan')->loan;
 
         $lines = [
             [

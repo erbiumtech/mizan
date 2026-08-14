@@ -8,6 +8,7 @@ use App\Support\EmployeeAccess;
 use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
 use App\Support\Modules;
+use App\Support\NavigationBadge;
 use App\Support\TenantSettings;
 use App\Support\WhatsApp\CloudApiWhatsAppSender;
 use App\Support\WhatsApp\LogWhatsAppSender;
@@ -17,6 +18,7 @@ use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -43,6 +45,15 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
         $this->app->singleton(Modules::class);
+
+        // The sidebar's badge counts, memoised for the length of one request.
+        //
+        // `scoped` rather than `singleton`, and the difference is the whole
+        // point: these figures belong to one company and one user, and an
+        // instance that answered a second request would answer it with the first
+        // one's numbers. Same reasoning as NavigationSnapshot, which says more
+        // about why the container is where this belongs.
+        $this->app->scoped(NavigationBadge::class);
 
         // Whichever WhatsApp sender the environment is configured for. The log
         // sender is the default and the fallback: an install with the driver set
@@ -104,6 +115,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+         * Lazy loading is an error everywhere except production.
+         *
+         * A relation read without being loaded is a query per row, and the rows are the part nobody
+         * sees while developing: a table of four in a test looks fine and the same page over four
+         * hundred employees is four hundred queries. This turns that into a failure at the moment it
+         * is written instead of a support ticket about a slow screen.
+         *
+         * **Not in production**, deliberately, and this is the whole reason for the condition rather
+         * than a bare `true`: the guard throws. A relation nobody exercised in development would take
+         * a customer's page down rather than serve it a little slower, which is a worse trade than the
+         * one it is here to make. Phase 6 of docs/page-load-performance-plan.md.
+         */
+        Model::preventLazyLoading(! $this->app->isProduction());
+
         // Landlord (central) migrations always run on the default connection.
         // Tenant migrations live in their own path and are applied per-company
         // during provisioning; in the testing environment we also load them onto
