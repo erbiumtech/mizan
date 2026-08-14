@@ -1977,6 +1977,22 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 /* ------------------------------------------------------------------- tables */
 
 /*
+ * A badge in a table cell sizes to its contents.
+ *
+ * Filament gives `.fi-badge` `display: inline-flex`, but a badge column wraps its content in a
+ * line-clamp container — `display: -webkit-box` with a vertical orient — and a flex item's display is
+ * blockified, so `inline-flex` becomes `flex` and the badge stretches across the whole cell. A count of
+ * "245" then renders as a 640px pill.
+ *
+ * This was always true and always slightly wrong; it became obvious when the panel stopped capping page
+ * width at 1280px, because the cell got wider and so did the badge. Fixed at the badge rather than by
+ * narrowing the column, since the column width is not the problem.
+ */
+.fi-ta-text-has-badges .fi-badge {
+    width: fit-content;
+}
+
+/*
  * 3a's column headers: small, uppercase, letter-spaced. This is the strongest single signal that a
  * table belongs to the design, and it costs nothing in comprehension — the labels are short.
  */
