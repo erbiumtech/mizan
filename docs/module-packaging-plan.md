@@ -1,6 +1,6 @@
 # Module packaging: breaking the cycles — Plan
 
-**Status:** Phases 0–5 built; phase 6's banking model carve built 2026-08-16. Phases 7–9 outstanding.
+**Status:** Phases 0–5 built; phase 6 built 2026-08-16 (model carve + the inheritance break). Phases 7–9 outstanding.
 **Created:** 2026-08-15
 **Covers:** what "installable" was decided to mean (§1), the import graph and its cycles (§2–§3), the
 safety rails that must land before anything moves (§4), one manifest file per module (§5), the contracts
@@ -562,6 +562,7 @@ would have got the same weekend, correctly, and silently.
 | 4 | `WorkingDayCalendar` + `ConfiguredWeekendCalendar`, `PeriodLock` + `NeverLocked`, bound in `ContractDefaultsServiceProvider` |
 | 5 | `LeaveDayGenerator` → `WorkingDayCalendar` (Attendance binds `WorkPatternCalendar`); `RegularizationService` → `PeriodLock` (Payroll binds `PayrollRunPeriodLock`). `leave -> attendance` and `attendance -> payroll` deleted |
 | 6a | `Bank` → `App\Modules\Core\Models` (alias unchanged); `Bank::employees()` and `BankResource`'s Employees relation manager deleted; `BankResource`, `BankPolicy` and the `Bank` permission group stay in Accounting. `employees -> accounting` deleted. **Trapped: still 13** |
+| 6b | The iPayments layout (204 columns, the column map, `row()`, `formatAmount()`, `escape()`) → `App\Support\Banking\IPaymentsFileWriter`; `BankPaymentExportService` **stops extending** `SalaryBankExportService` and takes the writer by constructor. A bank filter on the Employees list replaces the deleted relation manager. `ModelRelationsResolveTest` added |
 
 Not yet done from phase 3: `RoleSeeder`'s grants and the navigation claims are
 still central. Neither is on the cycle path — `ModuleMap` was — but both are part
@@ -606,6 +607,40 @@ the rest of §7** — `BankFileAccount`, `Money`, `PayrollMonth`, `SelectsSalary
 `IPaymentsFileWriter` extraction and the `BankPaymentExportService extends SalaryBankExportService`
 inheritance, none of which this phase touched. The inheritance in particular is still there, and it is
 still the one edge in the codebase that cannot be guarded at all.
+
+### Phase 6b — the inheritance, and the guard that should have existed first
+
+**The unguardable edge is gone.** `BankPaymentExportService extends SalaryBankExportService` is now
+composition: the three things the child actually used — `row()`, `formatAmount()` and the 204-column map
+behind them — were a *file format*, so they moved to `App\Support\Banking\IPaymentsFileWriter`, which
+neither module owns and which imports nothing from any module. Verified by mutation: shifting one column
+index in the writer fails tests on **both** the salary path and the payment path, which is the evidence
+that one writer now serves both rather than one having quietly kept a copy.
+
+Breaking the inheritance also removed something misleading that nobody had noticed: the child inherited
+`export()`, `paymentsForMonth()` and `fileName()`, all salary-specific and none of them wanted. Nothing
+called them, but they were part of its public surface.
+
+`accounting -> payroll` stays in `KNOWN_COUPLINGS`, and correctly — `Support/ReportPane.php` still
+imports Payroll, which is §8's Group A, not this phase's.
+
+### The lesson from 6a was learned twice before it was learned
+
+The same-namespace warning above was written into this document *and then repeated as a mistake in the
+same session*. Searching for remaining bare `Bank::class` references, the search filtered out
+`CompanyBank` to quieten noise from `CompanyBankAccount` — and so hid the one line in
+`CompanyBankAccount::bank()` that said exactly `Bank::class`. It reached a full-suite run before anything
+caught it.
+
+So the guard is now a test rather than a note. `ModelRelationsResolveTest` builds every relation on every
+model in the morph map and asserts the class on the far end loads — which is the one thing that finds a
+dangling same-namespace reference, since there is no import to grep for and no module boundary for the
+lint to see. It costs about a tenth of a second, needs no database, and it names the model and the method.
+Confirmed against the real bug: restoring it makes the test fail with
+`CompanyBankAccount::bank() — include(.../Accounting/Models/Bank.php): Failed to open stream`.
+
+**Run it before §8 and §9.** Both move classes within their own namespaces, where a bare reference to a
+neighbour is the normal case rather than the exception.
 
 ### What phase 6 needed decided first
 

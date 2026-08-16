@@ -5,19 +5,31 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Employees\Models\Employee;
-use App\Modules\Payroll\Services\SalaryBankExportService;
+use App\Support\Banking\IPaymentsFileWriter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
- * Generalizes SalaryBankExportService: builds one iPayments file from any
- * set of Payment rows (salaries, rent, food…). The Payment Type column is
- * resolved per transaction and the debit account comes from each payment's
- * company bank account.
+ * One iPayments file from any set of Payment rows — salaries, rent, food — with the Payment Type column
+ * resolved per transaction and the debit account taken from each payment's own company bank account.
+ *
+ * **This class used to `extend Payroll\Services\SalaryBankExportService`, and that was the single
+ * import in this codebase that could not be guarded.** A licence check can wrap a call and a container
+ * binding can be swapped, but an `extends` across a module boundary can do neither: Accounting simply
+ * could not load without Payroll on disk. What it actually needed from the parent was three methods
+ * describing a *file layout* — `row()`, `formatAmount()` and the column map behind them — so those moved
+ * to `App\Support\Banking\IPaymentsFileWriter`, which neither module owns. See
+ * docs/module-packaging-plan.md §7.
+ *
+ * Composition rather than inheritance also removed something misleading: this class inherited
+ * `export()`, `paymentsForMonth()` and `fileName()`, none of which it wanted and all of which were
+ * salary-specific. Nothing called them on it, but they were part of its public surface.
  */
-class BankPaymentExportService extends SalaryBankExportService
+class BankPaymentExportService
 {
+    public function __construct(private readonly IPaymentsFileWriter $file) {}
+
     /**
      * @param  Collection<int, Payment>  $payments
      */
@@ -29,7 +41,7 @@ class BankPaymentExportService extends SalaryBankExportService
 
         $config = setting('ipayments');
 
-        $rows = [$this->row(['record_type' => 'H', 'payment_type' => 'P'])];
+        $rows = [$this->file->row(['record_type' => 'H', 'payment_type' => 'P'])];
         $total = 0.0;
 
         /*
@@ -58,7 +70,7 @@ class BankPaymentExportService extends SalaryBankExportService
             $debit = $payment->companyBankAccount;
             $total += (float) $payment->amount;
 
-            $rows[] = $this->row([
+            $rows[] = $this->file->row([
                 'record_type' => 'P',
                 'payment_type' => $payment->resolvedPaymentType(),
                 'processing_mode' => $config['processing_mode'],
@@ -81,7 +93,7 @@ class BankPaymentExportService extends SalaryBankExportService
                 // (built from ->amount just above) stayed correct. For a salary
                 // this column already carries the payslip's net figure:
                 // generateSalaryPayments() copies it in.
-                'amount' => $this->formatAmount((float) $payment->amount),
+                'amount' => $this->file->formatAmount((float) $payment->amount),
                 'debit_currency' => $config['currency'],
                 'debit_bank_id' => $config['debit_bank_id'],
                 'beneficiary_email' => $beneficiary['email'],
@@ -93,10 +105,10 @@ class BankPaymentExportService extends SalaryBankExportService
             ]);
         }
 
-        $rows[] = $this->row([
+        $rows[] = $this->file->row([
             'record_type' => 'T',
             'payment_type' => (string) $payments->count(),
-            'processing_mode' => $this->formatAmount($total),
+            'processing_mode' => $this->file->formatAmount($total),
         ]);
 
         return implode("\r\n", $rows)."\r\n";
