@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Core\Models\Company;

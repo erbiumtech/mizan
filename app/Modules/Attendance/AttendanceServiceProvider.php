@@ -41,6 +41,14 @@ class AttendanceServiceProvider extends ServiceProvider
         // once per employee per day, and the leave-day generator once per day of a
         // request. A fresh instance per resolution would make the cache pointless.
         $this->app->singleton(WorkPatternResolver::class);
+
+        // Attendance is the module that knows whether a given person works a given
+        // day, so it answers the question rather than being reached into. Leave
+        // asks the contract and no longer imports anything from here.
+        $this->app->bind(
+            \App\Support\Contracts\WorkingDayCalendar::class,
+            \App\Modules\Attendance\Support\WorkPatternCalendar::class,
+        );
     }
 
     public function boot(): void

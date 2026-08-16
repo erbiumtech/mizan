@@ -2,7 +2,6 @@
 
 namespace App\Modules\Core\Models;
 
-use App\Modules\Mpr\Models\MPR;
 use App\Traits\Auditable;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
@@ -356,10 +355,5 @@ class User extends Authenticatable implements FilamentUser, HasTenants
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
         ];
-    }
-
-    public function mprs()
-    {
-        return $this->hasMany(MPR::class, 'user_id');
     }
 }

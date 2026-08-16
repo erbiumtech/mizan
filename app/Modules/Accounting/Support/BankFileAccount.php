@@ -2,7 +2,7 @@
 
 namespace App\Modules\Accounting\Support;
 
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 
 /**
  * Chooses which account identifier goes into a bank payment file.

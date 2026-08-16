@@ -1,0 +1,69 @@
+<?php
+
+/**
+ * What this module is, and what it owns.
+ *
+ * Requires Employees and nothing else. Payroll is deliberately NOT declared:
+ * leave is worth having for the register, the balances and the approvals on
+ * their own, and the company running this in production docks nothing for
+ * unpaid absence today. The payroll join — pro-rating pay on lop_days — is a
+ * later phase, guarded at its call site rather than declared here, so leave
+ * stays sellable to a company that runs no payroll at all.
+ * See docs/hrms-plan.md §2 and §5.
+ *
+ * Merged by App\Support\ModuleManifest. See docs/module-packaging-plan.md §5.
+ */
+return [
+    'key' => 'leave',
+    'label' => 'Leave',
+    'description' => 'Leave types, entitlements, requests, per-day records and computed balances.',
+    'requires' => [
+        'employees',
+    ],
+    'licensed_by_default' => false,
+    'plugin' => \App\Modules\Leave\LeavePlugin::class,
+
+    'models' => [
+        'App\\Models\\LeaveType' => \App\Modules\Leave\Models\LeaveType::class,
+        'App\\Models\\LeaveEntitlement' => \App\Modules\Leave\Models\LeaveEntitlement::class,
+        'App\\Models\\LeaveAdjustment' => \App\Modules\Leave\Models\LeaveAdjustment::class,
+        'App\\Models\\LeaveRequest' => \App\Modules\Leave\Models\LeaveRequest::class,
+        'App\\Models\\LeaveDay' => \App\Modules\Leave\Models\LeaveDay::class,
+    ],
+
+    'resources' => [
+        'App\\Filament\\Resources\\LeaveRequests\\LeaveRequestResource' => \App\Modules\Leave\Filament\Resources\LeaveRequests\LeaveRequestResource::class,
+        'App\\Filament\\Resources\\LeaveTypes\\LeaveTypeResource' => \App\Modules\Leave\Filament\Resources\LeaveTypes\LeaveTypeResource::class,
+        'App\\Filament\\Resources\\LeaveEntitlements\\LeaveEntitlementResource' => \App\Modules\Leave\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource::class,
+    ],
+
+    'permission_groups' => [
+        'LeaveRequest',
+        'LeaveType',
+        'LeaveEntitlement',
+    ],
+
+    'permissions' => [
+        // Leave. Approving is its own permission, exactly as it is for expense
+        // claims: filing leave is not deciding it, and the Employee role gets
+        // the first four and never the fifth.
+        ['name' => 'LeaveRequestView', 'group' => 'LeaveRequest'],
+        ['name' => 'LeaveRequestCreate', 'group' => 'LeaveRequest'],
+        ['name' => 'LeaveRequestUpdate', 'group' => 'LeaveRequest'],
+        ['name' => 'LeaveRequestDelete', 'group' => 'LeaveRequest'],
+        ['name' => 'LeaveRequestApprove', 'group' => 'LeaveRequest'],
+        // Leave types are reference data: HR edits the day counts, an employee
+        // reads them so the form can say what they are asking for.
+        ['name' => 'LeaveTypeView', 'group' => 'LeaveType'],
+        ['name' => 'LeaveTypeCreate', 'group' => 'LeaveType'],
+        ['name' => 'LeaveTypeUpdate', 'group' => 'LeaveType'],
+        ['name' => 'LeaveTypeDelete', 'group' => 'LeaveType'],
+        // Entitlements and their adjustment rows. LeaveEntitlementUpdate is what
+        // grants an adjustment — the row that moves somebody's balance — so it is
+        // deliberately not in the Employee role.
+        ['name' => 'LeaveEntitlementView', 'group' => 'LeaveEntitlement'],
+        ['name' => 'LeaveEntitlementCreate', 'group' => 'LeaveEntitlement'],
+        ['name' => 'LeaveEntitlementUpdate', 'group' => 'LeaveEntitlement'],
+        ['name' => 'LeaveEntitlementDelete', 'group' => 'LeaveEntitlement'],
+    ],
+];

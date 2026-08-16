@@ -4,7 +4,7 @@ namespace App\Modules\Employees\Models;
 
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Services\JobHistory;
 use App\Modules\Projects\Models\Project;

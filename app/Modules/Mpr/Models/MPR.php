@@ -2,7 +2,6 @@
 
 namespace App\Modules\Mpr\Models;
 
-use App\Modules\Employees\Models\Employee;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\User;
 use App\Traits\Auditable;
@@ -35,10 +34,5 @@ class MPR extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function employee()
-    {
-        return $this->belongsTo(Employee::class);
     }
 }

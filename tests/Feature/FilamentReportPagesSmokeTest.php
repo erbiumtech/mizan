@@ -2,14 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Accounting\Filament\Pages\AccountRegister;
-use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
-use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
 use App\Modules\Accounting\Filament\Pages\GnuCashImport;
-use App\Modules\Accounting\Filament\Pages\PettyCashBook;
-use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
-use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
-use App\Modules\Accounting\Filament\Pages\TrialBalance;
+use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\User;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,16 +30,7 @@ class FilamentReportPagesSmokeTest extends TestCase
         // with no tenant cannot build those URLs, and neither can a browser.
         $this->setCurrentTenant();
 
-        $pages = [
-            TrialBalance::class,
-            ProfitAndLoss::class,
-            SalaryBankFile::class,
-            PettyCashBook::class,
-            BankPaymentFile::class,
-            AccountRegister::class,
-            GnuCashImport::class,
-            FbrTaxFile::class,
-        ];
+        $pages = $this->reportPages();
 
         $failures = [];
         foreach ($pages as $page) {
@@ -68,13 +53,34 @@ class FilamentReportPagesSmokeTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $this->assertFalse(TrialBalance::canAccess());
-        $this->assertFalse(ProfitAndLoss::canAccess());
-        $this->assertFalse(SalaryBankFile::canAccess());
-        $this->assertFalse(PettyCashBook::canAccess());
-        $this->assertFalse(BankPaymentFile::canAccess());
-        $this->assertFalse(AccountRegister::canAccess());
-        $this->assertFalse(GnuCashImport::canAccess());
-        $this->assertFalse(FbrTaxFile::canAccess());
+        foreach ($this->reportPages() as $page) {
+            $this->assertFalse($page::canAccess(), class_basename($page).' is reachable without ReportView');
+        }
+    }
+
+    /**
+     * The report pages, taken from the hub rather than listed here.
+     *
+     * This file used to name eight classes literally, and the cost of that was invisible: a report added
+     * afterwards rendered in no test at all until somebody remembered to add it, and the General Ledger
+     * was the ninth. `Reports::linkedPages()` is the same list the hub renders and the same one
+     * ReportsHubTest checks for completeness, so a new report now arrives with a render test and a
+     * permission test whether or not anybody thinks to write one.
+     *
+     * GnuCashImport is added by hand because it is the exception: it used to sit in the hub and was moved
+     * to Settings for being an import rather than a report (see Reports::SECTIONS), so it is no longer in
+     * `linkedPages()` and is still a page this test should keep rendering.
+     *
+     * @return array<int, class-string<\Filament\Pages\Page>>
+     */
+    private function reportPages(): array
+    {
+        $pages = [...Reports::linkedPages(), GnuCashImport::class];
+
+        // Guards the guard: an empty catalogue would make both tests above pass without rendering
+        // anything, which is exactly the silence this file exists to prevent.
+        $this->assertGreaterThanOrEqual(18, count($pages), 'the report catalogue has shrunk');
+
+        return $pages;
     }
 }

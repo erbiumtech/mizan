@@ -6,7 +6,7 @@ use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
 use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\Beneficiary;

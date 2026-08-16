@@ -12,6 +12,7 @@ use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
 use App\Modules\Accounting\Filament\Pages\FindTransactions;
+use App\Modules\Accounting\Filament\Pages\GeneralLedger;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
@@ -80,6 +81,7 @@ class Reports extends Page
             ProfitAndLoss::class => 'Income less expenses over a period, and the profit that leaves.',
             CashFlow::class => 'Where the money actually came from and went, period by period.',
             TrialBalance::class => 'Every account with its balance, and the proof that the books add up.',
+            GeneralLedger::class => 'Every account, every entry against it, opening to closing — what an audit reads.',
             BudgetVsActual::class => 'What was planned against what was spent, by account and by month.',
         ],
         'Receivables & payables' => [

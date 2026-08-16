@@ -299,11 +299,26 @@ class ReportPaneTest extends AccountingTestCase
         );
     }
 
-    /** Every table states its own grid and which of its columns are figures. */
+    /** Every table and ledger states its own grid and which of its columns are figures. */
     public function test_every_table_describes_its_own_columns(): void
     {
         foreach (array_keys(Reports::catalogue()) as $key) {
             $pane = $this->pane($key);
+
+            // The ledger kind carries a grid and numeric columns too, and its rows are cells against the
+            // same header — so the shape is asserted for both rather than for tables alone.
+            if ($pane['kind'] === 'ledger') {
+                $this->assertNotEmpty($pane['grid'], "[{$key}] has no column widths");
+                $this->assertArrayHasKey('numeric', $pane, "[{$key}] does not say which columns are figures");
+
+                foreach ($pane['sections'] as $section) {
+                    foreach ($section['rows'] as $row) {
+                        $this->assertCount(count($pane['columns']), $row['cells'], "[{$key}] has a row of the wrong width");
+                    }
+                }
+
+                continue;
+            }
 
             if ($pane['kind'] !== 'table') {
                 continue;
@@ -372,16 +387,22 @@ class ReportPaneTest extends AccountingTestCase
         $this->assertTrue($pane['balanced']);
         $this->assertSame('BALANCED · DEBITS = CREDITS', $pane['note']);
 
-        // Every row carries both sides, and the section totals do too.
+        // Every row carries a cell per column, and so does every section total. Cells rather than named
+        // debit/credit keys since the general ledger joined this kind: a ledger states its own columns
+        // now, so the invariant that survives both is that a row lines up with the header above it.
         foreach ($pane['sections'] as $section) {
-            $this->assertArrayHasKey('debit', $section['total']);
-            $this->assertArrayHasKey('credit', $section['total']);
+            $this->assertCount(count($pane['columns']), $section['total']['cells']);
 
             foreach ($section['rows'] as $row) {
-                $this->assertArrayHasKey('debit', $row);
-                $this->assertArrayHasKey('credit', $row);
+                $this->assertCount(count($pane['columns']), $row['cells']);
             }
         }
+
+        // And it is still the debits and the credits that are in those cells. The label reads
+        // "Total asset" because it is built from the account *type*, which is singular — pre-existing
+        // wording, asserted here as it is rather than quietly changed under a refactor.
+        $this->assertSame('Total asset', $pane['sections'][0]['total']['cells'][0]);
+        $this->assertSame(number_format(400000, 0), $pane['sections'][0]['total']['cells'][1]);
 
         // No prior-year column: see the class.
         $this->assertArrayNotHasKey('previous_label', $pane);
