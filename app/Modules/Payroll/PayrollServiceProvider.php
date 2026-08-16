@@ -40,6 +40,16 @@ class PayrollServiceProvider extends ServiceProvider
         SalarySlab::class => SalarySlabPolicy::class,
     ];
 
+    public function register(): void
+    {
+        // Payroll is what makes a month settled, so it answers the question.
+        // Attendance asks the contract and no longer imports PayrollRun.
+        $this->app->bind(
+            \App\Support\Contracts\PeriodLock::class,
+            \App\Modules\Payroll\Support\PayrollRunPeriodLock::class,
+        );
+    }
+
     public function boot(): void
     {
         foreach (self::POLICIES as $model => $policy) {

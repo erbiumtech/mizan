@@ -2,11 +2,11 @@
 
 namespace App\Modules\Leave\Services;
 
-use App\Modules\Attendance\Services\WorkPatternResolver;
 use App\Modules\Core\Services\HolidayCalendar;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveDay;
 use App\Modules\Leave\Models\LeaveRequest;
+use App\Support\Contracts\WorkingDayCalendar;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
@@ -116,15 +116,13 @@ class LeaveDayGenerator
     private function consumedDates(Carbon $from, Carbon $to, ?Employee $employee = null): array
     {
         $holidays = array_flip($this->holidays->datesBetween($from, $to));
-        $weekend = $this->weekendDays();
-
-        // With `attendance` licensed, the employee's own work pattern answers which
-        // days are worked — which is what config/leave.php promised when it called
-        // leave.weekend_days a stopgap. The setting stays for companies without the
-        // module, so this is a guarded coupling rather than a requirement.
-        $patterns = $employee && modules()->enabled('attendance')
-            ? app(WorkPatternResolver::class)
-            : null;
+        // Which days are worked is a question, and Attendance answers it properly
+        // when installed — which is what config/leave.php promised when it called
+        // leave.weekend_days a stopgap. Asking a contract rather than reaching for
+        // WorkPatternResolver is what lets Leave and Attendance become separate
+        // packages: the licence check moved into Attendance's own binding, and a
+        // company without the module still gets the configured weekend.
+        $calendar = app(WorkingDayCalendar::class);
 
         $working = [];
         $all = [];
@@ -133,9 +131,7 @@ class LeaveDayGenerator
             $key = $date->toDateString();
             $all[] = $key;
 
-            $isNonWorking = $patterns
-                ? ! $patterns->isWorkingDay($employee, $date)
-                : in_array($date->dayOfWeekIso, $weekend, true);
+            $isNonWorking = ! $calendar->isWorkingDay($employee?->id, $date);
 
             $isHoliday = isset($holidays[$key]);
 
@@ -196,29 +192,5 @@ class LeaveDayGenerator
         return (string) setting(self::SANDWICH_SETTING_KEY, self::SANDWICH_OFF) === self::SANDWICH_ENCLOSED
             ? self::SANDWICH_ENCLOSED
             : self::SANDWICH_OFF;
-    }
-
-    /**
-     * The weekday numbers the company does not work, ISO-8601 (1 = Mon, 7 = Sun).
-     *
-     * The fallback for a company WITHOUT `attendance`. With that module licensed the
-     * employee's own work pattern answers instead (see consumedDates), which is what
-     * config/leave.php promised when it called this key a stopgap — it is not removed,
-     * because `leave` requires only `employees` and must keep working alone.
-     *
-     * HolidayCalendar deliberately refuses to answer this: it has no isWorkingDay(),
-     * because a method there assuming Sat/Sun would be wrong for every company on a
-     * six-day week and wrong silently.
-     *
-     * @return array<int, int>
-     */
-    private function weekendDays(): array
-    {
-        $days = setting('leave.weekend_days', [6, 7]);
-
-        return array_values(array_filter(
-            array_map('intval', is_array($days) ? $days : []),
-            fn (int $day): bool => $day >= 1 && $day <= 7,
-        ));
     }
 }

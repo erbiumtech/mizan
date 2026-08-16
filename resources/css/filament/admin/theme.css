@@ -1066,14 +1066,11 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
 }
 
 /*
- * The trial balance is three columns and the ageing four of a different width, so each kind states its
- * own grid rather than inheriting the statement's account/current/prior/change.
+ * The ledger and table kinds state their grid inline, per report, because the columns are not
+ * interchangeable and only the report knows which of its own are which: three columns for a trial
+ * balance, six for a general ledger, two for contractor payments. This used to hard-code the trial
+ * balance's three here, which is why the general ledger could not use the same renderer.
  */
-.fi-explorer-ledger .fi-explorer-statement-head,
-.fi-explorer-ledger .fi-explorer-line,
-.fi-explorer-ledger .fi-explorer-total {
-    grid-template-columns: minmax(0, 1fr) 9rem 9rem;
-}
 
 /*
  * The table kind states its grid inline, per report: an account name wants the slack and a figure wants a

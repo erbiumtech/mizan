@@ -2,7 +2,7 @@
 
 namespace Database\Seeders\Production;
 
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\TransactionType;
 use Illuminate\Database\Seeder;

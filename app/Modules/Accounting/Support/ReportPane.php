@@ -10,6 +10,7 @@ use App\Modules\Accounting\Services\BudgetReportService;
 use App\Modules\Accounting\Services\ContractorPaymentSummary;
 use App\Modules\Accounting\Services\CurrencyRevaluationService;
 use App\Modules\Accounting\Services\FinancialReportService;
+use App\Modules\Accounting\Services\GeneralLedgerService;
 use App\Modules\Accounting\Services\PettyCashService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use App\Modules\Core\Models\Company;
@@ -59,6 +60,7 @@ class ReportPane
         'ProfitAndLoss' => 'statement',
         'CashFlow' => 'statement',
         'TrialBalance' => 'ledger',
+        'GeneralLedger' => 'ledger',
         'AgedReceivables' => 'table',
         'AgedPayables' => 'table',
         'TaxSummary' => 'table',
@@ -117,6 +119,7 @@ class ReportPane
         return match ($key) {
             'BalanceSheet', 'ProfitAndLoss', 'CashFlow' => $this->statement($key, $asOf, $comparison),
             'TrialBalance' => $this->trialBalance($asOf),
+            'GeneralLedger' => $this->generalLedger($asOf),
             'AgedReceivables', 'AgedPayables' => $this->ageing($key, $asOf),
             'TaxSummary' => $this->taxSummary($asOf, $asked['month'] ?? null),
             'ContractorPayments' => $this->contractorPayments($asOf),
@@ -319,14 +322,18 @@ class ReportPane
                 'label' => mb_strtoupper($section['type']),
                 'rows' => array_map(fn (array $row): array => [
                     'code' => $row['code'],
-                    'label' => $row['name'],
-                    'debit' => (float) $row['debit'],
-                    'credit' => (float) $row['credit'],
+                    'cells' => [
+                        $row['name'],
+                        $this->amount($row['debit']),
+                        $this->amount($row['credit']),
+                    ],
                 ], $section['rows']),
                 'total' => [
-                    'label' => 'Total '.mb_strtolower($section['type']),
-                    'debit' => (float) $section['total_debits'],
-                    'credit' => (float) $section['total_credits'],
+                    'cells' => [
+                        'Total '.mb_strtolower($section['type']),
+                        number_format((float) $section['total_debits'], 0),
+                        number_format((float) $section['total_credits'], 0),
+                    ],
                 ],
             ];
         }
@@ -338,6 +345,8 @@ class ReportPane
             'title' => 'Trial Balance',
             'subtitle' => $this->subtitle('as of '.Carbon::parse($asOf)->format('j M Y')),
             'columns' => ['Account', 'Debit', 'Credit'],
+            'grid' => 'minmax(0, 1fr) 9rem 9rem',
+            'numeric' => [1, 2],
             'sections' => $sections,
             'tiles' => [
                 ['label' => 'TOTAL DEBITS', 'value' => (float) $report['total_debits'], 'accent' => false],
@@ -346,6 +355,99 @@ class ReportPane
             'note' => $report['balanced'] ? 'BALANCED · DEBITS = CREDITS' : 'OUT OF BALANCE',
             'balanced' => (bool) $report['balanced'],
         ];
+    }
+
+    /**
+     * The general ledger: every account, its entries in date order, opening → movement → closing.
+     *
+     * The `ledger` kind rather than a `table` because that is exactly what this is — sections of rows with
+     * a total each — and the trial balance beside it proved the shape. What the general ledger needed was
+     * for that kind to stop assuming three columns, which is why a ledger now states its own `grid` and
+     * `numeric` the way a table does.
+     *
+     * A section is an account, and its heading carries the opening balance: the closing figure means
+     * nothing without it, and a reader who has to look up what an account opened at is reading two
+     * reports. The period is the financial year to date — see ReportPeriod, and the six months this
+     * application once reported as twelve.
+     *
+     * @return array<string, mixed>
+     */
+    private function generalLedger(string $asOf): array
+    {
+        $period = ReportPeriod::toDate($asOf);
+        $ledgers = app(GeneralLedgerService::class)->generalLedger($period['from'], $period['to']);
+
+        $sections = [];
+        $debits = 0.0;
+        $credits = 0.0;
+
+        foreach ($ledgers as $ledger) {
+            $account = $ledger['account'];
+
+            $sections[] = [
+                'label' => trim($account['code'].' '.$account['name'])
+                    .'  ·  OPENING '.number_format((float) $ledger['opening_balance'], 0),
+                'rows' => array_map(fn (array $line): array => [
+                    // No drill, and no code on the row. Both were tried and both were wrong: the code is
+                    // already in the heading above and repeating it down the date column is noise, and a
+                    // line here drilling into that account's register would land on the same lines the
+                    // reader is already looking at. The general ledger *is* the drill-down.
+                    'code' => null,
+                    'cells' => [
+                        $line['date'],
+                        (string) $line['entry_number'],
+                        (string) $line['memo'],
+                        $this->amount($line['debit']),
+                        $this->amount($line['credit']),
+                        number_format((float) $line['balance'], 0),
+                    ],
+                ], $ledger['lines']),
+                'total' => [
+                    'cells' => [
+                        'Closing balance', '', '',
+                        number_format(array_sum(array_column($ledger['lines'], 'debit')), 0),
+                        number_format(array_sum(array_column($ledger['lines'], 'credit')), 0),
+                        number_format((float) $ledger['closing_balance'], 0),
+                    ],
+                ],
+            ];
+
+            $debits += array_sum(array_column($ledger['lines'], 'debit'));
+            $credits += array_sum(array_column($ledger['lines'], 'credit'));
+        }
+
+        return [
+            'kind' => 'ledger',
+            'drillable' => $this->drillable(),
+            'key' => 'GeneralLedger',
+            'title' => 'General Ledger',
+            'subtitle' => $this->subtitle(
+                Carbon::parse($period['from'])->format('j M Y').' to '.Carbon::parse($period['to'])->format('j M Y'),
+            ),
+            'columns' => ['Date', 'Ref', 'Description', 'Debit', 'Credit', 'Balance'],
+            'grid' => '7rem 6rem minmax(0, 1fr) 8rem 8rem 9rem',
+            'numeric' => [3, 4, 5],
+            'sections' => $sections,
+            'tiles' => [
+                ['label' => 'ACCOUNTS', 'value' => (float) count($sections), 'accent' => false],
+                ['label' => 'TOTAL DEBITS', 'value' => round($debits, 2), 'accent' => false],
+                ['label' => 'TOTAL CREDITS', 'value' => round($credits, 2), 'accent' => false],
+            ],
+            // Every posted entry has two sides, so the period's debits and credits must agree. They are
+            // summed here from what is actually on screen rather than asked of the ledger separately —
+            // a total that agrees with a figure the reader cannot see proves nothing.
+            'note' => round($debits, 2) === round($credits, 2)
+                ? 'BALANCED · DEBITS = CREDITS'
+                : 'OUT OF BALANCE',
+            'balanced' => round($debits, 2) === round($credits, 2),
+            'empty' => 'Nothing has been posted in this period.',
+        ];
+    }
+
+    /** A figure, or nothing where a nought would be noise. Ledger columns are read down, not added up. */
+    private function amount(float|int|string|null $value): string
+    {
+        return (float) $value ? number_format((float) $value, 0) : '';
     }
 
     // ----------------------------------------------------------------- the ageing

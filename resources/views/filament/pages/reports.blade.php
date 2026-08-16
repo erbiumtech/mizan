@@ -259,12 +259,22 @@
                         than being folded into the statement above, because squeezing it into one amount
                         column means choosing a side per account and calling that the figure.
                     --}}
+                    {{--
+                        Sections of rows with a total each: the trial balance, and the general ledger.
+
+                        The two differ only in their columns — three for one, six for the other — so a
+                        ledger states its own grid and which columns are figures, exactly as the table kind
+                        does, and the rows are cells rather than named debit/credit fields. Writing a
+                        second renderer for the general ledger would have meant two places to fix the day a
+                        drill-through or a sticky header changed.
+                    --}}
                     @elseif ($statement['kind'] === 'ledger')
+                    @php($grid = 'grid-template-columns: '.$statement['grid'])
                     <div class="fi-explorer-statement fi-explorer-ledger">
-                        <div class="fi-explorer-statement-head">
-                            <span>{{ $statement['columns'][0] }}</span>
-                            <span class="fi-num">{{ $statement['columns'][1] }}</span>
-                            <span class="fi-num">{{ $statement['columns'][2] }}</span>
+                        <div class="fi-explorer-statement-head" style="{{ $grid }}">
+                            @foreach ($statement['columns'] as $i => $column)
+                                <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $column }}</span>
+                            @endforeach
                         </div>
 
                         <div class="fi-explorer-statement-body">
@@ -272,7 +282,7 @@
                                 <div class="fi-explorer-section">{{ $section['label'] }}</div>
 
                                 @foreach ($section['rows'] as $row)
-                                    <div class="fi-explorer-line">
+                                    <div class="fi-explorer-line" style="{{ $grid }}">
                                         @if (in_array($row['code'], $statement['drillable'] ?? [], true))
                                             <button
                                                 type="button"
@@ -281,26 +291,33 @@
                                                 title="Show the transactions behind this"
                                             >
                                                 <span class="fi-explorer-line-code">{{ $row['code'] }}</span>
-                                                {{ $row['label'] }}
+                                                {{ $row['cells'][0] }}
                                             </button>
                                         @else
                                             <span class="fi-explorer-line-label">
-                                                <span class="fi-explorer-line-code">{{ $row['code'] }}</span>
-                                                {{ $row['label'] }}
+                                                {{-- Only where the row is an account. A general ledger's
+                                                     first cell is a date, and the account it belongs to is
+                                                     the heading above it. --}}
+                                                @if (filled($row['code']))
+                                                    <span class="fi-explorer-line-code">{{ $row['code'] }}</span>
+                                                @endif
+                                                {{ $row['cells'][0] }}
                                             </span>
                                         @endif
-                                        <span class="fi-num">{{ $row['debit'] ? number_format($row['debit'], 0) : '' }}</span>
-                                        <span class="fi-num">{{ $row['credit'] ? number_format($row['credit'], 0) : '' }}</span>
+
+                                        @foreach (array_slice($row['cells'], 1, null, true) as $i => $cell)
+                                            <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                                        @endforeach
                                     </div>
                                 @endforeach
 
-                                <div class="fi-explorer-total">
-                                    <span>{{ $section['total']['label'] }}</span>
-                                    <span class="fi-num">{{ number_format($section['total']['debit'], 0) }}</span>
-                                    <span class="fi-num">{{ number_format($section['total']['credit'], 0) }}</span>
+                                <div class="fi-explorer-total" style="{{ $grid }}">
+                                    @foreach ($section['total']['cells'] as $i => $cell)
+                                        <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                                    @endforeach
                                 </div>
                             @empty
-                                <p class="fi-explorer-empty">Nothing is posted to this date yet.</p>
+                                <p class="fi-explorer-empty">{{ $statement['empty'] ?? 'Nothing is posted to this date yet.' }}</p>
                             @endforelse
                         </div>
 

@@ -300,7 +300,7 @@ class OwnBankAccountTest extends AccountingTestCase
     {
         // The behaviour the blanking existed for, which has to keep working: those columns
         // described the bank that was just removed.
-        $bank = \App\Modules\Accounting\Models\Bank::create([
+        $bank = \App\Modules\Core\Models\Bank::create([
             'bank_code' => 'FAYS', 'bank_name' => 'Faysal Bank', 'bank_short_code' => 'FBL',
         ]);
 

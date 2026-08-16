@@ -1,6 +1,14 @@
 <?php
 
 return [
+    // First, and it matters: every module provider below may read
+    // config('modules') while booting, and this is what puts it there.
+    App\Providers\ModuleManifestServiceProvider::class,
+
+    // Also before the modules: each default is overridden by the module that
+    // answers the question properly, and the last binding wins.
+    App\Providers\ContractDefaultsServiceProvider::class,
+
     App\Modules\Accounting\AccountingServiceProvider::class,
     App\Modules\Advances\AdvancesServiceProvider::class,
     App\Modules\Attendance\AttendanceServiceProvider::class,
