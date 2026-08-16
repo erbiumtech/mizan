@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
+use App\Support\Banking\IPaymentsFileWriter;
 use Carbon\Carbon;
 
 /**
@@ -16,38 +17,12 @@ use Carbon\Carbon;
  */
 class SalaryBankExportService
 {
-    public const COLUMNS = 204;
-
-    // 1-indexed column positions from the template's label row.
-    protected const COL = [
-        'record_type' => 1,
-        'payment_type' => 2,
-        'processing_mode' => 3,
-        'customer_reference' => 5,
-        'debit_country' => 7,
-        'debit_city' => 8,
-        'debit_account' => 9,
-        'value_date' => 10,
-        'beneficiary_name' => 11,
-        'payee_address_1' => 12,
-        'payee_address_2' => 13,
-        'payee_country' => 14,
-        'beneficiary_bank_code' => 16,
-        'beneficiary_account' => 20,
-        'payment_details_1' => 21,
-        'payment_details_2' => 22,
-        'invoice_format' => 37,
-        'payment_currency' => 38,
-        'amount' => 39,
-        'debit_currency' => 60,
-        'debit_bank_id' => 61,
-        'beneficiary_email' => 63,
-        'beneficiary_bank_name' => 66,
-        'purpose_of_payment' => 166,
-        'beneficiary_id' => 167,
-        'beneficiary_id_type' => 168,
-        'beneficiary_contact' => 204,
-    ];
+    /**
+     * The layout moved to App\Support\Banking\IPaymentsFileWriter — it is a bank's file format rather
+     * than payroll, and keeping it here forced Accounting to *extend* this class to reuse it. See
+     * docs/module-packaging-plan.md §7. Kept as an alias because callers reference it.
+     */
+    public const COLUMNS = IPaymentsFileWriter::COLUMNS;
 
     /**
      * The payslips that would be exported for a month, with payment rows.
@@ -189,32 +164,30 @@ class SalaryBankExportService
     }
 
     /**
-     * One 204-column CSV row from a map of column-name => value.
+     * The file format, shared with Accounting's payment export rather than inherited by it.
+     *
+     * These three stay as thin protected methods so this class reads the way it always did; what changed
+     * is that the layout is no longer *here*, so nothing has to extend this class to use it.
+     *
+     * @param  array<string, mixed>  $values
      */
     protected function row(array $values): string
     {
-        $cells = array_fill(0, self::COLUMNS, '');
-
-        foreach ($values as $key => $value) {
-            $cells[self::COL[$key] - 1] = $this->escape((string) $value);
-        }
-
-        return implode(',', $cells);
+        return $this->file()->row($values);
     }
 
     protected function formatAmount(float $amount): string
     {
-        $formatted = number_format($amount, 2, '.', '');
-
-        return str_ends_with($formatted, '.00') ? substr($formatted, 0, -3) : $formatted;
+        return $this->file()->formatAmount($amount);
     }
 
-    /**
-     * iPayments files are plain comma-delimited; strip characters that
-     * would break the layout rather than quoting them.
-     */
     protected function escape(string $value): string
     {
-        return trim(str_replace([',', '"', "\r", "\n"], ' ', $value));
+        return $this->file()->escape($value);
+    }
+
+    protected function file(): IPaymentsFileWriter
+    {
+        return app(IPaymentsFileWriter::class);
     }
 }
