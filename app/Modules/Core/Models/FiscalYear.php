@@ -28,8 +28,67 @@ class FiscalYear extends Model
      * on the company this was found on that was a year containing not one of its
      * entries. Activating a year now stands the others down.
      */
+    /**
+     * The shape a fiscal year is allowed to have.
+     *
+     * This installation runs a **1 July – 30 June** year, and `App\Support\PayrollMonth` is what depends on
+     * it: payslips are keyed by month *name*, so turning "January" into a date needs the year's boundary. Two
+     * rules are enough to pin that down without forbidding the one legitimate variation:
+     *
+     *  - **A year ends 30 June.** Always, including a partial one.
+     *  - **A year spans at most twelve months.** Longer and a month name appears twice in the same year, so
+     *    "January" is genuinely ambiguous and `PayrollMonth` would silently pick one of them.
+     *
+     * Together those permit exactly one full-length shape — 1 July to 30 June — without needing to say so,
+     * and they still allow a **stub first year**: a company joining in February gets 1 February to 30 June,
+     * which `BudgetTest` covers and which exists for a real reason (inventing the eight missing months would
+     * report a year as underspent against actuals that were never going to be there).
+     *
+     * **Validated only when both dates are recorded**, and that is not laziness. `FiscalYearForm` does not
+     * collect dates, so rows created through the panel have none, and `containing()` already documents years
+     * with no dates as containing nothing. Refusing to save a dateless row would lock an administrator out of
+     * activating one. See the note in docs/module-packaging-plan.md — a dateless year makes `PayrollMonth`
+     * resolve every month to the current calendar year, which is a separate bug and not one validation here
+     * can fix without breaking the panel.
+     */
     protected static function booted(): void
     {
+        static::saving(function (self $year): void {
+            if ($year->start_date === null || $year->end_date === null) {
+                return;
+            }
+
+            $start = \Carbon\Carbon::parse($year->start_date)->startOfDay();
+            $end = \Carbon\Carbon::parse($year->end_date)->startOfDay();
+
+            if ($end->lessThanOrEqualTo($start)) {
+                throw new \InvalidArgumentException(sprintf(
+                    'A fiscal year must end after it starts — got %s to %s.',
+                    $start->toDateString(),
+                    $end->toDateString(),
+                ));
+            }
+
+            if ($end->month !== 6 || $end->day !== 30) {
+                throw new \InvalidArgumentException(sprintf(
+                    'A fiscal year ends on 30 June — got %s. A company joining part-way through gets a '
+                    .'shorter year ending on the same date, not a year ending elsewhere.',
+                    $end->toDateString(),
+                ));
+            }
+
+            // Compared against the anniversary rather than by counting months, which is off by one for a
+            // 1 July – 30 June year and would reject the ordinary case.
+            if ($end->greaterThanOrEqualTo($start->copy()->addYear())) {
+                throw new \InvalidArgumentException(sprintf(
+                    'A fiscal year spans at most twelve months — %s to %s is longer, so a month name would '
+                    .'fall in it twice and could not be resolved to a date.',
+                    $start->toDateString(),
+                    $end->toDateString(),
+                ));
+            }
+        });
+
         static::saved(function (self $year): void {
             if (! $year->is_active) {
                 return;
