@@ -121,6 +121,30 @@ return [
         'seeders' => $businessWithLeave,
     ],
 
+    /*
+     * Construction / Contracting — docs/construction-management-plan.md §18.2.
+     *
+     * Only the spine (`construction`) is licensed here, because that is all Phase 1 builds. The four
+     * modules above it join this list as their phases land, so a profile never licenses a key whose tables
+     * do not exist. Closed under `requires` — the spine requires nothing, and everything else here is
+     * already closed by the shared business set.
+     *
+     * The Engineer or Architect practice that *certifies* rather than claims is deliberately not a second
+     * profile: §18.2 records that the `side` enum already accommodates it, so it is a later profile rather
+     * than a second schema.
+     */
+    'construction' => [
+        'label' => 'Construction / Contracting',
+        'description' => 'Building and civils contracting: jobs and sites, the work breakdown, cost codes and the ISO 19650 document register.',
+        'type' => Company::TYPE_BUSINESS,
+        // §18.2's list verbatim, plus the spine. Deliberately **not** `timesheets`: it requires `projects`,
+        // which would drag a software-delivery module with environment health checks into a contractor's
+        // licence set, and §18.1 already has timesheets as *guarded* — importing timesheet entries as labour
+        // records — rather than profiled. Site sheets are the primary labour path anyway (§7).
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction'],
+        'seeders' => $businessWithLeave,
+    ],
+
     'staffing' => [
         'label' => 'Staffing / Outsourcing',
         'description' => 'Staff placed with clients and billed on at full cost: client billing, advances and expense claims.',

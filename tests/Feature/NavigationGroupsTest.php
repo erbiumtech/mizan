@@ -261,10 +261,17 @@ class NavigationGroupsTest extends TestCase
         // Sales is winning the work; Support is what happens after it is delivered, and the
         // people doing the two are usually not the same. Quotes and campaigns DO sit under
         // Sales, because both are things you send while trying to win something.
+        // `Construction` is its own group and its own rail domain, not a fold into Accounting or a second
+        // Employee section. A job is a contract to build something, and the people, the cost and the
+        // certificates all hang off it — see docs/construction-management-plan.md §18.2, which measured the
+        // alternative: Finance is already 24 classes across three groups, and folding construction in would
+        // push it past fifty across seven, which is the flat-many-groups problem the two-level shell exists
+        // to solve.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
+            'Construction',
             'Employee',
             'Hiring',
             'Invoicing & Inventory',

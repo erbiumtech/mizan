@@ -1,6 +1,14 @@
 # Construction Management — Plan
 
-**Status:** Not started
+**Status:** **Phase 0 complete (2026-08-17). Phase 1 is unblocked.** Both halves of Phase 0 are done: the one
+prerequisite in another module — `InvoiceService::purchaseEntryLines()` now flips the leg for a negative line,
+so a subcontract retention line can post, covered by `PurchaseInvoiceNegativeLineTest`, and it corrected the
+risk entry that described the failure as silent — and all four decisions, recorded in the Phases section
+below. In brief: `ConstructionQhse` casing; `stock_locations` owned by Inventory rather than `store_id`, and
+written into `docs/retail-stores-pos-plan.md` as well; reference data ships as structure plus CSV import with
+**no seeded code lists**, which makes the redistribution licensing question non-blocking instead of answering
+it; and construction is a seventh navigation domain. No construction table exists yet, by design — Phase 0 was
+decisions and one fix. The remaining Phase 0 item, a query-budget test, waits for Phase 2 to have a report.
 **Created:** 2026-08-14
 **Covers:** the job and its classification (§1–§2), the job-cost ledger and its reconciliation to the
 books (§3–§4), procurement, site stores, labour and plant (§5–§7), the head contract, variations,
@@ -586,8 +594,8 @@ channel and a POS registration number — or add a *second* location column, at 
 sum over two nullable dimensions, wrong at every location and correct in total, which is the hardest
 class of wrong to notice.
 
-**The recommendation, and it belongs in the retail plan's Phase 0 rather than here: the location belongs
-to Inventory.** A `stock_locations` table owned by Inventory (`code`, `name`, `kind` of
+**Decided 2026-08-17 — adopted, and written into `docs/retail-stores-pos-plan.md` §2.1 and its Phase 0 as
+well, which was the actionable half of this note. The location belongs to Inventory.** A `stock_locations` table owned by Inventory (`code`, `name`, `kind` of
 `warehouse|shop|site|van|transit`, address, `inventory_account_id`), `stock_movements.stock_location_id`
 backfilled once, `stores.stock_location_id` in retail and `construction_jobs.stock_location_id` here. One
 column, one backfill, one change to the valuation API, and both modules are served without either
@@ -1629,6 +1637,49 @@ document register before the modules that reference drawings.
   today and silently drops the retention line the moment §12 exists. Then a query-budget test for the job
   cost report before the page exists. **Ends with:** the answers written back into this document, and a
   failing-then-passing test in Invoicing for a bug nothing currently triggers.
+
+  > **Started 2026-08-17. The Invoicing fix is done** — `purchaseEntryLines()` now mirrors
+  > `saleEntryLines()`'s leg flip, covered by `PurchaseInvoiceNegativeLineTest` on both the base and
+  > foreign-currency paths. It corrected the risk entry: the failure was a hard refusal, not a silent
+  > absorption. See the Risks section.
+  >
+  > **All four decisions are now made (2026-08-17).** Recorded here because Phase 0's whole deliverable is
+  > the answers written back into this document.
+  >
+  > **1. Casing: `App\Modules\ConstructionQhse`.** Verified rather than reasoned —
+  > `Str::snake('ConstructionQHSE')` returns `construction_q_h_s_e`, which matches no registry key, so
+  > `moduleFor()` returns null and every class with its own `canAccess()` is silently ungated.
+  >
+  > **2. Stock location: `stock_locations`, owned by Inventory.** Adopting §6's recommendation, and the
+  > decision is *free right now* — neither this plan nor the retail one has been built, `stock_movements` has
+  > no location column of any kind, and no backfill has happened, so the one-way door is still open. It will
+  > not stay open: whichever plan starts first walks through it. `stock_movements.stock_location_id`,
+  > backfilled once; `stores.stock_location_id` in retail and `construction_jobs.stock_location_id` here;
+  > neither module depends on the other. The alternative — `store_id → stores` — makes a building site either
+  > a fake store row carrying till settings and a POS registration number, or a second nullable dimension,
+  > which is the on-hand-wrong-per-location-right-in-total failure §6 names. **Written into
+  > `docs/retail-stores-pos-plan.md` §0.1 as well**, because that is where the migration belongs and because
+  > two plans each assuming the other will raise it is how neither does. The `stock_movements.type` enum
+  > expands once, in the same migration, for both plans: `issue`, `return`, `transfer`, `waste`,
+  > `count_adjustment`.
+  >
+  > **3. Reference data: ship the structure, seed nothing proprietary.** The licensing question is *not*
+  > answered here and must not be — MasterFormat is CSI's, Uniclass NBS's, NRM RICS's, ICMS the Coalition's,
+  > and nobody on this side of the code can clear redistribution terms. What is decided is the shape that
+  > makes the question **non-blocking**: Phase 1 ships the cost-code tree, the ICMS *mapping* columns and a
+  > CSV import, and **zero seeded code lists**. A customer who owns a licence loads their own file. Seed
+  > packs per standard become a later, separate deliverable, each gated on written terms for that standard —
+  > so the advisor question runs in parallel with Phase 1 instead of in front of it. This also disposes of
+  > the ten-thousand-rows-per-tenant objection by not creating them.
+  >
+  > **4. Navigation: a seventh domain.** Adopting §18.2, with the claim checked: Finance today is **24
+  > classes across three groups** (Accounting 14, Invoicing & Inventory 7, Audit & Taxes 3) and Sales is 8.
+  > Construction's four groups — three of which need branching — would push Finance past fifty classes and
+  > seven groups, which is the flat-many-groups problem `NavigationDomains` was written to solve. The cost is
+  > bounded and worth stating: `rail()` omits a domain whose groups are all empty, so a company that never
+  > buys construction still sees six icons and nothing changes for it.
+  >
+  > The query-budget test waits on Phase 2, since there is no report to budget yet.
 - **Phase 1 — The spine.** `construction` module wiring end to end — registry, profile, plugin, provider,
   `ModuleMap`, policies, permissions, the navigation domain and its branches — then jobs, locations, the
   WBS, the cost-code library with its ICMS mapping, and the ISO 19650 document register with revisions
@@ -1700,9 +1751,13 @@ will be found.
   nobody agreed. Mitigation: two named scopes, and no bare status filter anywhere in the module.
 - **A journal entry reversed in Accounting without its mirrored cost entry.** A cross-module hole no code
   path closes, because an accountant can do it from another panel. Only §4.2's third cause finds it.
-- **A negative purchase line silently dropped.** Latent in Invoicing today; the subcontract retention
-  line is the first thing that will hit it, and the imbalance is absorbed by the balancing fixer into an
-  unrelated leg rather than failing. Mitigation: Phase 0, with a test.
+- ~~**A negative purchase line silently dropped.**~~ **Fixed in Phase 0, and the risk was mis-stated.** It
+  did not fail silently: `purchaseEntryLines()` put a negative amount in `debit_amount`, `postSystemEntry()`
+  dropped the leg, and the bill threw `Entry is not balanced: debits 1000000.00 != credits 900000.00`. The
+  balancing fixer never saw it — `absorbRounding()` runs inside `translateDocument()`, *before* the filter,
+  and only for a foreign-currency invoice. So the bug was a hard refusal on both paths rather than a wrong
+  number, which is the better of the two failures. Mirrored the leg flip from `saleEntryLines()`;
+  `PurchaseInvoiceNegativeLineTest` covers base and FX, and asserts gross = net + retention.
 - **A stored compliance status with a past expiry.** Pays a subcontractor with no insurance while the
   screen says everything is fine. Mitigation: status is computed from dates; only the notification
   threshold is stored.
@@ -1718,8 +1773,12 @@ will be found.
   new row rather than an edited one.
 - **`stock_movements` gaining `store_id` before `stock_location_id`.** Then a building site is either a
   fake retail store or a second nullable dimension, and on-hand becomes wrong at every location and
-  correct in total — the hardest class of wrong to see. Mitigation: raise it against the retail plan's
-  Phase 0, in writing, before either module is built.
+  correct in total — the hardest class of wrong to see. ~~Mitigation: raise it against the retail plan's
+  Phase 0, in writing, before either module is built.~~ **Done 2026-08-17: decided in favour of
+  `stock_location_id` and written into that plan's §2.1 and Phase 2.** The risk is not closed, only moved —
+  it now depends on whichever plan builds the migration honouring it, so **Phase 8 here and Phase 2 there
+  are the same migration** and the second one to arrive must find the column already present rather than add
+  its own.
 - **`Str::snake('ConstructionQHSE')`.** Returns a key that is not in the registry, `moduleFor()` returns
   null, and every class with its own `canAccess()` is silently ungated — a construction cost report
   reachable by a company that never bought the module. Mitigation: the casing rule in §18.2 and
