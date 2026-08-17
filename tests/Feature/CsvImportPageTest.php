@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\AccountingServiceProvider;
+use App\Modules\Construction\ConstructionServiceProvider;
 use App\Modules\Core\Filament\Pages\CsvImport;
 use App\Modules\Core\Models\User;
 use App\Modules\Inventory\InventoryServiceProvider;
@@ -81,9 +82,18 @@ class CsvImportPageTest extends TestCase
         } finally {
             // Restored by re-booting the providers that register them, since this is static state the rest
             // of the suite shares. Re-registering is idempotent — the key is the same both times.
+            //
+            // **Every provider that registers an importer has to be listed here**, and the assertion below is
+            // what says so: Construction's arrival broke this test rather than silently leaving the registry
+            // three-quarters restored for everything that ran afterwards.
             CsvImporters::flush();
 
-            foreach ([InvoicingServiceProvider::class, InventoryServiceProvider::class, AccountingServiceProvider::class] as $provider) {
+            foreach ([
+                InvoicingServiceProvider::class,
+                InventoryServiceProvider::class,
+                AccountingServiceProvider::class,
+                ConstructionServiceProvider::class,
+            ] as $provider) {
                 $this->app->register($provider, true);
             }
         }

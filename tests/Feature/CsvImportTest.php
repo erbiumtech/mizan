@@ -34,6 +34,8 @@ class CsvImportTest extends AccountingTestCase
 
     private const OPENING_BALANCES = 'opening_balances';
 
+    private const COST_CODES = 'construction_cost_codes';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -260,8 +262,13 @@ class CsvImportTest extends AccountingTestCase
     /** The three the installed modules contribute, and no fourth invented by Core. */
     public function test_the_types_on_offer_are_what_the_modules_registered(): void
     {
+        // In sort order, not registration order: each module passes an explicit sort so the dropdown — and
+        // therefore which type a fresh page opens on — is a decision rather than provider boot order.
+        // Construction's cost codes joined at 40 when its Phase 1c landed; the library has to be loaded from a
+        // spreadsheet because no proprietary code list ships, so this importer is the delivery mechanism
+        // rather than a convenience. See docs/construction-management-plan.md Phase 0.
         $this->assertSame(
-            [self::CONTACTS, self::PRODUCTS, self::OPENING_BALANCES],
+            [self::CONTACTS, self::PRODUCTS, self::OPENING_BALANCES, self::COST_CODES],
             CsvImporters::keys(),
         );
 

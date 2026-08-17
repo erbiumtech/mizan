@@ -2,8 +2,14 @@
 
 namespace App\Modules\Construction;
 
+use App\Modules\Construction\Models\CostCode;
+use App\Modules\Construction\Models\Document;
 use App\Modules\Construction\Models\Job;
+use App\Modules\Construction\Policies\CostCodePolicy;
+use App\Modules\Construction\Policies\DocumentPolicy;
 use App\Modules\Construction\Policies\JobPolicy;
+use App\Modules\Construction\Support\CostCodeCsvImporter;
+use App\Support\CsvImporters;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,10 +28,17 @@ class ConstructionServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     private const POLICIES = [
         Job::class => JobPolicy::class,
+        CostCode::class => CostCodePolicy::class,
+        Document::class => DocumentPolicy::class,
     ];
 
     public function boot(): void
     {
+        // The cost-code library, loaded from a spreadsheet on Core's existing import screen. This is how
+        // codes arrive rather than a convenience: Phase 0 settled that no proprietary code list ships, since
+        // MasterFormat, Uniclass, NRM and ICMS are all somebody else's to license. See CostCodeCsvImporter.
+        CsvImporters::register('construction_cost_codes', CostCodeCsvImporter::class, 40);
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

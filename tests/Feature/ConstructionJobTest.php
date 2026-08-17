@@ -104,18 +104,18 @@ class ConstructionJobTest extends AccountingTestCase
     }
 
     /**
-     * `inTree()` is what a rolled-up report reads, and it includes the root.
+     * `inSubtree()` is what a rolled-up report reads, and it includes the root.
      *
      * The board asks for the consolidated cost of a development; the per-lot certificate needs the lot alone.
      * Both come off this scope with a different root, which is the whole reason §1.2 exists.
      */
-    public function test_in_tree_returns_the_root_and_its_descendants_only(): void
+    public function test_in_subtree_returns_the_root_and_its_descendants_only(): void
     {
         $development = $this->job('J-2026-001');
         $tower = $this->job('J-2026-001-A', ['parent_id' => $development->getKey()]);
         $unrelated = $this->job('J-2026-002');
 
-        $found = Job::query()->inTree($development->fresh())->pluck('code')->sort()->values()->all();
+        $found = Job::query()->inSubtree($development->fresh())->pluck('code')->sort()->values()->all();
 
         $this->assertSame(['J-2026-001', 'J-2026-001-A'], $found);
         $this->assertNotContains($unrelated->code, $found);
