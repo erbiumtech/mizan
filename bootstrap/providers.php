@@ -15,6 +15,7 @@ return [
     App\Modules\Billing\BillingServiceProvider::class,
     App\Modules\Campaigns\CampaignsServiceProvider::class,
     App\Modules\Construction\ConstructionServiceProvider::class,
+    App\Modules\ConstructionCosting\ConstructionCostingServiceProvider::class,
     App\Modules\Core\CoreServiceProvider::class,
     App\Modules\Crm\CrmServiceProvider::class,
     App\Modules\Employees\EmployeesServiceProvider::class,
