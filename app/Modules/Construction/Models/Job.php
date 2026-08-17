@@ -3,12 +3,12 @@
 namespace App\Modules\Construction\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\Construction\Concerns\HasMaterialisedPath;
 use App\Modules\Invoicing\Models\Contact;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One contract to build one thing at one place.
@@ -25,6 +25,7 @@ class Job extends Model
 {
     use Auditable;
     use HasComments;
+    use HasMaterialisedPath;
 
     /**
      * Named explicitly, and this is not cosmetic.
@@ -100,82 +101,16 @@ class Job extends Model
         'longitude' => 'decimal:7',
     ];
 
-    /**
-     * The materialised path, maintained here so no caller has to remember.
+    /*
+     * The materialised path comes from HasMaterialisedPath, shared with WbsNode and Location.
      *
-     * Every report rolls up a job's descendants through it (§1.2), so a stale path is a cost report that
-     * silently omits a lot — a wrong number that looks like a right one.
+     * It lived here first, and the trait exists because the lifecycle is the subtle part: the first version
+     * wrote the path in `saving`, where a new record has no id, so every root job got `/` and the subtree
+     * scope matched the entire table. Three trees copying that would have been three chances to repeat it.
      *
-     * **Written after the insert, not in `saving`.** The path contains the job's own id, and in `saving` a new
-     * record has none: the first version of this set every root job's path to `/`, which made `inTree()` match
-     * the entire table. Written with a query rather than a `save()` so no event re-fires.
+     * Jobs are company-wide rather than partitioned, so `pathScopeColumn()` stays null — a job's subtree is
+     * every job beneath it, whichever client it belongs to.
      */
-    protected static function booted(): void
-    {
-        static::created(function (self $job): void {
-            $job->writePath();
-        });
-
-        // A job moved under a different parent takes its whole subtree with it. Only on an actual change,
-        // because payroll-style re-saves are routine and re-pathing a deep tree on every one is waste.
-        static::updated(function (self $job): void {
-            if ($job->wasChanged('parent_id')) {
-                $job->writePath();
-            }
-        });
-    }
-
-    /**
-     * `/parent/…/self/` — with the job's own id, so a rollup is one `LIKE` and needs no union.
-     *
-     * Built from the parent's *stored* path rather than by walking up, which is one query instead of a
-     * depth's worth.
-     */
-    public function buildPath(): string
-    {
-        if (! $this->getKey()) {
-            throw new \LogicException('A job path needs the job to exist: build it after the insert.');
-        }
-
-        if (! $this->parent_id) {
-            return "/{$this->getKey()}/";
-        }
-
-        $parent = static::query()->find($this->parent_id);
-        $prefix = $parent?->path ?: "/{$this->parent_id}/";
-
-        return $prefix.$this->getKey().'/';
-    }
-
-    /**
-     * Store this job's path and every descendant's, parents before children.
-     *
-     * Recursive rather than a prefix-replace because it re-derives each path from its parent's stored one, so
-     * a subtree that was already inconsistent comes out right rather than having its error carried down.
-     * Depth is two or three in practice (§1.2 offers a third level only on request), so the query count is
-     * bounded by the tree the user built. `construction:rebuild-paths` is the same walk over every root.
-     */
-    public function writePath(): void
-    {
-        $path = $this->buildPath();
-
-        static::withoutEvents(fn () => static::whereKey($this->getKey())->update(['path' => $path]));
-
-        $this->path = $path;
-        $this->syncOriginalAttribute('path');
-
-        static::query()->where('parent_id', $this->getKey())->get()->each->writePath();
-    }
-
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'parent_id');
-    }
-
-    public function children(): HasMany
-    {
-        return $this->hasMany(self::class, 'parent_id');
-    }
 
     public function client(): BelongsTo
     {
@@ -186,12 +121,6 @@ class Job extends Model
     public function certifier(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'certifier_contact_id');
-    }
-
-    /** This job and everything under it, for a rolled-up report. */
-    public function scopeInTree(Builder $query, self $root): Builder
-    {
-        return $query->where('path', 'like', $root->path.'%');
     }
 
     public function scopeLive(Builder $query): Builder

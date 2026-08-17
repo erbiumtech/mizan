@@ -35,21 +35,33 @@ class RoleGrantsTest extends AccountingTestCase
      * The baseline was 27 / 81 / 94 / 106 — what the pre-refactor seeder produced, snapshotted and diffed to
      * prove the move into the manifests changed nothing.
      *
-     * **2026-08-17, construction Phase 1** (`docs/construction-management-plan.md`): the `construction`
-     * module's four job permissions were granted, and this test failed until the counts were changed on
-     * purpose, which is what it is for. Employee +1 (`ConstructionJobView` — a site engineer reads the job
-     * they are on, and row scoping rather than the permission is what narrows it); Accountant +3 (view,
-     * create, update — the commercial side maintains jobs); Manager +3, inherited from Accountant with no
-     * addition of its own; CEO +4, the inherited three plus `ConstructionJobDelete`, which the policy further
-     * refuses on a closed job.
+     * **2026-08-17, construction Phase 1** (`docs/construction-management-plan.md`) moved them twice, and both
+     * times this test failed until the numbers were changed on purpose, which is what it is for.
+     *
+     * Phase 1a, the four job permissions: Employee +1 (`ConstructionJobView` — a site engineer reads the job
+     * they are on, and row scoping rather than the permission is what narrows it); Accountant +3 (view, create,
+     * update — the commercial side maintains jobs); Manager +3, inherited with no addition of its own; CEO +4,
+     * the inherited three plus `ConstructionJobDelete`, which the policy further refuses on a closed job.
+     *
+     * Phase 1c, the four cost-code permissions, on the same shape: Employee +1 for view, because a material
+     * issue has to name a code and a picker with nothing in it is a form nobody can complete; Accountant +3,
+     * because the library is what the next tender is priced from; CEO +1 for delete, which the policy further
+     * refuses on a code that has children.
+     *
+     * Phase 1d, the five document permissions — and this is the run where the ratchet earned itself. Employee
+     * +1 for view; Accountant +3; **Manager +1 for `ConstructionDocumentPublish`**, its first addition of its
+     * own here, because publishing is what says "build this" and belongs with the approval powers rather than
+     * with whoever uploads drawings; CEO +1 for delete. Working out why Accountant moved by 3 rather than 2 is
+     * what surfaced a real hole: the roles are separate leaves, not a chain, so Accountant does not inherit
+     * Employee's view — and without it a surveyor could upload a drawing and then not be able to open it.
      *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 28,
-        'Accountant' => 84,
-        'Manager' => 97,
-        'CEO' => 110,
+        'Employee' => 30,
+        'Accountant' => 90,
+        'Manager' => 104,
+        'CEO' => 119,
     ];
 
     protected function setUp(): void
