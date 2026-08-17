@@ -178,7 +178,10 @@ class ModuleBoundaryTest extends TestCase
         // Employees -> Accounting was here for `Employee::bank()`, and it is gone: Bank is a
         // reference table three modules read, so it moved to Core, where a dependency is free. See
         // docs/module-packaging-plan.md §7 and App\Modules\Core\Models\Bank.
-        'employees' => ['projects', 'payroll'],
+        // Employees -> Projects is gone too: Projects requires Employees, so it now contributes both
+        // the Employee model's project relations and the Projects tab on the Employee screen, and
+        // Employees names nothing. See App\Support\ResourceContributions.
+        'employees' => ['payroll'],
         // Invoicing -> Projects is guarded, not debt: an invoice may name the
         // engagement it belongs to (GnuCash's "job"), and every surface that
         // offers the field checks modules()->enabled('projects') first. Invoicing

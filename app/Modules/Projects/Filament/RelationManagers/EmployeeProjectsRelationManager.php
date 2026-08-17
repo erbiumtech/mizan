@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Employees\Filament\Resources\Employees\RelationManagers;
+namespace App\Modules\Projects\Filament\RelationManagers;
 
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
@@ -13,7 +13,20 @@ use Filament\Tables\Table;
  * managed from the project side, so there is one write path to keep correct
  * (same precedent as ChangeRequestsRelationManager).
  */
-class ProjectsRelationManager extends RelationManager
+/**
+ * The Projects tab on an *Employee*, owned by Projects rather than by Employees.
+ *
+ * It used to live in `Employees\Filament\Resources\Employees\RelationManagers` and be named directly
+ * by `EmployeeResource::getRelations()`, which made Employees depend on Projects while Projects already
+ * requires Employees — a cycle, and the one kind of coupling composer cannot express. Employees now
+ * offers a slot (`App\Support\ResourceContributions`) and this fills it from ProjectsServiceProvider,
+ * so a company without Projects simply has no tab.
+ *
+ * The `projects` relation it reads is registered by that same provider through
+ * `Employee::resolveRelationUsing()` — see ProjectsServiceProvider. Employee itself no longer names a
+ * Project anywhere.
+ */
+class EmployeeProjectsRelationManager extends RelationManager
 {
     protected static string $relationship = 'projects';
 
