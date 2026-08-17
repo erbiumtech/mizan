@@ -79,12 +79,20 @@ class ModuleBoundaryTest extends TestCase
     ];
 
     /**
-     * How many modules may still be trapped in a dependency cycle.
+     * How many modules may still be trapped in a dependency cycle. **Zero.**
      *
-     * Ratchets down, one phase of docs/module-packaging-plan.md at a time, and the
+     * Ratcheted down, one phase of docs/module-packaging-plan.md at a time, and the
      * test fails in both directions — a cycle added, or a budget left stale after
-     * one was broken. Zero is the goal and the point at which every module becomes
-     * extractable as a composer package.
+     * one was broken. Zero was the goal and the point at which every module becomes
+     * extractable as a composer package; the graph is acyclic as of 2026-08-17.
+     *
+     * At zero this constant stops being a budget and becomes an invariant: the
+     * lower-bound assertion below can never fire again, and the upper bound now fails
+     * for **any** cycle at all. Do not raise it to make a change pass. A cycle cannot
+     * be expressed as a composer dependency, so re-introducing one takes a module out
+     * of the set that can be packaged — which is the whole of what this plan bought.
+     *
+     * The history is kept because each step taught something the next one needed.
      *
      * The opening measurement, once inline references were visible, was 14 of 22
      * modules in two components:
@@ -114,8 +122,34 @@ class ModuleBoundaryTest extends TestCase
      *
      * Every remaining member is a pay-and-people cycle — a payslip reaching an
      * advance, an advance reaching a payslip — not misfiled host code.
+     *
+     * 9 -> 7: **billing and timesheets, the only pair where neither direction was a
+     * declared requirement.** Billing asks `BillableTime` for the lines, and the
+     * implementation takes a contact, a year and a month rather than a `BillingRun` —
+     * because a contract that passes a model passes the module that owns it. Two
+     * modules that need not be sold together were unextractable anyway, which is the
+     * purest form of this debt. See docs/module-packaging-plan.md §11.
+     *
+     * 7 -> 3: **`employees -> payroll`, one edge in two files, and four modules left.**
+     * Accounting, attendance and leave were each held in this component only by a
+     * three-cycle running back through it, exactly as inventory/invoicing/projects were
+     * held by Core. Employees now names no module — which is the property a module
+     * everything else depends on has to have.
+     *
+     * 3 -> 0: **advances, expenses and payroll — the one knot that was always domain
+     * rather than misfiled code.** A payslip deducts an advance instalment and reimburses
+     * an expense claim, and both of those modules declare Payroll as a requirement, so
+     * the direction the licence points is the only one that is not a cycle: Payroll asks
+     * `AdvanceLedger` and `ReimbursableClaims`, and the two ledgers bind them.
+     *
+     * The obstacle worth recording is that neither contract may name `Payslip` — a shared
+     * contract naming a module's model is undeployable without that module, which is the
+     * opposite of the point — so the four values the ledgers actually read from a payslip
+     * travel as an `App\Support\PayslipSettlement`. **A contract that passes a model
+     * passes the module that owns it**, and that was true of `BillableTime` and
+     * `BillingRun` two steps earlier. It is the general lesson of the last three.
      */
-    private const TANGLED_MODULE_BUDGET = 9;
+    private const TANGLED_MODULE_BUDGET = 0;
 
     /**
      * Coupling that exists today and is not a declared licence dependency.
@@ -164,20 +198,22 @@ class ModuleBoundaryTest extends TestCase
         // a company with neither module is byte-identical to before phase 3, which
         // PayslipAttendanceProrationTest asserts.
         //
-        // Advances and Expenses are reached through the container with an inline
-        // FQCN, which was invisible until importsIn() learned to see inline
-        // references. The container call was chosen deliberately — both modules
-        // *require* payroll, so a `use` statement would have made the pair a cycle
-        // — but the dependency is structural either way: the class has to be on
-        // disk for `app()` to resolve it. Recording it is the honest position, and
-        // it says out loud that payroll <-> advances and payroll <-> expenses are
-        // cycles that a package split would have to break.
-        'payroll' => ['accounting', 'attendance', 'leave', 'advances', 'expenses'],
-        // Timesheets is the same shape and the same discovery: the hours lines are
-        // fetched via app(BillableHours::class) behind modules()->enabled('timesheets'),
-        // which kept Billing sellable to a headcount-billed client and kept the
-        // pair out of this list. The guard is real; the invisibility was not.
-        'billing' => ['advances', 'timesheets'],
+        // Advances and Expenses were reached through the container with an inline FQCN, which was invisible
+        // until importsIn() learned to see inline references. The container call was chosen deliberately —
+        // both modules *require* payroll, so a `use` statement would have made the pair a cycle — but the
+        // dependency was structural either way: the class has to be on disk for `app()` to resolve it.
+        // **Both are gone, and they were the last cycles in the application.** Payroll asks
+        // App\Support\Contracts\AdvanceLedger and ReimbursableClaims, which cannot name `Payslip` — a shared
+        // contract naming a module's model is undeployable without that module — so the four values the two
+        // ledgers read from one travel as an App\Support\PayslipSettlement instead. See §11.
+        'payroll' => ['accounting', 'attendance', 'leave'],
+        // Timesheets was the same shape and the same discovery: the hours lines were fetched via
+        // app(BillableHours::class) behind modules()->enabled('timesheets'), which kept Billing sellable to a
+        // headcount-billed client and kept the pair out of this list. The guard was real; the invisibility
+        // was not. **Both directions are now gone** — Billing asks `App\Support\Contracts\BillableTime` and
+        // the implementation takes a contact, a year and a month rather than a `BillingRun`. Neither module
+        // required the other, so nothing was declared to make this possible; see §11.
+        'billing' => ['advances'],
         'expenses' => ['accounting'],
 
         // Debt.
@@ -193,18 +229,22 @@ class ModuleBoundaryTest extends TestCase
         // and Company Settings receives its currency and payroll-posting sections through SettingsSections.
         // Core now names no module at all, which is what took the eleven-module cycle apart — see
         // docs/module-packaging-plan.md §9 and "Core is the hub".
-        // Employees -> Payroll is a third inline-reference find: EmployeeSetting
-        // hasMany EmployeeSettingComponent, and the components relation manager
-        // reads PayComponent. Payroll *requires* employees, so this is a cycle,
-        // and unlike the two above it is not guarded at all — the relation is
-        // simply declared. It is debt, not design.
+        // Employees -> Payroll was a third inline-reference find: EmployeeSetting hasMany
+        // EmployeeSettingComponent, and the components relation manager read PayComponent. Payroll
+        // *requires* employees, so it was a cycle, and unlike the guarded pairs it was not degradable at
+        // all — the relation was simply declared, in fully-qualified form so the import would not show.
+        // **It is gone, and it was the linchpin**: accounting, attendance and leave were each held in the
+        // same component only by a three-cycle running back through it, so deleting one edge freed four
+        // modules. Payroll now contributes both the relation and the tab from its own provider — see
+        // App\Support\ResourceContributions and docs/module-packaging-plan.md §11.
         // Employees -> Accounting was here for `Employee::bank()`, and it is gone: Bank is a
         // reference table three modules read, so it moved to Core, where a dependency is free. See
         // docs/module-packaging-plan.md §7 and App\Modules\Core\Models\Bank.
         // Employees -> Projects is gone too: Projects requires Employees, so it now contributes both
         // the Employee model's project relations and the Projects tab on the Employee screen, and
         // Employees names nothing. See App\Support\ResourceContributions.
-        'employees' => ['payroll'],
+        // **Employees is no longer here at all.** It names no module, which is what a module every other
+        // module depends on has to be true of — the same property Core reached in phase 9.
         // Invoicing -> Projects is guarded, not debt: an invoice may name the
         // engagement it belongs to (GnuCash's "job"), and every surface that
         // offers the field checks modules()->enabled('projects') first. Invoicing
@@ -232,13 +272,12 @@ class ModuleBoundaryTest extends TestCase
         // Attendance -> Payroll is gone: the locked-month question is now the
         // PeriodLock contract, answered by Payroll's own binding.
         'attendance' => ['leave', 'employees'],
-        // Timesheets -> Billing and -> Attendance are guarded. BillableHours takes a
-        // BillingRun to price a month, and the utilisation report compares booked time
-        // with the attendance record; both are absent rather than broken without those
-        // modules. Note the direction: Billing does NOT import Timesheets — it asks for
-        // the hours lines through the container behind modules()->enabled('timesheets'),
-        // so Billing stays sellable to a headcount-billed client.
-        'timesheets' => ['billing', 'attendance'],
+        // Timesheets -> Attendance is guarded: the utilisation report compares booked time with the
+        // attendance record, and is absent rather than broken without it.
+        // Timesheets -> Billing is gone. `BillableHours` took a `BillingRun` to price a month, and a contract
+        // that passes a model passes the module that owns it — so it takes the three values it actually read
+        // from the run instead. That was the half of the cycle no amount of guarding could have hidden.
+        'timesheets' => ['attendance'],
         // Lifecycle -> Leave/Advances/Accounting are guarded, and each one missing
         // makes the final settlement a smaller document rather than a broken one:
         // FinalSettlementBuilder returns 0 for encashment without `leave` and 0 for the
@@ -358,19 +397,21 @@ class ModuleBoundaryTest extends TestCase
             // The guards are in AttendanceFigures::for(), ::monthIsComplete(),
             // ::overtimeMinutes() and OvertimeRate::contractedHoursIn().
             //
-            // Advances and Expenses join the list once inline references are visible.
-            // Both are guarded in the strongest sense — PayslipService::
-            // advanceInstalmentFor() and ::expenseClaimsFor() return 0.0 when the
-            // module is off, and Payslip's saved() hook returns before touching
-            // AdvanceService — so payroll's behaviour without either module is
-            // unchanged. What changed is that the coupling is now recorded.
-            'payroll' => ['accounting', 'attendance', 'leave', 'advances', 'expenses'],
+            // Advances and Expenses joined the list once inline references were visible, and have now left
+            // it entirely. The guard did not disappear — it moved to the far side of the contract, where
+            // AdvanceService and ExpenseClaimService check their own licence and NoAdvanceLedger /
+            // NoReimbursableClaims answer for a company that bought neither. Payroll's behaviour without
+            // either module is unchanged, which is what PayslipAttendanceProrationTest and
+            // ModuleDegradationTest assert; what changed is that it is no longer a cycle.
+            'payroll' => ['accounting', 'attendance', 'leave'],
             // A client with no advances has nothing to credit back, so Billing has
             // to be sellable without the module; creditLines() returns none when it
-            // is off. Timesheets is the same: hoursLines() returns [] and lockFor()
-            // is skipped, both behind modules()->enabled('timesheets'), so a
-            // headcount-billed client never reaches the class.
-            'billing' => ['advances', 'timesheets'],
+            // is off. Timesheets used to be the same and is no longer here at all: the
+            // guard moved to the far side of `BillableTime`, where NoBillableTime bills
+            // nothing and BillableHours::priceFor() checks the licence itself. Billing
+            // asking "is timesheets enabled" was Billing knowing about Timesheets by
+            // another name.
+            'billing' => ['advances'],
 
             // A claim's category is a TransactionType and its alternative settlement
             // is a Payment, both optional: the category is nullable and a claim is

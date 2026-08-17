@@ -204,7 +204,7 @@ class TimesheetTest extends TestCase
         $this->book(120);
 
         $run = $this->makeBillingRun();
-        $priced = app(BillableHours::class)->priceFor($run);
+        $priced = $this->priceRun($run);
 
         $this->assertSame([], $priced['lines'], 'Time with no rate must not reach an invoice.');
         $this->assertCount(1, $priced['unpriced']);
@@ -220,7 +220,7 @@ class TimesheetTest extends TestCase
         $this->book(120, ['date' => '2026-08-14']);
         $this->book(90, ['date' => '2026-08-13']);
 
-        $priced = app(BillableHours::class)->priceFor($this->makeBillingRun());
+        $priced = $this->priceRun($this->makeBillingRun());
 
         $this->assertCount(1, $priced['lines']);
         // 3.5 hours at 8,000.
@@ -245,7 +245,7 @@ class TimesheetTest extends TestCase
         ]);
         $this->project->update(['contact_id' => $other->id]);
 
-        $this->assertSame([], app(BillableHours::class)->priceFor($run)['lines']);
+        $this->assertSame([], $this->priceRun($run)['lines']);
     }
 
     // ---------------------------------------------------------------- degradation
@@ -283,6 +283,21 @@ class TimesheetTest extends TestCase
         $this->assertSame('Migration', $rows[0]['project']);
         $this->assertSame(50.0, $rows[0]['allocation_pct']);
         $this->assertSame(8.0, $rows[0]['booked_hours']);
+    }
+
+    /**
+     * Price a run's month the way Billing does — by handing over the contact, year and month.
+     *
+     * `priceFor()` used to take the `BillingRun` itself, which was the `timesheets -> billing` half of that
+     * cycle. See App\Support\Contracts\BillableTime.
+     *
+     * @return array{lines: array<int, array<string, mixed>>, entries: mixed, unpriced: array<int, string>}
+     */
+    private function priceRun(\App\Modules\Billing\Models\BillingRun $run): array
+    {
+        $start = $run->periodStart();
+
+        return app(BillableHours::class)->priceFor($run->contact_id, $start->year, $start->month);
     }
 
     private function makeBillingRun(): \App\Modules\Billing\Models\BillingRun

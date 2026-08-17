@@ -1,10 +1,10 @@
 # Module packaging: breaking the cycles — Plan
 
-**Status:** **All phases 0–9 built (2026-08-17).** Core names no module at all, and the trapped-module count
-went 13 → 9 the moment it stopped: **core, inventory, invoicing and projects all left the tangle together**,
-which is what "Core is the hub" predicted. What remains is the pay-and-people knot — `[7] accounting,
-advances, attendance, employees, expenses, leave, payroll` and `[2] billing, timesheets` — which no section
-of this plan addresses and which needs a plan of its own. See "Phase 9 — Core stops receiving nothing".
+**Status:** **Done (2026-08-17). The module graph is acyclic — `TANGLED_MODULE_BUDGET` is 0.**
+Phases 0–9 landed as written, then §11 took the four edges that were left: `billing <-> timesheets`,
+`employees -> payroll`, `payroll -> advances` and `payroll -> expenses`. The count went 13 → 9 → 7 → 3 → 0.
+Every module is now extractable as a composer package as far as imports are concerned; §10's constraints
+(migrations first, `mpr` first) are untouched and are what any extraction plan starts from.
 **Created:** 2026-08-15
 **Covers:** what "installable" was decided to mean (§1), the import graph and its cycles (§2–§3), the
 safety rails that must land before anything moves (§4), one manifest file per module (§5), the contracts
@@ -378,9 +378,9 @@ When these eight land, `KNOWN_COUPLINGS['core']` is deleted, the `'core'` seed c
 > **As built, two corrections to that sentence.** `KNOWN_COUPLINGS['core']` is deleted — that part is done.
 > The `'core'` seed **stays**: it is §1's "every module may depend on Core for free" licence, it only ever
 > governed the *reach* test, and the acyclicity test is built from `moduleGraph()` and never consulted it.
-> And the acyclicity test does not pass — it now reports **9** trapped modules rather than 13, because Core
-> was never the only cycle, just the only one this plan could reach. See "Phase 9 — Core stops receiving
-> nothing".
+> And the acyclicity test does not pass — it reported **9** trapped modules rather than 13, because Core was
+> never the only cycle, just the only one §1–§9 reached. See "Phase 9 — Core stops receiving nothing", and
+> §11 for the four edges that took the rest.
 
 ## §10 What is deliberately left for extraction
 
@@ -413,6 +413,85 @@ contain several licensable modules, which is why 22 modules should not become 22
 written into tenant rows is a data-migration event, because a morph read for a deleted class cannot
 resolve. Whatever plan does extraction owes an answer — orphaned-alias tombstones that throw on write and
 degrade on display is the shape — and owes it before the first package can be removed rather than after.
+
+## §11 The pay-and-people knot — four edges, nine modules, zero left
+
+Added after phase 9, because §1–§10 never covered these cycles: the plan's own measurement was taken with
+the `^use`-only scan, so three of the four edges below were invisible when it was written. They were what
+remained at 9 trapped modules.
+
+**The declared `requires` are a DAG on their own.** That is the fact the whole section turns on, and it was
+worth checking before designing anything: `advances -> employees, payroll`, `expenses -> employees, payroll`,
+`attendance -> employees`, `leave -> employees`, `payroll -> employees`, `billing -> employees, payroll,
+invoicing`, `timesheets -> employees, projects`, with `accounting` and `employees` requiring nothing. No
+cycle among them. So **every remaining cycle was a code reference pointing back up a licence edge**, and none
+of it needed a product decision reversed.
+
+| Edge | Files | Paired against | Freed |
+|---|---|---|---|
+| `billing -> timesheets` + `timesheets -> billing` | 1 each | neither is declared | billing, timesheets |
+| `employees -> payroll` | 2 | `payroll -> employees` (declared) | employees, accounting, attendance, leave |
+| `payroll -> advances` | 2 | `advances -> payroll` (declared) | advances |
+| `payroll -> expenses` | 2 | `expenses -> payroll` (declared) | expenses, payroll |
+
+### A contract that passes a model passes the module that owns it
+
+The one lesson worth carrying out of this section, and it cost two false starts before it was stated plainly.
+
+`billing <-> timesheets` looked like it needed only one inversion — Billing asking a contract instead of
+naming `BillableHours`. But `BillableHours::linesFor()` took a **`BillingRun`**, and a contract in
+`App\Support\Contracts` naming `Billing\Models\BillingRun` would have moved the edge rather than removed it.
+It read exactly three things from that run — the contact, the year, the month — so `BillableTime` takes those.
+
+The same wall stood in front of `payroll -> advances`. The obvious signature is
+`recordRecoveryFor(Payslip $payslip)`, and a shared contract may not name `Payslip` — `ModuleBoundaryTest::
+test_shared_namespaces_do_not_reach_into_modules` forbids it, and rightly, because the contract would then
+be undeployable without Payroll, which is the opposite of the point. Hence `App\Support\PayslipSettlement`:
+the four values the two ledgers ever read from a payslip — id, employee, amount, effective date — as a
+readonly struct that names nothing.
+
+**Where a value is computed matters as much as where it is used.** `AdvanceService::recoveryDate()` derived
+"the last day of the payroll month" from the payslip, and it moved to `Payslip::settlementOf()`. That is a
+payroll fact: a July payslip is often processed in August, and dating a recovery by when somebody pressed
+save puts July's instalment in August — invisible on the payslip, wrong on the advance's history, and wrong
+on any bill that credits a month's repayments back. A ledger recording a recovery should not have to know how
+a payroll month ends.
+
+### The linchpin, again
+
+`employees -> payroll` was two references — `EmployeeSetting::components()`, a `hasMany` onto a model Payroll
+ships, and the added-components relation manager offering `PayComponent`. Deleting it freed **four** modules:
+accounting, attendance and leave were each held in the same component only by a three-cycle running back
+through it. That is precisely the shape Core had in phase 9, and the second time in this plan that one edge
+out of a universally-depended-on module was worth more than every edge between the leaves.
+
+Both references were written as fully-qualified class names *specifically so no import would appear*, and the
+relation manager's docblock said so in as many words. This plan already names that manoeuvre for what it is —
+the cycle being avoided in the lint rather than in the code — and phase 0's scan sees straight through it. The
+fix is phase 7's, unchanged: Employees offers a slot, `PayrollServiceProvider` fills it, Employees names
+nothing. `PayrollContributionTest` guards it the way `ProjectsContributionTest` guards the Projects tab,
+including the assertion that neither Employees file mentions Payroll again — because every behavioural test
+would still pass if somebody restored the cycle.
+
+### The guard travels with the implementation
+
+Four of these call sites were guarded by `modules()->enabled('advances')` / `('expenses')` / `('timesheets')`
+in the *caller*. Every one of those guards moved to the far side of its contract, joining
+`PayrollRunPeriodLock`, which had already established the pattern. The reason is not tidiness: **Billing
+asking "is timesheets enabled" is Billing knowing about Timesheets by another name.** With the guard inside,
+`NoBillableTime` covers "not installed" and `BillableHours` covers "not licensed", and the caller knows
+neither. `payroll` also left the `$guarded` list in `test_the_recorded_debt_does_not_hide_a_licence_dependency`
+for advances and expenses — not because the degradation went away, but because it is no longer this module's
+to assert.
+
+### Where this leaves the ratchet
+
+`TANGLED_MODULE_BUDGET` is **0**, and at zero it stops being a budget and becomes an invariant: the
+lower-bound assertion can never fire again and the upper bound now fails for any cycle at all. It should not
+be raised to make a change pass. Every module in the application is now extractable as a composer package as
+far as the import graph is concerned — which is what this plan set out to buy, and all it claims. §10's
+constraints are untouched: **migrations are still the binding constraint**, and the first package should
+still be `mpr`.
 
 ## Phases
 
@@ -451,6 +530,15 @@ fails the build, and an entry deleted without its edge fails too.
   `KNOWN_COUPLINGS['accounting']` deleted.
 - **Phase 9 — Core's eight files (§9), one commit each.** **Ends with:**
   `test_the_module_graph_is_acyclic()` passing, `KNOWN_COUPLINGS['core']` deleted, and the plan complete.
+  *As built: seven files, not eight, and the graph was not yet acyclic — 9 modules were still trapped. Phase
+  9 was the last phase §1–§10 described, not the last phase needed.*
+
+- **Phase 11 — The pay-and-people knot (§11), one edge at a time, smallest first.** `billing <-> timesheets`,
+  then `employees -> payroll`, then `payroll -> advances` and `payroll -> expenses`. Ordered by risk rather
+  than by size: the billing pair is two files and touches no money arithmetic, the linchpin is a proven
+  recipe from phase 7, and the ledgers are last because they are the code that decides what an employee is
+  paid. **Ends with:** `TANGLED_MODULE_BUDGET = 0`, `test_the_module_graph_is_acyclic()` passing for real,
+  and this plan actually complete.
 
 ## Risks
 
@@ -493,10 +581,12 @@ will be found.
   are last, they are one commit per file, and every one of them is guarded by an existing test asserting
   a report page is reachable.
 
-## As built (phases 0–5)
+## As built (phases 0–11)
 
 Where this plan was wrong or incomplete, recorded in the same spirit as
-`docs/modules-plan.md` §13.
+`docs/modules-plan.md` §13. Read newest-first if you only want the lessons: **§11 as built** and
+**Phase 9 — Core stops receiving nothing** carry the two that generalise, and both are about the same
+mistake — reasoning about the graph from the source text rather than from the instrument that measures it.
 
 ### The graph was worse than the plan measured, and the plan's own instrument was why
 
@@ -580,6 +670,9 @@ would have got the same weekend, correctly, and silently.
 | 6b | The iPayments layout (204 columns, the column map, `row()`, `formatAmount()`, `escape()`) → `App\Support\Banking\IPaymentsFileWriter`; `BankPaymentExportService` **stops extending** `SalaryBankExportService` and takes the writer by constructor. A bank filter on the Employees list replaces the deleted relation manager. `ModelRelationsResolveTest` added |
 | 9 (first five) | `CommentPolicy` → `OwnedByUser`; `CreateUser` → a `UserCreated` event with the listener in Employees; `CustomFieldResource`'s `const MODELS` → `CustomFieldSubjects`, keyed on aliases so no model class is ever loaded; `FiscalYearsTable` → `FiscalYearCloseCheck` (+ `NoFiscalYearClose`); `Reports.php` → `ReportCatalogue` + the `ReportPaneRenderer` contract (+ `NoReportPane`) |
 | 9 (last two) | `CsvImportService`'s three imports → one `CsvImporter` each, owned by Invoicing, Inventory and Accounting and registered through `App\Support\CsvImporters`; Company Settings' currency and payroll-posting sections → `CurrencySettingsSection` and `PayrollPostingSettingsSection`, contributed through `App\Support\SettingsSections`. Plus `ReportPane::drillTarget()`, for the one inline reference the `use`-statement reading of §9 had missed. **`KNOWN_COUPLINGS['core']` deleted. Trapped: 13 → 9** |
+| 11a | `billing <-> timesheets` → `App\Support\Contracts\BillableTime` (+ `NoBillableTime`), taking a contact, year and month instead of a `BillingRun`. Neither direction was a declared requirement. **Trapped: 9 → 7** |
+| 11b | `employees -> payroll` reversed: `EmployeeSetting::components()` registered by `PayrollServiceProvider` via `resolveRelationUsing()` with its key named, and the added-components tab moved to `Payroll\Filament\RelationManagers\EmployeeSettingComponentsRelationManager` and contributed through `ResourceContributions`. `PayrollContributionTest` added. **One edge, four modules freed. Trapped: 7 → 3** |
+| 11c | `payroll -> advances` and `payroll -> expenses` → `AdvanceLedger` and `ReimbursableClaims` (+ both null defaults), bound by their own providers, with `App\Support\PayslipSettlement` carrying the four values a contract may not get by naming `Payslip`. `recoveryDate()` → `Payslip::settlementOf()`. Every licence guard moved to the implementation. `PayslipLedgerContractTest` added. **Trapped: 3 → 0 — the graph is acyclic** |
 
 Not yet done from phase 3: `RoleSeeder`'s grants and the navigation claims are
 still central. Neither is on the cycle path — `ModuleMap` was — but both are part
@@ -706,6 +799,50 @@ eleven through `invoicing -> projects`, not through anything Employees does. Thr
 real edges without moving this number, which is worth saying plainly: **the module-count ratchet is the
 right invariant and the wrong progress bar.** `KNOWN_COUPLINGS` shrinking is the progress bar, and it has
 shrunk in every one of those phases.
+
+### §11 as built — what four edges taught that nine phases had not
+
+**The measurement to take first is the one nobody took.** Before designing anything, the declared `requires`
+were dumped and checked for cycles among themselves. They form a DAG. That single fact reframed the whole
+job: every remaining cycle was a *code reference pointing back up a licence edge*, so none of it needed a
+product decision reversed, and the direction to push each edge was never in question — it is always the way
+the licence already points. Nine phases of this plan were spent without that check being written down.
+
+**The prediction was exact, and predictions had not been exact before.** From the edge list, the freed-module
+counts were worked out in advance — 9 → 7 → 3 → 0 — and each phase hit its number. What made that possible
+was not better judgement but a better instrument: the graph was read out of the lint's own scanner rather
+than by grep, after phase 9 had been embarrassed by a fully-qualified inline reference that no grep would
+find. **Ask the tool that enforces the invariant, never the tool that reads the text.**
+
+**A contract that passes a model passes the module that owns it.** Stated in §11 because it is the reusable
+lesson, but worth repeating here as the thing that cost the most: two of the three inversions hit it, and in
+both the fix was to find the handful of primitives the far side actually read. `BillableHours` took a
+`BillingRun` and read three fields from it; the advance and claim ledgers took a `Payslip` and read four.
+Neither was discovered by reasoning about the design — both surfaced by opening the method and reading what
+it touched. `App\Support\PayslipSettlement` exists only because `test_shared_namespaces_do_not_reach_into_modules`
+would have caught the lazy version, which is a fair argument for having written that test in phase 0.
+
+**A guard in the caller is knowledge in the caller.** Four call sites asked `modules()->enabled('advances')`
+or `('timesheets')` before reaching across. Every one of those moved to the far side of its contract. The
+guards were not wrong — they were real, and the degradation they produced is still asserted — but Billing
+asking whether Timesheets is enabled *is* Billing knowing about Timesheets, and no amount of container
+indirection changes that. `PayrollRunPeriodLock` had already established the pattern in phase 5; it took
+until §11 to apply it everywhere it belonged.
+
+**What was deliberately not done.** The two ledger contracts are separate interfaces rather than one
+`PayslipContributor` registry, and that was a decision rather than an omission. The two amounts land in two
+named payroll columns with different arithmetic roles — `advances` is summed into `total_deductions`,
+`expense_reimbursement` is added to `net_salary` — so a generic "contribution" could not have said which
+column it belonged in without payroll interpreting a tag, which is the same coupling with an extra
+indirection. Registries suit "however many of these there are" (`ReportCatalogue`, `CsvImporters`); contracts
+suit "this specific question has one answer". Both shapes are now in this codebase for good reasons.
+
+**Two behaviour improvements fell out, neither asked for.** `AdvanceService::recoveryDate()` moved to
+`Payslip::settlementOf()`, putting "the last day of the payroll month" on the side that owns the concept —
+and `payroll` left the `$guarded` list for advances and expenses not because the degradation went away but
+because it stopped being payroll's to assert. The pattern across §11 and phase 9 is the same: making a module
+*offer* what it owns, instead of the caller assuming it is there, tends to relocate a few facts to where they
+were always supposed to live.
 
 ### Phase 9 — Core stops receiving nothing
 

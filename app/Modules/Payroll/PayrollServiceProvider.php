@@ -3,6 +3,8 @@
 namespace App\Modules\Payroll;
 
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
+use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Console\Commands\CheckPayrollAccounts;
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
 use App\Modules\Payroll\Console\Commands\PostPendingPayrollEntries;
@@ -12,8 +14,10 @@ use App\Modules\Payroll\Events\PayslipReviewed;
 use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
 use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Payroll\Filament\Pages\TaxSummary;
+use App\Modules\Payroll\Filament\RelationManagers\EmployeeSettingComponentsRelationManager;
 use App\Modules\Payroll\Listeners\CopyReviewOntoPayment;
 use App\Modules\Payroll\Models\AnnualTax;
+use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
@@ -28,6 +32,7 @@ use App\Modules\Payroll\Support\PayrollReports;
 use App\Support\PaymentGenerators;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\ResourceContributions;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -94,6 +99,8 @@ class PayrollServiceProvider extends ServiceProvider
             fn (Payment $payment) => $payment->belongsTo(Payslip::class, 'payslip_id'),
         );
 
+        $this->contributeToEmployees();
+
         // Payroll's own three reports in the Reports explorer. Registered here rather than rendered by
         // Accounting, which used to import WithholdingTaxSummary, SalaryBankExportService and Payslip to
         // do it — see docs/module-packaging-plan.md §8 Group A.
@@ -121,5 +128,38 @@ class PayrollServiceProvider extends ServiceProvider
             SetPayrollAutoPosting::class,
             VerifyPayComponents::class,
         ]);
+    }
+
+    /**
+     * What this module adds to the Employees screens, registered here rather than declared there.
+     *
+     * `employees -> payroll` was the linchpin of the seven-module cycle left after phase 9, and it was two
+     * references: `EmployeeSetting::components()`, a hasMany onto a model this module ships, and the
+     * added-components relation manager, which offered `PayComponent`. Payroll **requires** Employees, so
+     * both were cycles — and both were written with fully-qualified class names precisely so the import would
+     * not show, which phase 0's scan sees through and which the plan names for what it is.
+     *
+     * Deleting it freed four other modules at once: accounting, attendance and leave were each held in only
+     * by a three-cycle running back through here. Same shape as Core in phase 9.
+     *
+     * Registered unconditionally, like every provider in this application — one deployment serves every
+     * company and the licence check belongs on the resource. What this guarantees is the useful property: if
+     * the Payroll **package** is absent, neither the relation nor the tab exists, which is correct, because
+     * the rows they read live in tables this module ships.
+     *
+     * The foreign key is named explicitly. `hasMany()` infers it from the *calling method's* name, and inside
+     * a closure that name is `{closure}` — the phase 8C failure, recorded so it is not rediscovered.
+     */
+    private function contributeToEmployees(): void
+    {
+        EmployeeSetting::resolveRelationUsing(
+            'components',
+            fn (EmployeeSetting $setting) => $setting->hasMany(EmployeeSettingComponent::class, 'employee_setting_id'),
+        );
+
+        ResourceContributions::addRelationManager(
+            EmployeeSettingResource::class,
+            EmployeeSettingComponentsRelationManager::class,
+        );
     }
 }

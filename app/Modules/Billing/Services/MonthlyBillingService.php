@@ -8,6 +8,7 @@ use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
+use App\Support\Contracts\BillableTime;
 use App\Support\TenantTransaction;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -229,11 +230,9 @@ class MonthlyBillingService
 
             // Locked here, inside the transaction that writes the invoice, and nowhere
             // else. Previewing a breakdown must never burn the hours — a clerk looking
-            // at next month's figures would otherwise find them gone. Guarded, so a
-            // company without Timesheets does nothing.
-            if (modules()->enabled('timesheets')) {
-                app(\App\Modules\Timesheets\Services\BillableHours::class)->lockFor($run);
-            }
+            // at next month's figures would otherwise find them gone. Nothing happens
+            // for a company without Timesheets: the default binding locks nothing.
+            $this->billableTime()->lockFor(...$this->periodOf($run));
 
             return $invoice->refresh();
         });
@@ -249,11 +248,12 @@ class MonthlyBillingService
     /**
      * Time-and-materials lines: hours × rate, per employee per project.
      *
-     * Guarded on `timesheets`, and empty without it — which is why a headcount-billed
-     * client is completely unaffected by this module existing. docs/hrms-plan.md §4.3
-     * is explicit that Billing requires Timesheets *for this line type only*.
+     * Empty for a company without `timesheets` — which is why a headcount-billed client is completely
+     * unaffected by that module existing. docs/hrms-plan.md §4.3 is explicit that Billing requires
+     * Timesheets *for this line type only*, and this asks the `BillableTime` contract rather than naming
+     * the module, so the pair is no longer a cycle. docs/module-packaging-plan.md §11.
      *
-     * Two refusals rather than a guess:
+     * Two refusals rather than a guess, both made on the far side of the contract:
      *
      *  - **Time with no rate is not billed, and says so.** A made-up rate produces an
      *    invoice that looks right and charges the wrong amount. The line is skipped and
@@ -266,11 +266,27 @@ class MonthlyBillingService
      */
     protected function hoursLines(BillingRun $run): array
     {
-        if (! modules()->enabled('timesheets')) {
-            return [];
-        }
+        return $this->billableTime()->linesFor(...$this->periodOf($run));
+    }
 
-        return app(\App\Modules\Timesheets\Services\BillableHours::class)->linesFor($run);
+    private function billableTime(): BillableTime
+    {
+        return app(BillableTime::class);
+    }
+
+    /**
+     * The run as the three values `BillableTime` asks for: contact, year, month.
+     *
+     * A contract that passed the `BillingRun` would pass this module along with it, which is the edge that
+     * made billing and timesheets inextricable in the first place.
+     *
+     * @return array{int|string, int, int}
+     */
+    private function periodOf(BillingRun $run): array
+    {
+        $start = $run->periodStart();
+
+        return [$run->contact_id, $start->year, $start->month];
     }
 
     protected function salaryLines(BillingRun $run): array
