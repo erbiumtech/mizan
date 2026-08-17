@@ -1,14 +1,34 @@
 # Construction Management — Plan
 
-**Status:** **Phase 0 complete (2026-08-17). Phase 1 is unblocked.** Both halves of Phase 0 are done: the one
+**Status:** **Phases 0 to 3 complete (2026-08-17). Phase 4 is next.** Phase 1 built the spine — jobs, the WBS,
+locations, the cost-code library and the ISO 19650 document register. Phase 2 built the cost ledger and its live
+report. Phase 3 built budget versions with the baseline, progress measurements, earned value, forecast runs and
+§3.5's four-column report, in `ConstructionEarnedValueTest` (38 tests). Three things about Phase 3 as built are
+worth carrying forward, each found by a test rather than by reading:
+
+- **The model is `JobBudget`, not `BudgetVersion`.** Accounting already owns the `App\Models\BudgetLine` morph
+  alias, and aliases are keyed on the class basename — so the pair is `JobBudget` and `JobBudgetLine` over the
+  planned `construction_budget_versions` and `construction_budget_lines` tables.
+- **Budget and earned value roll up the job tree, not just cost.** A budget is held on the job that was
+  tendered while reporting happens at whatever level somebody asks, so the report reads the *current* version of
+  every job in the subtree and earned value reads every *baseline* in it. With only the root's own version, a
+  development that is exactly on budget reports a variance equal to its entire spend.
+- **One measurement per control account per period is enforced in the service, not by the index.** Most control
+  accounts have a null `wbs_node_id`, and both MySQL and SQLite treat nulls in a unique index as distinct — so
+  the index lets a second row through and the job's earned value doubles, which reads as ahead of schedule.
+  Re-measuring an open month revises the figure in place; a locked one is refused.
+
+Phase 0's own record follows. Both halves of Phase 0 are done: the one
 prerequisite in another module — `InvoiceService::purchaseEntryLines()` now flips the leg for a negative line,
 so a subcontract retention line can post, covered by `PurchaseInvoiceNegativeLineTest`, and it corrected the
 risk entry that described the failure as silent — and all four decisions, recorded in the Phases section
 below. In brief: `ConstructionQhse` casing; `stock_locations` owned by Inventory rather than `store_id`, and
 written into `docs/retail-stores-pos-plan.md` as well; reference data ships as structure plus CSV import with
 **no seeded code lists**, which makes the redistribution licensing question non-blocking instead of answering
-it; and construction is a seventh navigation domain. No construction table exists yet, by design — Phase 0 was
-decisions and one fix. The remaining Phase 0 item, a query-budget test, waits for Phase 2 to have a report.
+it; and construction is a seventh navigation domain. Phase 0 was decisions and one fix; the tables arrived with
+Phase 1. Its last outstanding item, the **query-budget test**, was parked until there was a report to budget and
+is now `test_the_report_does_not_grow_a_query_per_row` — the four-column report and the earned-value metrics take
+the same number of queries for four hundred cost codes as for two.
 **Created:** 2026-08-14
 **Covers:** the job and its classification (§1–§2), the job-cost ledger and its reconciliation to the
 books (§3–§4), procurement, site stores, labour and plant (§5–§7), the head contract, variations,

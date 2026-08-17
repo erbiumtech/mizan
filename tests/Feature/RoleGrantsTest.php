@@ -61,13 +61,20 @@ class RoleGrantsTest extends AccountingTestCase
      * what surfaced a real hole: the roles are separate leaves, not a chain, so Accountant does not inherit
      * Employee's view — and without it a surveyor could upload a drawing and then not be able to open it.
      *
+     * Phase 3, the six budget, measurement and forecast permissions: Employee +1 for `ConstructionBudgetView`,
+     * because a figure the site team cannot see is a figure they cannot work to; **Accountant +4** — the surveyor
+     * builds the budget, measures progress and prepares the forecast, which is four of the six; **Manager +1 of its
+     * own** for `ConstructionBudgetApprove`, approval-shaped and kept away from whoever priced it; **CEO +1** for
+     * `ConstructionBudgetBaseline`, which decides what every earned-value figure on the job is measured against and
+     * restates all of them if it moves, so it sits with whoever answers for the numbers.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 31,
-        'Accountant' => 93,
-        'Manager' => 109,
-        'CEO' => 125,
+        'Employee' => 32,
+        'Accountant' => 97,
+        'Manager' => 114,
+        'CEO' => 131,
     ];
 
     protected function setUp(): void

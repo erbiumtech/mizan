@@ -526,6 +526,8 @@ class ConstructionCostLedgerTest extends AccountingTestCase
     {
         \Livewire\Livewire::test(\App\Modules\ConstructionCosting\Filament\Pages\JobCostReport::class)
             ->assertSuccessful()
-            ->assertSee('No cost has been recorded');
+            // Phase 3 put the budget on this page, so the sentence covers both: a job with a budget and no spend
+            // is a third kind of empty and the wording had to stop claiming otherwise.
+            ->assertSee('No budget or cost has been recorded');
     }
 }

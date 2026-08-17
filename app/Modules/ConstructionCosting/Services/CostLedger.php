@@ -7,8 +7,12 @@ use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionCosting\Models\CostBatch;
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
+use App\Modules\ConstructionCosting\Models\ForecastRun;
+use App\Modules\ConstructionCosting\Models\JobBudget;
+use App\Modules\ConstructionCosting\Models\JobBudgetLine;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -273,8 +277,8 @@ class CostLedger
                 'construction_cost_codes.code as code',
                 'construction_cost_codes.name as name',
                 'construction_cost_entries.cost_type as cost_type',
-                \Illuminate\Support\Facades\DB::raw('SUM(construction_cost_entries.quantity) as quantity'),
-                \Illuminate\Support\Facades\DB::raw('SUM(construction_cost_entries.amount) as amount'),
+                DB::raw('SUM(construction_cost_entries.quantity) as quantity'),
+                DB::raw('SUM(construction_cost_entries.amount) as amount'),
             ]);
 
         return $rows->map(fn ($row): array => [
@@ -302,5 +306,156 @@ class CostLedger
             ->forJobTree($job)
             ->when($periodStart, fn ($q) => $q->whereDate('posting_period', $periodStart))
             ->sum('amount');
+    }
+
+    /**
+     * §3.5's table: budget, committed, actual, accrued, cost to complete, forecast final, variance.
+     *
+     * **The report Phase 3 exists to produce, and the reason a contractor buys the module.** One row per cost code
+     * over the job's subtree, to a period.
+     *
+     * Assembled in PHP from four indexed aggregates rather than as one join, and that is a deliberate trade. A
+     * single query across budget lines, cost entries, forecast lines and commitments would need three outer joins
+     * on a fan-out — every combination of budget line and cost entry on the same code — and would either
+     * double-count or need a `distinct` that defeats the aggregation. Four grouped queries and an array merge is
+     * both correct and a fixed query count regardless of how many codes the job has, which is what the query
+     * budget §18.2 asks for is defensible against.
+     *
+     * `committed` is null until §5's procurement exists. **Null rather than zero**, deliberately: a zero would
+     * read as "nothing is on order", which on a real job is almost never true and is the kind of reassuring wrong
+     * answer this plan keeps guarding against.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fourColumnReport(Job $job, ?string $upToPeriod = null): array
+    {
+        $budget = $this->budgetByCode($job);
+        $actual = $this->costByCode($job, $upToPeriod, excludeAccruals: true);
+        $accrued = $this->costByCode($job, $upToPeriod, accrualsOnly: true);
+        $forecast = $this->forecastByCode($job, $upToPeriod);
+
+        $codeIds = array_unique(array_merge(
+            array_keys($budget), array_keys($actual), array_keys($accrued), array_keys($forecast),
+        ));
+
+        if ($codeIds === []) {
+            return [];
+        }
+
+        $codes = CostCode::query()->whereKey($codeIds)->orderBy('code')->get();
+
+        return $codes->map(function (CostCode $code) use ($budget, $actual, $accrued, $forecast): array {
+            $id = $code->getKey();
+
+            $budgetAmount = $budget[$id] ?? 0.0;
+            $actualAmount = $actual[$id] ?? 0.0;
+            $accruedAmount = $accrued[$id] ?? 0.0;
+            $costToComplete = $forecast[$id]['cost_to_complete'] ?? null;
+
+            // Forecast final is actual + accrued + cost to complete. With no forecast line the honest answer is
+            // "we do not know", not "it will cost exactly what it has cost" — a job with no forecast is not a job
+            // finishing on its current spend.
+            $forecastFinal = $costToComplete === null
+                ? null
+                : round($actualAmount + $accruedAmount + $costToComplete, 2);
+
+            return [
+                'cost_code_id' => $id,
+                'code' => $code->code,
+                'name' => $code->name,
+                'cost_type' => $code->cost_type,
+                'budget' => round($budgetAmount, 2),
+                // Null until procurement exists — see the note above on why not zero.
+                'committed' => null,
+                'actual' => round($actualAmount, 2),
+                'accrued' => round($accruedAmount, 2),
+                'cost_to_complete' => $costToComplete,
+                'eac_method' => $forecast[$id]['eac_method'] ?? null,
+                'forecast_final' => $forecastFinal,
+                'variance' => $forecastFinal === null ? null : round($budgetAmount - $forecastFinal, 2),
+            ];
+        })->all();
+    }
+
+    /**
+     * @return array<int, float> cost code id => amount, from the current budget version of every job in the tree
+     */
+    private function budgetByCode(Job $job): array
+    {
+        // Every job under this one, not just this one. Cost rolls up the tree; a budget that did not would give a
+        // development which is exactly on budget a variance equal to its whole spend.
+        $versionIds = JobBudget::currentIdsForTree($job);
+
+        if ($versionIds->isEmpty()) {
+            return [];
+        }
+
+        return JobBudgetLine::query()
+            ->forJobTree($job)
+            ->whereIn('budget_version_id', $versionIds)
+            ->groupBy('cost_code_id')
+            // Aliased rather than plucked off a raw `SUM(amount)`: the result key would then be whatever the
+            // driver chose to call the column, which is not the same string on every driver.
+            ->selectRaw('cost_code_id, SUM(amount) as total')
+            ->pluck('total', 'cost_code_id')
+            ->map(fn ($amount): float => (float) $amount)
+            ->all();
+    }
+
+    /** @return array<int, float> cost code id => amount */
+    private function costByCode(Job $job, ?string $upToPeriod, bool $excludeAccruals = false, bool $accrualsOnly = false): array
+    {
+        return CostEntry::query()
+            ->forJobTree($job)
+            ->when($upToPeriod, fn ($q) => $q->whereDate('posting_period', '<=', $upToPeriod))
+            ->when($excludeAccruals, fn ($q) => $q->where('kind', '!=', CostEntry::KIND_ACCRUAL))
+            ->when($accrualsOnly, fn ($q) => $q->where('kind', CostEntry::KIND_ACCRUAL))
+            ->groupBy('cost_code_id')
+            ->selectRaw('cost_code_id, SUM(amount) as total')
+            ->pluck('total', 'cost_code_id')
+            ->map(fn ($amount): float => (float) $amount)
+            ->all();
+    }
+
+    /**
+     * The latest forecast at or before the period, per cost code.
+     *
+     * The *latest* rather than all of them, because a forecast is a snapshot and summing March's with April's would
+     * forecast the job twice. Which run was used matters, so `eac_method` travels with the figure.
+     *
+     * @return array<int, array{cost_to_complete: float, eac_method: string}>
+     */
+    private function forecastByCode(Job $job, ?string $upToPeriod): array
+    {
+        // The latest run **per job**, then those added together. One run across the whole subtree would take one
+        // tower's forecast and quietly drop the other's.
+        $runs = ForecastRun::query()
+            ->with('lines')
+            ->whereIn('job_id', Job::query()->inSubtree($job)->select('id'))
+            ->when($upToPeriod, fn ($q) => $q->whereDate('period_start', '<=', $upToPeriod))
+            ->orderBy('period_start')
+            ->get()
+            ->groupBy('job_id')
+            ->map(fn ($runsForJob) => $runsForJob->last());
+
+        $lines = [];
+
+        foreach ($runs as $run) {
+            foreach ($run->lines as $line) {
+                $existing = $lines[$line->cost_code_id] ?? null;
+
+                $lines[$line->cost_code_id] = [
+                    'cost_to_complete' => ($existing['cost_to_complete'] ?? 0.0) + (float) $line->cost_to_complete,
+                    // Two jobs forecasting one code by different methods is a real thing to say so about: the
+                    // report shows which method produced a figure, and "mixed" is the honest answer rather than
+                    // whichever run happened to be read last.
+                    'eac_method' => $existing === null || $existing['eac_method'] === $line->eac_method
+                        ? $line->eac_method
+                        : 'mixed',
+                ];
+            }
+        }
+
+        return $lines;
     }
 }
