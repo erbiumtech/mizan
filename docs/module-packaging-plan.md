@@ -726,10 +726,17 @@ change, diff.** Every month was resolved against five fiscal-year shapes before 
 January–December and the no-fiscal-year fallback came out byte-identical, and every other difference was a
 previously-wrong answer corrected. `PayrollMonthTest` keeps that characterisation.
 
+**This installation stays on July–June** (confirmed 2026-08-17), so the consolidation is behaviour-neutral in
+practice and the corrected shapes are insurance rather than a fix anyone was waiting for. Worth knowing in both
+directions: nothing here now *depends* on July–June, so a company on another shape would work — and equally,
+nothing *enforces* it, so a `FiscalYear` with an April start is still creatable and untested beyond this file.
+If July–June is meant to be an invariant rather than a habit, the place to say so is `FiscalYear` validation,
+not here.
+
 **Enumerate the domain before describing the bug.** Sampling four of the twelve months gives a wrong account of
-which months are affected — and a confident one, because the sampled months agree. Twelve months against five
-fiscal-year shapes is sixty cheap assertions and it is the difference between "April is wrong" and the table
-above.
+which months are affected — and a confident one, because the sampled months agree. Twelve months across five
+fiscal-year shapes is sixty cheap assertions, and it is the difference between "April is wrong" and the three
+distinct failure ranges listed above.
 
 **Do not use `class_exists()` to assert a class is gone.** A deleted file still in composer's classmap makes it
 throw on the missing include rather than return false. Assert on the file, and run `composer dump-autoload`
