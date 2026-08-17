@@ -101,8 +101,21 @@ class ModuleBoundaryTest extends TestCase
      * 14 -> 13: MPR left the tangle. `MPR::employee()` was a belongsTo with no
      * `employee_id` column anywhere, so it could only ever have thrown, and
      * `User::mprs()` was the only thing pointing Core at MPR.
+     *
+     * 13 -> 9, and four modules left at once: **core, inventory, invoicing and
+     * projects**. Phase 9 finished, so Core names no module at all — and Core was
+     * the hub. Five two-cycles ran through it, which transitively bound everything
+     * touching any of the five, and that is why phases 6, 7 and 8 each deleted real
+     * edges without moving this number by one. What is left is the domain knot the
+     * plan always said it was:
+     *
+     *   [7] accounting, advances, attendance, employees, expenses, leave, payroll
+     *   [2] billing, timesheets
+     *
+     * Every remaining member is a pay-and-people cycle — a payslip reaching an
+     * advance, an advance reaching a payslip — not misfiled host code.
      */
-    private const TANGLED_MODULE_BUDGET = 13;
+    private const TANGLED_MODULE_BUDGET = 9;
 
     /**
      * Coupling that exists today and is not a declared licence dependency.
@@ -168,13 +181,18 @@ class ModuleBoundaryTest extends TestCase
         'expenses' => ['accounting'],
 
         // Debt.
-        // Accounting -> Inventory and -> Invoicing are both gone. What reached them was the dashboard
-        // widget, the register's owner list and ReportPane rendering other modules' reports; all three
-        // are registries now (App\Support\DashboardStats, App\Support\JournalEntryOwners,
-        // App\Support\Reporting\ReportRenderers). What is left is Employees and Payroll — see §8 Group C
-        // for the payroll half, which is a real domain knot rather than misfiled host code.
-        'accounting' => ['employees', 'payroll'],
-        'core' => ['accounting', 'payroll', 'invoicing', 'inventory', 'employees'],
+        // Accounting reaches Inventory, Invoicing and Payroll no longer. Four registries and one shared
+        // namespace did it: DashboardStats, JournalEntryOwners, ReportRenderers, PaymentGenerators, and
+        // App\Support\Banking for the file writer, the month pickers and the fiscal-month arithmetic.
+        // Employees is what remains — see below.
+        'accounting' => ['employees'],
+        // Core is not here any more, and that is the entry this whole exercise was for. All seven of §9's
+        // files are inverted: the comment policy asks OwnedByUser, the user page announces UserCreated, the
+        // custom-fields screen reads CustomFieldSubjects, the fiscal-years table asks FiscalYearCloseCheck,
+        // the Reports hub reads ReportCatalogue and ReportPaneRenderer, the CSV importer reads CsvImporters,
+        // and Company Settings receives its currency and payroll-posting sections through SettingsSections.
+        // Core now names no module at all, which is what took the eleven-module cycle apart — see
+        // docs/module-packaging-plan.md §9 and "Core is the hub".
         // Employees -> Payroll is a third inline-reference find: EmployeeSetting
         // hasMany EmployeeSettingComponent, and the components relation manager
         // reads PayComponent. Payroll *requires* employees, so this is a cycle,

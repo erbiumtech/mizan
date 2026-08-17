@@ -3,6 +3,9 @@
 namespace App\Modules\Invoicing;
 
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
+use App\Modules\Invoicing\Filament\Pages\AgedPayables;
+use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
+use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
@@ -11,9 +14,14 @@ use App\Modules\Invoicing\Policies\ContactPolicy;
 use App\Modules\Invoicing\Policies\InvoiceLinePolicy;
 use App\Modules\Invoicing\Policies\InvoicePolicy;
 use App\Modules\Invoicing\Policies\TaxRatePolicy;
+use App\Modules\Invoicing\Support\ContactCsvImporter;
 use App\Modules\Invoicing\Support\InvoicingReports;
+use App\Support\CsvImporters;
+use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
 use App\Support\JournalEntryOwners;
+use App\Support\ModuleMap;
+use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
@@ -40,6 +48,22 @@ class InvoicingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // This module's reports in the Reports hub. Registered rather than listed in Core, which
+        // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
+        ReportCatalogue::register('Receivables & payables', AgedReceivables::class, 'What customers owe, bucketed by how late it is.');
+        ReportCatalogue::register('Receivables & payables', AgedPayables::class, 'What the company owes suppliers, bucketed by how late it is.');
+        ReportCatalogue::register('Statutory reporting', FbrInvoiceReporting::class, 'Invoices FBR has not accepted, and issued invoices it never received.');
+
+        // The records of this module that may carry custom fields. Registered by alias, which is what
+        // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
+        CustomFieldSubjects::register(ModuleMap::alias(Contact::class), 'Contacts');
+        CustomFieldSubjects::register(ModuleMap::alias(Invoice::class), 'Invoices');
+
+        // Clients and suppliers from a spreadsheet at setup. Core reads the CSV; what a row means is here,
+        // because `Contact` is this module's — see App\Support\CsvImporters.
+        // Sorted first, and so the type the page opens on: it is the one every company has a file of.
+        CsvImporters::register('contacts', ContactCsvImporter::class, 10);
+
         $this->commands([RaiseRecurringInvoices::class]);
 
         // An invoice's journal entry is the accounting half of the invoice, so the register must refuse

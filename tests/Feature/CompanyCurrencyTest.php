@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Accounting\Filament\Resources\Currencies\CurrencyResource;
+use App\Modules\Accounting\Filament\Settings\CurrencySettingsSection;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\ExchangeRate;
@@ -64,7 +65,7 @@ class CompanyCurrencyTest extends AccountingTestCase
 
     public function test_it_can_be_changed_while_the_ledger_is_empty(): void
     {
-        $this->assertFalse(CompanySettings::ledgerHasEntries());
+        $this->assertFalse(CurrencySettingsSection::ledgerHasEntries());
 
         Livewire::test(CompanySettings::class)
             ->set('data.base_currency', 'EUR')
@@ -81,7 +82,7 @@ class CompanyCurrencyTest extends AccountingTestCase
     {
         $this->postSomething();
 
-        $this->assertTrue(CompanySettings::ledgerHasEntries());
+        $this->assertTrue(CurrencySettingsSection::ledgerHasEntries());
 
         Livewire::test(CompanySettings::class)
             ->set('data.base_currency', 'EUR')

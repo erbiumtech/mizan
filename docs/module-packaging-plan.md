@@ -1,6 +1,10 @@
 # Module packaging: breaking the cycles — Plan
 
-**Status:** Phases 0–7 built; phase 8 Groups A and B built 2026-08-17. Group C and phase 9 outstanding.
+**Status:** **All phases 0–9 built (2026-08-17).** Core names no module at all, and the trapped-module count
+went 13 → 9 the moment it stopped: **core, inventory, invoicing and projects all left the tangle together**,
+which is what "Core is the hub" predicted. What remains is the pay-and-people knot — `[7] accounting,
+advances, attendance, employees, expenses, leave, payroll` and `[2] billing, timesheets` — which no section
+of this plan addresses and which needs a plan of its own. See "Phase 9 — Core stops receiving nothing".
 **Created:** 2026-08-15
 **Covers:** what "installable" was decided to mean (§1), the import graph and its cycles (§2–§3), the
 safety rails that must land before anything moves (§4), one manifest file per module (§5), the contracts
@@ -355,14 +359,14 @@ modules own. Every one inverts.
 
 | Core file | What it pulls | Becomes |
 |---|---|---|
-| `Filament/Pages/Reports.php` | 12 Accounting pages, 3 Invoicing, 3 Payroll, plus `ReportPane` | `ReportRegistry`; each plugin registers its own reports |
+| `Filament/Pages/Reports.php` | 12 Accounting pages, 3 Invoicing, 3 Payroll, plus `ReportPane` — **and one inline `\App\Modules\Accounting\Models\Account` this count missed** | `ReportRegistry`; each plugin registers its own reports |
 | `Filament/Resources/CustomFields/CustomFieldResource.php` | 6 model classes in a `const MODELS` | `CustomFieldSubjectRegistry` — and since the values already go through `ModuleMap::alias()`, the registry keys on aliases and never loads the class |
 | `Services/CsvImportService.php` | 5 classes from 3 modules | `CsvImporterRegistry` — which gains a real feature, because a module shipping an importer then appears automatically |
 | `Filament/Pages/CompanySettings.php` | `Account`, `Currency`, `JournalEntryLine` | `SettingsSectionRegistry`; Accounting contributes its own sections and their validation |
 | `Filament/Resources/FiscalYears/Tables/FiscalYearsTable.php` | `FiscalYearClosingService` | `FiscalYearCloseCheck`; `blockers()` already returns `string[]`, so the contract is the existing signature |
 | `Filament/Resources/Users/Pages/CreateUser.php` | `Employee::create()` in `afterCreate()` | a `UserCreated` event with the listener in Employees |
 | `Policies/CommentPolicy.php` | `instanceof Payslip` | `OwnedByUser` — which incidentally gives every commentable model the self-service visibility only Payslip has today |
-| `Models/FiscalYear::salarySlabs()`, `Models/User::mprs()` | `SalarySlab`, `MPR` | **delete both** — inverse relations that belong on the far side, keyed on columns the far side already has |
+| ~~`Models/FiscalYear::salarySlabs()`, `Models/User::mprs()`~~ | ~~`SalarySlab`, `MPR`~~ | **already done in phase 1.** Seven files, not eight |
 
 `Reports.php:43-45` says *"Lives in Core, not Accounting, because it spans four modules."* That is the
 right instinct arriving at the wrong destination: something spanning four modules belongs **above** all
@@ -370,6 +374,13 @@ four, not inside the one that is always licensed.
 
 When these eight land, `KNOWN_COUPLINGS['core']` is deleted, the `'core'` seed comes out of
 `allowedTargets()`, and the acyclicity test passes.
+
+> **As built, two corrections to that sentence.** `KNOWN_COUPLINGS['core']` is deleted — that part is done.
+> The `'core'` seed **stays**: it is §1's "every module may depend on Core for free" licence, it only ever
+> governed the *reach* test, and the acyclicity test is built from `moduleGraph()` and never consulted it.
+> And the acyclicity test does not pass — it now reports **9** trapped modules rather than 13, because Core
+> was never the only cycle, just the only one this plan could reach. See "Phase 9 — Core stops receiving
+> nothing".
 
 ## §10 What is deliberately left for extraction
 
@@ -563,9 +574,12 @@ would have got the same weekend, correctly, and silently.
 | 5 | `LeaveDayGenerator` → `WorkingDayCalendar` (Attendance binds `WorkPatternCalendar`); `RegularizationService` → `PeriodLock` (Payroll binds `PayrollRunPeriodLock`). `leave -> attendance` and `attendance -> payroll` deleted |
 | 6a | `Bank` → `App\Modules\Core\Models` (alias unchanged); `Bank::employees()` and `BankResource`'s Employees relation manager deleted; `BankResource`, `BankPolicy` and the `Bank` permission group stay in Accounting. `employees -> accounting` deleted. **Trapped: still 13** |
 | 8A | `OperationsOverview` → Core, its four figures registered per module (`App\Support\DashboardStats`); `ReportPane` 1032 → 491 lines, Payroll's and Invoicing's six reports moved to `PayrollReports`/`InvoicingReports` and registered (`App\Support\Reporting\ReportRenderers`), shapes shared via `ReportShapes`. **`accounting -> inventory` and `accounting -> invoicing` both deleted** |
+| 8C | `payments.subject_review` + `_reason` + `_reviewed_at`, backfilled; `PayslipReviewed` + `CopyReviewOntoPayment` keep them current; `generateSalaryPayments()` stamps them at creation; `Payment` reads its own columns and declares its own `REVIEW_*`; `payslip()` contributed by Payroll. `accounting -> payroll` **not yet** deleted — see below |
 | 8B | The register's five-owner array → `App\Support\JournalEntryOwners`, each module registering what it owns. Behaviour unchanged — deliberately *not* the deletion the plan called for |
 | 7 | `employees -> projects` deleted by reversing it: `ProjectsServiceProvider` registers the three project relations on `Employee` via `Model::resolveRelationUsing()` and contributes the Projects tab through `App\Support\ResourceContributions`; `Employee::currentProjects()` deleted (no callers). **Trapped: still 13** |
 | 6b | The iPayments layout (204 columns, the column map, `row()`, `formatAmount()`, `escape()`) → `App\Support\Banking\IPaymentsFileWriter`; `BankPaymentExportService` **stops extending** `SalaryBankExportService` and takes the writer by constructor. A bank filter on the Employees list replaces the deleted relation manager. `ModelRelationsResolveTest` added |
+| 9 (first five) | `CommentPolicy` → `OwnedByUser`; `CreateUser` → a `UserCreated` event with the listener in Employees; `CustomFieldResource`'s `const MODELS` → `CustomFieldSubjects`, keyed on aliases so no model class is ever loaded; `FiscalYearsTable` → `FiscalYearCloseCheck` (+ `NoFiscalYearClose`); `Reports.php` → `ReportCatalogue` + the `ReportPaneRenderer` contract (+ `NoReportPane`) |
+| 9 (last two) | `CsvImportService`'s three imports → one `CsvImporter` each, owned by Invoicing, Inventory and Accounting and registered through `App\Support\CsvImporters`; Company Settings' currency and payroll-posting sections → `CurrencySettingsSection` and `PayrollPostingSettingsSection`, contributed through `App\Support\SettingsSections`. Plus `ReportPane::drillTarget()`, for the one inline reference the `use`-statement reading of §9 had missed. **`KNOWN_COUPLINGS['core']` deleted. Trapped: 13 → 9** |
 
 Not yet done from phase 3: `RoleSeeder`'s grants and the navigation claims are
 still central. Neither is on the cycle path — `ModuleMap` was — but both are part
@@ -692,6 +706,129 @@ eleven through `invoicing -> projects`, not through anything Employees does. Thr
 real edges without moving this number, which is worth saying plainly: **the module-count ratchet is the
 right invariant and the wrong progress bar.** `KNOWN_COUPLINGS` shrinking is the progress bar, and it has
 shrunk in every one of those phases.
+
+### Phase 9 — Core stops receiving nothing
+
+**The prediction held, and it was the only one that did.** Core now names no module, and the count moved
+13 → 9 in a single phase after three phases moved it by nothing at all. Four modules left together:
+
+```
+before  [11] accounting, advances, attendance, core, employees, expenses,
+             inventory, invoicing, leave, payroll, projects
+after    [7] accounting, advances, attendance, employees, expenses, leave, payroll
+         [2] billing, timesheets   (unchanged)
+```
+
+`inventory`, `invoicing` and `projects` were never knotted to anything in their own right — they were held
+in only by the two-cycles through Core. That is the shape of a hub, and it is worth stating as a general
+lesson rather than a fact about this codebase: **in a graph with a universally-depended-on node, every edge
+*out* of that node is worth more than any number of edges between the leaves.** Phases 6–8 deleted real
+couplings and were right to; they simply could not show up in this metric, and the metric was not wrong
+either. Both were measuring what they said they measured.
+
+**Three of §9's eight rows were not what the table said.**
+
+- `FiscalYear::salarySlabs()` and `User::mprs()` were already deleted in phase 1, as the previous note
+  recorded. Seven files, not eight.
+- The **last reference was not a `use` statement at all.** `Reports.php:392` reached `Account` through a
+  fully-qualified inline `\App\Modules\Accounting\Models\Account::query()`, so it survived every grep for
+  `^use App\Modules\` and only surfaced when the lint failed after the seventh file landed. Phase 0's whole
+  point was making the scan see inline references, and the plan's own §9 count was still taken with the
+  reading that misses them. **Trust the lint's list, never a grep, when deciding a file is finished.**
+- §9 also says *"the `'core'` seed comes out of `allowedTargets()`"*. It should not, and it did not.
+  That seed is the "every module may depend on Core for free" licence from §1 — it is what makes the
+  *reach* test tolerate twenty modules importing Core models — and the acyclicity test never used it, being
+  built from `moduleGraph()` instead. Removing it would have flagged most of the codebase to prove nothing.
+
+**What the two remaining inversions each needed beyond a list.** `CsvImporters` is a registry of behaviour,
+not data: an import is columns *and* a validator *and* a writer, so it is an interface (`CsvImporter`) with
+the registry holding class names resolved through the container — the opening-balances importer takes
+`JournalEntryService` by constructor. `SettingsSections` needed three hooks rather than a list of setting
+keys, and the reason is the base currency: it is a *row* in the currencies table, not a setting, so
+"read the keys back" would never have covered it. Hence `components()`, `fill()` and `save()`.
+
+**Both registries sort explicitly, and the first attempt did not.** Registration order is provider boot
+order, which is alphabetical accident — so the import page's default type came out as *opening balances*
+(Accounting boots first) instead of contacts, and it would have opened showing a date field. `DashboardStats`
+had already learned this and says so in its docblock: *reading order is a decision, not discovery order*.
+Any registry whose output a human reads in sequence needs a sort argument from the start.
+
+**Two things got better rather than merely moving.** With no importer registered the CSV page is
+unreachable rather than an empty dropdown, and with no Accounting module Company Settings stops writing
+`accounting.payroll_accounts` on every save — a setting nothing could ever read. Neither was asked for;
+both fall out of a module having to *offer* what it owns instead of Core assuming it is there.
+
+### Core is the hub, and §9 was the only lever left
+
+`accounting -> payroll` is now gone — §7's leftovers went with it: `SelectsSalaryMonth` and the
+fiscal-month arithmetic moved to `App\Support\Banking` (the trait's Payslip default became a null hook
+that Payroll's two pages now declare), and `generateSalaryPayments()` became
+`Payroll\Services\SalaryPaymentGenerator`, triggered through `App\Support\PaymentGenerators` because the
+*caller* is an Accounting page — moving the method alone would only have inverted the edge. Accounting's
+debt list is `['employees']`, down from four modules.
+
+**And the trapped count did not move. Again — 13, with the identical eleven-module component.** Four
+consecutive phases have now deleted real edges without shifting it, and the reason is finally clear
+enough to write down:
+
+```
+[11] accounting, advances, attendance, core, employees, expenses,
+     inventory, invoicing, leave, payroll, projects
+[2]  billing, timesheets
+```
+
+Every module may depend on Core for free, and `KNOWN_COUPLINGS['core']` lists Core depending on
+**accounting, payroll, invoicing, inventory and employees**. That is five two-cycles through the one module
+nothing can avoid, and they transitively bind everything that touches any of the five. No amount of
+tidying between the leaves can break a knot tied at the root.
+
+So the earlier reading of this plan — that `accounting -> payroll` and `employees -> payroll` were "what
+the count turns on" — was wrong, and measurably so. **§9 is the lever.** *(Written before phase 9; it was,
+and the section above records what happened.)* Its own closing sentence already
+said as much (*"when these eight land, `KNOWN_COUPLINGS['core']` is deleted, the `'core'` seed comes out of
+`allowedTargets()`, and the acyclicity test passes"*); what was not obvious until four phases had been
+spent elsewhere is that nothing *before* §9 can move the number at all. Phases 6–8 were still worth doing
+— they removed the unguardable inheritance, three module edges and a false data-integrity risk — but their
+value was never going to show up in this metric.
+
+One correction to §9's own table while we are here: its last row asks to delete
+`FiscalYear::salarySlabs()` and `User::mprs()`, and **phase 1 already deleted both**. Seven files remain,
+36 imports, of which `Reports.php` alone holds 19.
+
+### Phase 8 Group C — three columns, not one, and the edge does not close yet
+
+**§8's single `subject_accepted_at` cannot carry what the screen says.** A blocked salary shows one of two
+different things — `BLOCK_REJECTED` with the employee's rejection reason, or `BLOCK_UNACCEPTED` with
+"has not accepted yet" — and a timestamp collapses both into "not accepted", losing the reason and the
+category the bank-file screen colours rows by. So `subject_review`, `subject_review_reason` and
+`subject_reviewed_at` all move, and `Payment` declares its own `REVIEW_ACCEPTED`/`REVIEW_REJECTED` so it
+need not read Payroll's constants.
+
+**The listener alone is not enough, which the plan does not mention.** A review recorded *after* a payment
+exists is the listener's case; the common order is the opposite — the payslip is accepted long before
+anybody opens the bank file — so `generateSalaryPayments()` stamps the copy at creation too. Without that
+second write every generated payment starts life looking unaccepted and the whole batch is held back.
+
+**`belongsTo` inside `resolveRelationUsing` needs its foreign key named.** `Payment::payslip()` is now
+contributed by Payroll, as the Projects tab was in phase 7, and `belongsTo()` infers its key from the
+*calling method's* name — which inside a closure is `{closure}`. Thirteen tests failed on a query for
+`payments.app\_modules\_payroll\{closure}_id`. Phase 7's relations escaped this only because they passed
+their keys anyway; §9 should assume every contributed relation needs them explicit.
+
+**What this bought, and what it cost.** Accounting no longer reads a Payroll *rule*: the release gate is
+answered from the payment's own row, so it holds with Payroll absent. The cost is a denormalisation that
+can go stale, and the only thing standing between it and a wrongly-released salary is two writers and a
+backfill — which is why `PaymentReleaseGateTest` asserts the event fires, the listener is registered *on
+the real dispatcher*, both writers copy, the two vocabularies have not drifted, and a payment with no
+payslip is releasable rather than blocked. Both staleness paths were mutation-verified.
+
+**`accounting -> payroll` is still there, and Group C as written was never going to close it.** §8 names
+`Payment` and `generateSalaryPayments()`; the remaining imports are in
+`Accounting\Filament\Pages\BankPaymentFile`, which uses Payroll's `SelectsSalaryMonth` concern and
+`SalaryBankExportService` — and those are **§7's leftovers**, the part of the banking carve that moved
+`IPaymentsFileWriter` but not `SelectsSalaryMonth`, `Money` or `PayrollMonth`. So the SCC does not
+dissolve at the end of phase 8 as §8 predicts; it dissolves when §7 is finished. Worth fixing in the plan
+rather than discovering again.
 
 ### Phase 8 Group B — the array was not dead code, and deleting it would have been a data bug
 

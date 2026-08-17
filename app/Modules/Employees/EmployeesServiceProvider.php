@@ -2,15 +2,20 @@
 
 namespace App\Modules\Employees;
 
+use App\Events\UserCreated;
 use App\Modules\Employees\Console\Commands\ApplyDueJobChanges;
+use App\Modules\Employees\Listeners\CreateEmployeeForUser;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Employees\Policies\EmployeeChangeRequestPolicy;
 use App\Modules\Employees\Policies\EmployeePolicy;
 use App\Modules\Employees\Policies\EmployeeSettingPolicy;
+use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
+use App\Support\ModuleMap;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -34,6 +39,13 @@ class EmployeesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The records of this module that may carry custom fields. Registered by alias, which is what
+        // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
+        CustomFieldSubjects::register(ModuleMap::alias(Employee::class), 'Employees');
+
+        // A new user gets an employee record. Registered here rather than done in Core's CreateUser page.
+        Event::listen(UserCreated::class, CreateEmployeeForUser::class);
+
         DashboardStats::register('employees.active', fn () => auth()->user()?->can('EmployeeView')
             ? Stat::make('Employees', Employee::where('is_active', 1)->count())->description('active')
             : null, sort: 10);

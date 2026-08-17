@@ -4,25 +4,8 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
-use App\Modules\Accounting\Filament\Pages\AccountRegister;
-use App\Modules\Accounting\Filament\Pages\BalanceSheet;
-use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
-use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
-use App\Modules\Accounting\Filament\Pages\CashFlow;
-use App\Modules\Accounting\Filament\Pages\ContractorPayments;
-use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
-use App\Modules\Accounting\Filament\Pages\FindTransactions;
-use App\Modules\Accounting\Filament\Pages\GeneralLedger;
-use App\Modules\Accounting\Filament\Pages\PettyCashBook;
-use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
-use App\Modules\Accounting\Filament\Pages\TrialBalance;
-use App\Modules\Accounting\Support\ReportPane;
-use App\Modules\Invoicing\Filament\Pages\AgedPayables;
-use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
-use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
-use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
-use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
-use App\Modules\Payroll\Filament\Pages\TaxSummary;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportPaneRenderer;
 use BackedEnum;
 use Filament\Pages\Page;
 use Livewire\Attributes\Url;
@@ -62,59 +45,18 @@ class Reports extends Page
      */
     protected static ?int $navigationSort = -1;
 
-    /**
-     * What the page links to, as heading => [page class => what it answers].
+    /*
+     * The eighteen reports this page used to list are registered by the modules that own them —
+     * App\Support\Reporting\ReportCatalogue, written to from each module's service provider.
      *
-     * The descriptions are the point of the page. A list of fourteen titles is
-     * what the sidebar already was; saying what each one tells you is what makes
-     * the choice possible without opening all of them.
+     * This file's own comment used to explain itself as "lives in Core, not Accounting, because it spans
+     * four modules". That was the right instinct and the wrong destination: something spanning four modules
+     * belongs above all four, and in this application "above" means a registry the four write to rather
+     * than a list inside the one module that is always licensed. See docs/module-packaging-plan.md §9.
      *
-     * Adding a report means adding it here. ReportsHubTest fails on a page that
-     * is hidden from the sidebar and missing from this list — otherwise such a
-     * page is reachable by nothing but the ⌘K palette and its own URL.
-     *
-     * @var array<string, array<class-string, string>>
+     * Adding a report still means one line — it is just a line in that report's own module now, and
+     * ReportsHubTest still fails for a page that is hidden from the sidebar and registered nowhere.
      */
-    private const SECTIONS = [
-        'Financial statements' => [
-            BalanceSheet::class => 'What the company owns, owes and is worth, on a date.',
-            ProfitAndLoss::class => 'Income less expenses over a period, and the profit that leaves.',
-            CashFlow::class => 'Where the money actually came from and went, period by period.',
-            TrialBalance::class => 'Every account with its balance, and the proof that the books add up.',
-            GeneralLedger::class => 'Every account, every entry against it, opening to closing — what an audit reads.',
-            BudgetVsActual::class => 'What was planned against what was spent, by account and by month.',
-        ],
-        'Receivables & payables' => [
-            AgedReceivables::class => 'What customers owe, bucketed by how late it is.',
-            AgedPayables::class => 'What the company owes suppliers, bucketed by how late it is.',
-            ContractorPayments::class => 'What each contractor has been paid, and over what period.',
-        ],
-        'Payroll & tax' => [
-            TaxSummary::class => 'Tax withheld per employee for the year, with the slab it fell in.',
-            FbrTaxFile::class => 'The withholding statement, in the format FBR accepts.',
-            SalaryBankFile::class => 'Salary payments as a bank upload file, for a payroll month.',
-        ],
-        // Separate from "Payroll & tax", which is where the withholding statement
-        // lives: that one is a payroll report a human downloads and uploads, and
-        // this one watches an invoice integration that reports on its own. Filing
-        // them together would suggest they work the same way, and the difference
-        // between a pull and a push is the whole reason this report exists.
-        'Statutory reporting' => [
-            FbrInvoiceReporting::class => 'Invoices FBR has not accepted, and issued invoices it never received.',
-        ],
-        'Ledgers & books' => [
-            AccountRegister::class => 'One account, every transaction against it, running balance — and edits.',
-            FindTransactions::class => 'Search the whole ledger by account, date, amount or wording.',
-            PettyCashBook::class => 'The cash float: what was spent, what is left, and replenishment.',
-            CurrencyRevaluation::class => 'Foreign balances at the rate on a date, and the difference posted.',
-        ],
-        // GnuCash Import used to sit here. It is an import, not a report, and now
-        // lives in Settings beside Import from CSV — which is why this section is
-        // down to bank files alone.
-        'Bank files' => [
-            BankPaymentFile::class => 'Selected payments as a bank transfer file.',
-        ],
-    ];
 
     /**
      * Every page this hub links to, ungrouped.
@@ -123,7 +65,7 @@ class Reports extends Page
      */
     public static function linkedPages(): array
     {
-        return array_merge(...array_map('array_keys', array_values(self::SECTIONS)));
+        return ReportCatalogue::pages();
     }
 
     // -------------------------------------------------------- the 4c explorer
@@ -218,11 +160,11 @@ class Reports extends Page
     {
         $report = $this->selectedReport();
 
-        if ($report === null || ! ReportPane::supports($report['key'])) {
+        if ($report === null || ! app(ReportPaneRenderer::class)->supportsReport($report['key'])) {
             return null;
         }
 
-        return app(ReportPane::class)->for(
+        return app(ReportPaneRenderer::class)->for(
             $report['key'],
             $this->asOf ?: now()->toDateString(),
             $this->comparison,
@@ -254,7 +196,7 @@ class Reports extends Page
             return [];
         }
 
-        $pane = app(ReportPane::class);
+        $pane = app(ReportPaneRenderer::class);
         $asOf = $this->asOf ?: now()->toDateString();
 
         return array_map(fn (string $ask): array => [
@@ -279,13 +221,13 @@ class Reports extends Page
                 default => 'Choose one',
             },
             'options' => $pane->options($key, $ask, $asOf),
-        ], ReportPane::asks($key));
+        ], app(ReportPaneRenderer::class)->asksFor($key));
     }
 
     /** Whether the selected report can be shown in the pane at all. */
     public function statementIsAvailable(): bool
     {
-        return ReportPane::supports($this->selectedReport()['key'] ?? null);
+        return app(ReportPaneRenderer::class)->supportsReport($this->selectedReport()['key'] ?? null);
     }
 
     /**
@@ -301,7 +243,7 @@ class Reports extends Page
         // sheet" while the list is filtered to payroll — or while a search has emptied it — points at
         // something the person cannot see, and quietly contradicts the filter they just set.
         foreach ($this->visibleReports() as $report) {
-            if (ReportPane::supports($report['key'])) {
+            if (app(ReportPaneRenderer::class)->supportsReport($report['key'])) {
                 return $report['key'];
             }
         }
@@ -441,21 +383,21 @@ class Reports extends Page
      * the trial balance switches the pane to that account's register, at the same date. The date is what
      * makes it a drill rather than a jump: the register opens on the period the figure came from.
      *
-     * Refused for a code the register cannot open — see ReportPane::drillableCodes(). Silently, because
-     * the view does not render the affordance for those rows in the first place; this is the guard for a
-     * code that arrives anyway.
+     * Refused for a code the register cannot open. Silently, because the view does not render the affordance
+     * for those rows in the first place; this is the guard for a code that arrives anyway.
+     *
+     * Which account a code names is the pane's to answer, not this page's — asking it was the last thing in
+     * Core that reached into a module. See `App\Support\Reporting\ReportPaneRenderer::drillTarget()`.
      */
     public function drillInto(string $code): void
     {
-        $account = \App\Modules\Accounting\Models\Account::query()
-            ->where('code', $code)
-            ->first();
+        $account = app(ReportPaneRenderer::class)->drillTarget($code);
 
-        if ($account === null || ! in_array($code, app(ReportPane::class)->drillable(), true)) {
+        if ($account === null) {
             return;
         }
 
-        $this->account = $account->getKey();
+        $this->account = $account;
         $this->select('AccountRegister');
     }
 
@@ -528,7 +470,7 @@ class Reports extends Page
     {
         $sections = [];
 
-        foreach (self::SECTIONS as $heading => $pages) {
+        foreach (ReportCatalogue::sections() as $heading => $pages) {
             $links = [];
 
             foreach ($pages as $page => $description) {

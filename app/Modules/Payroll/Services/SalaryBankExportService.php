@@ -7,6 +7,7 @@ use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Banking\IPaymentsFileWriter;
+use App\Support\Banking\PayrollMonth;
 use Carbon\Carbon;
 
 /**
@@ -153,14 +154,14 @@ class SalaryBankExportService
     /**
      * Calendar year a payslip month falls in within the fiscal year.
      */
+    /**
+     * Kept as a passthrough. The arithmetic moved to App\Support\Banking\PayrollMonth so that Accounting
+     * could stop importing this service to label a file; this signature is public and widely called, so
+     * removing it would break callers to move four lines.
+     */
     public function yearForMonth(string $month, FiscalYear $fiscalYear): int
     {
-        $startYear = Carbon::parse($fiscalYear->start_date)->year;
-        $monthNumber = Carbon::parse("{$month} 1, {$startYear}")->month;
-
-        return $monthNumber >= Carbon::parse($fiscalYear->start_date)->month
-            ? $startYear
-            : Carbon::parse($fiscalYear->end_date)->year;
+        return PayrollMonth::yearFor($month, $fiscalYear);
     }
 
     /**

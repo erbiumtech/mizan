@@ -104,6 +104,26 @@ class AliasLockTest extends TestCase
         ]));
     }
 
+    /**
+     * The one place an alias is written as a literal still matches the locked one.
+     *
+     * `BackfillPaymentEntriesCommand` filters `source_type` on the payslip alias, and uses the string
+     * rather than `ModuleMap::alias(Payslip::class)` so that Accounting need not import a Payroll model to
+     * name a column value (docs/module-packaging-plan.md §8). That is only safe while the two agree, and
+     * this is what makes it safe.
+     */
+    public function test_the_hardcoded_payslip_source_alias_matches_the_lock(): void
+    {
+        $constant = (new \ReflectionClass(\App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand::class))
+            ->getConstant('PAYSLIP_SOURCE');
+
+        $this->assertSame(
+            ModuleMap::alias(\App\Modules\Payroll\Models\Payslip::class),
+            $constant,
+            'the backfill command filters on an alias that is no longer what Payslip produces',
+        );
+    }
+
     public function test_the_lock_is_not_empty(): void
     {
         // The failure this whole file exists to prevent is a silent one, and a lock

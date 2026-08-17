@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Modules\Payroll\Filament\Concerns;
+namespace App\Support\Banking;
 
 use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Payroll\Models\Payslip;
 use Carbon\Carbon;
 use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +11,16 @@ use Illuminate\Support\Collection;
 /**
  * The fiscal year + salary month pickers shared by the Bank Payment File and
  * Salary Bank File pages.
+ *
+ * In `app/Support` rather than in Payroll, and that is the whole of §7's `SelectsSalaryMonth` leftover:
+ * `Accounting\Filament\Pages\BankPaymentFile` uses this trait, so filing it under Payroll made a
+ * *form control* the last reason Accounting could not be packaged without Payroll. Nothing in here is
+ * payroll — a fiscal year and its twelve months in fiscal order belong to whoever asks.
+ *
+ * The one thing that was payroll has become the extension point it already almost was:
+ * `monthCountQuery()` returned a Payslip query by default, and now returns null. A page that wants
+ * "— 12 payslips" beside a month says so; a page that does not gets plain month labels. See
+ * docs/module-packaging-plan.md §7.
  *
  * Both used to list only the months that already had payslips in the active
  * fiscal year, which meant a fresh year offered a single month (or none) and
@@ -83,10 +92,11 @@ trait SelectsSalaryMonth
             return [];
         }
 
+        // No query means no counts, and the labels are plain months. One grouped query when there is one.
         $counts = $this->monthCountQuery($fiscalYear)
-            ->selectRaw('month, COUNT(*) as aggregate')
+            ?->selectRaw('month, COUNT(*) as aggregate')
             ->groupBy('month')
-            ->pluck('aggregate', 'month');
+            ->pluck('aggregate', 'month') ?? collect();
 
         $start = Carbon::parse($fiscalYear->start_date ?? now())->startOfMonth();
 
@@ -102,13 +112,16 @@ trait SelectsSalaryMonth
     }
 
     /**
-     * The rows the month labels are counted from. Overridden where the page
-     * exports a subset — the FBR file only cares about taxed payslips, so
-     * counting all of them would promise data the export won't contain.
+     * The rows the month labels are counted from, or null for no counts.
+     *
+     * Null by default because this trait no longer knows what a page is counting — it used to return a
+     * Payslip query, which is what tied it to Payroll. Overridden where the page exports a subset: the FBR
+     * file only cares about taxed payslips, so counting all of them would promise data the export won't
+     * contain.
      */
-    protected function monthCountQuery(FiscalYear $fiscalYear): Builder
+    protected function monthCountQuery(FiscalYear $fiscalYear): ?Builder
     {
-        return Payslip::where('fiscal_year_id', $fiscalYear->id);
+        return null;
     }
 
     /** Plural noun for the count hint in a month label. */
