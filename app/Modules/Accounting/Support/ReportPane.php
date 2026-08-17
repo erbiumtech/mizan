@@ -14,6 +14,7 @@ use App\Modules\Accounting\Services\GeneralLedgerService;
 use App\Modules\Accounting\Services\PettyCashService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\Reporting\ReportPaneRenderer;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\Reporting\ReportShapes;
 use Carbon\Carbon;
@@ -39,9 +40,27 @@ use Carbon\Carbon;
  * so the pane asks for it and passes it in; `ASKS` says which and what. Everything else derives what it
  * needs from the date: the fiscal year containing it, or its month.
  */
-class ReportPane
+class ReportPane implements ReportPaneRenderer
 {
     use ReportShapes;
+
+    /**
+     * The instance half of the two statics below.
+     *
+     * `supports()` and `asks()` are static and stay static — dozens of call sites and every test use them.
+     * A container binding cannot resolve a static, so App\Support\Reporting\ReportPaneRenderer names
+     * instance methods and these two forward. See docs/module-packaging-plan.md §9.
+     */
+    public function supportsReport(?string $key): bool
+    {
+        return self::supports($key);
+    }
+
+    /** @return array<int, string> */
+    public function asksFor(?string $key): array
+    {
+        return self::asks($key);
+    }
 
     public function __construct(
         private ComparativeStatement $statements,
@@ -461,6 +480,24 @@ class ReportPane
     public function drillable(): array
     {
         return app(RegisterEntryService::class)->registerAccounts()->pluck('code')->all();
+    }
+
+    /**
+     * The account a drillable code identifies.
+     *
+     * The Reports explorer used to run this query itself, which was the last reference from Core into this
+     * module — see App\Support\Reporting\ReportPaneRenderer and docs/module-packaging-plan.md §9. Both
+     * conditions are answered here: the code has to name an account *and* be one the register will open, and
+     * a code failing either is refused the same way, because the caller can do nothing different with the
+     * distinction.
+     */
+    public function drillTarget(string $code): int|string|null
+    {
+        if (! in_array($code, $this->drillable(), true)) {
+            return null;
+        }
+
+        return Account::query()->where('code', $code)->value('id');
     }
 
     /** What each contractor has been paid over the year. */

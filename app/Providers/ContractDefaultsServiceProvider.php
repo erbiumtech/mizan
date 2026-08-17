@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Support\Contracts\ConfiguredWeekendCalendar;
+use App\Support\Contracts\FiscalYearCloseCheck;
 use App\Support\Contracts\NeverLocked;
+use App\Support\Contracts\NoFiscalYearClose;
 use App\Support\Contracts\PeriodLock;
 use App\Support\Contracts\WorkingDayCalendar;
+use App\Support\Reporting\NoReportPane;
+use App\Support\Reporting\ReportPaneRenderer;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -31,6 +35,13 @@ class ContractDefaultsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Closing a fiscal year is an accounting act on a Core model. With no accounting module there is
+        // nothing that can do it, and the default says so rather than silently doing nothing.
+        $this->app->bind(FiscalYearCloseCheck::class, NoFiscalYearClose::class);
+
+        // With no accounting module there is no pane, and every report in the hub opens on its own page.
+        $this->app->bind(ReportPaneRenderer::class, NoReportPane::class);
+
         $this->app->bind(WorkingDayCalendar::class, ConfiguredWeekendCalendar::class);
         $this->app->bind(PeriodLock::class, NeverLocked::class);
     }

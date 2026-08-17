@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Core\Models\Bank;
 use App\Modules\Accounting\Models\Beneficiary;
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Accounting\Models\Payment;
-use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Services\BankPaymentExportService;
+use App\Modules\Core\Models\Bank;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\SalaryBankExportService;
 use Database\Seeders\TransactionTypeSeeder;
 use Tests\AccountingTestCase;
@@ -220,7 +220,7 @@ class BankFileBankCodeTest extends AccountingTestCase
         $net = (float) $payslip->fresh()->net_salary;
         $this->assertGreaterThan(0, $net, 'the fixture has to produce a real net figure');
 
-        app(\App\Modules\Accounting\Services\PaymentService::class)->generateSalaryPayments('January', $this->fiscalYear);
+        app(\App\Modules\Payroll\Services\SalaryPaymentGenerator::class)->generate('January', $this->fiscalYear);
 
         $csv = app(BankPaymentExportService::class)->exportPayments(Payment::all());
         $row = $this->dataRows($csv)[0];

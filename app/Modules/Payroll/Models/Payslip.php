@@ -14,6 +14,7 @@ use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use App\Notifications\PayslipRejected;
+use App\Support\Contracts\OwnedByUser;
 use App\Support\Impersonation;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
@@ -21,7 +22,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
-class Payslip extends Model
+class Payslip extends Model implements OwnedByUser
 {
     use Auditable, HasComments;
 
@@ -142,6 +143,17 @@ class Payslip extends Model
         }
 
         return $this;
+    }
+
+    /**
+     * Whose payslip this is.
+     *
+     * Answers App\Support\Contracts\OwnedByUser, which is how `CommentPolicy` lets an employee read the
+     * comments on their own payslip without Core's policy knowing what a payslip is.
+     */
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->employee !== null && $this->employee->user_id === $user->getKey();
     }
 
     public function employee()

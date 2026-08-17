@@ -9,6 +9,9 @@ use App\Modules\Payroll\Console\Commands\PostPendingPayrollEntries;
 use App\Modules\Payroll\Console\Commands\SetPayrollAutoPosting;
 use App\Modules\Payroll\Console\Commands\VerifyPayComponents;
 use App\Modules\Payroll\Events\PayslipReviewed;
+use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
+use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
+use App\Modules\Payroll\Filament\Pages\TaxSummary;
 use App\Modules\Payroll\Listeners\CopyReviewOntoPayment;
 use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\PayComponent;
@@ -20,7 +23,10 @@ use App\Modules\Payroll\Policies\PayComponentPolicy;
 use App\Modules\Payroll\Policies\PayrollRunPolicy;
 use App\Modules\Payroll\Policies\PayslipPolicy;
 use App\Modules\Payroll\Policies\SalarySlabPolicy;
+use App\Modules\Payroll\Services\SalaryPaymentGenerator;
 use App\Modules\Payroll\Support\PayrollReports;
+use App\Support\PaymentGenerators;
+use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -58,10 +64,24 @@ class PayrollServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // This module's reports in the Reports hub. Registered rather than listed in Core, which
+        // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
+        ReportCatalogue::register('Payroll & tax', TaxSummary::class, 'Tax withheld per employee for the year, with the slab it fell in.');
+        ReportCatalogue::register('Payroll & tax', FbrTaxFile::class, 'The withholding statement, in the format FBR accepts.');
+        ReportCatalogue::register('Payroll & tax', SalaryBankFile::class, 'Salary payments as a bank upload file, for a payroll month.');
+
         // A payslip's review decision is copied onto the salary payment waiting on it. Registered here
         // rather than in a global EventServiceProvider because the pair is Payroll's business — see
         // App\Modules\Payroll\Listeners\CopyReviewOntoPayment.
         Event::listen(PayslipReviewed::class, CopyReviewOntoPayment::class);
+
+        // The month's salary payables, raised when either bank-file page is opened. Registered rather than
+        // called by name, because the caller is in Accounting and naming this from there was the last
+        // `accounting -> payroll` edge. See App\Support\PaymentGenerators.
+        PaymentGenerators::register(
+            'salary',
+            fn (string $month, $fiscalYear): int => app(SalaryPaymentGenerator::class)->generate($month, $fiscalYear),
+        );
 
         // A payment's link to the payslip it pays, contributed rather than declared — Accounting keeps the
         // `payslip_id` column and stops naming a Payslip. Same mechanism as the Projects tab in phase 7.

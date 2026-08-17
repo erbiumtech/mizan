@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Services\CsvImportService;
+use App\Support\CsvImporters;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -25,6 +26,10 @@ use UnitEnum;
  *
  * Nothing is written until the preview has been read: an import that half-succeeds
  * leaves somebody guessing which half.
+ *
+ * The types on offer are whatever the installed modules registered — see `App\Support\CsvImporters` and
+ * docs/module-packaging-plan.md §9 — so this page no longer names an import type of its own, including the
+ * one that needed a date.
  */
 class CsvImport extends Page
 {
@@ -43,15 +48,28 @@ class CsvImport extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->isAdministrator() ?? false;
+        // Nothing registered means no module that owns importable records is installed, and the page would
+        // offer an empty dropdown.
+        return (auth()->user()?->isAdministrator() ?? false) && CsvImporters::keys() !== [];
     }
 
     public function mount(): void
     {
         $this->form->fill([
-            'type' => CsvImportService::TYPE_CONTACTS,
-            'opening_date' => now()->toDateString(),
+            'type' => $this->defaultType(),
+            'as_at' => now()->toDateString(),
         ]);
+    }
+
+    /** The first registered type, since which types exist is no longer known here. */
+    protected function defaultType(): ?string
+    {
+        return CsvImporters::keys()[0] ?? null;
+    }
+
+    protected function chosenType(): ?string
+    {
+        return $this->data['type'] ?? $this->defaultType();
     }
 
     public function form(Schema $schema): Schema
@@ -60,17 +78,19 @@ class CsvImport extends Page
             ->components([
                 Select::make('type')
                     ->label('What are you importing?')
-                    ->options(CsvImportService::LABELS)
+                    ->options(CsvImporters::labels())
                     ->selectablePlaceholder(false)
                     ->native(false)
                     ->live()
                     ->afterStateUpdated(fn () => $this->preview = null),
 
-                DatePicker::make('opening_date')
-                    ->label('Balances as at')
+                // Shown only for the imports that asked for a date, with the wording they asked for: an
+                // opening trial balance is posted on a day, a list of clients is not.
+                DatePicker::make('as_at')
+                    ->label(fn (Get $get): string => $this->dateField($get('type'))['label'] ?? 'As at')
                     ->native(false)
-                    ->visible(fn (Get $get): bool => $get('type') === CsvImportService::TYPE_OPENING_BALANCES)
-                    ->helperText('The date the opening entry is posted on — usually the day before your first month here.'),
+                    ->visible(fn (Get $get): bool => $this->dateField($get('type')) !== null)
+                    ->helperText(fn (Get $get): ?string => $this->dateField($get('type'))['help'] ?? null),
 
                 FileUpload::make('file')
                     ->label('CSV file')
@@ -86,7 +106,23 @@ class CsvImport extends Page
 
     public function columnsFor(): array
     {
-        return CsvImportService::COLUMNS[$this->data['type'] ?? CsvImportService::TYPE_CONTACTS] ?? [];
+        $type = $this->chosenType();
+
+        return $type !== null && CsvImporters::has($type)
+            ? CsvImporters::get($type)->columns()
+            : [];
+    }
+
+    /**
+     * The date field this type asked for, or null.
+     *
+     * @return null|array{label: string, help: string}
+     */
+    protected function dateField(?string $type): ?array
+    {
+        return $type !== null && CsvImporters::has($type)
+            ? CsvImporters::get($type)->dateField()
+            : null;
     }
 
     protected function contents(): ?string
@@ -152,7 +188,7 @@ class CsvImport extends Page
                         $result = app(CsvImportService::class)->import(
                             $this->contents(),
                             $this->data['type'],
-                            $this->data['opening_date'] ?? null,
+                            $this->data['as_at'] ?? null,
                         );
                     } catch (\Throwable $e) {
                         Notification::make()->danger()->title($e->getMessage())->send();

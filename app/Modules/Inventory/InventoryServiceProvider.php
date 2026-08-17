@@ -6,8 +6,12 @@ use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Policies\ProductPolicy;
 use App\Modules\Inventory\Policies\StockMovementPolicy;
+use App\Modules\Inventory\Support\ProductCsvImporter;
+use App\Support\CsvImporters;
+use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
 use App\Support\JournalEntryOwners;
+use App\Support\ModuleMap;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -28,6 +32,14 @@ class InventoryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The records of this module that may carry custom fields. Registered by alias, which is what
+        // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
+        CustomFieldSubjects::register(ModuleMap::alias(Product::class), 'Products');
+
+        // Products from a spreadsheet at setup. Core reads the CSV; what a row means is here, because
+        // `Product` is this module's — see App\Support\CsvImporters.
+        CsvImporters::register('products', ProductCsvImporter::class, 20);
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

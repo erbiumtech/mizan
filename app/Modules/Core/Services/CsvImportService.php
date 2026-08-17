@@ -2,11 +2,8 @@
 
 namespace App\Modules\Core\Services;
 
-use App\Modules\Accounting\Models\Account;
-use App\Modules\Accounting\Models\JournalEntry;
-use App\Modules\Accounting\Services\JournalEntryService;
-use App\Modules\Inventory\Models\Product;
-use App\Modules\Invoicing\Models\Contact;
+use App\Support\Contracts\CsvImporter;
+use App\Support\CsvImporters;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -21,27 +18,41 @@ use InvalidArgumentException;
  * by row: an import that half-succeeds and stops leaves somebody guessing which half.
  * Rows that cannot be used are named with their line number and skipped, rather than
  * aborting the rest — a typo on line 40 should not cost the other 39.
+ *
+ * **What is here is the reading; what a file means comes from its module.** This class held all three
+ * imports and so named `Contact`, `Product`, `Account`, `JournalEntry` and `JournalEntryService` — Core
+ * depending on Invoicing, Inventory and Accounting for a screen that is otherwise CSV mechanics. Each import
+ * is now an `App\Support\Contracts\CsvImporter` registered by its owning module; see `App\Support\CsvImporters`
+ * and docs/module-packaging-plan.md §9. Finding columns by header, numbering lines, previewing without
+ * writing and rendering a template are the same work whatever is being imported, and stayed.
  */
 class CsvImportService
 {
-    public const TYPE_CONTACTS = 'contacts';
+    /** The importer for a type, or an error naming the type rather than a null somewhere later. */
+    public function importer(string $type): CsvImporter
+    {
+        return CsvImporters::get($type);
+    }
 
-    public const TYPE_PRODUCTS = 'products';
+    /**
+     * The columns an import expects, in order.
+     *
+     * @return array<int, string>
+     */
+    public function columns(string $type): array
+    {
+        return $this->importer($type)->columns();
+    }
 
-    public const TYPE_OPENING_BALANCES = 'opening_balances';
-
-    /** The columns each import expects, in order, and what they mean. */
-    public const COLUMNS = [
-        self::TYPE_CONTACTS => ['name', 'kind', 'email', 'phone', 'ntn', 'cnic', 'address'],
-        self::TYPE_PRODUCTS => ['sku', 'name', 'unit', 'description'],
-        self::TYPE_OPENING_BALANCES => ['account_code', 'debit', 'credit'],
-    ];
-
-    public const LABELS = [
-        self::TYPE_CONTACTS => 'Clients and suppliers',
-        self::TYPE_PRODUCTS => 'Products',
-        self::TYPE_OPENING_BALANCES => 'Opening balances',
-    ];
+    /**
+     * Type => label, for the "what are you importing?" select.
+     *
+     * @return array<string, string>
+     */
+    public function labels(): array
+    {
+        return CsvImporters::labels();
+    }
 
     /**
      * Read a CSV into rows keyed by the expected columns.
@@ -54,7 +65,7 @@ class CsvImportService
      */
     public function read(string $contents, string $type): Collection
     {
-        $expected = self::COLUMNS[$type] ?? throw new InvalidArgumentException("Unknown import type {$type}.");
+        $expected = $this->columns($type);
 
         $lines = preg_split('/\R/', trim($contents)) ?: [];
 
@@ -103,8 +114,10 @@ class CsvImportService
      */
     public function preview(string $contents, string $type): array
     {
+        $importer = $this->importer($type);
+
         $rows = $this->read($contents, $type)
-            ->map(fn (array $row): array => $row + ['_problem' => $this->problemWith($row, $type)])
+            ->map(fn (array $row): array => $row + ['_problem' => $importer->problemWith($row)])
             ->all();
 
         return [
@@ -117,14 +130,15 @@ class CsvImportService
     /**
      * @return array{imported: int, skipped: array<int, string>}
      */
-    public function import(string $contents, string $type, ?string $openingDate = null): array
+    public function import(string $contents, string $type, ?string $date = null): array
     {
+        $importer = $this->importer($type);
         $rows = $this->read($contents, $type);
         $skipped = [];
         $usable = collect();
 
         foreach ($rows as $row) {
-            if ($problem = $this->problemWith($row, $type)) {
+            if ($problem = $importer->problemWith($row)) {
                 $skipped[] = "Line {$row['_line']}: {$problem}";
 
                 continue;
@@ -133,172 +147,14 @@ class CsvImportService
             $usable->push($row);
         }
 
-        $imported = match ($type) {
-            self::TYPE_CONTACTS => $this->importContacts($usable),
-            self::TYPE_PRODUCTS => $this->importProducts($usable),
-            self::TYPE_OPENING_BALANCES => $this->importOpeningBalances($usable, $openingDate),
-            default => 0,
-        };
-
-        return ['imported' => $imported, 'skipped' => $skipped];
-    }
-
-    /** Why this row cannot be used, or null. */
-    private function problemWith(array $row, string $type): ?string
-    {
-        return match ($type) {
-            self::TYPE_CONTACTS => match (true) {
-                $row['name'] === '' => 'no name',
-                $row['email'] !== '' && ! filter_var($row['email'], FILTER_VALIDATE_EMAIL) => "\"{$row['email']}\" is not an email address",
-                default => null,
-            },
-            self::TYPE_PRODUCTS => match (true) {
-                $row['sku'] === '' => 'no SKU',
-                $row['name'] === '' => 'no name',
-                default => null,
-            },
-            self::TYPE_OPENING_BALANCES => $this->openingBalanceProblem($row),
-            default => 'unknown import type',
-        };
-    }
-
-    private function openingBalanceProblem(array $row): ?string
-    {
-        if ($row['account_code'] === '') {
-            return 'no account code';
-        }
-
-        if (! Account::where('code', $row['account_code'])->exists()) {
-            return "no account with code {$row['account_code']}";
-        }
-
-        $debit = (float) str_replace(',', '', $row['debit'] ?: '0');
-        $credit = (float) str_replace(',', '', $row['credit'] ?: '0');
-
-        if ($debit < 0 || $credit < 0) {
-            return 'a negative amount — put it in the other column instead';
-        }
-
-        if (($debit > 0) === ($credit > 0)) {
-            return 'an amount in both debit and credit, or in neither';
-        }
-
-        return null;
-    }
-
-    private function importContacts(Collection $rows): int
-    {
-        $imported = 0;
-
-        foreach ($rows as $row) {
-            // By name, so running the same file twice corrects rather than duplicates.
-            Contact::updateOrCreate(
-                ['name' => $row['name']],
-                [
-                    'kind' => in_array($row['kind'], [Contact::KIND_CUSTOMER, Contact::KIND_SUPPLIER, Contact::KIND_BOTH], true)
-                        ? $row['kind']
-                        : Contact::KIND_CUSTOMER,
-                    'email' => $row['email'] ?: null,
-                    'phone' => $row['phone'] ?: null,
-                    'ntn' => $row['ntn'] ?: null,
-                    'cnic' => $row['cnic'] ?: null,
-                    'address_line_1' => $row['address'] ?: null,
-                    'is_active' => true,
-                ],
-            );
-
-            $imported++;
-        }
-
-        return $imported;
-    }
-
-    private function importProducts(Collection $rows): int
-    {
-        $imported = 0;
-
-        foreach ($rows as $row) {
-            Product::updateOrCreate(
-                ['sku' => $row['sku']],
-                [
-                    'name' => $row['name'],
-                    'unit' => $row['unit'] ?: 'pcs',
-                    'description' => $row['description'] ?: null,
-                    'is_active' => true,
-                ],
-            );
-
-            $imported++;
-        }
-
-        return $imported;
-    }
-
-    /**
-     * Opening balances as one journal entry, balanced by Opening Balance Equity.
-     *
-     * One entry, not one per row, because a trial balance is a single fact about a
-     * single date. Whatever the rows do not balance to lands in 3300, which is what
-     * that account is for and what the trial balance and balance sheet both already
-     * report on: a half-entered opening position shows up there rather than as an
-     * imbalance nobody can see.
-     */
-    private function importOpeningBalances(Collection $rows, ?string $date): int
-    {
-        if ($rows->isEmpty()) {
-            return 0;
-        }
-
-        $date ??= now()->toDateString();
-        $lines = [];
-        $net = 0.0;
-
-        foreach ($rows as $row) {
-            $account = Account::where('code', $row['account_code'])->firstOrFail();
-            $debit = round((float) str_replace(',', '', $row['debit'] ?: '0'), 2);
-            $credit = round((float) str_replace(',', '', $row['credit'] ?: '0'), 2);
-
-            $lines[] = $debit > 0
-                ? ['account_id' => $account->id, 'debit_amount' => $debit, 'description' => 'Opening balance']
-                : ['account_id' => $account->id, 'credit_amount' => $credit, 'description' => 'Opening balance'];
-
-            $net = round($net + $debit - $credit, 2);
-        }
-
-        if (abs($net) >= 0.005) {
-            $obe = Account::where('code', '3300')->firstOrFail();
-
-            $lines[] = $net > 0
-                ? ['account_id' => $obe->id, 'credit_amount' => $net, 'description' => 'Opening Balance Equity']
-                : ['account_id' => $obe->id, 'debit_amount' => -$net, 'description' => 'Opening Balance Equity'];
-        }
-
-        $entries = app(JournalEntryService::class);
-
-        $entry = $entries->create([
-            'entry_date' => $date,
-            'entry_type' => 'general',
-            'memo' => 'Opening balances imported from CSV',
-        ], $lines);
-
-        $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);
-        $entries->post($entry);
-
-        return $rows->count();
+        return ['imported' => $importer->write($usable, $date), 'skipped' => $skipped];
     }
 
     /** A file somebody can fill in, rather than a format they have to guess. */
     public function template(string $type): string
     {
-        $columns = self::COLUMNS[$type] ?? throw new InvalidArgumentException("Unknown import type {$type}.");
+        $importer = $this->importer($type);
 
-        $example = match ($type) {
-            self::TYPE_CONTACTS => ['Erbium AG', 'customer', 'billing@erbium.example', '+41 44 000 0000', '', '', 'Zurich'],
-            self::TYPE_PRODUCTS => ['SKU-001', 'Laptop stand', 'pcs', 'Aluminium, adjustable'],
-            self::TYPE_OPENING_BALANCES => ['1100', '250000.00', ''],
-            default => [],
-        };
-
-        return implode(',', $columns)."\n".implode(',', $example)."\n";
+        return implode(',', $importer->columns())."\n".implode(',', $importer->example())."\n";
     }
 }

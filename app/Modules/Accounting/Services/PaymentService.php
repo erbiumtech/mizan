@@ -5,13 +5,7 @@ namespace App\Modules\Accounting\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\Payment;
-use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Support\PayrollAccounts;
-use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Employees\Models\Employee;
-use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Services\SalaryBankExportService;
-use App\Support\ModuleMap;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use RuntimeException;
@@ -20,74 +14,14 @@ class PaymentService
 {
     public function __construct(private JournalEntryService $journalEntryService) {}
 
-    /**
-     * One draft salary Payment per payslip of the month (idempotent via
-     * the unique payslip_id).
+    /*
+     * `generateSalaryPayments()` moved to Payroll\Services\SalaryPaymentGenerator.
+     *
+     * It read payslips, priced a salary from one, and copied the payslip's review state onto the payment —
+     * all payroll's business, filed here because the row it writes is a Payment. Accounting still triggers
+     * it, through App\Support\PaymentGenerators, so the bank payment file still raises the month's
+     * payables when it is opened. See docs/module-packaging-plan.md §8 Group C.
      */
-    public function generateSalaryPayments(string $month, FiscalYear $fiscalYear): int
-    {
-        $type = TransactionType::byCode('salary');
-
-        if (! $type) {
-            throw new RuntimeException('Salary transaction type not found. Run TransactionTypeSeeder.');
-        }
-
-        $defaultAccount = $type->defaultCompanyBankAccount();
-        $year = app(SalaryBankExportService::class)->yearForMonth($month, $fiscalYear);
-        $created = 0;
-
-        $payslips = Payslip::with('employee')
-            ->where('month', $month)
-            ->where('fiscal_year_id', $fiscalYear->id)
-            ->get();
-
-        foreach ($payslips as $payslip) {
-            $payment = Payment::firstOrNew(['payslip_id' => $payslip->id]);
-
-            // Status, batch reference and released_at are deliberately absent
-            // here. This runs every time either bank-file page is opened, and an
-            // updateOrCreate that included status put every released payment back
-            // to draft on the next page view — so "exported" never stuck and a
-            // salary already sent to the bank reappeared in the following batch.
-            //
-            // A released payment is a record of what was actually sent, so its
-            // figures are left alone too: restating the amount afterwards would
-            // make the row disagree with the file the bank received.
-            if (! $payment->isReleased()) {
-                $payment->fill([
-                    // The stable alias, not the live class: payable_type is one of
-                    // the columns holding a class name across the module move.
-                    'payable_type' => ModuleMap::alias(Employee::class),
-                    'payable_id' => $payslip->employee_id,
-                    'transaction_type_id' => $type->id,
-                    'company_bank_account_id' => $defaultAccount?->id,
-                    'amount' => $payslip->net_salary,
-                    'details' => "Salary {$month} {$year}",
-
-                    // The payslip's review state, copied onto the payment at creation.
-                    //
-                    // The listener on PayslipReviewed keeps this current when somebody reviews a payslip
-                    // *later*; this covers the other order, which is the common one — a payslip accepted
-                    // before the bank file is opened, so the payment is created already knowing. Without
-                    // it every generated payment would start life looking unaccepted and the whole batch
-                    // would be held back. See docs/module-packaging-plan.md §8 Group C.
-                    'subject_review' => $payslip->employee_review,
-                    'subject_review_reason' => $payslip->employee_rejection_reason,
-                    'subject_reviewed_at' => $payslip->employee_reviewed_at,
-                ]);
-            }
-
-            if (! $payment->exists) {
-                $payment->status = Payment::STATUS_DRAFT;
-                $created++;
-            }
-
-            $payment->save();
-        }
-
-        return $created;
-    }
-
     /**
      * Approve a draft payment and post its journal entry: debit what the money
      * was for, credit Cash/Bank (1100).

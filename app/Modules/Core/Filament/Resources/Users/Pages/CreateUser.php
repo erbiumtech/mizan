@@ -5,7 +5,7 @@ namespace App\Modules\Core\Filament\Resources\Users\Pages;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Core\Filament\Resources\Users\UserResource;
 use App\Modules\Core\Models\User;
-use App\Modules\Employees\Models\Employee;
+use App\Events\UserCreated;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -39,11 +39,13 @@ class CreateUser extends CreateRecord
             return;
         }
 
-        Employee::create([
-            'user_id' => $user->id,
-            'employee_id' => 'EMP-'.$user->id,
-            'is_active' => 1,
-        ]);
+        // Announced rather than done here.
+        //
+        // Creating the employee record was Core reaching into the Employees module
+        // (docs/module-packaging-plan.md §9). The condition above stays — a super admin may create an
+        // account for another company from this page, and that person's employee record belongs in that
+        // company's database — because the page is what knows which tenant it is serving.
+        UserCreated::dispatch($user);
     }
 
     private function userBelongsToCurrentCompany(User $user): bool
