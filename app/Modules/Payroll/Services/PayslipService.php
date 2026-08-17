@@ -8,6 +8,8 @@ use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\Contracts\AdvanceLedger;
+use App\Support\Contracts\ReimbursableClaims;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
 use Carbon\Carbon;
@@ -20,33 +22,23 @@ class PayslipService
     /**
      * This month's advance instalment, or 0.0 when the employee has none.
      *
-     * Resolved through the container so Payroll does not hard-depend on the
-     * Advances module: with Advances not installed or switched off there is no
-     * ledger to read, and payroll carries on with the settings figure.
+     * Asked of the `AdvanceLedger` contract rather than of `Advances\Services\AdvanceService`, which Payroll
+     * named directly — a two-cycle, since Advances *requires* Payroll. With no ledger bound, or the module
+     * unlicensed, this is 0.0 and payroll carries on with the settings figure exactly as before. See
+     * docs/module-packaging-plan.md §11.
      */
     protected function advanceInstalmentFor($employeeId, ?int $excludingPayslipId = null): float
     {
-        if (! modules()->enabled('advances')) {
-            return 0.0;
-        }
-
-        return app(\App\Modules\Advances\Services\AdvanceService::class)
-            ->instalmentFor((int) $employeeId, $excludingPayslipId);
+        return app(AdvanceLedger::class)->instalmentFor($employeeId, $excludingPayslipId);
     }
 
     /**
-     * What this employee is owed back in approved expense claims, or 0.0 when the
-     * module is off — the same guarded shape as the advance ledger, so payroll works
-     * with or without Expenses installed.
+     * What this employee is owed back in approved expense claims, or 0.0 when there is no claims process —
+     * the same shape as the advance ledger above, so payroll works with or without Expenses installed.
      */
     protected function expenseClaimsFor($employeeId, ?int $payslipId = null): float
     {
-        if (! modules()->enabled('expenses')) {
-            return 0.0;
-        }
-
-        return app(\App\Modules\Expenses\Services\ExpenseClaimService::class)
-            ->reimbursableFor((int) $employeeId, $payslipId);
+        return app(ReimbursableClaims::class)->reimbursableFor($employeeId, $payslipId);
     }
 
     /**

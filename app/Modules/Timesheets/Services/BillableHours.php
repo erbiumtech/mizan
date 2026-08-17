@@ -2,38 +2,37 @@
 
 namespace App\Modules\Timesheets\Services;
 
-use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
-use Illuminate\Support\Carbon;
+use App\Support\Contracts\BillableTime;
 use Illuminate\Support\Collection;
 
 /**
  * Turning a month of booked time into invoice lines.
  *
- * Lives in Timesheets rather than Billing, and that direction matters: Billing asks
- * for the lines through the container behind a `modules()->enabled('timesheets')`
- * guard, so Billing does not import Timesheets and stays sellable without it. The
- * dependency points the way the licence does.
+ * Lives in Timesheets rather than Billing, and that direction matters: Billing asks for the lines through
+ * the `BillableTime` contract, so Billing does not name this class and stays sellable without it.
+ *
+ * **A contact, a year and a month — never a `BillingRun`.** This used to take the run, which was
+ * `timesheets -> billing` and the other half of the cycle. Those three values were all it ever read from
+ * it, and passing them instead is what let the pair come apart. See `App\Support\Contracts\BillableTime`.
  *
  * One line per employee per project, not one per entry. An invoice reading "Ali Raza —
  * Migration: 37.5 hours at 8,000" is a line a client can check; forty lines of two
  * hours each is a document nobody reads.
  */
-class BillableHours
+class BillableHours implements BillableTime
 {
     public function __construct(private readonly TimesheetService $timesheets) {}
 
     /**
-     * Invoice lines for everything billable in the run's month.
+     * Invoice lines for everything billable to a contact in a month.
      *
      * @return array<int, array{description: string, amount: float}>
      */
-    public function linesFor(BillingRun $run): array
+    public function linesFor(int|string $contactId, int $year, int $month): array
     {
-        $priced = $this->priceFor($run);
-
-        return $priced['lines'];
+        return $this->priceFor($contactId, $year, $month)['lines'];
     }
 
     /**
@@ -50,14 +49,20 @@ class BillableHours
      *     unpriced: array<int, string>
      * }
      */
-    public function priceFor(BillingRun $run): array
+    public function priceFor(int|string $contactId, int $year, int $month): array
     {
-        $period = $this->periodFor($run);
+        // The licence guard travels with the query rather than with the caller, as it does for
+        // PayrollRunPeriodLock: a company without Timesheets has no booked hours, so there is nothing to
+        // price — which is exactly what Billing's own `modules()->enabled('timesheets')` guard returned
+        // before this became a contract.
+        if (! modules()->enabled('timesheets')) {
+            return ['lines' => [], 'entries' => new Collection, 'unpriced' => []];
+        }
 
-        // The run bills one contact; the projects billable to it are those that name it
+        // A run bills one contact; the projects billable to it are those that name it
         // as their client. A project with no contact is internal and is never billed.
         $projects = Project::query()
-            ->where('contact_id', $run->contact_id)
+            ->where('contact_id', $contactId)
             ->get();
 
         $lines = [];
@@ -65,7 +70,7 @@ class BillableHours
         $billed = new Collection;
 
         foreach ($projects as $project) {
-            $entries = $this->timesheets->billableFor($project, $period['year'], $period['month']);
+            $entries = $this->timesheets->billableFor($project, $year, $month);
 
             foreach ($entries->groupBy('employee_id') as $employeeEntries) {
                 $employee = $employeeEntries->first()->employee;
@@ -117,20 +122,12 @@ class BillableHours
      * Called when the invoice is BUILT, never when the breakdown is previewed — a
      * clerk looking at next month's figures must not burn the hours.
      */
-    public function lockFor(BillingRun $run): int
+    public function lockFor(int|string $contactId, int $year, int $month): int
     {
-        $entries = $this->priceFor($run)['entries'];
+        $entries = $this->priceFor($contactId, $year, $month)['entries'];
 
         $this->timesheets->lock($entries);
 
         return $entries->count();
-    }
-
-    /** @return array{year: int, month: int} */
-    private function periodFor(BillingRun $run): array
-    {
-        $start = Carbon::parse($run->periodStart());
-
-        return ['year' => $start->year, 'month' => $start->month];
     }
 }

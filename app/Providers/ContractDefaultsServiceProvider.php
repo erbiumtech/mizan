@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
+use App\Support\Contracts\AdvanceLedger;
+use App\Support\Contracts\BillableTime;
 use App\Support\Contracts\ConfiguredWeekendCalendar;
 use App\Support\Contracts\FiscalYearCloseCheck;
 use App\Support\Contracts\NeverLocked;
+use App\Support\Contracts\NoAdvanceLedger;
+use App\Support\Contracts\NoBillableTime;
 use App\Support\Contracts\NoFiscalYearClose;
+use App\Support\Contracts\NoReimbursableClaims;
 use App\Support\Contracts\PeriodLock;
+use App\Support\Contracts\ReimbursableClaims;
 use App\Support\Contracts\WorkingDayCalendar;
 use App\Support\Reporting\NoReportPane;
 use App\Support\Reporting\ReportPaneRenderer;
@@ -41,6 +47,17 @@ class ContractDefaultsServiceProvider extends ServiceProvider
 
         // With no accounting module there is no pane, and every report in the hub opens on its own page.
         $this->app->bind(ReportPaneRenderer::class, NoReportPane::class);
+
+        // With no timesheets module nothing is billed by the hour, which is what a headcount-billed client's
+        // invoice already looked like.
+        $this->app->bind(BillableTime::class, NoBillableTime::class);
+
+        // A payslip deducts an advance instalment and reimburses expense claims, and both ledgers live in
+        // modules that *require* Payroll — so Payroll asks rather than names. Nothing owed and nothing to
+        // record is the honest answer for a company that bought neither, and it is the behaviour payroll's
+        // own `modules()->enabled()` guards produced before these became contracts.
+        $this->app->bind(AdvanceLedger::class, NoAdvanceLedger::class);
+        $this->app->bind(ReimbursableClaims::class, NoReimbursableClaims::class);
 
         $this->app->bind(WorkingDayCalendar::class, ConfiguredWeekendCalendar::class);
         $this->app->bind(PeriodLock::class, NeverLocked::class);

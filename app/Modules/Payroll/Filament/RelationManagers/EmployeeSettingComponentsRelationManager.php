@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Modules\Employees\Filament\Resources\EmployeeSettings\RelationManagers;
+namespace App\Modules\Payroll\Filament\RelationManagers;
 
+use App\Modules\Payroll\Models\PayComponent;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -23,13 +24,17 @@ use Filament\Tables\Table;
  * already versions packages by: a raise in March is a new setting, and its component
  * amounts go with it.
  *
- * PayComponent is referenced by its full name rather than imported, deliberately.
- * Payroll requires Employees, so an import the other way would make the two mutually
- * dependent — the same reason PayslipService reaches Advances through the container.
- * The screen degrades to an empty list without Payroll, which is the truthful answer
- * when there are no pay components to attach.
+ * **Lived in Employees, and referenced `PayComponent` by its full name to hide the edge.** Its own docblock
+ * said so: *"referenced by its full name rather than imported, deliberately"* — which is the manoeuvre
+ * `docs/module-packaging-plan.md` names as the cycle being avoided in the lint rather than in the code, and
+ * which phase 0's scan sees straight through. Payroll requires Employees, so the honest fix is the phase 7
+ * one: Employees offers a slot, this fills it from `PayrollServiceProvider`, and Employees never learns that
+ * Payroll exists. `PayComponent` is imported properly here because this module owns it.
+ *
+ * The screen is simply absent without Payroll rather than an empty list, which is a better answer than the
+ * old one for the same reason: there are no pay components to attach.
  */
-class ComponentsRelationManager extends RelationManager
+class EmployeeSettingComponentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'components';
 
@@ -40,7 +45,7 @@ class ComponentsRelationManager extends RelationManager
         return $schema->components([
             Select::make('pay_component_id')
                 ->label('Component')
-                ->options(fn (): array => \App\Modules\Payroll\Models\PayComponent::active()
+                ->options(fn (): array => PayComponent::active()
                     ->dataDriven()
                     ->orderBy('sort')
                     ->get()
@@ -70,7 +75,7 @@ class ComponentsRelationManager extends RelationManager
                 TextColumn::make('component.kind')
                     ->label('Kind')
                     ->badge()
-                    ->color(fn (string $state): string => $state === \App\Modules\Payroll\Models\PayComponent::KIND_EARNING ? 'success' : 'danger'),
+                    ->color(fn (string $state): string => $state === PayComponent::KIND_EARNING ? 'success' : 'danger'),
 
                 TextColumn::make('amount')->money('PKR')->alignEnd(),
 
