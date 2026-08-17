@@ -13,13 +13,9 @@ use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Accounting\Services\GeneralLedgerService;
 use App\Modules\Accounting\Services\PettyCashService;
 use App\Modules\Accounting\Services\RegisterEntryService;
-use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Invoicing\Services\FbrReconciliation;
-use App\Modules\Invoicing\Services\InvoiceService;
-use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Services\SalaryBankExportService;
-use App\Modules\Payroll\Services\WithholdingTaxSummary;
+use App\Support\Reporting\ReportRenderers;
+use App\Support\Reporting\ReportShapes;
 use Carbon\Carbon;
 
 /**
@@ -45,6 +41,8 @@ use Carbon\Carbon;
  */
 class ReportPane
 {
+    use ReportShapes;
+
     public function __construct(
         private ComparativeStatement $statements,
         private FinancialReportService $reports,
@@ -116,20 +114,24 @@ class ReportPane
      */
     public function for(string $key, string $asOf, bool $comparison = true, array $asked = []): ?array
     {
+        // A report the owning module renders itself — Payroll's three, Invoicing's three. Asked first,
+        // so a module can also override one of Accounting's if it ever needs to. See
+        // App\Support\Reporting\ReportRenderers.
+        if (ReportRenderers::has($key)) {
+            return ReportRenderers::render($key, $asOf, $comparison, $asked);
+        }
+
         return match ($key) {
             'BalanceSheet', 'ProfitAndLoss', 'CashFlow' => $this->statement($key, $asOf, $comparison),
             'TrialBalance' => $this->trialBalance($asOf),
             'GeneralLedger' => $this->generalLedger($asOf),
-            'AgedReceivables', 'AgedPayables' => $this->ageing($key, $asOf),
-            'TaxSummary' => $this->taxSummary($asOf, $asked['month'] ?? null),
             'ContractorPayments' => $this->contractorPayments($asOf),
             'BudgetVsActual' => $this->budgetVsActual($asOf, $asked['budget'] ?? null),
-            'FbrInvoiceReporting' => $this->fbrReconciliation($asOf),
             'PettyCashBook' => $this->pettyCash($asOf, $asked['month'] ?? null),
             'CurrencyRevaluation' => $this->revaluation($asOf),
             'AccountRegister' => $this->accountRegister($asOf, $asked['account'] ?? null),
             'FindTransactions' => $this->findTransactions($asOf, (string) ($asked['search'] ?? '')),
-            'SalaryBankFile', 'FbrTaxFile', 'BankPaymentFile' => $this->file($key, $asOf),
+            'BankPaymentFile' => $this->file($key, $asOf),
             default => null,
         };
     }
@@ -444,73 +446,6 @@ class ReportPane
         ];
     }
 
-    /** A figure, or nothing where a nought would be noise. Ledger columns are read down, not added up. */
-    private function amount(float|int|string|null $value): string
-    {
-        return (float) $value ? number_format((float) $value, 0) : '';
-    }
-
-    // ----------------------------------------------------------------- the ageing
-
-    /**
-     * Receivables or payables, bucketed by how late they are.
-     *
-     * The buckets are the report; the invoice list underneath is what makes a bucket actionable, and it
-     * is capped here because the pane is a reading surface rather than a work queue — the report's own
-     * page has all of them.
-     *
-     * @return array<string, mixed>
-     */
-    private function ageing(string $key, string $asOf): array
-    {
-        $receivable = $key === 'AgedReceivables';
-
-        $report = $receivable
-            ? app(InvoiceService::class)->outstandingReceivables($asOf)
-            : app(InvoiceService::class)->outstandingPayables($asOf);
-
-        // Every outstanding invoice, oldest first. Capped at twenty-five once and that was the wrong
-        // call: the reason to open an ageing report is to work through it, and a list that stops at
-        // twenty-five silently omits the invoices at the end — which on this report are the worst ones.
-        $invoices = collect($report['invoices'])
-            ->sortByDesc('days_overdue')
-            ->values();
-
-        return [
-            'kind' => 'table',
-            'key' => $key,
-            'title' => $receivable ? 'Aged Receivables' : 'Aged Payables',
-            'subtitle' => $this->subtitle('as of '.Carbon::parse($report['as_of'])->format('j M Y')),
-            'columns' => ['Invoice', 'Contact', 'Days overdue', 'Outstanding'],
-            'grid' => '8rem minmax(0, 1fr) 7rem 8rem',
-            'numeric' => [2, 3],
-            'empty' => 'Nothing is outstanding at this date.',
-            'rows' => $invoices->map(fn (array $invoice): array => [
-                $invoice['invoice_number'],
-                $invoice['contact'],
-                (string) $invoice['days_overdue'],
-                number_format($invoice['outstanding_base'], 0),
-            ])->all(),
-            // The buckets as tiles: what the report is actually for.
-            'tiles' => collect($report['buckets'])
-                ->map(fn (float $amount, string $bucket): array => [
-                    'label' => mb_strtoupper($bucket === 'current' ? 'not yet due' : $bucket.' days'),
-                    'value' => $amount,
-                    'accent' => $bucket === '90+',
-                ])
-                ->values()
-                ->all(),
-            'footer' => [
-                'Total outstanding — '.$invoices->count().' invoices',
-                '',
-                '',
-                number_format((float) $report['total'], 0),
-            ],
-            'note' => mb_strtoupper($invoices->count().' invoices outstanding'),
-            'balanced' => true,
-        ];
-    }
-
     /**
      * The account codes a statement line can be opened into.
      *
@@ -526,109 +461,6 @@ class ReportPane
     public function drillable(): array
     {
         return app(RegisterEntryService::class)->registerAccounts()->pluck('code')->all();
-    }
-
-    // -------------------------------------------------------- the other eight reports
-
-    /**
-     * One table, described the same way whatever the report.
-     *
-     * `grid` is CSS rather than a column count because the columns are not interchangeable: an account
-     * name wants the slack and a figure wants a fixed width, and each report knows which of its own are
-     * which. `numeric` says which to right-align — a column of amounts read down the left edge is a
-     * column nobody can add up.
-     *
-     * @param  array<int, string>  $columns
-     * @param  array<int, array<int, string>>  $rows
-     * @param  array<int, array<string, mixed>>  $tiles
-     * @return array<string, mixed>
-     */
-    private function table(
-        string $key,
-        string $title,
-        string $subtitle,
-        array $columns,
-        string $grid,
-        array $numeric,
-        array $rows,
-        array $tiles,
-        string $note,
-        ?array $footer = null,
-        string $empty = 'Nothing to show for this period.',
-    ): array {
-        return [
-            'kind' => 'table',
-            'key' => $key,
-            'title' => $title,
-            'subtitle' => $subtitle,
-            'columns' => $columns,
-            'grid' => $grid,
-            'numeric' => $numeric,
-            'rows' => $rows,
-            'tiles' => $tiles,
-            'note' => $note,
-            // A row across the bottom, one cell per column, so a figure sits under the column it totals
-            // rather than in a single "total" cell that lines up with nothing.
-            'footer' => $footer,
-            'footer_span' => $footer === null ? 1 : self::span($footer),
-            'empty' => $empty,
-            'balanced' => true,
-        ];
-    }
-
-    /**
-     * How many columns the footer's label runs across: itself plus the blank cells after it.
-     *
-     * A register's figures start in the fourth column, so its label has three columns of room and needs
-     * them — the first of those is 7rem wide, which fits "Closing" and not the rest of the sentence. Worked
-     * out from the footer rather than declared per report so a report cannot state one and mean the other.
-     *
-     * @param  array<int, string>  $footer
-     */
-    private static function span(array $footer): int
-    {
-        $span = 1;
-
-        while ($span < count($footer) && $footer[$span] === '') {
-            $span++;
-        }
-
-        return $span;
-    }
-
-    /** Tax withheld per employee for the year, with what it was withheld on. */
-    private function taxSummary(string $asOf, ?string $month = null): array
-    {
-        $report = app(WithholdingTaxSummary::class)->summary($this->fiscalYear($asOf)?->getKey(), $month);
-        $employees = collect($report['employees'] ?? []);
-
-        return $this->table(
-            'TaxSummary',
-            'Tax Summary',
-            $this->subtitle('fiscal year '.($report['fiscal_year'] ?? '—').($month ? ' · '.$month : ' · the whole year')),
-            ['Employee', 'Taxable', 'Tax withheld'],
-            'minmax(0, 1fr) 10rem 10rem',
-            [1, 2],
-            $employees->map(fn (array $row): array => [
-                (string) ($row['name'] ?? $row['employee'] ?? '—'),
-                number_format((float) ($row['taxable'] ?? 0), 0),
-                number_format((float) ($row['tax'] ?? 0), 0),
-            ])->all(),
-            [
-                ['label' => 'TAXABLE TOTAL', 'value' => (float) ($report['taxable_total'] ?? 0), 'accent' => false],
-                ['label' => 'TAX WITHHELD', 'value' => (float) ($report['tax_total'] ?? 0), 'accent' => true],
-            ],
-            mb_strtoupper($employees->count().' employees with tax withheld'),
-            // Each figure under the column it totals, which is what a filing is checked against.
-            [
-                'Total — '.$employees->count().' employees',
-                number_format((float) ($report['taxable_total'] ?? 0), 0),
-                number_format((float) ($report['tax_total'] ?? 0), 0),
-            ],
-            $month
-                ? "No tax was withheld in {$month}."
-                : 'No tax has been withheld in this year yet.',
-        );
     }
 
     /** What each contractor has been paid over the year. */
@@ -654,6 +486,12 @@ class ReportPane
             'No contractor has been paid in this year yet.',
         );
     }
+
+    /**
+     * Planned against spent, by account.
+     *
+     * Needs a budget rather than a date — a fiscal year can hold more than one — so the pane asks, and
+     * falls back to the most recent when it has not been asked yet.
 
     /**
      * Planned against spent, by account.
@@ -702,52 +540,6 @@ class ReportPane
                 number_format((float) ($report['net_actual'] ?? 0), 0),
                 number_format((float) (($report['net_actual'] ?? 0) - ($report['net_planned'] ?? 0)), 0),
             ],
-        );
-    }
-
-    /** What FBR has not accepted, and what it never received. */
-    private function fbrReconciliation(string $asOf): array
-    {
-        $reconciliation = app(FbrReconciliation::class);
-
-        if (! $reconciliation->enabled()) {
-            return $this->table(
-                'FbrInvoiceReporting', 'FBR Invoice Reporting', $this->subtitle('integration off'),
-                ['Finding', 'Invoice', 'Detail'], 'minmax(0, 14rem) 10rem minmax(0, 1fr)', [], [], [],
-                'THE FBR INTEGRATION IS NOT SWITCHED ON', null,
-                'The FBR integration is not switched on for this company, so there is nothing to reconcile.',
-            );
-        }
-
-        $findings = collect($reconciliation->findings());
-
-        return $this->table(
-            'FbrInvoiceReporting',
-            'FBR Invoice Reporting',
-            $this->subtitle('as of '.Carbon::parse($asOf)->format('j M Y')),
-            ['Finding', 'Invoice', 'Detail'],
-            'minmax(0, 14rem) 10rem minmax(0, 1fr)',
-            [],
-            $findings->map(function ($finding): array {
-                // findings() is the reconciliation's own vocabulary and has changed shape before, so each
-                // row is read defensively rather than destructured — a wrong key here would be a blank
-                // column on a compliance report.
-                if (! is_array($finding)) {
-                    return ['—', '—', (string) $finding];
-                }
-
-                return [
-                    (string) ($finding['kind'] ?? $finding['finding'] ?? '—'),
-                    (string) ($finding['invoice_number'] ?? $finding['invoice'] ?? '—'),
-                    (string) ($finding['detail'] ?? $finding['reason'] ?? ''),
-                ];
-            })->all(),
-            [['label' => 'FINDINGS', 'value' => (float) $reconciliation->total(), 'accent' => $reconciliation->total() > 0]],
-            $reconciliation->total() > 0
-                ? mb_strtoupper($reconciliation->total().' invoices need attention')
-                : 'EVERY INVOICE IS ACCOUNTED FOR',
-            null,
-            'Every issued invoice has been accepted, and FBR has nothing this company has not sent.',
         );
     }
 
@@ -973,11 +765,7 @@ class ReportPane
             ->where('end_date', '>=', $date->toDateString())
             ->first() ?? FiscalYear::current();
 
-        [$title, $rows, $total, $unit] = match ($key) {
-            'SalaryBankFile' => $this->salaryFileSummary($date, $year),
-            'FbrTaxFile' => $this->taxFileSummary($year),
-            default => $this->paymentFileSummary($year),
-        };
+        [$title, $rows, $total, $unit] = $this->paymentFileSummary($year);
 
         return [
             'kind' => 'file',
@@ -997,25 +785,6 @@ class ReportPane
     }
 
     /** @return array{0: string, 1: int, 2: float, 3: string} */
-    private function salaryFileSummary(Carbon $date, ?FiscalYear $year): array
-    {
-        $rows = $year === null ? [] : app(SalaryBankExportService::class)
-            ->paymentsForMonth($date->format('F'), $year);
-
-        return ['Salary Bank File', count($rows), (float) collect($rows)->sum('amount'), 'Payments'];
-    }
-
-    /** @return array{0: string, 1: int, 2: float, 3: string} */
-    private function taxFileSummary(?FiscalYear $year): array
-    {
-        $payslips = Payslip::query()
-            ->when($year !== null, fn ($query) => $query->where('fiscal_year_id', $year->id))
-            ->where('withholding_tax', '>', 0);
-
-        return ['FBR Tax File', (clone $payslips)->count(), (float) $payslips->sum('withholding_tax'), 'Payslips'];
-    }
-
-    /** @return array{0: string, 1: int, 2: float, 3: string} */
     private function paymentFileSummary(?FiscalYear $year): array
     {
         $payments = \App\Modules\Accounting\Models\Payment::query()
@@ -1023,10 +792,5 @@ class ReportPane
             ->when($year !== null, fn ($query) => $query->whereBetween('value_date', [$year->start_date, $year->end_date]));
 
         return ['Bank Payment File', (clone $payments)->count(), (float) $payments->sum('amount'), 'Payments'];
-    }
-
-    private function subtitle(string $period): string
-    {
-        return trim((Company::current()?->name ?? '').' · '.$period, ' ·');
     }
 }

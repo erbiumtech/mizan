@@ -63,6 +63,17 @@ class PaymentService
                     'company_bank_account_id' => $defaultAccount?->id,
                     'amount' => $payslip->net_salary,
                     'details' => "Salary {$month} {$year}",
+
+                    // The payslip's review state, copied onto the payment at creation.
+                    //
+                    // The listener on PayslipReviewed keeps this current when somebody reviews a payslip
+                    // *later*; this covers the other order, which is the common one — a payslip accepted
+                    // before the bank file is opened, so the payment is created already knowing. Without
+                    // it every generated payment would start life looking unaccepted and the whole batch
+                    // would be held back. See docs/module-packaging-plan.md §8 Group C.
+                    'subject_review' => $payslip->employee_review,
+                    'subject_review_reason' => $payslip->employee_rejection_reason,
+                    'subject_reviewed_at' => $payslip->employee_reviewed_at,
                 ]);
             }
 

@@ -1,6 +1,6 @@
 # Module packaging: breaking the cycles — Plan
 
-**Status:** Phases 0–7 built (0–5 earlier; 6–7 on 2026-08-16). Phases 8–9 outstanding.
+**Status:** Phases 0–7 built; phase 8 Groups A and B built 2026-08-17. Group C and phase 9 outstanding.
 **Created:** 2026-08-15
 **Covers:** what "installable" was decided to mean (§1), the import graph and its cycles (§2–§3), the
 safety rails that must land before anything moves (§4), one manifest file per module (§5), the contracts
@@ -562,6 +562,8 @@ would have got the same weekend, correctly, and silently.
 | 4 | `WorkingDayCalendar` + `ConfiguredWeekendCalendar`, `PeriodLock` + `NeverLocked`, bound in `ContractDefaultsServiceProvider` |
 | 5 | `LeaveDayGenerator` → `WorkingDayCalendar` (Attendance binds `WorkPatternCalendar`); `RegularizationService` → `PeriodLock` (Payroll binds `PayrollRunPeriodLock`). `leave -> attendance` and `attendance -> payroll` deleted |
 | 6a | `Bank` → `App\Modules\Core\Models` (alias unchanged); `Bank::employees()` and `BankResource`'s Employees relation manager deleted; `BankResource`, `BankPolicy` and the `Bank` permission group stay in Accounting. `employees -> accounting` deleted. **Trapped: still 13** |
+| 8A | `OperationsOverview` → Core, its four figures registered per module (`App\Support\DashboardStats`); `ReportPane` 1032 → 491 lines, Payroll's and Invoicing's six reports moved to `PayrollReports`/`InvoicingReports` and registered (`App\Support\Reporting\ReportRenderers`), shapes shared via `ReportShapes`. **`accounting -> inventory` and `accounting -> invoicing` both deleted** |
+| 8B | The register's five-owner array → `App\Support\JournalEntryOwners`, each module registering what it owns. Behaviour unchanged — deliberately *not* the deletion the plan called for |
 | 7 | `employees -> projects` deleted by reversing it: `ProjectsServiceProvider` registers the three project relations on `Employee` via `Model::resolveRelationUsing()` and contributes the Projects tab through `App\Support\ResourceContributions`; `Employee::currentProjects()` deleted (no callers). **Trapped: still 13** |
 | 6b | The iPayments layout (204 columns, the column map, `row()`, `formatAmount()`, `escape()`) → `App\Support\Banking\IPaymentsFileWriter`; `BankPaymentExportService` **stops extending** `SalaryBankExportService` and takes the writer by constructor. A bank filter on the Employees list replaces the deleted relation manager. `ModelRelationsResolveTest` added |
 
@@ -690,6 +692,50 @@ eleven through `invoicing -> projects`, not through anything Employees does. Thr
 real edges without moving this number, which is worth saying plainly: **the module-count ratchet is the
 right invariant and the wrong progress bar.** `KNOWN_COUPLINGS` shrinking is the progress bar, and it has
 shrunk in every one of those phases.
+
+### Phase 8 Group B — the array was not dead code, and deleting it would have been a data bug
+
+§8 Group B calls the `$owners` array in `RegisterEntryService::immutableReason()` "a legacy fallback that
+is already dead code", on the stated grounds that `journal_entries.source_type` is set first and
+short-circuits ahead of it. **That is true of one of the five owners.** `DepreciationService` stamps
+`source_type` for `FixedAsset`; `PaymentService`, `InvoiceService` (for the sale entry) and
+`PettyCashService` stamp nothing at all, and `RegisterEntryEditTest` asserts the array's message for a
+payment and for a petty cash voucher specifically. Backfilling and deleting would have made every entry
+owned by a payment, an invoice, a petty cash voucher or a stock movement **editable from the register** —
+which is the desynchronisation the method exists to prevent, arriving as a lint improvement.
+
+So the lookup became a registry instead: Accounting registers its three owners, Invoicing registers the
+invoice, Inventory registers the stock movement, and `immutableReason()` asks. Same two edges removed,
+same behaviour, no migration and no backfill to get wrong. `JournalEntryOwnersTest` pins the five
+registrations *and* the premise — it asserts that only depreciation stamps `source_type`, so if that ever
+changes for all of them, Group B's deletion becomes possible and the test says to reopen it rather than
+sitting there asserting the past.
+
+### Phase 8 Group A — host code moved out, and a near-miss worth recording
+
+Both files §8 names were misfiled rather than coupled, and both moved:
+
+- **`OperationsOverview`** → Core, with its four figures registered by the modules that own them
+  (`App\Support\DashboardStats`). It gained something in the move: a stat now disappears with its module
+  rather than being hidden by a permission check that happens to be false.
+- **`ReportPane`** 1032 → 491 lines. Payroll's three reports and Invoicing's three moved to
+  `PayrollReports` and `InvoicingReports`, registered through `App\Support\Reporting\ReportRenderers`;
+  the four shapes they share moved to `App\Support\Reporting\ReportShapes`, so the look is unchanged
+  because it is literally the same code. Accounting's eleven stay where they are — moving those too would
+  be indirection for its own sake.
+
+Together these delete **`accounting -> inventory` and `accounting -> invoicing` entirely**, which is what
+§8 predicted for Group A alone.
+
+**The near-miss:** cutting the moved methods out of `ReportPane` by matching from a method signature to
+the next section marker silently took eight of Accounting's *own* adapters with it —
+`contractorPayments`, `budgetVsActual`, `pettyCash`, `revaluation`, `accountRegister`,
+`findTransactions`, `fiscalYear`, `drillable`. Nine tests failed immediately, so nothing shipped; what
+made it recoverable was that all eight were committed and unmodified, so they came back from `HEAD`
+verbatim. Then Pint's `no_unused_imports` had already removed the imports they needed, which failed a
+*second* time with a container error rather than a syntax one. **Extracting code by text boundaries needs
+a method-list diff before and after** — `grep 'function ' | sort | comm` took ten seconds and would have
+caught both.
 
 ### What phase 6 needed decided first
 

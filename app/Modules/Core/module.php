@@ -46,6 +46,11 @@ return [
         'App\\Filament\\Resources\\Holidays\\HolidayResource' => \App\Modules\Core\Filament\Resources\Holidays\HolidayResource::class,
     ],
 
+    'widgets' => [
+        // Belongs to no module and every module contributes to it — see App\\Support\\DashboardStats.
+        'App\\Filament\\Widgets\\OperationsOverview' => \App\Modules\Core\Filament\Widgets\OperationsOverview::class,
+    ],
+
     'pages' => [
         'App\\Filament\\Pages\\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
         'App\\Filament\\Pages\\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
