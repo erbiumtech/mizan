@@ -48,6 +48,12 @@ class RoleGrantsTest extends AccountingTestCase
      * because the library is what the next tender is priced from; CEO +1 for delete, which the policy further
      * refuses on a code that has children.
      *
+     * Phase 2, the six cost-ledger permissions: Employee +1 for view — a site engineer sees what the job has
+     * cost; Accountant +3 to record it; **Manager +2**, for `ConstructionCostReverse` and
+     * `ConstructionPeriodClose`, both approval-shaped and kept away from whoever recorded the cost; CEO +1 for
+     * `ConstructionPeriodForceClose`, which is closing over an unexplained difference between the two ledgers
+     * and is the one that needs a name on it.
+     *
      * Phase 1d, the five document permissions — and this is the run where the ratchet earned itself. Employee
      * +1 for view; Accountant +3; **Manager +1 for `ConstructionDocumentPublish`**, its first addition of its
      * own here, because publishing is what says "build this" and belongs with the approval powers rather than
@@ -58,10 +64,10 @@ class RoleGrantsTest extends AccountingTestCase
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 30,
-        'Accountant' => 90,
-        'Manager' => 104,
-        'CEO' => 119,
+        'Employee' => 31,
+        'Accountant' => 93,
+        'Manager' => 109,
+        'CEO' => 125,
     ];
 
     protected function setUp(): void
