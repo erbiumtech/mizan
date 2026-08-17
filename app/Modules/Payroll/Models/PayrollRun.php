@@ -5,7 +5,7 @@ namespace App\Modules\Payroll\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

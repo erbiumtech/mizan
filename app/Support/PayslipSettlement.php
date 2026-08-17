@@ -19,7 +19,7 @@ namespace App\Support;
  * `Payslip` crosses the boundary.
  *
  * `$effectiveOn` is computed by Payroll rather than by the far side, because "the last day of the payroll
- * month" is a payroll fact — `Payroll\Support\PayrollMonth::lastDay()`, reached through
+ * month" is a payroll fact — `App\Support\PayrollMonth::lastDay()`, reached through
  * `Payslip::settlementOf()`. The ledger recording a recovery should not have to know how a payroll month
  * ends.
  */

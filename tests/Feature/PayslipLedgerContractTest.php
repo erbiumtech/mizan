@@ -137,7 +137,7 @@ class PayslipLedgerContractTest extends AccountingTestCase
         $this->assertSame($payslip->employee_id, $settlement->employeeId);
         $this->assertSame(12000.0, $settlement->amount);
         $this->assertSame(
-            \App\Modules\Payroll\Support\PayrollMonth::lastDay($payslip->month, $payslip->fiscalYear)->toDateString(),
+            \App\Support\PayrollMonth::lastDay($payslip->month, $payslip->fiscalYear)->toDateString(),
             $settlement->effectiveOn,
             'the recovery would be dated by when somebody pressed save',
         );

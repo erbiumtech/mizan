@@ -88,7 +88,13 @@ class ModuleManifest
             'permission_groups' => [],
             'permissions' => [],
             'role_grants' => [],
+            'navigation' => [],
+            'navigation_items' => [],
         ];
+
+        // Which modules claimed each navigation label for which domain, kept only long enough to guard: a
+        // label claimed for two different domains is a real conflict, and the merged map cannot show it.
+        $navigationClaims = [];
 
         foreach (self::manifestPaths() as $key => $path) {
             $manifest = require $path;
@@ -128,9 +134,21 @@ class ModuleManifest
             foreach ($manifest['role_grants'] ?? [] as $role => $names) {
                 $merged['role_grants'][$role] = array_merge($merged['role_grants'][$role] ?? [], $names);
             }
+
+            // A navigation group label is shared: "Employee" is declared by ten modules, so ten of them claim
+            // it for the People domain. Agreement is the normal case and merges silently; disagreement is
+            // caught below rather than resolved by whichever manifest was read last.
+            foreach ($manifest['navigation'] ?? [] as $label => $domain) {
+                $merged['navigation'][$label] = $domain;
+                $navigationClaims[$label][$domain][] = $key;
+            }
+
+            foreach ($manifest['navigation_items'] ?? [] as $page => $domain) {
+                $merged['navigation_items'][$page] = $domain;
+            }
         }
 
-        self::guardAgainstCollisions($merged);
+        self::guardAgainstCollisions($merged, $navigationClaims);
 
         return $merged;
     }
@@ -170,11 +188,49 @@ class ModuleManifest
      * same-shaped table holding the wrong data, which no error will ever report.
      * A duplicate permission name means grants splitting across two rows.
      *
+     * A navigation label claimed for two domains is the one failure here that is *not* about duplication:
+     * group labels are shared on purpose, so the merge cannot tell agreement from disagreement and the claims
+     * have to be carried in separately. Left unguarded it would resolve to whichever manifest happened to be
+     * read last — alphabetical order — and move a whole group of screens to a different domain silently.
+     *
      * @param  array<string, mixed>  $merged
+     * @param  array<string, array<string, array<int, string>>>  $navigationClaims  label => domain => modules
      */
-    private static function guardAgainstCollisions(array $merged): void
+    private static function guardAgainstCollisions(array $merged, array $navigationClaims = []): void
     {
         $problems = [];
+
+        foreach ($navigationClaims as $label => $domains) {
+            if (count($domains) > 1) {
+                $problems[] = sprintf(
+                    'navigation label "%s" is claimed for %s',
+                    $label,
+                    implode(' and ', array_map(
+                        fn (string $domain, array $modules): string => $domain.' (by '.implode(', ', $modules).')',
+                        array_keys($domains),
+                        $domains,
+                    )),
+                );
+            }
+        }
+
+        // A domain that does not exist renders nowhere, so the screens under that label become reachable only
+        // by URL — the exact failure NavigationDomains' docblock warns about, arriving via a typo.
+        $known = NavigationDomains::keys();
+
+        foreach (['navigation' => 'label', 'navigation_items' => 'page'] as $table => $noun) {
+            foreach ($merged[$table] as $claim => $domain) {
+                if (! in_array($domain, $known, true)) {
+                    $problems[] = sprintf(
+                        '%s "%s" claims domain "%s", which is not one of: %s',
+                        $noun,
+                        $claim,
+                        $domain,
+                        implode(', ', $known),
+                    );
+                }
+            }
+        }
 
         foreach (['models', 'resources', 'pages', 'widgets'] as $table) {
             $owners = [];

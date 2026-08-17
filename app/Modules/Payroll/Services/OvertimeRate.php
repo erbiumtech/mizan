@@ -6,7 +6,7 @@ use App\Modules\Attendance\Services\WorkPatternResolver;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\EmployeeSetting;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 
 /**
  * Phase 3a: what an hour of overtime is worth.

@@ -104,4 +104,53 @@ return [
         ['name' => 'CommentView', 'group' => 'Comment'],
         ['name' => 'CommentResolve', 'group' => 'Comment'],
     ],
+
+    /**
+     * Which of this module's permissions each role starts with.
+     *
+     * Administrator holds everything and is not listed. Manager and CEO are *additions* to the
+     * role below them — RoleSeeder composes Accountant -> Manager -> CEO — so a permission
+     * already granted to Accountant is not repeated here.
+     */
+    'role_grants' => [
+        // Every member of staff.
+        'Employee' => [
+            'CommentCreate',
+            'CommentView',
+        ],
+        // Records, does not approve.
+        'Accountant' => [
+            'ActivityLogView',
+            'CommentCreate',
+            'CommentResolve',
+            'CommentView',
+            'HolidayView',
+        ],
+    ],
+
+    /**
+     * Which domain of the two-level shell this module's screens appear in.
+     *
+     * Keyed on the navigation group label the resources and pages declare. Labels are shared —
+     * "Employee" is claimed by ten modules — so agreement is normal and a label claimed for two
+     * different domains throws in ModuleManifest rather than resolving to whichever manifest was
+     * read last. The six domains themselves are App\Support\NavigationDomains.
+     */
+    'navigation' => [
+        'Access Control' => 'admin',
+        'Audit & Taxes' => 'finance',
+        'Settings' => 'admin',
+    ],
+
+    /**
+     * Pages that register no navigation group, claimed per class.
+     *
+     * Filament collects every ungrouped page into one unlabelled group, so these cannot be placed
+     * by label: the Dashboard and the manual belong to Home while the Reports hub is its own domain.
+     */
+    'navigation_items' => [
+        \Filament\Pages\Dashboard::class => 'home',
+        \App\Modules\Core\Filament\Pages\UserManual::class => 'home',
+        \App\Modules\Core\Filament\Pages\Reports::class => 'reports',
+    ],
 ];

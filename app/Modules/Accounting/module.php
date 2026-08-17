@@ -162,4 +162,97 @@ return [
         ['name' => 'BankStatementMatch', 'group' => 'BankStatement'],
         ['name' => 'BankStatementComplete', 'group' => 'BankStatement'],
     ],
+
+    /**
+     * Which of this module's permissions each role starts with.
+     *
+     * Administrator holds everything and is not listed. Manager and CEO are *additions* to the
+     * role below them — RoleSeeder composes Accountant -> Manager -> CEO — so a permission
+     * already granted to Accountant is not repeated here.
+     */
+    'role_grants' => [
+        // Records, does not approve.
+        'Accountant' => [
+            'AccountCreate',
+            'AccountUpdate',
+            'AccountView',
+            'BankCreate',
+            'BankStatementCreate',
+            'BankStatementImport',
+            'BankStatementMatch',
+            'BankStatementUpdate',
+            'BankStatementView',
+            'BankUpdate',
+            'BankView',
+            'BeneficiaryCreate',
+            'BeneficiaryUpdate',
+            'BeneficiaryView',
+            'BudgetCreate',
+            'BudgetUpdate',
+            'BudgetView',
+            'CompanyBankAccountCreate',
+            'CompanyBankAccountUpdate',
+            'CompanyBankAccountView',
+            'FixedAssetCreate',
+            'FixedAssetUpdate',
+            'FixedAssetView',
+            'GnuCashImport',
+            'JournalEntryCreate',
+            'JournalEntrySubmit',
+            'JournalEntryUpdate',
+            'JournalEntryView',
+            'LoanCreate',
+            'LoanUpdate',
+            'LoanView',
+            'PaymentCreate',
+            'PaymentDelete',
+            'PaymentUpdate',
+            'PaymentView',
+            'PettyCashCreate',
+            'PettyCashView',
+            'RegisterPost',
+            'ReportView',
+            'TransactionTypeCreate',
+            'TransactionTypeUpdate',
+            'TransactionTypeView',
+        ],
+        // On top of Accountant.
+        'Manager' => [
+            'BankStatementComplete',
+            'FixedAssetDepreciate',
+            'FixedAssetDispose',
+            'JournalEntryApprove',
+            'JournalEntryPost',
+            'JournalEntryReject',
+            'JournalEntryReverse',
+            'LoanRecord',
+            'PettyCashReplenish',
+        ],
+        // On top of Manager.
+        'CEO' => [
+            'AccountDelete',
+            'BankDelete',
+            'BankStatementDelete',
+            'BeneficiaryDelete',
+            'BudgetDelete',
+            'CompanyBankAccountDelete',
+            'FixedAssetDelete',
+            'LoanDelete',
+            'TransactionTypeDelete',
+        ],
+    ],
+
+    /**
+     * Which domain of the two-level shell this module's screens appear in.
+     *
+     * Keyed on the navigation group label the resources and pages declare. Labels are shared —
+     * "Employee" is claimed by ten modules — so agreement is normal and a label claimed for two
+     * different domains throws in ModuleManifest rather than resolving to whichever manifest was
+     * read last. The six domains themselves are App\Support\NavigationDomains.
+     */
+    'navigation' => [
+        'Accounting' => 'finance',
+        'Reports' => 'reports',
+        'Settings' => 'admin',
+    ],
 ];
