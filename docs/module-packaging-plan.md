@@ -1,6 +1,6 @@
 # Module packaging: breaking the cycles — Plan
 
-**Status:** Phases 0–5 built; phase 6 built 2026-08-16 (model carve + the inheritance break). Phases 7–9 outstanding.
+**Status:** Phases 0–7 built (0–5 earlier; 6–7 on 2026-08-16). Phases 8–9 outstanding.
 **Created:** 2026-08-15
 **Covers:** what "installable" was decided to mean (§1), the import graph and its cycles (§2–§3), the
 safety rails that must land before anything moves (§4), one manifest file per module (§5), the contracts
@@ -562,6 +562,7 @@ would have got the same weekend, correctly, and silently.
 | 4 | `WorkingDayCalendar` + `ConfiguredWeekendCalendar`, `PeriodLock` + `NeverLocked`, bound in `ContractDefaultsServiceProvider` |
 | 5 | `LeaveDayGenerator` → `WorkingDayCalendar` (Attendance binds `WorkPatternCalendar`); `RegularizationService` → `PeriodLock` (Payroll binds `PayrollRunPeriodLock`). `leave -> attendance` and `attendance -> payroll` deleted |
 | 6a | `Bank` → `App\Modules\Core\Models` (alias unchanged); `Bank::employees()` and `BankResource`'s Employees relation manager deleted; `BankResource`, `BankPolicy` and the `Bank` permission group stay in Accounting. `employees -> accounting` deleted. **Trapped: still 13** |
+| 7 | `employees -> projects` deleted by reversing it: `ProjectsServiceProvider` registers the three project relations on `Employee` via `Model::resolveRelationUsing()` and contributes the Projects tab through `App\Support\ResourceContributions`; `Employee::currentProjects()` deleted (no callers). **Trapped: still 13** |
 | 6b | The iPayments layout (204 columns, the column map, `row()`, `formatAmount()`, `escape()`) → `App\Support\Banking\IPaymentsFileWriter`; `BankPaymentExportService` **stops extending** `SalaryBankExportService` and takes the writer by constructor. A bank filter on the Employees list replaces the deleted relation manager. `ModelRelationsResolveTest` added |
 
 Not yet done from phase 3: `RoleSeeder`'s grants and the navigation claims are
@@ -641,6 +642,54 @@ Confirmed against the real bug: restoring it makes the test fail with
 
 **Run it before §8 and §9.** Both move classes within their own namespaces, where a bare reference to a
 neighbour is the normal case rather than the exception.
+
+### Phase 7 — and where this plan told itself to do the wrong thing
+
+Phase 7 as written has two halves: move the relation manager, and make "`Employee`'s three project
+relations become string-classname". **The second half was not done, because this document already
+explains why it is wrong.** Phase 0's own findings say it outright: Payroll reached Advances through the
+container "with no import, because an import would make the pair a cycle", and that is *"the cycle being
+avoided in the lint rather than in the code — `app(X::class)` still needs `X` on disk, so composer would
+still need the edge"*. `hasMany('App\Modules\Projects\Models\Project')` is the identical trick with
+an identical result: the lint goes quiet and the dependency is untouched. A plan is allowed to be wrong
+in one section and right in another; what it is not allowed to do is both at once without somebody
+noticing.
+
+What was done instead is the reversal the dependency direction already permits. `projects` **requires**
+`employees`, so Projects may name Employees all it likes; the cycle was only ever the other way. So:
+
+- The three relations are registered by `ProjectsServiceProvider` through `Model::resolveRelationUsing()`.
+  `$employee->projects()` still works — `Model::__call()` consults the relation resolvers before falling
+  through to the query builder (`vendor/laravel/framework/.../Model.php:2833`), which was checked in the
+  vendor source rather than assumed, because the property form working and the method form not would have
+  been a silent break in `TimesheetService`.
+- The Projects tab is contributed rather than declared. `EmployeeResource::getRelations()` returns its own
+  managers plus `ResourceContributions::relationManagersFor(static::class)`, and Projects fills the slot
+  from its provider. **The tab is now present exactly when Projects is**, which it was not before.
+- `Employee::currentProjects()` was deleted rather than moved. Nothing called it — a free deletion of the
+  same kind phase 1 found three of.
+
+`ProjectsContributionTest` covers what a boot-time relation makes invisible: the relations exist and are
+the right kind, the pivot survives, the two manager relations read the columns they are named for (they
+are one transposition apart), and the tab both appears *and* is a contribution rather than a declaration —
+that last assertion is the one that stops somebody "fixing" a future problem by naming the class in
+`EmployeeResource` again and restoring the cycle under a green suite.
+
+**Moving a class needs a repo-wide search for its basename, not its namespace.** The relation manager
+moved and `tests/Feature/ProjectAssignmentTest.php` still named the old path; the searches run before the
+move covered `app/Modules/Employees` and not `tests/`, so it reached a full-suite run. That is the second
+dangling reference in two phases, and the two have *different* shapes: 6a's was a bare same-namespace
+reference with no import to find (now caught by `ModelRelationsResolveTest`), this one was a perfectly
+ordinary import in a directory nobody searched. Neither guard catches the other's case. The cheap habit
+that catches both: `grep -rn ClassBasename app tests database` before moving anything, and again after.
+
+**Trapped: still 13.** Phase 7's stated end state was "7 cycles"; the ratchet does not move, and this time
+the components say exactly why — `[11] accounting, advances, attendance, core, employees, expenses,
+inventory, invoicing, leave, payroll, projects` and `[2] billing, timesheets`. Projects stays inside the
+eleven through `invoicing -> projects`, not through anything Employees does. Three phases have now removed
+real edges without moving this number, which is worth saying plainly: **the module-count ratchet is the
+right invariant and the wrong progress bar.** `KNOWN_COUPLINGS` shrinking is the progress bar, and it has
+shrunk in every one of those phases.
 
 ### What phase 6 needed decided first
 
