@@ -133,10 +133,33 @@ workflows.
 
 ### 2.1 Stock is per location, and a transfer is two movements
 
-`stock_movements.store_id` (nullable → backfilled to the default store → made non-null), and
-`InventoryValuationService` takes a store: `onHand(Product, ?Store)`, `stockValue(Product, ?Store)`,
-`averageCost(Product, ?Store)` — with `null` meaning the company, which is what today's callers mean
-and keeps them working.
+> **Decided 2026-08-17, and it changes the column this section proposes.** The dimension is
+> **`stock_movements.stock_location_id → stock_locations`, owned by Inventory** — not `store_id → stores`.
+> `docs/construction-management-plan.md` §6 raised the collision and this is the answer to it; that plan's
+> Phase 0 records the same decision. Both plans are still unbuilt and `stock_movements` has no location
+> column of any kind, so the backfill this section calls a one-way door has not happened yet — which is the
+> only reason the choice is still free. **Whichever plan starts first walks through it.**
+>
+> `stock_locations` carries `code`, `name`, `kind` (`warehouse|shop|site|van|transit`), address and
+> `inventory_account_id`. A store then has `stores.stock_location_id` and a construction job has
+> `construction_jobs.stock_location_id`, so neither module depends on the other and a building site is not a
+> `stores` row carrying till settings, a sales channel and a POS registration number. The rejected
+> alternatives were exactly two and both are worse: fake `stores` rows for sites, or a *second* nullable
+> location column, which makes on-hand wrong at every location and correct in total — the hardest class of
+> wrong to see.
+>
+> Everything else in this section stands unchanged, reading "location" for "store": the cost pool is per
+> (product, location), and FIFO layers are consumed within the location that holds them.
+>
+> One coordinated migration, not two: `stock_movements.type` is `purchase|sale|adjustment` today and expands
+> once for both plans — retail needs `transfer`, `waste` and `count_adjustment`; construction needs `issue`
+> and `return`. Booking a controlled site issue or a stock count as an "adjustment" makes the shrinkage
+> report meaningless, because adjustments are meant to be the *unexplained* ones.
+
+`stock_movements.stock_location_id` (nullable → backfilled to the default location → made non-null), and
+`InventoryValuationService` takes a location: `onHand(Product, ?StockLocation)`,
+`stockValue(Product, ?StockLocation)`, `averageCost(Product, ?StockLocation)` — with `null` meaning the
+company, which is what today's callers mean and keeps them working.
 
 The cost pool is **per (product, store)**. A company-wide average across stores would let a shop that
 bought cheap subsidise one that bought dear, and every gross-margin figure per store would be wrong in
@@ -531,13 +554,22 @@ places: §2 before the till, and §9's order document before anything in §8 tha
   API (§11); the offline device-staleness limit in days (§12). Write the answers into this document.
   Then a query-budget test for the till screen before it exists — a POS that takes 40 queries to add a
   line is unusable, and the ceiling is easier to defend from the start.
+
+  > **One of these is already answered: the stock dimension is `stock_location_id`, not `store_id`**
+  > (decided 2026-08-17 — see §2.1). It came from `docs/construction-management-plan.md` §6, which needed a
+  > site store and would otherwise have had to invent fake `stores` rows or a second nullable location
+  > column. **This is a genuine constraint on Phase 2, not a note**: the backfill happens once and whichever
+  > of the two plans is built first performs it, so Phase 2 must create `stock_locations` and a default
+  > location rather than `stores`-keyed movements. The `type` enum expands in that same migration for both
+  > plans. Nothing else in Phase 0 is settled.
 - **Phase 1 — Stores exist.** `stores`, `store_devices`, `store_user`, `StoreAccess`, `StoreScope`, the
   switcher, permissions, the module wiring of §4. No selling yet. Ends with: an administrator can create
   two stores, register a till device, assign staff, and every existing screen still works.
-- **Phase 2 — Stock becomes per-store.** `stock_movements.store_id` with a backfill to a default store,
-  the store-aware valuation API, transfers, waste, count adjustments, and the negative-stock guard
-  chosen in Phase 0. **The migration is the risk** — see below. Ends with: on-hand per store is right and
-  the company total is unchanged, which is the assertion.
+- **Phase 2 — Stock becomes per-location.** `stock_locations` in Inventory, `stock_movements.stock_location_id`
+  with a backfill to a default location, `stores.stock_location_id`, the location-aware valuation API, the
+  one-off `type` enum expansion covering both plans, transfers, waste, count adjustments, and the
+  negative-stock guard chosen in Phase 0. **The migration is the risk** — see below. Ends with: on-hand per
+  location is right and the company total is unchanged, which is the assertion.
 - **Phase 3 — The till, offline-capable from the start (§5 + §12).** Barcodes, the POS page, tenders,
   till sessions, receipts, per-store numbering *by reserved block*, refunds — and with them the PWA
   shell, the IndexedDB snapshot with its version, the idempotent replay, offline sign-in on a registered
@@ -572,11 +604,16 @@ places: §2 before the till, and §9's order document before anything in §8 tha
 
 ## Risks
 
-- **The stock backfill is a one-way door.** Every existing movement must land in a store, and the
-  choice of default store is a judgement about history that cannot be re-made later. Mitigation: the
-  migration is reversible, it is tested against a copy of a real tenant, and the assertion is that
-  every product's company-wide on-hand and value are **identical before and after** — that is the only
-  proof the backfill did not move value.
+- **The stock backfill is a one-way door.** Every existing movement must land in a **location** (§2.1 — the
+  column is `stock_location_id`, decided 2026-08-17), and the choice of default is a judgement about history
+  that cannot be re-made later. Mitigation: the migration is reversible, it is tested against a copy of a
+  real tenant, and the assertion is that every product's company-wide on-hand and value are **identical
+  before and after** — that is the only proof the backfill did not move value.
+
+  The door is **shared with `docs/construction-management-plan.md`** (its Phase 8, this plan's Phase 2), and
+  that is the part most easily lost: whichever plan is built second must find `stock_locations` and
+  `stock_movements.stock_location_id` already there and add neither. Two modules each adding their own
+  location column is the exact failure both plans wrote this risk to avoid.
 - **Negative stock will happen.** Two tills selling the last item, a transfer received twice, an
   offline replay. A hard constraint at the database level stops the sale — which in a shop means
   refusing a customer who is holding the goods. Decide the policy deliberately (allow with a flag and

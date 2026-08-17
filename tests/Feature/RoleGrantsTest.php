@@ -20,24 +20,36 @@ use Tests\Concerns\InteractsWithTenant;
  * and diffing them. What this file protects is the part a snapshot cannot: that the *composition* still holds
  * once the lists are spread across 15 manifests, where nobody reads them together.
  *
- * The counts are asserted deliberately. They are the numbers the pre-refactor seeder produced, and a change
- * to any of them means somebody has widened or narrowed a role — which is a decision worth failing on rather
- * than a detail. Update them in the same commit as the grant, and say why.
+ * The counts are asserted deliberately: a change to any of them means somebody has widened or narrowed a role,
+ * which is a decision worth failing on rather than a detail. Update them in the same commit as the grant, and
+ * say why — the construction entry on `EXPECTED` is what that looks like, and it is the mechanism working
+ * rather than an inconvenience.
  */
 class RoleGrantsTest extends AccountingTestCase
 {
     use InteractsWithTenant;
 
     /**
-     * What each role held before the grants moved into the manifests.
+     * What each role holds, and every change to these numbers is a decision.
+     *
+     * The baseline was 27 / 81 / 94 / 106 — what the pre-refactor seeder produced, snapshotted and diffed to
+     * prove the move into the manifests changed nothing.
+     *
+     * **2026-08-17, construction Phase 1** (`docs/construction-management-plan.md`): the `construction`
+     * module's four job permissions were granted, and this test failed until the counts were changed on
+     * purpose, which is what it is for. Employee +1 (`ConstructionJobView` — a site engineer reads the job
+     * they are on, and row scoping rather than the permission is what narrows it); Accountant +3 (view,
+     * create, update — the commercial side maintains jobs); Manager +3, inherited from Accountant with no
+     * addition of its own; CEO +4, the inherited three plus `ConstructionJobDelete`, which the policy further
+     * refuses on a closed job.
      *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 27,
-        'Accountant' => 81,
-        'Manager' => 94,
-        'CEO' => 106,
+        'Employee' => 28,
+        'Accountant' => 84,
+        'Manager' => 97,
+        'CEO' => 110,
     ];
 
     protected function setUp(): void
@@ -64,7 +76,7 @@ class RoleGrantsTest extends AccountingTestCase
             ->all();
     }
 
-    public function test_every_role_holds_what_it_held_before_the_grants_moved(): void
+    public function test_every_role_holds_exactly_the_permissions_it_is_meant_to(): void
     {
         foreach (self::EXPECTED as $role => $count) {
             $this->assertCount($count, $this->permissionsOf($role), "{$role} changed size");

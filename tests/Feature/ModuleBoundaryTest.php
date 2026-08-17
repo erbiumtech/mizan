@@ -308,6 +308,12 @@ class ModuleBoundaryTest extends TestCase
         // Campaigns declares `crm` as a requirement (no audience without it) and reaches
         // Invoicing for the contacts half of a segment, which is guarded.
         'campaigns' => ['crm', 'invoicing'],
+        // Construction -> Invoicing is guarded, not declared. A job's client and its certifier are both
+        // Contacts, which Invoicing owns — but `construction` requires nothing on purpose
+        // (docs/construction-management-plan.md §18: a contractor keeping its books elsewhere is a real
+        // customer), so both pickers check modules()->enabled('invoicing') and the columns simply stay null
+        // without it. A tender has no client record either way. Exactly the invoicing -> projects shape.
+        'construction' => ['invoicing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -421,6 +427,12 @@ class ModuleBoundaryTest extends TestCase
             // requiring it would make the module unsellable to a company that keeps
             // its books elsewhere.
             'expenses' => ['accounting'],
+
+            // A job's client and certifier are Contacts, and `construction` requires nothing — so both
+            // pickers are hidden without Invoicing and the columns stay null. The job is still a job:
+            // §18.1's "smaller, never broken", and the reason construction is sellable to a contractor
+            // whose books are somewhere else.
+            'construction' => ['invoicing'],
         ];
 
         foreach ($guarded as $module => $targets) {

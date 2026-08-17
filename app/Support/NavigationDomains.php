@@ -66,6 +66,12 @@ class NavigationDomains
         'home' => ['label' => 'Home', 'icon' => 'heroicon-o-home'],
         'reports' => ['label' => 'Reports', 'icon' => 'heroicon-o-chart-pie'],
         'finance' => ['label' => 'Finance', 'icon' => 'heroicon-o-banknotes'],
+        // The seventh, added for the construction suite rather than folding it into Finance: Finance is
+        // already 24 classes across three groups, and construction's four groups would push it past fifty
+        // across seven — the flat-many-groups problem this class exists to solve. It costs a company that
+        // never buys construction nothing, because `rail()` omits a domain whose groups are all empty.
+        // docs/construction-management-plan.md §18.2 and its Phase 0.
+        'construction' => ['label' => 'Construction', 'icon' => 'heroicon-o-building-office-2'],
         'people' => ['label' => 'People', 'icon' => 'heroicon-o-users'],
         'sales' => ['label' => 'Sales', 'icon' => 'heroicon-o-presentation-chart-line'],
         'admin' => ['label' => 'Admin', 'icon' => 'heroicon-o-cog-6-tooth'],
