@@ -2,11 +2,14 @@
 
 namespace App\Modules\Payroll;
 
+use App\Modules\Accounting\Models\Payment;
 use App\Modules\Payroll\Console\Commands\CheckPayrollAccounts;
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
 use App\Modules\Payroll\Console\Commands\PostPendingPayrollEntries;
 use App\Modules\Payroll\Console\Commands\SetPayrollAutoPosting;
 use App\Modules\Payroll\Console\Commands\VerifyPayComponents;
+use App\Modules\Payroll\Events\PayslipReviewed;
+use App\Modules\Payroll\Listeners\CopyReviewOntoPayment;
 use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\PayrollRun;
@@ -17,6 +20,9 @@ use App\Modules\Payroll\Policies\PayComponentPolicy;
 use App\Modules\Payroll\Policies\PayrollRunPolicy;
 use App\Modules\Payroll\Policies\PayslipPolicy;
 use App\Modules\Payroll\Policies\SalarySlabPolicy;
+use App\Modules\Payroll\Support\PayrollReports;
+use App\Support\Reporting\ReportRenderers;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -52,6 +58,30 @@ class PayrollServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // A payslip's review decision is copied onto the salary payment waiting on it. Registered here
+        // rather than in a global EventServiceProvider because the pair is Payroll's business — see
+        // App\Modules\Payroll\Listeners\CopyReviewOntoPayment.
+        Event::listen(PayslipReviewed::class, CopyReviewOntoPayment::class);
+
+        // A payment's link to the payslip it pays, contributed rather than declared — Accounting keeps the
+        // `payslip_id` column and stops naming a Payslip. Same mechanism as the Projects tab in phase 7.
+        // The foreign key is named, and it has to be: `belongsTo()` infers the key from the *calling
+        // method's* name, and inside a closure that name is `{closure}` — so leaving it out produced a
+        // query for `payments.app\_modules\_payroll\{closure}_id` and thirteen failing tests. Phase 7's
+        // relations escaped this only because they passed their keys anyway.
+        Payment::resolveRelationUsing(
+            'payslip',
+            fn (Payment $payment) => $payment->belongsTo(Payslip::class, 'payslip_id'),
+        );
+
+        // Payroll's own three reports in the Reports explorer. Registered here rather than rendered by
+        // Accounting, which used to import WithholdingTaxSummary, SalaryBankExportService and Payslip to
+        // do it — see docs/module-packaging-plan.md §8 Group A.
+        ReportRenderers::register('TaxSummary', fn (string $asOf, bool $comparison, array $asked): array => app(PayrollReports::class)
+            ->taxSummary($asOf, $asked['month'] ?? null));
+        ReportRenderers::register('FbrTaxFile', fn (string $asOf): array => app(PayrollReports::class)->taxFile($asOf));
+        ReportRenderers::register('SalaryBankFile', fn (string $asOf): array => app(PayrollReports::class)->salaryFile($asOf));
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

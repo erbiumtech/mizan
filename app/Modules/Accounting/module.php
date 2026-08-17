@@ -73,7 +73,6 @@ return [
     'widgets' => [
         'App\\Filament\\Widgets\\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
         'App\\Filament\\Widgets\\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
-        'App\\Filament\\Widgets\\OperationsOverview' => \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
     ],
 
     'permission_groups' => [

@@ -6,13 +6,12 @@ use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
 use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Core\Models\Bank;
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\Beneficiary;
+use App\Modules\Accounting\Models\BeneficiarySubscription;
 use App\Modules\Accounting\Models\Budget;
 use App\Modules\Accounting\Models\BudgetLine;
-use App\Modules\Accounting\Models\BeneficiarySubscription;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\FixedAsset;
@@ -21,6 +20,7 @@ use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Models\Loan;
 use App\Modules\Accounting\Models\LoanInstalment;
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Models\PettyCashVoucher;
 use App\Modules\Accounting\Models\ScheduledTransaction;
 use App\Modules\Accounting\Models\ScheduledTransactionLine;
 use App\Modules\Accounting\Models\TransactionType;
@@ -29,9 +29,9 @@ use App\Modules\Accounting\Policies\BankPolicy;
 use App\Modules\Accounting\Policies\BankStatementLinePolicy;
 use App\Modules\Accounting\Policies\BankStatementPolicy;
 use App\Modules\Accounting\Policies\BeneficiaryPolicy;
+use App\Modules\Accounting\Policies\BeneficiarySubscriptionPolicy;
 use App\Modules\Accounting\Policies\BudgetLinePolicy;
 use App\Modules\Accounting\Policies\BudgetPolicy;
-use App\Modules\Accounting\Policies\BeneficiarySubscriptionPolicy;
 use App\Modules\Accounting\Policies\CompanyBankAccountPolicy;
 use App\Modules\Accounting\Policies\CurrencyPolicy;
 use App\Modules\Accounting\Policies\FixedAssetPolicy;
@@ -43,6 +43,10 @@ use App\Modules\Accounting\Policies\PaymentPolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
+use App\Modules\Core\Models\Bank;
+use App\Support\DashboardStats;
+use App\Support\JournalEntryOwners;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -85,6 +89,21 @@ class AccountingServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        // The documents Accounting itself books entries for. The register refuses to edit an entry any of
+        // these owns, because the entry is the accounting half of that document and the two would
+        // desynchronise silently. Invoicing and Inventory register their own — see
+        // App\Support\JournalEntryOwners for why this is a registry rather than a list.
+        JournalEntryOwners::register('a payment', Payment::class);
+        JournalEntryOwners::register('a petty cash voucher', PettyCashVoucher::class);
+        JournalEntryOwners::register('a fixed asset', FixedAsset::class);
+
+        DashboardStats::register('accounting.pending-entries', fn () => auth()->user()?->can('JournalEntryApprove')
+            ? Stat::make(
+                'Journal Entries Awaiting Approval',
+                JournalEntry::where('status', JournalEntry::STATUS_PENDING)->count(),
+            )->description('pending')
+            : null, sort: 20);
 
         $this->commands([
             BackfillPaymentEntriesCommand::class,

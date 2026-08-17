@@ -3,14 +3,10 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
-use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
-use App\Modules\Accounting\Models\Payment;
-use App\Modules\Accounting\Models\PettyCashVoucher;
 use App\Modules\Accounting\Models\TransactionType;
-use App\Modules\Inventory\Models\StockMovement;
-use App\Modules\Invoicing\Models\Invoice;
+use App\Support\JournalEntryOwners;
 use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
@@ -201,20 +197,11 @@ class RegisterEntryService
                 .' #'.$entry->source_id.'. Correct it there instead.';
         }
 
-        $owners = [
-            'a payment' => Payment::class,
-            'an invoice' => Invoice::class,
-            'a petty cash voucher' => PettyCashVoucher::class,
-            'a stock movement' => StockMovement::class,
-            'a fixed asset' => FixedAsset::class,
-        ];
-
-        foreach ($owners as $label => $model) {
-            $owner = $model::where('journal_entry_id', $entry->id)->first();
-
-            if ($owner) {
-                return 'This entry belongs to '.$label.' (#'.$owner->getKey().'). Correct it there instead.';
-            }
+        // Asked of the registry rather than of a list of classes here, so that a module Accounting does
+        // not depend on can still say "this entry is mine". Accounting registers its own three in
+        // AccountingServiceProvider; Invoicing and Inventory register theirs. See App\Support\JournalEntryOwners.
+        if ($owner = JournalEntryOwners::ownerOf($entry->id)) {
+            return 'This entry belongs to '.$owner['label'].' (#'.$owner['key'].'). Correct it there instead.';
         }
 
         $lines = $entry->lines()->get();

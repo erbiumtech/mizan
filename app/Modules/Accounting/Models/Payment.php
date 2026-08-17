@@ -5,7 +5,6 @@ namespace App\Modules\Accounting\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Employees\Models\Employee;
-use App\Modules\Payroll\Models\Payslip;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -28,7 +27,7 @@ class Payment extends Model
 
     protected $fillable = [
         'payable_type', 'payable_id', 'transaction_type_id', 'company_bank_account_id',
-        'payslip_id', 'beneficiary_subscription_id', 'period',
+        'payslip_id', 'subject_review', 'subject_review_reason', 'subject_reviewed_at', 'beneficiary_subscription_id', 'period',
         'amount', 'reference', 'details', 'value_date',
         'payment_type', 'status', 'journal_entry_id',
         'batch_reference', 'released_at',
@@ -79,11 +78,18 @@ class Payment extends Model
             return false;
         }
 
-        // Explicit, for the same reason as the morph in accountProblem(): a payment reaches this from
-        // a batch, a table and a service, and only the bank-file page eager-loads its payslip.
-        $payslip = $this->loadMissing('payslip')->payslip;
-
-        return $payslip === null || $payslip->employee_review === Payslip::REVIEW_ACCEPTED;
+        // Read off this row, not off the payslip.
+        //
+        // A salary may not be released until the employee has accepted their payslip, and that used to be
+        // answered by loading `payslip->employee_review` — the last thing that made Accounting depend on
+        // Payroll for a *rule*. The decision is now copied here when it is made
+        // (Payroll\Listeners\CopyReviewOntoPayment) and backfilled for everything that came before, so a
+        // company can license Accounting without Payroll and this still answers.
+        //
+        // Null means nothing is waiting: a supplier payment, a rent transfer, and every payment that has
+        // no payslip behind it. That is the same thing the old `$payslip === null` branch meant.
+        return $this->subject_review === null
+            || $this->subject_review === self::REVIEW_ACCEPTED;
     }
 
     /**
@@ -119,6 +125,19 @@ class Payment extends Model
 
     public const BLOCK_STATUS = 'status';
 
+    /**
+     * The review states a payment's subject can be in.
+     *
+     * Deliberately Accounting's own constants with Accounting's own values, rather than a reference to
+     * `Payslip::REVIEW_*`. The strings match because the column is a copy of that one — the listener that
+     * writes it is `Payroll\Listeners\CopyReviewOntoPayment`, and PaymentReleaseGateTest asserts the two
+     * vocabularies have not drifted. What this buys is that Accounting can be read, and packaged, without
+     * Payroll on disk. See docs/module-packaging-plan.md §8 Group C.
+     */
+    public const REVIEW_ACCEPTED = 'accepted';
+
+    public const REVIEW_REJECTED = 'rejected';
+
     public const BLOCK_REJECTED = 'rejected';
 
     public const BLOCK_UNACCEPTED = 'unaccepted';
@@ -150,7 +169,7 @@ class Payment extends Model
             return BankFileAccount::PROBLEM_OWN_BANK_IBAN_ONLY;
         }
 
-        return $this->payslip?->employee_review === Payslip::REVIEW_REJECTED
+        return $this->subject_review === self::REVIEW_REJECTED
             ? self::BLOCK_REJECTED
             : self::BLOCK_UNACCEPTED;
     }
@@ -182,9 +201,9 @@ class Payment extends Model
                 .'send to other banks. Add it on their record.';
         }
 
-        return match ($this->payslip?->employee_review) {
-            Payslip::REVIEW_REJECTED => 'Employee rejected the payslip'
-                .($this->payslip->employee_rejection_reason ? ': '.$this->payslip->employee_rejection_reason : ''),
+        return match ($this->subject_review) {
+            self::REVIEW_REJECTED => 'Employee rejected the payslip'
+                .($this->subject_review_reason ? ': '.$this->subject_review_reason : ''),
             default => 'Employee has not accepted the payslip yet',
         };
     }
@@ -209,10 +228,17 @@ class Payment extends Model
         return $this->belongsTo(BeneficiarySubscription::class, 'beneficiary_subscription_id');
     }
 
-    public function payslip()
-    {
-        return $this->belongsTo(Payslip::class);
-    }
+    /*
+     * `payslip()` is registered by Payroll, not declared here.
+     *
+     * `payslip_id` stays as a column — it is how somebody finds the payslip a salary came from, and what
+     * the migration's backfill read. What went is Accounting naming a Payslip: the relation is added at
+     * boot by PayrollServiceProvider through `Model::resolveRelationUsing()`, so `$payment->payslip`,
+     * `with('payslip')` and `whereHas('payslip', ...)` all still work, and none of them exists when
+     * Payroll is not installed — where there are no payslips to point at anyway.
+     *
+     * The release rule that used to read through this relation does not any more; see isReleasable().
+     */
 
     public function journalEntry()
     {

@@ -225,7 +225,7 @@
         "App\\Filament\\Widgets\\EnvironmentHealthOverview": "App\\Modules\\Projects\\Filament\\Widgets\\EnvironmentHealthOverview",
         "App\\Filament\\Widgets\\EnvironmentIncidentsTable": "App\\Modules\\Projects\\Filament\\Widgets\\EnvironmentIncidentsTable",
         "App\\Filament\\Widgets\\MyProjectsOverview": "App\\Modules\\Projects\\Filament\\Widgets\\MyProjectsOverview",
-        "App\\Filament\\Widgets\\OperationsOverview": "App\\Modules\\Accounting\\Filament\\Widgets\\OperationsOverview",
+        "App\\Filament\\Widgets\\OperationsOverview": "App\\Modules\\Core\\Filament\\Widgets\\OperationsOverview",
         "App\\Filament\\Widgets\\PayrollByEmployeeChart": "App\\Modules\\Payroll\\Filament\\Widgets\\PayrollByEmployeeChart",
         "App\\Filament\\Widgets\\ReceivablesPayablesOverview": "App\\Modules\\Invoicing\\Filament\\Widgets\\ReceivablesPayablesOverview"
     }

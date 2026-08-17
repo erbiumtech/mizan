@@ -8,6 +8,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Payroll\Events\PayslipReviewed;
 use App\Modules\Payroll\Services\PayComponentRecorder;
 use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Modules\Payroll\Services\PayslipService;
@@ -120,6 +121,13 @@ class Payslip extends Model
             'employee_review_recorded_by' => $onBehalfOf?->getKey(),
             'employee_review_recorded_by_name' => $onBehalfOf?->name,
         ]);
+
+        // Anything holding a copy of this decision updates itself now. Today that is the salary payment,
+        // which refuses to be released until the payslip is accepted and reads its own column rather than
+        // this one — see docs/module-packaging-plan.md §8 Group C. Fired after the update so a listener
+        // reads the new state, and before the notification so a rejection cannot be told to staff while a
+        // payment still looks releasable.
+        PayslipReviewed::dispatch($this);
 
         if ($status === self::REVIEW_REJECTED) {
             $staff = User::holdingPermission('PayslipUpdate')

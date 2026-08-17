@@ -9,6 +9,8 @@ use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Employees\Policies\EmployeeChangeRequestPolicy;
 use App\Modules\Employees\Policies\EmployeePolicy;
 use App\Modules\Employees\Policies\EmployeeSettingPolicy;
+use App\Support\DashboardStats;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,6 +34,10 @@ class EmployeesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        DashboardStats::register('employees.active', fn () => auth()->user()?->can('EmployeeView')
+            ? Stat::make('Employees', Employee::where('is_active', 1)->count())->description('active')
+            : null, sort: 10);
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

@@ -168,7 +168,12 @@ class ModuleBoundaryTest extends TestCase
         'expenses' => ['accounting'],
 
         // Debt.
-        'accounting' => ['employees', 'payroll', 'invoicing', 'inventory'],
+        // Accounting -> Inventory and -> Invoicing are both gone. What reached them was the dashboard
+        // widget, the register's owner list and ReportPane rendering other modules' reports; all three
+        // are registries now (App\Support\DashboardStats, App\Support\JournalEntryOwners,
+        // App\Support\Reporting\ReportRenderers). What is left is Employees and Payroll — see §8 Group C
+        // for the payroll half, which is a real domain knot rather than misfiled host code.
+        'accounting' => ['employees', 'payroll'],
         'core' => ['accounting', 'payroll', 'invoicing', 'inventory', 'employees'],
         // Employees -> Payroll is a third inline-reference find: EmployeeSetting
         // hasMany EmployeeSettingComponent, and the components relation manager
