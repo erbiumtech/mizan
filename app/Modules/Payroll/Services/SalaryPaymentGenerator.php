@@ -7,8 +7,8 @@ use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\Payslip;
-use App\Support\Banking\PayrollMonth;
 use App\Support\ModuleMap;
+use App\Support\PayrollMonth;
 use RuntimeException;
 
 /**

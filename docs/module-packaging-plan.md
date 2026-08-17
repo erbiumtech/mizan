@@ -674,9 +674,73 @@ would have got the same weekend, correctly, and silently.
 | 11b | `employees -> payroll` reversed: `EmployeeSetting::components()` registered by `PayrollServiceProvider` via `resolveRelationUsing()` with its key named, and the added-components tab moved to `Payroll\Filament\RelationManagers\EmployeeSettingComponentsRelationManager` and contributed through `ResourceContributions`. `PayrollContributionTest` added. **One edge, four modules freed. Trapped: 7 → 3** |
 | 11c | `payroll -> advances` and `payroll -> expenses` → `AdvanceLedger` and `ReimbursableClaims` (+ both null defaults), bound by their own providers, with `App\Support\PayslipSettlement` carrying the four values a contract may not get by naming `Payslip`. `recoveryDate()` → `Payslip::settlementOf()`. Every licence guard moved to the implementation. `PayslipLedgerContractTest` added. **Trapped: 3 → 0 — the graph is acyclic** |
 
-Not yet done from phase 3: `RoleSeeder`'s grants and the navigation claims are
-still central. Neither is on the cycle path — `ModuleMap` was — but both are part
-of collapsing the new-module checklist.
+**Phase 3's two leftovers are done (2026-08-17).** `RoleSeeder`'s grants and the navigation claims are now
+declared per module, which finishes what §5 set out to do: six central files removed, and a module is a
+directory and a file. Neither was on the cycle path — `ModuleMap` was — so the trapped count is unaffected.
+
+`ModuleManifest` had carried the `role_grants` merge slot since phase 3 with nothing filling it and nothing
+reading it; that is why the note above called it a leftover rather than a design. Populating it was mostly
+mechanical, and worth recording *how* it was made safe: every role's exact permission set was snapshotted
+before the change, and the refactor was accepted only once the post-change snapshot diffed clean —
+Administrator 245, Accountant 81, Manager 94, CEO 106, Employee 27, unchanged to the name. Those counts are
+now asserted by `RoleGrantsTest`, so widening a role is a deliberate edit rather than a side effect.
+
+**Two things stayed central, and the reason generalises.** `RoleSeeder` keeps the composition
+(`Administrator = everything`, `Manager = Accountant ∪ Δ`, `CEO = Manager ∪ Δ`) because a module cannot
+express "Manager gets everything Accountant has". `NavigationDomains` keeps the six domains because a domain
+is shell design that no module invents. What moved in both cases is *membership*; what stayed is the
+*structure membership fits into* — which is the same split `ReportCatalogue` already made between its section
+list and the reports registered into it.
+
+**The cost of these two, stated plainly, because it is a real one.** Neither dataset is shaped per-module.
+Navigation group labels are *shared* — "Employee" is claimed by **ten** modules — so ten manifests now restate
+one fact, and role grants are role-shaped rather than module-shaped. That redundancy was accepted in exchange
+for the property the plan is built around: a module is one directory with no central edits, so it can be
+extracted without a shopping list.
+
+What makes the redundancy safe is the guarding, and it is not optional. Agreement merges silently;
+**disagreement throws at manifest-build time naming both modules**; a claim naming a nonexistent domain throws
+too. Without those, a shared label would resolve to whichever manifest was read last — alphabetical order —
+and move a whole group of screens with nothing reporting it. `ManifestNavigationGuardTest` asserts both throws,
+because a guard never seen to fire is not a guard.
+
+If this is ever revisited, the question to ask is not "should membership be central" but "does the guard still
+catch every way two modules can disagree" — that is what the arrangement rests on.
+
+**A latent bug the carve had left behind, found while looking at something else.** §7 moved the fiscal-month
+arithmetic out of `SalaryBankExportService` into `App\Support\Banking\PayrollMonth` so Accounting could label a
+bank file without requiring Payroll. What it did not notice is that `App\Modules\Payroll\Support\PayrollMonth`
+already existed and answered the same question differently: the shared one derived the year boundary from the
+fiscal year's start month, the module one hardcoded `month <= 6`.
+
+The module one was wrong for **every fiscal year that does not start in July or January** — it ignored the
+start month altogether and returned the July–June answer whatever the year's shape. An April–March year placed
+April, May and June a year late; an October–September year placed July, August and September a year early; a
+February–January year was wrong for five of the twelve. Nothing constrains a `FiscalYear` to July–June, and the
+suite already contained January and February starts. It survived because the two shapes in use — Pakistan's
+July–June and a plain calendar year — are the two it got right.
+
+Consolidated into `App\Support\PayrollMonth`, which is where it belongs: three modules read it and none of it
+is banking. The method that made this safe is worth repeating from the role-grants work above — **characterise,
+change, diff.** Every month was resolved against five fiscal-year shapes before and after; July–June,
+January–December and the no-fiscal-year fallback came out byte-identical, and every other difference was a
+previously-wrong answer corrected. `PayrollMonthTest` keeps that characterisation.
+
+**Enumerate the domain before describing the bug.** Sampling four of the twelve months gives a wrong account of
+which months are affected — and a confident one, because the sampled months agree. Twelve months against five
+fiscal-year shapes is sixty cheap assertions and it is the difference between "April is wrong" and the table
+above.
+
+**Do not use `class_exists()` to assert a class is gone.** A deleted file still in composer's classmap makes it
+throw on the missing include rather than return false. Assert on the file, and run `composer dump-autoload`
+after removing a class.
+
+**The actual defect was the checklist.** `docs/new-module-checklist.md` still instructed the reader to edit
+`config/modules.php`, `ModuleMap`'s five const tables and `PermissionSeeder`'s literal rows — all three
+deleted in phase 3 — and never mentioned `NavigationDomains` at all, which was a real central edit whose
+omission is silent. A collapsed checklist that still describes the uncollapsed version is worth less than
+either. It has been rewritten against what the code does, and now says outright that finding yourself in any
+of those five files means stopping.
 
 ### Phase 6a — the Bank model, and what the carve actually cost
 
@@ -808,11 +872,11 @@ job: every remaining cycle was a *code reference pointing back up a licence edge
 product decision reversed, and the direction to push each edge was never in question — it is always the way
 the licence already points. Nine phases of this plan were spent without that check being written down.
 
-**The prediction was exact, and predictions had not been exact before.** From the edge list, the freed-module
-counts were worked out in advance — 9 → 7 → 3 → 0 — and each phase hit its number. What made that possible
-was not better judgement but a better instrument: the graph was read out of the lint's own scanner rather
-than by grep, after phase 9 had been embarrassed by a fully-qualified inline reference that no grep would
-find. **Ask the tool that enforces the invariant, never the tool that reads the text.**
+**The freed-module counts were predicted from the edge list and each phase hit its number** — 9 → 7 → 3 → 0.
+What made that possible was the instrument, not the judgement: the graph was read out of the lint's own
+scanner rather than by grep. Phase 9's count had been taken by grep and missed a fully-qualified inline
+reference, which is the whole reason phase 0 taught the scanner to see them. **Ask the tool that enforces the
+invariant, never the tool that reads the text.**
 
 **A contract that passes a model passes the module that owns it.** Stated in §11 because it is the reusable
 lesson, but worth repeating here as the thing that cost the most: two of the three inversions hit it, and in

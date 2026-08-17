@@ -2,12 +2,9 @@
 
 namespace App\Support;
 
-use App\Modules\Core\Filament\Pages\Reports;
-use App\Modules\Core\Filament\Pages\UserManual;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
-use Filament\Pages\Dashboard;
 use UnitEnum;
 
 /**
@@ -39,12 +36,22 @@ class NavigationDomains
     /**
      * The rail, top to bottom.
      *
-     * `groups` are navigation group labels as the resources and pages declare them. `items` are
-     * for pages that register no group at all — Filament collects those into one unlabelled group
-     * and they are claimed here individually, because Dashboard and User Manual belong to Home
-     * while the Reports hub is a domain of its own.
+     * **The domains are here; what goes in them is not.** A domain is a piece of shell design — its
+     * label, its icon, and its position in the rail — and the six of them are the 3a taxonomy. Which
+     * *groups* land in which domain is declared by the modules, in `module.php`, and merged by
+     * `App\Support\ModuleManifest`. See docs/module-packaging-plan.md §5.
      *
-     * Two mappings the design does not settle, decided here:
+     * The reason the two halves are split rather than one or the other winning: a group label is
+     * **shared**. "Employee" is declared by ten modules, so ten of them claim it for People, and a
+     * central list could not say which module put a screen there. A domain, by contrast, is claimed by
+     * nobody — it exists because the design says the rail has six icons.
+     *
+     * `ModuleManifest` guards the two failures this arrangement makes possible: a label claimed for two
+     * different domains, and a claim naming a domain that is not below. Both throw at build time, because
+     * an unmapped or misrouted group appears in no column and its screens are then reachable only by URL.
+     *
+     * Two mappings the design does not settle, decided here and recorded here because the modules that
+     * claim them cannot explain themselves:
      *
      *  - **Sales is its own domain**, as in 3a's rail. The 2c frame nests it under Finance. 3a is
      *    what was chosen, and a company that sells is in that domain all day.
@@ -53,73 +60,81 @@ class NavigationDomains
      *    about the company, which puts it beside the Dashboard rather than in People — People is
      *    where you go to act on *somebody else's* record.
      *
-     * @var array<string, array{label: string, icon: string, groups: array<int, string>, items: array<int, class-string>}>
+     * @var array<string, array{label: string, icon: string}>
      */
     private const DOMAINS = [
-        'home' => [
-            'label' => 'Home',
-            'icon' => 'heroicon-o-home',
-            'groups' => ['Personal'],
-            'items' => [Dashboard::class, UserManual::class],
-        ],
-        'reports' => [
-            'label' => 'Reports',
-            'icon' => 'heroicon-o-chart-pie',
-            // The hub is the only entry that appears, and it appears ungrouped — hence the item
-            // below. The group is claimed as well because every report page still *declares*
-            // `$navigationGroup = 'Reports'` while hiding itself from the sidebar, and that
-            // declaration is what puts an open balance sheet in this domain rather than in Home.
-            'groups' => ['Reports'],
-            'items' => [Reports::class],
-        ],
-        'finance' => [
-            'label' => 'Finance',
-            'icon' => 'heroicon-o-banknotes',
-            'groups' => ['Accounting', 'Invoicing & Inventory', 'Audit & Taxes'],
-            'items' => [],
-        ],
-        'people' => [
-            'label' => 'People',
-            'icon' => 'heroicon-o-users',
-            'groups' => ['Employee', 'Hiring', 'Performance'],
-            'items' => [],
-        ],
-        'sales' => [
-            'label' => 'Sales',
-            'icon' => 'heroicon-o-presentation-chart-line',
-            'groups' => ['Sales'],
-            'items' => [],
-        ],
-        'admin' => [
-            'label' => 'Admin',
-            'icon' => 'heroicon-o-cog-6-tooth',
-            'groups' => ['Settings', 'Access Control', 'Support'],
-            'items' => [],
-        ],
+        'home' => ['label' => 'Home', 'icon' => 'heroicon-o-home'],
+        'reports' => ['label' => 'Reports', 'icon' => 'heroicon-o-chart-pie'],
+        'finance' => ['label' => 'Finance', 'icon' => 'heroicon-o-banknotes'],
+        'people' => ['label' => 'People', 'icon' => 'heroicon-o-users'],
+        'sales' => ['label' => 'Sales', 'icon' => 'heroicon-o-presentation-chart-line'],
+        'admin' => ['label' => 'Admin', 'icon' => 'heroicon-o-cog-6-tooth'],
     ];
 
-    /** @return array<int, string> */
+    /**
+     * @return array<int, string>
+     *
+     * Reads the const alone, deliberately: `ModuleManifest` calls this while validating claims, so
+     * consulting the manifest here would be a cycle.
+     */
     public static function keys(): array
     {
         return array_keys(self::DOMAINS);
     }
 
-    /** @return array{label: string, icon: string, groups: array<int, string>, items: array<int, class-string>} */
+    /**
+     * A domain's label, icon, and the groups and ungrouped pages the modules put in it.
+     *
+     * @return array{label: string, icon: string, groups: array<int, string>, items: array<int, class-string>}
+     */
     public static function definition(string $key): array
     {
-        return self::DOMAINS[$key];
+        return self::DOMAINS[$key] + [
+            'groups' => self::groupsIn($key),
+            'items' => self::itemsIn($key),
+        ];
+    }
+
+    /**
+     * The group labels the modules claimed for one domain.
+     *
+     * @return array<int, string>
+     */
+    public static function groupsIn(string $key): array
+    {
+        return array_keys(array_filter(
+            ModuleManifest::all()['navigation'] ?? [],
+            fn (string $domain): bool => $domain === $key,
+        ));
+    }
+
+    /**
+     * The ungrouped pages the modules claimed for one domain.
+     *
+     * Filament collects every page that registers no group into one unlabelled group, which is why these
+     * are claimed per class rather than per label — Dashboard and User Manual belong to Home while the
+     * Reports hub is a domain of its own.
+     *
+     * @return array<int, class-string>
+     */
+    public static function itemsIn(string $key): array
+    {
+        return array_keys(array_filter(
+            ModuleManifest::all()['navigation_items'] ?? [],
+            fn (string $domain): bool => $domain === $key,
+        ));
     }
 
     /** Every group label claimed by any domain. @return array<int, string> */
     public static function mappedGroups(): array
     {
-        return array_merge(...array_column(self::DOMAINS, 'groups'));
+        return array_keys(ModuleManifest::all()['navigation'] ?? []);
     }
 
     /** Every ungrouped page claimed by any domain. @return array<int, class-string> */
     public static function mappedItems(): array
     {
-        return array_merge(...array_column(self::DOMAINS, 'items'));
+        return array_keys(ModuleManifest::all()['navigation_items'] ?? []);
     }
 
     /** Which domain owns a navigation group label, or null if the map has a hole in it. */
@@ -131,19 +146,20 @@ class NavigationDomains
             return null;
         }
 
-        foreach (self::DOMAINS as $key => $domain) {
-            if (in_array($label, $domain['groups'], true)) {
-                return $key;
-            }
+        $claims = ModuleManifest::all()['navigation'] ?? [];
 
-            // Also by branch label, so this answers for either name. Pages resolve their domain
-            // through here from the group they *declare* ("Employee"), while anything reading a
-            // rendered group sees the branch it was split into ("Payroll") — both have to land in
-            // the same domain or the rail and the column disagree about where you are.
-            foreach ($domain['groups'] as $group) {
-                if (in_array($label, NavigationTree::labelsFor($group), true)) {
-                    return $key;
-                }
+        // The declared label, answered directly.
+        if (isset($claims[$label])) {
+            return $claims[$label];
+        }
+
+        // Also by branch label, so this answers for either name. Pages resolve their domain
+        // through here from the group they *declare* ("Employee"), while anything reading a
+        // rendered group sees the branch it was split into ("Payroll") — both have to land in
+        // the same domain or the rail and the column disagree about where you are.
+        foreach ($claims as $claimed => $key) {
+            if (in_array($label, NavigationTree::labelsFor($claimed), true)) {
+                return $key;
             }
         }
 
@@ -170,10 +186,10 @@ class NavigationDomains
             return 'home';
         }
 
-        foreach (self::DOMAINS as $key => $domain) {
-            if (in_array($page, $domain['items'], true)) {
-                return $key;
-            }
+        $claimed = ModuleManifest::all()['navigation_items'] ?? [];
+
+        if (isset($claimed[$page])) {
+            return $claimed[$page];
         }
 
         return self::forGroup($page::getNavigationGroup()) ?? 'home';
@@ -183,14 +199,14 @@ class NavigationDomains
      * Keep only what belongs to one domain.
      *
      * The unlabelled group needs its items filtered rather than the group dropped, because that
-     * one group holds items from more than one domain — see `items` in the map above.
+     * one group holds items from more than one domain — see `itemsIn()`.
      *
      * @param  array<NavigationGroup>  $groups
      * @return array<NavigationGroup>
      */
     public static function filter(array $groups, string $domain): array
     {
-        $definition = self::DOMAINS[$domain];
+        $definition = self::definition($domain);
         $kept = [];
 
         // The labels this domain actually owns at render time. A domain claims the group labels the

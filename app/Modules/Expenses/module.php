@@ -35,4 +35,39 @@ return [
         ['name' => 'ExpenseClaimDelete', 'group' => 'ExpenseClaim'],
         ['name' => 'ExpenseClaimApprove', 'group' => 'ExpenseClaim'],
     ],
+
+    /**
+     * Which of this module's permissions each role starts with.
+     *
+     * Administrator holds everything and is not listed. Manager and CEO are *additions* to the
+     * role below them — RoleSeeder composes Accountant -> Manager -> CEO — so a permission
+     * already granted to Accountant is not repeated here.
+     */
+    'role_grants' => [
+        // Every member of staff.
+        'Employee' => [
+            'ExpenseClaimCreate',
+            'ExpenseClaimUpdate',
+            'ExpenseClaimView',
+        ],
+        // Records, does not approve.
+        'Accountant' => [
+            'ExpenseClaimApprove',
+            'ExpenseClaimCreate',
+            'ExpenseClaimUpdate',
+            'ExpenseClaimView',
+        ],
+    ],
+
+    /**
+     * Which domain of the two-level shell this module's screens appear in.
+     *
+     * Keyed on the navigation group label the resources and pages declare. Labels are shared —
+     * "Employee" is claimed by ten modules — so agreement is normal and a label claimed for two
+     * different domains throws in ModuleManifest rather than resolving to whichever manifest was
+     * read last. The six domains themselves are App\Support\NavigationDomains.
+     */
+    'navigation' => [
+        'Employee' => 'people',
+    ],
 ];

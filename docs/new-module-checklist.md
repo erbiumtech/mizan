@@ -5,31 +5,68 @@
 > restating *how* a module is wired every time. Every item below is a thing that,
 > left out, fails silently or fails at 00:00 in a queue worker rather than in CI.
 
-A module is a commercial boundary here, not a folder. Ten of the thirteen steps
-exist because something in this application stores a class name in a database
-column, or because Filament resolves things at boot while the tenant is resolved
-per request.
+**A module is a directory and a file.** `app/Modules/{Name}/` plus its
+`module.php` manifest is the whole of what a module declares about itself —
+registry entry, the classes it owns, its permissions, who gets them, and where
+its screens appear in the shell. `App\Support\ModuleManifest` finds every
+manifest, merges them and caches the result.
 
-The other three are the commercial boundary itself: the registry entry (§1) says
-the module exists, the profile entry (§1a) says who is ever sold it, and the
-permissions (§6) say who inside a company may use it. A module missing any of the
-three is built, deployed, and reachable by nobody.
+That was not always true, and this document said otherwise until 2026-08-17.
+`docs/module-packaging-plan.md` §5 replaced **six** central files that every new
+module had to edit — `config/modules.php`, the five hand-written tables in
+`ModuleMap`, the literal rows in `PermissionSeeder`, the grants in `RoleSeeder`,
+and the claims in `NavigationDomains`. All six are gone. If you are following an
+older copy of this list and it tells you to edit one of them, the file no longer
+holds what it describes.
 
-## 1. Registry entry — `config/modules.php`
+The rest of the steps exist for two reasons that have not changed: something in
+this application stores a class name in a database column, or Filament resolves
+things at boot while the tenant is resolved per request.
+
+Two of them are the commercial boundary itself: the manifest (§1) says the module
+exists and who inside a company may use it, and the profile entry (§1a) says
+which kind of company is ever sold it. A module missing either is built,
+deployed, and reachable by nobody.
+
+## 1. The manifest — `app/Modules/{Name}/module.php`
+
+One file, returning one array. This is the registry entry, the class tables, the
+permissions, the role grants and the navigation claims in a single place:
 
 ```php
-'leave' => [
+return [
+    'key' => 'leave',                       // must match the directory: Str::snake(basename())
     'label' => 'Leave',
     'description' => 'Leave types, entitlements, requests and balances.',
     'requires' => ['employees'],
     'licensed_by_default' => false,
     'plugin' => \App\Modules\Leave\LeavePlugin::class,
-],
+
+    'models' => [ /* §4 */ ],
+    'resources' => [ /* §4 */ ],
+    'pages' => [ /* §4 */ ],
+    'widgets' => [ /* §4 */ ],
+
+    'permission_groups' => ['LeaveRequest', 'LeaveType', 'LeaveEntitlement'],
+    'permissions' => [ /* §6 */ ],
+    'role_grants' => [ /* §6a */ ],
+
+    'navigation' => ['Employee' => 'people'],   // §6b
+];
 ```
 
-Not optional and not cosmetic: `ModuleMap::moduleFor()` derives a module from the
-`App\Modules\{Name}\` namespace and then checks the derived key exists in
-`config('modules')`. Without an entry it returns `null`, and what happens next
+**A PHP file rather than JSON, deliberately.** The entries in the old
+`config/modules.php` carried paragraphs of load-bearing reasoning — why CRM
+requires nothing, why Leave omits Payroll — and those paragraphs are the most
+valuable content in the file. JSON cannot hold a comment. Keep writing the
+reasoning next to what it explains.
+
+`key` must equal the key derived from the directory name, and `ModuleManifest`
+throws if it does not: the directory is what `ModuleMap::moduleFor()` reads from
+a namespace, so the two disagreeing would make the module unfindable from its own
+classes. Directory `App\Modules\PersonalFinance` → key `personal_finance`.
+
+Without a manifest entry `moduleFor()` returns `null`, and what happens next
 depends on the surface — worth knowing precisely, because two of the three are
 silent:
 
@@ -41,13 +78,20 @@ silent:
 
 `ModuleCoverageTest` is what catches all three in CI, not the type checker.
 
-Directory `App\Modules\PersonalFinance` → key `personal_finance` (`Str::snake`),
-so multi-word module names work as long as the key matches.
-
 `requires` is a *licence* dependency, not an import graph (§13 of the modules
 plan is explicit about the difference). Declare it only when the module is
 genuinely unsellable without the other one; otherwise guard the call site and
 record the coupling in `ModuleBoundaryTest::KNOWN_COUPLINGS`.
+
+**The import graph is acyclic and must stay that way.**
+`ModuleBoundaryTest::TANGLED_MODULE_BUDGET` is 0, and at zero it is an invariant
+rather than a budget — do not raise it to make a change pass. If your module
+needs something from a module that requires *it*, invert the reference: a
+contract in `App\Support\Contracts` with a null default bound in
+`ContractDefaultsServiceProvider`, or a registry in `App\Support`. Pass the
+primitives the far side reads, never a model — a contract that passes a model
+passes the module that owns it. §11 of the packaging plan has the worked
+examples.
 
 ## 1a. Company profiles — `config/company_profiles.php`
 
@@ -109,11 +153,17 @@ never resolve, and an unresolved policy means an open resource. This has
 happened in this codebase before (`AppServiceProvider.php:55`) and
 `ModuleCoverageTest` asserts every model has one.
 
-## 4. `ModuleMap` — four tables plus permission groups
+## 4. The class tables — in the manifest, not in `ModuleMap`
 
-`app/Support/ModuleMap.php`, one entry per class in `MODELS`, `RESOURCES`,
-`PAGES`, `WIDGETS`, and the module's permission group names in
-`PERMISSION_GROUPS`. A resource with no entry fails `ModuleCoverageTest`.
+`models`, `resources`, `pages`, `widgets` in `module.php`, one entry per class. A
+resource with no entry fails `ModuleCoverageTest`.
+
+`ModuleMap`'s five hand-written `const` tables are **gone** — it now reads the
+merged manifest, so `ModuleMap::resources()`, `::models()` and the rest still work
+and nothing central needs editing. `ModuleManifest` refuses to merge two modules
+claiming the same alias, because a duplicate morph alias means rows of one module
+resolving to the model of another: a same-shaped table holding the wrong data,
+which no error ever reports.
 
 **Morph aliases: `App\Models\{ClassBasename}`, including for models that have
 never shipped.**
@@ -153,9 +203,10 @@ scope. New polymorphic columns follow the same rule.
 
 ## 6. Permissions — and the two traps
 
-Add rows to `database/seeders/PermissionSeeder.php` (`name` + `group`), grant
-them in `RoleSeeder.php` to the roles that should hold them, and list the group
-in `ModuleMap::PERMISSION_GROUPS`.
+In the manifest: `permissions` (`name` + `group`) and `permission_groups`.
+`PermissionSeeder` discovers them — its 245 literal rows are gone, and it throws
+if discovery finds fewer than 100, because a seeder that silently does nothing
+would surface as every policy check throwing.
 
 **Trap 1 — the `permissions` table has no unique index.** It is
 `id, name, group, guard_name, timestamps` (`create_permission_tables.php`); the
@@ -175,6 +226,69 @@ keep it passing.
 Finish the seeder run with `PermissionCache::flushEverywhere()`. A permission
 added but not visible in a company is not a stale menu: policies call
 `hasPermissionTo()`, which throws for an unknown name, and the panel 500s.
+
+## 6a. Role grants — `role_grants` in the manifest
+
+Who starts with the permissions you just declared:
+
+```php
+'role_grants' => [
+    'Employee' => ['LeaveRequestView', 'LeaveRequestCreate', 'LeaveRequestUpdate'],
+    'Accountant' => [...],
+    'Manager' => [...],   // additions only — see below
+    'CEO' => [...],       // additions only
+],
+```
+
+Three rules, all enforced:
+
+- **Administrator is not listed.** It holds every permission that exists, so it
+  gains yours the moment they are seeded.
+- **`Manager` and `CEO` are additions, not complete lists.** `RoleSeeder`
+  composes `Accountant → Manager → CEO`, so a permission already granted to
+  Accountant must not be repeated. A module cannot express "Manager gets
+  everything Accountant has", which is exactly why the chain stays central.
+- **A module may only grant what it declares.** `RoleSeeder` throws and names the
+  module otherwise. Granting another module's permission would put back the
+  cross-module knowledge that moving these lists out removed.
+
+Omit the key entirely if the module is Administrator-only — seven of them are.
+`RoleGrantsTest` asserts each role's size, the superset chain, and that the
+Accountant still cannot approve, post or reverse.
+
+Leaving a role *out* is a decision nothing can check for you. CRM is deliberately
+absent from `Employee` — a machine operator has no leads, and granting `LeadView`
+there would put every prospect in front of every employee. An absence cannot be
+declared by the module that would have been granted, so if yours is a deliberate
+omission, say so in `RoleSeeder`'s docblock where the others are.
+
+## 6b. Navigation — `navigation` in the manifest
+
+Which of the shell's six domains your screens appear in, keyed on the navigation
+group label your resources and pages declare:
+
+```php
+'navigation' => ['Employee' => 'people'],
+```
+
+The six domains are `App\Support\NavigationDomains` — `home`, `reports`,
+`finance`, `people`, `sales`, `admin` — and they stay central because a domain is
+shell design, not a module's to invent.
+
+**Group labels are shared.** "Employee" is claimed by ten modules; agreement is
+the normal case and merges silently. Two modules claiming one label for
+*different* domains throws at manifest-build time, naming both — without that it
+would resolve to whichever manifest was read last and move a whole group of
+screens silently. A claim naming a domain that does not exist throws too.
+
+For a page that registers no navigation group at all, use `navigation_items`
+keyed by class: Filament collects every ungrouped page into one unlabelled group,
+so those cannot be placed by label.
+
+**Left out, the screens are reachable only by URL.** Filtering navigation makes
+anything unmapped invisible — nothing throws and no page 404s, the entries are
+simply not drawn. `NavigationDomainsTest` asserts coverage in both directions and
+`ManifestNavigationGuardTest` asserts the two throws.
 
 ## 7. Tenant migrations
 
@@ -241,12 +355,15 @@ manager sees their downline and no further.
 | Test | Why it fails on a new module |
 |---|---|
 | `ModuleCoverageTest` | every model/resource/page/widget must map to exactly one module and have a policy |
-| `ModuleBoundaryTest` | a cross-module `use` not in `requires` or `KNOWN_COUPLINGS` fails, **in both directions** — stale entries fail too |
+| `ModuleBoundaryTest` | a cross-module `use` **or inline `\App\Modules\…::class`** not in `requires` or `KNOWN_COUPLINGS` fails, in both directions — stale entries fail too. Also: `TANGLED_MODULE_BUDGET` is 0 and any new cycle fails it |
 | `ModuleGatingTest` / `ModuleEnforcementTest` | enabled → reachable, disabled → 403/404, including for a super admin |
 | `ModuleStateTest` | licensed AND enabled; `NULL` enabled means "never chosen" |
 | `ModuleDegradationTest` | with a soft dependency off, the write still succeeds and skips the optional part |
 | `ModulePermissionFilteringTest` | trap 2 above |
 | `CompanyProfileTest` | the module must appear in at least one profile, every profile stays closed under `requires`, and its seeders must agree with what it licenses — §1a |
+| `RoleGrantsTest` | each role's size is asserted, so a grant that widens one fails until the count is updated deliberately — §6a |
+| `NavigationDomainsTest` | every declared group belongs to exactly one domain and every claimed label is one the panel declares, **in both directions** — §6b |
+| `ManifestNavigationGuardTest` | a label claimed for two domains, or a claim naming a domain that does not exist, throws at manifest-build time |
 
 The suite runs one in-memory SQLite database with tenant migrations auto-loaded,
 so **anything that needs a real per-tenant connection cannot be covered** —
@@ -254,15 +371,30 @@ per-company command fan-out included. Those paths are verified by hand.
 
 ## The five-minute version
 
+Two files are yours, three are central, and the rest is code in your own
+directory:
+
 ```
-config/modules.php              registry entry
-config/company_profiles.php     which kinds of company are sold it
-{Name}Plugin.php                discover resources/pages/widgets
-{Name}ServiceProvider.php       policies (explicit!), routes, commands
-bootstrap/providers.php         list the provider
-ModuleMap.php                   models + resources + pages + widgets + permission groups
-PermissionSeeder / RoleSeeder   permissions, then flushEverywhere()
-database/migrations/tenant/     tables
-routes/console.php              schedules, class constants, licence guard
-tests                           update the eight Module* tests
+app/Modules/{Name}/module.php    EVERYTHING the module declares about itself:
+                                   key/label/description/requires/plugin
+                                   models + resources + pages + widgets
+                                   permission_groups + permissions
+                                   role_grants
+                                   navigation (+ navigation_items)
+config/company_profiles.php      which kinds of company are sold it
+bootstrap/providers.php          list the provider
+
+app/Modules/{Name}/
+  {Name}Plugin.php               discover resources/pages/widgets
+  {Name}ServiceProvider.php      policies (explicit!), routes, commands
+  routes/console.php             schedules, class constants, licence guard
+database/migrations/tenant/      tables
+
+then: php artisan db:seed --class=PermissionSeeder && ... RoleSeeder
+      PermissionCache::flushEverywhere()
+tests                            update the Module* tests
 ```
+
+If you find yourself editing `config/modules.php`, `ModuleMap`'s const tables,
+`PermissionSeeder`'s rows, `RoleSeeder`'s grants or `NavigationDomains`' claims —
+stop. None of those hold that any more; the manifest does.

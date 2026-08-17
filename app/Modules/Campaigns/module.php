@@ -47,4 +47,16 @@ return [
         ['name' => 'CampaignDelete', 'group' => 'Campaign'],
         ['name' => 'CampaignSend', 'group' => 'Campaign'],
     ],
+
+    /**
+     * Which domain of the two-level shell this module's screens appear in.
+     *
+     * Keyed on the navigation group label the resources and pages declare. Labels are shared —
+     * "Employee" is claimed by ten modules — so agreement is normal and a label claimed for two
+     * different domains throws in ModuleManifest rather than resolving to whichever manifest was
+     * read last. The six domains themselves are App\Support\NavigationDomains.
+     */
+    'navigation' => [
+        'Sales' => 'sales',
+    ],
 ];
