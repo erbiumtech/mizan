@@ -4,8 +4,10 @@ namespace App\Modules\ConstructionCosting;
 
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
+use App\Modules\ConstructionCosting\Models\JobBudget;
 use App\Modules\ConstructionCosting\Policies\CostEntryPolicy;
 use App\Modules\ConstructionCosting\Policies\CostPeriodPolicy;
+use App\Modules\ConstructionCosting\Policies\JobBudgetPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,6 +22,7 @@ class ConstructionCostingServiceProvider extends ServiceProvider
 {
     /** @var array<class-string, class-string> */
     private const POLICIES = [
+        JobBudget::class => JobBudgetPolicy::class,
         CostEntry::class => CostEntryPolicy::class,
         CostPeriod::class => CostPeriodPolicy::class,
     ];
