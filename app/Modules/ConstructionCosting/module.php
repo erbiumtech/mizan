@@ -40,6 +40,7 @@ return [
         'App\\Models\\RequisitionLine' => \App\Modules\ConstructionCosting\Models\RequisitionLine::class,
         'App\\Models\\GoodsReceipt' => \App\Modules\ConstructionCosting\Models\GoodsReceipt::class,
         'App\\Models\\GoodsReceiptLine' => \App\Modules\ConstructionCosting\Models\GoodsReceiptLine::class,
+        'App\\Models\\InvoiceAllocation' => \App\Modules\ConstructionCosting\Models\InvoiceAllocation::class,
     ],
 
     'resources' => [
@@ -52,6 +53,8 @@ return [
 
     'pages' => [
         'App\\Filament\\Pages\\ConstructionCosting\\JobCostReport' => \App\Modules\ConstructionCosting\Filament\Pages\JobCostReport::class,
+        'App\\Filament\\Pages\\ConstructionCosting\\InvoiceAllocationQueue' => \App\Modules\ConstructionCosting\Filament\Pages\InvoiceAllocationQueue::class,
+        'App\\Filament\\Pages\\ConstructionCosting\\ThreeWayMatchReport' => \App\Modules\ConstructionCosting\Filament\Pages\ThreeWayMatchReport::class,
     ],
 
     'permission_groups' => [
@@ -117,6 +120,22 @@ return [
         ['name' => 'ConstructionReceiptView', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionReceiptRecord', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionReceiptReverse', 'group' => 'ConstructionCost'],
+
+        /*
+         * Attributing a supplier invoice to jobs and codes. Its own name because it is the act that answers §5's
+         * "single most likely silent failure in the module" — an invoice posted with no allocation leaves the accounts
+         * perfectly correct and the job under-costed — and because the person who codes an invoice is the commercial
+         * one rather than whoever received the delivery.
+         */
+        ['name' => 'ConstructionInvoiceAllocate', 'group' => 'ConstructionCost'],
+
+        /*
+         * Accepting a three-way variance. Reading the report rides on `ConstructionCommitmentView` — it is the same
+         * screenful of facts about the same orders — but **accepting is its own name**, because §5 puts the control at
+         * acceptance rather than at payment: this is the grant that lets somebody say a difference between what was
+         * ordered, what arrived and what was billed is acceptable, and put their name to it.
+         */
+        ['name' => 'ConstructionVarianceAccept', 'group' => 'ConstructionCost'],
     ],
 
     'role_grants' => [
@@ -150,6 +169,7 @@ return [
             'ConstructionCostUpdate',
             'ConstructionCostView',
             'ConstructionForecastPrepare',
+            'ConstructionInvoiceAllocate',
             'ConstructionProgressMeasure',
         ],
         // Reversing a posted entry and closing a period are approval-shaped acts, kept away from whoever
@@ -161,6 +181,8 @@ return [
             'ConstructionCommitmentIssue',
             // Backing out a posted receipt takes cost off a job and puts commitment back on an order.
             'ConstructionReceiptReverse',
+            // Saying a difference between ordered, received and invoiced is acceptable — with a name on it.
+            'ConstructionVarianceAccept',
             // Agreeing that a site request is real, which is the gate before any of that.
             'ConstructionRequisitionApprove',
             'ConstructionCostReverse',
