@@ -44,6 +44,9 @@ return [
         'App\\Models\\CertificateLine' => \App\Modules\ConstructionContracts\Models\CertificateLine::class,
         'App\\Models\\CertificateDeduction' => \App\Modules\ConstructionContracts\Models\CertificateDeduction::class,
         'App\\Models\\RetentionMovement' => \App\Modules\ConstructionContracts\Models\RetentionMovement::class,
+        'App\\Models\\ComplianceDocument' => \App\Modules\ConstructionContracts\Models\ComplianceDocument::class,
+        'App\\Models\\ComplianceRequirement' => \App\Modules\ConstructionContracts\Models\ComplianceRequirement::class,
+        'App\\Models\\BackCharge' => \App\Modules\ConstructionContracts\Models\BackCharge::class,
     ],
 
     'resources' => [
@@ -52,6 +55,9 @@ return [
         'App\\Filament\\Resources\\ConstructionContracts\\ProgressClaimResource' => \App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\ProgressClaimResource::class,
         'App\\Filament\\Resources\\ConstructionContracts\\PaymentCertificateResource' => \App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificates\PaymentCertificateResource::class,
         'App\\Filament\\Resources\\ConstructionContracts\\RetentionMovementResource' => \App\Modules\ConstructionContracts\Filament\Resources\RetentionMovements\RetentionMovementResource::class,
+        'App\\Filament\\Resources\\ConstructionContracts\\ComplianceDocumentResource' => \App\Modules\ConstructionContracts\Filament\Resources\ComplianceDocuments\ComplianceDocumentResource::class,
+        'App\\Filament\\Resources\\ConstructionContracts\\ComplianceRequirementResource' => \App\Modules\ConstructionContracts\Filament\Resources\ComplianceRequirements\ComplianceRequirementResource::class,
+        'App\\Filament\\Resources\\ConstructionContracts\\BackChargeResource' => \App\Modules\ConstructionContracts\Filament\Resources\BackCharges\BackChargeResource::class,
     ],
 
     'permission_groups' => [
@@ -106,6 +112,32 @@ return [
          * anybody makes; an early release, which FIDIC 14.9 contemplates, is that decision taken sooner.
          */
         ['name' => 'ConstructionRetentionRelease', 'group' => 'ConstructionContract'],
+
+        /*
+         * Subcontractor compliance (§12). **`Override` is the one §18.2 names**, and it does two things that are the
+         * same decision seen twice: certifying a payment past a compliance block, and waiving a requirement outright.
+         * Both say "we are accepting this risk", and both are recorded with a reason — "a system with no override is a
+         * system people work around with a spreadsheet, and then the register is decorative".
+         *
+         * Setting a requirement rides on the same name rather than on `Update`, because deciding that public liability
+         * blocks payment on every contract in the company is a policy decision, not filing.
+         */
+        ['name' => 'ConstructionComplianceView', 'group' => 'ConstructionContract'],
+        ['name' => 'ConstructionComplianceUpdate', 'group' => 'ConstructionContract'],
+        ['name' => 'ConstructionComplianceOverride', 'group' => 'ConstructionContract'],
+
+        /*
+         * Back-charges (§12). **`Apply` is separate from `Update`**, and it is the same asymmetry the certificate
+         * keeps: raising a charge and serving notice of it is the surveyor's ordinary administration, while taking the
+         * money off another company's payment is the act that gets adjudicated.
+         *
+         * `Apply` also carries agreeing and withdrawing, because both give away a recovery the company was entitled
+         * to — settling at 180,000 against a notice of 240,000 is the same shape of decision as releasing retention,
+         * and a charge one person can raise and drop is a charge nobody has to justify.
+         */
+        ['name' => 'ConstructionBackChargeView', 'group' => 'ConstructionContract'],
+        ['name' => 'ConstructionBackChargeUpdate', 'group' => 'ConstructionContract'],
+        ['name' => 'ConstructionBackChargeApply', 'group' => 'ConstructionContract'],
     ],
 
     'role_grants' => [
@@ -128,12 +160,24 @@ return [
             // The surveyor prepares the claim and the draft certificate. Issuing it is the certifier's act.
             'ConstructionCertificateCreate',
             'ConstructionCertificateView',
+            // The commercial side files insurance certificates and reads them. Accepting their absence is somebody
+            // else's.
+            'ConstructionComplianceUpdate',
+            'ConstructionComplianceView',
+            // The surveyor raises a back-charge and serves the notice. Deducting it is somebody else's.
+            'ConstructionBackChargeUpdate',
+            'ConstructionBackChargeView',
         ],
         // Executing fixes the figures every later certificate is measured against, so it sits with the
         // approval powers rather than with whoever priced the bill.
         'Manager' => [
             // Certifying starts the payment period and creates an entitlement the other party will enforce.
             'ConstructionCertificateCertify',
+            // Deducting a back-charge takes money off another company's payment. Agreeing one for less, or dropping
+            // it, gives away a recovery — the same decision seen from the other side.
+            'ConstructionBackChargeApply',
+            // Certifying past a compliance block, and waiving a requirement — the same decision about risk, twice.
+            'ConstructionComplianceOverride',
             // Releasing retention hands back money the contract entitled this company to hold.
             'ConstructionRetentionRelease',
             'ConstructionContractExecute',

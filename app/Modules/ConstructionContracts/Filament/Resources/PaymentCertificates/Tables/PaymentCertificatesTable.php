@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificat
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Services\CertificateInvoiceService;
 use App\Modules\ConstructionContracts\Services\CertificationService;
+use App\Modules\ConstructionContracts\Services\ComplianceService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
@@ -97,6 +98,27 @@ class PaymentCertificatesTable
                     ->label('Invoiced')
                     ->formatStateUsing(fn ($state): string => $state ? 'Yes' : 'No')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                /*
+                 * Whether this one was certified past a compliance block (§12).
+                 *
+                 * Visible by default rather than hidden behind the toggle: an override recorded where nobody looks is
+                 * an override nobody is accountable for, which is the state the reason field exists to prevent.
+                 */
+                TextColumn::make('compliance_override_at')
+                    ->label('Compliance')
+                    ->badge()
+                    ->color('warning')
+                    /*
+                     * Overridden, or nothing at all. Deliberately not "in order" on the other rows: a draft that has
+                     * not been overridden may still be blocked — it simply has not been refused yet — and a badge
+                     * saying otherwise would be the stored status §12 spent this whole module avoiding.
+                     */
+                    ->state(fn (PaymentCertificate $record): ?string => $record->compliance_override_at
+                        ? 'Overridden'
+                        : null)
+                    ->placeholder('—')
+                    ->tooltip(fn (PaymentCertificate $record): ?string => $record->compliance_override_reason),
             ])
             ->filters([
                 SelectFilter::make('contract_id')
@@ -149,6 +171,34 @@ class PaymentCertificatesTable
                         fn () => app(CertificationService::class)->issue($record, $data['issued_on'] ?? null),
                         'Certified.',
                         'The figures are frozen and the payment period has started.',
+                    )),
+
+                /*
+                 * §12's override, offered only where something is actually blocking.
+                 *
+                 * A permanently visible override is an override people reach for out of habit; one that appears when
+                 * the refusal appears is a decision taken about a known risk. The reason is mandatory and is recorded
+                 * against this certificate alone — it clears nothing later.
+                 */
+                Action::make('overrideCompliance')
+                    ->label('Override compliance')
+                    ->icon('heroicon-o-shield-exclamation')
+                    ->color('warning')
+                    ->modalHeading('Certify despite the compliance block')
+                    ->modalDescription('This says the company will pay a subcontractor whose paperwork is not in order. It applies to this certificate only, and the reason is kept against it.')
+                    ->schema([
+                        Textarea::make('reason')
+                            ->label('Why')
+                            ->rows(3)
+                            ->required()
+                            ->helperText('Read by whoever asks later why this payment went out. Write the sentence that answers them.'),
+                    ])
+                    ->visible(fn (PaymentCertificate $record): bool => (auth()->user()?->can('overrideCompliance', $record) ?? false)
+                        && ! app(ComplianceService::class)->permitsCertification($record))
+                    ->action(fn (PaymentCertificate $record, array $data) => static::run(
+                        fn () => app(ComplianceService::class)->override($record, $data['reason']),
+                        'Override recorded.',
+                        'Your name, the time and the reason are on this certificate. It may now be certified.',
                     )),
 
                 Action::make('print')

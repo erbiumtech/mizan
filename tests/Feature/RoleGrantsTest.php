@@ -123,6 +123,27 @@ class RoleGrantsTest extends AccountingTestCase
      * puts the figure on the cost report; **CEO +1 of its own** for `ConstructionCommitmentClose`, which writes off
      * money somebody committed and needs a name against it.
      *
+     * Phase 6b, the three back-charge permissions, on the shape the certificate already set: **Accountant +2**
+     * (`View`, `Update`) because raising a back-charge and serving the notice is the surveyor's ordinary
+     * administration; **Manager +1 of its own** for `ConstructionBackChargeApply`, which takes money off another
+     * company's payment. `Apply` also carries agreeing and withdrawing, and that is the part worth defending: settling
+     * at 180,000 against a notice of 240,000 gives away 60,000 of a recovery the company was entitled to, which is the
+     * same shape of decision as releasing retention. A charge one person can raise and drop is a charge nobody has to
+     * justify. **Employee +0** — site reports the incident; the charge is a commercial document.
+     *
+     * Manager and CEO gain three: the Accountant's two plus the apply grant.
+     *
+     * Phase 6a, the three compliance permissions, and the split between them is the decision: **Accountant +2**
+     * (`View`, `Update`) because the commercial office files insurance certificates and reads them — and filing and
+     * verifying are deliberately the same grant, since splitting them produces a register full of documents nobody has
+     * looked at, which is exactly what `verified_at` exists to distinguish. **Manager +1 of its own** for
+     * `ConstructionComplianceOverride`, which does two things a filing clerk should not: certifies a payment past
+     * lapsed cover, and waives a requirement for good. **Employee +0** — a site engineer has no use for a
+     * subcontractor's policy schedule, and the one construction question site does ask about compliance ("may we let
+     * them start") is answered by the register's owner, not by the register.
+     *
+     * Manager and CEO therefore gain **three**: the Accountant's two plus the override.
+     *
      * Phase 4d, one permission: **`ConstructionRetentionRelease` on Manager**. Reading the ledger rides on
      * `ConstructionCertificateView` — same audience, same screenful — but releasing hands back money the contract
      * entitled the company to hold, which on a job of any size is the largest single payment decision anybody
@@ -132,9 +153,9 @@ class RoleGrantsTest extends AccountingTestCase
      */
     private const EXPECTED = [
         'Employee' => 39,
-        'Accountant' => 113,
-        'Manager' => 139,
-        'CEO' => 159,
+        'Accountant' => 117,
+        'Manager' => 145,
+        'CEO' => 165,
     ];
 
     protected function setUp(): void

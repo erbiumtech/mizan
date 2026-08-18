@@ -2,14 +2,21 @@
 
 namespace App\Modules\ConstructionContracts;
 
+use App\Modules\ConstructionContracts\Console\Commands\CheckComplianceExpiry;
 use App\Modules\ConstructionContracts\Console\Commands\ReconcileRetention;
 use App\Modules\ConstructionContracts\Filament\Settings\ConstructionAccountsSettingsSection;
+use App\Modules\ConstructionContracts\Models\BackCharge;
+use App\Modules\ConstructionContracts\Models\ComplianceDocument;
+use App\Modules\ConstructionContracts\Models\ComplianceRequirement;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\ContractItem;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Models\ProgressClaim;
 use App\Modules\ConstructionContracts\Models\RetentionMovement;
 use App\Modules\ConstructionContracts\Models\Variation;
+use App\Modules\ConstructionContracts\Policies\BackChargePolicy;
+use App\Modules\ConstructionContracts\Policies\ComplianceDocumentPolicy;
+use App\Modules\ConstructionContracts\Policies\ComplianceRequirementPolicy;
 use App\Modules\ConstructionContracts\Policies\ContractItemPolicy;
 use App\Modules\ConstructionContracts\Policies\ContractPolicy;
 use App\Modules\ConstructionContracts\Policies\PaymentCertificatePolicy;
@@ -31,6 +38,9 @@ class ConstructionContractsServiceProvider extends ServiceProvider
 {
     /** @var array<class-string, class-string> */
     private const POLICIES = [
+        BackCharge::class => BackChargePolicy::class,
+        ComplianceDocument::class => ComplianceDocumentPolicy::class,
+        ComplianceRequirement::class => ComplianceRequirementPolicy::class,
         Contract::class => ContractPolicy::class,
         ContractItem::class => ContractItemPolicy::class,
         PaymentCertificate::class => PaymentCertificatePolicy::class,
@@ -45,9 +55,12 @@ class ConstructionContractsServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
-        // The nightly retention reconciliation (§11). Licence-guarded inside the command rather than here,
-        // because a schedule that changes shape with a company's licences is a schedule nobody can read.
-        $this->commands([ReconcileRetention::class]);
+        /*
+         * The nightly retention reconciliation (§11) and the compliance expiry warning (§12). Licence-guarded inside
+         * each command rather than here, because a schedule that changes shape with a company's licences is a schedule
+         * nobody can read.
+         */
+        $this->commands([CheckComplianceExpiry::class, ReconcileRetention::class]);
         $this->loadRoutesFrom(__DIR__.'/routes/console.php');
 
         /*
