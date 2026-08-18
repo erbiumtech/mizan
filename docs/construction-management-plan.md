@@ -1,9 +1,19 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 4 complete (2026-08-18). Phase 5 is next.** Phase 4 built `construction_contracts` in
-full: the contract and its item schedule under both standards, variations with the agreed-versus-forecast rule,
-progress claims, payment certificates with their deductions, the retention ledger with its nightly reconciliation,
-the printed certificate under both PDF engines, and §10.4's invoice hand-off — 137 tests across six files.
+**Status:** **Phases 0 to 5 complete, and Phase 6a and 6b with them (2026-08-18). Phase 6c — the subcontract
+certificate relieving its commitment — is next, and finishes Phase 6.**
+
+Phase 5 built procurement end to end in `construction_costing`: requisitions, commitments, goods receipts, invoice
+allocations with their queue screen, and the computed three-way match — 114 tests across five files. Phase 6a met
+Phase 6's exit condition ahead of the rest of the phase: a certificate refuses to issue against expired insurance,
+and the override records who, when and why — 30 tests. Phase 6b added back-charges, where the useful rule is that
+notice is a state the register can be queried on rather than a habit somebody has — 38 tests. All three are written
+up under their phases below.
+
+Phase 4 built `construction_contracts` in full: the contract and its item schedule under both standards, variations
+with the agreed-versus-forecast rule, progress claims, payment certificates with their deductions, the retention
+ledger with its nightly reconciliation, the printed certificate under both PDF engines, and §10.4's invoice
+hand-off — 137 tests across six files.
 
 Two things about the last two sub-phases are worth carrying forward:
 
@@ -1841,6 +1851,70 @@ document register before the modules that reference drawings.
   documents with certification blocking, back-charges. Gated on Phase 0's Invoicing fix. **Ends with:**
   a certificate that refuses to certify against expired insurance, and an override that records who and
   why.
+
+  > **6a built 2026-08-18 — the exit condition is met.** — `ConstructionComplianceTest` (30 tests).
+  > `construction_compliance_documents` and `construction_compliance_requirements`, `ComplianceService`, the
+  > block inside `CertificationService::issue()`, the override trio on the certificate, both registers, the
+  > `construction:check-compliance` warning and its notification. §12's two shapes both hold: a certificate
+  > against a lapsed general liability policy refuses with the document named and the lapse counted in days,
+  > and the override records the user, the time and a mandatory sentence against **that** certificate only.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **There is no status column, anywhere.** Not in the migration, not on the model, not on the register's
+  >   rows. Every status is derived from the dates, against the date being asked about. §12 named the stored
+  >   one as the most dangerous silent failure on the payable side and the answer was to make it unstorable.
+  > - **Judged on the valuation date, never on today.** A June certificate issued in August is tested against
+  >   June's cover. Asking about today would refuse a payment for work that was properly covered when it was
+  >   done — a refusal nobody can act on, because the past cannot be re-insured.
+  > - **Requirements are a template plus per-contract overrides**, merged with the contract winning. This is
+  >   where the one real bug of the phase lived: `Eloquent\Collection::merge()` re-keys by primary key and
+  >   returns `array_values`, so merging two collections keyed by `kind` threw the keys away. Every requirement
+  >   then reported `missing` while its document sat in the table — the exact shape of failure §12 is about,
+  >   arrived at from the opposite direction. `->toBase()` before merging, with the reason in the code.
+  > - **A document is not compliance.** Unverified, insufficiently covered and out-of-period documents all
+  >   exist and all fail. Filing and verifying are the same permission on purpose: split, the register fills
+  >   with documents nobody has read, which is what `verified_at` exists to distinguish.
+  > - **The warning exists so the refusal never has to happen.** 60/30/14/7/1 days, once per threshold,
+  >   mailed to whoever maintains the register rather than whoever certifies — the person who can chase an
+  >   insurer is the person who files the certificates, and mailing the approver offers them only the
+  >   override. A first warning delivered as a refused certificate on payment-run day is too late.
+  >
+  > Two grants, deliberately split: **Accountant** files and verifies (`View`, `Update`); **Manager** holds
+  > `ConstructionComplianceOverride`, which both certifies past a block and waives a requirement for good.
+  >
+  > **6b built 2026-08-18.** — `ConstructionBackChargeTest` (38 tests). `construction_back_charges`,
+  > `BackChargeService`, the register with its state-machine actions, and the `back_charge` deduction row written
+  > through `CertificationService::addDeduction()`.
+  >
+  > Four decisions worth carrying forward:
+  >
+  > - **Notice before deduction, and the un-notified list is a query.** §12's sentence — an incurred-but-unnotified
+  >   back-charge is money the company will not get and does not yet know it has lost — becomes
+  >   `unnotifiedTotal()`, a filter, and the sidebar badge. `apply()` refuses a draft outright and the refusal says
+  >   why: deducting without notice is a payment the subcontractor can recover, so the company would have spent the
+  >   money twice.
+  > - **Nothing applies itself**, following §16.5's rule for NCRs. `offerFor()` returns what a certificate *could*
+  >   take and a human applies one. There is a test that recomputes a certificate three times and asserts no
+  >   back-charge appeared — written so a later reader does not take the absence for an oversight and wire it in.
+  > - **Draft computes, notice freezes**, the same rule the certificate keeps. `recompute()` is a no-op on anything
+  >   but a draft, and after notice the only way the figure moves is `agree()`, whose settled amount sits *beside*
+  >   the notified total rather than over it: "notified 240,000, settled at 180,000" is the fact final account needs,
+  >   and one column loses half of it. Agreeing above the notified figure is refused — that is a new charge and needs
+  >   its own notice.
+  > - **Un-applying returns the charge to notified, never to draft.** Notice cannot be unserved, and a charge sent
+  >   back to draft would be re-notified with a later date, moving it inside a contractual window it had already
+  >   left.
+  >
+  > **What 6b deliberately does not do is credit the job's cost report.** The cost was recorded when the company
+  > incurred it and the recovery reaches the books through the certificate's invoice (§10.4). Whether the job should
+  > also show the recovery against the code that carried the cost is §4's question, and §4's reconciliation is Phase
+  > 11 — writing a cost credit from here as well would post the same money twice with nothing disagreeing. Stated in
+  > the service docblock and in the help page rather than left as a silence.
+  >
+  > `ConstructionBackChargeApply` is separate from `Update` on the certificate's own asymmetry: raising and notifying
+  > is the surveyor's administration, deducting is the act that gets adjudicated. `RoleGrantsTest::EXPECTED` moved to
+  > 39 / 117 / 145 / 165 across 6a and 6b together.
 - **Phase 7 — Labour and plant.** Workers, trades, dated rates, labour records, burden and its
   absorption, plant items and logs, internal hire recovery, and the timesheet import behind its guard.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both

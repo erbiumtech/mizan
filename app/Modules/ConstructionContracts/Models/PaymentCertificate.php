@@ -48,6 +48,8 @@ class PaymentCertificate extends Model
         'gross_work_to_date', 'gross_materials_to_date', 'gross_value_to_date',
         'retention_to_date', 'previously_certified', 'current_due',
         'certified_by', 'notes', 'void_reason', 'invoice_id',
+        // The compliance override (§12): certified knowing the cover was not in place, and who decided that.
+        'compliance_override_at', 'compliance_override_by', 'compliance_override_reason',
     ];
 
     protected $casts = [
@@ -56,6 +58,7 @@ class PaymentCertificate extends Model
         'issued_on' => 'date',
         'due_on' => 'date',
         'sequence' => 'integer',
+        'compliance_override_at' => 'datetime',
     ];
 
     protected $attributes = [

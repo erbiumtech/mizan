@@ -57,6 +57,18 @@ class PaymentCertificatePolicy
     }
 
     /**
+     * Certifying past a compliance block — §12's override, and its own grant on purpose.
+     *
+     * Not the certifier's power by default: the point of the block is that somebody other than whoever is trying to
+     * get the payment out decides the company will pay a subcontractor whose cover has lapsed. Only offered on a
+     * draft, because an issued certificate has nothing left to unblock.
+     */
+    public function overrideCompliance(User $user, PaymentCertificate $certificate): bool
+    {
+        return $user->can('ConstructionComplianceOverride') && $certificate->isDraft();
+    }
+
+    /**
      * Raising the invoice is a finance act, separately granted.
      *
      * §18's reason for keeping Invoicing guarded rather than required is the same reason this is its own
