@@ -321,7 +321,12 @@ class ModuleBoundaryTest extends TestCase
         // certification and invoicing in different departments. So Invoicing is not declared, the action is
         // absent without it, and the register with its retention ledger and printed forms is still the whole
         // deliverable.
-        'construction_contracts' => ['invoicing'],
+        //
+        // `accounting` joins it for the same hand-off: §10.4's invoice needs the retention-receivable and
+        // contract-liability accounts, resolved through `ConstructionAccounts`. Guarded twice over — the action is
+        // absent without Invoicing, and Invoicing requires Accounting — so the path cannot be reached with the
+        // account map unavailable.
+        'construction_contracts' => ['invoicing', 'accounting'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -445,7 +450,9 @@ class ModuleBoundaryTest extends TestCase
             // The same shape one level up: the other party on a contract is a Contact and the certificate
             // becomes a draft invoice, both guarded. §18's refusal to declare Invoicing here is deliberate
             // and is why `certificates.invoice_id` is nullable rather than the module requiring the key.
-            'construction_contracts' => ['invoicing'],
+            // Accounting comes with the hand-off: the invoice's retention line needs an asset account, and
+            // getting that wrong is the misstatement §10.4 exists to prevent.
+            'construction_contracts' => ['invoicing', 'accounting'],
         ];
 
         foreach ($guarded as $module => $targets) {

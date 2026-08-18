@@ -1,23 +1,26 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 4 complete (2026-08-18), except the certificate-to-invoice hand-off.** Phase 5 is next.
-Phase 4 built `construction_contracts`: the contract and its item schedule under both standards, variations with
-the agreed-versus-forecast rule, progress claims, payment certificates with their deductions, and the retention
-ledger with its nightly reconciliation, and the printed certificate under both PDF engines — 119 tests across five
-files. One piece of §10 is deliberately **not** built and is tracked rather than forgotten:
+**Status:** **Phases 0 to 4 complete (2026-08-18). Phase 5 is next.** Phase 4 built `construction_contracts` in
+full: the contract and its item schedule under both standards, variations with the agreed-versus-forecast rule,
+progress claims, payment certificates with their deductions, the retention ledger with its nightly reconciliation,
+the printed certificate under both PDF engines, and §10.4's invoice hand-off — 137 tests across six files.
 
-- **The certificate-to-invoice hand-off (§10.4).** It needs a `ConstructionAccounts` support class and a
-  `ConstructionAccountsSeeder` (§18.2) before it can post retention to a retention-receivable asset instead of
-  netting it off revenue — and netting is the misstatement §10.4 is written to prevent, so a half-built hand-off
-  would be worse than none. `certificates.invoice_id` and the `ConstructionCertificateInvoice` permission are in
-  place for it.
-- ~~**The printed forms (§10.5).**~~ **Built 2026-08-18.** The continuation sheet is chunked in PHP —
-  `CertificateSchedule` — so the document is the same under both engines, and both of §8.4's worked examples are
-  asserted against their stated figures in `ConstructionCertificatePrintTest`. Phase 4's exit condition is met,
-  with one honest limit stated in that file: the PDF *bytes* differ by engine because one writer is Chrome's and
-  the other Dompdf's, so what is asserted identical is the **document** — the same pages, the same rows on each,
-  the same brought- and carried-forward figures, the same "page n of m". The only difference between the two
-  renderings is the Dompdf stylesheet in the head, which is what §10.5 promises.
+Two things about the last two sub-phases are worth carrying forward:
+
+- **The printed document is engine-independent because the pagination is not in the engine.**
+  `CertificateSchedule` chunks the continuation sheet in PHP, so the sheet breaks the same way whether headless
+  Chrome or Dompdf renders it. The honest limit is stated in `ConstructionCertificatePrintTest`: the PDF *bytes*
+  differ by engine because one writer is Chrome's and the other Dompdf's, so what is asserted identical is the
+  **document** — the same pages, the same rows on each, the same brought- and carried-forward figures, the same
+  "page n of m". The only difference between the two renderings is the Dompdf stylesheet in the head, which is
+  what §10.5 promises.
+- **The account map is a settings block contributed by this module**, which is what §18.2's refusal to add
+  `'core' => [… 'construction']` requires and what the `SettingsSection` registry from the packaging plan exists
+  for. Building it caught a real hole on the way: validating the codes against the chart locked *every* company
+  out of Company Settings, because the construction accounts arrive with the construction profile rather than
+  with the base chart. The block is now hidden without the module, and a code left at its shipped default is not
+  validated there at all — the refusal it needs belongs at the point of use, where `ConstructionAccounts::id()`
+  names the missing code and the seeder.
 
 Three decisions inside Phase 4 are worth carrying forward:
 
@@ -1753,9 +1756,13 @@ document register before the modules that reference drawings.
   > documents, cumulative, with the previous figures snapshotted rather than joined; every deduction a row
   > with retention, advance recovery and previously-certified computed; the retention ledger with the
   > release rules as one function with a branch, a zero AIA holdback that states its reason in words, and a
-  > nightly reconciliation that warns rather than throwing; and the printed certificate, chunked in PHP so
+  > nightly reconciliation that warns rather than throwing; the printed certificate, chunked in PHP so
   > the document is the same under either PDF engine, with §8.4's two worked examples asserted against
-  > their stated figures and 22,360,000 coming out of the FIDIC one.
+  > their stated figures and 22,360,000 coming out of the FIDIC one; and §10.4's hand-off, which produces
+  > that same 22,360,000 as a **draft** invoice of four lines — the work gross to contract revenue,
+  > retention to a *receivable asset*, advance recovery against the liability it created, and the NCR
+  > deduction back against revenue — with `previously_certified` deliberately not a line, because it is how
+  > a cumulative certificate expresses a period figure rather than a deduction to bill.
 - **Phase 5 — Procurement.** Requisitions, commitments and their variations, goods receipts, invoice
   allocations, the allocation queue screen, three-way match, relief. **Ends with:** open commitment is
   provable per cost code and closing a purchase order with a balance has an author and a reason.

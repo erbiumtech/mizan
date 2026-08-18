@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificates\Tables;
 
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
+use App\Modules\ConstructionContracts\Services\CertificateInvoiceService;
 use App\Modules\ConstructionContracts\Services\CertificationService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -162,6 +163,24 @@ class PaymentCertificatesTable
                     ]))
                     ->visible(fn (PaymentCertificate $record): bool => auth()->user()?->can('view', $record) ?? false),
 
+                Action::make('invoice')
+                    ->label('Raise invoice')
+                    ->icon('heroicon-o-receipt-percent')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Raise the draft invoice')
+                    ->modalDescription('The work is invoiced gross with retention as its own line against a retention asset — never net, which would understate revenue for the life of the job. It stops at draft: issuing an invoice transmits it, and that stays a decision somebody makes.')
+                    // Absent without Invoicing (§18.1's guarded coupling) rather than present and failing: without
+                    // it there is nothing for the certificate to become, and the certificate is still the whole
+                    // deliverable.
+                    ->visible(fn (PaymentCertificate $record): bool => app(CertificateInvoiceService::class)->canRaise()
+                        && (auth()->user()?->can('invoice', $record) ?? false))
+                    ->action(fn (PaymentCertificate $record) => static::run(
+                        fn () => app(CertificateInvoiceService::class)->raise($record),
+                        'Draft invoice raised.',
+                        'Gross, with retention as an asset. Issue it from Invoicing when it has been checked.',
+                    )),
+
                 Action::make('void')
                     ->label('Void')
                     ->icon('heroicon-o-x-circle')
@@ -184,11 +203,18 @@ class PaymentCertificatesTable
             ]);
     }
 
+    /**
+     * Service refusals are sentences somebody needs to read, so they are surfaced rather than thrown.
+     *
+     * `RuntimeException` is caught alongside `InvalidArgumentException` because the account-map refusals name the
+     * settings page and the seeder — the most useful message in this whole file, and the one a stack trace would
+     * bury.
+     */
     private static function run(callable $call, string $title, string $body): void
     {
         try {
             $call();
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException|\RuntimeException $e) {
             Notification::make()->danger()->title($e->getMessage())->send();
 
             return;

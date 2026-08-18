@@ -125,15 +125,53 @@ has to produce the same document, not merely the same figures.
 A FIDIC certificate prints portrait with the measurement schedule annexed; an AIA
 one prints landscape, because eleven columns do not fit any other way.
 
-## Retention is not netted off the invoice
+## Raising the invoice <!-- requires: ConstructionCertificateInvoice -->
 
-When the certificate becomes an invoice, the work is invoiced **gross** and
-retention appears as its own line against a retention asset account — not as a
-smaller invoice.
+**Raise invoice** on an issued certificate produces a **draft** invoice and stops
+there. Issuing an invoice transmits it, and transmission is what cannot be undone —
+so that stays a decision somebody makes in Invoicing after reading it.
+
+What it produces is four lines, not four hundred:
+
+| Line | Account |
+|---|---|
+| Work executed this period per the certificate | contract revenue |
+| Less retention | **retention receivable — an asset** |
+| Less advance payment recovery | advance received — a liability |
+| Less any deduction (NCR, damages, back-charge) | contract revenue |
+
+One line per deduction group rather than one per schedule item: a four-hundred-item
+bill would otherwise make a four-hundred-line invoice with uniform tax treatment,
+and the client reconciles against the certificate anyway.
+
+**The invoice is for the period, not the total.** Certificates are cumulative; the
+invoice bills what has become due since the last one. The certificate's *less
+previously certified* row is what turns one into the other, so it is not an invoice
+line — billing that as well would deduct the same money twice.
+
+Withholding tax is also not a line here: it is the client's own deduction against
+the invoice, and it belongs to whoever records the receipt.
+
+Raising it twice is refused. The certificate remembers the invoice it became.
+
+### Retention is not netted off the invoice
+
+The work is invoiced **gross** and retention appears as its own line against a
+retention asset account — not as a smaller invoice.
 
 Invoicing net understates revenue for the whole life of the job by up to a tenth,
 and then makes the release look like revenue earned in a period when no work
 happened. That is precisely the misstatement an audit looks for.
+
+Which accounts those lines land on is set under **Company Settings → Construction →
+Construction Account Codes**, with shipped defaults behind every line. If one names
+a code your chart does not have, the error says so and names the seeder that
+creates them.
+
+**Without the Invoicing module this action is simply absent**, and nothing is broken
+by its absence: a payment certificate is a contractual instrument in its own right.
+It starts the payment period, the other side countersigns it, an adjudicator reads
+it — whether or not anybody raises a tax invoice.
 
 ## Who does what
 
