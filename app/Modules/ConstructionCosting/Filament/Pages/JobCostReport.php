@@ -22,9 +22,10 @@ use UnitEnum;
  * row cancelling its original inside the same sum, which is why this is one `group by` rather than a pipeline of
  * adjustments.
  *
- * Phase 3 added the other three of §3.5's four columns and §14's earned value. **Committed is still `—` rather
- * than `0.00`** and stays that way until Phase 5's procurement exists: a zero there reads as "nothing is on order",
- * which is the wrong thing to tell somebody deciding whether a code has room left in it.
+ * Phase 3 added the other three of §3.5's four columns and §14's earned value, and Phase 5 filled in the last one.
+ * **Committed showed `—` rather than `0.00` until procurement existed**, because a zero there reads as "nothing is
+ * on order" — the wrong thing to tell somebody deciding whether a code has room left in it. It is now open
+ * commitment: ordered, and not yet received, certified or invoiced.
  *
  * §14's rule is enforced at the source and merely displayed here: where the budget is not time-phased there is no
  * planned value, so schedule variance and SPI are **null and print as "unavailable" with the reason** — never as
@@ -166,11 +167,16 @@ class JobCostReport extends Page
     {
         $rows = $this->controlRows();
 
-        $totals = ['budget' => 0.0, 'actual' => 0.0, 'accrued' => 0.0, 'forecast_final' => 0.0, 'variance' => 0.0];
+        $totals = [
+            'budget' => 0.0, 'committed' => 0.0, 'actual' => 0.0, 'accrued' => 0.0,
+            'forecast_final' => 0.0, 'variance' => 0.0,
+        ];
         $forecastComplete = $rows !== [];
 
         foreach ($rows as $row) {
             $totals['budget'] += $row['budget'];
+            // Real since Phase 5; `?? 0` because a row from a report built before procurement existed carries null.
+            $totals['committed'] += $row['committed'] ?? 0.0;
             $totals['actual'] += $row['actual'];
             $totals['accrued'] += $row['accrued'];
 

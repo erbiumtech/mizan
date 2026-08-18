@@ -314,6 +314,13 @@ class ModuleBoundaryTest extends TestCase
         // customer), so both pickers check modules()->enabled('invoicing') and the columns simply stay null
         // without it. A tender has no client record either way. Exactly the invoicing -> projects shape.
         'construction' => ['invoicing'],
+        // Construction costing -> Invoicing is guarded: a purchase order names a supplier, and a supplier is a
+        // Contact, which Invoicing owns. `construction_costing` requires `construction` and `accounting` and
+        // deliberately not Invoicing — a contractor can cost jobs and raise orders while buying nothing from this
+        // application's invoicing — so the picker checks `modules()->enabled('invoicing')` and
+        // `commitments.contact_id` stays null without it. An order to somebody with no contact record is still an
+        // order, and still commits the money.
+        'construction_costing' => ['invoicing'],
         // Construction contracts -> Invoicing is guarded, and §18 calls this the sharpest fork in that
         // section. The other party on a contract is a Contact, and the certificate's *raise invoice* action
         // needs an Invoice — but a payment certificate is not a quote: it is itself a contractual instrument
@@ -446,6 +453,10 @@ class ModuleBoundaryTest extends TestCase
             // §18.1's "smaller, never broken", and the reason construction is sellable to a contractor
             // whose books are somewhere else.
             'construction' => ['invoicing'],
+
+            // A purchase order's supplier is a Contact, and the picker is hidden without Invoicing while the
+            // column stays null. The same shape as the job's client, one module along.
+            'construction_costing' => ['invoicing'],
 
             // The same shape one level up: the other party on a contract is a Contact and the certificate
             // becomes a draft invoice, both guarded. §18's refusal to declare Invoicing here is deliberate

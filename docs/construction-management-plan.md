@@ -605,7 +605,27 @@ The chain, and what is reused:
 | Supplier bill | **reuse** `invoices.kind='purchase'` and `InvoiceService` |
 | Job/code attribution of the bill | new `construction_invoice_allocations` |
 | Three-way match | new service and report, computed |
-| Subcontract | `construction_commitments` type `subcontract` + a 1:1 terms row |
+| Subcontract | `construction_commitments` type `subcontract`, pointing at the `construction_contracts` row |
+
+> **Resolved 2026-08-18, at the start of Phase 5, because this section and §8.1 disagreed.** §5 above says a
+> subcontract is a commitment with a 1:1 *terms* extension; §8.1 says the one contracts table serves "the head
+> contract and the subcontract" with `side = payable`. Both are in this document and they cannot both be the whole
+> answer.
+>
+> They are two aspects of one agreement, and the model links them rather than choosing: **the contract row is the
+> agreement** — schedule, variations, certificates, retention, which is the whole of §8–§12 — and **the commitment
+> row is the money promised**, relieved as certificates are issued, which is what the four-column report's
+> *committed* column reads. `construction_commitments.contract_id` is nullable and points at the contract when
+> there is one.
+>
+> The terms extension is therefore unnecessary: a subcontract's terms are the contract's columns, which already
+> carry retention, payment days, damages and the release rule. Building a second set on a commitment would be the
+> "staged retention release is the fiddliest logic in the suite, so a second copy of it will diverge" failure that
+> §8.1 spends a paragraph rejecting.
+>
+> Commitments live in `construction_costing`, which is where §18's table puts "procurement and commitments". The
+> `contract_id` is unconstrained rather than a foreign key, because costing does not require
+> `construction_contracts` — the same treatment `construction_jobs.project_id` gets, and for the same reason.
 
 A goods receipt does three things: relieves the commitment, raises an accrual cost entry at order rate,
 and — only when the delivery is into a site store rather than straight to the work face, and only when
@@ -1766,6 +1786,29 @@ document register before the modules that reference drawings.
 - **Phase 5 — Procurement.** Requisitions, commitments and their variations, goods receipts, invoice
   allocations, the allocation queue screen, three-way match, relief. **Ends with:** open commitment is
   provable per cost code and closing a purchase order with a balance has an author and a reason.
+
+  > **Started 2026-08-18. Commitments, relief and the demand document are built** —
+  > `ConstructionCommitmentTest` (26 tests) and `ConstructionRequisitionTest` (24). The commitment half is both
+  > halves of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
+  > with every relief naming its cause, and closing writes a `close_out` relief with `closed_by` and a
+  > mandatory reason. Three decisions worth carrying forward:
+  >
+  > - **Approved is not committed.** Only `issued` and `partially_relieved` put money on the four-column
+  >   report, because an approved order the supplier has not been sent can still be withdrawn with a phone
+  >   call. Two buttons, two permissions.
+  > - **§3.5's `committed` column stopped being an em dash.** It was `null` rather than `0.00` for two
+  >   phases precisely so that "no procurement module" could never be read as "no orders placed" — and
+  >   filling it in was one method on `CostLedger` plus one on `ForecastService`, with no figure restated.
+  >   The Phase 3 test that asserted the null now asserts the zero, and says why it changed.
+  > - **A requisition's `ordered` status has to be able to reverse.** `refreshOrderedStatus()` first treated it as
+  >   terminal, which meant an order cancelled after the request was fully ordered could never put the request back
+  >   on the buyer's queue — the exact failure the demand document exists to prevent, a need nobody is chasing with
+  >   nothing on any screen showing it. Only `cancelled` and `rejected` are terminal; everything else is derived
+  >   from the order lines and must be able to move both ways.
+  > - **`Commitment::relievedTotal()` had to qualify its column.** It sums a `hasManyThrough` where both
+  >   joined tables have an `amount`; SQLite refused the query outright, which was the good outcome. MySQL
+  >   would have been entitled to pick either, and picking the line's amount would have made every order
+  >   read as fully relieved the moment anything was received against it.
 - **Phase 6 — The payable side.** Subcontracts and their terms, subcontract certificates, compliance
   documents with certification blocking, back-charges. Gated on Phase 0's Invoicing fix. **Ends with:**
   a certificate that refuses to certify against expired insurance, and an override that records who and

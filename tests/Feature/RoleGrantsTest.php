@@ -87,6 +87,25 @@ class RoleGrantsTest extends AccountingTestCase
      * will enforce; **CEO +1 of its own** for `ConstructionCertificateInvoice`, the act that moves the figure into
      * the books.
      *
+     * Phase 5b, the three requisition permissions, and this is the run where the shape of the suite changes:
+     * **Employee +2, one of them a `create`** — the first and only one in the construction suite. The demand
+     * document exists because the demand comes from the people who need the material, and a requisition raised only
+     * by the commercial office is a purchase order with an extra step. Accountant +2 to raise and read them;
+     * **Manager +1 of its own** for `ConstructionRequisitionApprove`, which agrees the need is real and still
+     * commits nothing — the money moves at `ConstructionCommitmentIssue`, two grants later.
+     *
+     * Manager and CEO gain **two** rather than three, and working out why is the useful part: the roles are separate
+     * leaves rather than a chain, so neither inherits Employee's `ConstructionRequisitionCreate`. They get the two
+     * the Accountant has plus their own approval — a manager who needs to raise a request holds the Accountant's
+     * grant, not the site engineer's.
+     *
+     * Phase 5a, the five commitment permissions: Employee +1 for view, because "has the rebar been ordered" is a
+     * site question and an invisible answer produces a second order for it; Accountant +2 to raise and price one;
+     * **Manager +2 of its own** for `ConstructionCommitmentApprove` and `ConstructionCommitmentIssue`, which are two
+     * decisions rather than one — approving spends the company's money, issuing commits it to a supplier and is what
+     * puts the figure on the cost report; **CEO +1 of its own** for `ConstructionCommitmentClose`, which writes off
+     * money somebody committed and needs a name against it.
+     *
      * Phase 4d, one permission: **`ConstructionRetentionRelease` on Manager**. Reading the ledger rides on
      * `ConstructionCertificateView` — same audience, same screenful — but releasing hands back money the contract
      * entitled the company to hold, which on a job of any size is the largest single payment decision anybody
@@ -95,10 +114,10 @@ class RoleGrantsTest extends AccountingTestCase
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 34,
-        'Accountant' => 106,
-        'Manager' => 127,
-        'CEO' => 146,
+        'Employee' => 37,
+        'Accountant' => 110,
+        'Manager' => 134,
+        'CEO' => 154,
     ];
 
     protected function setUp(): void

@@ -33,11 +33,21 @@ return [
         'App\\Models\\ProgressMeasurement' => \App\Modules\ConstructionCosting\Models\ProgressMeasurement::class,
         'App\\Models\\ForecastRun' => \App\Modules\ConstructionCosting\Models\ForecastRun::class,
         'App\\Models\\ForecastLine' => \App\Modules\ConstructionCosting\Models\ForecastLine::class,
+        'App\\Models\\Commitment' => \App\Modules\ConstructionCosting\Models\Commitment::class,
+        'App\\Models\\CommitmentLine' => \App\Modules\ConstructionCosting\Models\CommitmentLine::class,
+        'App\\Models\\CommitmentRelief' => \App\Modules\ConstructionCosting\Models\CommitmentRelief::class,
+        'App\\Models\\Requisition' => \App\Modules\ConstructionCosting\Models\Requisition::class,
+        'App\\Models\\RequisitionLine' => \App\Modules\ConstructionCosting\Models\RequisitionLine::class,
+        'App\\Models\\GoodsReceipt' => \App\Modules\ConstructionCosting\Models\GoodsReceipt::class,
+        'App\\Models\\GoodsReceiptLine' => \App\Modules\ConstructionCosting\Models\GoodsReceiptLine::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\ConstructionCosting\\JobBudgetResource' => \App\Modules\ConstructionCosting\Filament\Resources\JobBudgets\JobBudgetResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\CostEntryResource' => \App\Modules\ConstructionCosting\Filament\Resources\CostEntries\CostEntryResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\CommitmentResource' => \App\Modules\ConstructionCosting\Filament\Resources\Commitments\CommitmentResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\RequisitionResource' => \App\Modules\ConstructionCosting\Filament\Resources\Requisitions\RequisitionResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\GoodsReceiptResource' => \App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts\GoodsReceiptResource::class,
     ],
 
     'pages' => [
@@ -71,20 +81,69 @@ return [
         ['name' => 'ConstructionBudgetBaseline', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionProgressMeasure', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionForecastPrepare', 'group' => 'ConstructionCost'],
+
+        /*
+         * Procurement rides on the same group — it is the same screenful of decisions about the same job — but
+         * **`Approve`, `Issue` and `Close` are separate names**, because they are three decisions taken at three
+         * moments and often by three people. Approving says this company will spend the money; issuing tells the
+         * supplier, which is what makes it a commitment somebody else is relying on; closing writes off whatever
+         * was never delivered, which is the one that needs an author and a reason on it.
+         */
+        ['name' => 'ConstructionCommitmentView', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionCommitmentCreate', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionCommitmentApprove', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionCommitmentIssue', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionCommitmentClose', 'group' => 'ConstructionCost'],
+
+        /*
+         * Requisitions, and this is the **only place in the construction suite where site staff get a create**: the
+         * demand document exists because the demand comes from the people who need the material, and a requisition
+         * raised only by the commercial office is a purchase order with an extra step.
+         *
+         * Approving is its own name and commits nothing — it says the need is real. The money is committed by
+         * `ConstructionCommitmentIssue`, which is a different grant held by a different person.
+         */
+        ['name' => 'ConstructionRequisitionView', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionRequisitionCreate', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionRequisitionApprove', 'group' => 'ConstructionCost'],
+
+        /*
+         * Goods receipts. **Recording one is site's**, like raising a requisition: the storeman signs the delivery
+         * note and is the only person who knows what actually arrived. A receipt typed by the office from a note that
+         * reached it a week later is how a delivery comes to be recorded against the wrong job.
+         *
+         * Reversing is separate, because a posted receipt has relieved an order and put accrued cost on a job.
+         */
+        ['name' => 'ConstructionReceiptView', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionReceiptRecord', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionReceiptReverse', 'group' => 'ConstructionCost'],
     ],
 
     'role_grants' => [
         // A site engineer sees what the job has cost. Recording and reversing are the commercial side's.
         'Employee' => [
             'ConstructionBudgetView',
+            // A site engineer reads what is on order for the job they are on: "has the rebar been ordered" is a
+            // site question, and the answer being invisible is what produces a second order for it.
+            'ConstructionCommitmentView',
             'ConstructionCostView',
+            // And **asks for materials**, which is the whole reason the demand document exists — then signs for them
+            // when they arrive, which is the only moment anybody knows what actually turned up.
+            'ConstructionReceiptRecord',
+            'ConstructionReceiptView',
+            'ConstructionRequisitionCreate',
+            'ConstructionRequisitionView',
         ],
         'Accountant' => [
             // The surveyor builds the budget, measures progress and prepares the forecast. Approving it and
             // fixing the baseline are somebody else's — below.
             'ConstructionBudgetUpdate',
             'ConstructionBudgetView',
+            'ConstructionCommitmentCreate',
+            'ConstructionCommitmentView',
             'ConstructionCostCreate',
+            'ConstructionRequisitionCreate',
+            'ConstructionRequisitionView',
             'ConstructionCostUpdate',
             'ConstructionCostView',
             'ConstructionForecastPrepare',
@@ -94,6 +153,13 @@ return [
         // records the cost — the same segregation of duties the journal-entry powers already keep.
         'Manager' => [
             'ConstructionBudgetApprove',
+            // Approving an order commits the company's money; issuing it commits the company to a supplier.
+            'ConstructionCommitmentApprove',
+            'ConstructionCommitmentIssue',
+            // Backing out a posted receipt takes cost off a job and puts commitment back on an order.
+            'ConstructionReceiptReverse',
+            // Agreeing that a site request is real, which is the gate before any of that.
+            'ConstructionRequisitionApprove',
             'ConstructionCostReverse',
             'ConstructionPeriodClose',
         ],
@@ -102,6 +168,8 @@ return [
             // Setting the baseline decides what every earned-value figure on the job is measured against, and
             // re-setting it restates all of them — so it sits with the person who answers for the numbers.
             'ConstructionBudgetBaseline',
+            // Closing an order with a balance writes off money somebody committed. It needs a name on it.
+            'ConstructionCommitmentClose',
             'ConstructionPeriodForceClose',
         ],
     ],
