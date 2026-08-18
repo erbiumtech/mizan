@@ -267,11 +267,18 @@ class NavigationGroupsTest extends TestCase
         // alternative: Finance is already 24 classes across three groups, and folding construction in would
         // push it past fifty across seven, which is the flat-many-groups problem the two-level shell exists
         // to solve.
+        // `Contracts` is a second construction group rather than more of `Construction`, and §18.2 decided it
+        // for a measurable reason: the two are opened by different people on different days. `Construction` is
+        // the job, its coding and what it has cost; `Contracts` is what was agreed with the employer and the
+        // subcontractors — the schedule, the variations, the certificates, the retention. Folding them together
+        // would take the construction domain past the six-entry threshold `NavigationTree` exists to keep
+        // groups under, and would put the retention ledger next to the cost-code library.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
             'Construction',
+            'Contracts',
             'Employee',
             'Hiring',
             'Invoicing & Inventory',

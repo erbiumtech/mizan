@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Modules\ConstructionContracts;
+
+use App\Modules\ConstructionContracts\Console\Commands\ReconcileRetention;
+use App\Modules\ConstructionContracts\Models\Contract;
+use App\Modules\ConstructionContracts\Models\ContractItem;
+use App\Modules\ConstructionContracts\Models\PaymentCertificate;
+use App\Modules\ConstructionContracts\Models\ProgressClaim;
+use App\Modules\ConstructionContracts\Models\RetentionMovement;
+use App\Modules\ConstructionContracts\Models\Variation;
+use App\Modules\ConstructionContracts\Policies\ContractItemPolicy;
+use App\Modules\ConstructionContracts\Policies\ContractPolicy;
+use App\Modules\ConstructionContracts\Policies\PaymentCertificatePolicy;
+use App\Modules\ConstructionContracts\Policies\ProgressClaimPolicy;
+use App\Modules\ConstructionContracts\Policies\RetentionMovementPolicy;
+use App\Modules\ConstructionContracts\Policies\VariationPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+
+/**
+ * Everything this module owns that Filament does not discover.
+ *
+ * Policies explicitly: Laravel's App\Models\X -> App\Policies\XPolicy guess cannot resolve a model in a module
+ * directory, and Filament treats a model with no policy as allowed — so a missing registration is an open
+ * resource. `ModuleCoverageTest` fails the build for one.
+ */
+class ConstructionContractsServiceProvider extends ServiceProvider
+{
+    /** @var array<class-string, class-string> */
+    private const POLICIES = [
+        Contract::class => ContractPolicy::class,
+        ContractItem::class => ContractItemPolicy::class,
+        PaymentCertificate::class => PaymentCertificatePolicy::class,
+        ProgressClaim::class => ProgressClaimPolicy::class,
+        RetentionMovement::class => RetentionMovementPolicy::class,
+        Variation::class => VariationPolicy::class,
+    ];
+
+    public function boot(): void
+    {
+        foreach (self::POLICIES as $model => $policy) {
+            Gate::policy($model, $policy);
+        }
+
+        // The nightly retention reconciliation (§11). Licence-guarded inside the command rather than here,
+        // because a schedule that changes shape with a company's licences is a schedule nobody can read.
+        $this->commands([ReconcileRetention::class]);
+        $this->loadRoutesFrom(__DIR__.'/routes/console.php');
+
+        // The printed certificate (§10.5). Its own route rather than a panel action returning a response,
+        // because a direct URL never consults `canAccess()` — the licence gate belongs on the route.
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
+    }
+}

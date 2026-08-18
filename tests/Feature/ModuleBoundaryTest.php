@@ -314,6 +314,14 @@ class ModuleBoundaryTest extends TestCase
         // customer), so both pickers check modules()->enabled('invoicing') and the columns simply stay null
         // without it. A tender has no client record either way. Exactly the invoicing -> projects shape.
         'construction' => ['invoicing'],
+        // Construction contracts -> Invoicing is guarded, and §18 calls this the sharpest fork in that
+        // section. The other party on a contract is a Contact, and the certificate's *raise invoice* action
+        // needs an Invoice — but a payment certificate is not a quote: it is itself a contractual instrument
+        // that starts the payment period and that an adjudicator reads, and large contractors run
+        // certification and invoicing in different departments. So Invoicing is not declared, the action is
+        // absent without it, and the register with its retention ledger and printed forms is still the whole
+        // deliverable.
+        'construction_contracts' => ['invoicing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -433,6 +441,11 @@ class ModuleBoundaryTest extends TestCase
             // §18.1's "smaller, never broken", and the reason construction is sellable to a contractor
             // whose books are somewhere else.
             'construction' => ['invoicing'],
+
+            // The same shape one level up: the other party on a contract is a Contact and the certificate
+            // becomes a draft invoice, both guarded. §18's refusal to declare Invoicing here is deliberate
+            // and is why `certificates.invoice_id` is nullable rather than the module requiring the key.
+            'construction_contracts' => ['invoicing'],
         ];
 
         foreach ($guarded as $module => $targets) {

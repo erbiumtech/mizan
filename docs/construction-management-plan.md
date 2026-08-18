@@ -1,7 +1,37 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 3 complete (2026-08-17). Phase 4 is next.** Phase 1 built the spine — jobs, the WBS,
-locations, the cost-code library and the ISO 19650 document register. Phase 2 built the cost ledger and its live
+**Status:** **Phases 0 to 4 complete (2026-08-18), except the certificate-to-invoice hand-off.** Phase 5 is next.
+Phase 4 built `construction_contracts`: the contract and its item schedule under both standards, variations with
+the agreed-versus-forecast rule, progress claims, payment certificates with their deductions, and the retention
+ledger with its nightly reconciliation, and the printed certificate under both PDF engines — 119 tests across five
+files. One piece of §10 is deliberately **not** built and is tracked rather than forgotten:
+
+- **The certificate-to-invoice hand-off (§10.4).** It needs a `ConstructionAccounts` support class and a
+  `ConstructionAccountsSeeder` (§18.2) before it can post retention to a retention-receivable asset instead of
+  netting it off revenue — and netting is the misstatement §10.4 is written to prevent, so a half-built hand-off
+  would be worse than none. `certificates.invoice_id` and the `ConstructionCertificateInvoice` permission are in
+  place for it.
+- ~~**The printed forms (§10.5).**~~ **Built 2026-08-18.** The continuation sheet is chunked in PHP —
+  `CertificateSchedule` — so the document is the same under both engines, and both of §8.4's worked examples are
+  asserted against their stated figures in `ConstructionCertificatePrintTest`. Phase 4's exit condition is met,
+  with one honest limit stated in that file: the PDF *bytes* differ by engine because one writer is Chrome's and
+  the other Dompdf's, so what is asserted identical is the **document** — the same pages, the same rows on each,
+  the same brought- and carried-forward figures, the same "page n of m". The only difference between the two
+  renderings is the Dompdf stylesheet in the head, which is what §10.5 promises.
+
+Three decisions inside Phase 4 are worth carrying forward:
+
+- **The retention ledger is written only by `RetentionService`, and issuing a certificate is the trigger.** The
+  certification service computes the deduction row and calls that service, which links the movement to the row —
+  so §11's reconciliation compares two registers line by line rather than in total.
+- **The reconciliation compares *held* movements with the certificates, not the balance.** Comparing the balance
+  would report a difference on every job that has ever released retention, which is a report people stop reading.
+- **`contract_sum_to_date` is not a column.** It is the original plus the agreed variations, both frozen on the
+  certificate, so a third stored column could only ever disagree with its own two inputs. §8.4's G702 mapping
+  already calls line 3 derived; the header list that also names it is the redundancy, not the mapping.
+
+**Phases 0 to 3.** Phase 1 built the spine — jobs, the WBS, locations, the cost-code library and the ISO 19650
+document register. Phase 2 built the cost ledger and its live
 report. Phase 3 built budget versions with the baseline, progress measurements, earned value, forecast runs and
 §3.5's four-column report, in `ConstructionEarnedValueTest` (38 tests). Three things about Phase 3 as built are
 worth carrying forward, each found by a test rather than by reading:
@@ -1715,6 +1745,17 @@ document register before the modules that reference drawings.
   claims, certificates, deductions, the retention ledger, and the printed forms. **Ends with:** the two
   worked examples of §8.4 reproducing identically under both PDF engines — which is the assertion, not
   the illustration.
+
+  > **Built 2026-08-18, except the invoice hand-off** — named in the status block above with the reason it
+  > was left. What landed: the contract and its schedule with execution freezing the scheduled values;
+  > variations with `agreed()` and `forecast()` and a source-level test asserting no bare
+  > `where('status', 'approved')` survives anywhere in the module; claims and certificates as two
+  > documents, cumulative, with the previous figures snapshotted rather than joined; every deduction a row
+  > with retention, advance recovery and previously-certified computed; the retention ledger with the
+  > release rules as one function with a branch, a zero AIA holdback that states its reason in words, and a
+  > nightly reconciliation that warns rather than throwing; and the printed certificate, chunked in PHP so
+  > the document is the same under either PDF engine, with §8.4's two worked examples asserted against
+  > their stated figures and 22,360,000 coming out of the FIDIC one.
 - **Phase 5 — Procurement.** Requisitions, commitments and their variations, goods receipts, invoice
   allocations, the allocation queue screen, three-way match, relief. **Ends with:** open commitment is
   provable per cost code and closing a purchase order with a balance has an author and a reason.
