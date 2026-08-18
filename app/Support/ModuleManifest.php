@@ -271,9 +271,19 @@ class ModuleManifest
      * broken. `docs/module-packaging-plan.md` lists a stale registry among the
      * failures that produce correct-looking output.
      *
-     * The cost is one `stat` per manifest plus one for the directory, from the
-     * list already recorded in the cache — no directory scan, no autoloading. The
-     * directory's own mtime is what catches a module being added or removed.
+     * The cost is one directory listing plus one `stat` per manifest, and no
+     * autoloading.
+     *
+     * **The set of manifests is compared, not the modules directory's mtime**, and
+     * that is a correction rather than a refinement: `app/Modules`' mtime changes
+     * when a module *directory* appears, which is not when its `module.php` does.
+     * Phase 4 hit exactly that — the directory was created, something rebuilt the
+     * cache, the manifest landed a minute later, and the module then stayed absent
+     * from the registry with a cache that believed itself fresh. Which is the
+     * failure this docblock opens by naming, produced by the check meant to prevent
+     * it. Comparing the discovered set catches a manifest added to an existing
+     * directory, a manifest deleted, and a module renamed — none of which the mtime
+     * heuristic sees reliably.
      */
     private static function isStale(string $cache, array $cached): bool
     {
@@ -283,11 +293,15 @@ class ModuleManifest
             return true;
         }
 
-        if (@filemtime(app_path('Modules')) > $built) {
+        $discovered = array_values(self::manifestPaths());
+        $recorded = $cached['sources'];
+        sort($recorded);
+
+        if ($discovered !== $recorded) {
             return true;
         }
 
-        foreach ($cached['sources'] as $path) {
+        foreach ($recorded as $path) {
             if (! is_file($path) || filemtime($path) > $built) {
                 return true;
             }

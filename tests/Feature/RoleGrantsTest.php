@@ -68,13 +68,37 @@ class RoleGrantsTest extends AccountingTestCase
      * `ConstructionBudgetBaseline`, which decides what every earned-value figure on the job is measured against and
      * restates all of them if it moves, so it sits with whoever answers for the numbers.
      *
+     * Phase 4a, the five contract permissions: Employee +1 for view, because people build to the
+     * specification, the dates and the damages, and a contract they cannot open is one they cannot work to;
+     * Accountant +3 to raise and price one; **Manager +1 of its own** for `ConstructionContractExecute`, which
+     * freezes the scheduled values every later certificate is measured against; **CEO +1** for delete, which
+     * the policy further refuses on anything but an empty draft with no subcontracts under it.
+     *
+     * Phase 4b, the five variation permissions: Employee +1 for view, because an instruction nobody on site can
+     * see is work that gets built to the superseded drawing; Accountant +4 — the surveyor raises, describes,
+     * prices and reads them; **Manager +1 of its own** for `ConstructionVariationApprove`, which agrees the
+     * employer's money and writes the schedule, and which the policy also requires to write an approved
+     * variation in; CEO +0 of its own, inheriting all five.
+     *
+     * Phase 4c, the four claim-and-certificate permissions, and this is the run where the shape of the module is
+     * clearest in the numbers: Employee **+0** — a certificate is a commercial instrument and a site engineer has
+     * no business in one; Accountant +2 to prepare claims and draft certificates; **Manager +1 of its own** for
+     * `ConstructionCertificateCertify`, which starts a payment period and creates an entitlement the other party
+     * will enforce; **CEO +1 of its own** for `ConstructionCertificateInvoice`, the act that moves the figure into
+     * the books.
+     *
+     * Phase 4d, one permission: **`ConstructionRetentionRelease` on Manager**. Reading the ledger rides on
+     * `ConstructionCertificateView` — same audience, same screenful — but releasing hands back money the contract
+     * entitled the company to hold, which on a job of any size is the largest single payment decision anybody
+     * makes, and forfeiting takes money the other party earned.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 32,
-        'Accountant' => 97,
-        'Manager' => 114,
-        'CEO' => 131,
+        'Employee' => 34,
+        'Accountant' => 106,
+        'Manager' => 127,
+        'CEO' => 146,
     ];
 
     protected function setUp(): void
