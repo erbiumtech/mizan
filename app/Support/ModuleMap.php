@@ -3,20 +3,25 @@
 namespace App\Support;
 
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * Which class belongs to which module.
  *
- * Kept in code rather than config/modules.php because it references classes, and
- * kept central rather than as a `$module` property on each class for three
- * reasons:
+ * Read through this class, declared in each module's own `module.php`, and merged
+ * by ModuleManifest. It was five central `const` arrays; the reasons for keeping
+ * the *lookup* central still hold, and none of them required the *data* to be:
  *
  *  - the Modules page needs the whole mapping at once (record counts, what a
  *    module contains, which permission groups it owns);
- *  - a resource added without an entry fails ModuleCoverageTest rather than
- *    shipping ungated, which a forgotten property would not guarantee;
- *  - the physical move (phase 5) rewrites FQCNs here in one place, and the same
- *    list drives the morph map, so a moved model cannot be forgotten.
+ *  - a resource declared by nobody fails ModuleCoverageTest rather than shipping
+ *    ungated, which a forgotten `$module` property would not guarantee;
+ *  - the morph map is built from the same declarations, so a moved model cannot
+ *    be forgotten.
+ *
+ * What moving the data bought: this class no longer names a single module, so
+ * shared code no longer depends on all 22 of them — see the SHARED_DEBT entry it
+ * used to require in ModuleBoundaryTest.
  *
  * MORPH MAP: the aliases in morphMap() are the *legacy* `App\Models\…` strings,
  * because those are what is already stored in customer data — `comments.commentable_type`,
@@ -29,432 +34,20 @@ use Illuminate\Support\Str;
 final class ModuleMap
 {
     /**
-     * Models, keyed by module. The array key is the legacy `App\Models\…` string
-     * used as the morph alias; the value is the class it resolves to today.
+     * One of the five ownership tables, keyed by module.
      *
-     * Phase 5 changes only the values.
+     * These were five hand-written `private const` arrays — 279 entries that every
+     * new module had to append to, and 222 inline class references that made this
+     * "shared" class depend on all 22 modules at once. They now come from each
+     * module's own `module.php`, merged by ModuleManifest, so this class names
+     * nobody. See docs/module-packaging-plan.md §5.
      *
-     * @var array<string, array<string, class-string>>
+     * @return array<string, array<string, string>>
      */
-    private const MODELS = [
-        'core' => [
-            'App\Models\EmailTemplate' => \App\Modules\Core\Models\EmailTemplate::class,
-            'App\Models\User' => \App\Modules\Core\Models\User::class,
-            'App\Models\Company' => \App\Modules\Core\Models\Company::class,
-            'App\Models\TableView' => \App\Modules\Core\Models\TableView::class,
-            'App\Models\CustomField' => \App\Modules\Core\Models\CustomField::class,
-            'App\Models\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
-            'App\Models\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
-            'App\Models\Comment' => \App\Modules\Core\Models\Comment::class,
-            'App\Models\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
-            // Core for the same reason FiscalYear is: leave, attendance and any
-            // future timesheet validation all ask "is this a working day", and
-            // none of them owns the answer. See docs/hrms-plan.md §3.
-            'App\Models\Holiday' => \App\Modules\Core\Models\Holiday::class,
-            'App\Models\Setting' => \App\Modules\Core\Models\Setting::class,
-        ],
-        'employees' => [
-            'App\Models\EmployeeJobHistory' => \App\Modules\Employees\Models\EmployeeJobHistory::class,
-            'App\Models\Employee' => \App\Modules\Employees\Models\Employee::class,
-            'App\Models\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
-            'App\Models\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
-        ],
-        'advances' => [
-            'App\Models\Advance' => \App\Modules\Advances\Models\Advance::class,
-            'App\Models\AdvanceRecovery' => \App\Modules\Advances\Models\AdvanceRecovery::class,
-        ],
-        'expenses' => [
-            'App\Models\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
-        ],
-        // The aliases are the legacy App\Models\… form even though none of these
-        // classes ever lived there. ModuleCoverageTest asserts that form
-        // unconditionally, with no exemption for new models, and keeping the rule
-        // uniform is the right resolution — the alias is an opaque storage token
-        // nobody reads but this map, and a test with an exemption list is a test
-        // that gets edited to pass. See docs/new-module-checklist.md §4, which
-        // records the same correction being hit when FbrSubmission was added.
-        'leave' => [
-            'App\Models\LeaveType' => \App\Modules\Leave\Models\LeaveType::class,
-            'App\Models\LeaveEntitlement' => \App\Modules\Leave\Models\LeaveEntitlement::class,
-            'App\Models\LeaveAdjustment' => \App\Modules\Leave\Models\LeaveAdjustment::class,
-            'App\Models\LeaveRequest' => \App\Modules\Leave\Models\LeaveRequest::class,
-            'App\Models\LeaveDay' => \App\Modules\Leave\Models\LeaveDay::class,
-        ],
-        'attendance' => [
-            'App\Models\WorkPattern' => \App\Modules\Attendance\Models\WorkPattern::class,
-            'App\Models\WorkPatternDay' => \App\Modules\Attendance\Models\WorkPatternDay::class,
-            'App\Models\EmployeeWorkPattern' => \App\Modules\Attendance\Models\EmployeeWorkPattern::class,
-            'App\Models\AttendanceDay' => \App\Modules\Attendance\Models\AttendanceDay::class,
-            'App\Models\AttendanceRegularization' => \App\Modules\Attendance\Models\AttendanceRegularization::class,
-        ],
-        'payroll' => [
-            'App\Models\PayrollRun' => \App\Modules\Payroll\Models\PayrollRun::class,
-            'App\Models\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
-            'App\Models\EmployeeSettingComponent' => \App\Modules\Payroll\Models\EmployeeSettingComponent::class,
-            'App\Models\PayslipComponent' => \App\Modules\Payroll\Models\PayslipComponent::class,
-            'App\Models\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
-            'App\Models\SalarySlab' => \App\Modules\Payroll\Models\SalarySlab::class,
-            'App\Models\AnnualTax' => \App\Modules\Payroll\Models\AnnualTax::class,
-        ],
-        'accounting' => [
-            'App\Models\Account' => \App\Modules\Accounting\Models\Account::class,
-            'App\Models\Currency' => \App\Modules\Accounting\Models\Currency::class,
-            'App\Models\ExchangeRate' => \App\Modules\Accounting\Models\ExchangeRate::class,
-            'App\Models\JournalEntry' => \App\Modules\Accounting\Models\JournalEntry::class,
-            'App\Models\JournalEntryLine' => \App\Modules\Accounting\Models\JournalEntryLine::class,
-            'App\Models\TransactionType' => \App\Modules\Accounting\Models\TransactionType::class,
-            'App\Models\Bank' => \App\Modules\Accounting\Models\Bank::class,
-            'App\Models\CompanyBankAccount' => \App\Modules\Accounting\Models\CompanyBankAccount::class,
-            'App\Models\Beneficiary' => \App\Modules\Accounting\Models\Beneficiary::class,
-            'App\Models\Budget' => \App\Modules\Accounting\Models\Budget::class,
-            'App\Models\BudgetLine' => \App\Modules\Accounting\Models\BudgetLine::class,
-            'App\Models\BeneficiarySubscription' => \App\Modules\Accounting\Models\BeneficiarySubscription::class,
-            'App\Models\Payment' => \App\Modules\Accounting\Models\Payment::class,
-            'App\Models\FixedAsset' => \App\Modules\Accounting\Models\FixedAsset::class,
-            'App\Models\BankStatement' => \App\Modules\Accounting\Models\BankStatement::class,
-            'App\Models\BankStatementLine' => \App\Modules\Accounting\Models\BankStatementLine::class,
-            'App\Models\PettyCashVoucher' => \App\Modules\Accounting\Models\PettyCashVoucher::class,
-            'App\Models\Loan' => \App\Modules\Accounting\Models\Loan::class,
-            'App\Models\LoanInstalment' => \App\Modules\Accounting\Models\LoanInstalment::class,
-            'App\Models\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
-            'App\Models\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
-        ],
-        'invoicing' => [
-            'App\Models\Contact' => \App\Modules\Invoicing\Models\Contact::class,
-            'App\Models\Invoice' => \App\Modules\Invoicing\Models\Invoice::class,
-            'App\Models\InvoiceLine' => \App\Modules\Invoicing\Models\InvoiceLine::class,
-            'App\Models\TaxRate' => \App\Modules\Invoicing\Models\TaxRate::class,
-            'App\Models\InvoiceEvent' => \App\Modules\Invoicing\Models\InvoiceEvent::class,
-            'App\Models\ContactPerson' => \App\Modules\Invoicing\Models\ContactPerson::class,
-            'App\Models\RecurringInvoice' => \App\Modules\Invoicing\Models\RecurringInvoice::class,
-            'App\Models\RecurringInvoiceLine' => \App\Modules\Invoicing\Models\RecurringInvoiceLine::class,
-            'App\Models\FbrSubmission' => \App\Modules\Invoicing\Models\FbrSubmission::class,
-        ],
-        'billing' => [
-            'App\Models\BillingRun' => \App\Modules\Billing\Models\BillingRun::class,
-        ],
-        'inventory' => [
-            'App\Models\Product' => \App\Modules\Inventory\Models\Product::class,
-            'App\Models\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
-        ],
-        // The aliases are the legacy App\Models\… form even though none of these classes
-        // ever lived there — ModuleCoverageTest asserts that unconditionally. §3 records the
-        // same correction being hit here: an earlier draft of the plan said to use short
-        // keys like 'lead' and 'opportunity', and following it fails CI on the first run.
-        //
-        // Activity and NextAction are polymorphic over Lead, Contact and Opportunity, so
-        // their `subject_type` stores one of these aliases. enforceMorphMap() throws for
-        // anything missing, which is the intended safety net.
-        'crm' => [
-            'App\Models\Lead' => \App\Modules\Crm\Models\Lead::class,
-            'App\Models\LeadSource' => \App\Modules\Crm\Models\LeadSource::class,
-            'App\Models\Pipeline' => \App\Modules\Crm\Models\Pipeline::class,
-            'App\Models\PipelineStage' => \App\Modules\Crm\Models\PipelineStage::class,
-            'App\Models\LostReason' => \App\Modules\Crm\Models\LostReason::class,
-            'App\Models\Opportunity' => \App\Modules\Crm\Models\Opportunity::class,
-            'App\Models\OpportunityStageHistory' => \App\Modules\Crm\Models\OpportunityStageHistory::class,
-            'App\Models\Activity' => \App\Modules\Crm\Models\Activity::class,
-            'App\Models\NextAction' => \App\Modules\Crm\Models\NextAction::class,
-            'App\Models\SalesTarget' => \App\Modules\Crm\Models\SalesTarget::class,
-        ],
-        'recruitment' => [
-            'App\Models\Vacancy' => \App\Modules\Recruitment\Models\Vacancy::class,
-            'App\Models\Applicant' => \App\Modules\Recruitment\Models\Applicant::class,
-            'App\Models\Application' => \App\Modules\Recruitment\Models\Application::class,
-            'App\Models\Interview' => \App\Modules\Recruitment\Models\Interview::class,
-            'App\Models\Offer' => \App\Modules\Recruitment\Models\Offer::class,
-        ],
-        'performance' => [
-            'App\Models\ReviewCycle' => \App\Modules\Performance\Models\ReviewCycle::class,
-            'App\Models\Review' => \App\Modules\Performance\Models\Review::class,
-            'App\Models\Goal' => \App\Modules\Performance\Models\Goal::class,
-            'App\Models\OneToOne' => \App\Modules\Performance\Models\OneToOne::class,
-        ],
-        'lifecycle' => [
-            'App\Models\ChecklistTemplate' => \App\Modules\Lifecycle\Models\ChecklistTemplate::class,
-            'App\Models\ChecklistItem' => \App\Modules\Lifecycle\Models\ChecklistItem::class,
-            'App\Models\EmployeeChecklist' => \App\Modules\Lifecycle\Models\EmployeeChecklist::class,
-            'App\Models\EmployeeChecklistItem' => \App\Modules\Lifecycle\Models\EmployeeChecklistItem::class,
-            'App\Models\EmployeeDocument' => \App\Modules\Lifecycle\Models\EmployeeDocument::class,
-            'App\Models\IssuedAsset' => \App\Modules\Lifecycle\Models\IssuedAsset::class,
-            'App\Models\FinalSettlement' => \App\Modules\Lifecycle\Models\FinalSettlement::class,
-        ],
-        'timesheets' => [
-            'App\Models\TimesheetEntry' => \App\Modules\Timesheets\Models\TimesheetEntry::class,
-        ],
-        'quotations' => [
-            'App\Models\Quotation' => \App\Modules\Quotations\Models\Quotation::class,
-            'App\Models\QuotationLine' => \App\Modules\Quotations\Models\QuotationLine::class,
-        ],
-        'support' => [
-            'App\Models\TicketCategory' => \App\Modules\Support\Models\TicketCategory::class,
-            'App\Models\Ticket' => \App\Modules\Support\Models\Ticket::class,
-            'App\Models\TicketReply' => \App\Modules\Support\Models\TicketReply::class,
-        ],
-        'campaigns' => [
-            'App\Models\Segment' => \App\Modules\Campaigns\Models\Segment::class,
-            'App\Models\Campaign' => \App\Modules\Campaigns\Models\Campaign::class,
-            'App\Models\CampaignSend' => \App\Modules\Campaigns\Models\CampaignSend::class,
-            'App\Models\Consent' => \App\Modules\Campaigns\Models\Consent::class,
-        ],
-        'projects' => [
-            'App\Models\Project' => \App\Modules\Projects\Models\Project::class,
-            'App\Models\ProjectEnvironment' => \App\Modules\Projects\Models\ProjectEnvironment::class,
-            'App\Models\ProjectEnvironmentCheck' => \App\Modules\Projects\Models\ProjectEnvironmentCheck::class,
-            'App\Models\ProjectEnvironmentIncident' => \App\Modules\Projects\Models\ProjectEnvironmentIncident::class,
-        ],
-        'mpr' => [
-            'App\Models\MPR' => \App\Modules\Mpr\Models\MPR::class,
-        ],
-        'personal_finance' => [
-            'App\Models\PersonalTaxProfile' => \App\Modules\PersonalFinance\Models\PersonalTaxProfile::class,
-            'App\Models\TaxSchedule' => \App\Modules\PersonalFinance\Models\TaxSchedule::class,
-            'App\Models\TaxSurcharge' => \App\Modules\PersonalFinance\Models\TaxSurcharge::class,
-        ],
-    ];
-
-    /**
-     * Filament resources, keyed by module.
-     *
-     * @var array<string, array<int, class-string>>
-     */
-    private const RESOURCES = [
-        'core' => [
-            'App\Filament\Resources\EmailTemplates\EmailTemplateResource' => \App\Modules\Core\Filament\Resources\EmailTemplates\EmailTemplateResource::class,
-            'App\Filament\Resources\Users\UserResource' => \App\Modules\Core\Filament\Resources\Users\UserResource::class,
-            'App\Filament\Resources\Roles\RoleResource' => \App\Modules\Core\Filament\Resources\Roles\RoleResource::class,
-            'App\Filament\Resources\Permissions\PermissionResource' => \App\Modules\Core\Filament\Platform\Resources\Permissions\PermissionResource::class,
-            'App\Filament\Platform\Resources\Roles\PlatformRoleResource' => \App\Modules\Core\Filament\Platform\Resources\Roles\PlatformRoleResource::class,
-            'App\Filament\Platform\Resources\Users\PlatformUserResource' => \App\Modules\Core\Filament\Platform\Resources\Users\PlatformUserResource::class,
-            'App\Filament\Platform\Resources\ActivityLogs\PlatformActivityLogResource' => \App\Modules\Core\Filament\Platform\Resources\ActivityLogs\PlatformActivityLogResource::class,
-            'App\Filament\Resources\Companies\CompanyResource' => \App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource::class,
-            'App\Filament\Resources\CustomFields\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
-            'App\Filament\Resources\ActivityLogs\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
-            'App\Filament\Resources\Comments\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
-            'App\Filament\Resources\FiscalYears\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
-            'App\Filament\Resources\Holidays\HolidayResource' => \App\Modules\Core\Filament\Resources\Holidays\HolidayResource::class,
-        ],
-        'employees' => [
-            'App\Filament\Resources\Employees\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
-            'App\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
-            'App\Filament\Resources\EmployeeSettings\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
-        ],
-        'advances' => [
-            'App\Filament\Resources\Advances\AdvanceResource' => \App\Modules\Advances\Filament\Resources\Advances\AdvanceResource::class,
-        ],
-        'expenses' => [
-            'App\Filament\Resources\ExpenseClaims\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
-        ],
-        'leave' => [
-            'App\Filament\Resources\LeaveRequests\LeaveRequestResource' => \App\Modules\Leave\Filament\Resources\LeaveRequests\LeaveRequestResource::class,
-            'App\Filament\Resources\LeaveTypes\LeaveTypeResource' => \App\Modules\Leave\Filament\Resources\LeaveTypes\LeaveTypeResource::class,
-            'App\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource' => \App\Modules\Leave\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource::class,
-        ],
-        'attendance' => [
-            'App\Filament\Resources\AttendanceDays\AttendanceDayResource' => \App\Modules\Attendance\Filament\Resources\AttendanceDays\AttendanceDayResource::class,
-            'App\Filament\Resources\AttendanceRegularizations\AttendanceRegularizationResource' => \App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\AttendanceRegularizationResource::class,
-            'App\Filament\Resources\WorkPatterns\WorkPatternResource' => \App\Modules\Attendance\Filament\Resources\WorkPatterns\WorkPatternResource::class,
-        ],
-        'payroll' => [
-            'App\Filament\Resources\PayComponents\PayComponentResource' => \App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource::class,
-            'App\Filament\Resources\PayrollRuns\PayrollRunResource' => \App\Modules\Payroll\Filament\Resources\PayrollRuns\PayrollRunResource::class,
-            'App\Filament\Resources\Payslips\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
-            'App\Filament\Resources\SalarySlabs\SalarySlabResource' => \App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource::class,
-            'App\Filament\Resources\AnnualTaxes\AnnualTaxResource' => \App\Modules\Payroll\Filament\Resources\AnnualTaxes\AnnualTaxResource::class,
-        ],
-        'accounting' => [
-            'App\Filament\Resources\Accounts\AccountResource' => \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::class,
-            'App\Filament\Resources\Currencies\CurrencyResource' => \App\Modules\Accounting\Filament\Resources\Currencies\CurrencyResource::class,
-            'App\Filament\Resources\JournalEntries\JournalEntryResource' => \App\Modules\Accounting\Filament\Resources\JournalEntries\JournalEntryResource::class,
-            'App\Filament\Resources\JournalEntryLines\JournalEntryLineResource' => \App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
-            'App\Filament\Resources\TransactionTypes\TransactionTypeResource' => \App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
-            'App\Filament\Resources\Banks\BankResource' => \App\Modules\Accounting\Filament\Resources\Banks\BankResource::class,
-            'App\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource' => \App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource::class,
-            'App\Filament\Resources\Beneficiaries\BeneficiaryResource' => \App\Modules\Accounting\Filament\Resources\Beneficiaries\BeneficiaryResource::class,
-            'App\Filament\Resources\Budgets\BudgetResource' => \App\Modules\Accounting\Filament\Resources\Budgets\BudgetResource::class,
-            'App\Filament\Resources\Payments\PaymentResource' => \App\Modules\Accounting\Filament\Resources\Payments\PaymentResource::class,
-            'App\Filament\Resources\FixedAssets\FixedAssetResource' => \App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource::class,
-            'App\Filament\Resources\BankStatements\BankStatementResource' => \App\Modules\Accounting\Filament\Resources\BankStatements\BankStatementResource::class,
-            'App\Filament\Resources\BankStatementLines\BankStatementLineResource' => \App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
-            'App\Filament\Resources\Loans\LoanResource' => \App\Modules\Accounting\Filament\Resources\Loans\LoanResource::class,
-            'App\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource' => \App\Modules\Accounting\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource::class,
-        ],
-        'invoicing' => [
-            'App\Filament\Resources\Contacts\ContactResource' => \App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource::class,
-            'App\Filament\Resources\Invoices\InvoiceResource' => \App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource::class,
-            'App\Filament\Resources\InvoiceLines\InvoiceLineResource' => \App\Modules\Invoicing\Filament\Resources\InvoiceLines\InvoiceLineResource::class,
-            'App\Filament\Resources\TaxRates\TaxRateResource' => \App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource::class,
-        ],
-        'billing' => [
-            'App\Filament\Resources\BillingRuns\BillingRunResource' => \App\Modules\Billing\Filament\Resources\BillingRuns\BillingRunResource::class,
-        ],
-        'inventory' => [
-            'App\Filament\Resources\Products\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,
-            'App\Filament\Resources\StockMovements\StockMovementResource' => \App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource::class,
-        ],
-        'crm' => [
-            'App\Filament\Resources\Leads\LeadResource' => \App\Modules\Crm\Filament\Resources\Leads\LeadResource::class,
-            'App\Filament\Resources\LeadSources\LeadSourceResource' => \App\Modules\Crm\Filament\Resources\LeadSources\LeadSourceResource::class,
-            'App\Filament\Resources\Opportunities\OpportunityResource' => \App\Modules\Crm\Filament\Resources\Opportunities\OpportunityResource::class,
-            'App\Filament\Resources\Pipelines\PipelineResource' => \App\Modules\Crm\Filament\Resources\Pipelines\PipelineResource::class,
-            'App\Filament\Resources\NextActions\NextActionResource' => \App\Modules\Crm\Filament\Resources\NextActions\NextActionResource::class,
-            'App\Filament\Resources\SalesTargets\SalesTargetResource' => \App\Modules\Crm\Filament\Resources\SalesTargets\SalesTargetResource::class,
-        ],
-        'recruitment' => [
-            'App\Filament\Resources\Vacancies\VacancyResource' => \App\Modules\Recruitment\Filament\Resources\Vacancies\VacancyResource::class,
-            'App\Filament\Resources\Applicants\ApplicantResource' => \App\Modules\Recruitment\Filament\Resources\Applicants\ApplicantResource::class,
-            'App\Filament\Resources\Applications\ApplicationResource' => \App\Modules\Recruitment\Filament\Resources\Applications\ApplicationResource::class,
-        ],
-        'performance' => [
-            'App\Filament\Resources\ReviewCycles\ReviewCycleResource' => \App\Modules\Performance\Filament\Resources\ReviewCycles\ReviewCycleResource::class,
-            'App\Filament\Resources\Reviews\ReviewResource' => \App\Modules\Performance\Filament\Resources\Reviews\ReviewResource::class,
-            'App\Filament\Resources\Goals\GoalResource' => \App\Modules\Performance\Filament\Resources\Goals\GoalResource::class,
-            'App\Filament\Resources\OneToOnes\OneToOneResource' => \App\Modules\Performance\Filament\Resources\OneToOnes\OneToOneResource::class,
-        ],
-        'lifecycle' => [
-            'App\Filament\Resources\ChecklistTemplates\ChecklistTemplateResource' => \App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\ChecklistTemplateResource::class,
-            'App\Filament\Resources\EmployeeDocuments\EmployeeDocumentResource' => \App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments\EmployeeDocumentResource::class,
-            'App\Filament\Resources\IssuedAssets\IssuedAssetResource' => \App\Modules\Lifecycle\Filament\Resources\IssuedAssets\IssuedAssetResource::class,
-            'App\Filament\Resources\FinalSettlements\FinalSettlementResource' => \App\Modules\Lifecycle\Filament\Resources\FinalSettlements\FinalSettlementResource::class,
-        ],
-        'timesheets' => [
-            'App\Filament\Resources\TimesheetEntries\TimesheetEntryResource' => \App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource::class,
-        ],
-        'quotations' => [
-            'App\Filament\Resources\Quotations\QuotationResource' => \App\Modules\Quotations\Filament\Resources\Quotations\QuotationResource::class,
-        ],
-        'support' => [
-            'App\Filament\Resources\Tickets\TicketResource' => \App\Modules\Support\Filament\Resources\Tickets\TicketResource::class,
-        ],
-        'campaigns' => [
-            'App\Filament\Resources\Campaigns\CampaignResource' => \App\Modules\Campaigns\Filament\Resources\Campaigns\CampaignResource::class,
-        ],
-        'projects' => [
-            'App\Filament\Resources\Projects\ProjectResource' => \App\Modules\Projects\Filament\Resources\Projects\ProjectResource::class,
-        ],
-        'mpr' => [
-            'App\Filament\Resources\MPRs\MPRResource' => \App\Modules\Mpr\Filament\Resources\MPRs\MPRResource::class,
-        ],
-    ];
-
-    /**
-     * Filament pages, keyed by module.
-     *
-     * @var array<string, array<int, class-string>>
-     */
-    private const PAGES = [
-        'core' => [
-            // The hub the report pages are reached through. Core because it spans
-            // four modules; each link is gated by the page behind it.
-            'App\Filament\Pages\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
-            // The cross-module walkthroughs. Core because a manual that
-            // disappears with a module cannot explain the module.
-            'App\Filament\Pages\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
-            'App\Filament\Pages\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
-            'App\Filament\Pages\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
-            'App\Filament\Pages\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
-            'App\Filament\Pages\Auth\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,
-        ],
-        'payroll' => [
-            'App\Filament\Pages\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
-            'App\Filament\Pages\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
-            'App\Filament\Pages\TaxSummary' => \App\Modules\Payroll\Filament\Pages\TaxSummary::class,
-        ],
-        'invoicing' => [
-            'App\Filament\Pages\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
-            'App\Filament\Pages\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
-            'App\Filament\Pages\FbrInvoiceReporting' => \App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting::class,
-        ],
-        'personal_finance' => [
-            'App\Filament\Pages\TaxEstimate' => \App\Modules\PersonalFinance\Filament\Pages\TaxEstimate::class,
-        ],
-        'accounting' => [
-            'App\Filament\Pages\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
-            'App\Filament\Pages\FindTransactions' => \App\Modules\Accounting\Filament\Pages\FindTransactions::class,
-            'App\Filament\Pages\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
-            'App\Filament\Pages\ContractorPayments' => \App\Modules\Accounting\Filament\Pages\ContractorPayments::class,
-            'App\Filament\Pages\CurrencyRevaluation' => \App\Modules\Accounting\Filament\Pages\CurrencyRevaluation::class,
-            'App\Filament\Pages\BalanceSheet' => \App\Modules\Accounting\Filament\Pages\BalanceSheet::class,
-            'App\Filament\Pages\BudgetVsActual' => \App\Modules\Accounting\Filament\Pages\BudgetVsActual::class,
-            'App\Filament\Pages\TrialBalance' => \App\Modules\Accounting\Filament\Pages\TrialBalance::class,
-            'App\Filament\Pages\ProfitAndLoss' => \App\Modules\Accounting\Filament\Pages\ProfitAndLoss::class,
-            'App\Filament\Pages\GnuCashImport' => \App\Modules\Accounting\Filament\Pages\GnuCashImport::class,
-            'App\Filament\Pages\PettyCashBook' => \App\Modules\Accounting\Filament\Pages\PettyCashBook::class,
-            'App\Filament\Pages\BankPaymentFile' => \App\Modules\Accounting\Filament\Pages\BankPaymentFile::class,
-        ],
-    ];
-
-    /**
-     * Filament widgets, keyed by module.
-     *
-     * @var array<string, array<int, class-string>>
-     */
-    private const WIDGETS = [
-        'payroll' => [
-            'App\Filament\Widgets\PayrollByEmployeeChart' => \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
-        ],
-        'accounting' => [
-            'App\Filament\Widgets\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
-            'App\Filament\Widgets\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
-            'App\Filament\Widgets\OperationsOverview' => \App\Modules\Accounting\Filament\Widgets\OperationsOverview::class,
-        ],
-        'invoicing' => [
-            'App\Filament\Widgets\ReceivablesPayablesOverview' => \App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview::class,
-        ],
-        'projects' => [
-            // Nested under the resource rather than in Filament/Widgets — found by
-            // ModuleCoverageTest, which is exactly the kind of class a map written
-            // by hand from a directory listing misses.
-            'App\Filament\Resources\Projects\Widgets\ProjectHealthChart' => \App\Modules\Projects\Filament\Resources\Projects\Widgets\ProjectHealthChart::class,
-            'App\Filament\Widgets\MyProjectsOverview' => \App\Modules\Projects\Filament\Widgets\MyProjectsOverview::class,
-            'App\Filament\Widgets\EnvironmentHealthOverview' => \App\Modules\Projects\Filament\Widgets\EnvironmentHealthOverview::class,
-            'App\Filament\Widgets\EnvironmentIncidentsTable' => \App\Modules\Projects\Filament\Widgets\EnvironmentIncidentsTable::class,
-            'App\Filament\Widgets\CertificateExpiryTable' => \App\Modules\Projects\Filament\Widgets\CertificateExpiryTable::class,
-        ],
-    ];
-
-    /**
-     * Permission `group` values owned by each module (see PermissionSeeder).
-     *
-     * Not derived from the model names: several groups are named for a feature
-     * rather than a model — Report and Register are the reporting pages, Import
-     * is the GnuCash importer, Invoicing covers Contact and Invoice together.
-     *
-     * @var array<string, array<int, string>>
-     */
-    private const PERMISSION_GROUPS = [
-        'core' => ['User', 'Role', 'Permission', 'ActivityLog', 'Comment', 'FiscalYear', 'Holiday'],
-        'employees' => ['Employee', 'EmployeeSetting'],
-        'advances' => ['Advance'],
-        'expenses' => ['ExpenseClaim'],
-        // LeaveAdjustment and LeaveDay have no group of their own on purpose: one
-        // borrows the entitlement's permissions and the other the request's, because
-        // eight more permission names for two tables nobody navigates to would be
-        // eight more rows in every role form for no decision anybody makes
-        // separately.
-        'leave' => ['LeaveRequest', 'LeaveType', 'LeaveEntitlement'],
-        'attendance' => ['Attendance', 'AttendanceRegularization', 'WorkPattern'],
-        'payroll' => ['Payslip', 'SalarySlab', 'AnnualTax'],
-        'accounting' => [
-            'Account', 'Bank', 'BankStatement', 'Beneficiary', 'CompanyBankAccount',
-            'Budget', 'FixedAsset', 'JournalEntry', 'Loan', 'Payment', 'TransactionType', 'PettyCash',
-            'Report', 'Register', 'Import',
-        ],
-        'invoicing' => ['Invoicing'],
-        'billing' => ['BillingRun'],
-        'inventory' => ['Inventory'],
-        'crm' => ['Lead', 'LeadSource', 'Pipeline', 'Opportunity', 'SalesTarget'],
-        'recruitment' => ['Vacancy', 'Applicant', 'Offer'],
-        'performance' => ['Review'],
-        'lifecycle' => ['Checklist', 'EmployeeDocument', 'IssuedAsset', 'Settlement'],
-        'timesheets' => ['Timesheet'],
-        'quotations' => ['Quotation'],
-        'support' => ['Ticket'],
-        'campaigns' => ['Campaign'],
-        'projects' => ['Project'],
-        'mpr' => ['MPR'],
-        'personal_finance' => ['PersonalFinance'],
-    ];
+    private static function table(string $name): array
+    {
+        return ModuleManifest::all()[$name] ?? [];
+    }
 
     /**
      * Legacy FQCN => current class, for Relation::enforceMorphMap().
@@ -463,7 +56,12 @@ final class ModuleMap
      */
     public static function morphMap(): array
     {
-        return array_merge(...array_values(self::MODELS));
+        $models = array_values(self::table('models'));
+
+        // enforceMorphMap() is fed from here, and an empty map would mean every
+        // model throwing on its first polymorphic use. Discovery finding nothing
+        // is a broken install, not a company that owns no models.
+        return $models === [] ? [] : array_merge(...$models);
     }
 
     /**
@@ -479,11 +77,28 @@ final class ModuleMap
      * unwindForPayslip would quietly find no entries to reverse. Storing the
      * alias instead keeps every existing row valid across the move.
      *
-     * Unmapped classes return unchanged, so this is safe to wrap around anything.
+     * A class that *should* have an alias and does not now throws, rather than
+     * returning unchanged.
+     *
+     * The pass-through was the quiet half of the guarantee above. It made this
+     * safe to wrap around anything — and it also meant that a model which moved
+     * without its map entry being updated wrote its **new** FQCN into the column
+     * and reported success. Reads then match nothing: `unwindForPayslip` finds no
+     * entries to reverse, a comments panel shows an empty thread, a saved view
+     * resolves to no resource. Nothing throws, nothing logs, and the rows are
+     * already wrong.
+     *
+     * `docs/modules-plan.md` §4 is explicit that enforcing the map *before*
+     * moving anything is what made the last structural change survive, and
+     * docs/module-packaging-plan.md §4 needs the same rail before its later
+     * phases move classes between modules.
+     *
+     * Genuinely foreign classes still pass through: the guarantee is only owed
+     * for things this application owns and stores by name.
      */
     public static function alias(string $class): string
     {
-        foreach ([self::MODELS, self::RESOURCES, self::PAGES, self::WIDGETS] as $table) {
+        foreach ([self::table('models'), self::table('resources'), self::table('pages'), self::table('widgets')] as $table) {
             foreach ($table as $classes) {
                 $alias = array_search($class, $classes, true);
 
@@ -493,7 +108,45 @@ final class ModuleMap
             }
         }
 
+        if (self::owesAnAlias($class)) {
+            throw new RuntimeException(sprintf(
+                '%s is not declared by any module, so writing it to a class-string column '
+                .'would store an FQCN that stops matching the day the class moves. Add it to '
+                .'the owning module.php under models, resources, pages or widgets.',
+                $class,
+            ));
+        }
+
         return $class;
+    }
+
+    /**
+     * Whether a class is one of the kinds this application stores by name and
+     * therefore must have a stable alias for.
+     *
+     * Judged by what the class *is*, not by where it sits: a tenant model, or a
+     * Filament resource, page or widget. Anything unloadable is left alone —
+     * `alias()` is called with strings read back out of columns, and a class that
+     * no longer exists must not turn a read into a fatal.
+     */
+    private static function owesAnAlias(string $class): bool
+    {
+        if (! class_exists($class)) {
+            return false;
+        }
+
+        foreach ([
+            \App\Models\TenantModel::class,
+            \Filament\Resources\Resource::class,
+            \Filament\Pages\Page::class,
+            \Filament\Widgets\Widget::class,
+        ] as $base) {
+            if (is_subclass_of($class, $base)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -511,7 +164,7 @@ final class ModuleMap
             return array_key_exists($module, config('modules', [])) ? $module : null;
         }
 
-        foreach ([self::RESOURCES, self::PAGES, self::WIDGETS] as $table) {
+        foreach ([self::table('resources'), self::table('pages'), self::table('widgets')] as $table) {
             foreach ($table as $module => $classes) {
                 if (in_array($class, $classes, true)) {
                     return $module;
@@ -519,7 +172,7 @@ final class ModuleMap
             }
         }
 
-        foreach (self::MODELS as $module => $models) {
+        foreach (self::table('models') as $module => $models) {
             if (in_array($class, $models, true)) {
                 return $module;
             }
@@ -531,26 +184,26 @@ final class ModuleMap
     /** @return array<int, class-string> */
     public static function resources(?string $module = null): array
     {
-        return self::flatten(self::RESOURCES, $module);
+        return self::flatten(self::table('resources'), $module);
     }
 
     /** @return array<int, class-string> */
     public static function pages(?string $module = null): array
     {
-        return self::flatten(self::PAGES, $module);
+        return self::flatten(self::table('pages'), $module);
     }
 
     /** @return array<int, class-string> */
     public static function widgets(?string $module = null): array
     {
-        return self::flatten(self::WIDGETS, $module);
+        return self::flatten(self::table('widgets'), $module);
     }
 
     /** @return array<int, class-string> */
     public static function models(?string $module = null): array
     {
         if ($module !== null) {
-            return array_values(self::MODELS[$module] ?? []);
+            return array_values(self::table('models')[$module] ?? []);
         }
 
         return array_values(self::morphMap());
@@ -559,7 +212,7 @@ final class ModuleMap
     /** @return array<int, string> */
     public static function permissionGroups(?string $module = null): array
     {
-        return self::flatten(self::PERMISSION_GROUPS, $module);
+        return self::flatten(self::table('permission_groups'), $module);
     }
 
     /**
@@ -568,7 +221,7 @@ final class ModuleMap
      */
     public static function moduleForPermissionGroup(string $group): ?string
     {
-        foreach (self::PERMISSION_GROUPS as $module => $groups) {
+        foreach (self::table('permission_groups') as $module => $groups) {
             if (in_array($group, $groups, true)) {
                 return $module;
             }

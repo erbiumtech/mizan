@@ -12,6 +12,7 @@ use App\Modules\Attendance\Services\RegularizationService;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use App\Support\LandlordUserColumn;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -65,9 +66,7 @@ class AttendanceRegularizationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pending = static::getEloquentQuery()->pending()->count();
-
-        return $pending > 0 ? (string) $pending : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->pending()->count());
     }
 
     public static function getNavigationBadgeColor(): ?string

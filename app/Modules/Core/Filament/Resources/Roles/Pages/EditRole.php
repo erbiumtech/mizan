@@ -24,7 +24,9 @@ class EditRole extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $byGroup = $this->record->permissions->groupBy('group');
+        // Loaded explicitly: the record arrives from route binding, which does not know this page is
+        // about to read every permission on it.
+        $byGroup = $this->record->loadMissing('permissions')->permissions->groupBy('group');
 
         foreach (RoleForm::groupedPermissions()->keys() as $group) {
             $data[RoleForm::groupKey($group)] = ($byGroup[$group] ?? collect())

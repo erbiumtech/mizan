@@ -5,8 +5,7 @@ namespace App\Modules\Attendance\Services;
 use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Models\AttendanceRegularization;
 use App\Modules\Core\Models\User;
-use App\Modules\Payroll\Models\PayrollRun;
-use Illuminate\Support\Carbon;
+use App\Support\Contracts\PeriodLock;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -148,20 +147,11 @@ class RegularizationService
      */
     private function monthIsSettled(int $year, int $month): bool
     {
-        if (! modules()->enabled('payroll')) {
-            return false;
-        }
-
-        $firstOfMonth = Carbon::create($year, $month, 1)->toDateString();
-
-        return PayrollRun::query()
-            ->locked()
-            ->where('month', Carbon::create($year, $month, 1)->format('F'))
-            // The month name repeats every fiscal year, so the year has to come from
-            // the run's fiscal year or a lock in July 2025 would freeze July 2026.
-            ->whereHas('fiscalYear', fn ($fiscalYear) => $fiscalYear
-                ->whereDate('start_date', '<=', $firstOfMonth)
-                ->whereDate('end_date', '>=', $firstOfMonth))
-            ->exists();
+        // Payroll is what makes a month settled, so it answers. The query — and the
+        // licence guard that used to sit here — moved to PayrollRunPeriodLock, which
+        // is what lets Attendance stop importing PayrollRun and stop being in a
+        // cycle with it. Without Payroll the default answers false, exactly as the
+        // guard here always did.
+        return app(PeriodLock::class)->isLocked($year, $month);
     }
 }

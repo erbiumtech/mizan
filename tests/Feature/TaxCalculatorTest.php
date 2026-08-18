@@ -80,7 +80,7 @@ class TaxCalculatorTest extends AccountingTestCase
     public function test_the_top_slab_of_every_seeded_year_is_unbounded(): void
     {
         $capped = FiscalYear::query()
-            ->whereHas('salarySlabs')
+            ->whereIn('id', SalarySlab::query()->distinct()->pluck('fiscal_year_id'))
             ->get()
             ->filter(function (FiscalYear $year) {
                 $top = SalarySlab::where('fiscal_year_id', $year->id)
@@ -103,7 +103,11 @@ class TaxCalculatorTest extends AccountingTestCase
 
     public function test_income_above_the_top_threshold_is_still_taxed(): void
     {
-        foreach (FiscalYear::whereHas('salarySlabs')->get() as $year) {
+        $withSlabs = FiscalYear::query()
+            ->whereIn('id', SalarySlab::query()->distinct()->pluck('fiscal_year_id'))
+            ->get();
+
+        foreach ($withSlabs as $year) {
             $top = SalarySlab::where('fiscal_year_id', $year->id)
                 ->orderByDesc('min_amount')
                 ->firstOrFail();

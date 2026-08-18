@@ -1,0 +1,258 @@
+<?php
+
+/**
+ * What this module is, and what it owns.
+ *
+ * Merged by App\Support\ModuleManifest. See docs/module-packaging-plan.md §5.
+ */
+return [
+    'key' => 'accounting',
+    'label' => 'Accounting',
+    'description' => 'Chart of accounts, journal entries, payments, banks, fixed assets, petty cash and financial reports.',
+    'requires' => [],
+    'licensed_by_default' => false,
+    'plugin' => \App\Modules\Accounting\AccountingPlugin::class,
+
+    'models' => [
+        'App\\Models\\Account' => \App\Modules\Accounting\Models\Account::class,
+        'App\\Models\\Currency' => \App\Modules\Accounting\Models\Currency::class,
+        'App\\Models\\ExchangeRate' => \App\Modules\Accounting\Models\ExchangeRate::class,
+        'App\\Models\\JournalEntry' => \App\Modules\Accounting\Models\JournalEntry::class,
+        'App\\Models\\JournalEntryLine' => \App\Modules\Accounting\Models\JournalEntryLine::class,
+        'App\\Models\\TransactionType' => \App\Modules\Accounting\Models\TransactionType::class,
+        'App\\Models\\CompanyBankAccount' => \App\Modules\Accounting\Models\CompanyBankAccount::class,
+        'App\\Models\\Beneficiary' => \App\Modules\Accounting\Models\Beneficiary::class,
+        'App\\Models\\Budget' => \App\Modules\Accounting\Models\Budget::class,
+        'App\\Models\\BudgetLine' => \App\Modules\Accounting\Models\BudgetLine::class,
+        'App\\Models\\BeneficiarySubscription' => \App\Modules\Accounting\Models\BeneficiarySubscription::class,
+        'App\\Models\\Payment' => \App\Modules\Accounting\Models\Payment::class,
+        'App\\Models\\FixedAsset' => \App\Modules\Accounting\Models\FixedAsset::class,
+        'App\\Models\\BankStatement' => \App\Modules\Accounting\Models\BankStatement::class,
+        'App\\Models\\BankStatementLine' => \App\Modules\Accounting\Models\BankStatementLine::class,
+        'App\\Models\\PettyCashVoucher' => \App\Modules\Accounting\Models\PettyCashVoucher::class,
+        'App\\Models\\Loan' => \App\Modules\Accounting\Models\Loan::class,
+        'App\\Models\\LoanInstalment' => \App\Modules\Accounting\Models\LoanInstalment::class,
+        'App\\Models\\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
+        'App\\Models\\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
+    ],
+
+    'resources' => [
+        'App\\Filament\\Resources\\Accounts\\AccountResource' => \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::class,
+        'App\\Filament\\Resources\\Currencies\\CurrencyResource' => \App\Modules\Accounting\Filament\Resources\Currencies\CurrencyResource::class,
+        'App\\Filament\\Resources\\JournalEntries\\JournalEntryResource' => \App\Modules\Accounting\Filament\Resources\JournalEntries\JournalEntryResource::class,
+        'App\\Filament\\Resources\\JournalEntryLines\\JournalEntryLineResource' => \App\Modules\Accounting\Filament\Resources\JournalEntryLines\JournalEntryLineResource::class,
+        'App\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource' => \App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource::class,
+        'App\\Filament\\Resources\\Banks\\BankResource' => \App\Modules\Accounting\Filament\Resources\Banks\BankResource::class,
+        'App\\Filament\\Resources\\CompanyBankAccounts\\CompanyBankAccountResource' => \App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\CompanyBankAccountResource::class,
+        'App\\Filament\\Resources\\Beneficiaries\\BeneficiaryResource' => \App\Modules\Accounting\Filament\Resources\Beneficiaries\BeneficiaryResource::class,
+        'App\\Filament\\Resources\\Budgets\\BudgetResource' => \App\Modules\Accounting\Filament\Resources\Budgets\BudgetResource::class,
+        'App\\Filament\\Resources\\Payments\\PaymentResource' => \App\Modules\Accounting\Filament\Resources\Payments\PaymentResource::class,
+        'App\\Filament\\Resources\\FixedAssets\\FixedAssetResource' => \App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource::class,
+        'App\\Filament\\Resources\\BankStatements\\BankStatementResource' => \App\Modules\Accounting\Filament\Resources\BankStatements\BankStatementResource::class,
+        'App\\Filament\\Resources\\BankStatementLines\\BankStatementLineResource' => \App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLineResource::class,
+        'App\\Filament\\Resources\\Loans\\LoanResource' => \App\Modules\Accounting\Filament\Resources\Loans\LoanResource::class,
+        'App\\Filament\\Resources\\ScheduledTransactions\\ScheduledTransactionResource' => \App\Modules\Accounting\Filament\Resources\ScheduledTransactions\ScheduledTransactionResource::class,
+    ],
+
+    'pages' => [
+        'App\\Filament\\Pages\\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
+        'App\\Filament\\Pages\\FindTransactions' => \App\Modules\Accounting\Filament\Pages\FindTransactions::class,
+        'App\\Filament\\Pages\\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
+        'App\\Filament\\Pages\\ContractorPayments' => \App\Modules\Accounting\Filament\Pages\ContractorPayments::class,
+        'App\\Filament\\Pages\\CurrencyRevaluation' => \App\Modules\Accounting\Filament\Pages\CurrencyRevaluation::class,
+        'App\\Filament\\Pages\\BalanceSheet' => \App\Modules\Accounting\Filament\Pages\BalanceSheet::class,
+        'App\\Filament\\Pages\\BudgetVsActual' => \App\Modules\Accounting\Filament\Pages\BudgetVsActual::class,
+        'App\\Filament\\Pages\\TrialBalance' => \App\Modules\Accounting\Filament\Pages\TrialBalance::class,
+        'App\\Filament\\Pages\\GeneralLedger' => \App\Modules\Accounting\Filament\Pages\GeneralLedger::class,
+        'App\\Filament\\Pages\\ProfitAndLoss' => \App\Modules\Accounting\Filament\Pages\ProfitAndLoss::class,
+        'App\\Filament\\Pages\\GnuCashImport' => \App\Modules\Accounting\Filament\Pages\GnuCashImport::class,
+        'App\\Filament\\Pages\\PettyCashBook' => \App\Modules\Accounting\Filament\Pages\PettyCashBook::class,
+        'App\\Filament\\Pages\\BankPaymentFile' => \App\Modules\Accounting\Filament\Pages\BankPaymentFile::class,
+    ],
+
+    'widgets' => [
+        'App\\Filament\\Widgets\\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
+        'App\\Filament\\Widgets\\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
+    ],
+
+    'permission_groups' => [
+        'Account',
+        'Bank',
+        'BankStatement',
+        'Beneficiary',
+        'CompanyBankAccount',
+        'Budget',
+        'FixedAsset',
+        'JournalEntry',
+        'Loan',
+        'Payment',
+        'TransactionType',
+        'PettyCash',
+        'Report',
+        'Register',
+        'Import',
+    ],
+
+    'permissions' => [
+        ['name' => 'AccountView', 'group' => 'Account'],
+        ['name' => 'AccountCreate', 'group' => 'Account'],
+        ['name' => 'AccountUpdate', 'group' => 'Account'],
+        ['name' => 'AccountDelete', 'group' => 'Account'],
+        ['name' => 'ReportView', 'group' => 'Report'],
+        // Planning, separate from ReportView: the budget says what the
+        // company intends to do, which is not the same thing as being
+        // allowed to read what it has already done.
+        ['name' => 'BudgetView', 'group' => 'Budget'],
+        ['name' => 'BudgetCreate', 'group' => 'Budget'],
+        ['name' => 'BudgetUpdate', 'group' => 'Budget'],
+        ['name' => 'BudgetDelete', 'group' => 'Budget'],
+        // Borrowings and their repayment schedules. LoanRecord is the one
+        // that writes to the ledger, so it is separated from Update the way
+        // posting is separated from editing everywhere else here.
+        ['name' => 'LoanView', 'group' => 'Loan'],
+        ['name' => 'LoanCreate', 'group' => 'Loan'],
+        ['name' => 'LoanUpdate', 'group' => 'Loan'],
+        ['name' => 'LoanDelete', 'group' => 'Loan'],
+        ['name' => 'LoanRecord', 'group' => 'Loan'],
+        ['name' => 'BankView', 'group' => 'Bank'],
+        ['name' => 'BankCreate', 'group' => 'Bank'],
+        ['name' => 'BankUpdate', 'group' => 'Bank'],
+        ['name' => 'BankDelete', 'group' => 'Bank'],
+        ['name' => 'TransactionTypeView', 'group' => 'TransactionType'],
+        ['name' => 'TransactionTypeCreate', 'group' => 'TransactionType'],
+        ['name' => 'TransactionTypeUpdate', 'group' => 'TransactionType'],
+        ['name' => 'TransactionTypeDelete', 'group' => 'TransactionType'],
+        ['name' => 'CompanyBankAccountView', 'group' => 'CompanyBankAccount'],
+        ['name' => 'CompanyBankAccountCreate', 'group' => 'CompanyBankAccount'],
+        ['name' => 'CompanyBankAccountUpdate', 'group' => 'CompanyBankAccount'],
+        ['name' => 'CompanyBankAccountDelete', 'group' => 'CompanyBankAccount'],
+        ['name' => 'BeneficiaryView', 'group' => 'Beneficiary'],
+        ['name' => 'BeneficiaryCreate', 'group' => 'Beneficiary'],
+        ['name' => 'BeneficiaryUpdate', 'group' => 'Beneficiary'],
+        ['name' => 'BeneficiaryDelete', 'group' => 'Beneficiary'],
+        ['name' => 'PaymentView', 'group' => 'Payment'],
+        ['name' => 'PaymentCreate', 'group' => 'Payment'],
+        ['name' => 'PaymentUpdate', 'group' => 'Payment'],
+        ['name' => 'PaymentDelete', 'group' => 'Payment'],
+        ['name' => 'RegisterPost', 'group' => 'Register'],
+        ['name' => 'GnuCashImport', 'group' => 'Import'],
+        ['name' => 'PettyCashView', 'group' => 'PettyCash'],
+        ['name' => 'PettyCashCreate', 'group' => 'PettyCash'],
+        ['name' => 'PettyCashReplenish', 'group' => 'PettyCash'],
+        ['name' => 'JournalEntryView', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryCreate', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryUpdate', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryDelete', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntrySubmit', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryApprove', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryReject', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryPost', 'group' => 'JournalEntry'],
+        ['name' => 'JournalEntryReverse', 'group' => 'JournalEntry'],
+        ['name' => 'FixedAssetView', 'group' => 'FixedAsset'],
+        ['name' => 'FixedAssetCreate', 'group' => 'FixedAsset'],
+        ['name' => 'FixedAssetUpdate', 'group' => 'FixedAsset'],
+        ['name' => 'FixedAssetDelete', 'group' => 'FixedAsset'],
+        ['name' => 'FixedAssetDepreciate', 'group' => 'FixedAsset'],
+        ['name' => 'FixedAssetDispose', 'group' => 'FixedAsset'],
+        ['name' => 'BankStatementView', 'group' => 'BankStatement'],
+        ['name' => 'BankStatementCreate', 'group' => 'BankStatement'],
+        ['name' => 'BankStatementUpdate', 'group' => 'BankStatement'],
+        ['name' => 'BankStatementDelete', 'group' => 'BankStatement'],
+        ['name' => 'BankStatementImport', 'group' => 'BankStatement'],
+        ['name' => 'BankStatementMatch', 'group' => 'BankStatement'],
+        ['name' => 'BankStatementComplete', 'group' => 'BankStatement'],
+    ],
+
+    /**
+     * Which of this module's permissions each role starts with.
+     *
+     * Administrator holds everything and is not listed. Manager and CEO are *additions* to the
+     * role below them — RoleSeeder composes Accountant -> Manager -> CEO — so a permission
+     * already granted to Accountant is not repeated here.
+     */
+    'role_grants' => [
+        // Records, does not approve.
+        'Accountant' => [
+            'AccountCreate',
+            'AccountUpdate',
+            'AccountView',
+            'BankCreate',
+            'BankStatementCreate',
+            'BankStatementImport',
+            'BankStatementMatch',
+            'BankStatementUpdate',
+            'BankStatementView',
+            'BankUpdate',
+            'BankView',
+            'BeneficiaryCreate',
+            'BeneficiaryUpdate',
+            'BeneficiaryView',
+            'BudgetCreate',
+            'BudgetUpdate',
+            'BudgetView',
+            'CompanyBankAccountCreate',
+            'CompanyBankAccountUpdate',
+            'CompanyBankAccountView',
+            'FixedAssetCreate',
+            'FixedAssetUpdate',
+            'FixedAssetView',
+            'GnuCashImport',
+            'JournalEntryCreate',
+            'JournalEntrySubmit',
+            'JournalEntryUpdate',
+            'JournalEntryView',
+            'LoanCreate',
+            'LoanUpdate',
+            'LoanView',
+            'PaymentCreate',
+            'PaymentDelete',
+            'PaymentUpdate',
+            'PaymentView',
+            'PettyCashCreate',
+            'PettyCashView',
+            'RegisterPost',
+            'ReportView',
+            'TransactionTypeCreate',
+            'TransactionTypeUpdate',
+            'TransactionTypeView',
+        ],
+        // On top of Accountant.
+        'Manager' => [
+            'BankStatementComplete',
+            'FixedAssetDepreciate',
+            'FixedAssetDispose',
+            'JournalEntryApprove',
+            'JournalEntryPost',
+            'JournalEntryReject',
+            'JournalEntryReverse',
+            'LoanRecord',
+            'PettyCashReplenish',
+        ],
+        // On top of Manager.
+        'CEO' => [
+            'AccountDelete',
+            'BankDelete',
+            'BankStatementDelete',
+            'BeneficiaryDelete',
+            'BudgetDelete',
+            'CompanyBankAccountDelete',
+            'FixedAssetDelete',
+            'LoanDelete',
+            'TransactionTypeDelete',
+        ],
+    ],
+
+    /**
+     * Which domain of the two-level shell this module's screens appear in.
+     *
+     * Keyed on the navigation group label the resources and pages declare. Labels are shared —
+     * "Employee" is claimed by ten modules — so agreement is normal and a label claimed for two
+     * different domains throws in ModuleManifest rather than resolving to whichever manifest was
+     * read last. The six domains themselves are App\Support\NavigationDomains.
+     */
+    'navigation' => [
+        'Accounting' => 'finance',
+        'Reports' => 'reports',
+        'Settings' => 'admin',
+    ],
+];

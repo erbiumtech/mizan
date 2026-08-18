@@ -52,6 +52,11 @@ class OpportunityStageHistory extends Model
     /** Whether this move went backwards down the pipeline. */
     public function isBackwards(): bool
     {
+        // Both stages loaded explicitly, because this is asked of rows from anywhere — a report that
+        // eager-loaded the history but not the stages behind it, a freshly created row, a test — and a
+        // bare `->fromStage` there is a query per move, or a violation once lazy loading is off.
+        $this->loadMissing(['fromStage', 'toStage']);
+
         return $this->fromStage && $this->toStage
             && $this->toStage->sort < $this->fromStage->sort;
     }

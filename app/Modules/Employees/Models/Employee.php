@@ -4,13 +4,11 @@ namespace App\Modules\Employees\Models;
 
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Services\JobHistory;
-use App\Modules\Projects\Models\Project;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -306,6 +304,16 @@ class Employee extends Model
      */
     public function fullName(): string
     {
+        // Loaded explicitly rather than read lazily. This is called from selects, columns and labels
+        // all over the panel, on records that arrive from anywhere, so it cannot assume the caller
+        // eager-loaded the user — and reading it lazily is a violation the moment the guard is on.
+        //
+        // Note what this does *not* fix: one query per employee is still one query per employee, and
+        // `loadMissing` only makes that explicit rather than fatal. Anywhere this is called over a
+        // list — a table column, a select's options — the query behind the list should eager-load
+        // `user`, and this stays as the safety net for the single-record callers.
+        $this->loadMissing('user');
+
         return (string) ($this->user?->name ?? $this->name ?? '');
     }
 
@@ -320,34 +328,19 @@ class Employee extends Model
         return $this->hasMany(EmployeeChangeRequest::class);
     }
 
-    /** Projects this employee is (or was) assigned to, with the stint pivot. */
-    public function projects(): BelongsToMany
-    {
-        return $this->belongsToMany(Project::class, 'project_employee')
-            ->withPivot(['id', 'role', 'allocation_pct', 'from_date', 'to_date'])
-            ->withTimestamps();
-    }
-
-    /** Assignments that have not ended yet. */
-    public function currentProjects(): BelongsToMany
-    {
-        return $this->projects()->where(function ($query) {
-            $query->whereNull('project_employee.to_date')
-                ->orWhereDate('project_employee.to_date', '>=', today()->toDateString());
-        });
-    }
-
-    /** Projects where this employee is the primary manager. */
-    public function managedProjects(): HasMany
-    {
-        return $this->hasMany(Project::class, 'manager_employee_id');
-    }
-
-    /** Projects where this employee is the secondary manager / stand-in. */
-    public function secondaryProjects(): HasMany
-    {
-        return $this->hasMany(Project::class, 'secondary_employee_id');
-    }
+    /*
+     * The four project relations that used to be declared here are registered by Projects instead —
+     * `ProjectsServiceProvider::contributeToEmployees()`, through `Model::resolveRelationUsing()`.
+     * `$employee->projects()`, `->managedProjects()` and `->secondaryProjects()` all still work, and now
+     * exist only when the Projects module does, which is the honest answer.
+     *
+     * The reason is packaging, not taste: `projects` requires `employees`, so an Employee naming a
+     * Project made the pair a cycle, and a cycle cannot be expressed as a composer dependency at all.
+     * A string class name would have hidden that from the lint while leaving it true — see
+     * docs/module-packaging-plan.md, phase 0, on the difference.
+     *
+     * `currentProjects()` went with them and was not re-registered: nothing called it.
+     */
 
     /** The employee record of the signed-in user, if they have one. */
     public static function forUser(?int $userId = null): ?self

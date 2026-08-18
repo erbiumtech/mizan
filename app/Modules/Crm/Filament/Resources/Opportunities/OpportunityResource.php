@@ -16,6 +16,7 @@ use App\Modules\Crm\Models\PipelineStage;
 use App\Modules\Crm\Services\OpportunityService;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -81,9 +82,7 @@ class OpportunityResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $open = static::getEloquentQuery()->open()->count();
-
-        return $open > 0 ? (string) $open : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
     }
 
     public static function form(Schema $schema): Schema

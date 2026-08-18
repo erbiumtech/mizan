@@ -8,7 +8,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveDay;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 

@@ -10,6 +10,7 @@ use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Services\SalaryPaymentGenerator;
 use Database\Seeders\TransactionTypeSeeder;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
@@ -404,7 +405,7 @@ class PaymentBatchTest extends AccountingTestCase
         $accepted = $this->payslip($this->employee('ok@test.local'), Payslip::REVIEW_ACCEPTED);
         $pending = $this->payslip($this->employee('no@test.local'), Payslip::REVIEW_PENDING);
 
-        app(PaymentService::class)->generateSalaryPayments('July', $this->fiscalYear);
+        app(SalaryPaymentGenerator::class)->generate('July', $this->fiscalYear);
 
         $payments = Payment::whereIn('payslip_id', [$accepted->id, $pending->id])->get();
 
@@ -662,7 +663,7 @@ class PaymentBatchTest extends AccountingTestCase
     {
         $payslip = $this->payslip($this->employee('never-sent@test.local'), Payslip::REVIEW_ACCEPTED);
 
-        app(PaymentService::class)->generateSalaryPayments('July', $this->fiscalYear);
+        app(SalaryPaymentGenerator::class)->generate('July', $this->fiscalYear);
         $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();
 
         $this->expectExceptionMessage('has not been exported');
@@ -707,7 +708,7 @@ class PaymentBatchTest extends AccountingTestCase
         $this->salaryFile()->callAction(TestAction::make('csv'));
 
         $draft = $this->payslip($this->employee('still-draft@test.local'), Payslip::REVIEW_ACCEPTED);
-        app(PaymentService::class)->generateSalaryPayments('July', $this->fiscalYear);
+        app(SalaryPaymentGenerator::class)->generate('July', $this->fiscalYear);
 
         $exportedPayment = Payment::where('payslip_id', $exported->id)->firstOrFail();
         $draftPayment = Payment::where('payslip_id', $draft->id)->firstOrFail();

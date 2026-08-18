@@ -4,6 +4,8 @@ namespace App\Modules\Expenses;
 
 use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Modules\Expenses\Policies\ExpenseClaimPolicy;
+use App\Modules\Expenses\Services\ExpenseClaimService;
+use App\Support\Contracts\ReimbursableClaims;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,6 +20,14 @@ class ExpensesServiceProvider extends ServiceProvider
     private const POLICIES = [
         ExpenseClaim::class => ExpenseClaimPolicy::class,
     ];
+
+    public function register(): void
+    {
+        // What an employee is owed back, for the payslip that reimburses it. Same inversion as Advances and
+        // for the same reason: `expenses` requires `payroll`, so Payroll asking a contract is the only
+        // direction that is not a cycle. See docs/module-packaging-plan.md §11.
+        $this->app->bind(ReimbursableClaims::class, ExpenseClaimService::class);
+    }
 
     public function boot(): void
     {

@@ -5,7 +5,7 @@ namespace App\Modules\Payroll\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -78,15 +78,47 @@ class PayrollRun extends Model
 
     public function periodLabel(): string
     {
+        // Loaded explicitly. This is called from a table column, from a modal's description, from lock()
+        // and unlock(), and from Payslip's refusal message — none of which can assume the caller eager
+        // loaded the year, and reading it lazily is a violation the moment the guard is on.
+        //
+        // Over a *list* this is still a query per row, so PayrollRunsTable eager-loads it; this is the
+        // safety net for the single-record callers.
+        $this->loadMissing('fiscalYear');
+
         return PayrollMonth::firstDay($this->month, $this->fiscalYear)->format('F Y');
     }
 
-    /** What the month came to, from the payslips in it. */
+    /**
+     * Cached for the life of the model, because reading it costs five queries.
+     *
+     * @var array<string, float|int>|null
+     */
+    private ?array $totalsMemo = null;
+
+    /**
+     * What the month came to, from the payslips in it.
+     *
+     * Five aggregates — a count, three sums and another count — so the figure is remembered per model.
+     * The payroll-runs table asked for it *twice* per row to render "3 of 8 accepted", which was ten
+     * queries a row and a hundred for a page of ten; nothing on that screen changes a payslip while it
+     * renders, so answering the second ask from the first is the same answer for a tenth of the cost.
+     *
+     * The trade is that a payslip changed after this was first read is not reflected until the model is
+     * reloaded. Nothing that mutates payslips reads totals() in the same request — lock() and unlock()
+     * count payslips directly — and a stale figure inside one render is not a risk worth five queries.
+     *
+     * @return array<string, float|int>
+     */
     public function totals(): array
     {
+        if ($this->totalsMemo !== null) {
+            return $this->totalsMemo;
+        }
+
         $payslips = $this->payslips();
 
-        return [
+        return $this->totalsMemo = [
             'payslips' => $payslips->count(),
             'gross' => round((float) $payslips->sum('total_earnings'), 2),
             'deductions' => round((float) $payslips->sum('total_deductions'), 2),

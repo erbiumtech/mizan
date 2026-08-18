@@ -121,6 +121,32 @@ return [
         'seeders' => $businessWithLeave,
     ],
 
+    /*
+     * Construction / Contracting — docs/construction-management-plan.md §18.2.
+     *
+     * The spine, the cost ledger and contracts, which is what Phases 1 to 4 build. The remaining two modules
+     * join this list as their phases land, so a profile never licenses a key whose tables do not exist. Closed
+     * under `requires` — the spine requires nothing, `construction_costing` requires `construction` and
+     * `accounting`, and `construction_contracts` requires only `construction`: a payment certificate is a
+     * contractual instrument rather than a step towards an invoice, so Invoicing is guarded, not required
+     * (§18). It is in this list anyway because a contractor bills.
+     *
+     * The Engineer or Architect practice that *certifies* rather than claims is deliberately not a second
+     * profile: §18.2 records that the `side` enum already accommodates it, so it is a later profile rather
+     * than a second schema.
+     */
+    'construction' => [
+        'label' => 'Construction / Contracting',
+        'description' => 'Building and civils contracting: jobs and sites, the work breakdown, cost codes, the ISO 19650 document register, the job-cost ledger and certification under FIDIC or AIA.',
+        'type' => Company::TYPE_BUSINESS,
+        // §18.2's list verbatim, plus the spine. Deliberately **not** `timesheets`: it requires `projects`,
+        // which would drag a software-delivery module with environment health checks into a contractor's
+        // licence set, and §18.1 already has timesheets as *guarded* — importing timesheet entries as labour
+        // records — rather than profiled. Site sheets are the primary labour path anyway (§7).
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts'],
+        'seeders' => $businessWithLeave,
+    ],
+
     'staffing' => [
         'label' => 'Staffing / Outsourcing',
         'description' => 'Staff placed with clients and billed on at full cost: client billing, advances and expense claims.',

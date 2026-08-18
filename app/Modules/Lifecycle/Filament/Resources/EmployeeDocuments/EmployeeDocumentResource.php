@@ -11,6 +11,7 @@ use App\Modules\Lifecycle\Models\EmployeeDocument;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use App\Support\LandlordUserColumn;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -55,12 +56,10 @@ class EmployeeDocumentResource extends Resource
     /** Expired, or lapsing inside the tightest warning threshold. */
     public static function getNavigationBadge(): ?string
     {
-        $soon = static::getEloquentQuery()
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
             ->expiring()
             ->whereDate('expires_on', '<=', now()->addDays(30)->toDateString())
-            ->count();
-
-        return $soon > 0 ? (string) $soon : null;
+            ->count());
     }
 
     public static function getNavigationBadgeColor(): ?string

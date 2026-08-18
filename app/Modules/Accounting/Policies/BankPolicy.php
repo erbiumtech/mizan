@@ -2,7 +2,7 @@
 
 namespace App\Modules\Accounting\Policies;
 
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Core\Models\User;
 
 class BankPolicy

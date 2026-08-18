@@ -6,7 +6,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 use Illuminate\Support\Collection;
 
 /**

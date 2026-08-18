@@ -1083,13 +1083,25 @@ class InvoiceService
         $entryLines = [];
 
         foreach ($lines as $line) {
+            // Net, for the same reason as a sale: the tax is recoverable and
+            // belongs on the tax account, not in the cost of the thing bought.
+            $amount = $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total;
+
             $entryLines[] = [
                 'account_id' => $line->product_id
                     ? ($line->product->inventory_account_id ?? $this->accountId('1300'))
                     : $this->expenseAccountId($line),
-                // Net, for the same reason as a sale: the tax is recoverable and
-                // belongs on the tax account, not in the cost of the thing bought.
-                'debit_amount' => $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total,
+                // A negative line is money the supplier is not being paid — retention
+                // held back, or a back-charge — and reduces what is owed, so it is a
+                // credit. The mirror of the same rule in saleEntryLines(), and for the
+                // same reason: booking it as a negative debit would be dropped by
+                // postSystemEntry's filter, leaving the entry short by that amount and
+                // failing the balance check with nothing to point at.
+                //
+                // Nothing wrote one of these until subcontract retention did; see
+                // docs/construction-management-plan.md §10.4 and
+                // PurchaseInvoiceNegativeLineTest.
+                $amount < 0 ? 'credit_amount' : 'debit_amount' => abs($amount),
                 'description' => $line->description,
                 '_fx' => self::FX_LINE,
             ];

@@ -3,7 +3,7 @@
 namespace App\Modules\Payroll\Services;
 
 use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 
 /**
  * Whether pay is reduced for unpaid absence, and by how much.

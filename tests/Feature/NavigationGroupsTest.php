@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Navigation\DomainNavigationManager;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Support\NavigationTree;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
@@ -48,10 +50,32 @@ class NavigationGroupsTest extends TestCase
         // getNavigation(), not buildNavigation(): the latter answers only when
         // a custom navigation builder closure is registered, and returns an empty
         // array otherwise — a test asserting against it would pass on nothing.
-        foreach (Filament::getPanel('admin')->getNavigation() as $group) {
-            $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
-                ->map(fn ($item): string => $item->getLabel())
-                ->all();
+        //
+        // Read unfiltered, because what this file is about is which groups the panel *offers* a
+        // company type. The sidebar now shows one domain at a time (see NavigationDomains), so
+        // getNavigation() on its own answers "what is in the domain this request is in" — which
+        // for a test with no panel route is Home, and would reduce every assertion here to three
+        // items. The subject did not change; the way to see all of it did.
+        $groups = DomainNavigationManager::withoutFiltering(
+            fn (): array => Filament::getPanel('admin')->getNavigation(),
+        );
+
+        // Folded back to the groups the classes declare. The columns now show those groups split into
+        // branches — Employee as Employees / Payroll / Leave / … — see NavigationTree. What this file
+        // is about is which groups the application organises its screens into and which screen belongs
+        // to which, and that is unchanged by how a column chooses to show them; every assertion below
+        // and the reasoning attached to it still holds at this level.
+        //
+        // Read from the rendered navigation rather than from the classes, because half of these
+        // assertions are about what a *particular* company and role are offered, and that only comes
+        // out of navigation Filament has actually filtered.
+        foreach ($groups as $group) {
+            $label = NavigationTree::declaredFor($group->getLabel() ?? '');
+
+            $navigation[$label] = [
+                ...$navigation[$label] ?? [],
+                ...collect($group->getItems())->map(fn ($item): string => $item->getLabel())->all(),
+            ];
         }
 
         return $navigation;
@@ -237,10 +261,24 @@ class NavigationGroupsTest extends TestCase
         // Sales is winning the work; Support is what happens after it is delivered, and the
         // people doing the two are usually not the same. Quotes and campaigns DO sit under
         // Sales, because both are things you send while trying to win something.
+        // `Construction` is its own group and its own rail domain, not a fold into Accounting or a second
+        // Employee section. A job is a contract to build something, and the people, the cost and the
+        // certificates all hang off it — see docs/construction-management-plan.md §18.2, which measured the
+        // alternative: Finance is already 24 classes across three groups, and folding construction in would
+        // push it past fifty across seven, which is the flat-many-groups problem the two-level shell exists
+        // to solve.
+        // `Contracts` is a second construction group rather than more of `Construction`, and §18.2 decided it
+        // for a measurable reason: the two are opened by different people on different days. `Construction` is
+        // the job, its coding and what it has cost; `Contracts` is what was agreed with the employer and the
+        // subcontractors — the schedule, the variations, the certificates, the retention. Folding them together
+        // would take the construction domain past the six-entry threshold `NavigationTree` exists to keep
+        // groups under, and would put the retention ledger next to the cost-code library.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
+            'Construction',
+            'Contracts',
             'Employee',
             'Hiring',
             'Invoicing & Inventory',

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Expenses\Filament\Resources\ExpenseClaims\Pages;
 
-use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource;
 use Filament\Resources\Pages\ListRecords;

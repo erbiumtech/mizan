@@ -544,6 +544,10 @@ empty, so every invariant passed over nothing. Discovery now enumerates
 
 ### Still open
 
+> Breaking the debt above — the interfaces, events and registry this section asks
+> for — is planned in `docs/module-packaging-plan.md`, which measures the graph at
+> 21 cycles and sequences their removal.
+
 - **MPR imports Employee** (`belongsTo`) but declares no requirement, so it can
   be licensed without Employees. Either declare it or confirm the relation is
   optional at runtime.
