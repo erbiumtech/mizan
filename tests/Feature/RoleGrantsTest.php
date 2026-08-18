@@ -87,6 +87,12 @@ class RoleGrantsTest extends AccountingTestCase
      * will enforce; **CEO +1 of its own** for `ConstructionCertificateInvoice`, the act that moves the figure into
      * the books.
      *
+     * Phase 5c, the three goods-receipt permissions: **Employee +2, one of them a record-and-post grant** — the
+     * storeman signs the delivery note and is the only person who knows what actually arrived, so a receipt typed by
+     * the office from a note that reached it a week later is how a delivery comes to be recorded against the wrong
+     * job. Accountant +2 for the same two. **Manager +1 of its own** for `ConstructionReceiptReverse`, which takes
+     * cost off a job and puts commitment back on an order — two registers, so not site's.
+     *
      * Phase 5b, the three requisition permissions, and this is the run where the shape of the suite changes:
      * **Employee +2, one of them a `create`** — the first and only one in the construction suite. The demand
      * document exists because the demand comes from the people who need the material, and a requisition raised only
@@ -114,10 +120,10 @@ class RoleGrantsTest extends AccountingTestCase
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 37,
-        'Accountant' => 110,
-        'Manager' => 134,
-        'CEO' => 154,
+        'Employee' => 39,
+        'Accountant' => 112,
+        'Manager' => 137,
+        'CEO' => 157,
     ];
 
     protected function setUp(): void
