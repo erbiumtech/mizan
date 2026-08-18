@@ -2,7 +2,6 @@
 
 namespace App\Modules\Core\Models;
 
-use App\Modules\Mpr\Models\MPR;
 use App\Traits\Auditable;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
@@ -37,6 +36,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     /** The tenant-less panel where the installation itself is administered. */
     public const PLATFORM_PANEL = 'platform';
+
+    /**
+     * The companies this user may switch into — see getTenants(), which fills it.
+     *
+     * @var Collection<int, Company>|null
+     */
+    protected ?Collection $tenants = null;
 
     /**
      * Determine whether the user can access the given Filament panel.
@@ -288,8 +294,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     public function getTenants(Panel $panel): Collection
     {
-        // Super admins may switch into any company.
-        return $this->isSuperAdmin() ? Company::all() : $this->companies;
+        // Memoised for the length of the request, on the instance that is the
+        // authenticated user for exactly that long. Filament asks more than once
+        // per page — the tenant menu, the switcher, the tenancy checks — and for
+        // a super admin the answer is `Company::all()`, which showed up four
+        // times in the statements behind a single page load. Keyed on nothing
+        // because the answer depends on nothing: `$panel` is not consulted below.
+        return $this->tenants ??= $this->isSuperAdmin() ? Company::all() : $this->companies;
     }
 
     public function canAccessTenant(Model $tenant): bool
@@ -344,10 +355,5 @@ class User extends Authenticatable implements FilamentUser, HasTenants
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
         ];
-    }
-
-    public function mprs()
-    {
-        return $this->hasMany(MPR::class, 'user_id');
     }
 }

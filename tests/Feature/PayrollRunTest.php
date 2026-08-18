@@ -10,6 +10,7 @@ use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\MonthlyPayrollService;
+use App\Modules\Payroll\Services\SalaryPaymentGenerator;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
 
@@ -233,7 +234,7 @@ class PayrollRunTest extends AccountingTestCase
         $payslip = $this->payslip();
         $payslip->recordEmployeeReview(Payslip::REVIEW_ACCEPTED);
 
-        app(PaymentService::class)->generateSalaryPayments('August', $this->fiscalYear);
+        app(SalaryPaymentGenerator::class)->generate('August', $this->fiscalYear);
         $this->payrollRun()->lock(auth()->user());
 
         $payment = Payment::where('payslip_id', $payslip->id)->firstOrFail();

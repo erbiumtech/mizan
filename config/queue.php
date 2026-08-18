@@ -67,7 +67,23 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+
+            /*
+             * 360, and it must stay above the worker `timeout` in config/horizon.php (300).
+             *
+             * This is how long Redis waits before deciding a reserved job was abandoned and
+             * handing it to a second worker. The shipped 90 was below the worker timeout, which
+             * is the wrong way round and fails in the most expensive direction available here: a
+             * payslip notification renders its PDF inside the job, so a slow render is still
+             * running at 90 seconds when a second worker picks the same job up. The employee is
+             * emailed their payslip twice, both workers finish successfully, and nothing appears
+             * in the failed-jobs table.
+             *
+             * The rule is `retry_after` > the longest a job may legitimately run, so raising the
+             * worker timeout means raising this too. QueueConfigurationTest asserts the ordering
+             * rather than the numbers.
+             */
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 360),
             'block_for' => null,
             'after_commit' => false,
         ],

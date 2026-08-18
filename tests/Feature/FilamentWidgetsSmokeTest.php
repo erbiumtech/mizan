@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview;
 use App\Modules\Accounting\Filament\Widgets\CashFlowChart;
-use App\Modules\Accounting\Filament\Widgets\OperationsOverview;
+use App\Modules\Core\Filament\Widgets\OperationsOverview;
 use App\Modules\Core\Models\User;
 use App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview;
 use App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart;

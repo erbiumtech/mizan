@@ -1,5 +1,20 @@
 # Company Website — implementation plan
 
+> **Not built, and this plan cannot be followed as written.** There is no `Website`
+> module and no `site_settings` table. The plan's admin half is specified in Nova —
+> *"all content managed from Nova"*, a new Nova **Website** resource group — and Nova
+> has since been removed entirely (`docs/filament-laravel13-migration-plan.md`).
+>
+> The public half still stands: Livewire + Blade + Tailwind for a marketing site is
+> unaffected, and Tailwind is still wired through Vite. So this is a **plan needing a
+> rewrite of §3 onward against Filament**, not a plan that was abandoned on its
+> merits. Nothing else in the application depends on it.
+>
+> Worth saying plainly before anyone picks it up: a public marketing site is the one
+> thing in `docs/` that is not part of the accounting product, and it shares only a
+> deployment with it. Whether it belongs in this codebase at all is the first
+> question, not the last.
+
 A public marketing site for the software house (team, services, products,
 about, contact) built with **Livewire 4 + Blade + Tailwind 4** (Tailwind is
 already wired via Vite; Livewire is one composer install), with **all content

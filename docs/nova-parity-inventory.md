@@ -1,5 +1,18 @@
 # Nova → Filament Parity Inventory
 
+> **Historical. The migration is finished and Nova is gone** — `app/Nova` no longer
+> exists, and `docs/filament-laravel13-migration-plan.md` records phases 0–5 as done.
+>
+> **The unticked boxes below do not mean unmigrated.** Nobody ticked them as they
+> went; the parity check happened in code and in tests instead, and the Filament
+> surface has since grown well past what Nova had — twenty-two modules against the
+> 28 resources inventoried here. Read this as the record of what Nova contained when
+> the migration started, which is what it is good for: if something Nova did seems
+> missing, this says whether Nova really did it.
+>
+> Do not use it as a to-do list, and do not tick the boxes retrospectively — a
+> half-ticked historical inventory is worse than an unticked one.
+
 Migration tracker for the MPR Laravel app. Every portable item is a checkbox so this doubles as a migration checklist.
 
 **Scope:** 28 Nova resource classes, 28 Actions, 7 Filters, 7 Metrics, 1 custom Currency field, 1 Dashboard.

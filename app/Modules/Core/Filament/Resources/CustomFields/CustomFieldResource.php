@@ -2,19 +2,13 @@
 
 namespace App\Modules\Core\Filament\Resources\CustomFields;
 
-use App\Modules\Accounting\Models\Beneficiary;
-use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\CreateCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\EditCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\ListCustomFields;
 use App\Modules\Core\Filament\Resources\CustomFields\Schemas\CustomFieldForm;
 use App\Modules\Core\Filament\Resources\CustomFields\Tables\CustomFieldsTable;
 use App\Modules\Core\Models\CustomField;
-use App\Modules\Employees\Models\Employee;
-use App\Modules\Inventory\Models\Product;
-use App\Modules\Invoicing\Models\Contact;
-use App\Modules\Invoicing\Models\Invoice;
-use App\Support\ModuleMap;
+use App\Support\CustomFieldSubjects;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -24,34 +18,20 @@ use UnitEnum;
 
 class CustomFieldResource extends Resource
 {
-    /** Domain models that can have custom fields (extend as more opt in). */
-    public const MODELS = [
-        Contact::class => 'Contacts',
-        Employee::class => 'Employees',
-        Invoice::class => 'Invoices',
-        Product::class => 'Products',
-        Beneficiary::class => 'Beneficiaries',
-        FixedAsset::class => 'Fixed Assets',
-    ];
-
     /**
-     * The same list keyed by each model's stable alias, which is what
-     * `custom_fields.model_type` stores — a definition must keep pointing at the
-     * right model after that model moves into its module directory. Used for the
-     * Select options, the filter and the column label, so nothing writes a raw
-     * class name into the column.
+     * The models a custom field may be defined on, as `alias => label`.
+     *
+     * This was a `const MODELS` naming six classes from four modules, mapped through
+     * `ModuleMap::alias()` on the way out. Each module now registers its own subjects
+     * (App\Support\CustomFieldSubjects), so this screen renders whatever is installed and names none of
+     * them — see docs/module-packaging-plan.md §9. The aliases are unchanged, so every existing definition
+     * still resolves.
      *
      * @return array<string, string>
      */
     public static function modelOptions(): array
     {
-        $options = [];
-
-        foreach (self::MODELS as $class => $label) {
-            $options[ModuleMap::alias($class)] = $label;
-        }
-
-        return $options;
+        return CustomFieldSubjects::options();
     }
 
     protected static ?string $model = CustomField::class;

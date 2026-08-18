@@ -142,11 +142,13 @@ class RealTenantDatabaseSearchTest extends TestCase
         $sara = $this->employee('Sara Khan', 'EMP-202');
 
         Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->searchTable('Sara')
             ->assertCanSeeTableRecords([$sara])
             ->assertCanNotSeeTableRecords([$ali]);
 
         Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->sortTable('user.name')
             ->assertCanSeeTableRecords([$ali, $sara], inOrder: true)
             ->sortTable('user.name', 'desc')

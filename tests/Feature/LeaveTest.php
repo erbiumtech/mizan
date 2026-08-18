@@ -13,6 +13,7 @@ use App\Modules\Leave\Services\LeaveEntitlementService;
 use App\Modules\Leave\Services\LeaveRequestService;
 use App\Modules\Leave\Services\LeaveYear;
 use App\Support\TenantSettings;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
@@ -804,6 +805,15 @@ class LeaveTest extends TestCase
     /** Notice warns by default, and blocks only when the company says so. */
     public function test_minimum_notice_warns_by_default_and_blocks_when_enforced(): void
     {
+        // Pinned to a Monday, so "tomorrow" is a Tuesday.
+        //
+        // This test asks for one day off tomorrow and expects the notice rule to be what stops it. Run
+        // on a Friday or a Saturday, tomorrow is a weekend day, the request covers no working days at
+        // all, and the service rejects it for that instead — a failure that has nothing to do with
+        // notice and appears two days in seven. Relative to now() rather than a fixed date, so this
+        // does not drift out of whatever fiscal year the fixtures are built in.
+        $this->travelTo(now()->next(CarbonInterface::MONDAY)->setTime(9, 0));
+
         $type = $this->makeType(['min_notice_days' => 7]);
 
         // Tomorrow, with seven days' notice expected: recorded anyway by default.

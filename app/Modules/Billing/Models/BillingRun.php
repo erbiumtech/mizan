@@ -6,7 +6,7 @@ use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

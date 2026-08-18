@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
+use App\Support\Contracts\FiscalYearCloseCheck;
 use App\Support\ModuleMap;
 use InvalidArgumentException;
 
@@ -21,7 +22,7 @@ use InvalidArgumentException;
  * happily ties while that is true. Closing over it would freeze a period whose
  * figures are known to be incomplete.
  */
-class FiscalYearClosingService
+class FiscalYearClosingService implements FiscalYearCloseCheck
 {
     public function __construct(
         private FinancialReportService $reports,

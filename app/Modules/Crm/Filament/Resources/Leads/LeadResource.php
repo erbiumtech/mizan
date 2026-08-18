@@ -10,6 +10,7 @@ use App\Modules\Crm\Filament\Resources\Leads\Pages\ListLeads;
 use App\Modules\Crm\Filament\Resources\Leads\Schemas\LeadForm;
 use App\Modules\Crm\Filament\Resources\Leads\Tables\LeadsTable;
 use App\Modules\Crm\Models\Lead;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -57,9 +58,7 @@ class LeadResource extends Resource
     /** Open leads: what is actually somebody's to work. */
     public static function getNavigationBadge(): ?string
     {
-        $open = static::getEloquentQuery()->open()->count();
-
-        return $open > 0 ? (string) $open : null;
+        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
     }
 
     public static function form(Schema $schema): Schema

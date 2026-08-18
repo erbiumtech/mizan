@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Navigation\DomainNavigationManager;
 use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
@@ -50,7 +51,14 @@ class ReportsHubTest extends TestCase
     {
         $navigation = [];
 
-        foreach (Filament::getPanel('admin')->getNavigation() as $group) {
+        // Unfiltered: the sidebar shows one domain at a time now (see NavigationDomains), and what
+        // this file asserts is that the panel registers one Reports link and no Reports group —
+        // a fact about the whole tree rather than about whichever domain is open.
+        $groups = DomainNavigationManager::withoutFiltering(
+            fn (): array => Filament::getPanel('admin')->getNavigation(),
+        );
+
+        foreach ($groups as $group) {
             $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
                 ->map(fn ($item): string => $item->getLabel())
                 ->all();
@@ -147,13 +155,53 @@ class ReportsHubTest extends TestCase
     {
         $this->actAsSuperAdminOf(Company::factory()->create());
 
-        Livewire::test(Reports::class)
+        $page = Livewire::test(Reports::class)
             ->assertSuccessful()
+            // The section is a filter chip now rather than a heading over a grid of cards, but it is
+            // still on the page and still names the same set.
             ->assertSee('Financial statements')
-            ->assertSee('Balance Sheet')
-            // The descriptions are the reason the page exists rather than being a
-            // list of the same titles the sidebar already had.
+            ->assertSee('Balance Sheet');
+
+        // The descriptions are the reason the page exists rather than being a list of the same titles
+        // the sidebar already had. 4c's list rows are two lines and have no room for one, so the
+        // selected report's description is shown in the pane beside them — asserted here rather than
+        // dropped, because it is the claim that matters.
+        $page->call('select', 'BalanceSheet')
             ->assertSee('What the company owns, owes and is worth, on a date.');
+    }
+
+    /**
+     * The Reports column names every report and links each to its own page.
+     *
+     * The column used to list the six categories and their counts alone, so the sidebar could say a company
+     * had seventeen reports without naming one — and a report's own page, which is where its actions live,
+     * was reachable only from inside the explorer.
+     *
+     * Asserted through a real request rather than through the page component, because the column is rendered
+     * by the panel's own sidebar and a Livewire test of the page never draws it.
+     */
+    public function test_the_reports_column_lists_every_report_with_a_link_to_its_page(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $response = $this->get(Reports::getUrl())->assertOk();
+        $html = html_entity_decode($response->getContent());
+
+        foreach (Reports::sections() as $section => $links) {
+            // The category still filters the explorer, which is a different destination on purpose.
+            $this->assertStringContainsString($section, $html);
+
+            foreach ($links as $link) {
+                $this->assertStringContainsString(
+                    'href="'.$link['url'].'"',
+                    $html,
+                    "the column does not link to {$link['label']}'s own page",
+                );
+            }
+        }
+
+        // Guards the loop: an empty catalogue would satisfy it.
+        $this->assertGreaterThanOrEqual(17, Reports::total());
     }
 
     public function test_a_disabled_module_takes_its_reports_out_of_the_hub(): void
