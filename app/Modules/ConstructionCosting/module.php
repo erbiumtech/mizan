@@ -142,6 +142,9 @@ return [
             'ConstructionCommitmentCreate',
             'ConstructionCommitmentView',
             'ConstructionCostCreate',
+            // The commercial side records deliveries too: on a job with no storeman, the surveyor is who does it.
+            'ConstructionReceiptRecord',
+            'ConstructionReceiptView',
             'ConstructionRequisitionCreate',
             'ConstructionRequisitionView',
             'ConstructionCostUpdate',

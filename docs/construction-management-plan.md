@@ -1787,9 +1787,9 @@ document register before the modules that reference drawings.
   allocations, the allocation queue screen, three-way match, relief. **Ends with:** open commitment is
   provable per cost code and closing a purchase order with a balance has an author and a reason.
 
-  > **Started 2026-08-18. Commitments, relief and the demand document are built** —
-  > `ConstructionCommitmentTest` (26 tests) and `ConstructionRequisitionTest` (24). The commitment half is both
-  > halves of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
+  > **Started 2026-08-18. Commitments and relief, the demand document and goods receipts are built** —
+  > `ConstructionCommitmentTest` (26 tests), `ConstructionRequisitionTest` (24) and
+  > `ConstructionGoodsReceiptTest` (21). The commitment half is both halves of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
   > with every relief naming its cause, and closing writes a `close_out` relief with `closed_by` and a
   > mandatory reason. Three decisions worth carrying forward:
   >
@@ -1800,6 +1800,11 @@ document register before the modules that reference drawings.
   >   phases precisely so that "no procurement module" could never be read as "no orders placed" — and
   >   filling it in was one method on `CostLedger` plus one on `ForecastService`, with no figure restated.
   >   The Phase 3 test that asserted the null now asserts the zero, and says why it changed.
+  > - **The site-store path is refused rather than half-built.** A goods receipt does the two things it can —
+  >   relieves the order, accrues the cost at order rate — and refuses a line destined for a store with a
+  >   message naming the missing `stock_locations` and telling the user to receive it direct instead. Accepting
+  >   it would cost the material as though it had been stocked, and materials-on-site would be wrong with
+  >   nothing saying so, which is §18.1's rule about a healthy figure hiding an absence.
   > - **A requisition's `ordered` status has to be able to reverse.** `refreshOrderedStatus()` first treated it as
   >   terminal, which meant an order cancelled after the request was fully ordered could never put the request back
   >   on the buyer's queue — the exact failure the demand document exists to prevent, a need nobody is chasing with
