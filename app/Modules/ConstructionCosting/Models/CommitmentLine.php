@@ -32,6 +32,11 @@ class CommitmentLine extends Model
     protected $fillable = [
         'commitment_id', 'requisition_line_id', 'job_id', 'wbs_node_id', 'cost_code_id', 'product_id',
         'description', 'quantity', 'unit_of_measure', 'rate', 'amount', 'cost_type',
+        'variance_accepted_at', 'variance_accepted_by', 'variance_reason',
+    ];
+
+    protected $casts = [
+        'variance_accepted_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -128,6 +133,17 @@ class CommitmentLine extends Model
     public function openAmount(): float
     {
         return round(max(0.0, (float) $this->amount - $this->relievedTotal()), 2);
+    }
+
+    /**
+     * Whether somebody has accepted this line's three-way variance — §5's one stored part of the match.
+     *
+     * The match itself is computed by `ThreeWayMatch`; what is stored here is the decision, because "a decision with
+     * no record is not a control".
+     */
+    public function varianceAccepted(): bool
+    {
+        return $this->variance_accepted_at !== null;
     }
 
     public function isFullyRelieved(): bool

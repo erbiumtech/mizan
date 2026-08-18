@@ -194,7 +194,16 @@ class CommitmentService
 
         $amount = round($amount, 2);
 
-        if ($kind === CommitmentRelief::KIND_INVOICE) {
+        /*
+         * The unreceived-balance clamp applies to **invoice relief in the forward direction only**.
+         *
+         * A negative invoice relief is a give-back — a withdrawn allocation, a credit note — and it has to pass
+         * through untouched. Clamping it was a real bug: `min(-10_000_000, 0)` is −10,000,000, which the
+         * `<= 0` guard below then threw away, so withdrawing an allocation silently returned no commitment at all
+         * and the order stayed relieved for money nobody was being charged. The same shape of mistake as a status
+         * that could not reverse — a rule written for one direction quietly blocking the other.
+         */
+        if ($kind === CommitmentRelief::KIND_INVOICE && $amount > 0.0) {
             // The unreceived balance, and no more. A negative result means the receipt has already relieved more
             // than this invoice covers, which is not an error — it is the receipt having got there first.
             $unreceived = round((float) $line->amount - $line->receivedTotal() - $line->invoicedTotal(), 2);

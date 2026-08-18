@@ -87,6 +87,17 @@ class RoleGrantsTest extends AccountingTestCase
      * will enforce; **CEO +1 of its own** for `ConstructionCertificateInvoice`, the act that moves the figure into
      * the books.
      *
+     * Phase 5e, one permission: **`ConstructionVarianceAccept` on Manager**. Reading the three-way match report rides
+     * on `ConstructionCommitmentView` — it is the same screenful of facts about the same orders — but accepting a
+     * variance puts money on a job that nobody ordered at that figure, with a name against it. §5 puts the control at
+     * acceptance rather than at payment, so this grant *is* the control.
+     *
+     * Phase 5d, one permission: **`ConstructionInvoiceAllocate` on Accountant**, inherited upward. Employee gains
+     * nothing — coding a supplier invoice is a commercial act, and the person who signed the delivery note is not the
+     * person who knows which code the company prices its next tender from. It is its own name because it is the act
+     * that answers §5's "single most likely silent failure in the module": an invoice posted with no allocation leaves
+     * the accounts perfectly correct and the job under-costed.
+     *
      * Phase 5c, the three goods-receipt permissions: **Employee +2, one of them a record-and-post grant** — the
      * storeman signs the delivery note and is the only person who knows what actually arrived, so a receipt typed by
      * the office from a note that reached it a week later is how a delivery comes to be recorded against the wrong
@@ -121,9 +132,9 @@ class RoleGrantsTest extends AccountingTestCase
      */
     private const EXPECTED = [
         'Employee' => 39,
-        'Accountant' => 112,
-        'Manager' => 137,
-        'CEO' => 157,
+        'Accountant' => 113,
+        'Manager' => 139,
+        'CEO' => 159,
     ];
 
     protected function setUp(): void

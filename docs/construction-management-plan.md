@@ -1787,9 +1787,13 @@ document register before the modules that reference drawings.
   allocations, the allocation queue screen, three-way match, relief. **Ends with:** open commitment is
   provable per cost code and closing a purchase order with a balance has an author and a reason.
 
-  > **Started 2026-08-18. Commitments and relief, the demand document and goods receipts are built** —
-  > `ConstructionCommitmentTest` (26 tests), `ConstructionRequisitionTest` (24) and
-  > `ConstructionGoodsReceiptTest` (21). The commitment half is both halves of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
+  > **Built 2026-08-18.** —
+  > `ConstructionCommitmentTest` (26 tests), `ConstructionRequisitionTest` (24),
+  > `ConstructionGoodsReceiptTest` (21), `ConstructionInvoiceAllocationTest` (19) and
+  > `ConstructionThreeWayMatchTest` (24) — **Phase 5 complete**, 114 tests. The allocation table and its queue
+  > answer what §5 calls the single most likely silent failure in the module; the match is computed with only the
+  > acceptance stored, and its tolerances are config overridable by settings. The commitment half is both halves
+  > of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
   > with every relief naming its cause, and closing writes a `close_out` relief with `closed_by` and a
   > mandatory reason. Three decisions worth carrying forward:
   >
@@ -1800,6 +1804,25 @@ document register before the modules that reference drawings.
   >   phases precisely so that "no procurement module" could never be read as "no orders placed" — and
   >   filling it in was one method on `CostLedger` plus one on `ForecastService`, with no figure restated.
   >   The Phase 3 test that asserted the null now asserts the zero, and says why it changed.
+  > - **Ordered-against-received is not a match variance while the order is open.** The first `ThreeWayMatch`
+  >   compared them, which made every undelivered order read as a total short delivery and every staged one as a
+  >   partial — a report wrong on nearly every line, which is the state that teaches people to ignore it. The
+  >   two cases are genuinely indistinguishable from the documents: 36 t against 40 is a short delivery *or* the
+  >   first of two loads. What settles it is closing the order, which §5 already makes an act with an author and
+  >   a reason, so until then the difference is open commitment — reported once, by the register that owns it,
+  >   and shown on the match as a note rather than a variance. What the match judges is invoiced against
+  >   received, both in quantity and in value, which is what a supplier's own two documents can settle.
+  > - **An invoice for goods that *were* received was eating the unreceived balance.** The unreceived-balance
+  >   clamp is a ceiling and cannot tell what a particular invoice covers, so an invoice for the 36 t delivered
+  >   was relieving the 4 t that never came, closing the order as though the shortfall had been dealt with. The
+  >   intent now lives in `InvoiceAllocationService`, which knows what has been invoiced: relief is the excess of
+  >   cumulative invoiced over cumulative received. Withdrawing an allocation gives back **what it actually
+  >   relieved**, which is not always what it was for.
+  > - **A negative invoice relief could not be recorded at all.** The unreceived-balance clamp that implements
+  >   §5's double-relief rule ran on every invoice relief, so withdrawing an allocation — `min(-10m, 0)` then
+  >   `<= 0 → return null` — silently gave back no commitment, leaving an order relieved for money nobody was
+  >   being charged. The clamp now applies in the forward direction only. Same shape as the requisition status
+  >   that could not reverse: a rule written for one direction quietly blocking the other.
   > - **The site-store path is refused rather than half-built.** A goods receipt does the two things it can —
   >   relieves the order, accrues the cost at order rate — and refuses a line destined for a store with a
   >   message naming the missing `stock_locations` and telling the user to receive it direct instead. Accepting
