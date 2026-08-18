@@ -34,10 +34,23 @@ class SettingsSectionsTest extends AccountingTestCase
         $this->setCurrentTenant();
     }
 
-    public function test_accounting_contributes_its_two_sections(): void
+    /**
+     * Every contributed section, in the order they asked to appear.
+     *
+     * Asserted as an exact list deliberately: a module quietly adding a block to Company Settings is a change to
+     * a page every administrator opens, and it should be a decision rather than a surprise. Update this in the
+     * same commit as the registration, and say why.
+     *
+     * **2026-08-18** — `construction.accounts` joined at sort 70, contributed by `construction_contracts` rather
+     * than written into Core: §18.2 of `docs/construction-management-plan.md` refuses a `core -> construction`
+     * coupling on the grounds that "the account map belongs on a Construction settings page", and this registry is
+     * what makes that possible. The block is hidden for a company without the module, so the page is unchanged for
+     * everybody else.
+     */
+    public function test_the_modules_contribute_their_sections(): void
     {
         $this->assertSame(
-            ['accounting.currency', 'accounting.payroll-posting'],
+            ['accounting.currency', 'accounting.payroll-posting', 'construction.accounts'],
             SettingsSections::keys(),
         );
     }

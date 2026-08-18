@@ -31,6 +31,7 @@
 use App\Modules\Core\Models\Company;
 use Database\Seeders\BankSeeder;
 use Database\Seeders\ChartOfAccountsSeeder;
+use Database\Seeders\ConstructionAccountsSeeder;
 use Database\Seeders\CurrencySeeder;
 use Database\Seeders\FiscalYearSeeder;
 use Database\Seeders\LeadSourceSeeder;
@@ -144,7 +145,9 @@ return [
         // licence set, and §18.1 already has timesheets as *guarded* — importing timesheet entries as labour
         // records — rather than profiled. Site sheets are the primary labour path anyway (§7).
         'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts'],
-        'seeders' => $businessWithLeave,
+        // The construction accounts on top of the business baseline (§18.2): a separate seeder rather than a dozen
+        // rows added to every bookkeeping company's chart, which is what the profile mechanism is for.
+        'seeders' => [...$businessWithLeave, ConstructionAccountsSeeder::class],
     ],
 
     'staffing' => [
