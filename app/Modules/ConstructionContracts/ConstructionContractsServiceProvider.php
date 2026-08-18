@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts;
 
 use App\Modules\ConstructionContracts\Console\Commands\ReconcileRetention;
+use App\Modules\ConstructionContracts\Filament\Settings\ConstructionAccountsSettingsSection;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\ContractItem;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
@@ -15,6 +16,7 @@ use App\Modules\ConstructionContracts\Policies\PaymentCertificatePolicy;
 use App\Modules\ConstructionContracts\Policies\ProgressClaimPolicy;
 use App\Modules\ConstructionContracts\Policies\RetentionMovementPolicy;
 use App\Modules\ConstructionContracts\Policies\VariationPolicy;
+use App\Support\SettingsSections;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -47,6 +49,15 @@ class ConstructionContractsServiceProvider extends ServiceProvider
         // because a schedule that changes shape with a company's licences is a schedule nobody can read.
         $this->commands([ReconcileRetention::class]);
         $this->loadRoutesFrom(__DIR__.'/routes/console.php');
+
+        /*
+         * The construction account map, contributed to Core's Company Settings page (§18.2).
+         *
+         * Registered from here because this is the module that owns the setting, and §18.2's refusal to add
+         * `'core' => [… 'construction']` is what the `SettingsSections` registry exists to make possible. Sorted
+         * after payroll posting, which is the other account-map block on that page.
+         */
+        SettingsSections::register('construction.accounts', ConstructionAccountsSettingsSection::class, 70);
 
         // The printed certificate (§10.5). Its own route rather than a panel action returning a response,
         // because a direct URL never consults `canAccess()` — the licence gate belongs on the route.

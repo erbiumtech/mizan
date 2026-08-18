@@ -44,4 +44,37 @@ return [
         'salaries_payable' => '2300',
         'employee_advances' => '1200',
     ],
+
+    /*
+     * The construction account mapping — docs/construction-management-plan.md §18.2, resolved by
+     * App\Modules\Accounting\Support\ConstructionAccounts and seeded by ConstructionAccountsSeeder.
+     *
+     * Defaults rather than constants: a company that keeps retention in 1625 changes one setting instead of
+     * editing a service. The keys are the semantics, and the list of them lives on that class.
+     *
+     * **Retention receivable is an asset**, which is the whole of §10.4: a certificate invoices the work gross and
+     * shows retention as its own line here. Invoicing net understates revenue for the life of the job and then
+     * makes the release look like revenue earned in a period when no work happened.
+     */
+    'construction_accounts' => [
+        'contract_revenue' => '4600',
+        'contract_assets' => '1610',
+        'contract_liabilities' => '2630',
+        'retention_receivable' => '1620',
+        'retention_payable' => '2620',
+        'materials_on_site' => '1600',
+        'goods_received_not_invoiced' => '2600',
+        'accrued_subcontract_costs' => '2610',
+        'foreseeable_losses' => '2640',
+        'job_cost_labour' => '5620',
+        'job_cost_material' => '5630',
+        'job_cost_plant' => '5640',
+        'job_cost_subcontract' => '5650',
+        'job_cost_other' => '5660',
+        // Credit-normal expense accounts (§7.3): an internal charge is a recovery against the department that
+        // owns the plant, not turnover.
+        'plant_hire_recovery' => '5670',
+        'burden_absorbed' => '5680',
+        'absorption_variance' => '5690',
+    ],
 ];
