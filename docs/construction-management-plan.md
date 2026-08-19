@@ -1,7 +1,14 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 7 complete (2026-08-19). Phase 8 — materials, `stock_locations` in Inventory and the
-movement-type enum — is next.**
+**Status:** **Phases 0 to 7 complete, and Phase 8a with them (2026-08-19). Phase 8b — material issues and returns —
+is next, then 8c's materials-on-site finishes Phase 8.**
+
+Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
+note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
+enum expanded once for both plans, a location-aware valuation API, and the site-store path on a goods receipt that
+Phase 5c had to refuse — 16 tests in `StockLocationTest` plus 3 in the receipt file. `docs/retail-stores-pos-plan.md`
+has been updated in the same breath: its Phase 2 is now smaller and its Phase 0 note says exactly what not to build
+again, which is the follow-through §6 says two plans usually fail to do.
 
 Phase 7 built §7 in `construction_costing` in four parts, 129 tests: trades, the worker register that holds people who
 are not employees, and the dated rate table with §7.2's five-tier ladder (7a, 33 tests); the site sheet, the snapshot at
@@ -2223,6 +2230,51 @@ document register before the modules that reference drawings.
   > timesheets` only, in both lists, and the graph stays acyclic.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both
   plans, material issues and returns, materials on site.
+
+  > **8a built 2026-08-19.** — `StockLocationTest` (16 tests), plus 3 in `ConstructionGoodsReceiptTest` for the
+  > store path. `stock_locations` and `stock_movements.stock_location_id` in Inventory,
+  > `construction_jobs.stock_location_id` here, the enum expanded once, `InventoryValuationService` and
+  > `InventoryService` taking a location, and `GoodsReceiptService`'s store path built where Phase 5c refused it.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The table is Inventory's, and that is the whole point.** Either plan building its own would have made the
+  >   other depend on it or invent a second nullable location column — §6's "wrong at every location and correct in
+  >   total, which is the hardest class of wrong to notice". A test asserts `stock_movements` has exactly one location
+  >   column and no `store_id`, because the wrong version of this is a column somebody adds in good faith.
+  > - **The FIFO lots are scoped to the location, and that is the half that would have been quietly wrong.** Scoping
+  >   `onHand()` alone is the obvious change; leaving `costOfSale()` unscoped would let an issue on site consume the
+  >   cheapest lot in a warehouse forty miles away, and both locations' valuations would drift with nothing
+  >   disagreeing. The sufficiency check is scoped with it, or an issue could be priced out of stock somewhere else.
+  > - **`null` means "not tracked by location", never "unknown".** The retail plan's original shape was
+  >   nullable → backfilled → **non-null**; it is left nullable, because the constraint would have to hold for every
+  >   historical row in every tenant and every future caller including imports, and `InvoiceService` has no location
+  >   to give it until `stores` exists. `onHandByLocation()` therefore reports unlocated stock as its own row rather
+  >   than folding it into a location — the fold is how a report produces §6's failure.
+  > - **The backfill runs only where movements exist.** A fresh tenant getting a phantom "Main store" is a row
+  >   somebody has to work out the meaning of, and a contractor who buys everything direct to site should have no
+  >   locations at all. Where there *is* history it has to land somewhere, or every per-location figure understates
+  >   while the total stays right.
+  > - **Phase 5c's blanket refusal became three specific ones.** A store-destined receipt line needs Inventory, a
+  >   product, and a store on the job; each absence names itself and what to do instead. It is still a refusal rather
+  >   than a quiet fallback to direct, for the reason Phase 5c gave and which has not stopped being true.
+  > - **The store movement is written directly, not through `InventoryService::purchase()`.** That method posts debit
+  >   Inventory / credit Cash, which is wrong twice here: the money is owed to a supplier rather than paid, and the
+  >   cost has already reached the job as the accrual beside it. §6 draws the same line — "the module owns the
+  >   document, Inventory owns the movement" — and `InvoiceService::recordMovement()` is the existing precedent.
+  >
+  > `StockLocation` rides on `ProductView`/`ProductUpdate` rather than gaining permissions of its own: a location is
+  > part of the same answer as a product — what stock, and where — maintained by the same person in the same sitting,
+  > so `RoleGrantsTest::EXPECTED` is untouched. `KNOWN_COUPLINGS` gains `construction -> inventory` (the job's store
+  > picker) and `construction_costing -> inventory` (the receipt's movement), both guarded, and the graph stays
+  > acyclic.
+  >
+  > **What 8b has to decide, written down now because it is the one place a double-count could hide.** A store
+  > receipt costs the job *and* stocks the material. §6 says materials-on-site is "delivered, costed, not yet
+  > consumed… and it is one query", so the receipt is what costs it — which means an issue must **not** cost it
+  > again. The issue's FIFO unit cost is for reclassifying between cost codes (`CostEntry::KIND_RECLASS` exists for
+  > exactly this) and for valuing wastage, never for adding cost. Getting that backwards would charge every stocked
+  > delivery twice, and both figures would look like material cost on the same job.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,
   punch lists, activities, delay events, and the P6 and MS Project import. **Ends with:** the delay-event
   notice clock and its notification live before anything else in the phase, because it is the piece that

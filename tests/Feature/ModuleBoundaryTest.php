@@ -313,7 +313,12 @@ class ModuleBoundaryTest extends TestCase
         // (docs/construction-management-plan.md §18: a contractor keeping its books elsewhere is a real
         // customer), so both pickers check modules()->enabled('invoicing') and the columns simply stay null
         // without it. A tender has no client record either way. Exactly the invoicing -> projects shape.
-        'construction' => ['invoicing'],
+        //
+        // `inventory` joins it for §6's site stores, built in Phase 8a: `construction_jobs.stock_location_id` names the
+        // store a job keeps material in, and the picker is hidden without the module while the column stays null. §6
+        // calls direct-to-site "the default" and says it "works with Inventory unlicensed" — most contractors, most of
+        // the time — so this is the guarded shape again rather than a requirement.
+        'construction' => ['invoicing', 'inventory'],
         // Construction costing -> Invoicing is guarded: a purchase order names a supplier, and a supplier is a
         // Contact, which Invoicing owns. `construction_costing` requires `construction` and `accounting` and
         // deliberately not Invoicing — a contractor can cost jobs and raise orders while buying nothing from this
@@ -328,7 +333,13 @@ class ModuleBoundaryTest extends TestCase
         // the absence leaves "site sheets only, which is the primary path anyway". Note what is *not* here:
         // `projects`, because the bridge from a timesheet entry to a job is the unconstrained
         // `construction_jobs.project_id` column, which this module reads as an integer and never as a `Project`.
-        'construction_costing' => ['invoicing', 'timesheets'],
+        //
+        // `inventory` joins it in Phase 8a: a goods-receipt line destined for a site store writes a `StockMovement` at
+        // the job's location. Guarded three ways in `GoodsReceiptService::guardStoreLine()` — the module, a product on
+        // the line, and a store on the job — and each absence is a refusal naming the fix rather than a quiet fallback
+        // to direct, because a receipt costed as though it had been stocked makes materials-on-site wrong with nothing
+        // saying so.
+        'construction_costing' => ['invoicing', 'timesheets', 'inventory'],
         // Construction contracts -> Invoicing is guarded, and §18 calls this the sharpest fork in that
         // section. The other party on a contract is a Contact, and the certificate's *raise invoice* action
         // needs an Invoice — but a payment certificate is not a quote: it is itself a contractual instrument
@@ -468,7 +479,9 @@ class ModuleBoundaryTest extends TestCase
             // pickers are hidden without Invoicing and the columns stay null. The job is still a job:
             // §18.1's "smaller, never broken", and the reason construction is sellable to a contractor
             // whose books are somewhere else.
-            'construction' => ['invoicing'],
+            //
+            // Inventory joins it in Phase 8a for the job's site store, hidden without the module.
+            'construction' => ['invoicing', 'inventory'],
 
             // A purchase order's supplier is a Contact, and the picker is hidden without Invoicing while the
             // column stays null. The same shape as the job's client, one module along.
@@ -476,7 +489,10 @@ class ModuleBoundaryTest extends TestCase
             // Timesheets degrades to the import action not being offered at all, and `isAvailable()` refuses the
             // service in one sentence if anything reaches it another way. A contractor without that module records
             // labour on site sheets, which is how most site labour is recorded regardless.
-            'construction_costing' => ['invoicing', 'timesheets'],
+            //
+            // Inventory degrades to a refusal naming what is missing, which §18.1's exception requires: a store
+            // receipt accepted without a movement would leave materials-on-site wrong with nothing saying so.
+            'construction_costing' => ['invoicing', 'timesheets', 'inventory'],
 
             // The same shape one level up: the other party on a contract is a Contact and the certificate
             // becomes a draft invoice, both guarded. §18's refusal to declare Invoicing here is deliberate

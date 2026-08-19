@@ -4,6 +4,7 @@ namespace App\Modules\Construction\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Concerns\HasMaterialisedPath;
+use App\Modules\Inventory\Models\StockLocation;
 use App\Modules\Invoicing\Models\Contact;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
@@ -63,7 +64,7 @@ class Job extends Model
     public const DORMANT_STATUSES = ['closed', 'cancelled', 'lost'];
 
     protected $fillable = [
-        'code', 'name', 'description', 'parent_id', 'path', 'client_contact_id', 'project_id',
+        'code', 'name', 'description', 'parent_id', 'path', 'client_contact_id', 'project_id', 'stock_location_id',
         'nature', 'status', 'contract_standard', 'currency_code',
         'site_address_line_1', 'site_address_line_2', 'site_city', 'site_country', 'latitude', 'longitude',
         'commencement_date', 'planned_completion_date', 'revised_completion_date', 'actual_completion_date',
@@ -115,6 +116,18 @@ class Job extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'client_contact_id');
+    }
+
+    /**
+     * The job's site store — `docs/construction-management-plan.md` §6.
+     *
+     * Guarded, not required: a job with no store buys everything direct to the work face, which §6 calls the default
+     * and which "works with Inventory unlicensed". Every surface offering this checks `modules()->enabled('inventory')`
+     * first, so a contractor who tracks no stock never sees it and the column stays null.
+     */
+    public function stockLocation(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'stock_location_id');
     }
 
     /** The Engineer under FIDIC, the Architect under AIA. */

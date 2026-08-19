@@ -3,6 +3,7 @@
 namespace App\Modules\Construction\Filament\Resources\Jobs\Schemas;
 
 use App\Modules\Construction\Models\Job;
+use App\Modules\Inventory\Models\StockLocation;
 use App\Modules\Invoicing\Models\Contact;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -114,6 +115,26 @@ class JobForm
                                 ->all())
                             ->searchable()
                             ->helperText('Left blank until award.'),
+
+                        /*
+                         * The job's site store — §6, built in construction Phase 8a.
+                         *
+                         * Guarded like the two contact pickers above and for the same reason: `construction` requires
+                         * nothing, so a contractor who tracks no stock never sees this and the column stays null. §6
+                         * calls direct-to-site "the default" and says it "works with Inventory unlicensed", which is
+                         * most contractors most of the time — the store is the exception, not the norm.
+                         */
+                        Select::make('stock_location_id')
+                            ->label('Site store')
+                            ->visible(fn (): bool => modules()->enabled('inventory'))
+                            ->options(fn (): array => StockLocation::query()->active()->orderBy('code')->get()
+                                ->mapWithKeys(fn (StockLocation $location): array => [
+                                    $location->getKey() => $location->displayName(),
+                                ])
+                                ->all())
+                            ->searchable()
+                            ->placeholder('No store — everything direct to the work face')
+                            ->helperText('Only needed if this job keeps material in a store. Without one, a delivery marked for a store is refused rather than mis-costed.'),
 
                         Select::make('certifier_contact_id')
                             ->label('Certifier')
