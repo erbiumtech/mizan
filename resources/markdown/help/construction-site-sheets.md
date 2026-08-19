@@ -83,6 +83,40 @@ change our mind".
 Reversing needs `ConstructionCostReverse`, the same grant that governs backing any
 posted cost entry out of the ledger.
 
+## Importing from timesheets <!-- requires: ConstructionLabourRecord -->
+
+If you run the Timesheets module, *Import from timesheets* brings approved entries
+in as draft site sheets. Without that module the action is not there, and site
+sheets are the only path — which is the normal one anyway, since most site labour
+is never on a timesheet.
+
+The entries are **copied**, not read where they lie. That matters: a timesheet's
+rate ladder resolves what time is **billed** at, and costing a job from those
+figures would price it at charge-out rates and overstate every margin by your
+mark-up. What arrives is a draft, and approving it prices it from the construction
+rate ladder like any other sheet.
+
+An entry needs four things before it can come in, and anything missing is reported
+by name rather than guessed:
+
+| Needs | Why |
+|---|---|
+| To be **approved** | Unapproved time is time nobody has agreed, and the person who typed it can still change it. |
+| A **job** that names its project | The link is `project` on the job. An entry on a project no job claims is somebody else's work. |
+| A **worker** linked to that employee | Nobody is added to the worker register automatically — who belongs in it is your decision, not an import's. |
+| A **cost code**, from the worker's trade | A timesheet entry has a project and a task, never a cost code. The trade's usual code is the only honest source. |
+
+One row that cannot come in never stops the rest of the file. The result tells you
+how many went in and names the ones that did not.
+
+**Running it twice is safe.** Entries already imported are counted separately and
+nothing is duplicated — including entries whose sheet you later reversed, which
+deliberately do not come back.
+
+All the minutes arrive as **normal** time. Timesheet entries have no overtime
+split, and inventing one from a threshold would price hours at a multiple nobody
+agreed. Overtime goes on a site sheet, where somebody says so.
+
 ## Where the cost goes next
 
 The job cost report picks both entries up immediately.

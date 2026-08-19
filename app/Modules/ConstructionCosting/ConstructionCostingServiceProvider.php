@@ -9,6 +9,8 @@ use App\Modules\ConstructionCosting\Models\GoodsReceipt;
 use App\Modules\ConstructionCosting\Models\JobBudget;
 use App\Modules\ConstructionCosting\Models\LabourRate;
 use App\Modules\ConstructionCosting\Models\LabourRecord;
+use App\Modules\ConstructionCosting\Models\PlantItem;
+use App\Modules\ConstructionCosting\Models\PlantLog;
 use App\Modules\ConstructionCosting\Models\Requisition;
 use App\Modules\ConstructionCosting\Models\Trade;
 use App\Modules\ConstructionCosting\Models\Worker;
@@ -19,6 +21,8 @@ use App\Modules\ConstructionCosting\Policies\GoodsReceiptPolicy;
 use App\Modules\ConstructionCosting\Policies\JobBudgetPolicy;
 use App\Modules\ConstructionCosting\Policies\LabourRatePolicy;
 use App\Modules\ConstructionCosting\Policies\LabourRecordPolicy;
+use App\Modules\ConstructionCosting\Policies\PlantItemPolicy;
+use App\Modules\ConstructionCosting\Policies\PlantLogPolicy;
 use App\Modules\ConstructionCosting\Policies\RequisitionPolicy;
 use App\Modules\ConstructionCosting\Policies\TradePolicy;
 use App\Modules\ConstructionCosting\Policies\WorkerPolicy;
@@ -46,6 +50,8 @@ class ConstructionCostingServiceProvider extends ServiceProvider
         Worker::class => WorkerPolicy::class,
         LabourRate::class => LabourRatePolicy::class,
         LabourRecord::class => LabourRecordPolicy::class,
+        PlantItem::class => PlantItemPolicy::class,
+        PlantLog::class => PlantLogPolicy::class,
     ];
 
     public function boot(): void

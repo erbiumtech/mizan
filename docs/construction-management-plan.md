@@ -1,13 +1,26 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 6 complete, and Phase 7a and 7b with them (2026-08-19). Phase 7c — plant items, logs and
-internal hire recovery — is next, then 7d's timesheet import finishes Phase 7.**
+**Status:** **Phases 0 to 7 complete (2026-08-19). Phase 8 — materials, `stock_locations` in Inventory and the
+movement-type enum — is next.**
 
-Phase 7a built the foundation of §7 in `construction_costing`: trades, the worker register that holds people who are
-not employees, and the dated rate table with §7.2's five-tier ladder — 33 tests. Phase 7b built the site sheet on top
-of it: labour records, the snapshot at approval, and burden as its own entry — 37 tests.
+Phase 7 built §7 in `construction_costing` in four parts, 129 tests: trades, the worker register that holds people who
+are not employees, and the dated rate table with §7.2's five-tier ladder (7a, 33 tests); the site sheet, the snapshot at
+approval, and burden as its own entry (7b, 37 tests); plant, internal hire recovery and §7.3's two-way match against
+hire invoices (7c, 37 tests); and the timesheet import behind its guard (7d, 22 tests).
 
-Two things to carry forward before the write-ups.
+**§7's whole shape is one sentence: three things charge a job at a rate, and each of them owes a credit somewhere.**
+Labour burden credits Labour Burden Absorbed, internal plant credits Plant Internal Hire Recovery, and both are
+`pending` for §11 to post. §7.3's warning is the one to carry into Phase 11 — charge either and never absorb it and
+"job cost exceeds GL cost by exactly the burden, growing every month, with no error anywhere".
+
+**The one thing to carry forward from 7c is which machines book cost, because it is the difference between a job
+costed once and a job costed twice.** §4.1 settles it: where a GL document already exists for a cost, construction
+mirrors or stays out of the way. An owned excavator has no invoice, so its log *is* the cost — internal hire, credited
+to recovery. A hired one has a supplier invoice that already reaches the job through §5's allocation chain, so its log
+books **nothing** and becomes the check against that invoice instead. Both would look like plant cost on the same job
+and the same code, which is why the register carries a *Books cost* column rather than leaving it to be inferred.
+
+Two more things to carry forward before the write-ups.
 
 **A plan contradiction, resolved.** §3.2's enum comment offered burden as an example of `memo` ("deliberately never
 reaches the GL") while §7.3 requires burden charged to jobs to credit Labour Burden Absorbed. §7.3 wins and the
@@ -2130,6 +2143,84 @@ document register before the modules that reference drawings.
   >
   > No new permission for reversing: `ConstructionCostReverse` already governs backing a posted entry out of the
   > ledger, which is exactly what this does twice. `RoleGrantsTest::EXPECTED` moved to 41 / 120 / 150 / 170.
+  >
+  > **7c built 2026-08-19.** — `ConstructionPlantTest` (37 tests). `construction_plant_items` and
+  > `construction_plant_logs`, `PlantService`, `PlantHireMatch`, and the two registers with the *Check against
+  > invoices* action.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **Ownership decides whether a log books cost, and that is the whole design.** Owned plant charges the job
+  >   internal hire as a `pending` entry for §11 to credit to Plant Internal Hire Recovery; hired plant books nothing,
+  >   because its supplier invoice is the GL's record and reaches the job through §5. The log is still *priced* on a
+  >   hired machine — that figure is the left-hand side of the match — so "approved but no cost" is a real state and
+  >   the register says so in a column rather than leaving somebody to read the service.
+  > - **Three unit columns, because plant is charged three ways.** Working, idle and standby are separate rates in
+  >   every hire agreement, and one blended column would make whoever fills the sheet do the blending in their head —
+  >   losing the figure that answers "what did we pay for a crane to stand still", which is among the most recoverable
+  >   costs on a job. `downtime_reason` is what makes it arguable later, and the register has a filter for it.
+  > - **A null rate means not charged, never "fall back to the working rate".** The fallback would inflate every job
+  >   that ever had a machine standing, silently. The screens print "not charged" so the company's choice is visible on
+  >   the row. And the unit rate on the cost entry divides by the **chargeable** units only: eight charged hours and
+  >   four uncharged idle ones is eight, and dividing by twelve would report a rate two thirds of the one that was set.
+  > - **A machine with no rate cannot be approved against.** §18.1's healthy-looking figure hiding an absence, and
+  >   worse here than on labour because nobody expects a machine to be free. The register has a *No rate set* filter so
+  >   it is findable before somebody hits the refusal.
+  > - **The meter is evidence, not the basis of the charge.** Engine hours legitimately differ from charged hours, so a
+  >   mismatch is never refused — refusing it would refuse the ordinary case and teach everybody to leave the readings
+  >   blank, which loses the evidence entirely. A reading that went *backwards* is refused, because a meter cannot.
+  > - **The match is cumulative and stores nothing.** A hire invoice covers a month and is dated after it while the
+  >   logs are dated within it, so filtering both to one period would report a difference on every machine every month
+  >   and the report would stop being read. It reuses §5's `MatchTolerances` minimum rather than inventing a second
+  >   tolerance, and it stores no acceptance because §5 already keeps that decision on the commitment line the invoice
+  >   was allocated to — a second one would be two records of one decision.
+  >
+  > **Rates live on the plant item rather than in a dated table, and that asymmetry with §7.2 is deliberate.** A labour
+  > rate is a ladder — five tiers, dated, varying by job, trade and person — and revising the company default reaches
+  > every job at once. A plant rate is one number on one machine, set when it joins the fleet by the same person who
+  > registers it. So the protection is the snapshot on the log alone: a revision re-prices outstanding drafts and leaves
+  > approved logs alone, and there is no way to schedule a change or charge one job differently.
+  > `construction_plant_rates` in the shape of `construction_labour_rates` is the extension if a customer needs either;
+  > this is a smaller design on purpose, stated in `PlantItem` so nobody reads it as unfinished.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 43 / 123 / 154 / 174. Four permissions, and **no separate rate permission** for
+  > the reason above — a fifth name for a decision nobody makes separately.
+  >
+  > **One process note, because it cost a full-suite run.** The suite was started in the background and then kept
+  > editing over: it read a `module.php` that granted plant permissions the same file did not yet declare, and 1,355
+  > tests failed on a `RoleSeeder` refusal that had nothing to do with any of them. A full run is only meaningful
+  > against a tree that stops changing while it runs.
+  >
+  > **7d built 2026-08-19 — Phase 7 complete.** — `ConstructionTimesheetImportTest` (22 tests).
+  > `TimesheetLabourImport`, a `TimesheetImportSummary` to carry its result, and the *Import from timesheets* action on
+  > the site-sheet register. No migration, no model, no permission: the import writes `construction_labour_records`
+  > through `LabourRecordService` and rides on `ConstructionLabourRecord`, because importing a day's work is the same
+  > act as typing it.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **Copied, not read in place, and §7.1 gives the reason as a fact about the other table.** `timesheet_entries`
+  >   bills and never costs — its ladder resolves *charge-out* rates — so reading those entries as cost prices a job at
+  >   what the client is billed and overstates every margin by the mark-up. The entry becomes a draft and §7.2's ladder
+  >   prices it. A test approves an imported record and asserts the construction rate, which is the assertion that
+  >   makes "billing keeps its ladder; costing gets its own" true rather than said.
+  > - **Drafts, never approved.** An import that booked cost would bypass the approval that snapshots the rate and let
+  >   a timesheet entry reach a job with nobody having read it.
+  > - **Four prerequisites, each reported by name rather than guessed**: approval, a job that names the entry's project,
+  >   a worker linked to that employee, and a cost code from that worker's trade. **No worker is created on the fly** —
+  >   a register that fills itself from timesheets is a register nobody chose the contents of, which is the opposite of
+  >   §7.1's argument for having one.
+  > - **One bad row never loses the file**, following Attendance's importer. The most useful case is the day-length
+  >   guard firing: the same day on a site sheet and on a timesheet is double-counted labour, and it arrives as one
+  >   named row among ninety-nine that went in.
+  > - **Idempotent on the `source` morph, including reversed records.** Re-running a fortnight is how somebody checks
+  >   they got everything, so `alreadyImported` is counted apart from `skipped` — "42 were already in" is reassuring
+  >   where "42 skipped" sends them looking for a fault. A record somebody *reversed* deliberately does not come back:
+  >   re-importing it would undo a decision and look like the import working.
+  >
+  > **The bridge to a job is `construction_jobs.project_id` read as an integer**, which is what keeps `projects` out of
+  > this module's import graph while still letting the two meet. `KNOWN_COUPLINGS` gains `construction_costing ->
+  > timesheets` only, in both lists, and the graph stays acyclic.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both
   plans, material issues and returns, materials on site.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,
