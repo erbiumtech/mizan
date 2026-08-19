@@ -230,10 +230,256 @@ class CommitmentService
                 'created_by' => auth()->id(),
             ]);
 
-            $this->refreshStatus($line->commitment->refresh());
+            /*
+             * The order is fetched by key rather than read off `$line->commitment`, and it is not a style
+             * preference: lazy loading is disabled application-wide, so the relation read threw for every caller
+             * that had not eager-loaded it. It went unnoticed because every order in a test had **one** line —
+             * `close()` and `cancel()` loop the lines, and the second one is where it fired. A subcontract order is
+             * routinely several lines, so Phase 6c is what found it.
+             */
+            $this->refreshStatus(Commitment::query()->findOrFail($line->commitment_id));
 
             return $relief;
         });
+    }
+
+    /**
+     * Bring the orders behind a contract into line with what has been certified under it — §5, §12, Phase 6c.
+     *
+     * **The target is cumulative; the row written is the movement.** This is §8's rule arriving one module along: a
+     * certificate is a cumulative document, so the honest question is not "how much did certificate 7 add" but "what
+     * do the live certificates say has been certified to date" — and the relief row is whatever it takes to get the
+     * certificate reliefs on this contract's orders up (or down) to that figure. Three things fall out of it that an
+     * incremental design has to handle separately and usually gets wrong:
+     *
+     *  - Voiding the **latest** certificate gives the commitment back, because the target falls to the previous
+     *    certificate's cumulative figure.
+     *  - Voiding an **earlier** certificate while a later one stands changes nothing, which is correct and is the
+     *    case an incremental "reverse what that certificate relieved" gets backwards — the later certificate already
+     *    certified a cumulative figure that includes the earlier work.
+     *  - Linking an order to a contract that has already been certified relieves it at once, instead of showing a
+     *    fully open commitment against work that is finished and paid for.
+     *
+     * **The caller passes figures, never certificates.** `construction_contracts` may name this module; nothing here
+     * may name that one, or the pair becomes a cycle and neither can be packaged — so what crosses is a cost code to
+     * value map and a total, which is the same discipline `App\Support\PayslipSettlement` keeps for payroll.
+     *
+     * @param  array<int|string, float>  $certifiedByCostCode  cumulative certified value per cost code
+     * @param  float  $certifiedTotal  cumulative certified value in total, including anything the schedule left uncoded
+     * @param  \Illuminate\Database\Eloquent\Model|null  $source  the certificate the figures came from, for the morph
+     * @return array<int, CommitmentRelief> the movements written, which is empty when nothing moved
+     */
+    public function relieveFromCertification(
+        int|string $contractId,
+        array $certifiedByCostCode,
+        float $certifiedTotal,
+        ?Model $source = null,
+        ?string $on = null,
+    ): array {
+        $lines = CommitmentLine::query()
+            ->with('reliefs')
+            ->whereIn('commitment_id', Commitment::query()
+                ->where('contract_id', $contractId)
+                ->committing()
+                ->select('id'))
+            ->get();
+
+        /*
+         * No committing order means nothing to relieve, and that is a real state rather than a miss: a subcontract
+         * whose order was never issued has put nothing on the committed column, so the certified value arrives as
+         * actual cost with no commitment to discharge. Same for a closed or cancelled order, whose remainder was
+         * already written off with an author and a reason — relieving it again would double the write-off.
+         */
+        if ($lines->isEmpty()) {
+            return [];
+        }
+
+        $targets = $this->certifiedTargets($lines, $certifiedByCostCode, $certifiedTotal);
+
+        $written = [];
+
+        foreach ($lines as $line) {
+            $already = round((float) $line->reliefs
+                ->where('kind', CommitmentRelief::KIND_CERTIFICATE)
+                ->sum('amount'), 2);
+
+            $movement = round(($targets[$line->getKey()] ?? 0.0) - $already, 2);
+
+            if ($movement === 0.0) {
+                continue;
+            }
+
+            if ($relief = $this->relieve($line, CommitmentRelief::KIND_CERTIFICATE, $movement, $source, null, null, $on)) {
+                $written[] = $relief;
+            }
+        }
+
+        return $written;
+    }
+
+    /**
+     * Give back everything certification has relieved on one order.
+     *
+     * For when an order is unlinked from its contract: the certificates no longer say anything about it, so the
+     * relief they wrote has to come off. A negative row rather than a delete, following the one convention — "what
+     * did we think was committed in March" stays answerable, which is the discipline the cost ledger keeps with
+     * reversals.
+     *
+     * @return array<int, CommitmentRelief>
+     */
+    public function reverseCertificationRelief(Commitment $commitment, ?string $on = null): array
+    {
+        $written = [];
+
+        foreach ($commitment->lines()->get() as $line) {
+            $relieved = round((float) $line->reliefs()
+                ->where('kind', CommitmentRelief::KIND_CERTIFICATE)
+                ->sum('amount'), 2);
+
+            if ($relieved === 0.0) {
+                continue;
+            }
+
+            if ($relief = $this->relieve($line, CommitmentRelief::KIND_CERTIFICATE, -1 * $relieved, null, null, null, $on)) {
+                $written[] = $relief;
+            }
+        }
+
+        return $written;
+    }
+
+    /**
+     * How much of the certified value each order line carries.
+     *
+     * **By cost code first, because the schedule already answers the question.** §8.2 calls `cost_code_id` on a
+     * contract item "the join to job cost", so the certificate knows which code every certified rupee belongs to,
+     * and the four-column report reads committed *per code* — spreading everything pro-rata would leave one code
+     * over-committed and another under-committed on the same order, which is the silent misstatement the join
+     * exists to prevent.
+     *
+     * What cannot be matched is spread pro-rata by line value, and that residue is not a rounding crumb: a
+     * schedule line with no cost code, or one coded to something the order does not carry, is ordinary. Dropping
+     * it would leave commitment open against work that has been certified and paid for, which is worse than
+     * approximating where it sits.
+     *
+     * **Nothing is capped at the line value.** An over-relief is a real condition — the order was priced below
+     * what has been certified against it — and `Commitment::overRelieved()` exists to answer it. Clamping here
+     * would make the order look complete while hiding the fact that it is short.
+     *
+     * @param  \Illuminate\Support\Collection<int, CommitmentLine>  $lines
+     * @param  array<int|string, float>  $certifiedByCostCode
+     * @return array<int|string, float>
+     */
+    private function certifiedTargets(
+        \Illuminate\Support\Collection $lines,
+        array $certifiedByCostCode,
+        float $certifiedTotal,
+    ): array {
+        $targets = [];
+        $matched = 0.0;
+        $byCode = $lines->groupBy('cost_code_id');
+
+        foreach ($certifiedByCostCode as $costCodeId => $value) {
+            $group = $byCode->get((int) $costCodeId);
+
+            if ($group === null || (float) $value === 0.0) {
+                continue;
+            }
+
+            $matched = round($matched + (float) $value, 2);
+
+            foreach ($this->spread($group, (float) $value) as $lineId => $share) {
+                $targets[$lineId] = round(($targets[$lineId] ?? 0.0) + $share, 2);
+            }
+        }
+
+        $residue = round($certifiedTotal - $matched, 2);
+
+        if ($residue !== 0.0) {
+            foreach ($this->spreadResidue($lines, $targets, $residue) as $lineId => $share) {
+                $targets[$lineId] = round(($targets[$lineId] ?? 0.0) + $share, 2);
+            }
+        }
+
+        /*
+         * The pennies pro-rata rounding loses, put back on the largest line.
+         *
+         * Without this, `Σ certificate reliefs = certified to date` holds only approximately, and Phase 5's whole
+         * point is that open commitment is *provable* rather than about right. A test asserts the equality, which
+         * is only assertable because of these three lines.
+         */
+        $drift = round($certifiedTotal - array_sum($targets), 2);
+
+        if ($drift !== 0.0) {
+            $largest = $lines->sortByDesc(fn (CommitmentLine $line): float => (float) $line->amount)->first();
+            $targets[$largest->getKey()] = round(($targets[$largest->getKey()] ?? 0.0) + $drift, 2);
+        }
+
+        return $targets;
+    }
+
+    /**
+     * The certified value no cost code could place, spread over the lines that still have room for it.
+     *
+     * Room rather than order value, and the case that decides it is the ordinary one: a schedule with one coded item
+     * and one uncoded one, both fully certified. Spreading the uncoded half by order value would push the coded line
+     * past its own amount while leaving the other partly open — an over-relief and an open balance on one order that
+     * is in fact wholly certified, which is two wrong figures where the truth is simple.
+     *
+     * Falls back to order value when there is no room left anywhere, and for a give-back, where "room" is not the
+     * question being asked.
+     *
+     * @param  \Illuminate\Support\Collection<int, CommitmentLine>  $lines
+     * @param  array<int|string, float>  $placed  what the cost codes have already accounted for, by line
+     * @return array<int|string, float>
+     */
+    private function spreadResidue(\Illuminate\Support\Collection $lines, array $placed, float $residue): array
+    {
+        if ($residue < 0.0) {
+            return $this->spread($lines, $residue);
+        }
+
+        $room = [];
+
+        foreach ($lines as $line) {
+            $room[$line->getKey()] = max(0.0, round((float) $line->amount - ($placed[$line->getKey()] ?? 0.0), 2));
+        }
+
+        $total = round(array_sum($room), 2);
+
+        if ($total <= 0.0) {
+            return $this->spread($lines, $residue);
+        }
+
+        $shares = [];
+
+        foreach ($room as $lineId => $available) {
+            $shares[$lineId] = round($residue * ($available / $total), 2);
+        }
+
+        return $shares;
+    }
+
+    /**
+     * One value across several lines, in proportion to what each was ordered for.
+     *
+     * Equal shares where the lines carry no value at all, because dividing by a zero order total would otherwise
+     * discard the whole figure — an order of zero-value lines is odd, but losing certified value to it is worse.
+     *
+     * @param  \Illuminate\Support\Collection<int, CommitmentLine>  $lines
+     * @return array<int|string, float>
+     */
+    private function spread(\Illuminate\Support\Collection $lines, float $value): array
+    {
+        $total = round((float) $lines->sum(fn (CommitmentLine $line): float => (float) $line->amount), 2);
+        $shares = [];
+
+        foreach ($lines as $line) {
+            $fraction = $total > 0.0 ? ((float) $line->amount / $total) : (1 / $lines->count());
+            $shares[$line->getKey()] = round($value * $fraction, 2);
+        }
+
+        return $shares;
     }
 
     /**

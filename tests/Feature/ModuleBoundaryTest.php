@@ -333,7 +333,15 @@ class ModuleBoundaryTest extends TestCase
         // contract-liability accounts, resolved through `ConstructionAccounts`. Guarded twice over — the action is
         // absent without Invoicing, and Invoicing requires Accounting — so the path cannot be reached with the
         // account map unavailable.
-        'construction_contracts' => ['invoicing', 'accounting'],
+        //
+        // `construction_costing` is the cross-sibling money path §18.2 anticipates, added by Phase 6c: issuing a
+        // subcontract certificate relieves the commitment behind it, which is §5's "earlier of receipt or
+        // certificate". Neither sibling declares the other — §18 sells certification without cost control and cost
+        // control without certification — so it is guarded in `CertificateCommitmentService`, and **the direction is
+        // forced rather than chosen**: pointing costing back at contracts as well would make the pair a cycle, and a
+        // cycle cannot be a composer dependency. That is why `commitments.contract_id` is set from the contract's
+        // own screen instead of by a picker on the order form, which is where anybody would look for it first.
+        'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -463,7 +471,12 @@ class ModuleBoundaryTest extends TestCase
             // and is why `certificates.invoice_id` is nullable rather than the module requiring the key.
             // Accounting comes with the hand-off: the invoice's retention line needs an asset account, and
             // getting that wrong is the misstatement §10.4 exists to prevent.
-            'construction_contracts' => ['invoicing', 'accounting'],
+            //
+            // Costing degrades to doing nothing at all: `CertificateCommitmentService::canRelieve()` is false,
+            // so a certificate is issued exactly as it was before Phase 6c and the orders relation manager does
+            // not appear. A contractor certifying subcontractors while keeping cost control elsewhere has no
+            // commitment ledger for a certificate to relieve, which is the whole reason the two are sold apart.
+            'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
         ];
 
         foreach ($guarded as $module => $targets) {
