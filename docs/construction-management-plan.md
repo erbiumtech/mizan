@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 7 complete, and Phase 8a with them (2026-08-19). Phase 8b — material issues and returns —
-is next, then 8c's materials-on-site finishes Phase 8.**
+**Status:** **Phases 0 to 7 complete, and Phase 8a and 8b with them (2026-08-19). Phase 8c — materials on site —
+is next, and finishes Phase 8.**
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -9,6 +9,12 @@ enum expanded once for both plans, a location-aware valuation API, and the site-
 Phase 5c had to refuse — 16 tests in `StockLocationTest` plus 3 in the receipt file. `docs/retail-stores-pos-plan.md`
 has been updated in the same breath: its Phase 2 is now smaller and its Phase 0 note says exactly what not to build
 again, which is the follow-through §6 says two plans usually fail to do.
+
+Phase 8b built the issue document — 28 tests — and **the rule that carries it is that posting an issue does not change
+the job's total cost.** §6 makes materials on site "delivered, costed, not yet consumed", so the *receipt* is what
+costs the material; an issue reclassifies it out of the code it arrived on and on to the code it was used on, as
+`reclass` entries that sum to zero. Charging on issue as well would charge every stocked delivery twice, and both
+figures would look like material cost on the same job with nothing to disagree with either.
 
 Phase 7 built §7 in `construction_costing` in four parts, 129 tests: trades, the worker register that holds people who
 are not employees, and the dated rate table with §7.2's five-tier ladder (7a, 33 tests); the site sheet, the snapshot at
@@ -2275,6 +2281,47 @@ document register before the modules that reference drawings.
   > again. The issue's FIFO unit cost is for reclassifying between cost codes (`CostEntry::KIND_RECLASS` exists for
   > exactly this) and for valuing wastage, never for adding cost. Getting that backwards would charge every stocked
   > delivery twice, and both figures would look like material cost on the same job.
+  >
+  > **8b built 2026-08-19.** — `ConstructionMaterialIssueTest` (28 tests). `construction_material_issues` and its
+  > lines, `MaterialIssueService`, the docket register with its lines tab, and
+  > `InventoryValuationService::consume()` — the one thing Inventory had to grow for this.
+  >
+  > Seven decisions worth carrying forward:
+  >
+  > - **Posting adds no cost, and every other rule follows from it.** The reclass pair sums to zero and the tests
+  >   assert the job's total is unchanged by an issue, by a return, and after a reversal. That assertion is the
+  >   deliverable; everything else is how it is achieved.
+  > - **The reclass follows the FIFO lots, which is why `consume()` had to exist.** `costOfSale()` returns one
+  >   number, which is all a sale needs; an issue needs to know *which lots* it took, because a lot names the goods
+  >   receipt it arrived on and that receipt names the cost code. Without that chain an issue would have to guess
+  >   where the cost currently sits. `consume()` and `costOfSale()` share one FIFO walk — two implementations of lot
+  >   consumption is two answers to "what did this cost", and the second is always the untested one.
+  > - **The split is per received code, not per docket.** Two deliveries at two codes, consumed by one issue, produce
+  >   two reclass pairs. A single blended pair would take cost off a code that never carried it.
+  > - **A reclass across cost types is refused**, and that refusal is load-bearing rather than fussy: keeping the pair
+  >   inside one cost type keeps it inside one job-cost account, which is what makes "sums to zero" true in the
+  >   general ledger as well as in the job — and that is what lets the pair be `memo` honestly. It is also a real
+  >   business rule: material has not become labour by being carried to the work face.
+  > - **Where the code is unchanged, nothing is written at all.** Two rows netting to zero on one code are noise on a
+  >   report people have to read, and they would double the length of every cost code's history for no information.
+  > - **Wastage is its own `waste` movement**, which is the use §6 added that enum value for: "what did we waste" is a
+  >   query on a type rather than a column somebody has to remember to subtract. It stays on the job — the company
+  >   paid for it — and it is reclassified with the rest, because it was wasted *on that activity*.
+  > - **A return goes back at the cost it left at**, against the line it went out on. Revaluing it at today's FIFO
+  >   would make a return a way of changing the value of stock without buying anything, and a separate return document
+  >   would be a second numbering series for the reversal of a docket somebody is still holding (§6's
+  >   `returned_quantity` on the line is exactly this).
+  >
+  > **One permission**, `ConstructionMaterialIssue`, covering the docket and the posting — the goods receipt's shape,
+  > because the storeman signs the paper and the stock moves in the same act. Reading rides on
+  > `ConstructionReceiptView` and reversing on `ConstructionCostReverse`. `RoleGrantsTest::EXPECTED` moved to
+  > 44 / 124 / 155 / 175.
+  >
+  > **A repeat worth recording: a Filament `Sum` summariser cannot sit on a `getStateUsing` column.** It goes looking
+  > for a database column of that name and the query fails outright. Phase 6c hit this on `OrdersRelationManager` and
+  > wrote it down there; 8b hit it again on the docket's *value moved* column. The total belongs on the lines, where
+  > `amount` is a real column — which is where it now is. **Two occurrences in two phases means the note needs to be
+  > somewhere a reader meets it before writing the column, not only where it was last found.**
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,
   punch lists, activities, delay events, and the P6 and MS Project import. **Ends with:** the delay-event
   notice clock and its notification live before anything else in the phase, because it is the piece that

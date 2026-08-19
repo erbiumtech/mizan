@@ -49,6 +49,8 @@ return [
         'App\\Models\\Worker' => \App\Modules\ConstructionCosting\Models\Worker::class,
         'App\\Models\\LabourRate' => \App\Modules\ConstructionCosting\Models\LabourRate::class,
         'App\\Models\\LabourRecord' => \App\Modules\ConstructionCosting\Models\LabourRecord::class,
+        'App\\Models\\MaterialIssue' => \App\Modules\ConstructionCosting\Models\MaterialIssue::class,
+        'App\\Models\\MaterialIssueLine' => \App\Modules\ConstructionCosting\Models\MaterialIssueLine::class,
         'App\\Models\\PlantItem' => \App\Modules\ConstructionCosting\Models\PlantItem::class,
         'App\\Models\\PlantLog' => \App\Modules\ConstructionCosting\Models\PlantLog::class,
     ],
@@ -63,6 +65,7 @@ return [
         'App\\Filament\\Resources\\ConstructionCosting\\TradeResource' => \App\Modules\ConstructionCosting\Filament\Resources\Trades\TradeResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\LabourRateResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRates\LabourRateResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\LabourRecordResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\LabourRecordResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\MaterialIssueResource' => \App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues\MaterialIssueResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\PlantItemResource' => \App\Modules\ConstructionCosting\Filament\Resources\PlantItems\PlantItemResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\PlantLogResource' => \App\Modules\ConstructionCosting\Filament\Resources\PlantLogs\PlantLogResource::class,
     ],
@@ -197,6 +200,17 @@ return [
         ['name' => 'ConstructionPlantUpdate', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionPlantLog', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionPlantApprove', 'group' => 'ConstructionCost'],
+
+        /*
+         * Issuing material out of a site store (§6). **One name, covering the docket and the posting**, exactly as
+         * `ConstructionReceiptRecord` does for a delivery: the storeman signs the paper and the stock moves in the same
+         * act, and splitting them would leave a queue of dockets whose material has physically gone.
+         *
+         * Reading the register rides on `ConstructionReceiptView` — receiving into a store and issuing back out are the
+         * same person's job on the same screenful. Reversing rides on `ConstructionCostReverse`, which already governs
+         * backing a posted entry out of the ledger.
+         */
+        ['name' => 'ConstructionMaterialIssue', 'group' => 'ConstructionCost'],
     ],
 
     'role_grants' => [
@@ -224,6 +238,8 @@ return [
             // only knowable by somebody who was there.
             'ConstructionPlantLog',
             'ConstructionPlantView',
+            // And issues it back out again, which is the same person and the same paper.
+            'ConstructionMaterialIssue',
         ],
         'Accountant' => [
             // The surveyor builds the budget, measures progress and prepares the forecast. Approving it and
@@ -254,6 +270,8 @@ return [
             'ConstructionPlantUpdate',
             'ConstructionPlantView',
             'ConstructionPlantLog',
+            // On a job with no storeman, the surveyor writes the docket — the same reasoning as the goods receipt.
+            'ConstructionMaterialIssue',
         ],
         // Reversing a posted entry and closing a period are approval-shaped acts, kept away from whoever
         // records the cost — the same segregation of duties the journal-entry powers already keep.
