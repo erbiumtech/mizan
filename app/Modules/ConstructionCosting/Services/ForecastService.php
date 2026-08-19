@@ -227,24 +227,26 @@ class ForecastService
     }
 
     /**
-     * The open commitment against a cost code — **null until §5's procurement exists**.
+     * The open commitment against a cost code.
      *
-     * Null rather than zero, and the difference decides whether the rule above fires. Zero would mean "nothing is
-     * committed", and every forecast line would then be checked against a figure that is wrong by construction:
-     * the first purchase order raised after Phase 5 lands would make every earlier below-commitment verdict a lie.
-     * Null means "unknown", the check stands down, and the day procurement arrives this method starts answering
-     * and the rule starts biting with nothing else needing to change.
+     * **Answered for real since Phase 5.** It was null until then — "unknown" rather than zero, because zero would
+     * have meant "nothing is committed" and every below-commitment verdict taken before procurement existed would
+     * have become a lie the day the first order was raised. The stand-down was written so that the rule would start
+     * biting with nothing else needing to change, and this is that change: one method, repointed.
+     *
+     * It reads `CommitmentService`, not the table, because open commitment is **computed** — `line.amount − Σ
+     * reliefs` over issued orders. The stub queried an `open_amount` column, which §5 deliberately does not have:
+     * a stored balance is a second place for the same figure to live, and the first thing that goes wrong is a
+     * receipt that relieves while the total does not move.
      */
     private function openCommitmentFor(Job $job, int $codeId): ?float
     {
+        // Absent before the migration has run, which is the state a company mid-upgrade is in for one deploy.
         if (! DB::connection()->getSchemaBuilder()->hasTable('construction_commitment_lines')) {
             return null;
         }
 
-        return (float) DB::table('construction_commitment_lines')
-            ->where('job_id', $job->getKey())
-            ->where('cost_code_id', $codeId)
-            ->sum('open_amount');
+        return app(CommitmentService::class)->openFor($job, $codeId);
     }
 
     /**

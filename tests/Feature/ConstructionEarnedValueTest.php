@@ -694,17 +694,25 @@ class ConstructionEarnedValueTest extends AccountingTestCase
     }
 
     /**
-     * **Committed is null, not zero, until procurement exists.**
+     * **Committed is a real figure since Phase 5, and zero now means "nothing on order".**
      *
-     * Zero would read as "nothing is on order", which is a statement of fact this module cannot make until §5.
-     * Somebody deciding whether a code has room left in it would be reading a figure that is wrong by
-     * construction.
+     * It was `null` until then, and this test asserted that: zero would have read as "nothing is on order", which
+     * was a statement of fact this module could not make before procurement existed. Somebody deciding whether a
+     * code had room left in it would have been reading a figure wrong by construction.
+     *
+     * That distinction is what let §5 fill the column in without restating anything, and it is why this assertion
+     * changed rather than the meaning of the column. What is asserted now is the other half of the same care: with
+     * no orders raised, the figure is 0.00 and it means what it says. `ConstructionCommitmentTest` covers it
+     * carrying an actual order.
      */
-    public function test_the_committed_column_is_unavailable_rather_than_zero(): void
+    public function test_the_committed_column_is_zero_when_nothing_is_on_order(): void
     {
         $this->approvedBudget();
 
-        $this->assertNull(collect($this->ledger->fourColumnReport($this->job))->firstWhere('code', '02.100')['committed']);
+        $this->assertSame(
+            0.0,
+            collect($this->ledger->fourColumnReport($this->job))->firstWhere('code', '02.100')['committed'],
+        );
     }
 
     /** And the forecast columns are null until there is a forecast — not the spend to date dressed as one. */

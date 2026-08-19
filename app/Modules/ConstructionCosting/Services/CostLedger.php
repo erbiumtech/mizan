@@ -333,9 +333,16 @@ class CostLedger
         $actual = $this->costByCode($job, $upToPeriod, excludeAccruals: true);
         $accrued = $this->costByCode($job, $upToPeriod, accrualsOnly: true);
         $forecast = $this->forecastByCode($job, $upToPeriod);
+        // Real since Phase 5. It was `null` on every row before that — see the row builder below on why the
+        // absence was a null rather than a zero, and why that distinction is what let this column be filled in
+        // without restating anything.
+        $committed = app(CommitmentService::class)->openByCode($job);
 
         $codeIds = array_unique(array_merge(
             array_keys($budget), array_keys($actual), array_keys($accrued), array_keys($forecast),
+            // A code with an order against it and nothing else belongs on the report: committed cost is exactly
+            // the figure that says a code is overspent *before* the invoice arrives (§5).
+            array_keys($committed),
         ));
 
         if ($codeIds === []) {
@@ -344,7 +351,7 @@ class CostLedger
 
         $codes = CostCode::query()->whereKey($codeIds)->orderBy('code')->get();
 
-        return $codes->map(function (CostCode $code) use ($budget, $actual, $accrued, $forecast): array {
+        return $codes->map(function (CostCode $code) use ($budget, $actual, $accrued, $forecast, $committed): array {
             $id = $code->getKey();
 
             $budgetAmount = $budget[$id] ?? 0.0;
@@ -365,8 +372,13 @@ class CostLedger
                 'name' => $code->name,
                 'cost_type' => $code->cost_type,
                 'budget' => round($budgetAmount, 2),
-                // Null until procurement exists — see the note above on why not zero.
-                'committed' => null,
+                /*
+                 * **Open commitment: ordered and not yet relieved** (§5). Zero here means "nothing is on order",
+                 * which is now a statement this module can actually make — before Phase 5 it could not, and the
+                 * column was `null` rather than `0.00` precisely so that nobody read "no procurement module" as
+                 * "no orders placed".
+                 */
+                'committed' => round($committed[$id] ?? 0.0, 2),
                 'actual' => round($actualAmount, 2),
                 'accrued' => round($accruedAmount, 2),
                 'cost_to_complete' => $costToComplete,
