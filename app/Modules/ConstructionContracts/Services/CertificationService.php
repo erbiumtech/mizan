@@ -30,6 +30,12 @@ use InvalidArgumentException;
  * Retention movements are **not** written here. §11 makes `RetentionService` the only writer, and this service
  * produces the deduction row that service later attaches its movement to. Two write paths, one forgotten, and
  * nobody reads both registers in the same week.
+ *
+ * Issuing has two consequences outside this file, and both are calls rather than duplicated logic: the retention
+ * movement above, and — on a subcontract — the **relief of the commitment behind it**, through
+ * `CertificateCommitmentService`, which is guarded because `construction_costing` is sold separately (§5, §12).
+ * Voiding runs the second one again, because the commitment target follows whichever certificate is now the
+ * latest live one.
  */
 class CertificationService
 {
@@ -500,6 +506,14 @@ class CertificationService
              */
             app(RetentionService::class)->recordFromCertificate($certificate->refresh());
 
+            /*
+             * And on the payable side, the commitment behind the subcontract is relieved — §5's "earlier of receipt
+             * or certificate", Phase 6c. Guarded inside that service rather than here, so a company with no cost
+             * control issues certificates exactly as it did before, and so the licence question is asked in one
+             * place. Nothing happens on the receivable side: money coming in was never committed to anybody.
+             */
+            app(CertificateCommitmentService::class)->syncFor($contract, $issued->toDateString());
+
             return $certificate->refresh();
         });
     }
@@ -523,12 +537,32 @@ class CertificationService
             throw new InvalidArgumentException('Voiding a certificate needs a reason. Somebody outside this company has a copy.');
         }
 
-        $certificate->update([
-            'status' => PaymentCertificate::STATUS_VOID,
-            'void_reason' => $reason,
-        ]);
+        return TenantTransaction::run(function () use ($certificate, $reason): PaymentCertificate {
+            $certificate->update([
+                'status' => PaymentCertificate::STATUS_VOID,
+                'void_reason' => $reason,
+            ]);
 
-        return $certificate->refresh();
+            /*
+             * The commitment follows the void, and the arithmetic is why this is one call rather than a reversal of
+             * what this certificate relieved: the target is the cumulative figure on whatever certificate is now the
+             * latest live one. So voiding the last certificate gives commitment back, and voiding an earlier one
+             * while a later one stands moves nothing — which is right, and is the case a "reverse its own relief"
+             * design gets backwards.
+             *
+             * Dated today rather than on the certificate's issue date: the money became uncommitted when somebody
+             * voided it, and back-dating the movement would restate a month that has been reported on.
+             *
+             * The contract is fetched by key rather than read off the relation, because a certificate voided from the
+             * register is a row straight out of the table with nothing loaded on it, and lazy loading is disabled.
+             */
+            app(CertificateCommitmentService::class)->syncFor(
+                Contract::query()->findOrFail($certificate->contract_id),
+                now()->toDateString(),
+            );
+
+            return $certificate->refresh();
+        });
     }
 
     // ------------------------------------------------------------------ shared reads

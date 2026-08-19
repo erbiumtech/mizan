@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Models\Employee;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -59,6 +59,26 @@ class EmployeeOptions
             ->get()
             ->mapWithKeys(fn (Employee $employee) => [$employee->getKey() => $employee->display_label])
             ->all();
+    }
+
+    /**
+     * The label for one employee id, for a select that stores a plain column
+     * rather than a relationship.
+     *
+     * `->relationship()` gives Filament both the search and the label for the
+     * value already stored, but it needs an `employee()` relation on the model —
+     * and a module that does not declare Employees may not name that class. A
+     * plain `employee_id` column with this for the label keeps the picker while
+     * leaving the licensing claim true; `construction_workers.employee_id` is
+     * the first column to need it (construction plan §7.1).
+     */
+    public static function labelFor(int|string|null $id): ?string
+    {
+        if ($id === null || $id === '') {
+            return null;
+        }
+
+        return Employee::query()->with('user')->find($id)?->display_label;
     }
 
     /**

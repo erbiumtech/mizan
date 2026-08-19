@@ -149,13 +149,46 @@ class RoleGrantsTest extends AccountingTestCase
      * entitled the company to hold, which on a job of any size is the largest single payment decision anybody
      * makes, and forfeiting takes money the other party earned.
      *
+     * Phase 7a, the three labour permissions, and the split is between filing people and pricing their time.
+     * **Employee +1** (`ConstructionLabourView`): a site engineer reads the gang list and the rates their job is being
+     * charged at, and the second one is asked at exactly the moment somebody queries a week's cost. **Accountant +2**
+     * (`View`, `Update`) — the commercial office maintains the trade list and the worker register. **Manager +1 of its
+     * own** for `ConstructionLabourRateSet`, and that is the one worth defending: a company-default rate revised by ten
+     * per cent restates the labour cost of everything booked from that date, on every job at once. §7.2's dated table
+     * means the revision cannot rewrite the past; this grant is who may make it at all.
+     *
+     * Manager and CEO therefore gain **three**: the Accountant's two plus the rate grant.
+     *
+     * Phase 7b, two more: **`ConstructionLabourRecord` on Employee and Accountant** — recording a day's work is
+     * site's, the same argument as the requisition and the goods receipt, because the ganger is the only person who
+     * knows who turned up; and **`ConstructionLabourApprove` on Manager**, because approving is what books the cost and
+     * freezes the rate the day was costed at. So Employee +1, Accountant +1, Manager +2 (the inherited record grant
+     * plus its own approve), CEO +2.
+     *
+     * **Reversing booked labour gained no name**, and that is the decision worth recording: `ConstructionCostReverse`
+     * already governs backing a posted entry out of the ledger, and a labour reversal is exactly that — twice, since
+     * §7.3's burden is its own entry. A fifth labour permission would have been a fifth row in every role form for a
+     * decision somebody already holds.
+     *
+     * Phase 7c, four plant permissions, and the shape mirrors labour with **one deliberate difference: no separate
+     * rate permission.** A labour rate is a five-tier dated ladder whose company default reaches every job at once, so
+     * `ConstructionLabourRateSet` earns its own name; a plant rate is one number on one machine, set when it joins the
+     * fleet by the same person who registers it, in the same screen. A fifth name there would be a fifth row in every
+     * role form for a decision nobody makes separately.
+     *
+     * **Employee +2** (`ConstructionPlantView`, `ConstructionPlantLog`): whether the excavator worked, stood idle or sat
+     * on standby is only knowable by somebody who was there, which is the same argument as the goods receipt and the
+     * site sheet. **Accountant +3** — the same two plus `ConstructionPlantUpdate`, the fleet register and its rates.
+     * **Manager +4**: the Accountant's three plus `ConstructionPlantApprove`, which charges the job internal hire on an
+     * owned machine and fixes the figure a supplier's invoice is checked against on a hired one. CEO +4.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 39,
-        'Accountant' => 117,
-        'Manager' => 145,
-        'CEO' => 165,
+        'Employee' => 43,
+        'Accountant' => 123,
+        'Manager' => 154,
+        'CEO' => 174,
     ];
 
     protected function setUp(): void

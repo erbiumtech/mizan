@@ -33,4 +33,33 @@ return [
          */
         'minimum_amount' => 1_000.0,
     ],
+
+    /*
+     * Labour terms a rate row may leave unstated — `docs/construction-management-plan.md` §7.
+     *
+     * `overtime_multiplier` and `burden_percent` are nullable on `construction_labour_rates` so a row can revise the
+     * rate without restating terms the company set once (§7.2's ladder resolves each field independently). These are
+     * the last resort when no row in the ladder states them at all.
+     *
+     * **There is deliberately no default cost rate here**, and that asymmetry is the point: an overtime multiplier and
+     * a burden percentage are company policy, while what an hour costs is a fact about a wage. `LabourRateService::
+     * resolve()` returns null when nothing sets the rate, and the caller refuses — because a labour cost of 0.00 on a
+     * full week is §18.1's healthy-looking figure hiding an absence.
+     */
+    'labour' => [
+        // Time and a half, which is the commonest statutory and contractual position. A company that pays double
+        // time sets its own, either here or on a rate row.
+        'overtime_multiplier' => 1.5,
+
+        /*
+         * Zero, and this one is a considered default rather than a placeholder.
+         *
+         * Burden is only ever correct as a figure a company has worked out from its own statutory and welfare cost,
+         * and §7.3's rule is that whatever is charged to jobs must be *absorbed* against a real account or both
+         * ledgers diverge by exactly the burden, growing monthly, with no error anywhere. A shipped guess would
+         * start that divergence on day one for a company that never chose it; zero charges nothing and absorbs
+         * nothing, which is the only self-consistent starting point.
+         */
+        'burden_percent' => 0.0,
+    ],
 ];

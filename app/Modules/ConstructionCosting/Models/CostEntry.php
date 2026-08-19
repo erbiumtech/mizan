@@ -54,7 +54,16 @@ class CostEntry extends Model
     /** It should reach the GL and has not yet — the one §4's report chases. */
     public const GL_PENDING = 'pending';
 
-    /** It deliberately never will: burden at a rate, internal plant, a notional comparison. */
+    /**
+     * It deliberately never will: a notional tender comparison, an overhead allocation a company chooses not to post.
+     *
+     * **Burden and internal plant are not examples of this**, however much they look like ones — both are computed at
+     * a rate and both must post. §7.3 requires burden to credit Labour Burden Absorbed and internal plant to credit
+     * Plant Internal Hire Recovery, and §4.2's reconciling items name them both; a `memo` burden would drop out of
+     * that reconciliation's `gl_treatment != 'memo'` sum and job cost would exceed GL cost by exactly the burden,
+     * growing every month, with nothing reporting an error. They are `pending` until §11's posting service runs.
+     * Resolved at the start of Phase 7b — this comment named them for months and was the error.
+     */
     public const GL_MEMO = 'memo';
 
     protected $table = 'construction_cost_entries';
