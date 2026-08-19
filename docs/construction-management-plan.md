@@ -1,6 +1,13 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 6 complete (2026-08-19). Phase 7 — labour and plant — is next.**
+**Status:** **Phases 0 to 6 complete, and Phase 7a with them (2026-08-19). Phase 7b — labour records, burden and its
+absorption — is next.**
+
+Phase 7a built the foundation of §7 in `construction_costing`: trades, the worker register that holds people who are
+not employees, and the dated rate table with §7.2's five-tier ladder — 33 tests. The one thing to carry forward before
+the write-ups is a Laravel behaviour that will catch the next dated table too: **a `date` cast serialises as
+`Y-m-d H:i:s`, so comparing such a column to a `Y-m-d` string in SQL misses the boundary day entirely.** A rate
+effective the first of April did not apply on the first of April. `whereDate()` is the fix and two tests found it.
 
 Phase 6 built the payable side in three parts, 94 tests: compliance documents that block certification and an
 override that records who and why (6a, 30 tests — Phase 6's stated exit condition, met ahead of the rest of the
@@ -2003,6 +2010,52 @@ document register before the modules that reference drawings.
   > issue, close — already have their own names in `construction_costing`.
 - **Phase 7 — Labour and plant.** Workers, trades, dated rates, labour records, burden and its
   absorption, plant items and logs, internal hire recovery, and the timesheet import behind its guard.
+
+  > **7a built 2026-08-19.** — `ConstructionLabourRateTest` (33 tests). `construction_trades`,
+  > `construction_workers` and `construction_labour_rates`; `LabourRateService` with §7.2's ladder and a
+  > `ResolvedLabourRate` to carry its answer; the three registers, and `ConstructionAccounts` needed nothing new
+  > because §18.2 had already put `burden_absorbed`, `plant_hire_recovery` and `absorption_variance` in `KEYS`.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **No rate column exists on the trade or the worker, and their absence is the deliverable.** §7.1's phrase is
+  >   "`construction_trades` with default codes and rates", and the reading that survives §7.2 is: the default *code*
+  >   is a column, the default *rate* is a `construction_labour_rates` row with only `trade_id` set. A test asserts
+  >   both columns are absent, because the next person to add one will be trying to be helpful.
+  > - **Job beats person in the ladder**, which is the tier order a reader assumes backwards. §7.2 puts job above
+  >   worker deliberately — a site allowance applies to everybody on that site, including the people who carry their
+  >   own rate elsewhere — so the test asserts the same man costs 900 on the tower and 800 on the annexe.
+  > - **The three figures resolve independently down the ladder.** `overtime_multiplier` and `burden_percent` are
+  >   nullable so a job row can revise the rate without restating terms the company set once. A single
+  >   "first matching row wins" would give that job an overtime multiplier of nothing and price every overtime hour at
+  >   plain time — quietly, and in the company's favour, which is the direction nobody queries.
+  > - **Nothing invents a cost rate.** `resolve()` returns null with no row, and `config/construction.php` ships an
+  >   overtime multiplier and a burden percentage but deliberately **no** cost rate: policy can have a default, a wage
+  >   cannot. Burden ships at zero for a reason of its own — §7.3 requires whatever is charged to be absorbed, so a
+  >   shipped guess would start that divergence on day one for a company that never chose it.
+  > - **Two rates for the same scope may not overlap, enforced in the service.** The index cannot do it: every scope
+  >   column is nullable and nulls are distinct in a unique index on both MySQL and SQLite, so the database would
+  >   accept two open-ended company defaults and the resolver would quietly pick one. Same judgement as Phase 3's one
+  >   measurement per control account per period. `revise()` exists as one operation because a wage revision *is* one
+  >   act, and doing it in two steps is how the two rows come to overlap.
+  > - **An unrecognised scope key is refused rather than ignored.** `['worker' => $id]` instead of `['worker_id' => …]`
+  >   would otherwise set a company-wide rate applying to everybody, which is a rate nobody meant and nothing reports.
+  >
+  > **The one real bug of the sub-phase is a Laravel behaviour worth knowing before the next dated table.** A `date`
+  > cast serialises through the model's *datetime* format, so `effective_from` is stored as `2026-04-01 00:00:00` — and
+  > `'2026-04-01 00:00:00' <= '2026-04-01'` is false as a string comparison. Every rate therefore failed to apply on
+  > the exact day it came into force, which is the day a wage revision is always dated to. `whereDate()` throughout
+  > (`scopeInForceOn`, the overlap check, `revise()`), with the reason on the scope. A grep for the same shape found no
+  > other instance in the suite, and §13's activity dates and §16's diary are the next places it could appear.
+  >
+  > Two notes rather than decisions. `App\Support\EmployeeOptions` gained `labelFor()`: an employee picker on a plain
+  > `employee_id` column cannot use `->relationship()`, which would need an `employee()` method on the model and would
+  > put `construction_costing -> employees` in the import graph against §18.1 — the helper is already the sanctioned
+  > place for that reach (`ModuleBoundaryTest::SHARED_DEBT`). And **the `Construction` navigation group now holds
+  > thirteen entries**, so §18.2's plan to branch it is no longer a prediction; it is overdue, and the group is a
+  > scroll today.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 40 / 119 / 148 / 168.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both
   plans, material issues and returns, materials on site.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,

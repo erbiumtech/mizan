@@ -7,13 +7,19 @@ use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Models\GoodsReceipt;
 use App\Modules\ConstructionCosting\Models\JobBudget;
+use App\Modules\ConstructionCosting\Models\LabourRate;
 use App\Modules\ConstructionCosting\Models\Requisition;
+use App\Modules\ConstructionCosting\Models\Trade;
+use App\Modules\ConstructionCosting\Models\Worker;
 use App\Modules\ConstructionCosting\Policies\CommitmentPolicy;
 use App\Modules\ConstructionCosting\Policies\CostEntryPolicy;
 use App\Modules\ConstructionCosting\Policies\CostPeriodPolicy;
 use App\Modules\ConstructionCosting\Policies\GoodsReceiptPolicy;
 use App\Modules\ConstructionCosting\Policies\JobBudgetPolicy;
+use App\Modules\ConstructionCosting\Policies\LabourRatePolicy;
 use App\Modules\ConstructionCosting\Policies\RequisitionPolicy;
+use App\Modules\ConstructionCosting\Policies\TradePolicy;
+use App\Modules\ConstructionCosting\Policies\WorkerPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -34,6 +40,9 @@ class ConstructionCostingServiceProvider extends ServiceProvider
         CostPeriod::class => CostPeriodPolicy::class,
         GoodsReceipt::class => GoodsReceiptPolicy::class,
         Requisition::class => RequisitionPolicy::class,
+        Trade::class => TradePolicy::class,
+        Worker::class => WorkerPolicy::class,
+        LabourRate::class => LabourRatePolicy::class,
     ];
 
     public function boot(): void

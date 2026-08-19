@@ -149,13 +149,23 @@ class RoleGrantsTest extends AccountingTestCase
      * entitled the company to hold, which on a job of any size is the largest single payment decision anybody
      * makes, and forfeiting takes money the other party earned.
      *
+     * Phase 7a, the three labour permissions, and the split is between filing people and pricing their time.
+     * **Employee +1** (`ConstructionLabourView`): a site engineer reads the gang list and the rates their job is being
+     * charged at, and the second one is asked at exactly the moment somebody queries a week's cost. **Accountant +2**
+     * (`View`, `Update`) — the commercial office maintains the trade list and the worker register. **Manager +1 of its
+     * own** for `ConstructionLabourRateSet`, and that is the one worth defending: a company-default rate revised by ten
+     * per cent restates the labour cost of everything booked from that date, on every job at once. §7.2's dated table
+     * means the revision cannot rewrite the past; this grant is who may make it at all.
+     *
+     * Manager and CEO therefore gain **three**: the Accountant's two plus the rate grant.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 39,
-        'Accountant' => 117,
-        'Manager' => 145,
-        'CEO' => 165,
+        'Employee' => 40,
+        'Accountant' => 119,
+        'Manager' => 148,
+        'CEO' => 168,
     ];
 
     protected function setUp(): void
