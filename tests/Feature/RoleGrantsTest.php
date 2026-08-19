@@ -170,13 +170,25 @@ class RoleGrantsTest extends AccountingTestCase
      * §7.3's burden is its own entry. A fifth labour permission would have been a fifth row in every role form for a
      * decision somebody already holds.
      *
+     * Phase 7c, four plant permissions, and the shape mirrors labour with **one deliberate difference: no separate
+     * rate permission.** A labour rate is a five-tier dated ladder whose company default reaches every job at once, so
+     * `ConstructionLabourRateSet` earns its own name; a plant rate is one number on one machine, set when it joins the
+     * fleet by the same person who registers it, in the same screen. A fifth name there would be a fifth row in every
+     * role form for a decision nobody makes separately.
+     *
+     * **Employee +2** (`ConstructionPlantView`, `ConstructionPlantLog`): whether the excavator worked, stood idle or sat
+     * on standby is only knowable by somebody who was there, which is the same argument as the goods receipt and the
+     * site sheet. **Accountant +3** — the same two plus `ConstructionPlantUpdate`, the fleet register and its rates.
+     * **Manager +4**: the Accountant's three plus `ConstructionPlantApprove`, which charges the job internal hire on an
+     * owned machine and fixes the figure a supplier's invoice is checked against on a hired one. CEO +4.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 41,
-        'Accountant' => 120,
-        'Manager' => 150,
-        'CEO' => 170,
+        'Employee' => 43,
+        'Accountant' => 123,
+        'Manager' => 154,
+        'CEO' => 174,
     ];
 
     protected function setUp(): void

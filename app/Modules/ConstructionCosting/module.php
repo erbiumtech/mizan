@@ -49,6 +49,8 @@ return [
         'App\\Models\\Worker' => \App\Modules\ConstructionCosting\Models\Worker::class,
         'App\\Models\\LabourRate' => \App\Modules\ConstructionCosting\Models\LabourRate::class,
         'App\\Models\\LabourRecord' => \App\Modules\ConstructionCosting\Models\LabourRecord::class,
+        'App\\Models\\PlantItem' => \App\Modules\ConstructionCosting\Models\PlantItem::class,
+        'App\\Models\\PlantLog' => \App\Modules\ConstructionCosting\Models\PlantLog::class,
     ],
 
     'resources' => [
@@ -61,6 +63,8 @@ return [
         'App\\Filament\\Resources\\ConstructionCosting\\TradeResource' => \App\Modules\ConstructionCosting\Filament\Resources\Trades\TradeResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\LabourRateResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRates\LabourRateResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\LabourRecordResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\LabourRecordResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\PlantItemResource' => \App\Modules\ConstructionCosting\Filament\Resources\PlantItems\PlantItemResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\PlantLogResource' => \App\Modules\ConstructionCosting\Filament\Resources\PlantLogs\PlantLogResource::class,
     ],
 
     'pages' => [
@@ -177,6 +181,22 @@ return [
          */
         ['name' => 'ConstructionLabourRecord', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionLabourApprove', 'group' => 'ConstructionCost'],
+
+        /*
+         * Plant (§7.3), and the shape mirrors labour with one deliberate difference: **there is no separate rate
+         * permission.** A labour rate is a five-tier dated ladder whose company default reaches every job at once, so
+         * `ConstructionLabourRateSet` earns its own name. A plant rate is one number on one machine, set when it joins
+         * the fleet by the same person who registers it — so it rides on `Update`, and a fifth name would be a fifth
+         * row in every role form for a decision nobody makes separately.
+         *
+         * `Log` is site's, like the goods receipt and the site sheet: the only people who know whether the excavator
+         * worked, stood idle or sat on standby are the people who were there. `Approve` books internal hire on an owned
+         * machine and fixes the figure a supplier's invoice is checked against on a hired one.
+         */
+        ['name' => 'ConstructionPlantView', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionPlantUpdate', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionPlantLog', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionPlantApprove', 'group' => 'ConstructionCost'],
     ],
 
     'role_grants' => [
@@ -200,6 +220,10 @@ return [
             // **And records the day's work**, which is the second place site staff create in — the same argument as
             // the requisition and the goods receipt: the ganger is who knows who turned up.
             'ConstructionLabourRecord',
+            // And logs the plant, for the same reason: whether the excavator worked, stood idle or sat on standby is
+            // only knowable by somebody who was there.
+            'ConstructionPlantLog',
+            'ConstructionPlantView',
         ],
         'Accountant' => [
             // The surveyor builds the budget, measures progress and prepares the forecast. Approving it and
@@ -225,6 +249,11 @@ return [
             'ConstructionLabourView',
             // The commercial side enters site sheets too: on a job with no ganger typing them, the surveyor does it.
             'ConstructionLabourRecord',
+            // The fleet register and its rates are the commercial side's, including the internal hire rate — which is
+            // one number on one machine rather than labour's ladder.
+            'ConstructionPlantUpdate',
+            'ConstructionPlantView',
+            'ConstructionPlantLog',
         ],
         // Reversing a posted entry and closing a period are approval-shaped acts, kept away from whoever
         // records the cost — the same segregation of duties the journal-entry powers already keep.
@@ -251,6 +280,9 @@ return [
             // Approving a site sheet books the cost and freezes the rate it was costed at. Kept away from whoever
             // collected the sheet, which is the same segregation the goods receipt keeps.
             'ConstructionLabourApprove',
+            // And approving a plant log charges the job internal hire — or, on hired plant, fixes the figure the
+            // supplier's invoice will be checked against.
+            'ConstructionPlantApprove',
         ],
         // Closing over an unexplained difference between the two ledgers is the one that needs a name on it.
         'CEO' => [
