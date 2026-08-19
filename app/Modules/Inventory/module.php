@@ -18,11 +18,16 @@ return [
     'models' => [
         'App\\Models\\Product' => \App\Modules\Inventory\Models\Product::class,
         'App\\Models\\StockMovement' => \App\Modules\Inventory\Models\StockMovement::class,
+        // Added in construction Phase 8a, and owned here on purpose: §6 of the construction plan and §2.1 of the
+        // retail plan both needed a location for stock, and putting it in either of those modules would have made the
+        // other depend on it. `construction_jobs.stock_location_id` and (later) `stores.stock_location_id` point here.
+        'App\\Models\\StockLocation' => \App\Modules\Inventory\Models\StockLocation::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\Products\\ProductResource' => \App\Modules\Inventory\Filament\Resources\Products\ProductResource::class,
         'App\\Filament\\Resources\\StockMovements\\StockMovementResource' => \App\Modules\Inventory\Filament\Resources\StockMovements\StockMovementResource::class,
+        'App\\Filament\\Resources\\StockLocations\\StockLocationResource' => \App\Modules\Inventory\Filament\Resources\StockLocations\StockLocationResource::class,
     ],
 
     'permission_groups' => [

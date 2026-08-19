@@ -16,6 +16,10 @@ use App\Modules\ConstructionCosting\Services\CommitmentService;
 use App\Modules\ConstructionCosting\Services\CostLedger;
 use App\Modules\ConstructionCosting\Services\GoodsReceiptService;
 use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\StockLocation;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Services\InventoryValuationService;
 use InvalidArgumentException;
 use Livewire\Livewire;
 use RuntimeException;
@@ -29,10 +33,11 @@ use Tests\Concerns\InteractsWithTenant;
  * only when the delivery is into a site store rather than straight to the work face, and only when Inventory is
  * licensed — writes a stock movement (§6)."
  *
- * **Two of the three are built. The third is refused with a message naming what is missing**, which is the assertion
- * that matters most in this file: accepting a store line would cost the material as though it had been stocked, and
- * materials-on-site would be wrong with nothing saying so. §18.1 names this class of failure — the healthy-looking
- * figure that hides an absence.
+ * **All three are built as of Phase 8a**, which gave Inventory `stock_locations`. The store path is still *refused*
+ * rather than quietly downgraded to direct when anything it needs is missing — the module, a product on the line, or a
+ * store on the job — because accepting a store line without a movement would cost the material as though it had been
+ * stocked, and materials-on-site would be wrong with nothing saying so. §18.1 names this class of failure: the
+ * healthy-looking figure that hides an absence. Each of the three refusals names which thing is missing.
  *
  * The accrual is the other property worth stating. Between delivery and invoice the job has incurred cost no supplier
  * document proves; booking it as `accrual` rather than `actual` keeps §3.5's two columns apart, which is what stops CPI
@@ -57,7 +62,7 @@ class ConstructionGoodsReceiptTest extends AccountingTestCase
         $this->actingAs($this->makeUser('Administrator', 'receipts@test.local'));
         $this->setCurrentTenant();
 
-        foreach (['construction', 'construction_costing', 'accounting'] as $module) {
+        foreach (['construction', 'construction_costing', 'accounting', 'inventory'] as $module) {
             CompanyModule::updateOrCreate(
                 ['company_id' => $this->tenant->getKey(), 'module' => $module],
                 ['licensed' => true, 'enabled' => true],
@@ -301,35 +306,135 @@ class ConstructionGoodsReceiptTest extends AccountingTestCase
         $this->assertNotSame('2026-06-01', $entry->posting_period->toDateString());
     }
 
-    // ------------------------------------------- the third thing, refused
+    // ------------------------------------------- the third thing, built in Phase 8a
 
     /**
-     * **§6's site-store path is refused, and the message names what is missing.**
+     * **A store line with no store on the job is refused, and the message names what is missing.**
      *
-     * Accepting it would cost the material as though it had been stocked, and materials-on-site would then be wrong
-     * with nothing saying so — §18.1's rule about a healthy figure hiding an absence.
+     * Phase 5c refused every store line because `stock_locations` did not exist; Phase 8a built it, so the refusal is
+     * now specific. It is still a refusal rather than a fallback to direct: accepting it would cost the material as
+     * though it had been stocked, and materials-on-site would then be wrong with nothing saying so — §18.1's rule about
+     * a healthy figure hiding an absence.
      */
-    public function test_a_line_destined_for_a_store_is_refused_with_the_reason(): void
+    public function test_a_store_line_is_refused_when_the_job_has_no_store(): void
     {
         $order = $this->issuedOrder();
         $receipt = $this->receipts->create($order);
         $this->receipts->addLineFor($receipt, $this->orderLine($order), 20, [
             'destination' => GoodsReceiptLine::DESTINATION_STORE,
+            'product_id' => $this->storedProduct()->getKey(),
         ]);
 
         try {
             $this->receipts->post($receipt->refresh());
-            $this->fail('A store destination should be refused until stock has a location.');
+            $this->fail('A store destination should be refused when the job names no store.');
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('site store', $e->getMessage());
-            $this->assertStringContainsString('stock location', $e->getMessage());
-            $this->assertStringContainsString('direct to site', $e->getMessage(), 'and says what to do instead');
+            $this->assertStringContainsString('no store set', $e->getMessage());
         }
 
         // Nothing happened: no relief, no accrual, no half-posted receipt.
         $this->assertSame(0, CostEntry::query()->count());
         $this->assertSame(0, CommitmentRelief::query()->count());
         $this->assertSame(GoodsReceipt::STATUS_DRAFT, $receipt->refresh()->status);
+    }
+
+    /** And a store line naming no product is refused too, because stock is kept per product. */
+    public function test_a_store_line_with_no_product_is_refused(): void
+    {
+        $this->job->update(['stock_location_id' => $this->siteStore()->getKey()]);
+
+        $order = $this->issuedOrder();
+        $receipt = $this->receipts->create($order);
+        $this->receipts->addLineFor($receipt, $this->orderLine($order), 20, [
+            'destination' => GoodsReceiptLine::DESTINATION_STORE,
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('names no product');
+
+        $this->receipts->post($receipt->refresh());
+    }
+
+    /**
+     * **§6's third path, working.** A store line stocks the material at the job's own location.
+     *
+     * A `purchase` movement with the whole quantity unconsumed, so the FIFO engine can take it at issue — and no
+     * journal entry, because the cost has already reached the job as the accrual and the GL side of
+     * goods-received-not-invoiced is §11's posting. Two postings for one delivery is what the division of labour
+     * between the document and the movement exists to prevent.
+     */
+    public function test_a_store_line_stocks_the_material_at_the_jobs_location(): void
+    {
+        $store = $this->siteStore();
+        $this->job->update(['stock_location_id' => $store->getKey()]);
+        $product = $this->storedProduct();
+
+        $order = $this->issuedOrder();
+        $receipt = $this->receipts->create($order);
+        $line = $this->receipts->addLineFor($receipt, $this->orderLine($order), 20, [
+            'destination' => GoodsReceiptLine::DESTINATION_STORE,
+            'product_id' => $product->getKey(),
+        ]);
+
+        $this->receipts->post($receipt->refresh());
+
+        $movement = StockMovement::query()->firstOrFail();
+
+        $this->assertSame($product->getKey(), $movement->product_id);
+        $this->assertSame($store->getKey(), $movement->stock_location_id);
+        $this->assertSame('purchase', $movement->type);
+        $this->assertEquals(20, $movement->quantity);
+        $this->assertEquals(20, $movement->remaining_quantity, 'unconsumed, so an issue can take it at FIFO cost');
+        $this->assertNull($movement->journal_entry_id, 'the cost reached the job as the accrual; §11 posts the GL side');
+        $this->assertSame($line->getKey(), (int) $movement->source_id);
+
+        // And it is on hand *at that location*, which is the question §6 exists to make answerable.
+        $this->assertSame(20.0, app(InventoryValuationService::class)->onHand($product, $store));
+
+        // The accrual still happened: stocking the material does not replace costing it.
+        $this->assertSame(1, CostEntry::query()->count());
+    }
+
+    /** Without Inventory the store path refuses and says to receive direct instead — §18.1's guarded shape. */
+    public function test_a_store_line_is_refused_without_the_inventory_module(): void
+    {
+        $this->job->update(['stock_location_id' => $this->siteStore()->getKey()]);
+
+        CompanyModule::query()
+            ->where('company_id', $this->tenant->getKey())
+            ->where('module', 'inventory')
+            ->update(['licensed' => false, 'enabled' => false]);
+        modules()->flush();
+
+        $order = $this->issuedOrder();
+        $receipt = $this->receipts->create($order);
+        $this->receipts->addLineFor($receipt, $this->orderLine($order), 20, [
+            'destination' => GoodsReceiptLine::DESTINATION_STORE,
+            'product_id' => 1,
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Inventory module');
+
+        $this->receipts->post($receipt->refresh());
+    }
+
+    /** A site store for the fixtures, and a product to put in it. */
+    private function siteStore(): StockLocation
+    {
+        return StockLocation::firstOrCreate(
+            ['code' => 'SITE-01'],
+            ['name' => 'Tower site store', 'kind' => StockLocation::KIND_SITE],
+        );
+    }
+
+    private function storedProduct(): Product
+    {
+        return Product::firstOrCreate(
+            ['sku' => 'REBAR-16'],
+            ['name' => 'Rebar 16mm', 'unit_price' => 260_000, 'valuation_method' => Product::METHOD_FIFO],
+        );
     }
 
     /** And the direct path — which is the default, and most of what a contractor does — works. */

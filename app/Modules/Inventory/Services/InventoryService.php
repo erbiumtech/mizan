@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\StockLocation;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Support\TenantTransaction;
 use InvalidArgumentException;
@@ -13,6 +14,11 @@ use InvalidArgumentException;
 /**
  * Stock movements with automatic balanced journal postings
  * (system-posted, like depreciation entries).
+ *
+ * **Every method takes an optional location**, added with `stock_locations` for
+ * `docs/construction-management-plan.md` §6. Passing nothing behaves exactly as before and writes a movement with no
+ * location, which is the honest state for a company that has created none. Naming one scopes both the movement and the
+ * FIFO lots it consumes — stock in a warehouse cannot be consumed by an issue on a site forty miles away.
  */
 class InventoryService
 {
@@ -25,13 +31,13 @@ class InventoryService
      * Receive stock: creates a purchase lot and posts
      * debit Inventory / credit Cash-Bank.
      */
-    public function purchase(Product $product, float $quantity, float $unitCost, string $date, ?string $reference = null): StockMovement
+    public function purchase(Product $product, float $quantity, float $unitCost, string $date, ?string $reference = null, ?StockLocation $at = null): StockMovement
     {
         if ($quantity <= 0 || $unitCost < 0) {
             throw new InvalidArgumentException('Purchase needs a positive quantity and non-negative cost.');
         }
 
-        return TenantTransaction::run(function () use ($product, $quantity, $unitCost, $date, $reference) {
+        return TenantTransaction::run(function () use ($product, $quantity, $unitCost, $date, $reference, $at) {
             $total = round($quantity * $unitCost, 2);
 
             $entry = $this->postSystemEntry($date, "Stock purchase {$product->sku} ×{$quantity}", [
@@ -41,6 +47,7 @@ class InventoryService
 
             return $product->movements()->create([
                 'type' => 'purchase',
+                'stock_location_id' => $at?->getKey(),
                 'quantity' => $quantity,
                 'unit_cost' => $unitCost,
                 'remaining_quantity' => $quantity,
@@ -55,14 +62,14 @@ class InventoryService
      * Record a sale: one balanced entry with the revenue leg (at price)
      * and the COGS leg (at the valuation engine's cost).
      */
-    public function sale(Product $product, float $quantity, float $unitPrice, string $date, ?string $reference = null): StockMovement
+    public function sale(Product $product, float $quantity, float $unitPrice, string $date, ?string $reference = null, ?StockLocation $at = null): StockMovement
     {
         if ($quantity <= 0 || $unitPrice < 0) {
             throw new InvalidArgumentException('Sale needs a positive quantity and non-negative price.');
         }
 
-        return TenantTransaction::run(function () use ($product, $quantity, $unitPrice, $date, $reference) {
-            $cogs = $this->valuation->costOfSale($product, $quantity);
+        return TenantTransaction::run(function () use ($product, $quantity, $unitPrice, $date, $reference, $at) {
+            $cogs = $this->valuation->costOfSale($product, $quantity, $at);
             $revenue = round($quantity * $unitPrice, 2);
 
             $entry = $this->postSystemEntry($date, "Sale {$product->sku} ×{$quantity}", [
@@ -74,6 +81,7 @@ class InventoryService
 
             return $product->movements()->create([
                 'type' => 'sale',
+                'stock_location_id' => $at?->getKey(),
                 'quantity' => -$quantity,
                 'unit_price' => $unitPrice,
                 'total_cost' => $cogs,
@@ -88,13 +96,13 @@ class InventoryService
      * Count correction / write-off. Positive quantity needs a unit cost
      * (books like a found lot); negative writes off at valuation cost.
      */
-    public function adjust(Product $product, float $quantity, string $date, ?float $unitCost = null, ?string $reference = null): StockMovement
+    public function adjust(Product $product, float $quantity, string $date, ?float $unitCost = null, ?string $reference = null, ?StockLocation $at = null): StockMovement
     {
         if ($quantity == 0.0) {
             throw new InvalidArgumentException('Adjustment quantity cannot be zero.');
         }
 
-        return TenantTransaction::run(function () use ($product, $quantity, $date, $unitCost, $reference) {
+        return TenantTransaction::run(function () use ($product, $quantity, $date, $unitCost, $reference, $at) {
             if ($quantity > 0) {
                 if ($unitCost === null || $unitCost < 0) {
                     throw new InvalidArgumentException('Positive adjustments need a unit cost.');
@@ -109,6 +117,7 @@ class InventoryService
 
                 return $product->movements()->create([
                     'type' => 'adjustment',
+                    'stock_location_id' => $at?->getKey(),
                     'quantity' => $quantity,
                     'unit_cost' => $unitCost,
                     'remaining_quantity' => $quantity,
@@ -118,7 +127,7 @@ class InventoryService
                 ]);
             }
 
-            $cost = $this->valuation->costOfSale($product, -$quantity);
+            $cost = $this->valuation->costOfSale($product, -$quantity, $at);
 
             $entry = $this->postSystemEntry($date, "Stock write-off {$product->sku} {$quantity}", [
                 ['account_id' => $this->cogsAccountId($product), 'debit_amount' => $cost, 'description' => "Write-off {$product->sku}"],
@@ -127,6 +136,7 @@ class InventoryService
 
             return $product->movements()->create([
                 'type' => 'adjustment',
+                'stock_location_id' => $at?->getKey(),
                 'quantity' => $quantity,
                 'total_cost' => $cost,
                 'movement_date' => $date,

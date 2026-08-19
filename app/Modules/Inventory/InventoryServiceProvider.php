@@ -3,8 +3,10 @@
 namespace App\Modules\Inventory;
 
 use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\StockLocation;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Policies\ProductPolicy;
+use App\Modules\Inventory\Policies\StockLocationPolicy;
 use App\Modules\Inventory\Policies\StockMovementPolicy;
 use App\Modules\Inventory\Support\ProductCsvImporter;
 use App\Support\CsvImporters;
@@ -28,6 +30,7 @@ class InventoryServiceProvider extends ServiceProvider
     private const POLICIES = [
         Product::class => ProductPolicy::class,
         StockMovement::class => StockMovementPolicy::class,
+        StockLocation::class => StockLocationPolicy::class,
     ];
 
     public function boot(): void

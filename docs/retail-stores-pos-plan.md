@@ -559,17 +559,45 @@ places: §2 before the till, and §9's order document before anything in §8 tha
   > (decided 2026-08-17 — see §2.1). It came from `docs/construction-management-plan.md` §6, which needed a
   > site store and would otherwise have had to invent fake `stores` rows or a second nullable location
   > column. **This is a genuine constraint on Phase 2, not a note**: the backfill happens once and whichever
-  > of the two plans is built first performs it, so Phase 2 must create `stock_locations` and a default
-  > location rather than `stores`-keyed movements. The `type` enum expands in that same migration for both
+  > of the two plans is built first performs it. The `type` enum expands in that same migration for both
   > plans. Nothing else in Phase 0 is settled.
+  >
+  > **Built 2026-08-19 by construction Phase 8a, which got there first. Phase 2 below is now smaller — read
+  > it with that in mind, and add none of the following a second time:**
+  >
+  > - `stock_locations` exists, owned by Inventory, with the five kinds this plan and that one agreed
+  >   (`warehouse|shop|site|van|transit`), `inventory_account_id`, and a register under
+  >   Invoicing & Inventory.
+  > - `stock_movements.stock_location_id` exists, indexed with `product_id`, **and the backfill has run** —
+  >   a `MAIN` warehouse location was created and every pre-existing movement points at it, but only in
+  >   tenants that had movements. A tenant with none has no locations at all, which is deliberate.
+  > - The `type` enum is already `purchase|sale|adjustment|issue|return|transfer|waste|count_adjustment`.
+  >   All five new values are in; this plan's three need no migration of their own.
+  > - `InventoryValuationService` takes a location on `onHand()`, `stockValue()`, `averageCost()` **and
+  >   `costOfSale()`**, with `null` meaning the company — so every existing caller behaves exactly as before.
+  >   `onHandByLocation()` is there too. **FIFO lots are consumed within the location that holds them**,
+  >   which this plan's §2.1 asks for and which was the half most easily got wrong.
+  > - `InventoryService::purchase()`, `sale()` and `adjust()` each take an optional location.
+  >
+  > **Two things Phase 2 still owns**, and neither is a migration: `stores.stock_location_id` (there is no
+  > `stores` table yet, so it could not be added), and the *behaviour* — transfers as paired movements,
+  > waste, count adjustments and the negative-stock guard. The column was made **nullable and left
+  > nullable**, against this plan's original "→ made non-null": null means "not tracked by location" rather
+  > than "unknown", `InvoiceService` deliberately does not set one because an invoice has no location until
+  > `stores` has one, and a non-null constraint would have had to hold for every historical row in every
+  > tenant and every future caller including imports. If Phase 2 still wants non-null once `stores` sets a
+  > location on every sale, that is a decision it can take then with far less at stake.
 - **Phase 1 — Stores exist.** `stores`, `store_devices`, `store_user`, `StoreAccess`, `StoreScope`, the
   switcher, permissions, the module wiring of §4. No selling yet. Ends with: an administrator can create
   two stores, register a till device, assign staff, and every existing screen still works.
-- **Phase 2 — Stock becomes per-location.** `stock_locations` in Inventory, `stock_movements.stock_location_id`
-  with a backfill to a default location, `stores.stock_location_id`, the location-aware valuation API, the
-  one-off `type` enum expansion covering both plans, transfers, waste, count adjustments, and the
-  negative-stock guard chosen in Phase 0. **The migration is the risk** — see below. Ends with: on-hand per
-  location is right and the company total is unchanged, which is the assertion.
+- **Phase 2 — Stock becomes per-location.** ~~`stock_locations` in Inventory,
+  `stock_movements.stock_location_id` with a backfill to a default location, the location-aware valuation
+  API, the one-off `type` enum expansion covering both plans~~ — **all built 2026-08-19 by construction
+  Phase 8a**, which reached this migration first; see the note in Phase 0. What is left for this phase:
+  `stores.stock_location_id`, transfers as paired movements, waste, count adjustments, and the
+  negative-stock guard chosen in Phase 0. **The migration was the risk and it has been taken** — the
+  assertion it ends with still stands and is now cheap to make: on-hand per location is right and the
+  company total is unchanged.
 - **Phase 3 — The till, offline-capable from the start (§5 + §12).** Barcodes, the POS page, tenders,
   till sessions, receipts, per-store numbering *by reserved block*, refunds — and with them the PWA
   shell, the IndexedDB snapshot with its version, the idempotent replay, offline sign-in on a registered
