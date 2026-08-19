@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionContracts\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionContracts\Support\ContractVocabulary;
+use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\Invoicing\Models\Contact;
 use App\Traits\Auditable;
 use Carbon\Carbon;
@@ -143,6 +144,23 @@ class Contract extends Model
     public function variations(): HasMany
     {
         return $this->hasMany(Variation::class, 'contract_id');
+    }
+
+    /**
+     * The orders behind a subcontract — the money promised under this agreement (§5, Phase 6c).
+     *
+     * A subcontract is two rows and one agreement: this one carries the schedule, the variations, the certificates
+     * and the retention, and a `construction_commitments` row carries what has been promised. §5's own table records
+     * why that is a link rather than a choice between the two shapes.
+     *
+     * **The relation is declared this way round because it can only exist this way round.** Neither module requires
+     * the other, so whichever names the other is a guarded coupling — and pointing costing at contracts as well
+     * would make the pair a cycle, which composer cannot express at all. Every surface that traverses this is behind
+     * `modules()->enabled('construction_costing')`; see `CertificateCommitmentService`.
+     */
+    public function commitments(): HasMany
+    {
+        return $this->hasMany(Commitment::class, 'contract_id');
     }
 
     /**

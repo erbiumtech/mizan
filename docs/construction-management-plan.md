@@ -1,14 +1,28 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 5 complete, and Phase 6a and 6b with them (2026-08-18). Phase 6c — the subcontract
-certificate relieving its commitment — is next, and finishes Phase 6.**
+**Status:** **Phases 0 to 6 complete (2026-08-19). Phase 7 — labour and plant — is next.**
+
+Phase 6 built the payable side in three parts, 94 tests: compliance documents that block certification and an
+override that records who and why (6a, 30 tests — Phase 6's stated exit condition, met ahead of the rest of the
+phase); back-charges, where the useful rule is that notice is a state the register can be queried on rather than a
+habit somebody has (6b, 38 tests); and the subcontract certificate relieving its commitment (6c, 26 tests), which
+is the first place two construction siblings have had to talk to each other about money.
+
+Two things about 6c are worth carrying forward before the phase write-ups:
+
+- **The relief target is cumulative and the row written is the movement**, which is §8's certificate rule arriving
+  one module along. Every case that an incremental design has to special-case then falls out of the arithmetic —
+  most usefully, voiding an *earlier* certificate while a later one stands correctly moves nothing, which
+  "reverse what that certificate relieved" gets backwards.
+- **Which module reaches which was forced rather than chosen, and it decided where a screen goes.** Neither
+  sibling declares the other, so the pair may only be coupled one way or it is a cycle — and the certificate is
+  what triggers the relief, so `construction_contracts` is the side that reaches. That is why
+  `commitments.contract_id` is set from the *contract's* screen rather than by a picker on the order form, which
+  is the first place anybody would look for it.
 
 Phase 5 built procurement end to end in `construction_costing`: requisitions, commitments, goods receipts, invoice
-allocations with their queue screen, and the computed three-way match — 114 tests across five files. Phase 6a met
-Phase 6's exit condition ahead of the rest of the phase: a certificate refuses to issue against expired insurance,
-and the override records who, when and why — 30 tests. Phase 6b added back-charges, where the useful rule is that
-notice is a state the register can be queried on rather than a habit somebody has — 38 tests. All three are written
-up under their phases below.
+allocations with their queue screen, and the computed three-way match — 115 tests across five files. All four
+sub-phases of 5 and all three of 6 are written up under their phases below.
 
 Phase 4 built `construction_contracts` in full: the contract and its item schedule under both standards, variations
 with the agreed-versus-forecast rule, progress claims, payment certificates with their deductions, the retention
@@ -1679,7 +1693,17 @@ zero holdback and a zero exposure denominator both *look* like healthy numbers, 
   tolerate. Note the trap rather than discovering it —
   `test_the_recorded_debt_does_not_hide_a_licence_dependency` asserts the **exact array in exact order**
   for each module in its own guarded list, so the two cross-sibling money paths must be kept in step in
-  two places. Three entries must **not** be added, and each refusal is a design constraint worth keeping:
+  two places.
+
+  > **Resolved 2026-08-19, in Phase 6c: there is exactly one cross-sibling money path, and there can only
+  > ever be one.** `construction_contracts -> construction_costing` — the subcontract certificate relieving
+  > its commitment — is in both lists. The path back was the tempting second one (a contract picker on the
+  > order form, so the link could be made where the order is raised), and it cannot exist: two modules naming
+  > each other is a cycle, and a cycle cannot be expressed as a composer dependency, so neither sibling would
+  > ever be extractable. The certificate is what triggers the relief, so contracts is the side that reaches,
+  > and the linking screen follows the coupling rather than the other way round.
+
+  Three entries must **not** be added, and each refusal is a design constraint worth keeping:
   no `'invoicing' => [… 'construction']`, which is what forces the allocation queue of §5 to exist as its
   own screen rather than as a job picker on the invoice form; no `'core' => [… 'construction']`, because
   the account map belongs on a Construction settings page and `core -> accounting` already exists for
@@ -1798,9 +1822,10 @@ document register before the modules that reference drawings.
   provable per cost code and closing a purchase order with a balance has an author and a reason.
 
   > **Built 2026-08-18.** —
-  > `ConstructionCommitmentTest` (26 tests), `ConstructionRequisitionTest` (24),
-  > `ConstructionGoodsReceiptTest` (21), `ConstructionInvoiceAllocationTest` (19) and
-  > `ConstructionThreeWayMatchTest` (24) — **Phase 5 complete**, 114 tests. The allocation table and its queue
+  > `ConstructionCommitmentTest` (27 tests — the 27th arrived with Phase 6c, below),
+  > `ConstructionRequisitionTest` (24), `ConstructionGoodsReceiptTest` (21),
+  > `ConstructionInvoiceAllocationTest` (19) and `ConstructionThreeWayMatchTest` (24) —
+  > **Phase 5 complete**, 115 tests. The allocation table and its queue
   > answer what §5 calls the single most likely silent failure in the module; the match is computed with only the
   > acceptance stored, and its tolerances are config overridable by settings. The commitment half is both halves
   > of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
@@ -1915,6 +1940,67 @@ document register before the modules that reference drawings.
   > `ConstructionBackChargeApply` is separate from `Update` on the certificate's own asymmetry: raising and notifying
   > is the surveyor's administration, deducting is the act that gets adjudicated. `RoleGrantsTest::EXPECTED` moved to
   > 39 / 117 / 145 / 165 across 6a and 6b together.
+  >
+  > **6c built 2026-08-19 — Phase 6 complete.** — `ConstructionSubcontractCommitmentTest` (26 tests).
+  > `CommitmentService::relieveFromCertification()`, the guarded `CertificateCommitmentService` bridge called from
+  > `CertificationService::issue()` and `void()`, `Contract::commitments()` and the *Orders and commitment* tab on the
+  > contract. **No migration and no new table**: `construction_commitments.contract_id` was put there by Phase 5 for
+  > exactly this, and `CommitmentRelief::KIND_CERTIFICATE` and `CommitmentLine::receivedTotal()` were written in Phase
+  > 5 already counting a relief that nothing yet wrote.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The target is cumulative; the row written is the movement.** The service drives the certificate reliefs on a
+  >   contract's orders towards "what do the *live* certificates say has been certified to date", read off the latest
+  >   live certificate rather than summed over all of them — summing cumulative documents would double-count every
+  >   period. Three cases then need no code of their own: voiding the latest certificate gives commitment back;
+  >   voiding an earlier one while a later stands moves nothing; and linking an order to a contract already
+  >   half-certified relieves it at once instead of reporting the whole order as promised against finished work.
+  > - **Gross of retention, deliberately.** Retention is cash withheld against work already performed, so netting it
+  >   off would leave a twentieth of every subcontract permanently committed with nothing able to relieve it, and the
+  >   order would never close.
+  > - **Relief follows the cost code the schedule names**, because §8.2 calls `cost_code_id` on a contract item the
+  >   join to job cost and the committed column is read *per code*. Pro-rata across the order would leave one code
+  >   over-committed and another under-committed on the same order with both figures looking healthy. What no code
+  >   can be matched for — an uncoded schedule line is ordinary — is spread rather than dropped, **over the lines
+  >   that still have room for it rather than over all of them**: one coded item and one uncoded one, both fully
+  >   certified, would otherwise push the coded line past its own amount while leaving the other partly open, which
+  >   is two wrong figures on an order that is simply finished. And the pennies pro-rata rounding loses go back on
+  >   the largest line, so `Σ certificate reliefs = certified to date` holds exactly. Phase 5's word was *provable*,
+  >   not about right, and that is only assertable because of those three lines.
+  > - **Nothing is capped at the order value.** An order priced below what has been certified against it
+  >   over-relieves, and `Commitment::overRelieved()` answers it. Clamping would make a short order read as complete.
+  > - **The coupling direction was forced, and it moved a screen.** This is the cross-sibling money path §18.2
+  >   anticipated: `construction_contracts -> construction_costing` in `KNOWN_COUPLINGS` *and* in
+  >   `test_the_recorded_debt_does_not_hide_a_licence_dependency`'s exact-order array, which is the trap that section
+  >   names. Only one direction may exist — two would be a cycle, and a cycle cannot be a composer dependency — and
+  >   the certificate is the trigger, so contracts reaches and costing never names it. Hence the link is made on the
+  >   contract, and `CommitmentService` receives a cost-code-to-value map and a total rather than a certificate, the
+  >   same discipline `App\Support\PayslipSettlement` keeps for payroll.
+  > - **It deliberately does not cost the job**, for the same reason 6b does not credit it. Cost reaches the ledger
+  >   through the certificate's purchase invoice and its allocation (§10.4, §5); relief says the money is no longer
+  >   *promised*, which is a different sentence from saying it has been *spent*. §5's double-relief rule then holds
+  >   by construction rather than by a new guard — `receivedTotal()` already counts certificate reliefs, so the
+  >   invoice raised off the certificate finds no unreceived balance and relieves nothing. Asserted, because it looks
+  >   like an omission.
+  >
+  > **The one real bug of the sub-phase was in Phase 5's code and had nothing to do with certificates.**
+  > `CommitmentService::relieve()` read the order back off `$line->commitment`, and lazy loading is disabled
+  > application-wide — so `close()` and `cancel()`, which loop the lines, threw on the **second** one. Every order in
+  > `ConstructionCommitmentTest` had a single line, so the first pass was all anything ever exercised; a subcontract
+  > order with one line per trade found it immediately. The order is now fetched by key, and
+  > `test_closing_an_order_of_several_lines_writes_off_every_one` asserts the whole loop. Worth remembering as a
+  > shape: **a loop whose first iteration is the only one under test is a loop with one case covered.**
+  >
+  > The same shape decided one line in `void()`: it now fetches the contract by key rather than through
+  > `$certificate->contract`, because a certificate voided from the register is a row straight out of the table with
+  > no relations on it, while every certificate a *test* holds came from `create()` in the same request and can lazy
+  > load freely. **A relation read that only ever runs on a model the same request created is a relation read nobody
+  > has tested.**
+  >
+  > No new permissions: linking an order rides on `ConstructionContractUpdate`, because it is a change to the
+  > contract record made from the contract's own screen, and the money decisions on the order itself — approve,
+  > issue, close — already have their own names in `construction_costing`.
 - **Phase 7 — Labour and plant.** Workers, trades, dated rates, labour records, burden and its
   absorption, plant items and logs, internal hire recovery, and the timesheet import behind its guard.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both

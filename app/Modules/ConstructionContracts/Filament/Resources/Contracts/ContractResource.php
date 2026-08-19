@@ -7,6 +7,7 @@ use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Pages\CreateC
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Pages\EditContract;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Pages\ListContracts;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\RelationManagers\ItemsRelationManager;
+use App\Modules\ConstructionContracts\Filament\Resources\Contracts\RelationManagers\OrdersRelationManager;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Schemas\ContractForm;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Tables\ContractsTable;
 use App\Modules\ConstructionContracts\Models\Contract;
@@ -60,9 +61,19 @@ class ContractResource extends Resource
         return ContractsTable::configure($table);
     }
 
+    /**
+     * The item schedule always, and the order behind a subcontract when there is a cost ledger to relieve.
+     *
+     * `OrdersRelationManager` decides for itself whether it applies — payable side, `construction_costing`
+     * licensed — because `canViewForRecord()` is the hook that can see the record, and "which side is this
+     * contract" is a per-record question rather than a per-resource one.
+     */
     public static function getRelations(): array
     {
-        return [ItemsRelationManager::class];
+        return [
+            ItemsRelationManager::class,
+            OrdersRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
