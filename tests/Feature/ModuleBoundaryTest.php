@@ -320,7 +320,15 @@ class ModuleBoundaryTest extends TestCase
         // application's invoicing — so the picker checks `modules()->enabled('invoicing')` and
         // `commitments.contact_id` stays null without it. An order to somebody with no contact record is still an
         // order, and still commits the money.
-        'construction_costing' => ['invoicing'],
+        //
+        // `timesheets` joins it for Phase 7d's labour import (§7.1): where Timesheets is licensed its entries are
+        // copied into draft labour records rather than read in place, because that table bills and never costs — its
+        // ladder resolves charge-out rates, and costing a job from those overstates every margin by the mark-up.
+        // `TimesheetLabourImport::isAvailable()` is the guard, the action is absent without it, and §18.1's row says
+        // the absence leaves "site sheets only, which is the primary path anyway". Note what is *not* here:
+        // `projects`, because the bridge from a timesheet entry to a job is the unconstrained
+        // `construction_jobs.project_id` column, which this module reads as an integer and never as a `Project`.
+        'construction_costing' => ['invoicing', 'timesheets'],
         // Construction contracts -> Invoicing is guarded, and §18 calls this the sharpest fork in that
         // section. The other party on a contract is a Contact, and the certificate's *raise invoice* action
         // needs an Invoice — but a payment certificate is not a quote: it is itself a contractual instrument
@@ -333,7 +341,15 @@ class ModuleBoundaryTest extends TestCase
         // contract-liability accounts, resolved through `ConstructionAccounts`. Guarded twice over — the action is
         // absent without Invoicing, and Invoicing requires Accounting — so the path cannot be reached with the
         // account map unavailable.
-        'construction_contracts' => ['invoicing', 'accounting'],
+        //
+        // `construction_costing` is the cross-sibling money path §18.2 anticipates, added by Phase 6c: issuing a
+        // subcontract certificate relieves the commitment behind it, which is §5's "earlier of receipt or
+        // certificate". Neither sibling declares the other — §18 sells certification without cost control and cost
+        // control without certification — so it is guarded in `CertificateCommitmentService`, and **the direction is
+        // forced rather than chosen**: pointing costing back at contracts as well would make the pair a cycle, and a
+        // cycle cannot be a composer dependency. That is why `commitments.contract_id` is set from the contract's
+        // own screen instead of by a picker on the order form, which is where anybody would look for it first.
+        'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -456,14 +472,23 @@ class ModuleBoundaryTest extends TestCase
 
             // A purchase order's supplier is a Contact, and the picker is hidden without Invoicing while the
             // column stays null. The same shape as the job's client, one module along.
-            'construction_costing' => ['invoicing'],
+            //
+            // Timesheets degrades to the import action not being offered at all, and `isAvailable()` refuses the
+            // service in one sentence if anything reaches it another way. A contractor without that module records
+            // labour on site sheets, which is how most site labour is recorded regardless.
+            'construction_costing' => ['invoicing', 'timesheets'],
 
             // The same shape one level up: the other party on a contract is a Contact and the certificate
             // becomes a draft invoice, both guarded. §18's refusal to declare Invoicing here is deliberate
             // and is why `certificates.invoice_id` is nullable rather than the module requiring the key.
             // Accounting comes with the hand-off: the invoice's retention line needs an asset account, and
             // getting that wrong is the misstatement §10.4 exists to prevent.
-            'construction_contracts' => ['invoicing', 'accounting'],
+            //
+            // Costing degrades to doing nothing at all: `CertificateCommitmentService::canRelieve()` is false,
+            // so a certificate is issued exactly as it was before Phase 6c and the orders relation manager does
+            // not appear. A contractor certifying subcontractors while keeping cost control elsewhere has no
+            // commitment ledger for a certificate to relieve, which is the whole reason the two are sold apart.
+            'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
         ];
 
         foreach ($guarded as $module => $targets) {

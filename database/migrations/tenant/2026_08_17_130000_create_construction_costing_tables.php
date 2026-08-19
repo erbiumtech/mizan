@@ -121,7 +121,10 @@ return new class extends Migration
              *   mirrored — the GL posting is the source and this mirrors it
              *   posted   — this is the source and it has reached the GL
              *   pending  — it should reach the GL and has not yet
-             *   memo     — it deliberately never will (burden at a rate, a notional comparison)
+             *   memo     — it deliberately never will (a notional tender comparison, an unposted overhead
+             *              allocation). **Not burden and not internal plant**, which this comment named until
+             *              Phase 7b: §7.3 requires both to credit a recovery account, so both are `pending`
+             *              until §11 posts them. See CostEntry::GL_MEMO.
              *
              * `pending` and `memo` look identical as a null, and a null that means "we do not know which" is
              * exactly how a sub-ledger drifts for a year unnoticed.

@@ -1,14 +1,60 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 5 complete, and Phase 6a and 6b with them (2026-08-18). Phase 6c — the subcontract
-certificate relieving its commitment — is next, and finishes Phase 6.**
+**Status:** **Phases 0 to 7 complete (2026-08-19). Phase 8 — materials, `stock_locations` in Inventory and the
+movement-type enum — is next.**
+
+Phase 7 built §7 in `construction_costing` in four parts, 129 tests: trades, the worker register that holds people who
+are not employees, and the dated rate table with §7.2's five-tier ladder (7a, 33 tests); the site sheet, the snapshot at
+approval, and burden as its own entry (7b, 37 tests); plant, internal hire recovery and §7.3's two-way match against
+hire invoices (7c, 37 tests); and the timesheet import behind its guard (7d, 22 tests).
+
+**§7's whole shape is one sentence: three things charge a job at a rate, and each of them owes a credit somewhere.**
+Labour burden credits Labour Burden Absorbed, internal plant credits Plant Internal Hire Recovery, and both are
+`pending` for §11 to post. §7.3's warning is the one to carry into Phase 11 — charge either and never absorb it and
+"job cost exceeds GL cost by exactly the burden, growing every month, with no error anywhere".
+
+**The one thing to carry forward from 7c is which machines book cost, because it is the difference between a job
+costed once and a job costed twice.** §4.1 settles it: where a GL document already exists for a cost, construction
+mirrors or stays out of the way. An owned excavator has no invoice, so its log *is* the cost — internal hire, credited
+to recovery. A hired one has a supplier invoice that already reaches the job through §5's allocation chain, so its log
+books **nothing** and becomes the check against that invoice instead. Both would look like plant cost on the same job
+and the same code, which is why the register carries a *Books cost* column rather than leaving it to be inferred.
+
+Two more things to carry forward before the write-ups.
+
+**A plan contradiction, resolved.** §3.2's enum comment offered burden as an example of `memo` ("deliberately never
+reaches the GL") while §7.3 requires burden charged to jobs to credit Labour Burden Absorbed. §7.3 wins and the
+examples were the error — recorded in full at §7.3, and the comments in `CostEntry` and the costing migration have been
+corrected, because a wrong example in the schema is what a later reader copies.
+
+**A trap this suite has now fallen into three times.** A `date` cast serialises as `Y-m-d H:i:s`, so comparing such a
+column to a `Y-m-d` string in SQL misses the boundary day — and silently differs between SQLite and MySQL. A rate
+effective the first of April did not apply on the first of April. Phase 2 hit it twice and wrote the answer on
+`CostPeriod::scopeStarting()`, whose docblock ends *"anything comparing a date to this column goes through here"*;
+Phase 7a proved that a warning attached to one column does not travel to the next one. **Every new dated column needs
+`whereDate()` from the first query written against it.**
+
+Phase 6 built the payable side in three parts, 94 tests: compliance documents that block certification and an
+override that records who and why (6a, 30 tests — Phase 6's stated exit condition, met ahead of the rest of the
+phase); back-charges, where the useful rule is that notice is a state the register can be queried on rather than a
+habit somebody has (6b, 38 tests); and the subcontract certificate relieving its commitment (6c, 26 tests), which
+is the first place two construction siblings have had to talk to each other about money.
+
+Two things about 6c are worth carrying forward before the phase write-ups:
+
+- **The relief target is cumulative and the row written is the movement**, which is §8's certificate rule arriving
+  one module along. Every case that an incremental design has to special-case then falls out of the arithmetic —
+  most usefully, voiding an *earlier* certificate while a later one stands correctly moves nothing, which
+  "reverse what that certificate relieved" gets backwards.
+- **Which module reaches which was forced rather than chosen, and it decided where a screen goes.** Neither
+  sibling declares the other, so the pair may only be coupled one way or it is a cycle — and the certificate is
+  what triggers the relief, so `construction_contracts` is the side that reaches. That is why
+  `commitments.contract_id` is set from the *contract's* screen rather than by a picker on the order form, which
+  is the first place anybody would look for it.
 
 Phase 5 built procurement end to end in `construction_costing`: requisitions, commitments, goods receipts, invoice
-allocations with their queue screen, and the computed three-way match — 114 tests across five files. Phase 6a met
-Phase 6's exit condition ahead of the rest of the phase: a certificate refuses to issue against expired insurance,
-and the override records who, when and why — 30 tests. Phase 6b added back-charges, where the useful rule is that
-notice is a state the register can be queried on rather than a habit somebody has — 38 tests. All three are written
-up under their phases below.
+allocations with their queue screen, and the computed three-way match — 115 tests across five files. All four
+sub-phases of 5 and all three of 6 are written up under their phases below.
 
 Phase 4 built `construction_contracts` in full: the contract and its item schedule under both standards, variations
 with the agreed-versus-forecast rule, progress claims, payment certificates with their deductions, the retention
@@ -741,6 +787,24 @@ credit a Labour Burden Absorbed account**, against which the real statutory and 
 through payroll, with the difference showing as over/under absorption on the profit and loss. Charge it
 and never absorb it and job cost exceeds GL cost by exactly the burden, growing every month, with no
 error anywhere — §4 is the only thing that would find it.
+
+> **Resolved 2026-08-19, at the start of Phase 7b, because this section and §3.2 disagreed about `memo`.**
+> §3.2's enum comment offers *"burden at a rate, a notional comparison"* as the examples of `memo` — "it
+> deliberately never will" reach the GL — and the migration and `CostEntry::GL_MEMO` both repeat it, adding
+> internal plant. But this section requires burden to credit Labour Burden Absorbed, and two paragraphs
+> below it requires internal plant to credit Plant Internal Hire Recovery. Both cannot be true.
+>
+> **§7.3 wins, and the examples were the error.** They are the two things §7.3 spends its whole length
+> insisting must post, and §4.2's reconciling-items list already names "internal plant recovery, burden
+> absorbed" — which is the list of things the GL *has* and the job-cost total must be adjusted for. A
+> `memo` burden would not appear in §4.2's `gl_treatment != 'memo'` sum at all, and the divergence this
+> section describes would be exactly what the design produced.
+>
+> So burden and internal plant are **`pending` until Phase 11's posting service runs, then `posted`**.
+> `memo` keeps its meaning and loses its examples: it is for a management figure with no GL side by
+> nature — §3.1's notional tender comparison, and an overhead allocation a company chooses not to post.
+> The comments naming burden and plant have been corrected in `CostEntry` and in the migration, because a
+> wrong example in the schema is what a later reader will copy.
 
 Plant is the same shape and the same trap. `construction_plant_items` (owned, hired, or hired with
 operator; linked to `fixed_assets` when owned) and `construction_plant_logs` (working, idle and standby
@@ -1679,7 +1743,17 @@ zero holdback and a zero exposure denominator both *look* like healthy numbers, 
   tolerate. Note the trap rather than discovering it —
   `test_the_recorded_debt_does_not_hide_a_licence_dependency` asserts the **exact array in exact order**
   for each module in its own guarded list, so the two cross-sibling money paths must be kept in step in
-  two places. Three entries must **not** be added, and each refusal is a design constraint worth keeping:
+  two places.
+
+  > **Resolved 2026-08-19, in Phase 6c: there is exactly one cross-sibling money path, and there can only
+  > ever be one.** `construction_contracts -> construction_costing` — the subcontract certificate relieving
+  > its commitment — is in both lists. The path back was the tempting second one (a contract picker on the
+  > order form, so the link could be made where the order is raised), and it cannot exist: two modules naming
+  > each other is a cycle, and a cycle cannot be expressed as a composer dependency, so neither sibling would
+  > ever be extractable. The certificate is what triggers the relief, so contracts is the side that reaches,
+  > and the linking screen follows the coupling rather than the other way round.
+
+  Three entries must **not** be added, and each refusal is a design constraint worth keeping:
   no `'invoicing' => [… 'construction']`, which is what forces the allocation queue of §5 to exist as its
   own screen rather than as a job picker on the invoice form; no `'core' => [… 'construction']`, because
   the account map belongs on a Construction settings page and `core -> accounting` already exists for
@@ -1798,9 +1872,10 @@ document register before the modules that reference drawings.
   provable per cost code and closing a purchase order with a balance has an author and a reason.
 
   > **Built 2026-08-18.** —
-  > `ConstructionCommitmentTest` (26 tests), `ConstructionRequisitionTest` (24),
-  > `ConstructionGoodsReceiptTest` (21), `ConstructionInvoiceAllocationTest` (19) and
-  > `ConstructionThreeWayMatchTest` (24) — **Phase 5 complete**, 114 tests. The allocation table and its queue
+  > `ConstructionCommitmentTest` (27 tests — the 27th arrived with Phase 6c, below),
+  > `ConstructionRequisitionTest` (24), `ConstructionGoodsReceiptTest` (21),
+  > `ConstructionInvoiceAllocationTest` (19) and `ConstructionThreeWayMatchTest` (24) —
+  > **Phase 5 complete**, 115 tests. The allocation table and its queue
   > answer what §5 calls the single most likely silent failure in the module; the match is computed with only the
   > acceptance stored, and its tolerances are config overridable by settings. The commitment half is both halves
   > of the exit condition: open commitment is `line.amount − Σ reliefs` over issued orders
@@ -1915,8 +1990,237 @@ document register before the modules that reference drawings.
   > `ConstructionBackChargeApply` is separate from `Update` on the certificate's own asymmetry: raising and notifying
   > is the surveyor's administration, deducting is the act that gets adjudicated. `RoleGrantsTest::EXPECTED` moved to
   > 39 / 117 / 145 / 165 across 6a and 6b together.
+  >
+  > **6c built 2026-08-19 — Phase 6 complete.** — `ConstructionSubcontractCommitmentTest` (26 tests).
+  > `CommitmentService::relieveFromCertification()`, the guarded `CertificateCommitmentService` bridge called from
+  > `CertificationService::issue()` and `void()`, `Contract::commitments()` and the *Orders and commitment* tab on the
+  > contract. **No migration and no new table**: `construction_commitments.contract_id` was put there by Phase 5 for
+  > exactly this, and `CommitmentRelief::KIND_CERTIFICATE` and `CommitmentLine::receivedTotal()` were written in Phase
+  > 5 already counting a relief that nothing yet wrote.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The target is cumulative; the row written is the movement.** The service drives the certificate reliefs on a
+  >   contract's orders towards "what do the *live* certificates say has been certified to date", read off the latest
+  >   live certificate rather than summed over all of them — summing cumulative documents would double-count every
+  >   period. Three cases then need no code of their own: voiding the latest certificate gives commitment back;
+  >   voiding an earlier one while a later stands moves nothing; and linking an order to a contract already
+  >   half-certified relieves it at once instead of reporting the whole order as promised against finished work.
+  > - **Gross of retention, deliberately.** Retention is cash withheld against work already performed, so netting it
+  >   off would leave a twentieth of every subcontract permanently committed with nothing able to relieve it, and the
+  >   order would never close.
+  > - **Relief follows the cost code the schedule names**, because §8.2 calls `cost_code_id` on a contract item the
+  >   join to job cost and the committed column is read *per code*. Pro-rata across the order would leave one code
+  >   over-committed and another under-committed on the same order with both figures looking healthy. What no code
+  >   can be matched for — an uncoded schedule line is ordinary — is spread rather than dropped, **over the lines
+  >   that still have room for it rather than over all of them**: one coded item and one uncoded one, both fully
+  >   certified, would otherwise push the coded line past its own amount while leaving the other partly open, which
+  >   is two wrong figures on an order that is simply finished. And the pennies pro-rata rounding loses go back on
+  >   the largest line, so `Σ certificate reliefs = certified to date` holds exactly. Phase 5's word was *provable*,
+  >   not about right, and that is only assertable because of those three lines.
+  > - **Nothing is capped at the order value.** An order priced below what has been certified against it
+  >   over-relieves, and `Commitment::overRelieved()` answers it. Clamping would make a short order read as complete.
+  > - **The coupling direction was forced, and it moved a screen.** This is the cross-sibling money path §18.2
+  >   anticipated: `construction_contracts -> construction_costing` in `KNOWN_COUPLINGS` *and* in
+  >   `test_the_recorded_debt_does_not_hide_a_licence_dependency`'s exact-order array, which is the trap that section
+  >   names. Only one direction may exist — two would be a cycle, and a cycle cannot be a composer dependency — and
+  >   the certificate is the trigger, so contracts reaches and costing never names it. Hence the link is made on the
+  >   contract, and `CommitmentService` receives a cost-code-to-value map and a total rather than a certificate, the
+  >   same discipline `App\Support\PayslipSettlement` keeps for payroll.
+  > - **It deliberately does not cost the job**, for the same reason 6b does not credit it. Cost reaches the ledger
+  >   through the certificate's purchase invoice and its allocation (§10.4, §5); relief says the money is no longer
+  >   *promised*, which is a different sentence from saying it has been *spent*. §5's double-relief rule then holds
+  >   by construction rather than by a new guard — `receivedTotal()` already counts certificate reliefs, so the
+  >   invoice raised off the certificate finds no unreceived balance and relieves nothing. Asserted, because it looks
+  >   like an omission.
+  >
+  > **The one real bug of the sub-phase was in Phase 5's code and had nothing to do with certificates.**
+  > `CommitmentService::relieve()` read the order back off `$line->commitment`, and lazy loading is disabled
+  > application-wide — so `close()` and `cancel()`, which loop the lines, threw on the **second** one. Every order in
+  > `ConstructionCommitmentTest` had a single line, so the first pass was all anything ever exercised; a subcontract
+  > order with one line per trade found it immediately. The order is now fetched by key, and
+  > `test_closing_an_order_of_several_lines_writes_off_every_one` asserts the whole loop. Worth remembering as a
+  > shape: **a loop whose first iteration is the only one under test is a loop with one case covered.**
+  >
+  > The same shape decided one line in `void()`: it now fetches the contract by key rather than through
+  > `$certificate->contract`, because a certificate voided from the register is a row straight out of the table with
+  > no relations on it, while every certificate a *test* holds came from `create()` in the same request and can lazy
+  > load freely. **A relation read that only ever runs on a model the same request created is a relation read nobody
+  > has tested.**
+  >
+  > No new permissions: linking an order rides on `ConstructionContractUpdate`, because it is a change to the
+  > contract record made from the contract's own screen, and the money decisions on the order itself — approve,
+  > issue, close — already have their own names in `construction_costing`.
 - **Phase 7 — Labour and plant.** Workers, trades, dated rates, labour records, burden and its
   absorption, plant items and logs, internal hire recovery, and the timesheet import behind its guard.
+
+  > **7a built 2026-08-19.** — `ConstructionLabourRateTest` (33 tests). `construction_trades`,
+  > `construction_workers` and `construction_labour_rates`; `LabourRateService` with §7.2's ladder and a
+  > `ResolvedLabourRate` to carry its answer; the three registers, and `ConstructionAccounts` needed nothing new
+  > because §18.2 had already put `burden_absorbed`, `plant_hire_recovery` and `absorption_variance` in `KEYS`.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **No rate column exists on the trade or the worker, and their absence is the deliverable.** §7.1's phrase is
+  >   "`construction_trades` with default codes and rates", and the reading that survives §7.2 is: the default *code*
+  >   is a column, the default *rate* is a `construction_labour_rates` row with only `trade_id` set. A test asserts
+  >   both columns are absent, because the next person to add one will be trying to be helpful.
+  > - **Job beats person in the ladder**, which is the tier order a reader assumes backwards. §7.2 puts job above
+  >   worker deliberately — a site allowance applies to everybody on that site, including the people who carry their
+  >   own rate elsewhere — so the test asserts the same man costs 900 on the tower and 800 on the annexe.
+  > - **The three figures resolve independently down the ladder.** `overtime_multiplier` and `burden_percent` are
+  >   nullable so a job row can revise the rate without restating terms the company set once. A single
+  >   "first matching row wins" would give that job an overtime multiplier of nothing and price every overtime hour at
+  >   plain time — quietly, and in the company's favour, which is the direction nobody queries.
+  > - **Nothing invents a cost rate.** `resolve()` returns null with no row, and `config/construction.php` ships an
+  >   overtime multiplier and a burden percentage but deliberately **no** cost rate: policy can have a default, a wage
+  >   cannot. Burden ships at zero for a reason of its own — §7.3 requires whatever is charged to be absorbed, so a
+  >   shipped guess would start that divergence on day one for a company that never chose it.
+  > - **Two rates for the same scope may not overlap, enforced in the service.** The index cannot do it: every scope
+  >   column is nullable and nulls are distinct in a unique index on both MySQL and SQLite, so the database would
+  >   accept two open-ended company defaults and the resolver would quietly pick one. Same judgement as Phase 3's one
+  >   measurement per control account per period. `revise()` exists as one operation because a wage revision *is* one
+  >   act, and doing it in two steps is how the two rows come to overlap.
+  > - **An unrecognised scope key is refused rather than ignored.** `['worker' => $id]` instead of `['worker_id' => …]`
+  >   would otherwise set a company-wide rate applying to everybody, which is a rate nobody meant and nothing reports.
+  >
+  > **The one real bug of the sub-phase was a repeat, and the repeat is the finding.** A `date` cast serialises through
+  > the model's *datetime* format, so `effective_from` is stored as `2026-04-01 00:00:00` — and
+  > `'2026-04-01 00:00:00' <= '2026-04-01'` is false as a string comparison. Every rate therefore failed to apply on
+  > the exact day it came into force, which is the day a wage revision is always dated to. `whereDate()` throughout
+  > (`scopeInForceOn`, the overlap check, `revise()`).
+  >
+  > **Phase 2 had already found this twice and written it down.** `CostPeriod::scopeStarting()` carries the whole
+  > explanation — it "bit four times in one sitting", inserted duplicate periods, and made an entry in a signed-off
+  > month report itself editable — and its docblock ends *"anything comparing a date to this column goes through
+  > here"*. `CostEntry::scopeInPeriod()` and `period()` carry the same note. None of that helped, because **a warning
+  > attached to one column does not travel to the next one**: `construction_labour_rates` was a new table with new
+  > dated columns and the same mistake was available again. A grep across the suite for unfixed instances finds none
+  > now, and §13's activity dates and §16's diary are the next two tables that will offer it.
+  >
+  > Two notes rather than decisions. `App\Support\EmployeeOptions` gained `labelFor()`: an employee picker on a plain
+  > `employee_id` column cannot use `->relationship()`, which would need an `employee()` method on the model and would
+  > put `construction_costing -> employees` in the import graph against §18.1 — the helper is already the sanctioned
+  > place for that reach (`ModuleBoundaryTest::SHARED_DEBT`). And **the `Construction` navigation group now holds
+  > thirteen entries**, so §18.2's plan to branch it is no longer a prediction; it is overdue, and the group is a
+  > scroll today.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 40 / 119 / 148 / 168.
+  >
+  > **7b built 2026-08-19.** — `ConstructionLabourRecordTest` (37 tests). `construction_labour_records`,
+  > `LabourRecordService`, the site-sheet register with its approval queue and its reversal action, and the two cost
+  > entries §7.3 asks for. No new account keys and no `gl_account_id` written — Phase 5's allocation service sets
+  > neither, and §4.1 puts account resolution in §11's posting service where the summary journal is built.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **Approval is the snapshot, and the two are one act.** The rate is resolved as at the **day worked** — a sheet for
+  >   August approved in September is costed at August's rate — and `cost_rate_per_hour`, `overtime_multiplier` and
+  >   `burden_percent` are frozen onto the record with `labour_rate_id` naming the row they came from. Two tests hold
+  >   the line from both directions: a later revision does not restate booked cost, and *editing the rate row the
+  >   snapshot came from* does not either. The second is the one the snapshot alone defends; the dated table cannot.
+  > - **Two entries, and the burden one is `pending`.** Labour and burden against the same job, node and code, the
+  >   second flagged `is_burden`, so labour cost is answerable on its own from one sum and a filter. With no burden set
+  >   anywhere, **no burden entry is written at all** rather than one for zero — a row of 0.00 on every sheet is noise
+  >   that makes the register unreadable and the flag useless.
+  > - **Who owes the GL the labour posting is decided per person, in one method.** An employee's time already reaches
+  >   the books through the payslip, so job cost is a dimension of it and mirrors — posting again would double the
+  >   company's labour cost. Anybody paid outside the payroll has no GL document behind them, so it is `pending` and
+  >   §11 posts it. Guarded on Payroll being licensed, because "the payslip posted it" is only true where there are
+  >   payslips. The figures will not match — rate × hours is not a payslip — and §18.1 already says that gap is
+  >   reported in words rather than balanced.
+  > - **The duplicate-sheet guard is a ceiling, not a uniqueness rule.** Two records for one worker on one day are
+  >   ordinary — morning on formwork, afternoon on steel — so a unique index would refuse the normal case and catch
+  >   nothing. What is never ordinary is a day of more than twenty-four hours, which is what the same sheet entered
+  >   twice looks like. It applies to an edit as well as to a new sheet, or eighty hours typed for eight would be
+  >   refused on creation and accepted on the next save.
+  > - **Engagement is checked from the dates, not the flag.** A sheet for March is entered in April, and `is_active`
+  >   only ever answers about today. A day booked outside somebody's engagement is usually the wrong person.
+  > - **A refusal, never a zero.** With no rate in the ladder, approval is refused and books nothing; the form's
+  >   preview says so in words rather than showing a cost of zero, because zero is what somebody would then approve.
+  >   The quantity on the labour entry is **hours**, so the unit rate reads as cost-per-hour — minutes would report a
+  >   rate nobody prices anything in, which would make §3.1's rate analysis useless on the largest cost on the job.
+  >
+  > No new permission for reversing: `ConstructionCostReverse` already governs backing a posted entry out of the
+  > ledger, which is exactly what this does twice. `RoleGrantsTest::EXPECTED` moved to 41 / 120 / 150 / 170.
+  >
+  > **7c built 2026-08-19.** — `ConstructionPlantTest` (37 tests). `construction_plant_items` and
+  > `construction_plant_logs`, `PlantService`, `PlantHireMatch`, and the two registers with the *Check against
+  > invoices* action.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **Ownership decides whether a log books cost, and that is the whole design.** Owned plant charges the job
+  >   internal hire as a `pending` entry for §11 to credit to Plant Internal Hire Recovery; hired plant books nothing,
+  >   because its supplier invoice is the GL's record and reaches the job through §5. The log is still *priced* on a
+  >   hired machine — that figure is the left-hand side of the match — so "approved but no cost" is a real state and
+  >   the register says so in a column rather than leaving somebody to read the service.
+  > - **Three unit columns, because plant is charged three ways.** Working, idle and standby are separate rates in
+  >   every hire agreement, and one blended column would make whoever fills the sheet do the blending in their head —
+  >   losing the figure that answers "what did we pay for a crane to stand still", which is among the most recoverable
+  >   costs on a job. `downtime_reason` is what makes it arguable later, and the register has a filter for it.
+  > - **A null rate means not charged, never "fall back to the working rate".** The fallback would inflate every job
+  >   that ever had a machine standing, silently. The screens print "not charged" so the company's choice is visible on
+  >   the row. And the unit rate on the cost entry divides by the **chargeable** units only: eight charged hours and
+  >   four uncharged idle ones is eight, and dividing by twelve would report a rate two thirds of the one that was set.
+  > - **A machine with no rate cannot be approved against.** §18.1's healthy-looking figure hiding an absence, and
+  >   worse here than on labour because nobody expects a machine to be free. The register has a *No rate set* filter so
+  >   it is findable before somebody hits the refusal.
+  > - **The meter is evidence, not the basis of the charge.** Engine hours legitimately differ from charged hours, so a
+  >   mismatch is never refused — refusing it would refuse the ordinary case and teach everybody to leave the readings
+  >   blank, which loses the evidence entirely. A reading that went *backwards* is refused, because a meter cannot.
+  > - **The match is cumulative and stores nothing.** A hire invoice covers a month and is dated after it while the
+  >   logs are dated within it, so filtering both to one period would report a difference on every machine every month
+  >   and the report would stop being read. It reuses §5's `MatchTolerances` minimum rather than inventing a second
+  >   tolerance, and it stores no acceptance because §5 already keeps that decision on the commitment line the invoice
+  >   was allocated to — a second one would be two records of one decision.
+  >
+  > **Rates live on the plant item rather than in a dated table, and that asymmetry with §7.2 is deliberate.** A labour
+  > rate is a ladder — five tiers, dated, varying by job, trade and person — and revising the company default reaches
+  > every job at once. A plant rate is one number on one machine, set when it joins the fleet by the same person who
+  > registers it. So the protection is the snapshot on the log alone: a revision re-prices outstanding drafts and leaves
+  > approved logs alone, and there is no way to schedule a change or charge one job differently.
+  > `construction_plant_rates` in the shape of `construction_labour_rates` is the extension if a customer needs either;
+  > this is a smaller design on purpose, stated in `PlantItem` so nobody reads it as unfinished.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 43 / 123 / 154 / 174. Four permissions, and **no separate rate permission** for
+  > the reason above — a fifth name for a decision nobody makes separately.
+  >
+  > **One process note, because it cost a full-suite run.** The suite was started in the background and then kept
+  > editing over: it read a `module.php` that granted plant permissions the same file did not yet declare, and 1,355
+  > tests failed on a `RoleSeeder` refusal that had nothing to do with any of them. A full run is only meaningful
+  > against a tree that stops changing while it runs.
+  >
+  > **7d built 2026-08-19 — Phase 7 complete.** — `ConstructionTimesheetImportTest` (22 tests).
+  > `TimesheetLabourImport`, a `TimesheetImportSummary` to carry its result, and the *Import from timesheets* action on
+  > the site-sheet register. No migration, no model, no permission: the import writes `construction_labour_records`
+  > through `LabourRecordService` and rides on `ConstructionLabourRecord`, because importing a day's work is the same
+  > act as typing it.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **Copied, not read in place, and §7.1 gives the reason as a fact about the other table.** `timesheet_entries`
+  >   bills and never costs — its ladder resolves *charge-out* rates — so reading those entries as cost prices a job at
+  >   what the client is billed and overstates every margin by the mark-up. The entry becomes a draft and §7.2's ladder
+  >   prices it. A test approves an imported record and asserts the construction rate, which is the assertion that
+  >   makes "billing keeps its ladder; costing gets its own" true rather than said.
+  > - **Drafts, never approved.** An import that booked cost would bypass the approval that snapshots the rate and let
+  >   a timesheet entry reach a job with nobody having read it.
+  > - **Four prerequisites, each reported by name rather than guessed**: approval, a job that names the entry's project,
+  >   a worker linked to that employee, and a cost code from that worker's trade. **No worker is created on the fly** —
+  >   a register that fills itself from timesheets is a register nobody chose the contents of, which is the opposite of
+  >   §7.1's argument for having one.
+  > - **One bad row never loses the file**, following Attendance's importer. The most useful case is the day-length
+  >   guard firing: the same day on a site sheet and on a timesheet is double-counted labour, and it arrives as one
+  >   named row among ninety-nine that went in.
+  > - **Idempotent on the `source` morph, including reversed records.** Re-running a fortnight is how somebody checks
+  >   they got everything, so `alreadyImported` is counted apart from `skipped` — "42 were already in" is reassuring
+  >   where "42 skipped" sends them looking for a fault. A record somebody *reversed* deliberately does not come back:
+  >   re-importing it would undo a decision and look like the import working.
+  >
+  > **The bridge to a job is `construction_jobs.project_id` read as an integer**, which is what keeps `projects` out of
+  > this module's import graph while still letting the two meet. `KNOWN_COUPLINGS` gains `construction_costing ->
+  > timesheets` only, in both lists, and the graph stays acyclic.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both
   plans, material issues and returns, materials on site.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,

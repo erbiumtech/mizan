@@ -386,6 +386,35 @@ class ConstructionCommitmentTest extends AccountingTestCase
         $this->assertSame([], $this->commitments->openByCode($this->job));
     }
 
+    /**
+     * **Closing an order of more than one line, which is the case every test here was one line short of.**
+     *
+     * `relieve()` read the order back off `$line->commitment`, and lazy loading is disabled application-wide — so
+     * the second time round the loop it threw, while the first line went through. Every order in this file had a
+     * single line, so nothing saw it until a subcontract order arrived with one line per trade (Phase 6c). The
+     * order is now fetched by key, and this asserts the whole loop rather than its first pass.
+     */
+    public function test_closing_an_order_of_several_lines_writes_off_every_one(): void
+    {
+        $commitment = $this->commitments->create();
+        $this->commitments->addLine($commitment, $this->job, $this->material, [
+            'description' => 'Ready-mix', 'quantity' => 100, 'rate' => 6_000,
+        ]);
+        $this->commitments->addLine($commitment, $this->job, $this->labour, [
+            'description' => 'Steel fixing', 'quantity' => 40, 'rate' => 10_000,
+        ]);
+        $this->commitments->approve($commitment->refresh());
+        $this->commitments->issue($commitment->refresh());
+
+        $this->commitments->close($commitment->refresh(), 'The site closed early and the balance will not be spent.');
+
+        $this->assertSame([], $this->commitments->openByCode($this->job));
+        $this->assertSame(2, CommitmentRelief::query()
+            ->where('kind', CommitmentRelief::KIND_CLOSE_OUT)
+            ->count());
+        $this->assertSame(1_000_000.0, $commitment->refresh()->relievedTotal());
+    }
+
     // ------------------------------------------------- the four-column report
 
     /**
