@@ -41,6 +41,13 @@ return [
         'App\\Models\\GoodsReceipt' => \App\Modules\ConstructionCosting\Models\GoodsReceipt::class,
         'App\\Models\\GoodsReceiptLine' => \App\Modules\ConstructionCosting\Models\GoodsReceiptLine::class,
         'App\\Models\\InvoiceAllocation' => \App\Modules\ConstructionCosting\Models\InvoiceAllocation::class,
+        // The alias is `App\Models\{ClassBasename}` — `ModuleCoverageTest` asserts it, because those strings are
+        // what customer rows in `activity_log.subject_type` and `custom_fields.model_type` already hold. None of
+        // these three basenames is taken by another module, which is what makes the short class names safe here;
+        // Phase 3 had to reach for `JobBudget` because `BudgetLine` was not.
+        'App\\Models\\Trade' => \App\Modules\ConstructionCosting\Models\Trade::class,
+        'App\\Models\\Worker' => \App\Modules\ConstructionCosting\Models\Worker::class,
+        'App\\Models\\LabourRate' => \App\Modules\ConstructionCosting\Models\LabourRate::class,
     ],
 
     'resources' => [
@@ -49,6 +56,9 @@ return [
         'App\\Filament\\Resources\\ConstructionCosting\\CommitmentResource' => \App\Modules\ConstructionCosting\Filament\Resources\Commitments\CommitmentResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\RequisitionResource' => \App\Modules\ConstructionCosting\Filament\Resources\Requisitions\RequisitionResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\GoodsReceiptResource' => \App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts\GoodsReceiptResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\WorkerResource' => \App\Modules\ConstructionCosting\Filament\Resources\Workers\WorkerResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\TradeResource' => \App\Modules\ConstructionCosting\Filament\Resources\Trades\TradeResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\LabourRateResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRates\LabourRateResource::class,
     ],
 
     'pages' => [
@@ -136,6 +146,21 @@ return [
          * ordered, what arrived and what was billed is acceptable, and put their name to it.
          */
         ['name' => 'ConstructionVarianceAccept', 'group' => 'ConstructionCost'],
+
+        /*
+         * Labour (§7), and it rides on the same group for the reason procurement does: it is the same screenful of
+         * decisions about the same job's cost, and a group of its own would be another section in every role form for
+         * no decision anybody makes separately.
+         *
+         * **`RateSet` is separate from `Update`, and it is the one that matters.** Filing the six men who turned up on
+         * Monday is a ganger's administration; deciding what an hour of steel fixing costs reaches every job at once,
+         * and a company-default rate revised by ten per cent restates the labour cost of everything booked from that
+         * date. §7.2 makes the dated table the first line of defence against that being done casually — this
+         * permission is who is allowed to do it at all.
+         */
+        ['name' => 'ConstructionLabourView', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionLabourUpdate', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionLabourRateSet', 'group' => 'ConstructionCost'],
     ],
 
     'role_grants' => [
@@ -152,6 +177,10 @@ return [
             'ConstructionReceiptView',
             'ConstructionRequisitionCreate',
             'ConstructionRequisitionView',
+            // A site engineer reads the gang list and the rates their job is being charged at. Reading rather than
+            // setting: "who is on site today" and "what are we paying for a mason" are both site questions, and the
+            // second one is asked at the moment somebody queries a week's cost.
+            'ConstructionLabourView',
         ],
         'Accountant' => [
             // The surveyor builds the budget, measures progress and prepares the forecast. Approving it and
@@ -171,6 +200,10 @@ return [
             'ConstructionForecastPrepare',
             'ConstructionInvoiceAllocate',
             'ConstructionProgressMeasure',
+            // The commercial side maintains the trade list and the gang register. What an hour costs is not theirs
+            // to decide — that is `ConstructionLabourRateSet`, below.
+            'ConstructionLabourUpdate',
+            'ConstructionLabourView',
         ],
         // Reversing a posted entry and closing a period are approval-shaped acts, kept away from whoever
         // records the cost — the same segregation of duties the journal-entry powers already keep.
@@ -187,6 +220,13 @@ return [
             'ConstructionRequisitionApprove',
             'ConstructionCostReverse',
             'ConstructionPeriodClose',
+            /*
+             * What an hour of labour costs. Approval-shaped, and kept away from whoever files the workers — a
+             * company-default rate revised by ten per cent restates the labour cost of everything booked from that
+             * date, across every job at once. §7.2's dated table means the revision cannot rewrite the past; this
+             * grant is who may make it at all.
+             */
+            'ConstructionLabourRateSet',
         ],
         // Closing over an unexplained difference between the two ledgers is the one that needs a name on it.
         'CEO' => [
