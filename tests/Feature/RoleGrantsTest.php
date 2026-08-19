@@ -87,6 +87,63 @@ class RoleGrantsTest extends AccountingTestCase
      * will enforce; **CEO +1 of its own** for `ConstructionCertificateInvoice`, the act that moves the figure into
      * the books.
      *
+     * Phase 5e, one permission: **`ConstructionVarianceAccept` on Manager**. Reading the three-way match report rides
+     * on `ConstructionCommitmentView` — it is the same screenful of facts about the same orders — but accepting a
+     * variance puts money on a job that nobody ordered at that figure, with a name against it. §5 puts the control at
+     * acceptance rather than at payment, so this grant *is* the control.
+     *
+     * Phase 5d, one permission: **`ConstructionInvoiceAllocate` on Accountant**, inherited upward. Employee gains
+     * nothing — coding a supplier invoice is a commercial act, and the person who signed the delivery note is not the
+     * person who knows which code the company prices its next tender from. It is its own name because it is the act
+     * that answers §5's "single most likely silent failure in the module": an invoice posted with no allocation leaves
+     * the accounts perfectly correct and the job under-costed.
+     *
+     * Phase 5c, the three goods-receipt permissions: **Employee +2, one of them a record-and-post grant** — the
+     * storeman signs the delivery note and is the only person who knows what actually arrived, so a receipt typed by
+     * the office from a note that reached it a week later is how a delivery comes to be recorded against the wrong
+     * job. Accountant +2 for the same two. **Manager +1 of its own** for `ConstructionReceiptReverse`, which takes
+     * cost off a job and puts commitment back on an order — two registers, so not site's.
+     *
+     * Phase 5b, the three requisition permissions, and this is the run where the shape of the suite changes:
+     * **Employee +2, one of them a `create`** — the first and only one in the construction suite. The demand
+     * document exists because the demand comes from the people who need the material, and a requisition raised only
+     * by the commercial office is a purchase order with an extra step. Accountant +2 to raise and read them;
+     * **Manager +1 of its own** for `ConstructionRequisitionApprove`, which agrees the need is real and still
+     * commits nothing — the money moves at `ConstructionCommitmentIssue`, two grants later.
+     *
+     * Manager and CEO gain **two** rather than three, and working out why is the useful part: the roles are separate
+     * leaves rather than a chain, so neither inherits Employee's `ConstructionRequisitionCreate`. They get the two
+     * the Accountant has plus their own approval — a manager who needs to raise a request holds the Accountant's
+     * grant, not the site engineer's.
+     *
+     * Phase 5a, the five commitment permissions: Employee +1 for view, because "has the rebar been ordered" is a
+     * site question and an invisible answer produces a second order for it; Accountant +2 to raise and price one;
+     * **Manager +2 of its own** for `ConstructionCommitmentApprove` and `ConstructionCommitmentIssue`, which are two
+     * decisions rather than one — approving spends the company's money, issuing commits it to a supplier and is what
+     * puts the figure on the cost report; **CEO +1 of its own** for `ConstructionCommitmentClose`, which writes off
+     * money somebody committed and needs a name against it.
+     *
+     * Phase 6b, the three back-charge permissions, on the shape the certificate already set: **Accountant +2**
+     * (`View`, `Update`) because raising a back-charge and serving the notice is the surveyor's ordinary
+     * administration; **Manager +1 of its own** for `ConstructionBackChargeApply`, which takes money off another
+     * company's payment. `Apply` also carries agreeing and withdrawing, and that is the part worth defending: settling
+     * at 180,000 against a notice of 240,000 gives away 60,000 of a recovery the company was entitled to, which is the
+     * same shape of decision as releasing retention. A charge one person can raise and drop is a charge nobody has to
+     * justify. **Employee +0** — site reports the incident; the charge is a commercial document.
+     *
+     * Manager and CEO gain three: the Accountant's two plus the apply grant.
+     *
+     * Phase 6a, the three compliance permissions, and the split between them is the decision: **Accountant +2**
+     * (`View`, `Update`) because the commercial office files insurance certificates and reads them — and filing and
+     * verifying are deliberately the same grant, since splitting them produces a register full of documents nobody has
+     * looked at, which is exactly what `verified_at` exists to distinguish. **Manager +1 of its own** for
+     * `ConstructionComplianceOverride`, which does two things a filing clerk should not: certifies a payment past
+     * lapsed cover, and waives a requirement for good. **Employee +0** — a site engineer has no use for a
+     * subcontractor's policy schedule, and the one construction question site does ask about compliance ("may we let
+     * them start") is answered by the register's owner, not by the register.
+     *
+     * Manager and CEO therefore gain **three**: the Accountant's two plus the override.
+     *
      * Phase 4d, one permission: **`ConstructionRetentionRelease` on Manager**. Reading the ledger rides on
      * `ConstructionCertificateView` — same audience, same screenful — but releasing hands back money the contract
      * entitled the company to hold, which on a job of any size is the largest single payment decision anybody
@@ -95,10 +152,10 @@ class RoleGrantsTest extends AccountingTestCase
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 34,
-        'Accountant' => 106,
-        'Manager' => 127,
-        'CEO' => 146,
+        'Employee' => 39,
+        'Accountant' => 117,
+        'Manager' => 145,
+        'CEO' => 165,
     ];
 
     protected function setUp(): void

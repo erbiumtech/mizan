@@ -105,7 +105,7 @@
                             <tr class="border-t-2 border-gray-300 font-semibold dark:border-white/20">
                                 <td class="py-2 pr-4" colspan="2">Total</td>
                                 <td class="py-2 pr-4 text-right tabular-nums">{{ $money($controlTotals['budget']) }}</td>
-                                <td class="py-2 pr-4 text-right">—</td>
+                                <td class="py-2 pr-4 text-right tabular-nums">{{ $money($controlTotals['committed']) }}</td>
                                 <td class="py-2 pr-4 text-right tabular-nums">{{ $money($controlTotals['actual']) }}</td>
                                 <td class="py-2 pr-4 text-right tabular-nums">{{ $money($controlTotals['accrued']) }}</td>
                                 <td class="py-2 pr-4 text-right">—</td>
@@ -119,8 +119,9 @@
                 </div>
 
                 <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                    Committed is unavailable until procurement is in use — an em dash rather than zero, because zero
-                    would read as nothing being on order.
+                    Committed is what is on order and not yet received, certified or invoiced. Zero means nothing is
+                    on order against that code — a statement this report could not make before procurement existed,
+                    which is why the column used to show an em dash instead.
                 </p>
             </x-filament::section>
         @endif

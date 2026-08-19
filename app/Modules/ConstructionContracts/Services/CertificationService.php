@@ -444,6 +444,29 @@ class CertificationService
         $minimum = (float) ($contract->minimum_certificate_amount ?? 0);
         $due = $certificate->currentDue();
 
+        /*
+         * **Compliance blocks certification, here rather than in a form** — §12.
+         *
+         * A rule enforced only in a Filament form is one that a queue job, a console command or any future API bypasses
+         * in complete silence, and this is the rule that stops a subcontractor being paid for work they had no
+         * insurance to be doing.
+         *
+         * At *certification* rather than at payment, which is §12's argument: blocking payment leaves "an approved
+         * payable in the ledger that finance cannot pay", and that is worse than a refusal because the liability
+         * already exists and the stuck payment has nobody's name on it.
+         *
+         * Judged as at the certificate's valuation date, so a June payment is judged on June's cover.
+         */
+        $blockers = app(ComplianceService::class)->blockers($contract, $certificate->period_end);
+
+        if ($blockers !== [] && $certificate->compliance_override_at === null) {
+            throw new InvalidArgumentException(
+                "{$certificate->certificate_number} cannot be certified: ".implode('; ', $blockers)
+                .'. Either the document is produced, or somebody with the override permission certifies anyway and '
+                .'says why — which is recorded against this certificate.'
+            );
+        }
+
         if ($minimum > 0.0 && $due > 0.0 && $due < $minimum) {
             throw new InvalidArgumentException(
                 'The amount due of '.number_format($due, 2).' is below this contract\'s minimum certificate '
