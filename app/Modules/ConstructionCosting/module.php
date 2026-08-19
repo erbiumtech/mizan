@@ -48,6 +48,7 @@ return [
         'App\\Models\\Trade' => \App\Modules\ConstructionCosting\Models\Trade::class,
         'App\\Models\\Worker' => \App\Modules\ConstructionCosting\Models\Worker::class,
         'App\\Models\\LabourRate' => \App\Modules\ConstructionCosting\Models\LabourRate::class,
+        'App\\Models\\LabourRecord' => \App\Modules\ConstructionCosting\Models\LabourRecord::class,
     ],
 
     'resources' => [
@@ -59,6 +60,7 @@ return [
         'App\\Filament\\Resources\\ConstructionCosting\\WorkerResource' => \App\Modules\ConstructionCosting\Filament\Resources\Workers\WorkerResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\TradeResource' => \App\Modules\ConstructionCosting\Filament\Resources\Trades\TradeResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\LabourRateResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRates\LabourRateResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\LabourRecordResource' => \App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\LabourRecordResource::class,
     ],
 
     'pages' => [
@@ -161,6 +163,20 @@ return [
         ['name' => 'ConstructionLabourView', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionLabourUpdate', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionLabourRateSet', 'group' => 'ConstructionCost'],
+
+        /*
+         * Recording a day's work, and approving it. **Recording is site's**, like a goods receipt: the ganger is the
+         * only person who knows who turned up, and a sheet typed by the office from a note that reached it a week
+         * later is how a day lands on the wrong job. **Approving is what books the money**, and it is also what
+         * freezes the rate the day was costed at (§7.1's snapshot) — so it sits with somebody who reads the sheet
+         * rather than with whoever collected it.
+         *
+         * Reversing booked labour needs no name of its own: `ConstructionCostReverse` already governs backing a
+         * posted entry out of the ledger, which is exactly what a reversal here does — twice, since §7.3's burden is
+         * its own entry.
+         */
+        ['name' => 'ConstructionLabourRecord', 'group' => 'ConstructionCost'],
+        ['name' => 'ConstructionLabourApprove', 'group' => 'ConstructionCost'],
     ],
 
     'role_grants' => [
@@ -181,6 +197,9 @@ return [
             // setting: "who is on site today" and "what are we paying for a mason" are both site questions, and the
             // second one is asked at the moment somebody queries a week's cost.
             'ConstructionLabourView',
+            // **And records the day's work**, which is the second place site staff create in — the same argument as
+            // the requisition and the goods receipt: the ganger is who knows who turned up.
+            'ConstructionLabourRecord',
         ],
         'Accountant' => [
             // The surveyor builds the budget, measures progress and prepares the forecast. Approving it and
@@ -204,6 +223,8 @@ return [
             // to decide — that is `ConstructionLabourRateSet`, below.
             'ConstructionLabourUpdate',
             'ConstructionLabourView',
+            // The commercial side enters site sheets too: on a job with no ganger typing them, the surveyor does it.
+            'ConstructionLabourRecord',
         ],
         // Reversing a posted entry and closing a period are approval-shaped acts, kept away from whoever
         // records the cost — the same segregation of duties the journal-entry powers already keep.
@@ -227,6 +248,9 @@ return [
              * grant is who may make it at all.
              */
             'ConstructionLabourRateSet',
+            // Approving a site sheet books the cost and freezes the rate it was costed at. Kept away from whoever
+            // collected the sheet, which is the same segregation the goods receipt keeps.
+            'ConstructionLabourApprove',
         ],
         // Closing over an unexplained difference between the two ledgers is the one that needs a name on it.
         'CEO' => [
