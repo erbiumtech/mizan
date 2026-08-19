@@ -1,13 +1,25 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 6 complete, and Phase 7a with them (2026-08-19). Phase 7b — labour records, burden and its
-absorption — is next.**
+**Status:** **Phases 0 to 6 complete, and Phase 7a and 7b with them (2026-08-19). Phase 7c — plant items, logs and
+internal hire recovery — is next, then 7d's timesheet import finishes Phase 7.**
 
 Phase 7a built the foundation of §7 in `construction_costing`: trades, the worker register that holds people who are
-not employees, and the dated rate table with §7.2's five-tier ladder — 33 tests. The one thing to carry forward before
-the write-ups is a Laravel behaviour that will catch the next dated table too: **a `date` cast serialises as
-`Y-m-d H:i:s`, so comparing such a column to a `Y-m-d` string in SQL misses the boundary day entirely.** A rate
-effective the first of April did not apply on the first of April. `whereDate()` is the fix and two tests found it.
+not employees, and the dated rate table with §7.2's five-tier ladder — 33 tests. Phase 7b built the site sheet on top
+of it: labour records, the snapshot at approval, and burden as its own entry — 37 tests.
+
+Two things to carry forward before the write-ups.
+
+**A plan contradiction, resolved.** §3.2's enum comment offered burden as an example of `memo` ("deliberately never
+reaches the GL") while §7.3 requires burden charged to jobs to credit Labour Burden Absorbed. §7.3 wins and the
+examples were the error — recorded in full at §7.3, and the comments in `CostEntry` and the costing migration have been
+corrected, because a wrong example in the schema is what a later reader copies.
+
+**A trap this suite has now fallen into three times.** A `date` cast serialises as `Y-m-d H:i:s`, so comparing such a
+column to a `Y-m-d` string in SQL misses the boundary day — and silently differs between SQLite and MySQL. A rate
+effective the first of April did not apply on the first of April. Phase 2 hit it twice and wrote the answer on
+`CostPeriod::scopeStarting()`, whose docblock ends *"anything comparing a date to this column goes through here"*;
+Phase 7a proved that a warning attached to one column does not travel to the next one. **Every new dated column needs
+`whereDate()` from the first query written against it.**
 
 Phase 6 built the payable side in three parts, 94 tests: compliance documents that block certification and an
 override that records who and why (6a, 30 tests — Phase 6's stated exit condition, met ahead of the rest of the
@@ -762,6 +774,24 @@ credit a Labour Burden Absorbed account**, against which the real statutory and 
 through payroll, with the difference showing as over/under absorption on the profit and loss. Charge it
 and never absorb it and job cost exceeds GL cost by exactly the burden, growing every month, with no
 error anywhere — §4 is the only thing that would find it.
+
+> **Resolved 2026-08-19, at the start of Phase 7b, because this section and §3.2 disagreed about `memo`.**
+> §3.2's enum comment offers *"burden at a rate, a notional comparison"* as the examples of `memo` — "it
+> deliberately never will" reach the GL — and the migration and `CostEntry::GL_MEMO` both repeat it, adding
+> internal plant. But this section requires burden to credit Labour Burden Absorbed, and two paragraphs
+> below it requires internal plant to credit Plant Internal Hire Recovery. Both cannot be true.
+>
+> **§7.3 wins, and the examples were the error.** They are the two things §7.3 spends its whole length
+> insisting must post, and §4.2's reconciling-items list already names "internal plant recovery, burden
+> absorbed" — which is the list of things the GL *has* and the job-cost total must be adjusted for. A
+> `memo` burden would not appear in §4.2's `gl_treatment != 'memo'` sum at all, and the divergence this
+> section describes would be exactly what the design produced.
+>
+> So burden and internal plant are **`pending` until Phase 11's posting service runs, then `posted`**.
+> `memo` keeps its meaning and loses its examples: it is for a management figure with no GL side by
+> nature — §3.1's notional tender comparison, and an overhead allocation a company chooses not to post.
+> The comments naming burden and plant have been corrected in `CostEntry` and in the migration, because a
+> wrong example in the schema is what a later reader will copy.
 
 Plant is the same shape and the same trap. `construction_plant_items` (owned, hired, or hired with
 operator; linked to `fixed_assets` when owned) and `construction_plant_logs` (working, idle and standby
@@ -2041,12 +2071,19 @@ document register before the modules that reference drawings.
   > - **An unrecognised scope key is refused rather than ignored.** `['worker' => $id]` instead of `['worker_id' => …]`
   >   would otherwise set a company-wide rate applying to everybody, which is a rate nobody meant and nothing reports.
   >
-  > **The one real bug of the sub-phase is a Laravel behaviour worth knowing before the next dated table.** A `date`
-  > cast serialises through the model's *datetime* format, so `effective_from` is stored as `2026-04-01 00:00:00` — and
+  > **The one real bug of the sub-phase was a repeat, and the repeat is the finding.** A `date` cast serialises through
+  > the model's *datetime* format, so `effective_from` is stored as `2026-04-01 00:00:00` — and
   > `'2026-04-01 00:00:00' <= '2026-04-01'` is false as a string comparison. Every rate therefore failed to apply on
   > the exact day it came into force, which is the day a wage revision is always dated to. `whereDate()` throughout
-  > (`scopeInForceOn`, the overlap check, `revise()`), with the reason on the scope. A grep for the same shape found no
-  > other instance in the suite, and §13's activity dates and §16's diary are the next places it could appear.
+  > (`scopeInForceOn`, the overlap check, `revise()`).
+  >
+  > **Phase 2 had already found this twice and written it down.** `CostPeriod::scopeStarting()` carries the whole
+  > explanation — it "bit four times in one sitting", inserted duplicate periods, and made an entry in a signed-off
+  > month report itself editable — and its docblock ends *"anything comparing a date to this column goes through
+  > here"*. `CostEntry::scopeInPeriod()` and `period()` carry the same note. None of that helped, because **a warning
+  > attached to one column does not travel to the next one**: `construction_labour_rates` was a new table with new
+  > dated columns and the same mistake was available again. A grep across the suite for unfixed instances finds none
+  > now, and §13's activity dates and §16's diary are the next two tables that will offer it.
   >
   > Two notes rather than decisions. `App\Support\EmployeeOptions` gained `labelFor()`: an employee picker on a plain
   > `employee_id` column cannot use `->relationship()`, which would need an `employee()` method on the model and would
@@ -2056,6 +2093,43 @@ document register before the modules that reference drawings.
   > scroll today.
   >
   > `RoleGrantsTest::EXPECTED` moved to 40 / 119 / 148 / 168.
+  >
+  > **7b built 2026-08-19.** — `ConstructionLabourRecordTest` (37 tests). `construction_labour_records`,
+  > `LabourRecordService`, the site-sheet register with its approval queue and its reversal action, and the two cost
+  > entries §7.3 asks for. No new account keys and no `gl_account_id` written — Phase 5's allocation service sets
+  > neither, and §4.1 puts account resolution in §11's posting service where the summary journal is built.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **Approval is the snapshot, and the two are one act.** The rate is resolved as at the **day worked** — a sheet for
+  >   August approved in September is costed at August's rate — and `cost_rate_per_hour`, `overtime_multiplier` and
+  >   `burden_percent` are frozen onto the record with `labour_rate_id` naming the row they came from. Two tests hold
+  >   the line from both directions: a later revision does not restate booked cost, and *editing the rate row the
+  >   snapshot came from* does not either. The second is the one the snapshot alone defends; the dated table cannot.
+  > - **Two entries, and the burden one is `pending`.** Labour and burden against the same job, node and code, the
+  >   second flagged `is_burden`, so labour cost is answerable on its own from one sum and a filter. With no burden set
+  >   anywhere, **no burden entry is written at all** rather than one for zero — a row of 0.00 on every sheet is noise
+  >   that makes the register unreadable and the flag useless.
+  > - **Who owes the GL the labour posting is decided per person, in one method.** An employee's time already reaches
+  >   the books through the payslip, so job cost is a dimension of it and mirrors — posting again would double the
+  >   company's labour cost. Anybody paid outside the payroll has no GL document behind them, so it is `pending` and
+  >   §11 posts it. Guarded on Payroll being licensed, because "the payslip posted it" is only true where there are
+  >   payslips. The figures will not match — rate × hours is not a payslip — and §18.1 already says that gap is
+  >   reported in words rather than balanced.
+  > - **The duplicate-sheet guard is a ceiling, not a uniqueness rule.** Two records for one worker on one day are
+  >   ordinary — morning on formwork, afternoon on steel — so a unique index would refuse the normal case and catch
+  >   nothing. What is never ordinary is a day of more than twenty-four hours, which is what the same sheet entered
+  >   twice looks like. It applies to an edit as well as to a new sheet, or eighty hours typed for eight would be
+  >   refused on creation and accepted on the next save.
+  > - **Engagement is checked from the dates, not the flag.** A sheet for March is entered in April, and `is_active`
+  >   only ever answers about today. A day booked outside somebody's engagement is usually the wrong person.
+  > - **A refusal, never a zero.** With no rate in the ladder, approval is refused and books nothing; the form's
+  >   preview says so in words rather than showing a cost of zero, because zero is what somebody would then approve.
+  >   The quantity on the labour entry is **hours**, so the unit rate reads as cost-per-hour — minutes would report a
+  >   rate nobody prices anything in, which would make §3.1's rate analysis useless on the largest cost on the job.
+  >
+  > No new permission for reversing: `ConstructionCostReverse` already governs backing a posted entry out of the
+  > ledger, which is exactly what this does twice. `RoleGrantsTest::EXPECTED` moved to 41 / 120 / 150 / 170.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both
   plans, material issues and returns, materials on site.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,

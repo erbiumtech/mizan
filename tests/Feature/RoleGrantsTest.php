@@ -159,13 +159,24 @@ class RoleGrantsTest extends AccountingTestCase
      *
      * Manager and CEO therefore gain **three**: the Accountant's two plus the rate grant.
      *
+     * Phase 7b, two more: **`ConstructionLabourRecord` on Employee and Accountant** — recording a day's work is
+     * site's, the same argument as the requisition and the goods receipt, because the ganger is the only person who
+     * knows who turned up; and **`ConstructionLabourApprove` on Manager**, because approving is what books the cost and
+     * freezes the rate the day was costed at. So Employee +1, Accountant +1, Manager +2 (the inherited record grant
+     * plus its own approve), CEO +2.
+     *
+     * **Reversing booked labour gained no name**, and that is the decision worth recording: `ConstructionCostReverse`
+     * already governs backing a posted entry out of the ledger, and a labour reversal is exactly that — twice, since
+     * §7.3's burden is its own entry. A fifth labour permission would have been a fifth row in every role form for a
+     * decision somebody already holds.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 40,
-        'Accountant' => 119,
-        'Manager' => 148,
-        'CEO' => 168,
+        'Employee' => 41,
+        'Accountant' => 120,
+        'Manager' => 150,
+        'CEO' => 170,
     ];
 
     protected function setUp(): void
