@@ -108,7 +108,59 @@ class InventoryValuationService
         return $this->consumeLots($product, $quantity, $at);
     }
 
+    /**
+     * Consume stock and report **which lots it came from**, at what quantity and cost.
+     *
+     * `costOfSale()` returns one number, which is all a sale needs. A construction material issue needs more: §6 puts
+     * a FIFO unit cost on the issue line, and the cost has to be traced back to the lot — because the lot knows the
+     * goods receipt it arrived on, and that receipt knows the cost code the material was booked to. Without that, an
+     * issue cannot reclassify cost from the code it was received at to the code it was used on.
+     *
+     * The FIFO ordering is the same code as `costOfSale()`, and deliberately so: two implementations of lot
+     * consumption is two answers to "what did this cost", and the second one is always the one nobody tested.
+     *
+     * Average-cost products get one synthetic row with a null lot — there are no layers to name, and pretending
+     * otherwise would invent a provenance the method cannot support.
+     *
+     * @return array<int, array{lot: ?\App\Modules\Inventory\Models\StockMovement, quantity: float, cost: float}>
+     */
+    public function consume(Product $product, float $quantity, StockLocation|int|string|null $at = null): array
+    {
+        if ($quantity <= 0) {
+            throw new InvalidArgumentException('Quantity must be positive.');
+        }
+
+        $onHand = $this->onHand($product, $at);
+
+        if ($quantity > $onHand + 0.001) {
+            throw new InvalidArgumentException(
+                "Insufficient stock for {$product->sku}: on hand ".$onHand.", requested {$quantity}."
+                .($at === null ? '' : ' at that location.')
+            );
+        }
+
+        if ($product->valuation_method === Product::METHOD_AVERAGE) {
+            return [[
+                'lot' => null,
+                'quantity' => round($quantity, 2),
+                'cost' => round($this->averageCost($product, $at) * $quantity, 2),
+            ]];
+        }
+
+        return $this->takeLots($product, $quantity, $at);
+    }
+
     protected function consumeLots(Product $product, float $quantity, StockLocation|int|string|null $at = null): float
+    {
+        return round(array_sum(array_column($this->takeLots($product, $quantity, $at), 'cost')), 2);
+    }
+
+    /**
+     * The FIFO / LIFO walk itself, in one place.
+     *
+     * @return array<int, array{lot: \App\Modules\Inventory\Models\StockMovement, quantity: float, cost: float}>
+     */
+    protected function takeLots(Product $product, float $quantity, StockLocation|int|string|null $at = null): array
     {
         $lots = $this->movements($product, $at)
             ->where('quantity', '>', 0)
@@ -119,7 +171,7 @@ class InventoryValuationService
             ->get();
 
         $remaining = $quantity;
-        $cost = 0.0;
+        $taken = [];
 
         foreach ($lots as $lot) {
             if ($remaining <= 0) {
@@ -127,8 +179,13 @@ class InventoryValuationService
             }
 
             $take = min((float) $lot->remaining_quantity, $remaining);
-            $cost += $take * (float) $lot->unit_cost;
             $remaining -= $take;
+
+            $taken[] = [
+                'lot' => $lot,
+                'quantity' => round($take, 2),
+                'cost' => round($take * (float) $lot->unit_cost, 2),
+            ];
 
             $lot->update(['remaining_quantity' => round((float) $lot->remaining_quantity - $take, 2)]);
         }
@@ -139,7 +196,7 @@ class InventoryValuationService
             );
         }
 
-        return round($cost, 2);
+        return $taken;
     }
 
     /**
