@@ -128,7 +128,8 @@ return [
      * The spine, the cost ledger and contracts, which is what Phases 1 to 4 build. The remaining two modules
      * join this list as their phases land, so a profile never licenses a key whose tables do not exist. Closed
      * under `requires` — the spine requires nothing, `construction_costing` requires `construction` and
-     * `accounting`, and `construction_contracts` requires only `construction`: a payment certificate is a
+     * `accounting`, and `construction_contracts` and `construction_field` require only `construction`: a payment
+     * certificate is a
      * contractual instrument rather than a step towards an invoice, so Invoicing is guarded, not required
      * (§18). It is in this list anyway because a contractor bills.
      *
@@ -144,7 +145,7 @@ return [
         // which would drag a software-delivery module with environment health checks into a contractor's
         // licence set, and §18.1 already has timesheets as *guarded* — importing timesheet entries as labour
         // records — rather than profiled. Site sheets are the primary labour path anyway (§7).
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts', 'construction_field'],
         // The construction accounts on top of the business baseline (§18.2): a separate seeder rather than a dozen
         // rows added to every bookkeeping company's chart, which is what the profile mechanism is for.
         'seeders' => [...$businessWithLeave, ConstructionAccountsSeeder::class],

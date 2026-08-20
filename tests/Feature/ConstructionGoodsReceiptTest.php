@@ -420,6 +420,83 @@ class ConstructionGoodsReceiptTest extends AccountingTestCase
         $this->receipts->post($receipt->refresh());
     }
 
+    /**
+     * **A lump-sum order line still prices its delivery.**
+     *
+     * A commitment line may carry a quantity and a lump sum with no rate — "20 t, 5,000,000 all in" — which is an
+     * ordinary way to place an order. Copying that null rate straight through left the receipt line's own `amount` at
+     * zero, because its saving hook only computes one when a rate is present: **the delivery cost the job nothing at
+     * all**, and Phase 8a then stocked the lot at nil value on top. The rate the lump sum implies is used instead.
+     *
+     * An order line with neither a rate nor a quantity has no basis at all, and nothing is invented for it — the
+     * store-line refusal below is what catches that case.
+     */
+    public function test_a_lump_sum_order_line_still_prices_the_delivery(): void
+    {
+        $order = $this->commitments->create();
+        // Quantity and a lump sum, no rate — "20 t, 5,000,000 all in", which is how an order is often placed.
+        $this->commitments->addLine($order, $this->job, $this->material, [
+            'description' => 'Rebar, lump sum', 'quantity' => 20, 'amount' => 5_000_000,
+        ]);
+        $this->commitments->approve($order->refresh());
+        $this->commitments->issue($order->refresh());
+
+        $receipt = $this->receipts->create($order->refresh());
+        $line = $this->receipts->addLineFor($receipt, $order->lines()->firstOrFail(), 20);
+        $this->receipts->post($receipt->refresh());
+
+        $this->assertEquals(250_000, $line->refresh()->unit_rate, '5,000,000 over 20');
+        $this->assertEquals(5_000_000, $line->amount);
+        $this->assertSame(5_000_000.0, app(CostLedger::class)->totalFor($this->job));
+    }
+
+    /** And a part delivery off that lump sum is pro-rata rather than the whole order. */
+    public function test_a_part_delivery_off_a_lump_sum_is_pro_rata(): void
+    {
+        $order = $this->commitments->create();
+        $this->commitments->addLine($order, $this->job, $this->material, [
+            'description' => 'Rebar, lump sum', 'quantity' => 20, 'amount' => 5_000_000,
+        ]);
+        $this->commitments->approve($order->refresh());
+        $this->commitments->issue($order->refresh());
+
+        $receipt = $this->receipts->create($order->refresh());
+        $this->receipts->addLineFor($receipt, $order->lines()->firstOrFail(), 8);
+        $this->receipts->post($receipt->refresh());
+
+        $this->assertSame(2_000_000.0, app(CostLedger::class)->totalFor($this->job));
+    }
+
+    /**
+     * A store line with no value at all is refused rather than stocked at nothing.
+     *
+     * Materials on site would otherwise read as zero while the store was full — of the two wrong answers available,
+     * that is the worse one, because a full store reporting nothing looks like a store that has been emptied.
+     */
+    public function test_a_store_line_with_no_value_is_refused(): void
+    {
+        $this->job->update(['stock_location_id' => $this->siteStore()->getKey()]);
+
+        $order = $this->commitments->create();
+        // No rate and no quantity on the order line, so nothing implies a rate either.
+        $this->commitments->addLine($order, $this->job, $this->material, [
+            'description' => 'Rebar, unpriced', 'amount' => 0,
+        ]);
+        $this->commitments->approve($order->refresh());
+        $this->commitments->issue($order->refresh());
+
+        $receipt = $this->receipts->create($order->refresh());
+        $this->receipts->addLineFor($receipt, $order->lines()->firstOrFail(), 20, [
+            'destination' => GoodsReceiptLine::DESTINATION_STORE,
+            'product_id' => $this->storedProduct()->getKey(),
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('has no value');
+
+        $this->receipts->post($receipt->refresh());
+    }
+
     /** A site store for the fixtures, and a product to put in it. */
     private function siteStore(): StockLocation
     {

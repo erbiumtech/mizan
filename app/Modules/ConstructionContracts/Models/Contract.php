@@ -81,6 +81,9 @@ class Contract extends Model
         'advance_payment_amount', 'advance_recovery_start_pct', 'advance_recovery_rate_pct',
         'liquidated_damages_per_day', 'liquidated_damages_cap_pct',
         'payment_terms_days', 'certification_period_days', 'minimum_certificate_amount',
+        // The notice period for a delay event (§13), added with construction Phase 9a. A contract term like the two
+        // above it: FIDIC 20.1's 28 days, NEC4's eight weeks, a bespoke subcontract's seven.
+        'delay_notice_days',
         'contract_date', 'commencement_date', 'time_for_completion_days', 'contract_completion_date',
         'extended_completion_date', 'practical_completion_date', 'defects_period_days',
         'final_completion_date', 'status',
@@ -97,6 +100,7 @@ class Contract extends Model
         'defects_period_days' => 'integer',
         'payment_terms_days' => 'integer',
         'certification_period_days' => 'integer',
+        'delay_notice_days' => 'integer',
     ];
 
     protected $attributes = [

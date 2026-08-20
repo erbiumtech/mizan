@@ -310,8 +310,10 @@ class ConstructionRetentionTest extends AccountingTestCase
         $schedule = $this->retention->schedule($this->contract->refresh());
 
         $this->assertSame(1_000_000.0, $schedule[0]['amount'], 'the whole balance, holdback zero');
+        // Stated whatever is licensed: Phase 9a licensed `construction_field` for the notice clock while punch
+        // lists remain unbuilt, so a module-licence guard here would have silenced the reason and left a bare zero.
         $this->assertStringContainsString('unknown rather than nil', $schedule[0]['note']);
-        $this->assertStringContainsString('site operations module', $schedule[0]['note']);
+        $this->assertStringContainsString('not recorded yet', $schedule[0]['note']);
     }
 
     // ------------------------------------------------------------------ decisions

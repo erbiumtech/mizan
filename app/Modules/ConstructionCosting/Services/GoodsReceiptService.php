@@ -107,7 +107,16 @@ class GoodsReceiptService
             'description' => $orderLine->description,
             'quantity' => $quantity,
             'unit_of_measure' => $orderLine->unit_of_measure,
-            'unit_rate' => $orderLine->rate,
+            /*
+             * The order's rate, or the rate its lump sum implies.
+             *
+             * A commitment line may carry an `amount` with no `quantity` and no `rate` — a lump-sum order, which is
+             * ordinary. Copying a null rate straight through left the receipt line with `amount` 0, because the line's
+             * own saving hook only computes it when a rate is present: **the delivery then cost the job nothing at
+             * all.** Phase 8a made it worse by stocking the lot at nil value as well. Deriving the rate keeps a
+             * lump-sum order priceable and a part delivery pro-rata.
+             */
+            'unit_rate' => $orderLine->rate ?? $this->impliedRate($orderLine),
         ]);
     }
 
@@ -271,6 +280,15 @@ class GoodsReceiptService
             );
         }
 
+        if ($this->lotCost($line) <= 0.0) {
+            throw new RuntimeException(
+                "\"{$line->description}\" is destined for a site store but has no value — no rate and no amount to "
+                .'imply one. Stocking it would put material on hand at nil cost, so materials on site would read as '
+                .'nothing while the store was full, which is the worst of the two wrong answers. Price the line, or '
+                .'receive it as direct to site.'
+            );
+        }
+
         if ($line->job?->stock_location_id === null) {
             throw new RuntimeException(
                 "\"{$line->description}\" is destined for a site store, but "
@@ -290,6 +308,38 @@ class GoodsReceiptService
      * has already reached the job as the accrual beside this call. §6 draws the line in the same place: "the module owns
      * the document, Inventory owns the movement", which is what `InvoiceService::recordMovement()` does today.
      */
+    /**
+     * The rate a lump-sum order line implies, where it states no rate of its own.
+     *
+     * Null when the order line has no quantity either — there is then no basis at all, and inventing one would put a
+     * number on a delivery nobody priced. `guardStoreLine()` refuses to stock that; a direct-to-site line records the
+     * quantity with no value, which is what it has always done.
+     */
+    /**
+     * What one unit of this line costs, for the lot.
+     *
+     * The rate where there is one, and what the line's own amount implies where there is not — a line can be entered
+     * with a value and no rate, and a lot valued at nothing is materials on site reading as zero while the store is
+     * full.
+     */
+    private function lotCost(GoodsReceiptLine $line): float
+    {
+        if ((float) ($line->unit_rate ?? 0) > 0.0) {
+            return (float) $line->unit_rate;
+        }
+
+        $quantity = (float) ($line->quantity ?? 0);
+
+        return $quantity > 0.0 ? round((float) $line->amount / $quantity, 4) : 0.0;
+    }
+
+    private function impliedRate(CommitmentLine $orderLine): ?float
+    {
+        $quantity = (float) ($orderLine->quantity ?? 0);
+
+        return $quantity > 0.0 ? round((float) $orderLine->amount / $quantity, 4) : null;
+    }
+
     private function stockLine(GoodsReceiptLine $line, string $on, ?string $receiptReference): void
     {
         StockMovement::create([
@@ -297,7 +347,7 @@ class GoodsReceiptService
             'stock_location_id' => $line->job->stock_location_id,
             'type' => 'purchase',
             'quantity' => (float) $line->quantity,
-            'unit_cost' => (float) $line->unit_rate,
+            'unit_cost' => $this->lotCost($line),
             // The whole quantity is unconsumed on arrival, which is what lets an issue take it at FIFO cost later.
             'remaining_quantity' => (float) $line->quantity,
             'movement_date' => $on,

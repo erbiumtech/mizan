@@ -1,7 +1,24 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete (2026-08-19). Phase 9 — `construction_field`: the site diary, RFIs, submittals,
-punch lists, the programme and delay events — is next.**
+**Status:** **Phases 0 to 8 complete, and Phase 9a and 9b with them (2026-08-20). Phase 9c — the diary's deliveries and
+photos — is next; RFIs, submittals, punch lists, activities and the P6 import follow.**
+
+Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
+notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
+the one to keep in mind for the rest of the phase: *"A due-date with a notification attached is worth more commercially
+than the entire programme: a valid claim lost to a missed notice is the single most common way a contractor donates
+money, and it fails in absolute silence."* Every other failure in this suite leaves a wrong figure somewhere a report can
+find. This one leaves nothing at all.
+
+Phase 9b built the site diary and three of its five children — 28 tests — and the two rules that make a diary evidence
+rather than a note: **one entry per job per day**, where §16.1 calls the constraint the feature, and **approval locks
+the row**, because "an editable site diary is not evidence". The lock reaches the manpower, plant and events, which is
+where the numbers a claim is built from live.
+
+The join between the two sub-phases is the thing to carry forward: **a diary event that cost time and has no delay
+event behind it is the exposure**, and it is now a query rather than somebody's memory. The diary is where such an
+event is written down on the day; §13's clock is what is running against it. The events tab raises the delay event in
+one action, dated the day the thing happened rather than the day somebody noticed.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2355,10 +2372,129 @@ document register before the modules that reference drawings.
   > `construction_contracts` reaches only the sibling it already reaches for Phase 6c's commitment relief, and
   > `KNOWN_COUPLINGS` is unchanged. Absent rather than zero in all three cases that have nothing to say: no cost
   > module, no Inventory, or a job with no store.
+  >
+  > **Two bugs found by reviewing Phase 8 before moving on, both fixed with tests.**
+  >
+  > - **An unwind read its own previous output.** `MaterialIssueService::unwindReclass()` finds the posting entries by
+  >   "negative, kind reclass, this line" — but an unwind writes a pair of its own, and its negative half sits on the
+  >   code the material was *issued* to, which matches that filter exactly. A **second** partial return therefore read
+  >   its predecessor's row and wrote two more that netted to zero on one code: the totals stayed correct and the cost
+  >   report filled with precisely the noise `reclassify()` refuses to write. Posting never puts a negative on the
+  >   issue's own code, so `cost_code_id != $line->cost_code_id` separates the two exactly. Worth remembering as a
+  >   shape: **a query that finds "what to reverse" will find its own reversals unless something distinguishes them.**
+  > - **A lump-sum order line priced its delivery at nothing**, and this one predates Phase 8 — it has been there since
+  >   Phase 5c. `GoodsReceiptService::addLineFor()` copied the order line's `rate` straight through; where an order was
+  >   placed as a quantity and a lump sum with no rate, the receipt line's own saving hook then left `amount` at zero,
+  >   because it only computes one when a rate is present. **The delivery cost the job nothing at all.** Phase 8a made
+  >   it worse by stocking the lot at nil value on top, so a full store reported no materials on site. The receipt now
+  >   uses the rate the lump sum implies, a part delivery is pro-rata, and a store line with no value at all is refused
+  >   rather than stocked — of the two wrong answers, a full store reporting nothing is the worse one.
+  >
+  > The second is the more useful find, because nothing in Phase 5c's own tests could have caught it: every order in
+  > them carries a rate. **A field that is optional in one table and required by a hook in the next is a hole no test
+  > of either table alone will find.**
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,
   punch lists, activities, delay events, and the P6 and MS Project import. **Ends with:** the delay-event
   notice clock and its notification live before anything else in the phase, because it is the piece that
   pays for the rest.
+
+  > **9a built 2026-08-20 — the exit condition is met first, as this phase asks.** — `ConstructionDelayEventTest`
+  > (34 tests). The `construction_field` module end to end — registry entry, provider, plugin, console route —
+  > plus `construction_delay_events`, `construction_contracts.delay_notice_days`, `DelayEventService`,
+  > `construction:check-delay-notices` with `DelayNoticeDue`, and the register built around the clock.
+  >
+  > Seven decisions worth carrying forward:
+  >
+  > - **The due date is stored and time-barred is computed**, which looks inconsistent and is not. The date is a
+  >   snapshot of a contractual period as it stood when the event was raised — §8's certificate reasoning, and it means
+  >   editing the contract's period next month cannot move a deadline somebody has already been emailed about. Whether
+  >   the bar has fallen is derived from the dates against the date being asked, which is §12's rule for compliance.
+  >   `notice_days` is stored beside the date so it can be explained rather than merely trusted.
+  > - **The notice period is read without naming `Contract`.** `construction_field` requires only `construction`, so
+  >   the service reads one integer out of `construction_contracts` with a query builder and the form's picker does the
+  >   same. A model would have bought nothing and cost the boundary — `KNOWN_COUPLINGS` is unchanged, and a test
+  >   licenses only the spine and this module to prove the claim structural rather than declared.
+  > - **A late notice is recorded, never refused.** Whether lateness bars a claim turns on prejudice, waiver or the
+  >   certifier's discretion, so refusing the entry would delete the only evidence of what happened. The row says the
+  >   notice was late; `isTimeBarred()` says nothing about it, and `noticeWasLate()` states the fact instead.
+  > - **The warning fires once per threshold, tightening as the date approaches** — 14, 7, 3, 1, 0, then once when the
+  >   date passes. Mailed to whoever holds `ConstructionDelayUpdate` rather than whoever determines claims: the second
+  >   group can do nothing with it, which is the same call `CheckComplianceExpiry` makes. **And the mail says what will
+  >   be lost, not that a date is approaching** — where nothing has been quantified yet, which is usual this early, it
+  >   says the whole entitlement goes, because that is worse rather than vaguer.
+  > - **Awarding more than was claimed is refused.** A determination answers a claim; sixty days against a claim for
+  >   thirty is a different event that nobody has notified. **Awarding nothing is recorded as a rejection**, because a
+  >   "determined" event showing zero days reads as an oversight to whoever finds it next year.
+  > - **Concurrency is a column and never an opinion.** §13 calls it "the whole argument in most extension-of-time
+  >   disputes", so the schema can express it — and what it *means* for entitlement depends on the contract and the
+  >   jurisdiction, so nothing in code decides it.
+  > - **Site staff can raise events**, the third create grant they hold in this suite after the requisition, the goods
+  >   receipt and the site sheet. The clock only works if events are raised early and often, and the people who watch
+  >   an access being blocked are on site. `ConstructionDelayDetermine` is Manager's, kept away from whoever raised the
+  >   claim.
+  >
+  > **Two mistakes worth recording, both caught by tests rather than by reading.**
+  >
+  > - **The warning ladder was read in the wrong direction.** `WARNING_THRESHOLDS` is declared descending for
+  >   readability, and iterating it in that order returns the *loosest* threshold reached — five days out would report
+  >   14, a warning already sent, and the seven-day one would never fire at all. It is now walked reversed, with the
+  >   reason on the method. **A constant ordered for a human reader is not ordered for the loop that consumes it.**
+  > - **The new contract column was not in `$fillable`**, so `delay_notice_days` could be migrated, formed and
+  >   documented and still never persist — every event silently fell back to the 28-day default. Worth remembering as a
+  >   shape: **a column added from another module's migration has a second home to be registered in, and nothing fails
+  >   loudly when it is not.**
+  >
+  > **And one bug 9a caused elsewhere, which is the more interesting of the three.** `RetentionService::aiaSchedule()`
+  > took the AIA punch-list holdback as zero and attached a note explaining why — guarded on
+  > `modules()->enabled('construction_field')`, on the assumption that the module and the punch list would arrive
+  > together. **9a licensed the module for the notice clock and left punch lists to a later sub-phase**, so the guard
+  > began answering "the module is here" while the question it actually asks is "is there an open punch value to read":
+  > a licensed company got a zero holdback with no reason attached. That is exactly the healthy-looking figure hiding an
+  > absence which §18.1 names as one of its two exceptions, and §18.1's own row for `construction_field` promises the
+  > opposite — "the holdback is zero **with the reason on the movement**". The note is now unconditional until
+  > `construction_punch_items` exists. Worth remembering as a shape: **a module-licence guard is a proxy for "does this
+  > data exist", and the two come apart the moment a module ships in sub-phases.**
+  >
+  > `construction_field` also had to join the construction company profile — `CompanyProfileTest` fails a module no
+  > profile licenses, which is the check working. `RoleGrantsTest::EXPECTED` moved to 46 / 126 / 158 / 178.
+  >
+  > **9b built 2026-08-20.** — `ConstructionDailyLogTest` (28 tests). `construction_daily_logs` and three children —
+  > manpower, plant and events — with `DailyLogService`, the register and its three tabs.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The unique index is the feature, and the service refuses ahead of it with a sentence.** A constraint violation
+  >   on a site foreman's screen is not an explanation, and "open the existing one and add to it" is the only useful
+  >   thing to say.
+  > - **The lock reaches the children.** Approval that stopped at the header would protect the weather prose and leave
+  >   the man-hours and plant hours editable — which is the half a claim is built from. A test attempts all three.
+  > - **Reopening exists, with an author and a reason, and clears the approval.** Refusing outright would leave a wrong
+  >   signed diary wrong for ever, and a company in that position keeps its real diary in a notebook. Clearing the
+  >   approval means the day must be signed off again rather than carrying one that predates the change.
+  > - **`workable` is the default, deliberately.** A default of `stopped` would make every unfilled diary read as a
+  >   claim.
+  > - **Plant stays in three columns and the trade in two fields.** Working / idle / breakdown because §16.1 says one
+  >   combined column loses the standing-time claim entirely, and breakdown is the contractor's own risk where idle is
+  >   not. Idle with no reason is flagged, because that is the hour nobody recovers.
+  > - **Exposure hours read approved diaries only** — §17.6's "denominator nobody has". A rate computed from drafts
+  >   would move every time somebody edited one, and a safety rate that moves is one nobody trusts. This is the figure
+  >   §17 cannot exist without, delivered a phase early because the diary is where it comes from.
+  >
+  > **The trade and the machine are read without naming `Trade` or `PlantItem`.** Both live in `construction_costing`
+  > and this module requires only `construction`, so the pickers query `construction_trades` and
+  > `construction_plant_items` directly and snapshot a label onto the row — which also means a diary still reads
+  > correctly if the trade is renamed or the cost module is later switched off. `KNOWN_COUPLINGS` gains only
+  > `construction_field -> invoicing`, for the company that supplied the men, hidden without Invoicing with a free-text
+  > name carrying it: **a diary must never be unfillable because of a licence.**
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 48 / 128 / 161 / 181.
+  >
+  > **What 9c has to decide, written down now.** §16.1's delivery child carries `is_materials_on_site`, which it calls
+  > "the link that makes G703's *materials presently stored* column defensible rather than asserted" — and Phase 8c
+  > already computes that figure from stock. **Two sources for one number is the trap this suite refuses everywhere
+  > else**, so 9c owes a decision rather than a table: either the diary's flag is evidence *for* the stock figure, or
+  > the stock figure is the authority and the diary line is a cross-check that can disagree visibly. Photos are the
+  > other child, and they need the ISO 19650 register's *promote* action rather than a second document store.
 - **Phase 10 — QHSE.** `construction_qhse`: ITPs and inspections with real hold-point release, NCRs with
   CAPA and close-out, the one actions table, incidents, permits, toolbox talks, the induction register
   and the indicators. **Ends with:** an NCR that proposes a deduction and never applies one, and a safety
