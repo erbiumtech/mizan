@@ -126,6 +126,67 @@
             </x-filament::section>
         @endif
 
+        {{-- Materials on site — §6: delivered, costed, not yet consumed. On this page because it is the part of
+             `actual` that has not been used yet: a code showing 5,000,000 spent where 3,000,000 is still stacked by
+             the gate looks further through its budget than the work is, and nothing else here would say so. --}}
+        @if ($this->keepsAStore())
+            @php($onSite = $this->materialsOnSite())
+
+            <x-filament::section heading="Materials on site">
+                @if ($onSite === [])
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Nothing in the store. Everything delivered has been issued to the work face, which is the
+                        state a store should mostly be in.
+                    </p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="text-left text-gray-500 dark:text-gray-400">
+                                <tr class="border-b border-gray-200 dark:border-white/10">
+                                    <th class="py-2 pr-4">Received against</th>
+                                    <th class="py-2 pr-4 text-right">Quantity</th>
+                                    <th class="py-2 text-right">At cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($onSite as $row)
+                                    <tr class="border-b border-gray-100 dark:border-white/5">
+                                        <td class="py-2 pr-4">
+                                            @if ($row['code'])
+                                                {{ $row['code']->code }} — {{ $row['code']->name }}
+                                            @else
+                                                {{-- Shown rather than dropped or folded into a code: §6's failure is a
+                                                     figure right in total and wrong in every breakdown. --}}
+                                                <span class="text-gray-500 dark:text-gray-400">
+                                                    Not traceable to a delivery
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="py-2 pr-4 text-right tabular-nums">{{ $row['quantity'] }}</td>
+                                        <td class="py-2 text-right tabular-nums">{{ $money($row['value']) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-gray-300 font-semibold dark:border-white/20">
+                                    <td class="py-2 pr-4" colspan="2">On site</td>
+                                    <td class="py-2 text-right tabular-nums">
+                                        {{ $money($this->materialsOnSiteValue()) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                        Still in the store, so still sitting on the code it was received against — an issue is what
+                        moves it to the code the material was used on. This is what it cost, not what may be claimed
+                        for it on a certificate.
+                    </p>
+                @endif
+            </x-filament::section>
+        @endif
+
         @if ($rows !== [])
             <x-filament::section heading="By cost type">
                 <div class="flex flex-wrap gap-3">

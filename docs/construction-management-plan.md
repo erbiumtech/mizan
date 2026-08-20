@@ -1,7 +1,27 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 7 complete (2026-08-19). Phase 8 — materials, `stock_locations` in Inventory and the
-movement-type enum — is next.**
+**Status:** **Phases 0 to 8 complete (2026-08-19). Phase 9 — `construction_field`: the site diary, RFIs, submittals,
+punch lists, the programme and delay events — is next.**
+
+Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
+note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
+enum expanded once for both plans, a location-aware valuation API, and the site-store path on a goods receipt that
+Phase 5c had to refuse — 16 tests in `StockLocationTest` plus 3 in the receipt file. `docs/retail-stores-pos-plan.md`
+has been updated in the same breath: its Phase 2 is now smaller and its Phase 0 note says exactly what not to build
+again, which is the follow-through §6 says two plans usually fail to do.
+
+Phase 8c closed §6 with materials on site — 16 tests — and it is where the shape of §6 pays off: the figure is
+`remaining_quantity` on the lots at a job's store, so **receipt puts material on site and issue takes it off, and
+nothing re-derives received-minus-issued by hand.** It appears on the cost report as the part of `actual` that has not
+been used yet, and on the payment certificate as **evidence beside the materials claim rather than as the claim** — what
+is claimed is a contractual assessment at contract rates, and conflating the two would tell a certifier their
+assessment had been made for them.
+
+Phase 8b built the issue document — 28 tests — and **the rule that carries it is that posting an issue does not change
+the job's total cost.** §6 makes materials on site "delivered, costed, not yet consumed", so the *receipt* is what
+costs the material; an issue reclassifies it out of the code it arrived on and on to the code it was used on, as
+`reclass` entries that sum to zero. Charging on issue as well would charge every stocked delivery twice, and both
+figures would look like material cost on the same job with nothing to disagree with either.
 
 Phase 7 built §7 in `construction_costing` in four parts, 129 tests: trades, the worker register that holds people who
 are not employees, and the dated rate table with §7.2's five-tier ladder (7a, 33 tests); the site sheet, the snapshot at
@@ -2223,6 +2243,118 @@ document register before the modules that reference drawings.
   > timesheets` only, in both lists, and the graph stays acyclic.
 - **Phase 8 — Materials.** `stock_locations` in Inventory, the movement-type enum expanded once for both
   plans, material issues and returns, materials on site.
+
+  > **8a built 2026-08-19.** — `StockLocationTest` (16 tests), plus 3 in `ConstructionGoodsReceiptTest` for the
+  > store path. `stock_locations` and `stock_movements.stock_location_id` in Inventory,
+  > `construction_jobs.stock_location_id` here, the enum expanded once, `InventoryValuationService` and
+  > `InventoryService` taking a location, and `GoodsReceiptService`'s store path built where Phase 5c refused it.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The table is Inventory's, and that is the whole point.** Either plan building its own would have made the
+  >   other depend on it or invent a second nullable location column — §6's "wrong at every location and correct in
+  >   total, which is the hardest class of wrong to notice". A test asserts `stock_movements` has exactly one location
+  >   column and no `store_id`, because the wrong version of this is a column somebody adds in good faith.
+  > - **The FIFO lots are scoped to the location, and that is the half that would have been quietly wrong.** Scoping
+  >   `onHand()` alone is the obvious change; leaving `costOfSale()` unscoped would let an issue on site consume the
+  >   cheapest lot in a warehouse forty miles away, and both locations' valuations would drift with nothing
+  >   disagreeing. The sufficiency check is scoped with it, or an issue could be priced out of stock somewhere else.
+  > - **`null` means "not tracked by location", never "unknown".** The retail plan's original shape was
+  >   nullable → backfilled → **non-null**; it is left nullable, because the constraint would have to hold for every
+  >   historical row in every tenant and every future caller including imports, and `InvoiceService` has no location
+  >   to give it until `stores` exists. `onHandByLocation()` therefore reports unlocated stock as its own row rather
+  >   than folding it into a location — the fold is how a report produces §6's failure.
+  > - **The backfill runs only where movements exist.** A fresh tenant getting a phantom "Main store" is a row
+  >   somebody has to work out the meaning of, and a contractor who buys everything direct to site should have no
+  >   locations at all. Where there *is* history it has to land somewhere, or every per-location figure understates
+  >   while the total stays right.
+  > - **Phase 5c's blanket refusal became three specific ones.** A store-destined receipt line needs Inventory, a
+  >   product, and a store on the job; each absence names itself and what to do instead. It is still a refusal rather
+  >   than a quiet fallback to direct, for the reason Phase 5c gave and which has not stopped being true.
+  > - **The store movement is written directly, not through `InventoryService::purchase()`.** That method posts debit
+  >   Inventory / credit Cash, which is wrong twice here: the money is owed to a supplier rather than paid, and the
+  >   cost has already reached the job as the accrual beside it. §6 draws the same line — "the module owns the
+  >   document, Inventory owns the movement" — and `InvoiceService::recordMovement()` is the existing precedent.
+  >
+  > `StockLocation` rides on `ProductView`/`ProductUpdate` rather than gaining permissions of its own: a location is
+  > part of the same answer as a product — what stock, and where — maintained by the same person in the same sitting,
+  > so `RoleGrantsTest::EXPECTED` is untouched. `KNOWN_COUPLINGS` gains `construction -> inventory` (the job's store
+  > picker) and `construction_costing -> inventory` (the receipt's movement), both guarded, and the graph stays
+  > acyclic.
+  >
+  > **What 8b has to decide, written down now because it is the one place a double-count could hide.** A store
+  > receipt costs the job *and* stocks the material. §6 says materials-on-site is "delivered, costed, not yet
+  > consumed… and it is one query", so the receipt is what costs it — which means an issue must **not** cost it
+  > again. The issue's FIFO unit cost is for reclassifying between cost codes (`CostEntry::KIND_RECLASS` exists for
+  > exactly this) and for valuing wastage, never for adding cost. Getting that backwards would charge every stocked
+  > delivery twice, and both figures would look like material cost on the same job.
+  >
+  > **8b built 2026-08-19.** — `ConstructionMaterialIssueTest` (28 tests). `construction_material_issues` and its
+  > lines, `MaterialIssueService`, the docket register with its lines tab, and
+  > `InventoryValuationService::consume()` — the one thing Inventory had to grow for this.
+  >
+  > Seven decisions worth carrying forward:
+  >
+  > - **Posting adds no cost, and every other rule follows from it.** The reclass pair sums to zero and the tests
+  >   assert the job's total is unchanged by an issue, by a return, and after a reversal. That assertion is the
+  >   deliverable; everything else is how it is achieved.
+  > - **The reclass follows the FIFO lots, which is why `consume()` had to exist.** `costOfSale()` returns one
+  >   number, which is all a sale needs; an issue needs to know *which lots* it took, because a lot names the goods
+  >   receipt it arrived on and that receipt names the cost code. Without that chain an issue would have to guess
+  >   where the cost currently sits. `consume()` and `costOfSale()` share one FIFO walk — two implementations of lot
+  >   consumption is two answers to "what did this cost", and the second is always the untested one.
+  > - **The split is per received code, not per docket.** Two deliveries at two codes, consumed by one issue, produce
+  >   two reclass pairs. A single blended pair would take cost off a code that never carried it.
+  > - **A reclass across cost types is refused**, and that refusal is load-bearing rather than fussy: keeping the pair
+  >   inside one cost type keeps it inside one job-cost account, which is what makes "sums to zero" true in the
+  >   general ledger as well as in the job — and that is what lets the pair be `memo` honestly. It is also a real
+  >   business rule: material has not become labour by being carried to the work face.
+  > - **Where the code is unchanged, nothing is written at all.** Two rows netting to zero on one code are noise on a
+  >   report people have to read, and they would double the length of every cost code's history for no information.
+  > - **Wastage is its own `waste` movement**, which is the use §6 added that enum value for: "what did we waste" is a
+  >   query on a type rather than a column somebody has to remember to subtract. It stays on the job — the company
+  >   paid for it — and it is reclassified with the rest, because it was wasted *on that activity*.
+  > - **A return goes back at the cost it left at**, against the line it went out on. Revaluing it at today's FIFO
+  >   would make a return a way of changing the value of stock without buying anything, and a separate return document
+  >   would be a second numbering series for the reversal of a docket somebody is still holding (§6's
+  >   `returned_quantity` on the line is exactly this).
+  >
+  > **One permission**, `ConstructionMaterialIssue`, covering the docket and the posting — the goods receipt's shape,
+  > because the storeman signs the paper and the stock moves in the same act. Reading rides on
+  > `ConstructionReceiptView` and reversing on `ConstructionCostReverse`. `RoleGrantsTest::EXPECTED` moved to
+  > 44 / 124 / 155 / 175.
+  >
+  > **A repeat worth recording: a Filament `Sum` summariser cannot sit on a `getStateUsing` column.** It goes looking
+  > for a database column of that name and the query fails outright. Phase 6c hit this on `OrdersRelationManager` and
+  > wrote it down there; 8b hit it again on the docket's *value moved* column. The total belongs on the lines, where
+  > `amount` is a real column — which is where it now is. **Two occurrences in two phases means the note needs to be
+  > somewhere a reader meets it before writing the column, not only where it was last found.**
+  >
+  > **8c built 2026-08-19 — Phase 8 complete.** — `ConstructionMaterialsOnSiteTest` (16 tests). `MaterialsOnSite`, a
+  > section on the job cost report, and an evidence panel on the payment certificate. No table, no permission, no
+  > coupling: §6 promised "one query" and that is what it turned out to be.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **It reads `remaining_quantity` on the lots, not received-minus-issued.** The FIFO engine already maintains the
+  >   unconsumed part of every lot and an issue is what decrements it, so the answer exists — deriving it a second way
+  >   would be a second figure to disagree with the first. This is what makes §6's "one query" literally true.
+  > - **On the cost report because it is the part of `actual` that has not been used yet.** A code showing 5,000,000
+  >   spent with 3,000,000 still stacked by the gate reads as further through its budget than the work is, and nothing
+  >   else on that page would say so.
+  > - **Grouped by the code the material was *received* against**, because until it is issued that is where the cost
+  >   still sits — 8b's reclass is what moves it. Anything else would put a figure on a code the ledger has nothing on.
+  > - **Untraceable stock is its own row.** §6's failure is a figure right in total and wrong in every breakdown, and a
+  >   test asserts the breakdown sums to the total for exactly that reason.
+  > - **On the certificate as evidence, never as the claim.** §6 names the certificate's materials line as the second
+  >   reason receipt and issue are separate documents, so this is where the figure earns its place — but what is
+  >   *claimed* is assessed at contract rates against a schedule line that allows materials, and it stays on the
+  >   certificate lines where §10 puts it. The panel's own wording says which it is.
+  >
+  > The certificate panel asks `construction_costing`, which holds the Inventory guard itself — so
+  > `construction_contracts` reaches only the sibling it already reaches for Phase 6c's commitment relief, and
+  > `KNOWN_COUPLINGS` is unchanged. Absent rather than zero in all three cases that have nothing to say: no cost
+  > module, no Inventory, or a job with no store.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,
   punch lists, activities, delay events, and the P6 and MS Project import. **Ends with:** the delay-event
   notice clock and its notification live before anything else in the phase, because it is the piece that

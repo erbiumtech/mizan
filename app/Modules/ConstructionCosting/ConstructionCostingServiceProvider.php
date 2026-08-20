@@ -9,6 +9,7 @@ use App\Modules\ConstructionCosting\Models\GoodsReceipt;
 use App\Modules\ConstructionCosting\Models\JobBudget;
 use App\Modules\ConstructionCosting\Models\LabourRate;
 use App\Modules\ConstructionCosting\Models\LabourRecord;
+use App\Modules\ConstructionCosting\Models\MaterialIssue;
 use App\Modules\ConstructionCosting\Models\PlantItem;
 use App\Modules\ConstructionCosting\Models\PlantLog;
 use App\Modules\ConstructionCosting\Models\Requisition;
@@ -21,6 +22,7 @@ use App\Modules\ConstructionCosting\Policies\GoodsReceiptPolicy;
 use App\Modules\ConstructionCosting\Policies\JobBudgetPolicy;
 use App\Modules\ConstructionCosting\Policies\LabourRatePolicy;
 use App\Modules\ConstructionCosting\Policies\LabourRecordPolicy;
+use App\Modules\ConstructionCosting\Policies\MaterialIssuePolicy;
 use App\Modules\ConstructionCosting\Policies\PlantItemPolicy;
 use App\Modules\ConstructionCosting\Policies\PlantLogPolicy;
 use App\Modules\ConstructionCosting\Policies\RequisitionPolicy;
@@ -50,6 +52,7 @@ class ConstructionCostingServiceProvider extends ServiceProvider
         Worker::class => WorkerPolicy::class,
         LabourRate::class => LabourRatePolicy::class,
         LabourRecord::class => LabourRecordPolicy::class,
+        MaterialIssue::class => MaterialIssuePolicy::class,
         PlantItem::class => PlantItemPolicy::class,
         PlantLog::class => PlantLogPolicy::class,
     ];

@@ -10,6 +10,7 @@ use App\Modules\ConstructionCosting\Models\CommitmentRelief;
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\GoodsReceipt;
 use App\Modules\ConstructionCosting\Models\GoodsReceiptLine;
+use App\Modules\Inventory\Models\StockMovement;
 use App\Support\TenantTransaction;
 use InvalidArgumentException;
 use RuntimeException;
@@ -17,18 +18,22 @@ use RuntimeException;
 /**
  * Receiving goods — `docs/construction-management-plan.md` §5, "where cost first touches the job".
  *
- * Posting a receipt does **two** of the three things §5 lists, and refuses the third rather than faking it.
+ * Posting a receipt does all **three** things §5 lists, since Phase 8a built `stock_locations`.
  *
  *  1. **It relieves the order**, through `CommitmentService` so the double-relief rule stays in one place: relief
  *     happens at the earlier of receipt or certificate, and the invoice later relieves only what was never received.
  *  2. **It raises an accrual at order rate**, through `CostLedger` so the closed-period rule, the heading-code refusal
  *     and the cost-type snapshot all still apply. Between delivery and invoice the job has incurred cost no supplier
  *     document yet proves; a report that waited for the invoice would understate every month end.
- *  3. **It does not write a stock movement.** That needs `stock_locations`, which §6 gives to Inventory and Phase 8
- *     delivers. A line destined for a store is **refused with a message naming what is missing** — accepting it would
- *     cost the material as though it had been stocked, and materials-on-site would then be wrong with nothing saying
- *     so. §18.1's rule: the two places where "smaller, never broken" is not enough are the ones where a healthy
- *     figure hides an absence, and this is one of them.
+ *  3. **It writes a stock movement — but only where the line says store**, and only when Inventory is licensed, the
+ *     line names a product and the job has a location. Phase 5c refused every store line with one message because
+ *     `stock_locations` did not exist; now there are three specific refusals, each naming what is missing. It is still
+ *     a refusal rather than a quiet fallback to direct, for the reason Phase 5c gave and which has not stopped being
+ *     true: a receipt costed as though it had been stocked makes materials-on-site wrong with nothing saying so, and
+ *     §18.1's exception is exactly the case where a healthy figure hides an absence.
+ *
+ * **Direct to site remains the default and touches no stock at all** (§6), which is what keeps this usable by the
+ * contractor who buys everything straight to the work face and tracks no stock — "most of them, most of the time".
  *
  * **Posting is idempotent.** Each line records the cost entry it raised, so a second post finds the work done rather
  * than doubling the accrual — which is the same discipline variation incorporation keeps.
@@ -153,15 +158,11 @@ class GoodsReceiptService
             throw new InvalidArgumentException("{$receipt->number} has no lines. Nothing was delivered.");
         }
 
+        $receipt->load('lines.job');
+
         foreach ($receipt->lines as $line) {
             if ($line->goesToStore()) {
-                throw new RuntimeException(
-                    "\"{$line->description}\" is destined for a site store, and site stores need a stock location, "
-                    .'which this application does not have yet (§6 gives `stock_locations` to Inventory). Receive it '
-                    .'as direct to site — it will be costed correctly — and stock it when site stores arrive. It is '
-                    .'refused rather than accepted because a receipt costed as though it had been stocked would make '
-                    .'materials-on-site wrong with nothing saying so.'
-                );
+                $this->guardStoreLine($line);
             }
         }
 
@@ -212,6 +213,24 @@ class GoodsReceiptService
                 );
 
                 $line->update(['cost_entry_id' => $entry->getKey()]);
+
+                /*
+                 * And into the store, where the line says so — §6's third path, unblocked by Phase 8a's
+                 * `stock_locations`.
+                 *
+                 * A `purchase` movement, because that is what it is: a lot arriving at a location, with
+                 * `remaining_quantity` set so the FIFO engine can consume it when the material is issued. No journal
+                 * entry is attached — the cost has already reached the job as the accrual above, and the GL side of
+                 * goods-received-not-invoiced is §11's posting. Two postings for one delivery is the failure this
+                 * division of labour exists to avoid: "the module owns the document, Inventory owns the movement".
+                 */
+                if ($line->goesToStore()) {
+                    $this->stockLine(
+                        $line,
+                        $receipt->received_on->toDateString(),
+                        $receipt->delivery_note_reference ?: $receipt->number,
+                    );
+                }
             }
 
             $receipt->update([
@@ -221,6 +240,71 @@ class GoodsReceiptService
 
             return $receipt->refresh();
         });
+    }
+
+    /**
+     * What a store-destined line needs before it can be stocked, each absence named.
+     *
+     * Phase 5c refused every store line with one message, because `stock_locations` did not exist. Phase 8a built it, so
+     * the refusal is now three specific ones — and each names the fix, because "receive it as direct to site instead" is
+     * useful advice only when somebody knows which of three things is missing.
+     *
+     * Still a refusal rather than a silent fallback to direct: a receipt costed as though it had been stocked would make
+     * materials-on-site wrong with nothing saying so, which is the sentence Phase 5c wrote and which has not stopped
+     * being true.
+     */
+    private function guardStoreLine(GoodsReceiptLine $line): void
+    {
+        if (! modules()->enabled('inventory')) {
+            throw new RuntimeException(
+                "\"{$line->description}\" is destined for a site store, and a store keeps stock — which needs the "
+                .'Inventory module. Receive it as direct to site instead: it will be costed correctly, and it is the '
+                .'path most contractors use for everything (§6).'
+            );
+        }
+
+        if ($line->product_id === null) {
+            throw new RuntimeException(
+                "\"{$line->description}\" is destined for a site store but names no product, and stock is kept per "
+                .'product. Either pick the product, or receive the line as direct to site — a store movement with '
+                .'nothing to move would leave the quantity nowhere.'
+            );
+        }
+
+        if ($line->job?->stock_location_id === null) {
+            throw new RuntimeException(
+                "\"{$line->description}\" is destined for a site store, but "
+                .($line->job?->code ?? 'that job')
+                .' has no store set. Give the job a stock location first — otherwise the material is on hand '
+                .'somewhere nobody can name, which reads as a healthy total at no location at all.'
+            );
+        }
+    }
+
+    /**
+     * The stock side of a store receipt: one lot, at the job's own location.
+     *
+     * Written directly rather than through `InventoryService::purchase()`, and that is the one judgement here worth
+     * defending. That method posts a balanced journal entry — debit Inventory, credit Cash — which is right for stock
+     * bought over the counter and wrong twice over here: the money is owed to a supplier rather than paid, and the cost
+     * has already reached the job as the accrual beside this call. §6 draws the line in the same place: "the module owns
+     * the document, Inventory owns the movement", which is what `InvoiceService::recordMovement()` does today.
+     */
+    private function stockLine(GoodsReceiptLine $line, string $on, ?string $receiptReference): void
+    {
+        StockMovement::create([
+            'product_id' => $line->product_id,
+            'stock_location_id' => $line->job->stock_location_id,
+            'type' => 'purchase',
+            'quantity' => (float) $line->quantity,
+            'unit_cost' => (float) $line->unit_rate,
+            // The whole quantity is unconsumed on arrival, which is what lets an issue take it at FIFO cost later.
+            'remaining_quantity' => (float) $line->quantity,
+            'movement_date' => $on,
+            'reference' => $receiptReference,
+            'source_type' => $line::class,
+            'source_id' => $line->getKey(),
+        ]);
     }
 
     /**
