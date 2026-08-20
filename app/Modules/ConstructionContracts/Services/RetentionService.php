@@ -188,10 +188,23 @@ class RetentionService
     private function aiaSchedule(Contract $contract, float $balance, ?Carbon $completion, ?Carbon $expiry): array
     {
         $holdback = 0.0;
-        $note = modules()->enabled('construction_field')
-            ? null
-            : 'Punch-list holdback taken as zero: the site operations module is not in use, so the open punch '
-                .'value is unknown rather than nil.';
+
+        /*
+         * **The note is unconditional while punch lists do not exist**, and that is a correction rather than an
+         * oversight.
+         *
+         * It used to read `modules()->enabled('construction_field')`, on the assumption that the module and the punch
+         * list would arrive together. Phase 9a licensed the module for the delay-event notice clock and left the punch
+         * list for a later sub-phase — so the guard started answering "the module is here" while the question it
+         * actually asks is "is there an open punch value to read". A licensed module with no punch table gave a zero
+         * holdback with no reason attached, which is precisely the healthy-looking figure hiding an absence that §18.1
+         * names as one of its two exceptions.
+         *
+         * The sub-phase that builds `construction_punch_items` is what replaces this with a real figure. Until then the
+         * zero says why it is zero, whatever is licensed.
+         */
+        $note = 'Punch-list holdback taken as zero: open punch items are not recorded yet, so the value is unknown '
+            .'rather than nil.';
 
         $alreadyReleased = $this->releasedAtStage($contract, RetentionMovement::STAGE_FIRST_RELEASE);
         $first = max(0.0, round($balance - $holdback, 2) - $alreadyReleased);

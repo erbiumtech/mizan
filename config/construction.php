@@ -62,4 +62,31 @@ return [
          */
         'burden_percent' => 0.0,
     ],
+
+    /*
+     * Delay events — `docs/construction-management-plan.md` §13.
+     *
+     * `notice_required_by` is `occurred_on + contract notice days`. A contract states its own period in
+     * `construction_contracts.delay_notice_days`; this is what applies when it does not, or when the event names no
+     * contract at all — which is the ordinary case for a job whose commercial side is kept elsewhere.
+     */
+    'delay' => [
+        /*
+         * **28 days, which is FIDIC 20.1** — the commonest position by a wide margin, and the one a contractor running
+         * an international form will recognise. NEC4's compensation-event clock is eight weeks and a bespoke
+         * subcontract is often seven days, which is exactly why the contract's own column overrides this.
+         *
+         * There is deliberately no "no notice required" option here: a period of zero would make every event
+         * time-barred on the day it happened, and a null would leave the clock — the one thing §13 says is worth more
+         * than the whole programme — silently switched off.
+         */
+        'notice_days' => 28,
+
+        /*
+         * How long after the notice the detailed particulars are due. FIDIC 20.1 gives 42 days from the event; this is
+         * measured from the notice instead, because that is the date the contractor controls and can therefore plan
+         * against.
+         */
+        'particulars_days' => 42,
+    ],
 ];
