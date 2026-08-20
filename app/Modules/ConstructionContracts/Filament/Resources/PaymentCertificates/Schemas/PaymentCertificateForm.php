@@ -5,7 +5,9 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificat
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Models\ProgressClaim;
+use App\Modules\ConstructionCosting\Services\MaterialsOnSite;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Section;
@@ -72,6 +74,71 @@ class PaymentCertificateForm
                             ->columnSpanFull()
                             ->helperText('Printed on the certificate.'),
                     ]),
+
+                /*
+                 * **Evidence for the materials-on-site line, and deliberately not the line itself** — §6 and §10.
+                 *
+                 * §6 names the certificate's materials line as the second reason receipt and issue are separate
+                 * documents: without both, there is no moment at which material is on site and unconsumed, so the
+                 * figure cannot exist. Now it can, and this is where a certifier can see it.
+                 *
+                 * What is *claimed* for materials on site is a contractual assessment at contract rates against a
+                 * schedule line, and it stays where §10 puts it — `cumulative_materials_value` on the certificate
+                 * lines, entered by the person assessing it. What this panel shows is what the material **cost**.
+                 * Filling the claim in from it would be telling the certifier their assessment had been made for them,
+                 * and the two figures are not the same number.
+                 *
+                 * Absent where there is nothing to say: no cost module, no Inventory, or a job with no store.
+                 */
+                Section::make('Materials on site')
+                    ->description('What this job is holding in its store, at cost. Evidence for the materials line — not the claim itself, which is assessed at contract rates against the schedule.')
+                    ->visible(fn (callable $get): bool => static::materialsOnSite($get) !== null)
+                    ->schema([
+                        Placeholder::make('materials_on_site')
+                            ->label('Held in the store, at cost')
+                            ->content(fn (callable $get): string => static::materialsOnSite($get) ?? ''),
+                    ]),
             ]);
+    }
+
+    /**
+     * The cost-side figure, or null where there is nothing to show.
+     *
+     * Asked of `MaterialsOnSite`, which lives in `construction_costing` and holds the Inventory guard itself — so this
+     * module reaches its existing guarded sibling and never names Inventory. The coupling already exists for Phase 6c's
+     * commitment relief; this adds no new edge to the module graph.
+     */
+    private static function materialsOnSite(callable $get): ?string
+    {
+        if (! modules()->enabled('construction_costing')) {
+            return null;
+        }
+
+        $contract = $get('contract_id') ? Contract::query()->with('job')->find($get('contract_id')) : null;
+        $job = $contract?->job;
+
+        if ($job === null) {
+            return null;
+        }
+
+        $service = app(MaterialsOnSite::class);
+
+        if (! $service->isAvailable() || $job->stock_location_id === null) {
+            return null;
+        }
+
+        $rows = $service->forJob($job);
+
+        if ($rows === []) {
+            return 'Nothing in the store — everything delivered has been issued to the work face.';
+        }
+
+        $lines = array_map(
+            fn (array $row): string => $row['product']->sku.': '.$row['quantity'].' at '
+                .number_format($row['value'], 2),
+            $rows,
+        );
+
+        return implode('; ', $lines).'. Total at cost: '.number_format($service->valueFor($job), 2).'.';
     }
 }
