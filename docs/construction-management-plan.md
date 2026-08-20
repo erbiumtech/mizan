@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 7 complete, and Phase 8a and 8b with them (2026-08-19). Phase 8c — materials on site —
-is next, and finishes Phase 8.**
+**Status:** **Phases 0 to 8 complete (2026-08-19). Phase 9 — `construction_field`: the site diary, RFIs, submittals,
+punch lists, the programme and delay events — is next.**
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -9,6 +9,13 @@ enum expanded once for both plans, a location-aware valuation API, and the site-
 Phase 5c had to refuse — 16 tests in `StockLocationTest` plus 3 in the receipt file. `docs/retail-stores-pos-plan.md`
 has been updated in the same breath: its Phase 2 is now smaller and its Phase 0 note says exactly what not to build
 again, which is the follow-through §6 says two plans usually fail to do.
+
+Phase 8c closed §6 with materials on site — 16 tests — and it is where the shape of §6 pays off: the figure is
+`remaining_quantity` on the lots at a job's store, so **receipt puts material on site and issue takes it off, and
+nothing re-derives received-minus-issued by hand.** It appears on the cost report as the part of `actual` that has not
+been used yet, and on the payment certificate as **evidence beside the materials claim rather than as the claim** — what
+is claimed is a contractual assessment at contract rates, and conflating the two would tell a certifier their
+assessment had been made for them.
 
 Phase 8b built the issue document — 28 tests — and **the rule that carries it is that posting an issue does not change
 the job's total cost.** §6 makes materials on site "delivered, costed, not yet consumed", so the *receipt* is what
@@ -2322,6 +2329,32 @@ document register before the modules that reference drawings.
   > wrote it down there; 8b hit it again on the docket's *value moved* column. The total belongs on the lines, where
   > `amount` is a real column — which is where it now is. **Two occurrences in two phases means the note needs to be
   > somewhere a reader meets it before writing the column, not only where it was last found.**
+  >
+  > **8c built 2026-08-19 — Phase 8 complete.** — `ConstructionMaterialsOnSiteTest` (16 tests). `MaterialsOnSite`, a
+  > section on the job cost report, and an evidence panel on the payment certificate. No table, no permission, no
+  > coupling: §6 promised "one query" and that is what it turned out to be.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **It reads `remaining_quantity` on the lots, not received-minus-issued.** The FIFO engine already maintains the
+  >   unconsumed part of every lot and an issue is what decrements it, so the answer exists — deriving it a second way
+  >   would be a second figure to disagree with the first. This is what makes §6's "one query" literally true.
+  > - **On the cost report because it is the part of `actual` that has not been used yet.** A code showing 5,000,000
+  >   spent with 3,000,000 still stacked by the gate reads as further through its budget than the work is, and nothing
+  >   else on that page would say so.
+  > - **Grouped by the code the material was *received* against**, because until it is issued that is where the cost
+  >   still sits — 8b's reclass is what moves it. Anything else would put a figure on a code the ledger has nothing on.
+  > - **Untraceable stock is its own row.** §6's failure is a figure right in total and wrong in every breakdown, and a
+  >   test asserts the breakdown sums to the total for exactly that reason.
+  > - **On the certificate as evidence, never as the claim.** §6 names the certificate's materials line as the second
+  >   reason receipt and issue are separate documents, so this is where the figure earns its place — but what is
+  >   *claimed* is assessed at contract rates against a schedule line that allows materials, and it stays on the
+  >   certificate lines where §10 puts it. The panel's own wording says which it is.
+  >
+  > The certificate panel asks `construction_costing`, which holds the Inventory guard itself — so
+  > `construction_contracts` reaches only the sibling it already reaches for Phase 6c's commitment relief, and
+  > `KNOWN_COUPLINGS` is unchanged. Absent rather than zero in all three cases that have nothing to say: no cost
+  > module, no Inventory, or a job with no store.
 - **Phase 9 — Site operations.** `construction_field`: the daily log and its children, RFIs, submittals,
   punch lists, activities, delay events, and the P6 and MS Project import. **Ends with:** the delay-event
   notice clock and its notification live before anything else in the phase, because it is the piece that
