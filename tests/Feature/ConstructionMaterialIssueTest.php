@@ -389,6 +389,55 @@ class ConstructionMaterialIssueTest extends AccountingTestCase
         $this->assertSame(5_000_000.0, app(CostLedger::class)->totalFor($this->job));
     }
 
+    /**
+     * **Two partial returns unwind correctly and write no junk.**
+     *
+     * The bug this guards was real and subtle: an unwind writes a reclass pair of its own, and the negative half sits on
+     * the code the material was *issued* to — which looked exactly like a posting entry to the query that finds what to
+     * unwind. A second return therefore read its predecessor's row and wrote two more that netted to zero on one code:
+     * the totals stayed right and the cost report filled up with the very noise `reclassify()` refuses to write.
+     *
+     * Posting never puts a negative on the issue's own code, so "not on the issued-to code" separates the two exactly.
+     */
+    public function test_two_partial_returns_unwind_without_writing_noise(): void
+    {
+        $this->receiveIntoStore();
+        $this->issues->post($this->docket(12));
+
+        $line = MaterialIssueLine::query()->firstOrFail();
+
+        $this->issues->recordReturn($line, 4);
+        $afterFirst = CostEntry::query()->where('kind', CostEntry::KIND_RECLASS)->count();
+
+        $this->issues->recordReturn($line->refresh(), 4);
+
+        // Two rows for the posting, two for each unwind. Six, not eight.
+        $this->assertSame(4, $afterFirst);
+        $this->assertSame(6, CostEntry::query()->where('kind', CostEntry::KIND_RECLASS)->count());
+
+        // And the arithmetic: 8 of 12 back, so 2,000,000 of the 3,000,000 returns to the supply code.
+        $this->assertSame(4_000_000.0, $this->costOn($this->supply));
+        $this->assertSame(1_000_000.0, $this->costOn($this->fixing));
+        $this->assertSame(5_000_000.0, app(CostLedger::class)->totalFor($this->job));
+        $this->assertEquals(8, $line->refresh()->returned_quantity);
+    }
+
+    /** Returning everything puts the whole reclass back and leaves nothing on the issued-to code. */
+    public function test_returning_everything_unwinds_the_whole_reclass(): void
+    {
+        $this->receiveIntoStore();
+        $this->issues->post($this->docket(12));
+
+        $line = MaterialIssueLine::query()->firstOrFail();
+
+        $this->issues->recordReturn($line, 6);
+        $this->issues->recordReturn($line->refresh(), 6);
+
+        $this->assertSame(5_000_000.0, $this->costOn($this->supply));
+        $this->assertSame(0.0, $this->costOn($this->fixing));
+        $this->assertSame(20.0, app(InventoryValuationService::class)->onHand($this->rebar, $this->store));
+    }
+
     public function test_returning_more_than_is_out_is_refused(): void
     {
         $this->receiveIntoStore();

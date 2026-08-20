@@ -469,11 +469,21 @@ class MaterialIssueService
 
         $share = min(1.0, $cost / (float) $line->amount);
 
+        /*
+         * **Only the entries *posting* wrote**, which is what the last clause is for.
+         *
+         * An unwind writes a pair too — positive back on the received code, negative off the issue's code — and the
+         * negative half looks exactly like a posting entry to a naive filter. A second return would then read it and
+         * write two more rows that net to zero on one code, which is precisely the noise `reclassify()` refuses to
+         * write in the first place. Posting never puts a negative on the issue's own code (it skips a code that has
+         * not changed), so "negative, and not on the code this line was issued to" selects the posting entries exactly.
+         */
         $written = CostEntry::query()
             ->where('source_type', ModuleMap::alias($line::class))
             ->where('source_id', $line->getKey())
             ->where('kind', CostEntry::KIND_RECLASS)
             ->where('amount', '<', 0)
+            ->where('cost_code_id', '!=', $line->cost_code_id)
             ->get();
 
         foreach ($written as $entry) {

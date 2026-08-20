@@ -189,13 +189,28 @@ class RoleGrantsTest extends AccountingTestCase
      * store and issuing back out are the same person's job on the same screenful; reversing rides on
      * `ConstructionCostReverse`. So +1 to every role.
      *
+     * Phase 9a, the first permissions of a **new module** — `construction_field`, whose group is `ConstructionField`.
+     * Three names, and the split is the one §13's clock demands. **Employee +2** (`View`, `Update`): raising an event
+     * and serving notice of it is site's, and this is the third create grant site staff hold after the requisition, the
+     * goods receipt and the site sheet — "the people who watch an access being blocked are on site, and an event they
+     * cannot record is an event nobody records", which fails in silence. **Accountant +2**, the same two.
+     * **Manager +1 of its own** for `ConstructionDelayDetermine`: awarding days moves the completion date and decides
+     * whether liquidated damages can be levied at all, so it is kept away from whoever raised the claim. CEO +3.
+     *
+     * Phase 9b, the site diary's three: **Employee +2** (`View`, `Update`) — the diary is a record of what happened on
+     * site, written by somebody who was there, and it is the fourth create grant site staff hold in this suite.
+     * **Accountant +2**, the same two. **Manager +1 of its own** for `ConstructionDailyLogApprove`, which §18.2 lists:
+     * approval locks the day and turns it into evidence — "an editable site diary is not evidence" — and that is not
+     * the same act as writing it down. The same grant carries reopening, because whoever may sign a day off is who may
+     * unsign it. CEO +3.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 44,
-        'Accountant' => 124,
-        'Manager' => 155,
-        'CEO' => 175,
+        'Employee' => 48,
+        'Accountant' => 128,
+        'Manager' => 161,
+        'CEO' => 181,
     ];
 
     protected function setUp(): void

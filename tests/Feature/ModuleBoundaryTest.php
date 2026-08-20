@@ -361,6 +361,18 @@ class ModuleBoundaryTest extends TestCase
         // cycle cannot be a composer dependency. That is why `commitments.contract_id` is set from the contract's
         // own screen instead of by a picker on the order form, which is where anybody would look for it first.
         'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
+        // Construction site operations -> Invoicing, and it is the smallest instance of the shape this section keeps
+        // returning to: a diary's manpower line names the company that supplied the men, and a company is a Contact,
+        // which Invoicing owns. `construction_field` requires only `construction` (§18), so the picker checks
+        // `modules()->enabled('invoicing')` and `company_label` — a plain string beside the column — carries the name
+        // without it. A diary must never be unfillable because of a licence.
+        //
+        // Note what is *not* here. The manpower line's trade and the plant line's machine both live in
+        // `construction_costing`, and this module reads them out of `construction_trades` and
+        // `construction_plant_items` with the query builder rather than naming `Trade` or `PlantItem` — the same
+        // treatment §13's `contract_id` gets. Two integers and two labels are all a diary needs, and a model would
+        // have bought nothing and cost the boundary.
+        'construction_field' => ['invoicing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -505,6 +517,10 @@ class ModuleBoundaryTest extends TestCase
             // not appear. A contractor certifying subcontractors while keeping cost control elsewhere has no
             // commitment ledger for a certificate to relieve, which is the whole reason the two are sold apart.
             'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
+
+            // A diary's manpower line names the company that supplied the men. Hidden without Invoicing, with the
+            // free-text company name carrying it — the same shape as the job's client, two modules along.
+            'construction_field' => ['invoicing'],
         ];
 
         foreach ($guarded as $module => $targets) {
