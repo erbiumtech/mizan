@@ -8,6 +8,7 @@ use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Services\CostLedger;
 use App\Modules\ConstructionCosting\Services\EarnedValue;
+use App\Modules\ConstructionCosting\Services\MaterialsOnSite;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
@@ -217,5 +218,39 @@ class JobCostReport extends Page
         arsort($totals);
 
         return $totals;
+    }
+
+    /**
+     * Materials on site — delivered, costed, not yet consumed (§6).
+     *
+     * **On the cost report because it is the part of `actual` that has not been used yet.** A code showing 5,000,000
+     * spent where 3,000,000 of it is still stacked by the gate is a code that looks further through its budget than the
+     * work is, and nothing else on this page would say so.
+     *
+     * Empty where the job keeps no store or Inventory is unlicensed, and the view says which rather than printing a
+     * zero — §18.1's rule about a healthy figure hiding an absence applies to an absent one too.
+     *
+     * @return array<int|string, array{code: ?\App\Modules\Construction\Models\CostCode, quantity: float, value: float}>
+     */
+    public function materialsOnSite(): array
+    {
+        $job = $this->selectedJob();
+
+        return $job ? app(MaterialsOnSite::class)->byCostCode($job) : [];
+    }
+
+    /** One figure, for the foot of that section. */
+    public function materialsOnSiteValue(): float
+    {
+        $job = $this->selectedJob();
+
+        return $job ? app(MaterialsOnSite::class)->valueFor($job) : 0.0;
+    }
+
+    /** Whether the job keeps a store at all, so the view can say "no store" rather than "nothing on site". */
+    public function keepsAStore(): bool
+    {
+        return app(MaterialsOnSite::class)->isAvailable()
+            && $this->selectedJob()?->stock_location_id !== null;
     }
 }

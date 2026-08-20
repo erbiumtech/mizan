@@ -182,13 +182,20 @@ class RoleGrantsTest extends AccountingTestCase
      * **Manager +4**: the Accountant's three plus `ConstructionPlantApprove`, which charges the job internal hire on an
      * owned machine and fixes the figure a supplier's invoice is checked against on a hired one. CEO +4.
      *
+     * Phase 8b, **one** permission: `ConstructionMaterialIssue` on Employee and Accountant, inherited upward. One name
+     * covering the docket *and* the posting, exactly as `ConstructionReceiptRecord` does for a delivery — the storeman
+     * signs the paper and the stock moves in the same act, and splitting them would leave a queue of dockets whose
+     * material has physically gone. Reading the register rides on `ConstructionReceiptView`, because receiving into a
+     * store and issuing back out are the same person's job on the same screenful; reversing rides on
+     * `ConstructionCostReverse`. So +1 to every role.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 43,
-        'Accountant' => 123,
-        'Manager' => 154,
-        'CEO' => 174,
+        'Employee' => 44,
+        'Accountant' => 124,
+        'Manager' => 155,
+        'CEO' => 175,
     ];
 
     protected function setUp(): void

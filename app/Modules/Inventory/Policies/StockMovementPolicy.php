@@ -2,8 +2,8 @@
 
 namespace App\Modules\Inventory\Policies;
 
-use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Core\Models\User;
+use App\Modules\Inventory\Models\StockMovement;
 
 class StockMovementPolicy
 {

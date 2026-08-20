@@ -84,3 +84,26 @@ Pick a **period** for one month, or leave it blank for the whole job to date.
 
 Budget, committed and forecast — the other three columns — arrive with the budget
 and procurement features.
+
+## Materials on site
+
+Delivered, costed, and not yet used — what the job's store is holding right now, at
+what it cost.
+
+It appears only for a job that keeps a **site store**. A job buying everything
+direct to the work face has no store and no section, because there is no moment at
+which its material is on site and unconsumed.
+
+**It is the part of *actual* that has not been used yet**, which is why it belongs on
+this page. A code showing 5,000,000 spent where 3,000,000 of it is still stacked by
+the gate looks further through its budget than the work is, and nothing else here
+would tell you.
+
+It is grouped by **the code the material was received against**, because until it is
+issued that is where the cost still sits — issuing is what moves it to the code the
+material was used on. Stock that cannot be traced back to a delivery gets its own
+row rather than being folded into a code: a figure that is right in total and wrong
+in every breakdown is the hardest kind to notice.
+
+This is what the material **cost**. What may be *claimed* for materials on site on a
+payment certificate is a separate, contractual assessment at contract rates.
