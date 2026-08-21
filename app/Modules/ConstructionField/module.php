@@ -33,12 +33,15 @@ return [
         'App\\Models\\DailyLogDelivery' => \App\Modules\ConstructionField\Models\DailyLogDelivery::class,
         'App\\Models\\DailyLogPhoto' => \App\Modules\ConstructionField\Models\DailyLogPhoto::class,
         'App\\Models\\Rfi' => \App\Modules\ConstructionField\Models\Rfi::class,
+        'App\\Models\\Submittal' => \App\Modules\ConstructionField\Models\Submittal::class,
+        'App\\Models\\SubmittalReview' => \App\Modules\ConstructionField\Models\SubmittalReview::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\ConstructionField\\DelayEventResource' => \App\Modules\ConstructionField\Filament\Resources\DelayEvents\DelayEventResource::class,
         'App\\Filament\\Resources\\ConstructionField\\DailyLogResource' => \App\Modules\ConstructionField\Filament\Resources\DailyLogs\DailyLogResource::class,
         'App\\Filament\\Resources\\ConstructionField\\RfiResource' => \App\Modules\ConstructionField\Filament\Resources\Rfis\RfiResource::class,
+        'App\\Filament\\Resources\\ConstructionField\\SubmittalResource' => \App\Modules\ConstructionField\Filament\Resources\Submittals\SubmittalResource::class,
     ],
 
     'permission_groups' => [
@@ -83,6 +86,20 @@ return [
          */
         ['name' => 'ConstructionRfiView', 'group' => 'ConstructionField'],
         ['name' => 'ConstructionRfiUpdate', 'group' => 'ConstructionField'],
+
+        /*
+         * Submittals (§16.3), and **two names again, for the same reason as the RFI's.**
+         *
+         * Recording a reviewer's return is transcription — the stamped drawing arrives from the Architect and somebody
+         * files it — so it rides on the same grant as submitting. A permission there would leave stamped drawings in a
+         * drawer while the register says the item is still out for review, and a register nobody believes about what is
+         * outstanding has no purpose at all.
+         *
+         * The act that needed separating is separated: notifying a reviewer's overrun asks for
+         * `ConstructionDelayUpdate`, because serving notice on the employer is not the same act as filing paperwork.
+         */
+        ['name' => 'ConstructionSubmittalView', 'group' => 'ConstructionField'],
+        ['name' => 'ConstructionSubmittalUpdate', 'group' => 'ConstructionField'],
     ],
 
     'role_grants' => [
@@ -102,6 +119,9 @@ return [
             // And so is an RFI: the question comes from whoever is blocked by it.
             'ConstructionRfiUpdate',
             'ConstructionRfiView',
+            // Submittals are the same register-keeping work, done by the same people.
+            'ConstructionSubmittalUpdate',
+            'ConstructionSubmittalView',
         ],
         'Accountant' => [
             'ConstructionDelayUpdate',
@@ -110,6 +130,8 @@ return [
             'ConstructionDailyLogView',
             'ConstructionRfiUpdate',
             'ConstructionRfiView',
+            'ConstructionSubmittalUpdate',
+            'ConstructionSubmittalView',
         ],
         // Awarding days and money moves the completion date and decides whether damages can be levied. And signing off
         // a day locks it as evidence, which is a different act from writing it.

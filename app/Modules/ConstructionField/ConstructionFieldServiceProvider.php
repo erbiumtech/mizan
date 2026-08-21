@@ -6,9 +6,11 @@ use App\Modules\ConstructionField\Console\Commands\CheckDelayNotices;
 use App\Modules\ConstructionField\Models\DailyLog;
 use App\Modules\ConstructionField\Models\DelayEvent;
 use App\Modules\ConstructionField\Models\Rfi;
+use App\Modules\ConstructionField\Models\Submittal;
 use App\Modules\ConstructionField\Policies\DailyLogPolicy;
 use App\Modules\ConstructionField\Policies\DelayEventPolicy;
 use App\Modules\ConstructionField\Policies\RfiPolicy;
+use App\Modules\ConstructionField\Policies\SubmittalPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,6 +28,7 @@ class ConstructionFieldServiceProvider extends ServiceProvider
         DelayEvent::class => DelayEventPolicy::class,
         DailyLog::class => DailyLogPolicy::class,
         Rfi::class => RfiPolicy::class,
+        Submittal::class => SubmittalPolicy::class,
     ];
 
     public function boot(): void
