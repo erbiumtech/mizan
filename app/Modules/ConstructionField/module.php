@@ -35,6 +35,9 @@ return [
         'App\\Models\\Rfi' => \App\Modules\ConstructionField\Models\Rfi::class,
         'App\\Models\\Submittal' => \App\Modules\ConstructionField\Models\Submittal::class,
         'App\\Models\\SubmittalReview' => \App\Modules\ConstructionField\Models\SubmittalReview::class,
+        'App\\Models\\PunchList' => \App\Modules\ConstructionField\Models\PunchList::class,
+        'App\\Models\\PunchItem' => \App\Modules\ConstructionField\Models\PunchItem::class,
+        'App\\Models\\PunchInspection' => \App\Modules\ConstructionField\Models\PunchInspection::class,
     ],
 
     'resources' => [
@@ -42,6 +45,7 @@ return [
         'App\\Filament\\Resources\\ConstructionField\\DailyLogResource' => \App\Modules\ConstructionField\Filament\Resources\DailyLogs\DailyLogResource::class,
         'App\\Filament\\Resources\\ConstructionField\\RfiResource' => \App\Modules\ConstructionField\Filament\Resources\Rfis\RfiResource::class,
         'App\\Filament\\Resources\\ConstructionField\\SubmittalResource' => \App\Modules\ConstructionField\Filament\Resources\Submittals\SubmittalResource::class,
+        'App\\Filament\\Resources\\ConstructionField\\PunchListResource' => \App\Modules\ConstructionField\Filament\Resources\PunchLists\PunchListResource::class,
     ],
 
     'permission_groups' => [
@@ -100,6 +104,21 @@ return [
          */
         ['name' => 'ConstructionSubmittalView', 'group' => 'ConstructionField'],
         ['name' => 'ConstructionSubmittalUpdate', 'group' => 'ConstructionField'],
+
+        /*
+         * Punch lists (§16.4), and **two names, where the third one would have been the tempting mistake.**
+         *
+         * Closing a punch item releases part of §11's AIA holdback, so it is the one act on this register that moves
+         * money — and it is protected *structurally* rather than by a `ConstructionPunchClose` permission: an item
+         * closes only when a re-inspection is recorded with a passing result. That is stronger than a grant, because a
+         * permission can be given to the person who caused the defect and a missing passed inspection cannot be given
+         * away at all.
+         *
+         * Raising items is site's for the same reason as the diary and the RFI: the person who can see that the sealant
+         * is wrong is the one standing in front of it.
+         */
+        ['name' => 'ConstructionPunchView', 'group' => 'ConstructionField'],
+        ['name' => 'ConstructionPunchUpdate', 'group' => 'ConstructionField'],
     ],
 
     'role_grants' => [
@@ -122,6 +141,9 @@ return [
             // Submittals are the same register-keeping work, done by the same people.
             'ConstructionSubmittalUpdate',
             'ConstructionSubmittalView',
+            // And so are snags: whoever can see that the sealant is wrong is standing in front of it.
+            'ConstructionPunchUpdate',
+            'ConstructionPunchView',
         ],
         'Accountant' => [
             'ConstructionDelayUpdate',
@@ -132,6 +154,8 @@ return [
             'ConstructionRfiView',
             'ConstructionSubmittalUpdate',
             'ConstructionSubmittalView',
+            'ConstructionPunchUpdate',
+            'ConstructionPunchView',
         ],
         // Awarding days and money moves the completion date and decides whether damages can be levied. And signing off
         // a day locks it as evidence, which is a different act from writing it.

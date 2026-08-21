@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a to 9e with them (2026-08-21). Punch lists (§16.4) are next;
-activities, the programme and the P6 import follow.**
+**Status:** **Phases 0 to 8 complete, and Phase 9a to 9f with them (2026-08-21). §16 is complete apart from the
+programme: activities, the schedule of §13 and the P6 import are what remain of Phase 9.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -47,6 +47,18 @@ beside the period it was measured against, and why the notice is raised per roun
 The register's own contribution is arithmetic rather than a missing link: **the submit-by date is computed backwards
 from the date the item is needed on site**, and on a real job that produces a list of items already late before anybody
 has done anything wrong, because nobody did the subtraction when the programme was agreed.
+
+Phase 9f built punch lists, which is where §16 stops being a set of registers and starts paying for §11. **The
+punch-list holdback is now a figure rather than a note.** §11's AIA release holds back the cost of rectifying open items
+flagged as affecting practical completion — and until 9f existed `RetentionService` could only take that holdback as
+zero and say in words that it did not know. It now gives one of three answers and each says which it is: unknown
+without the field module, genuinely nil with nothing flagged, or a figure with the count of items behind it that carry
+no cost estimate.
+
+That closes the note 9a left unconditional, and the lesson underneath it is the one worth carrying into every remaining
+phase: **a module licence is not a proxy for data existing.** The guard used to ask "is the field module here" when the
+question it needed was "is there an open punch value to read", and 9a licensing the module three sub-phases before punch
+items existed is exactly how those two come apart.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2676,6 +2688,58 @@ document register before the modules that reference drawings.
   > `RoleGrantsTest::EXPECTED` moved to 52 / 132 / 165 / 185 — two names again, and recording a reviewer's return rides
   > on the same grant as submitting for the same reason the RFI's answer does. `activity_id` is absent here too, for the
   > programme sub-phase to add with a real key alongside RFIs and punch items.
+  >
+  > **9f built 2026-08-21.** — `ConstructionPunchListTest` (31 tests) plus four rewritten on
+  > `ConstructionRetentionTest`. `construction_punch_lists`, `construction_punch_items`,
+  > `construction_punch_inspections`, `PunchListService`, two policies and the register with its items tab.
+  >
+  > **This is the sub-phase where §16 pays for §11.** `affects_practical_completion` is the flag §16.4 says the AIA
+  > holdback reads, and `PunchListService::holdbackFor()` is what `RetentionService` now calls. The three answers matter
+  > as much as the figure: *unknown* without the field module, *nil* with nothing flagged, or a figure **with the count
+  > of blocking items that carry no cost estimate** — because a holdback of 150,000 across three items where one has
+  > never been priced is not a holdback of 150,000, and §18.1's rule is that the certifier is told rather than left to
+  > discover it.
+  >
+  > **The note that had been unconditional since 9a is closed, and the reasoning is the transferable part.** The guard
+  > used to read `modules()->enabled('construction_field')` on the assumption the module and the punch list would arrive
+  > together; 9a licensed the module for the notice clock and left punch items three sub-phases later, so the guard
+  > began answering *"the module is here"* while the question it actually asks is *"is there an open punch value to
+  > read"*. **A licence is not a proxy for data existing.** Both questions are now asked separately and each has its own
+  > sentence.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **Closing an item is what a passed inspection does, not a status somebody sets.** The service drops a posted
+  >   `status` outright, and `inspect()` is the only route. This is the segregation the register needs and it is
+  >   *structural rather than granted* — which is stronger, because a `ConstructionPunchClose` permission can be given to
+  >   the person who caused the defect and a missing passed re-inspection cannot be given away at all. That is why 9f
+  >   adds two permissions where a third looked obvious.
+  > - **A row per re-inspection**, per §16.4: "closed after three failed re-inspections is a different fact from closed
+  >   first time". Counted, never inferred from status history — the discipline `tickets.reopened_count` already keeps.
+  >   `partial` is the third result and earns it: a snag half done is the commonest first-visit outcome, and recording it
+  >   as a failure loses the progress while recording it as a pass closes an item that is not done.
+  > - **The flag defaults off.** Most snags are paint and sealant; a default of on would hold retention against every one
+  >   of them and make the figure meaningless inside a week. The judgement is made item by item, which is what gives the
+  >   holdback its standing.
+  > - **`internal` is kept apart from `client`.** An internal sweep is the contractor's own quality check; merging it
+  >   into the employer's list puts the contractor's own findings into a document that can be quoted back, which is the
+  >   fastest way to teach a site team to stop writing anything down.
+  > - **Rejection is a status with a reason, and a list cannot close over open items.** "We agreed this was not a defect
+  >   on the 14th" answers a question somebody asks again in month nine; a closed list with open items on it is a
+  >   handover certificate nobody should have signed, and the refusal names the count because "three outstanding" is
+  >   actionable where "cannot close" is not.
+  >
+  > **The photographs are file columns on the item**, and the reasoning completes 9c's. §16.1 kept site photographs out
+  > of the ISO 19650 register; a punch photograph is not a diary photograph either, because it belongs to the *item's*
+  > lifecycle rather than to a day — and the before-and-after pair is the whole point of it, which two columns side by
+  > side make structural instead of something somebody has to remember to keep together.
+  >
+  > **The exposure this register carries** is a priced defect with a responsible party and no back charge behind it:
+  > cost absorbed, margin down, nothing wrong anywhere. `RoleGrantsTest::EXPECTED` moved to 54 / 134 / 167 / 187.
+  >
+  > **What remains of Phase 9 is the programme**, and it is now the only thing three registers are waiting on:
+  > `activity_id` is deliberately absent from RFIs, submittals *and* punch items, for one migration that builds
+  > `construction_activities` and adds the column to all three with a real foreign key.
   >
   > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
   > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and
