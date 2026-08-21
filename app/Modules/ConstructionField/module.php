@@ -32,11 +32,13 @@ return [
         'App\\Models\\DailyLogEvent' => \App\Modules\ConstructionField\Models\DailyLogEvent::class,
         'App\\Models\\DailyLogDelivery' => \App\Modules\ConstructionField\Models\DailyLogDelivery::class,
         'App\\Models\\DailyLogPhoto' => \App\Modules\ConstructionField\Models\DailyLogPhoto::class,
+        'App\\Models\\Rfi' => \App\Modules\ConstructionField\Models\Rfi::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\ConstructionField\\DelayEventResource' => \App\Modules\ConstructionField\Filament\Resources\DelayEvents\DelayEventResource::class,
         'App\\Filament\\Resources\\ConstructionField\\DailyLogResource' => \App\Modules\ConstructionField\Filament\Resources\DailyLogs\DailyLogResource::class,
+        'App\\Filament\\Resources\\ConstructionField\\RfiResource' => \App\Modules\ConstructionField\Filament\Resources\Rfis\RfiResource::class,
     ],
 
     'permission_groups' => [
@@ -66,6 +68,21 @@ return [
         ['name' => 'ConstructionDailyLogView', 'group' => 'ConstructionField'],
         ['name' => 'ConstructionDailyLogUpdate', 'group' => 'ConstructionField'],
         ['name' => 'ConstructionDailyLogApprove', 'group' => 'ConstructionField'],
+
+        /*
+         * RFIs (§16.2), and **two permissions rather than three, which is a decision rather than an omission.**
+         *
+         * Raising is site's: the person who cannot build without an answer is the person standing in front of the
+         * problem, and an RFI they cannot raise is a question asked by telephone and unprovable afterwards.
+         *
+         * *Recording the answer is the same grant.* The answer arrives by email and somebody transcribes it — clerical
+         * work, not an approval. A second permission there would leave answers sitting in an inbox while the register
+         * says the question is open, which is worse than the risk it guards against. What genuinely needs separating is
+         * already separate: **raising the delay event behind an RFI's time impact asks for
+         * `ConstructionDelayUpdate`**, because serving notice on the employer is not the same act as asking a question.
+         */
+        ['name' => 'ConstructionRfiView', 'group' => 'ConstructionField'],
+        ['name' => 'ConstructionRfiUpdate', 'group' => 'ConstructionField'],
     ],
 
     'role_grants' => [
@@ -82,12 +99,17 @@ return [
             // The diary is a record of what happened on site, written by somebody who was there.
             'ConstructionDailyLogUpdate',
             'ConstructionDailyLogView',
+            // And so is an RFI: the question comes from whoever is blocked by it.
+            'ConstructionRfiUpdate',
+            'ConstructionRfiView',
         ],
         'Accountant' => [
             'ConstructionDelayUpdate',
             'ConstructionDelayView',
             'ConstructionDailyLogUpdate',
             'ConstructionDailyLogView',
+            'ConstructionRfiUpdate',
+            'ConstructionRfiView',
         ],
         // Awarding days and money moves the completion date and decides whether damages can be levied. And signing off
         // a day locks it as evidence, which is a different act from writing it.

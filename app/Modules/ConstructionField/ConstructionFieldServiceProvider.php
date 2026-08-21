@@ -5,8 +5,10 @@ namespace App\Modules\ConstructionField;
 use App\Modules\ConstructionField\Console\Commands\CheckDelayNotices;
 use App\Modules\ConstructionField\Models\DailyLog;
 use App\Modules\ConstructionField\Models\DelayEvent;
+use App\Modules\ConstructionField\Models\Rfi;
 use App\Modules\ConstructionField\Policies\DailyLogPolicy;
 use App\Modules\ConstructionField\Policies\DelayEventPolicy;
+use App\Modules\ConstructionField\Policies\RfiPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,7 @@ class ConstructionFieldServiceProvider extends ServiceProvider
     private const POLICIES = [
         DelayEvent::class => DelayEventPolicy::class,
         DailyLog::class => DailyLogPolicy::class,
+        Rfi::class => RfiPolicy::class,
     ];
 
     public function boot(): void

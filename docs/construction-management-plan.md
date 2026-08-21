@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a, 9b and 9c with them (2026-08-20). RFIs (§16.2) are next; submittals,
-punch lists, activities and the P6 import follow.**
+**Status:** **Phases 0 to 8 complete, and Phase 9a to 9d with them (2026-08-21). Submittals (§16.3) are next; punch
+lists, activities and the P6 import follow.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -32,6 +32,11 @@ the dockets are the whole of the evidence — which the certificate now says in 
 where the panel simply vanished. And where there *is* one, **a docket with no priced receipt behind it is material the
 job received that the cost ledger has never heard about**: cost understated, margin overstated, and the same silence
 §13's clock exists for, one document chain along.
+
+Phase 9d built the RFI register, and the shape it shares with 9b and 9c is now the section's signature: **a register's
+most valuable column is the one that is empty.** An RFI carrying a stated time impact with no delay event behind it is a
+notice period already running with nothing chasing it — the third instance, after the diary's unnotified event and the
+docket accounts never saw. Each is a fact the application already holds, joined to a consequence nobody was watching.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2572,6 +2577,57 @@ document register before the modules that reference drawings.
   > usual — but the photograph's **location and register container are real relations**, because §16.5 and §15 both put
   > those in the spine, which this module requires. That is the packaging plan paying for itself: the two things every
   > field subsystem needs are the two that cost nothing to name.
+  >
+  > **9d built 2026-08-21.** — `ConstructionRfiTest` (29 tests). `construction_rfis`, `RfiService`, `RfiPolicy` and the
+  > register with its two reports.
+  >
+  > **The column §16.2 does not ask for is the one this register earns its place with.** `delay_event_id`: late
+  > information is already a cause on §13's event, an RFI is where such a delay is *first written down*, and the notice
+  > period is running from the day the answer was needed. So an RFI marked `time_impact_flag = yes` with no delay event
+  > behind it is the third instance of this section's recurring shape — after 9b's unnotified diary event and 9c's
+  > unreceipted docket — and the action raises the notice **dated the day the answer was needed**, not today (which
+  > time-bars a claim by its own paperwork) and not the day the question was asked (when the work was not yet blocked).
+  > `possible` is excluded deliberately: a notice for every impact somebody is still assessing turns the notice register
+  > into noise nobody reads.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **"No gaps" is a rule about deletion, not about counting.** §16.2 asks for `rfi_number` per job with no gaps, and
+  >   the register is read sequentially and quoted by number in correspondence — so a hole in it is indistinguishable
+  >   from a removal somebody wanted. The model refuses deletion outright; cancellation with a reason is the way out and
+  >   the number stays used.
+  > - **Closing requires an answer.** An RFI closed with nothing against it disappears from the outstanding list while
+  >   the question is still outstanding, which is the one job this register has. Cancelling is the other path and reads
+  >   as a different fact.
+  > - **The answer is dated the day it was given, not transcribed.** The response time this register reports belongs to
+  >   the other side, and dating it from the transcription flatters the party being measured. A late answer is recorded
+  >   and marked late — the same shape as §13's late notice, and for the same reason.
+  > - **One `Days` column with three meanings, each labelled**: days left while an answer is owed, days *late* once past
+  >   due, response time once answered. Three columns would each be blank two-thirds of the time. All computed, per
+  >   §16.2's closing line — a stored days-open is wrong by one every midnight.
+  > - **Two permissions, not three.** Raising is site's, and recording the answer is the *same* grant: the answer arrives
+  >   by email and somebody transcribes it, which is clerical rather than an approval, and a permission there would
+  >   leave answers sitting in an inbox while the register says the question is open. What genuinely needed separating
+  >   already was: raising the delay event asks for `ConstructionDelayUpdate`, because serving notice on the employer is
+  >   not the same act as asking a question. `RoleGrantsTest::EXPECTED` moved to 50 / 130 / 163 / 183.
+  >
+  > **Two columns §16.2 lists are deliberately absent.** `activity_id` waits for the programme sub-phase, which builds
+  > `construction_activities` and adds the column with a real foreign key to RFIs, submittals and punch items together —
+  > a nullable integer nothing can populate for three sub-phases reads like an unfinished feature. And there is **no
+  > per-round response table**, which §16.3's submittals will get and this does not: a submittal that has been round
+  > three times is a schedule risk, whereas an RFI answered unsatisfactorily is re-raised as a new numbered question,
+  > which is what the register should show — because the second question has its own clock.
+  >
+  > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
+  > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and
+  > fails when `CrudRedirectsToListingTest` runs immediately before it. Adding one test file to `tests/Feature` shifted
+  > the chunk boundaries of a split full-suite run, which is how it was found — and it reproduces on a pristine HEAD
+  > checkout, so it is not this phase's. The diagnosis worth keeping: the inventory contribution in
+  > `InventoryServiceProvider` guards itself on `ProductView` and **not** on `modules()->enabled('inventory')`, because
+  > the design intends an unlicensed module's provider not to boot at all — which `DashboardStatsTest`'s own docblock
+  > admits "cannot be simulated in-process". So the assertion is passing for a reason unrelated to what it claims to
+  > test, and the reason is sensitive to what ran before it. Left alone here rather than fixed in a construction
+  > phase.
 - **Phase 10 — QHSE.** `construction_qhse`: ITPs and inspections with real hold-point release, NCRs with
   CAPA and close-out, the one actions table, incidents, permits, toolbox talks, the induction register
   and the indicators. **Ends with:** an NCR that proposes a deduction and never applies one, and a safety
