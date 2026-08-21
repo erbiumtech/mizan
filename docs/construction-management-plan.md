@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a to 9d with them (2026-08-21). Submittals (§16.3) are next; punch
-lists, activities and the P6 import follow.**
+**Status:** **Phases 0 to 8 complete, and Phase 9a to 9e with them (2026-08-21). Punch lists (§16.4) are next;
+activities, the programme and the P6 import follow.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -37,6 +37,16 @@ Phase 9d built the RFI register, and the shape it shares with 9b and 9c is now t
 most valuable column is the one that is empty.** An RFI carrying a stated time impact with no delay event behind it is a
 notice period already running with nothing chasing it — the third instance, after the diary's unnotified event and the
 docket accounts never saw. Each is a fact the application already holds, joined to a consequence nobody was watching.
+
+Phase 9e built the submittal register, and it is where that pattern acquires a limit worth stating. The three exposures
+above are all **money somebody else owes**. A submittal late to *submit* is not: the contractor is the one who submits,
+so its lateness is a risk to manage and there is deliberately no notice anywhere near it. What *is* claimable is a
+reviewer who kept the drawing longer than the contract's review period — which is why the turnaround lives on the round,
+beside the period it was measured against, and why the notice is raised per round rather than per item.
+
+The register's own contribution is arithmetic rather than a missing link: **the submit-by date is computed backwards
+from the date the item is needed on site**, and on a real job that produces a list of items already late before anybody
+has done anything wrong, because nobody did the subtraction when the programme was agreed.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2617,6 +2627,55 @@ document register before the modules that reference drawings.
   > per-round response table**, which §16.3's submittals will get and this does not: a submittal that has been round
   > three times is a schedule risk, whereas an RFI answered unsatisfactorily is re-raised as a new numbered question,
   > which is what the register should show — because the second question has its own clock.
+  >
+  > **9e built 2026-08-21.** — `ConstructionSubmittalTest` (33 tests). `construction_submittals`,
+  > `construction_submittal_reviews`, `SubmittalService`, `SubmittalPolicy`, and the register with its rounds tab.
+  >
+  > **The submit-by date is computed and the four durations are what is stored** — §16.3's own rule, and the one the
+  > whole register turns on. Required on site, less fabrication, procurement, review period and buffer. A test moves the
+  > programme date and then a lead time and asserts the answer moves both times, which is exactly what a stored date
+  > could not do: "typed, it goes stale the day the programme moves, and a stale submit-by date is worse than none."
+  >
+  > The finding this produces on day one is the reason it matters: **an item can be late the day it is registered.** A
+  > sixty-day fabrication and a twenty-one-day procurement against a date three months out is already ninety-one days
+  > past its submit-by, and nobody has done anything wrong — nobody did the subtraction when the programme was agreed.
+  >
+  > **Where the section's pattern stops, and this is 9e's own contribution to it.** The three exposures 9b, 9c and 9d
+  > surfaced are all money somebody else owes. A submittal late to submit is the contractor's own risk — it is the party
+  > that submits — so the register ranks it and chases it and **offers no notice at all**, which a test asserts by
+  > checking that a badly-late item produces no delay event and appears in no overrun report. The claimable half is a
+  > reviewer past their period, and it lives on the round.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **A row per round, because a status column cannot hold it.** §16.3: "a submittal that has been round three times
+  >   is a schedule risk". One round was budgeted for; rounds two and three spend float nobody planned while every
+  >   individual step still looks reasonable. Two rounds cannot be open at once, or the register loses count.
+  > - **The review period is snapshotted onto the round**, the same way §8 freezes a certificate's retention terms. A
+  >   round whose overrun was computed against fourteen days keeps saying fourteen; recomputing against a renegotiated
+  >   twenty-one would silently retire an entitlement somebody has already relied on.
+  > - **The status is a projection of the latest round, written by the service and never typed.** §16.3 asks for a
+  >   status *and* says a status loses the rounds — both true, and the resolution is that the rounds are the record and
+  >   the column is an index into them. `update()` drops a posted `status` silently rather than refusing, because a form
+  >   posting its whole state is the ordinary case.
+  > - **Approved-as-noted clears the item.** It means "build it, with these corrections" — the fabricator starts, so the
+  >   schedule is released. Treating it as unapproved would show a job blocked on four hundred items that are all
+  >   proceeding.
+  > - **Long lead is flagged by hand, not inferred.** Ninety days is long lead on a six-month job and ordinary on a
+  >   four-year one, so no threshold here can decide it. The flag is what filters four hundred items down to the twenty
+  >   that will stop the job.
+  >
+  > **A portability trap caught twice in one sub-phase, and worth recording as a rule.** The overrun is a date
+  > difference against a *per-row* period, and expressing that in SQL needs a dialect-specific function — `julianday` on
+  > SQLite, `DATEDIFF` on MySQL. A first draft had exactly that as a query scope: it would have passed every test and
+  > failed in production. The second was `withCount('reviews')->having('reviews_count', '>', 1)`, which SQLite refuses
+  > outright as a non-aggregate — the failure landing the right way round for once. **This suite tests on SQLite and
+  > ships on MySQL, so a query that only works on one is a query that only works in tests.** Both are now
+  > `has('reviews', '>', 1)` and a PHP filter over an indexed narrowing.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 52 / 132 / 165 / 185 — two names again, and recording a reviewer's return rides
+  > on the same grant as submitting for the same reason the RFI's answer does. `activity_id` is absent here too, for the
+  > programme sub-phase to add with a real key alongside RFIs and punch items.
   >
   > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
   > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and

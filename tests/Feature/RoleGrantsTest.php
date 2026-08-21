@@ -223,13 +223,21 @@ class RoleGrantsTest extends AccountingTestCase
      * separating already is: raising the delay event behind an RFI's stated time impact asks for
      * `ConstructionDelayUpdate`, because serving notice on the employer is not the same act as asking a question.
      *
+     * Phase 9e, submittals, **two names again and for the same reason**. **Employee +2**
+     * (`ConstructionSubmittalView`, `ConstructionSubmittalUpdate`), **Accountant +2**, inherited upward. Recording a
+     * reviewer's return rides on the same grant as submitting: the stamped drawing arrives from the Architect and
+     * somebody files it, which is transcription rather than an approval — and a permission there would leave stamped
+     * drawings in a drawer while the register says the item is still out for review. A register nobody believes about
+     * what is outstanding has no purpose. The act that needed separating already was: notifying a reviewer's overrun
+     * asks for `ConstructionDelayUpdate`.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 50,
-        'Accountant' => 130,
-        'Manager' => 163,
-        'CEO' => 183,
+        'Employee' => 52,
+        'Accountant' => 132,
+        'Manager' => 165,
+        'CEO' => 185,
     ];
 
     protected function setUp(): void
