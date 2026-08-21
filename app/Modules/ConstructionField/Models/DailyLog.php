@@ -92,6 +92,17 @@ class DailyLog extends Model
         return $this->hasMany(DailyLogEvent::class, 'daily_log_id');
     }
 
+    /** What arrived, as site recorded it — the docket, never the valuation. See `DailyLogDelivery`. */
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(DailyLogDelivery::class, 'daily_log_id');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(DailyLogPhoto::class, 'daily_log_id');
+    }
+
     /** Logs for one date — `whereDate`, because `log_date` is `date`-cast and therefore stored with a time. */
     public function scopeOn(Builder $query, string $date): Builder
     {
@@ -175,6 +186,37 @@ class DailyLog extends Model
             ->filter(fn (DailyLogEvent $event): bool => $event->delay_event_id === null
                 && (float) $event->hours_lost > 0.0
                 && $event->responsibility !== 'contractor')
+            ->values();
+    }
+
+    /**
+     * Deliveries this day flagged as standing on site.
+     *
+     * Corroboration for Phase 8c's stock figure, **not a second source for it**: nothing here decreases when the
+     * material is built in, so a total of these overstates what is on site by everything already consumed. See the
+     * migration for the whole of that decision.
+     *
+     * @return \Illuminate\Support\Collection<int, DailyLogDelivery>
+     */
+    public function materialsOnSiteDeliveries(): \Illuminate\Support\Collection
+    {
+        return $this->deliveries
+            ->filter(fn (DailyLogDelivery $delivery): bool => $delivery->is_materials_on_site)
+            ->values();
+    }
+
+    /**
+     * Photographs of covered work that are not in the register.
+     *
+     * A photograph of reinforcement before the pour is the only evidence it was there. Sitting in a diary it is
+     * findable by whoever remembers the date; in the register it is findable in year four.
+     *
+     * @return \Illuminate\Support\Collection<int, DailyLogPhoto>
+     */
+    public function photosNeedingPromotion(): \Illuminate\Support\Collection
+    {
+        return $this->photos
+            ->filter(fn (DailyLogPhoto $photo): bool => $photo->needsPromoting())
             ->values();
     }
 

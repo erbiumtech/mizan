@@ -6,6 +6,8 @@ use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Models\ProgressClaim;
 use App\Modules\ConstructionCosting\Services\MaterialsOnSite;
+use App\Modules\ConstructionField\Models\DailyLogDelivery;
+use App\Modules\ConstructionField\Services\DailyLogService;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -88,15 +90,32 @@ class PaymentCertificateForm
                  * Filling the claim in from it would be telling the certifier their assessment had been made for them,
                  * and the two figures are not the same number.
                  *
-                 * Absent where there is nothing to say: no cost module, no Inventory, or a job with no store.
+                 * **Which source the figure came from is printed with it**, added in Phase 9c, and it fixes something
+                 * this panel got wrong when it was built: it went absent whenever the cost module was off, and this
+                 * module does not require the cost module. A certifier saw no materials-on-site panel at all and could
+                 * not tell whether that meant nothing was on site or nothing was being tracked — §18.1's healthy figure
+                 * hiding an absence, in the one place a figure is being certified.
+                 *
+                 * So the panel now shows whichever source exists and names it. The stock ledger is the authority where
+                 * there is one, because `remaining_quantity` goes *down* as material is built in; the site diary's
+                 * flagged dockets are corroboration, and the only record at all where the cost module is absent.
                  */
                 Section::make('Materials on site')
-                    ->description('What this job is holding in its store, at cost. Evidence for the materials line — not the claim itself, which is assessed at contract rates against the schedule.')
-                    ->visible(fn (callable $get): bool => static::materialsOnSite($get) !== null)
+                    ->description('Evidence for the materials line — not the claim itself, which is assessed at contract rates against the schedule.')
+                    ->visible(fn (callable $get): bool => static::materialsOnSite($get) !== null
+                        || static::siteRecord($get) !== null)
                     ->schema([
                         Placeholder::make('materials_on_site')
                             ->label('Held in the store, at cost')
+                            ->visible(fn (callable $get): bool => static::materialsOnSite($get) !== null)
                             ->content(fn (callable $get): string => static::materialsOnSite($get) ?? ''),
+
+                        Placeholder::make('materials_on_site_diary')
+                            ->label(fn (callable $get): string => static::materialsOnSite($get) === null
+                                ? 'What site recorded — the only source here'
+                                : 'What site recorded, beside it')
+                            ->visible(fn (callable $get): bool => static::siteRecord($get) !== null)
+                            ->content(fn (callable $get): string => static::siteRecord($get) ?? ''),
                     ]),
             ]);
     }
@@ -140,5 +159,54 @@ class PaymentCertificateForm
         );
 
         return implode('; ', $lines).'. Total at cost: '.number_format($service->valueFor($job), 2).'.';
+    }
+
+    /**
+     * What the site diary says is standing on site — §16.1's `is_materials_on_site`, read in Phase 9c.
+     *
+     * **Corroboration, and where the cost module is absent it is the only record there is.** A guarded coupling to
+     * `construction_field`: this module requires only `construction`, the diary is a separate purchase, and without it
+     * this returns null and the panel is one placeholder again. The direction is the only one available — the field
+     * module never names a class of this one — so the graph stays acyclic.
+     *
+     * **It is not summed into a figure, and the reason is arithmetic.** Nothing on a diary decreases when material is
+     * built in, so a total of flagged dockets would overstate what is on site by everything already consumed, growing
+     * every month with no error anywhere. It is a count of dockets and their dates, which is what corroboration looks
+     * like — and where it is the only source, a certifier is told so in those words rather than shown a total that
+     * looks like the stock figure.
+     */
+    private static function siteRecord(callable $get): ?string
+    {
+        if (! modules()->enabled('construction_field')) {
+            return null;
+        }
+
+        $contract = $get('contract_id') ? Contract::query()->with('job')->find($get('contract_id')) : null;
+        $job = $contract?->job;
+
+        if ($job === null) {
+            return null;
+        }
+
+        $deliveries = app(DailyLogService::class)->materialsOnSiteDeliveries($job);
+
+        if ($deliveries->isEmpty()) {
+            return null;
+        }
+
+        $lines = $deliveries
+            ->sortBy(fn (DailyLogDelivery $delivery): string => (string) $delivery->dailyLog?->log_date?->toDateString())
+            ->map(fn (DailyLogDelivery $delivery): string => $delivery->dailyLog?->log_date?->format('d M')
+                .': '.str($delivery->description)->limit(40)
+                .($delivery->quantity ? " ({$delivery->quantity} {$delivery->unit_of_measure})" : ''))
+            ->all();
+
+        $note = modules()->enabled('construction_costing')
+            ? 'Dockets site flagged as standing on site. Not a total: a diary flag does not come off when the material '
+                .'is built in, so the figure above — which does — is the one to certify against.'
+            : 'Dockets site flagged as standing on site. There is no stock ledger on this installation, so this is the '
+                .'whole of the evidence — a quantity somebody has to verify on site rather than a computed figure.';
+
+        return implode('; ', $lines).'. '.$note;
     }
 }

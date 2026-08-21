@@ -75,6 +75,18 @@ class DailyLogsTable
                     ->getStateUsing(fn (DailyLog $record): float => $record->standingPlantHours())
                     ->toggleable(),
 
+                // Counted in the query rather than folded over a loaded relation: a register page of thirty days would
+                // otherwise load every docket and every photograph to print two numbers.
+                TextColumn::make('deliveries_count')
+                    ->label('Deliveries')
+                    ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('photos_count')
+                    ->label('Photos')
+                    ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 /*
                  * The exposure count. Not a dash when zero — a diary with nothing unnotified is the state somebody
                  * wants confirmed, and a blank cell reads as "not checked".

@@ -6,8 +6,10 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\CreateDailyLog;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\EditDailyLog;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\ListDailyLogs;
+use App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationManagers\DeliveriesRelationManager;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationManagers\EventsRelationManager;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationManagers\ManpowerRelationManager;
+use App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationManagers\PhotosRelationManager;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationManagers\PlantRelationManager;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Schemas\DailyLogForm;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Tables\DailyLogsTable;
@@ -45,8 +47,11 @@ class DailyLogResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // The register prints man-hours and standing plant per row, both folds over the children.
-        return parent::getEloquentQuery()->with(['job', 'manpower', 'plant', 'events']);
+        // The register prints man-hours and standing plant per row, both folds over the children, and counts the
+        // deliveries and photographs — a count is one query for the page rather than one per row.
+        return parent::getEloquentQuery()
+            ->with(['job', 'manpower', 'plant', 'events'])
+            ->withCount(['deliveries', 'photos']);
     }
 
     public static function form(Schema $schema): Schema
@@ -64,7 +69,9 @@ class DailyLogResource extends Resource
         return [
             ManpowerRelationManager::class,
             PlantRelationManager::class,
+            DeliveriesRelationManager::class,
             EventsRelationManager::class,
+            PhotosRelationManager::class,
         ];
     }
 
