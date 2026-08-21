@@ -231,13 +231,20 @@ class RoleGrantsTest extends AccountingTestCase
      * what is outstanding has no purpose. The act that needed separating already was: notifying a reviewer's overrun
      * asks for `ConstructionDelayUpdate`.
      *
+     * Phase 9f, punch lists, **two names again — and the third one would have been the tempting mistake.** **Employee
+     * +2** (`ConstructionPunchView`, `ConstructionPunchUpdate`), **Accountant +2**, inherited upward. Closing a punch
+     * item releases part of §11's AIA holdback, so it is the one act here that moves money — and it is protected
+     * *structurally* rather than by a `ConstructionPunchClose` grant: an item closes only when a re-inspection is
+     * recorded with a passing result. That is stronger than a permission, because a permission can be granted to the
+     * person who caused the defect and a missing passed inspection cannot be granted away at all.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 52,
-        'Accountant' => 132,
-        'Manager' => 165,
-        'CEO' => 185,
+        'Employee' => 54,
+        'Accountant' => 134,
+        'Manager' => 167,
+        'CEO' => 187,
     ];
 
     protected function setUp(): void

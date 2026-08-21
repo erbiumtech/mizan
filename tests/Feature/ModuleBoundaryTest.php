@@ -367,6 +367,11 @@ class ModuleBoundaryTest extends TestCase
         // is §18.1's healthy figure hiding an absence in the one place a figure is being certified. So the panel reads
         // the diary's flagged dockets and *names the source*. Guarded, and the direction is forced the same way the
         // costing edge is — `construction_field` never names a class of this module, so the graph stays acyclic.
+        //
+        // Phase 9f gives that edge its second and larger use: §11's AIA punch-list holdback reads §16.4's open items
+        // through `PunchListService`. Same guard, same direction, and the three answers it can give — unknown without
+        // the module, nil with nothing flagged, or a figure with the count of unpriced items behind it — are what
+        // replaced a note that had been unconditional since 9a.
         'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
         // Construction site operations -> Invoicing, and it is the smallest instance of the shape this section keeps
         // returning to: a diary's manpower line names the company that supplied the men, and a company is a Contact,
@@ -536,6 +541,11 @@ class ModuleBoundaryTest extends TestCase
             // case that was wrong before 9c** — the panel vanished entirely, so a certifier could not tell whether
             // nothing was on site or nothing was being tracked. It now says which source it used, or that there is
             // none.
+            //
+            // The AIA punch-list holdback added in 9f degrades the same way and says so in the same shape: without the
+            // module the holdback is zero *and the release states that open punch items are recorded nowhere, so the
+            // value is unknown rather than nil*. Releasing a whole retention balance on a job with fifty open items is
+            // money that does not come back, which is why this one is a stated absence and not a quiet fallback.
             'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
 
             // A diary's manpower line names the company that supplied the men. Hidden without Invoicing, with the

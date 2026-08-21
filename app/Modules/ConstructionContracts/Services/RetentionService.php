@@ -2,10 +2,12 @@
 
 namespace App\Modules\ConstructionContracts\Services;
 
+use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionContracts\Models\CertificateDeduction;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Models\RetentionMovement;
+use App\Modules\ConstructionField\Services\PunchListService;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use InvalidArgumentException;
@@ -24,9 +26,11 @@ use InvalidArgumentException;
  *  - **`fidic_two_stage`** — half (or `retention_first_release_pct`) at Taking-Over, the rest at the end of the
  *    Defects Notification Period, computed from `practical_completion_date + defects_period_days` and never
  *    stored.
- *  - **`aia_substantial`** — the balance at Substantial Completion **less a punch-list holdback**. The holdback
- *    needs the field module; without it the holdback is zero **and the movement says so in words**, because §18.1
- *    names this as one of the two places where a healthy-looking zero has to explain itself.
+ *  - **`aia_substantial`** — the balance at Substantial Completion **less a punch-list holdback**, read from §16.4's
+ *    open items that affect practical completion. The holdback needs the field module, and **every one of the three
+ *    possible answers says which one it is**: no module and the value is unknown rather than nil, no flagged items and
+ *    it is genuinely nil, or a figure with the count of items behind it that carry no cost estimate. §18.1 names this
+ *    as one of the two places where a healthy-looking zero has to explain itself.
  *  - **`single_stage` / `custom`** — one release at practical completion.
  *
  * Nothing here reads `contract_standard`. The rule is its own column precisely because a FIDIC contract with a
@@ -187,24 +191,7 @@ class RetentionService
      */
     private function aiaSchedule(Contract $contract, float $balance, ?Carbon $completion, ?Carbon $expiry): array
     {
-        $holdback = 0.0;
-
-        /*
-         * **The note is unconditional while punch lists do not exist**, and that is a correction rather than an
-         * oversight.
-         *
-         * It used to read `modules()->enabled('construction_field')`, on the assumption that the module and the punch
-         * list would arrive together. Phase 9a licensed the module for the delay-event notice clock and left the punch
-         * list for a later sub-phase — so the guard started answering "the module is here" while the question it
-         * actually asks is "is there an open punch value to read". A licensed module with no punch table gave a zero
-         * holdback with no reason attached, which is precisely the healthy-looking figure hiding an absence that §18.1
-         * names as one of its two exceptions.
-         *
-         * The sub-phase that builds `construction_punch_items` is what replaces this with a real figure. Until then the
-         * zero says why it is zero, whatever is licensed.
-         */
-        $note = 'Punch-list holdback taken as zero: open punch items are not recorded yet, so the value is unknown '
-            .'rather than nil.';
+        [$holdback, $note] = $this->punchHoldback($contract);
 
         $alreadyReleased = $this->releasedAtStage($contract, RetentionMovement::STAGE_FIRST_RELEASE);
         $first = max(0.0, round($balance - $holdback, 2) - $alreadyReleased);
@@ -225,6 +212,70 @@ class RetentionService
                 'note' => $note,
             ],
         ];
+    }
+
+    /**
+     * **The punch-list holdback, and the sentence that explains whichever figure comes back** — §11 and §16.4.
+     *
+     * Built in Phase 9f, and it closes a note that had been unconditional since 9a. The reasoning is worth keeping,
+     * because it is a mistake this suite makes easy: the guard used to read `modules()->enabled('construction_field')`
+     * on the assumption the module and the punch list would arrive together. Phase 9a licensed the module for the delay
+     * clock and left punch lists three sub-phases later, so the guard began answering *"the module is here"* while the
+     * question it actually asks is *"is there an open punch value to read"*. **A licence is not a proxy for data
+     * existing**, and taking the holdback as zero because a table was empty for the wrong reason is the healthy-looking
+     * figure hiding an absence §18.1 names as one of its two exceptions.
+     *
+     * So there are now three answers and each says which one it is:
+     *
+     *  - **No field module.** Nothing records punch items, so the value is unknown rather than nil, and the release says
+     *    so. Releasing the whole balance on a job with fifty open items is money that does not come back.
+     *  - **Items open, priced.** The sum of `cost_to_rectify` over open items carrying `affects_practical_completion` —
+     *    not every open item, because most snags are paint and sealant and holding retention against all of them makes
+     *    the figure meaningless within a week.
+     *  - **Items open, some unpriced.** The figure *and* the count of items behind it with no estimate. A holdback of
+     *    40,000 across twelve items where three have never been priced is not a holdback of 40,000, and the certifier
+     *    is told rather than left to discover it.
+     *
+     * A guarded coupling, and the direction is the one this module already has: `construction_contracts` names
+     * `construction_field`, never the reverse, so the module graph stays acyclic.
+     *
+     * @return array{0: float, 1: string}
+     */
+    private function punchHoldback(Contract $contract): array
+    {
+        if (! modules()->enabled('construction_field')) {
+            return [0.0, 'Punch-list holdback taken as zero: site operations is not licensed, so open punch items are '
+                .'not recorded anywhere and the value is unknown rather than nil.'];
+        }
+
+        // By key unless the caller already loaded it: reading the relation on a contract fetched without it is a lazy
+        // load, which this application refuses — and every screen reaching here fetched the contract, not its job.
+        $job = $contract->relationLoaded('job')
+            ? $contract->job
+            : Job::query()->find($contract->job_id);
+
+        if ($job === null) {
+            return [0.0, 'Punch-list holdback taken as zero: this contract names no job, so there is no punch list to '
+                .'read.'];
+        }
+
+        $holdback = app(PunchListService::class)->holdbackFor($job);
+
+        if ($holdback['items'] === 0) {
+            return [0.0, 'Punch-list holdback nil: no open punch item on this job is marked as affecting practical '
+                .'completion.'];
+        }
+
+        $note = "Punch-list holdback {$holdback['items']} item(s) affecting practical completion, "
+            .number_format($holdback['amount'], 2).' to rectify.';
+
+        if ($holdback['unpriced'] > 0) {
+            // The figure has to say what it is missing. See the method docblock.
+            $note .= " {$holdback['unpriced']} of them carry no cost estimate, so the holdback is at least this and "
+                .'not exactly this.';
+        }
+
+        return [$holdback['amount'], $note];
     }
 
     /**
