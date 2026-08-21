@@ -4,7 +4,9 @@ namespace App\Modules\ConstructionField\Services;
 
 use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionField\Models\DailyLog;
+use App\Modules\ConstructionField\Models\DailyLogDelivery;
 use App\Modules\ConstructionField\Models\DailyLogEvent;
+use App\Modules\ConstructionField\Models\DailyLogPhoto;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -194,6 +196,122 @@ class DailyLogService
         }
 
         return $log->events()->create($attributes);
+    }
+
+    /**
+     * Record a delivery — **the docket, never the valuation**.
+     *
+     * §16.1's delivery child carries no rate and no amount, and that absence is what keeps it out of the way of §5's
+     * goods receipt. A site record of what arrived and who signed for it is a different document from the priced
+     * receipt accounts posts, and a contractor whose commercial side is elsewhere still needs the first one.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function addDelivery(DailyLog $log, array $attributes): DailyLogDelivery
+    {
+        $this->requireOpen($log, 'added to');
+
+        if (trim((string) ($attributes['description'] ?? '')) === '') {
+            throw new InvalidArgumentException(
+                'A delivery needs to say what arrived. A docket number on its own is a reference to a piece of paper '
+                .'nobody here can read.'
+            );
+        }
+
+        return $log->deliveries()->create($attributes);
+    }
+
+    /**
+     * Attach a photograph to the day.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function addPhoto(DailyLog $log, array $attributes): DailyLogPhoto
+    {
+        $this->requireOpen($log, 'added to');
+
+        if (blank($attributes['file_path'] ?? null)) {
+            throw new InvalidArgumentException('A photograph needs a file.');
+        }
+
+        if (trim((string) ($attributes['caption'] ?? '')) === '') {
+            throw new InvalidArgumentException(
+                'A photograph needs a caption. An uncaptioned image is unfindable by month four, which is the first '
+                .'month anybody looks.'
+            );
+        }
+
+        return $log->photos()->create($attributes + ['taken_at' => $log->log_date]);
+    }
+
+    /**
+     * **Deliveries site signed for that the cost ledger has never seen** — across a job.
+     *
+     * The procurement counterpart of `unnotifiedEvents()`, and the same kind of silence: material received, cost not
+     * recorded, margin overstated, and no error anywhere to find. §5's three-way match catches the invoice that does
+     * not match an order; nothing catches the docket that never left the site hut.
+     *
+     * **Empty without `construction_costing`, deliberately.** With no cost ledger there are no goods receipts, so every
+     * delivery would be listed and the report would be the register itself — a control that fires on everything is a
+     * control people learn to click through, which is the same argument `config/construction.php` makes about
+     * tolerances.
+     *
+     * @return Collection<int, DailyLogDelivery>
+     */
+    public function unreceiptedDeliveries(Job $job): Collection
+    {
+        if (! modules()->enabled('construction_costing')) {
+            return collect();
+        }
+
+        return DailyLogDelivery::query()
+            ->with('dailyLog')
+            ->unreceipted()
+            // A rejected load was sent back, so nobody should be receipting it and its absence is not an exposure.
+            ->where('condition', '!=', DailyLogDelivery::CONDITION_REJECTED)
+            ->whereIn('daily_log_id', DailyLog::query()->forJobTree($job)->select('id'))
+            ->get();
+    }
+
+    /**
+     * What the diary says is standing on site — **corroboration, not the figure**.
+     *
+     * Phase 8c computes materials on site from the unconsumed part of the stock lots, and that is what a certificate
+     * quotes, because it goes *down* when material is built in. A count of flagged dockets can only ever go up, so it
+     * would overstate the position by everything already consumed and the error would grow monthly.
+     *
+     * What it is for: where the cost module is absent there is no stock ledger at all, and these dockets are the only
+     * record of what is on site. A screen that showed nothing in that case would be §18.1's healthy figure hiding an
+     * absence — so it shows this, and says which source it used.
+     *
+     * @return Collection<int, DailyLogDelivery>
+     */
+    public function materialsOnSiteDeliveries(Job $job): Collection
+    {
+        return DailyLogDelivery::query()
+            ->with('dailyLog')
+            ->onSite()
+            ->where('condition', '!=', DailyLogDelivery::CONDITION_REJECTED)
+            ->whereIn('daily_log_id', DailyLog::query()->forJobTree($job)->select('id'))
+            ->get();
+    }
+
+    /**
+     * Photographs of covered work that never reached the register — across a job.
+     *
+     * §16.1 keeps photos out of the ISO 19650 register on purpose, and then names the exception: the handful that are
+     * as-built evidence. This is the list of ones that qualify and have not been promoted.
+     *
+     * @return Collection<int, DailyLogPhoto>
+     */
+    public function photosNeedingPromotion(Job $job): Collection
+    {
+        return DailyLogPhoto::query()
+            ->with('dailyLog')
+            ->evidential()
+            ->whereNull('promoted_document_id')
+            ->whereIn('daily_log_id', DailyLog::query()->forJobTree($job)->select('id'))
+            ->get();
     }
 
     /**

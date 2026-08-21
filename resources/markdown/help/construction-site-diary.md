@@ -78,9 +78,64 @@ happened, and nothing is chasing it.
 rather than today. The diary line then points at it and stops being reported as
 unnotified.
 
-## What is not here yet
+## Deliveries: the docket, not the price
 
-**Deliveries** and **photos** are the diary's two remaining children. The delivery
-row carries the flag that makes a certificate's "materials presently stored" column
-defensible, and that figure is already computed from stock — reconciling the two
-needs a decision rather than another table, so it has its own sub-phase.
+What arrived, who signed for it, and against which order — as written on the docket.
+There is no rate and no amount here on purpose. The priced goods receipt is a
+different document, raised by whoever is costing the job, and keeping the two apart is
+what lets you run a diary without a cost ledger at all.
+
+Leave the docket number blank if the load came with no paperwork. The table says *no
+docket* in plain sight rather than hiding it, which is better than the delivery being
+recorded on the back of a drawing.
+
+**Condition** has three values and the middle one earns its place. *Accepted with
+damage* is the load you took because the pour was booked — say so in the notes, because
+that is the fact that disappears when somebody marks it simply accepted.
+
+### Still standing on site
+
+Tick **Still standing on site** for material that is delivered and not yet built in.
+
+Where you keep a site store, the figure a certificate quotes comes from **stock**, not
+from this tick — stock goes down as material is used and a diary tick never does, so a
+count of ticks would overstate what is on site by everything already consumed, and the
+error would grow every month. The tick is the site record beside it.
+
+Where you keep no site store, these dockets are the whole of the evidence, and the
+certificate says so rather than showing nothing.
+
+### Link priced receipt
+
+Where you run cost control, **Link priced receipt** joins the docket to the goods
+receipt accounts raised for it. If one was raised against this docket number it is
+already selected for you.
+
+The **Priced receipt** column is empty until that happens, and every empty one is
+material the job has received that the cost ledger has never heard about: cost
+understated, margin overstated, and no error anywhere to find. Filter the tab by *Not
+yet receipted* and it is a short list.
+
+## Photos
+
+Fifty photographs a day for two years does not belong in the document register — it
+would be thirty thousand containers buried around the drawings the register exists for.
+So they live here, with a caption, a **subject**, and a place from the job's location
+tree.
+
+**Concealed work** is the subject that carries money. Reinforcement before the pour,
+services before the screed, a membrane before the backfill: the photograph is the only
+evidence the work was ever there, and it is what stops an element being opened up.
+
+### Promote to register <!-- requires: ConstructionDocumentCreate -->
+
+For the handful that become as-built evidence, **Promote to register** creates a real
+container in the document register with an identifier, a location and the same file.
+The photograph stays here where site can find it.
+
+Promoting puts it in the register at *work in progress*. It does not publish it —
+publishing is the register's own approval gate and a different permission again.
+
+A promoted photograph can no longer be deleted from the diary, because the register's
+container points at the same file. A register listing a file nobody can produce is
+worse than a photograph nobody wanted.

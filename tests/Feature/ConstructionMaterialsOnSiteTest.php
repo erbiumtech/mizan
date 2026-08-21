@@ -364,4 +364,111 @@ class ConstructionMaterialsOnSiteTest extends AccountingTestCase
             ->assertSee('Materials on site')
             ->assertSee('not the claim itself');
     }
+
+    /**
+     * **The certificate says which source the evidence came from** — Phase 9c, and it fixes a Phase 8c defect.
+     *
+     * The panel used to be absent whenever `construction_costing` was off, and `construction_contracts` does not
+     * require that module. A certifier saw no materials-on-site panel and could not tell whether nothing was on site or
+     * nothing was being tracked: §18.1's healthy figure hiding an absence, in the one place a figure is being certified.
+     *
+     * With both modules, stock is the authority — because `remaining_quantity` goes *down* when material is built in and
+     * a diary flag never does — and the diary's dockets sit beside it saying so.
+     */
+    public function test_the_certificate_names_the_source_of_the_evidence(): void
+    {
+        $contract = $this->certifiableContract();
+        $this->receiveIntoStore(20, 250_000);
+        $this->flagDocketOnSite();
+
+        Livewire::test(
+            \App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificates\Pages\CreatePaymentCertificate::class
+        )
+            ->fillForm(['contract_id' => $contract->getKey()])
+            ->assertSee('Held in the store, at cost')
+            ->assertSee('What site recorded, beside it')
+            ->assertSee('20 tonnes of aggregate')
+            ->assertSee('Not a total');
+    }
+
+    /**
+     * **With no stock ledger the diary is the whole of the evidence, and the certificate says that too.**
+     *
+     * This is the case that used to be silent. A contractor certifying without cost control has no lots to read, so the
+     * dockets site flagged are all there is — and the panel tells the certifier it is a quantity somebody has to verify
+     * on site rather than a computed figure.
+     */
+    public function test_with_no_cost_ledger_the_diary_carries_the_evidence_and_says_so(): void
+    {
+        $contract = $this->certifiableContract();
+        $this->flagDocketOnSite();
+
+        CompanyModule::query()
+            ->where('company_id', $this->tenant->getKey())
+            ->whereIn('module', ['construction_costing', 'inventory'])
+            ->update(['licensed' => false, 'enabled' => false]);
+        modules()->flush();
+
+        Livewire::test(
+            \App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificates\Pages\CreatePaymentCertificate::class
+        )
+            ->fillForm(['contract_id' => $contract->getKey()])
+            ->assertSee('the only source here')
+            ->assertSee('no stock ledger on this installation')
+            ->assertDontSee('Held in the store, at cost');
+    }
+
+    /** And with neither source there is genuinely nothing to certify against, so the panel stays away. */
+    public function test_with_neither_source_the_panel_is_absent(): void
+    {
+        $contract = $this->certifiableContract();
+
+        CompanyModule::query()
+            ->where('company_id', $this->tenant->getKey())
+            ->whereIn('module', ['construction_costing', 'inventory', 'construction_field'])
+            ->update(['licensed' => false, 'enabled' => false]);
+        modules()->flush();
+
+        Livewire::test(
+            \App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificates\Pages\CreatePaymentCertificate::class
+        )
+            ->fillForm(['contract_id' => $contract->getKey()])
+            ->assertDontSee('Held in the store, at cost')
+            ->assertDontSee('the only source here');
+    }
+
+    private function certifiableContract(): Contract
+    {
+        $contracts = app(ContractService::class);
+        $contract = $contracts->create($this->job, [
+            'side' => Contract::SIDE_RECEIVABLE,
+            'title' => 'Main works',
+            'contract_sum' => 100_000_000,
+        ]);
+        $contracts->addItem($contract, [
+            'item_no' => '1', 'description' => 'The works', 'scheduled_value' => 100_000_000,
+        ]);
+
+        return $contracts->execute($contract);
+    }
+
+    /** A site diary docket flagged as standing on site — §16.1's `is_materials_on_site`. */
+    private function flagDocketOnSite(): void
+    {
+        CompanyModule::updateOrCreate(
+            ['company_id' => $this->tenant->getKey(), 'module' => 'construction_field'],
+            ['licensed' => true, 'enabled' => true],
+        );
+        modules()->flush();
+
+        $logs = app(\App\Modules\ConstructionField\Services\DailyLogService::class);
+
+        $logs->addDelivery($logs->open($this->job, '2026-08-20'), [
+            'docket_number' => 'DN-8841',
+            'description' => '20 tonnes of aggregate',
+            'quantity' => 20,
+            'unit_of_measure' => 't',
+            'is_materials_on_site' => true,
+        ]);
+    }
 }

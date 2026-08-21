@@ -360,7 +360,14 @@ class ModuleBoundaryTest extends TestCase
         // forced rather than chosen**: pointing costing back at contracts as well would make the pair a cycle, and a
         // cycle cannot be a composer dependency. That is why `commitments.contract_id` is set from the contract's
         // own screen instead of by a picker on the order form, which is where anybody would look for it first.
-        'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
+        //
+        // `construction_field` joins it in Phase 9c, and it exists to fix something the materials-on-site panel got
+        // wrong: it went absent whenever `construction_costing` was off, and this module does not require that module.
+        // A certifier saw no panel and could not tell whether nothing was on site or nothing was being tracked, which
+        // is §18.1's healthy figure hiding an absence in the one place a figure is being certified. So the panel reads
+        // the diary's flagged dockets and *names the source*. Guarded, and the direction is forced the same way the
+        // costing edge is — `construction_field` never names a class of this module, so the graph stays acyclic.
+        'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
         // Construction site operations -> Invoicing, and it is the smallest instance of the shape this section keeps
         // returning to: a diary's manpower line names the company that supplied the men, and a company is a Contact,
         // which Invoicing owns. `construction_field` requires only `construction` (§18), so the picker checks
@@ -372,6 +379,13 @@ class ModuleBoundaryTest extends TestCase
         // `construction_plant_items` with the query builder rather than naming `Trade` or `PlantItem` — the same
         // treatment §13's `contract_id` gets. Two integers and two labels are all a diary needs, and a model would
         // have bought nothing and cost the boundary.
+        //
+        // Phase 9c adds two more of the same shape and no new module: a delivery's contract item is read out of
+        // `construction_contract_items`, and the goods receipt behind a docket out of `construction_goods_receipts`,
+        // both with the query builder. **The photograph's location is the exception, and it is a real relation** — §16.5
+        // built the location tree in the spine precisely so five subsystems could say *where*, and `construction` is
+        // required, so naming `Location` costs the boundary nothing. Same for `Document`: promoting a photograph to the
+        // ISO 19650 register is a spine call, which is why §15 put the register in the spine rather than here.
         'construction_field' => ['invoicing'],
     ];
 
@@ -516,10 +530,20 @@ class ModuleBoundaryTest extends TestCase
             // so a certificate is issued exactly as it was before Phase 6c and the orders relation manager does
             // not appear. A contractor certifying subcontractors while keeping cost control elsewhere has no
             // commitment ledger for a certificate to relieve, which is the whole reason the two are sold apart.
-            'construction_contracts' => ['invoicing', 'accounting', 'construction_costing'],
+            //
+            // The site diary joins it in Phase 9c and degrades to one placeholder instead of two: the
+            // materials-on-site panel shows the stock figure and no site corroboration beside it. **Both absent is the
+            // case that was wrong before 9c** — the panel vanished entirely, so a certifier could not tell whether
+            // nothing was on site or nothing was being tracked. It now says which source it used, or that there is
+            // none.
+            'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
 
             // A diary's manpower line names the company that supplied the men. Hidden without Invoicing, with the
             // free-text company name carrying it — the same shape as the job's client, two modules along.
+            //
+            // Phase 9c's delivery and photograph children add no target here. The contract item, the goods receipt and
+            // the fleet register are all read with the query builder, and the photograph's location and the register
+            // container it can be promoted into are both in `construction`, which this module requires.
             'construction_field' => ['invoicing'],
         ];
 
