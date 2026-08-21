@@ -273,6 +273,13 @@ class NavigationGroupsTest extends TestCase
         // subcontractors — the schedule, the variations, the certificates, the retention. Folding them together
         // would take the construction domain past the six-entry threshold `NavigationTree` exists to keep
         // groups under, and would put the retention ledger next to the cost-code library.
+        // `Site` is the third construction group, added with `construction_field` in Phase 9a, and it is decided by
+        // exactly the same measurement as `Contracts`: it is opened by different people on different days. The site
+        // diary, the delay register, RFIs, submittals and punch lists are the site team's screens — filled in on a
+        // phone, at the end of a shift, by somebody who was there — where `Construction` is the commercial coding of
+        // the job and `Contracts` is what was agreed with the employer. Folding the diary in beside the cost-code
+        // library would also take the construction domain past the six-entry threshold `NavigationTree` keeps groups
+        // under, which is the arithmetic §18.2 used for the first split.
         $this->assertSame([
             'Access Control',
             'Accounting',
@@ -285,6 +292,7 @@ class NavigationGroupsTest extends TestCase
             'Performance',
             'Sales',
             'Settings',
+            'Site',
             'Support',
         ], $labels);
     }

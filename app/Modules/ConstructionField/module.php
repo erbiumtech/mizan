@@ -30,6 +30,8 @@ return [
         'App\\Models\\DailyLogManpower' => \App\Modules\ConstructionField\Models\DailyLogManpower::class,
         'App\\Models\\DailyLogPlant' => \App\Modules\ConstructionField\Models\DailyLogPlant::class,
         'App\\Models\\DailyLogEvent' => \App\Modules\ConstructionField\Models\DailyLogEvent::class,
+        'App\\Models\\DailyLogDelivery' => \App\Modules\ConstructionField\Models\DailyLogDelivery::class,
+        'App\\Models\\DailyLogPhoto' => \App\Modules\ConstructionField\Models\DailyLogPhoto::class,
     ],
 
     'resources' => [

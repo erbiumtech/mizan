@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a and 9b with them (2026-08-20). Phase 9c — the diary's deliveries and
-photos — is next; RFIs, submittals, punch lists, activities and the P6 import follow.**
+**Status:** **Phases 0 to 8 complete, and Phase 9a, 9b and 9c with them (2026-08-20). RFIs (§16.2) are next; submittals,
+punch lists, activities and the P6 import follow.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -19,6 +19,19 @@ The join between the two sub-phases is the thing to carry forward: **a diary eve
 event behind it is the exposure**, and it is now a query rather than somebody's memory. The diary is where such an
 event is written down on the day; §13's clock is what is running against it. The events tab raises the delay event in
 one action, dated the day the thing happened rather than the day somebody noticed.
+
+Phase 9c finished the diary with its last two children and settled the question 9b left open. **The delivery is the
+docket, not the valuation** — §16.1's list of what it carries has no rate and no amount in it, and that absence is what
+keeps it out of the way of §5's priced goods receipt. **And `is_materials_on_site` corroborates Phase 8c's stock figure
+rather than replacing it**, because a diary flag never comes off when material is built in: a total of flagged dockets
+would overstate what is on site by everything already consumed, and the error would grow every month with nothing saying
+so.
+
+What the flag buys instead is two answers stock cannot give. Where there is no cost module there is no stock ledger, and
+the dockets are the whole of the evidence — which the certificate now says in those words, fixing a Phase 8c defect
+where the panel simply vanished. And where there *is* one, **a docket with no priced receipt behind it is material the
+job received that the cost ledger has never heard about**: cost understated, margin overstated, and the same silence
+§13's clock exists for, one document chain along.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2458,6 +2471,15 @@ document register before the modules that reference drawings.
   > `construction_field` also had to join the construction company profile — `CompanyProfileTest` fails a module no
   > profile licenses, which is the check working. `RoleGrantsTest::EXPECTED` moved to 46 / 126 / 158 / 178.
   >
+  > **A structural test this phase should have run and did not**, found three sub-phases later: `construction_field`
+  > declares a `Site` navigation group, and `NavigationGroupsTest` asserts the sidebar is made of *exactly* an
+  > enumerated list. A new group is a deliberate act that has to be argued for, which is the point of that test — and
+  > the argument is the same measurement §18.2 used to split `Contracts` off: the diary and the delay register are
+  > opened by the site team at the end of a shift, where `Construction` is the commercial coding of the job. The lesson
+  > is procedural rather than architectural: **the structural tests to run after adding a module are not only the
+  > module-boundary, alias-lock, role-grant and help ones** — anything declaring navigation, a profile entry or a
+  > console schedule has its own gate.
+  >
   > **9b built 2026-08-20.** — `ConstructionDailyLogTest` (28 tests). `construction_daily_logs` and three children —
   > manpower, plant and events — with `DailyLogService`, the register and its three tabs.
   >
@@ -2495,6 +2517,61 @@ document register before the modules that reference drawings.
   > else**, so 9c owes a decision rather than a table: either the diary's flag is evidence *for* the stock figure, or
   > the stock figure is the authority and the diary line is a cross-check that can disagree visibly. Photos are the
   > other child, and they need the ISO 19650 register's *promote* action rather than a second document store.
+  >
+  > **9c built 2026-08-20.** — `ConstructionSiteDeliveryTest` (26 tests) and three more on
+  > `ConstructionMaterialsOnSiteTest`. `construction_daily_log_deliveries` and `construction_daily_log_photos`, with
+  > `SitePhotoPromotion`, two more tabs on the diary and a fix to the certificate's evidence panel.
+  >
+  > **The decision the sub-phase owed, answered: the stock ledger is the authority and the diary corroborates.** The
+  > argument is arithmetic rather than preference — *a flag can only ever accumulate*. Nothing on a diary decreases when
+  > material is built in, so a total of flagged dockets overstates materials on site by exactly everything already
+  > issued, and that error grows monthly with no error anywhere to find. `remaining_quantity` on the lots goes down on
+  > issue, which is why Phase 8c's figure is the one a certificate quotes.
+  >
+  > **And the flag then earns its place twice over, on questions stock cannot answer:**
+  >
+  > - **Where there is no cost module there is no stock ledger**, and the flagged dockets are the only record of what is
+  >   standing on site. This exposed a real defect in 8c: the certificate's materials panel returned null whenever
+  >   `construction_costing` was off — and `construction_contracts` does not require that module — so the section
+  >   vanished and a certifier could not tell whether nothing was on site or nothing was being tracked. §18.1's healthy
+  >   figure hiding an absence, in the one place a figure is being certified. The panel now shows whichever source
+  >   exists and **names it**, and where the diary is the only one it says the quantity has to be verified on site
+  >   rather than presenting it as computed.
+  > - **A docket with no priced receipt behind it is the exposure**, and it is the same shape as 9b's unnotified event
+  >   one document chain along: material received, cost not recorded, margin overstated. §5's three-way match catches
+  >   the invoice that disagrees with an order; nothing caught the docket that never left the site hut. Rejected loads
+  >   are excluded — nobody should be receipting those — and the whole report is empty without
+  >   `construction_costing`, because with no goods receipts every docket would be listed and a control that fires on
+  >   everything is one people learn to click through.
+  >
+  > Four smaller decisions worth keeping:
+  >
+  > - **The delivery carries no money at all** — no rate, no amount, no cost code — and a test asserts the columns are
+  >   absent rather than merely unused. A site docket that priced itself would be a second answer to what a delivery
+  >   cost, which is the whole failure this sub-phase is about.
+  > - **The docket number is nullable, and the table says *no docket* in plain sight.** Material does arrive with no
+  >   paperwork, and a delivery this application refuses to record is one recorded on the back of a drawing.
+  > - **Three conditions, and the middle one earns its place.** *Accepted with damage* is the load taken because the
+  >   pour was booked; without it people mark it accepted and the fact disappears.
+  > - **Photographs are not register containers, and promotion does not publish.** §16.1 keeps them out because thirty
+  >   thousand of them bury the drawings the register exists for, then names *promote to register* as the exception. It
+  >   creates the container at work-in-progress, gated on `ConstructionDocumentCreate` rather than the diary's own
+  >   grant — whoever may write a diary is not whoever may put a container in the register, and that gate is the only
+  >   thing keeping the register out of the state the separate table exists to avoid. Publishing is §15's approval gate
+  >   and a third permission again; a promotion that published would be a way around it.
+  >
+  > **One file, two rows.** The register's revision carries the photograph's own path, name, size, mime and sha256
+  > rather than a copy of the bytes, so an adjudicator is shown the same image and not a re-encoding. The consequence is
+  > enforced: a promoted photograph cannot be deleted from the diary, because a register listing a file nobody can
+  > produce is worse than never having promoted it.
+  >
+  > **No new permissions**, so `RoleGrantsTest::EXPECTED` is unchanged at 48 / 128 / 161 / 181 — the two children are
+  > the diary's, and promotion is the register's. **One new coupling**, `construction_contracts -> construction_field`,
+  > for the certificate panel: guarded, and the direction is the only one available because the field module never
+  > names a class of this one. The delivery's contract item and its goods receipt are read with the query builder as
+  > usual — but the photograph's **location and register container are real relations**, because §16.5 and §15 both put
+  > those in the spine, which this module requires. That is the packaging plan paying for itself: the two things every
+  > field subsystem needs are the two that cost nothing to name.
 - **Phase 10 — QHSE.** `construction_qhse`: ITPs and inspections with real hold-point release, NCRs with
   CAPA and close-out, the one actions table, incidents, permits, toolbox talks, the induction register
   and the indicators. **Ends with:** an NCR that proposes a deduction and never applies one, and a safety
