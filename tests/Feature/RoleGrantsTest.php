@@ -204,13 +204,32 @@ class RoleGrantsTest extends AccountingTestCase
      * the same act as writing it down. The same grant carries reopening, because whoever may sign a day off is who may
      * unsign it. CEO +3.
      *
+     * Phase 9c, the diary's deliveries and photographs: **no permissions at all**, and that is the entry worth reading.
+     * Both are children of the diary and ride on `ConstructionDailyLogUpdate` — a docket and a photograph are what
+     * writing a diary consists of. Promoting a photograph into the ISO 19650 register asks for
+     * `ConstructionDocumentCreate`, which already exists and belongs to the register rather than to the diary: whoever
+     * may write a diary is not automatically whoever may put a container in the register, and that gate is the only
+     * thing keeping thirty thousand site photographs out of it.
+     *
+     * Phase 9d, RFIs, **two names rather than three**. **Employee +2** (`ConstructionRfiView`,
+     * `ConstructionRfiUpdate`): the person who cannot build without an answer is the person standing in front of the
+     * problem, and an RFI they cannot raise is a question asked by telephone and unprovable afterwards — the fifth
+     * create grant site staff hold. **Accountant +2**, the same two, inherited upward, so Manager and CEO gain the same
+     * two and nothing of their own.
+     *
+     * *Recording the answer is deliberately not a third name.* The answer arrives by email and somebody transcribes it,
+     * which is clerical rather than an approval — and a permission there would leave answers sitting in an inbox while
+     * the register still says the question is open, which is worse than the risk it guards. What genuinely needed
+     * separating already is: raising the delay event behind an RFI's stated time impact asks for
+     * `ConstructionDelayUpdate`, because serving notice on the employer is not the same act as asking a question.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 48,
-        'Accountant' => 128,
-        'Manager' => 161,
-        'CEO' => 181,
+        'Employee' => 50,
+        'Accountant' => 130,
+        'Manager' => 163,
+        'CEO' => 183,
     ];
 
     protected function setUp(): void
