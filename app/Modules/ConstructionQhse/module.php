@@ -65,6 +65,10 @@ return [
         'App\\Filament\\Resources\\ConstructionQhse\\ToolboxTalkResource' => \App\Modules\ConstructionQhse\Filament\Resources\ToolboxTalks\ToolboxTalkResource::class,
     ],
 
+    'pages' => [
+        'App\\Filament\\Pages\\SafetyIndicators' => \App\Modules\ConstructionQhse\Filament\Pages\SafetyIndicatorsReport::class,
+    ],
+
     'permission_groups' => [
         'ConstructionQhse',
     ],

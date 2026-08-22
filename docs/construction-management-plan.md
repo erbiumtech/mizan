@@ -1,7 +1,6 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete, and Phase 10a to 10f with them (2026-08-22). §17.6's indicators are what remain of
-Phase 10, then Phase 11's reconciliation, WIP and close.**
+**Status:** **Phases 0 to 10 complete (2026-08-22).** Phase 11's reconciliation, WIP and close is all that remains.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3171,6 +3170,59 @@ document register before the modules that reference drawings.
   > supervisor's job would produce a register that lags the site by a week — which is a register nobody trusts to say who
   > is cleared to work. Toolbox talks share it rather than earning their own, because a second name would only mean one of
   > the two got filled in.
+  >
+  > **10g built 2026-08-22, and Phase 10 ends here.** — `ConstructionSafetyIndicatorsTest` (32 tests).
+  > `SafetyIndicators`, the `ExposureHours` and `SafetyRate` DTOs, `SafetyIndicatorsReport` and its view,
+  > `construction_jobs.exposure_hours_source`, and `construction.qhse.rate_base`.
+  >
+  > The phase's stated exit condition was "an NCR that proposes a deduction and never applies one, and **a safety page
+  > that refuses to print a rate it cannot compute**". Both halves now exist, and the second one is a type rather than a
+  > convention: **no method on `SafetyIndicators` returns a float.** Each returns a `SafetyRate` that is either a figure
+  > *with the base it was computed on* or a refusal *with the reason*, and `display()` — the only thing a Blade template
+  > reaches for — returns §17.6's words, "Insufficient exposure data". A caller cannot write `?? 0` by accident because
+  > there is no number to fall back from.
+  >
+  > **§17.6's silent failure was worth the whole sub-phase.** With no diary the denominator is zero and every rate renders
+  > as `0.00`, which reads as a perfect safety record and means nobody filled anything in. This is the one place in the
+  > module where the plan explicitly refuses graceful degradation, and the reason is that the degraded answer is *more*
+  > convincing than the real one. A missing figure prompts a question; a flattering figure ends the conversation.
+  >
+  > Four decisions worth carrying forward:
+  >
+  > - **A refusal distinguishes four states, and each is a different job to go and do.** No source named on the job;
+  >   a source whose module is not licensed; no *approved* diary in the period; approved days carrying no man-hours.
+  >   The last is the subtlest — somebody signed off days that record nobody on site, which is neither an absent diary nor
+  >   an empty site, and collapsing it into either would send whoever reads it to the wrong place.
+  > - **One source per job, and the report prints which.** §17.6's mirror-image failure is counting the same people from
+  >   the diary *and* Timesheets, halving every rate — and **a halved rate is worse than a missing one, because it looks
+  >   like a number somebody can act on.** `exposure_hours_source` is nullable with no default, because a default would
+  >   have quietly chosen for every job in every existing tenant and been wrong for whichever half keeps the other kind of
+  >   record. A test puts identical hours in both sources and asserts 400,000 rather than 800,000.
+  > - **The base travels with the figure, structurally.** `SafetyRate` cannot yield a value without one, `baseLabel()` is
+  >   printed on every row *and* on the section heading — because a heading is what ends up in a screenshot in a client
+  >   pack — and the page can switch base, which visibly changes every figure on it. §17.6's factor-of-five sentence is a
+  >   test: one injury in 100,000 hours is `10.00` per million and `2.00` per 200,000, both true of one site.
+  > - **The numerator travels too.** `5.00 per million` on two incidents in 400,000 hours is arithmetic on a small sample,
+  >   and printing the rate alone invites somebody to read it as a trend.
+  >
+  > **Nothing is stored, and that is asserted against the schema rather than trusted.** A first-aid case becomes a
+  > lost-time case the day somebody does not come back; reclassification is normal, and a stored LTIFR would still be
+  > reporting the old kind. One test reclassifies an incident and asserts the rate moves in the same request; another
+  > asserts no indicator table exists, so a later phase adding a snapshot for reporting speed has to argue for it here.
+  >
+  > **Both sources are read with the query builder, not through their models**, which is what keeps `construction_qhse`
+  > requiring only `construction` — `KNOWN_COUPLINGS` says this module reaches Invoicing and nothing else, and naming
+  > `DailyLogService` would have made that false. The duplicated *rule* (approved diaries only) is written in both places
+  > deliberately: a second reader that quietly counted drafts would produce two different safety rates from one site.
+  >
+  > **The leading indicators are on the same page on purpose.** None needs a denominator, so they survive the absence
+  > that silences everything above them — and a page of lagging figures is read once a month by whoever writes the
+  > report, while a page with both is read by somebody who can still change the outcome. Every one is null-not-zero for
+  > §18.1's reason: 0% induction coverage on an empty register would tell somebody to induct people who are not there,
+  > and "0 of 0 inspections planned" reads as a complete quality plan rather than an absent one.
+  >
+  > No new permission, no new badge. The page rides `ConstructionIncidentView`, and a monthly report is the opposite of
+  > the *silent* failure the badge rule exists for.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 

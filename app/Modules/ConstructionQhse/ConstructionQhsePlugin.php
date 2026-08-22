@@ -22,6 +22,12 @@ class ConstructionQhsePlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+        // §17.6's indicator report is a standalone page: it computes and stores nothing, so it has no resource to hang
+        // off. See SafetyIndicatorsReport for why nothing on it is persisted.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void {}
