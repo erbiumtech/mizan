@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete, and Phase 10a to 10e with them (2026-08-22). §17's toolbox talks, the induction
-register and the indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
+**Status:** **Phases 0 to 9 complete, and Phase 10a to 10f with them (2026-08-22). §17.6's indicators are what remain of
+Phase 10, then Phase 11's reconciliation, WIP and close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3131,6 +3131,46 @@ document register before the modules that reference drawings.
   > accommodates what the rule allows**, which is why two badges were deleted then and three are paid for now. The
   > reverse would be the failure: trimming a justified count to fit, or raising a ceiling for one that was never
   > justified.
+  >
+  > **10f built 2026-08-22.** — `ConstructionSitePersonnelTest` (23 tests). `construction_site_personnel`,
+  > `construction_competencies`, `construction_toolbox_talks` and its attendees, `SitePersonnelService`, two policies,
+  > two registers, and `construction:check-competency-expiry` with `CompetencyExpiring`.
+  >
+  > **A name is all that is ever required**, of somebody on the register and of an attendee at a talk. §17.5: "most
+  > attendees on most sites are a subcontractor's labourers." A register that asked for more would list the people who
+  > happened to be on the payroll, which is a small and unrepresentative slice of the people on site — the same argument
+  > §17.3 makes about an injured person, now made three times in this section.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **An induction is not a permanent state**, and `never inducted` is kept apart from `induction lapsed` because they
+  >   are different conversations: one person has to be put through an induction and the other has to be put through it
+  >   again. A single "not inducted" figure would hide which a site has.
+  > - **`is_mandatory` is what turns an expiry into a stoppage.** A first-aid certificate lapsing is a gap; a
+  >   confined-space ticket lapsing on somebody in a chamber this morning is an emergency. `isClearedToWork()` reads it,
+  >   and a test asserts a lapsed *optional* ticket leaves somebody cleared while a lapsed mandatory one does not.
+  > - **One row per person per job.** Somebody inducted on the tower is not inducted on the annexe.
+  > - **Renewing a ticket clears the warning ladder**, which is why it is an action rather than an edit: a renewed ticket
+  >   has to warn again next year, and a stale `expiry_notified_at_days` would silence it for good.
+  > - **An attendee's name is snapshotted onto the row even when the register is linked.** A test renames the register
+  >   entry and asserts the attendance sheet still says who was there. *Add everybody on the register* is the
+  >   seven-in-the-morning convenience, and it is idempotent so pressing it twice does not double the count.
+  >
+  > **The competency clock is the fourth instance of the notified-at-days ladder** after `employee_documents`, §12's
+  > compliance register and §13's notice clock — 60/30/14/7/0, once per threshold, `array_reverse`d so the tightest
+  > unwarned one fires. That last detail is written the same way in both places precisely because Phase 9a got it wrong
+  > once, and the test here asserts it skips from 30 straight to 7 rather than back to 14.
+  >
+  > **Toolbox talks count attendance, not talks**, which is §17.6's requirement: forty talks to two people each is not a
+  > briefed site. A talk with nobody recorded is **named** rather than counted as zero attendance, because a talk given
+  > and not written up is a paperwork gap while a talk nobody came to is a different problem — and only the first is
+  > worth chasing.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 69 / 149 / 190 / 210. **Two names, and the update grant is deliberately wide:**
+  > register-keeping is gate work done at seven in the morning by whoever is at the gate, and a permission that made it a
+  > supervisor's job would produce a register that lags the site by a week — which is a register nobody trusts to say who
+  > is cleared to work. Toolbox talks share it rather than earning their own, because a second name would only mean one of
+  > the two got filled in.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 

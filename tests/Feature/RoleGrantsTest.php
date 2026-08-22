@@ -318,13 +318,26 @@ class RoleGrantsTest extends AccountingTestCase
      * *Suspending is deliberately on the wide grant*, not the issuing one: a permit that can only be suspended by
      * whoever issued it is a permit that stays live while somebody goes looking for them.
      *
+     * Phase 10f, the induction register, competencies and toolbox talks — **two names, and the update grant is
+     * deliberately wide.** **Employee +2** (`ConstructionPersonnelView`, `ConstructionPersonnelUpdate`), **Accountant
+     * +2**, inherited upward, and **Manager gains nothing of its own**.
+     *
+     * Putting somebody on the register, inducting them, recording their tickets and writing up a toolbox talk is *gate
+     * work*: it happens at seven in the morning, done by whoever is at the gate, for people who arrived that day. A
+     * permission that made it a supervisor's job would produce a register that lags the site by a week — and a register
+     * that lags is one nobody trusts to say who is cleared to work.
+     *
+     * Toolbox talks share the grant rather than earning their own, because both are the same job done by the same person
+     * at the same moment, and a second name would only mean one of the two got filled in. `View` is separate because
+     * this register holds names, phone numbers and medical certificates — the most personal data in the module.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 67,
-        'Accountant' => 147,
-        'Manager' => 188,
-        'CEO' => 208,
+        'Employee' => 69,
+        'Accountant' => 149,
+        'Manager' => 190,
+        'CEO' => 210,
     ];
 
     protected function setUp(): void

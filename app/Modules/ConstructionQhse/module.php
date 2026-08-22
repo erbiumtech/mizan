@@ -48,6 +48,10 @@ return [
         'App\\Models\\IncidentWitness' => \App\Modules\ConstructionQhse\Models\IncidentWitness::class,
         'App\\Models\\IncidentPhoto' => \App\Modules\ConstructionQhse\Models\IncidentPhoto::class,
         'App\\Models\\Permit' => \App\Modules\ConstructionQhse\Models\Permit::class,
+        'App\\Models\\SitePersonnel' => \App\Modules\ConstructionQhse\Models\SitePersonnel::class,
+        'App\\Models\\Competency' => \App\Modules\ConstructionQhse\Models\Competency::class,
+        'App\\Models\\ToolboxTalk' => \App\Modules\ConstructionQhse\Models\ToolboxTalk::class,
+        'App\\Models\\ToolboxTalkAttendee' => \App\Modules\ConstructionQhse\Models\ToolboxTalkAttendee::class,
     ],
 
     'resources' => [
@@ -57,6 +61,8 @@ return [
         'App\\Filament\\Resources\\ConstructionQhse\\QhseActionResource' => \App\Modules\ConstructionQhse\Filament\Resources\QhseActions\QhseActionResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\IncidentResource' => \App\Modules\ConstructionQhse\Filament\Resources\Incidents\IncidentResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\PermitResource' => \App\Modules\ConstructionQhse\Filament\Resources\Permits\PermitResource::class,
+        'App\\Filament\\Resources\\ConstructionQhse\\SitePersonnelResource' => \App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\SitePersonnelResource::class,
+        'App\\Filament\\Resources\\ConstructionQhse\\ToolboxTalkResource' => \App\Modules\ConstructionQhse\Filament\Resources\ToolboxTalks\ToolboxTalkResource::class,
     ],
 
     'permission_groups' => [
@@ -142,6 +148,24 @@ return [
         ['name' => 'ConstructionPermitView', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionPermitRequest', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionPermitIssue', 'group' => 'ConstructionQhse'],
+
+        /*
+         * The induction register, competencies and toolbox talks (§17.5). **Two names, and the update grant is
+         * deliberately wide.**
+         *
+         * Putting somebody on the register, inducting them, recording their tickets and writing up a toolbox talk is
+         * *gate work*: it happens at seven in the morning, done by whoever is at the gate, for people who arrived that
+         * day. A permission that made it a supervisor's job would produce a register that lags the site by a week — and
+         * a register that lags is one nobody trusts to say who is cleared to work.
+         *
+         * Toolbox talks share the grant rather than earning their own, because both are the same job done by the same
+         * person at the same moment, and a second permission would only mean one of the two got filled in.
+         *
+         * `View` is separate because this register holds names, phone numbers and medical certificates — the most
+         * personal data in the module.
+         */
+        ['name' => 'ConstructionPersonnelView', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionPersonnelUpdate', 'group' => 'ConstructionQhse'],
     ],
 
     'role_grants' => [
@@ -167,6 +191,9 @@ return [
             // A supervisor who cannot raise a permit is a supervisor whose gang works without one.
             'ConstructionPermitView',
             'ConstructionPermitRequest',
+            // Gate work: whoever is at the gate at seven in the morning keeps this register.
+            'ConstructionPersonnelView',
+            'ConstructionPersonnelUpdate',
         ],
         'Accountant' => [
             'ConstructionItpView',
@@ -180,6 +207,9 @@ return [
             'ConstructionIncidentReport',
             'ConstructionPermitView',
             'ConstructionPermitRequest',
+            // Gate work: whoever is at the gate at seven in the morning keeps this register.
+            'ConstructionPersonnelView',
+            'ConstructionPersonnelUpdate',
         ],
         /*
          * **Approving an ITP and releasing a hold point are both Manager's**, and for the same reason: an ITP is the
