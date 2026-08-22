@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 10 complete, and Phase 11a to 11c with them (2026-08-22).** What remains of Phase 11: §4.4's
-WIP snapshots and the period close.
+**Status:** **Phases 0 to 10 complete, and Phase 11a to 11d with them (2026-08-22).** What remains of Phase 11: the
+period close, and the full-circle assertion §4.3 asks for.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3388,6 +3388,48 @@ document register before the modules that reference drawings.
   > literal: a test asserts no plug cost entry and no balancing journal, and that the difference is still there on the
   > next look. Running a reconciliation rides on `ConstructionCostView`, because a control nobody may run is not a
   > control. A run is never editable and never deletable — the way to change its answer is to run it again.
+  >
+  > **11d built 2026-08-22.** — `ConstructionWipTest` (38 tests). `construction_wip_snapshots`,
+  > `construction_jobs.percent_complete_method`, `WipSnapshot`, `WipService`, `WipSnapshotPolicy`, the Work in progress
+  > report and its help doc.
+  >
+  > **§4.4 is the one place this plan permits a stored total, and it argues the exception rather than assuming it.** The
+  > house rule in `docs/new-module-checklist.md` §10 says compute; §4.4 says a WIP position "is a judgement at a point in
+  > time — the surveyor's forecast, the surveyed percentage, the loss provision — not a derivation from immutable facts",
+  > and recomputing last March with today's forecast "would silently restate a month that was signed off, reported to a
+  > bank and used to compute a bonus". `locked_at` is the whole mechanism, and it is why every judgement input is
+  > snapshotted onto the row rather than referenced: a row that pointed at a forecast run would move when somebody
+  > re-forecast.
+  >
+  > Five decisions:
+  >
+  > - **The method is the job's choice and there is no default.** §4.4: "cost-to-cost, surveyed, or milestone — chosen per
+  >   job." A job with none gets no position at all and is **named** at the foot of the report, because choosing for a
+  >   company means choosing cost-to-cost, and cost-to-cost reports *more* progress the more a job overspends — so the
+  >   default would flatter exactly the job that needs watching. The method is snapshotted beside the percentage, because
+  >   62% cost-to-cost is not the same claim as 62% surveyed and a bank asking which will not accept "the system said so".
+  > - **Approved variations in the value, pending beside it.** A variation approved at a *provisional* price counts as
+  >   pending, on §9's ground that the scope is agreed and the money is not — which is precisely the "about to be in
+  >   trouble" state §4.4 wants visible outside the contract value.
+  > - **The whole expected loss, immediately.** Two tests: the same 3,000,000 at one per cent complete and at ninety-six.
+  >   And the provision **reduces the contract asset**, because a recognised loss is not an asset — a test shows a job
+  >   with an apparent asset turning into a liability the month the loss is taken, which is the whole reason the rule
+  >   exists.
+  > - **Asset and liability are two columns and are never netted**, at job level or in the totals. One job over-billed
+  >   does not offset another under-billed; those are two conversations with the bank.
+  > - **The journal posts the movement**, and §4.4 forbids having the choice twice — "choose one; two code paths each
+  >   choosing differently is the failure." A month that has not moved posts nothing, on §11a's argument about a
+  >   zero-value line; a falling position swaps the sides rather than writing a negative debit. Dated to the month end.
+  >
+  > **Two fixture defects were mine and both were instructive.** A hardcoded certificate period end meant July saw no
+  > billings, so every "nothing moved" test moved — the period end is now a parameter with a comment saying why. And a
+  > forecast issued in August left July falling back to cost-to-date, which reads as **100% complete**: right as a
+  > fallback, since it recognises no loss it cannot see, and wrong as a fixture.
+  >
+  > No new permission. Locking is `ConstructionPeriodClose`, deliberately the same grant as closing the month: freezing a
+  > position and closing a period are one decision at one moment, and separate names would let a month be closed on
+  > figures nobody froze. Posting the movement is `ConstructionGlPost`, because §4.1's boundary does not soften for WIP.
+  > Computing rides on `ConstructionCostView` — an unlocked position is a report.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source

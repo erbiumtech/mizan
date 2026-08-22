@@ -162,6 +162,25 @@ class JobForm
                             ->placeholder('Not chosen — safety rates will not be computed')
                             ->helperText('One source only. Counting both halves every safety frequency rate, and the indicator report prints which one it used.'),
 
+                        /*
+                         * **How this job's percent complete is measured** — §4.4, and the choice belongs to the job.
+                         *
+                         * §4.4: "cost-to-cost, surveyed, or milestone — chosen per job, because one company runs both."
+                         * Left blank on purpose where nobody has decided, and the WIP report names the job rather than
+                         * quietly choosing: cost-to-cost on a job running over reports *more* progress for spending more
+                         * money, so a default would pick the answer that flatters exactly the job that needs watching.
+                         */
+                        Select::make('percent_complete_method')
+                            ->label('Percent complete measured by')
+                            ->visible(fn (): bool => modules()->enabled('construction_costing'))
+                            ->options([
+                                'cost_to_cost' => 'Cost to cost — cost to date over forecast final cost',
+                                'surveyed' => 'Surveyed — measured progress against the budget',
+                                'milestone' => 'Milestone — certified milestone value',
+                            ])
+                            ->placeholder('Not chosen — no work-in-progress position will be computed')
+                            ->helperText('A percentage without its method is one nobody can defend. Cost-to-cost needs no surveyor and reports more progress the more a job overspends.'),
+
                         Select::make('certifier_contact_id')
                             ->label('Certifier')
                             ->visible(fn (): bool => modules()->enabled('invoicing'))

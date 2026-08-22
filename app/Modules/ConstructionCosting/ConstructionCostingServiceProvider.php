@@ -18,6 +18,7 @@ use App\Modules\ConstructionCosting\Models\PlantLog;
 use App\Modules\ConstructionCosting\Models\Reconciliation;
 use App\Modules\ConstructionCosting\Models\Requisition;
 use App\Modules\ConstructionCosting\Models\Trade;
+use App\Modules\ConstructionCosting\Models\WipSnapshot;
 use App\Modules\ConstructionCosting\Models\Worker;
 use App\Modules\ConstructionCosting\Policies\CommitmentPolicy;
 use App\Modules\ConstructionCosting\Policies\ControlAccountPolicy;
@@ -34,6 +35,7 @@ use App\Modules\ConstructionCosting\Policies\PlantLogPolicy;
 use App\Modules\ConstructionCosting\Policies\ReconciliationPolicy;
 use App\Modules\ConstructionCosting\Policies\RequisitionPolicy;
 use App\Modules\ConstructionCosting\Policies\TradePolicy;
+use App\Modules\ConstructionCosting\Policies\WipSnapshotPolicy;
 use App\Modules\ConstructionCosting\Policies\WorkerPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -66,6 +68,7 @@ class ConstructionCostingServiceProvider extends ServiceProvider
         ControlAccount::class => ControlAccountPolicy::class,
         GlPosting::class => GlPostingPolicy::class,
         Reconciliation::class => ReconciliationPolicy::class,
+        WipSnapshot::class => WipSnapshotPolicy::class,
     ];
 
     public function boot(): void

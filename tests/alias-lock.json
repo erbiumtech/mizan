@@ -192,6 +192,7 @@
         "App\\Models\\WbsNode": "App\\Modules\\Construction\\Models\\WbsNode",
         "App\\Models\\WorkPattern": "App\\Modules\\Attendance\\Models\\WorkPattern",
         "App\\Models\\WorkPatternDay": "App\\Modules\\Attendance\\Models\\WorkPatternDay",
+        "App\\Models\\WipSnapshot": "App\\Modules\\ConstructionCosting\\Models\\WipSnapshot",
         "App\\Models\\Worker": "App\\Modules\\ConstructionCosting\\Models\\Worker"
     },
     "resources": {
@@ -326,6 +327,7 @@
         "App\\Filament\\Pages\\ContractorPayments": "App\\Modules\\Accounting\\Filament\\Pages\\ContractorPayments",
         "App\\Filament\\Pages\\CsvImport": "App\\Modules\\Core\\Filament\\Pages\\CsvImport",
         "App\\Filament\\Pages\\CurrencyRevaluation": "App\\Modules\\Accounting\\Filament\\Pages\\CurrencyRevaluation",
+        "App\\Filament\\Pages\\ConstructionCosting\\WipReport": "App\\Modules\\ConstructionCosting\\Filament\\Pages\\WipReport",
         "App\\Filament\\Pages\\FbrInvoiceReporting": "App\\Modules\\Invoicing\\Filament\\Pages\\FbrInvoiceReporting",
         "App\\Filament\\Pages\\FbrTaxFile": "App\\Modules\\Payroll\\Filament\\Pages\\FbrTaxFile",
         "App\\Filament\\Pages\\FindTransactions": "App\\Modules\\Accounting\\Filament\\Pages\\FindTransactions",
