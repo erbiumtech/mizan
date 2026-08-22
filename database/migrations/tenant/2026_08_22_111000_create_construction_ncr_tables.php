@@ -158,7 +158,7 @@ return new class extends Migration
             $table->index(['job_id', 'status']);
             $table->index(['job_id', 'severity', 'status']);
             // The proposal queue a certificate reads: proposed, not yet on a certificate.
-            $table->index(['deduct_from_payment', 'deduction_certificate_id'], 'ncrs_deduct_certificate_index');
+            $table->index(['deduct_from_payment', 'deduction_certificate_id']);
             $table->index('itp_activity_id');
             $table->index('inspection_id');
         });
