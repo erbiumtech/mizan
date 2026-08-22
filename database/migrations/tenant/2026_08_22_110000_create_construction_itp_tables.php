@@ -140,7 +140,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['itp_activity_id', 'party', 'role'], 'itp_activity_parties_unique');
+            $table->unique(['itp_activity_id', 'party', 'role']);
         });
 
         Schema::create('construction_inspections', function (Blueprint $table) {
@@ -223,7 +223,7 @@ return new class extends Migration
             $table->index(['job_id', 'status']);
             // The register's load-bearing query: hold points that have passed and not been released, and hold points
             // that have not been inspected at all. Work is standing still on both.
-            $table->index(['point_type', 'status', 'released_hold_point'], 'inspections_type_status_released_index');
+            $table->index(['point_type', 'status', 'released_hold_point']);
             $table->index('itp_activity_id');
         });
 
