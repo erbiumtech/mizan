@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete, and Phase 10a and 10b with them (2026-08-22). §17's actions table, incidents,
-permits and indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
+**Status:** **Phases 0 to 9 complete, and Phase 10a to 10c with them (2026-08-22). §17's incidents, permits and
+indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -2994,6 +2994,52 @@ document register before the modules that reference drawings.
   > deduction rides on `ConstructionNcrDisposition` because the two decisions are made in the same conversation and the
   > proposal withholds nothing. There is no `ConstructionNcrDeduct` because the act that moves money is on the far side
   > of the module boundary.
+  >
+  > **10c built 2026-08-22.** — `ConstructionQhseActionTest` (21 tests). `construction_actions`, `QhseAction`,
+  > `ActionService`, `QhseActionPolicy`, the register, and an actions tab on the NCR.
+  >
+  > **One table over five sources**, per §17.4: "four separate action tables produce four *overdue actions* reports that
+  > never agree, and the safety manager's one genuinely useful screen — everything overdue, from every source, in one
+  > list — becomes a four-way union nobody maintains." Polymorphic over the QHSE objects, with `job_id` denormalised
+  > beside the morph because every report on it is per job and reaching the job through five parent types would be five
+  > joins on every row of the one screen the table exists for.
+  >
+  > **The register has no create page**, and that is the design: an action is raised *against* the finding that produced
+  > it. An action with no subject is a task in a quality register, and this is not a task manager.
+  >
+  > Four decisions worth carrying forward:
+  >
+  > - **The assignee is three columns and the plain name works alone.** On most sites most of the people who have to do
+  >   something are a subcontractor's and are in no table here — the same argument §17.3 makes about an injured person's
+  >   name. `raise()` refuses an action with nobody against it: an action nobody is assigned to is an action nobody does.
+  > - **Done and verified are two acts with two permissions.** "Done" is the assignee's claim and the action stays live
+  >   showing *awaiting verification*; "verified" is somebody else's confirmation, and `verify()` refuses an action nobody
+  >   has claimed. Third instance of this rule after §16.4's passed re-inspection and §17.2's verified NCR — a register
+  >   where whoever caused a finding can close it is a register nobody reads.
+  > - **`containment` earns its place beside `corrective`.** Cordoning a hole off is not filling it, and a register that
+  >   could not distinguish them would report a site as having addressed something when all it did was put a barrier
+  >   round it.
+  > - **The class is `QhseAction`, not `Action`.** Filament has an `Action`, and a model sharing that name in a resource
+  >   file is a bug waiting for somebody's import statement. Second naming collision this phase after `ProgrammeActivity`
+  >   — worth noting that the *reasons* differ: that one was the morph map refusing a duplicate at boot, this one is
+  >   ordinary readability.
+  >
+  > **The tension §17.2 and §17.4 create between them is named rather than hidden.** §17.2 puts corrective and preventive
+  > action *on the NCR* because ISO 9001 asks for them there; §17.4 asks for one actions list. Mirroring either into the
+  > other would be two sources for one date — the trap this plan refuses everywhere else — so they are kept separate and
+  > `everythingOverdue()` **assembles both and labels the source of every row**: `Action · NCR` beside
+  > `NCR CAPA · corrective`. That is the same discipline §17.6 demands of an exposure denominator and §16.1's
+  > materials-on-site panel already follows: where a figure can come from more than one place, the report says which.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 63 / 143 / 182 / 202.
+  >
+  > **And the badge rule got its third refinement, from the same test.** The NCR and actions registers were each given
+  > one; `PanelPerformanceTest` put the reports hub over its query budget, and the honest response was to remove them
+  > rather than raise the budget. The operative word in the rule is **silent**: §13's notice clock qualifies because a
+  > window closes and no screen recovers it, and §17.1's hold point awaiting release qualifies because work is standing
+  > still for want of a signature nobody knows is missing. A critical NCR and an overdue action are *loud* — each is the
+  > first row of a screen somebody opens daily — so a count of them on every page in the application is spending the
+  > whole panel on a number already visible on its own.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 

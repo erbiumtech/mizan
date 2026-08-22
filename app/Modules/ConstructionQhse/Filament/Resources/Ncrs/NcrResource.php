@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Pages\CreateNcr;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Pages\EditNcr;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Pages\ListNcrs;
+use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\RelationManagers\ActionsRelationManager;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Schemas\NcrForm;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Tables\NcrsTable;
 use App\Modules\ConstructionQhse\Models\Ncr;
@@ -47,18 +48,18 @@ class NcrResource extends Resource
 
     protected static ?string $pluralLabel = 'NCRs';
 
-    /** Critical and still live — one indexed count against `(job_id, severity, status)`. */
-    public static function getNavigationBadge(): ?string
-    {
-        $critical = Ncr::query()->critical()->live()->count();
-
-        return $critical > 0 ? (string) $critical : null;
-    }
-
-    public static function getNavigationBadgeColor(): ?string
-    {
-        return 'danger';
-    }
+    /*
+     * **No navigation badge, and the rule is the one Phase 9g settled with the word that does the work in it: *silent*.**
+     *
+     * A badge costs a query on every page in the panel, so it is earned only where not looking today costs something
+     * nobody can see. §13's notice clock qualifies — a window closes and no screen recovers it. §17.1's hold point
+     * awaiting release qualifies — work is standing still for want of a signature nobody knows is missing.
+     *
+     * This register does not, and the reason is that it is *loud*: whatever is worst here is the first row on this
+     * screen, and this screen is one somebody opens. `PanelPerformanceTest` priced the alternative — two more badges in
+     * this module put the reports hub over its query budget, and raising the budget to keep them would have been
+     * spending every page in the application on a number already visible on its own.
+     */
 
     public static function getEloquentQuery(): Builder
     {
@@ -73,6 +74,11 @@ class NcrResource extends Resource
     public static function table(Table $table): Table
     {
         return NcrsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [ActionsRelationManager::class];
     }
 
     public static function getPages(): array

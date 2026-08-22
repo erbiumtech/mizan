@@ -189,6 +189,17 @@ class Ncr extends Model
         return $this->belongsTo(Contact::class, 'responsible_contact_id');
     }
 
+    /**
+     * The working actions raised against this NCR — §17.4's one table.
+     *
+     * Deliberately *not* the CAPA fields above: §17.2 puts corrective and preventive action on the NCR because ISO 9001
+     * asks for them there, and mirroring one into the other would be two sources for one date.
+     */
+    public function actions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(QhseAction::class, 'subject');
+    }
+
     public function scopeForJobTree(Builder $query, Job $root): Builder
     {
         return $query->whereIn('job_id', Job::query()->inSubtree($root)->select('id'));
