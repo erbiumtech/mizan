@@ -305,6 +305,7 @@
         "App\\Filament\\Pages\\Modules": "App\\Modules\\Core\\Filament\\Pages\\Modules",
         "App\\Filament\\Pages\\PettyCashBook": "App\\Modules\\Accounting\\Filament\\Pages\\PettyCashBook",
         "App\\Filament\\Pages\\ProfitAndLoss": "App\\Modules\\Accounting\\Filament\\Pages\\ProfitAndLoss",
+        "App\\Filament\\Pages\\ProgrammeImport": "App\\Modules\\ConstructionField\\Filament\\Pages\\ProgrammeImportPage",
         "App\\Filament\\Pages\\Reports": "App\\Modules\\Core\\Filament\\Pages\\Reports",
         "App\\Filament\\Pages\\SalaryBankFile": "App\\Modules\\Payroll\\Filament\\Pages\\SalaryBankFile",
         "App\\Filament\\Pages\\TaxEstimate": "App\\Modules\\PersonalFinance\\Filament\\Pages\\TaxEstimate",

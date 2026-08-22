@@ -78,7 +78,12 @@ Damages accrue against that remainder. It is money leaving with nothing wrong an
 and it can only be computed because the baseline is kept apart from the plan and because
 delay events record what was *determined* rather than what was claimed.
 
-The navigation badge counts the milestones carrying it.
+Filter the register by **Contract milestones** to see them together. There is
+deliberately no sidebar badge for this: a badge is rendered on every page in the
+application, and this figure is money *accruing* — visible the moment you open this
+screen, and not lost by nobody looking today. The delay register's notice clock and the
+overdue RFI count are the two that do get one, because a notice period that closes is
+gone for good.
 
 ## Recording progress <!-- requires: ConstructionProgrammeProgress -->
 
@@ -98,3 +103,51 @@ Two rules the form enforces, because the alternatives are not facts:
 Record it if you have it, and note that it is **deliberately not reconciled** to the
 bill of quantities. The programme and the bill are two different decompositions of the
 same job; forcing them to agree produces a fiction somebody then has to maintain.
+
+## Importing from P6 or MS Project <!-- requires: ConstructionProgrammeUpdate -->
+
+**Import programme** reads a Primavera XER, a P6 XML export or an MS Project XML
+export. A `.mpp` or `.pp` is the tool's own binary format and has to be exported first.
+
+The format is detected from the file's contents, not its name.
+
+### Update or baseline — the one choice that matters
+
+**A progress update** is the monthly file. It writes planned dates, actuals, progress,
+float and criticality, and **leaves the accepted programme alone**. This is the default
+and it is the safe one: it cannot destroy anything a claim depends on.
+
+**The accepted programme** overwrites the baseline dates on every activity in the file.
+Do that when a revised programme has actually been accepted — not every month. A
+baseline that moves with the plan retires the delays that moved it, which is the whole
+reason the two pairs of dates are kept apart.
+
+The first import into an empty programme sets the baseline either way, because a job
+with nothing to measure against has nothing to protect.
+
+The result always says in words which of the two just happened.
+
+### What it keys on
+
+`(job, source, activity id)`. Re-importing the same file changes nothing and duplicates
+nothing, and the accepted P6 programme can sit beside a subcontractor's MS Project
+fragment even when both use activity id 1 for different things.
+
+### Hours, and the working day
+
+P6 counts durations, float and lag in **hours**; MS Project counts slack in **tenths of
+a minute**. Both are stored here in days, using `construction.programme.hours_per_day`
+— eight unless you change it. On a ten-hour shift, leaving it at eight overstates every
+float figure by a quarter, and float is what a delay argument turns on.
+
+Sub-day lags round up, so a half-day link does not vanish.
+
+### Skipped rows are listed
+
+If the import reports rows skipped, read them. An export filtered to one WBS branch
+legitimately references activities outside it, so the network stored here will be
+partial — and an importer that quietly took four hundred activities out of five hundred
+and reported success would be worse than one that failed.
+
+An unreadable date is stored as nothing rather than as today. A guessed date on a
+programme is a guessed entitlement.

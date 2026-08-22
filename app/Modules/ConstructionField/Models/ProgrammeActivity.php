@@ -40,6 +40,12 @@ class ProgrammeActivity extends Model
 
     public const SOURCE_MANUAL = 'manual';
 
+    public const SOURCE_XER = 'p6_xer';
+
+    public const SOURCE_P6_XML = 'p6_xml';
+
+    public const SOURCE_MSP = 'msp_xml';
+
     /** @var array<string, string> */
     public const SOURCES = [
         self::SOURCE_MANUAL => 'Entered here',
