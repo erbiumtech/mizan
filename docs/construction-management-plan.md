@@ -1,7 +1,8 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 10 complete, and Phase 11a to 11e with them (2026-08-22).** What remains: §4.3's fifth
-mechanism — the full-circle test that posts one of every source type and asserts the difference is nil.
+**Status:** **The plan is complete. Phases 0 to 11, 2026-08-22.** §4.3's fifth mechanism — one of every source type
+reconciling to `0.00` through the real services — is green, which is the assertion the whole of §3 and §4 was written
+against.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3468,6 +3469,47 @@ document register before the modules that reference drawings.
   > period is a row anybody can look up, and "reversed nothing, re-accrued 400,000" is the sentence somebody needs on
   > screen. No new permission — `ConstructionPeriodClose` and `ConstructionPeriodForceClose` have existed since Phase 2
   > waiting for exactly this.
+  >
+  > **11f built 2026-08-22, and Phase 11 ends here.** — `ConstructionFullCircleReconciliationTest` (7 tests).
+  >
+  > §4.3's fifth mechanism, and the plan's own words for what it is worth: **"that is what turns this section from a
+  > claim into an assertion."** One of every source type — allocated supplier invoice, GRN accrual, material issue,
+  > labour with burden, internal plant, subcontract certificate with retention, overhead allocation — over one month of
+  > one job, then post, then reconcile. `difference === 0.00`.
+  >
+  > **Driven through the real services, and that is the whole value.** `InvoiceAllocationService`,
+  > `GoodsReceiptService`, `LabourRecordService`, `PlantService`, `AccrualService`, `ConstructionGlPostingService`,
+  > `ReconciliationService`, `PeriodCloseService`. A full-circle test that wrote its cost entries directly would prove
+  > the reconciliation's arithmetic and nothing about the seven writers feeding it — which is exactly what §4.3 predicts
+  > goes wrong: "a reconciliation written at the end against eight source types that were built without it in mind is a
+  > reconciliation that will not balance, and nobody will know which of the eight is wrong."
+  >
+  > **The subcontract certificate turned out to be a document, not a cost entry.** `construction_contracts` writes no
+  > cost row at all — a payable certificate is a *document*, and the cost reaches the job as §4.5's
+  > work-done-not-certified accrual until the subcontractor invoices for it and the invoice is allocated. So the source
+  > type is exercised as the accrual, from a real claim against a real certificate with retention held, which is where the
+  > money actually is. Worth recording because §4.3's list reads as though seven writers of cost entries exist, and six
+  > do.
+  >
+  > Three tests beyond the headline one:
+  >
+  > - **Every treatment is present**, so the balancing figure is not about an empty month: `mirrored` from the invoice,
+  >   `pending` from five sources, `memo` from the material issue, and `posted` existing only after a run.
+  > - **A material issue changes neither side.** §6 makes an issue a reclassification, and the test computes the
+  >   reconciliation with and without one. If it reached either side, a company issuing from a store daily would never
+  >   balance.
+  > - **The counter-test, which is the one that makes the green matter.** Delete the burden absorption account and the
+  >   month *still balances* — §4.2 counts pending cost as a reconciling item — and the absorption-gap cause names
+  >   *Labour burden absorbed*, and the close blocks naming the same account. §4.3's argument has two halves: a
+  >   reconciliation that will not balance, and nobody knowing which of the eight is wrong. The headline test proves the
+  >   first. This proves the second.
+  >
+  > **On "the period summaries" in this phase's line above:** nothing in §3 or §4 specifies one beyond §3.4's control
+  > totals on `construction_cost_periods` — which 11e records at close, both sides, and the Cost periods screen prints
+  > along with what each month still owes the general ledger. Taken as delivered rather than quietly dropped.
+  >
+  > One defect the full-suite run caught, and it was 11a's rather than this phase's: the Control accounts create and edit
+  > pages had no redirect to their listing, which `CrudRedirectsToListingTest` exists to catch and did.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source
