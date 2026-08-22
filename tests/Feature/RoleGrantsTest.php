@@ -331,13 +331,28 @@ class RoleGrantsTest extends AccountingTestCase
      * at the same moment, and a second name would only mean one of the two got filled in. `View` is separate because
      * this register holds names, phone numbers and medical certificates — the most personal data in the module.
      *
+     * Phase 11a, the GL posting service — **one name, and it is Manager's rather than Accountant's.** **Employee and
+     * Accountant gain nothing; Manager +1** (`ConstructionGlPost`), inherited upward to CEO.
+     *
+     * §4.1 makes this the only act in the construction suite that writes into another module's ledger: it creates
+     * journal entries in the general ledger, they appear in the trial balance, and they change the company's reported
+     * cost. The surveyor records and approves the cost; this decides what of it reaches the books and against which
+     * accounts, and a posting made by the same person who approved the cost is a posting nobody checked — the same
+     * segregation the journal-entry powers already keep between whoever writes an entry and whoever posts it.
+     *
+     * **Reversing rides on it and nominating the control accounts rides on it too.** Whoever may put a figure in the
+     * books is who may take it back out; a second grant would leave a wrong posting sitting there while somebody went
+     * looking for the person who held it, and the control on a reversal is the required reason rather than a name.
+     * Nominating accounts is one screenful of decisions taken once at implementation by whoever owns the chart, which is
+     * §18.2's test for when a name is *not* worth having.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
         'Employee' => 69,
         'Accountant' => 149,
-        'Manager' => 190,
-        'CEO' => 210,
+        'Manager' => 191,
+        'CEO' => 211,
     ];
 
     protected function setUp(): void
