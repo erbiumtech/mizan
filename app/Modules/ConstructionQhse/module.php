@@ -43,12 +43,14 @@ return [
         'App\\Models\\Inspection' => \App\Modules\ConstructionQhse\Models\Inspection::class,
         'App\\Models\\InspectionCheck' => \App\Modules\ConstructionQhse\Models\InspectionCheck::class,
         'App\\Models\\Ncr' => \App\Modules\ConstructionQhse\Models\Ncr::class,
+        'App\\Models\\QhseAction' => \App\Modules\ConstructionQhse\Models\QhseAction::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\ConstructionQhse\\ItpResource' => \App\Modules\ConstructionQhse\Filament\Resources\Itps\ItpResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\InspectionResource' => \App\Modules\ConstructionQhse\Filament\Resources\Inspections\InspectionResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\NcrResource' => \App\Modules\ConstructionQhse\Filament\Resources\Ncrs\NcrResource::class,
+        'App\\Filament\\Resources\\ConstructionQhse\\QhseActionResource' => \App\Modules\ConstructionQhse\Filament\Resources\QhseActions\QhseActionResource::class,
     ],
 
     'permission_groups' => [
@@ -89,6 +91,20 @@ return [
         ['name' => 'ConstructionNcrView', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionNcrUpdate', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionNcrDisposition', 'group' => 'ConstructionQhse'],
+
+        /*
+         * The one actions register (§17.4). **`ConstructionActionVerify` is its own name** for the same reason a punch
+         * item's passed re-inspection is: "done" is the assignee's claim and "verified" is somebody else's
+         * confirmation. One grant for both would let whoever caused a finding close it, and an actions register nobody
+         * believes is a register nobody reads.
+         *
+         * Raising and completing are one grant, because on a real site the person who writes the action down and the
+         * person who reports it done are frequently the same — and splitting them would leave finished work showing as
+         * outstanding for want of a second click.
+         */
+        ['name' => 'ConstructionActionView', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionActionUpdate', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionActionVerify', 'group' => 'ConstructionQhse'],
     ],
 
     'role_grants' => [
@@ -105,6 +121,9 @@ return [
             // record the nonconformities somebody remembered to mention.
             'ConstructionNcrView',
             'ConstructionNcrUpdate',
+            // Actions are the working list, and site is who works from it.
+            'ConstructionActionView',
+            'ConstructionActionUpdate',
         ],
         'Accountant' => [
             'ConstructionItpView',
@@ -112,6 +131,8 @@ return [
             'ConstructionInspectionUpdate',
             'ConstructionNcrView',
             'ConstructionNcrUpdate',
+            'ConstructionActionView',
+            'ConstructionActionUpdate',
         ],
         /*
          * **Approving an ITP and releasing a hold point are both Manager's**, and for the same reason: an ITP is the
@@ -124,6 +145,8 @@ return [
             'ConstructionInspectionRelease',
             // Accepting work that does not meet the specification, and proposing what should be withheld for it.
             'ConstructionNcrDisposition',
+            // Confirming somebody else's work is done.
+            'ConstructionActionVerify',
         ],
     ],
 

@@ -284,13 +284,25 @@ class RoleGrantsTest extends AccountingTestCase
      * the far side of the module boundary, taken by whoever signs the certificate — which is why there is no
      * `ConstructionNcrDeduct` at all.
      *
+     * Phase 10c, §17.4's one actions table, three names. **Employee +2** (`ConstructionActionView`,
+     * `ConstructionActionUpdate`) — the actions register is the working list and site is who works from it.
+     * **Accountant +2**, the same two. **Manager +1 of its own** for `ConstructionActionVerify`. CEO +3.
+     *
+     * The verify grant is the same argument §16.4 makes about a passed re-inspection and §17.2 about a verified NCR:
+     * "done" is the assignee's claim and "verified" is somebody else's confirmation. One grant for both would let
+     * whoever caused a finding close it — and an actions register nobody believes is a register nobody reads.
+     *
+     * Raising and completing stay one grant, because on a real site the person who writes the action down and the person
+     * who reports it done are frequently the same, and splitting them would leave finished work showing as outstanding
+     * for want of a second click.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 61,
-        'Accountant' => 141,
-        'Manager' => 179,
-        'CEO' => 199,
+        'Employee' => 63,
+        'Accountant' => 143,
+        'Manager' => 182,
+        'CEO' => 202,
     ];
 
     protected function setUp(): void

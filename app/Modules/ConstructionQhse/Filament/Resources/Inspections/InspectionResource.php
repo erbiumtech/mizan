@@ -21,10 +21,11 @@ use UnitEnum;
 /**
  * Inspections and hold points — `docs/construction-management-plan.md` §17.1.
  *
- * **The badge counts hold points that have passed and not been released**, and this is the one place in this module where
- * a badge earns its per-page query by the rule Phase 9g settled: work is standing still, and every day it stands still
- * costs money nobody is recording. It is a single indexed count against
- * `(point_type, status, released_hold_point)`.
+ * **The badge counts hold points that have passed and not been released**, and this is the one badge in this module —
+ * by the rule Phase 9g settled, whose operative word is *silent*. Work is standing still for want of a signature nobody
+ * knows is missing: the inspection passed, everybody moved on, and nothing anywhere says the next operation is waiting.
+ * The NCR and actions registers deliberately have none, because whatever is worst on those is the first row of a screen
+ * somebody opens. One indexed count against `(point_type, status, released_hold_point)`.
  *
  * The register's other job is the witness-point evidence: a party invited who did not attend is why work lawfully
  * proceeded, and nobody writes that down at the time.
