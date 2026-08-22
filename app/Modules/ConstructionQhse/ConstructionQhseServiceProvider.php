@@ -4,8 +4,10 @@ namespace App\Modules\ConstructionQhse;
 
 use App\Modules\ConstructionQhse\Models\Inspection;
 use App\Modules\ConstructionQhse\Models\Itp;
+use App\Modules\ConstructionQhse\Models\Ncr;
 use App\Modules\ConstructionQhse\Policies\InspectionPolicy;
 use App\Modules\ConstructionQhse\Policies\ItpPolicy;
+use App\Modules\ConstructionQhse\Policies\NcrPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +24,7 @@ class ConstructionQhseServiceProvider extends ServiceProvider
     private const POLICIES = [
         Itp::class => ItpPolicy::class,
         Inspection::class => InspectionPolicy::class,
+        Ncr::class => NcrPolicy::class,
     ];
 
     public function boot(): void

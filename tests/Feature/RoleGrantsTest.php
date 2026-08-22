@@ -272,13 +272,25 @@ class RoleGrantsTest extends AccountingTestCase
      * Requesting and recording are deliberately one grant: the request goes out and the result comes back to the same
      * engineer, and splitting them would leave results in a notebook while the register says the inspection is awaited.
      *
+     * Phase 10b, non-conformance, three names. **Employee +2** (`ConstructionNcrView`, `ConstructionNcrUpdate`) —
+     * anybody who can see the work is wrong should be able to say so, and a register that made that difficult would
+     * record the nonconformities somebody remembered to mention. **Accountant +2**, the same two. **Manager +1 of its
+     * own** for `ConstructionNcrDisposition`, which §17.2 calls "the field that decides whether money changes hands":
+     * *use as is* and *concession requested* accept work below specification, which is the client giving something up,
+     * and that is not a call for whoever noticed the defect. CEO +3.
+     *
+     * **Proposing a deduction rides on the disposition grant rather than earning a fourth name**, because the two
+     * decisions are made in the same conversation and *the proposal withholds nothing*. The act that moves money is on
+     * the far side of the module boundary, taken by whoever signs the certificate — which is why there is no
+     * `ConstructionNcrDeduct` at all.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 59,
-        'Accountant' => 139,
-        'Manager' => 176,
-        'CEO' => 196,
+        'Employee' => 61,
+        'Accountant' => 141,
+        'Manager' => 179,
+        'CEO' => 199,
     ];
 
     protected function setUp(): void

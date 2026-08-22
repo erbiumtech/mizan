@@ -82,6 +82,16 @@ class PanelPerformanceTest extends TestCase
 
         $this->actingAs($user);
         $this->setCurrentTenant($this->company);
+
+        /*
+         * **Flushed, because everything measured here is a function of what is licensed.**
+         *
+         * `modules()` memoises the resolved licence set, and a test that ran before this one may have left another
+         * company's answer in it — so the sidebar renders a different number of groups and the page-size measurement
+         * moves. Found in Phase 10b: the Employees size budget passed in isolation and failed in a combined run, which
+         * is the *measurement* being unstable rather than the page.
+         */
+        modules()->flush();
     }
 
     public function test_the_dashboard_stays_within_its_query_budget(): void
@@ -176,23 +186,25 @@ class PanelPerformanceTest extends TestCase
      * Raw rather than compressed, because compression is a deployment concern (Phase 5) and this has
      * to fail on a laptop where nothing is compressed. Measured 2026-08-14: 207 / 301 / 231 KB.
      *
-     * **The Employees ceiling moved 360 -> 400 KB on 2026-08-22, and the reason is worth distinguishing from the one
-     * that must never move it.** The rail carries every domain's tree on every page, so licensing a module with a new
-     * navigation group makes every page in the panel bigger — `construction_qhse` and its `Quality & Safety` group put
-     * the Employees index 0.7 KB over. That is the budget measuring what it is for: bytes on the wire. It is *not*
-     * waste, unlike the query-count failures in the same file, which were a badge reading a whole table and a badge
-     * eager-loading a relation — both fixed rather than budgeted for.
+     * **All three ceilings moved on 2026-08-22 — 260/360/290 to 300/400/330 — and the reason is worth distinguishing
+     * from the one that must never move them.** The rail carries every domain's tree on every page, so licensing a
+     * module with a new navigation group makes every page in the panel bigger: `construction_qhse` and its
+     * `Quality & Safety` group put the Employees index 0.7 KB over, and its second register put the dashboard 0.9 KB
+     * over. That is the budget measuring exactly what it is for — bytes on the wire — and it is **not** waste, unlike
+     * the query-count failures in this same file, which were a badge reading a whole table and a badge eager-loading a
+     * relation. Those were fixed rather than budgeted for.
      *
-     * The distinction to hold: **raise this ceiling for markup a new screen legitimately adds; never raise it to make a
-     * page that got heavier for no reason pass.** The headroom is deliberately more than one module needs, because §17
-     * has five more registers to land and bumping by a kilobyte six times would turn a ratchet into a formality.
+     * The distinction to hold: **raise a ceiling for markup a new screen legitimately adds; never raise one to make a
+     * page that got heavier for no reason pass.** The headroom is deliberately more than the next register needs,
+     * because §17 has four more to land and bumping by a kilobyte each time turns a ratchet into a formality — the
+     * numbers below are ~15% above what a fully licensed construction company renders today.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {
         $pages = [
-            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 260],
+            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 300],
             'employees' => [EmployeeResource::getUrl('index'), 400],
-            'reports' => [Reports::getUrl(), 290],
+            'reports' => [Reports::getUrl(), 330],
         ];
 
         foreach ($pages as $page => [$url, $ceilingKb]) {

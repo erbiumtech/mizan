@@ -372,7 +372,16 @@ class ModuleBoundaryTest extends TestCase
         // through `PunchListService`. Same guard, same direction, and the three answers it can give — unknown without
         // the module, nil with nothing flagged, or a figure with the count of unpriced items behind it — are what
         // replaced a note that had been unconditional since 9a.
-        'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
+        //
+        // `construction_qhse` joins it in Phase 10b, and it is §17.2's whole architecture made visible in this graph.
+        // An NCR **proposes** a deduction; `NcrDeductionOffer` on *this* side offers it as a row somebody confirms and
+        // signs for, and writes `construction_ncrs.deduction_certificate_id` to record that they did. The quality module
+        // never writes that column and never names a class of this one — the same shape as
+        // `final_settlements.payslip_id`, which §17.2 cites by name: *a proposal, not a posting, visible in the import
+        // graph.* Guarded, and the direction is forced: pointing qhse back at contracts would make the pair a cycle.
+        'construction_contracts' => [
+            'invoicing', 'accounting', 'construction_costing', 'construction_field', 'construction_qhse',
+        ],
         // Construction site operations -> Invoicing, and it is the smallest instance of the shape this section keeps
         // returning to: a diary's manpower line names the company that supplied the men, and a company is a Contact,
         // which Invoicing owns. `construction_field` requires only `construction` (§18), so the picker checks
@@ -560,7 +569,14 @@ class ModuleBoundaryTest extends TestCase
             // module the holdback is zero *and the release states that open punch items are recorded nowhere, so the
             // value is unknown rather than nil*. Releasing a whole retention balance on a job with fifty open items is
             // money that does not come back, which is why this one is a stated absence and not a quiet fallback.
-            'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
+            //
+            // Site quality degrades to a certificate with no offers, which is exactly the certificate this application
+            // produced before Phase 10b: `NcrDeductionOffer::offersFor()` returns an empty collection and `take()`
+            // refuses in one sentence. An NCR never deducted anything by itself, so there is nothing for the absence to
+            // switch off.
+            'construction_contracts' => [
+                'invoicing', 'accounting', 'construction_costing', 'construction_field', 'construction_qhse',
+            ],
 
             // A diary's manpower line names the company that supplied the men. Hidden without Invoicing, with the
             // free-text company name carrying it — the same shape as the job's client, two modules along.
