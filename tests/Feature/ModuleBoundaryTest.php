@@ -392,6 +392,20 @@ class ModuleBoundaryTest extends TestCase
         // required, so naming `Location` costs the boundary nothing. Same for `Document`: promoting a photograph to the
         // ISO 19650 register is a spine call, which is why §15 put the register in the spine rather than here.
         'construction_field' => ['invoicing'],
+        // Construction QHSE -> Invoicing, and it is the same shape one module further along: an ITP point names the
+        // party who must attend, an inspection names its witness, and a party is a Contact — which Invoicing owns.
+        // `construction_qhse` requires only `construction` (§18), because ISO 9001 and ISO 45001 certification is often
+        // the *reason* a contractor buys software, and a quality module that needed the books would be unsellable to
+        // exactly that customer. The pickers check `modules()->enabled('invoicing')` and a free-text label carries the
+        // name without it.
+        //
+        // Note what is *not* here, and §17 is the reason each is absent. **`construction_field`** — §17.6's exposure
+        // hours come from the daily log, and the indicator page reads them through a guard rather than a class, because
+        // §17.6 calls that absence "a genuine silent failure rather than a graceful degradation" and makes the page
+        // refuse to print a rate. **`construction_contracts`** — the contract item an inspection or an NCR names is an
+        // unconstrained integer, exactly as §13's `contract_id` is. **`employees`** — §17.3 requires an injured person's
+        // name to work on its own, because a subcontractor's labourer is not in this system.
+        'construction_qhse' => ['invoicing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -555,6 +569,16 @@ class ModuleBoundaryTest extends TestCase
             // the fleet register are all read with the query builder, and the photograph's location and the register
             // container it can be promoted into are both in `construction`, which this module requires.
             'construction_field' => ['invoicing'],
+
+            // An ITP point's attending party and an inspection's witness are Contacts. Hidden without Invoicing, with
+            // the free-text label carrying the name — the same shape as the diary's supplying company, one module along.
+            //
+            // §17.6's exposure hours are the interesting absence: they come from `construction_field`'s daily log and
+            // are read behind a guard rather than through a class, because §17.6 is explicit that this is the one place
+            // in the module where degrading gracefully would be wrong. A zero denominator renders every frequency rate
+            // as 0.00, which reads as a perfect safety record and means nobody filled anything in — so the page refuses
+            // to print a rate and says why.
+            'construction_qhse' => ['invoicing'],
         ];
 
         foreach ($guarded as $module => $targets) {

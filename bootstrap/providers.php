@@ -18,6 +18,7 @@ return [
     App\Modules\ConstructionContracts\ConstructionContractsServiceProvider::class,
     App\Modules\ConstructionCosting\ConstructionCostingServiceProvider::class,
     App\Modules\ConstructionField\ConstructionFieldServiceProvider::class,
+    App\Modules\ConstructionQhse\ConstructionQhseServiceProvider::class,
     App\Modules\Core\CoreServiceProvider::class,
     App\Modules\Crm\CrmServiceProvider::class,
     App\Modules\Employees\EmployeesServiceProvider::class,

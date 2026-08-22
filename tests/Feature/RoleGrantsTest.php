@@ -253,13 +253,32 @@ class RoleGrantsTest extends AccountingTestCase
      * does not accept programmes — it stores what P6 exported. Guarding a column only an import writes would be
      * theatre.
      *
+     * Phase 10a, the first permissions of the **`construction_qhse`** module, whose group is `ConstructionQhse`. Six
+     * names, and one of them is the reason §17.1 exists at all.
+     *
+     * **Employee +3** (`ConstructionItpView`, `ConstructionInspectionView`, `ConstructionInspectionUpdate`): requesting
+     * and recording inspections is site's — the fifth create grant site staff hold in this suite — because the person
+     * who can see that the rebar is ready is standing in front of it, and an inspection they cannot request is a hold
+     * point that gets passed by telephone. Reading the ITP is theirs too: the point of the document is that the people
+     * doing the work know what will be inspected and when. **Accountant +3**, the same three.
+     *
+     * **Manager +3 of its own**: `ConstructionItpUpdate`, `ConstructionItpApprove` and — the important one —
+     * **`ConstructionInspectionRelease`**. §17.1: "the whole function of a hold point is that work may not proceed past
+     * it." Releasing one authorises the next operation to start, and it is the act a certification body audits;
+     * *recording* that an inspection passed is not the same decision, and on a site where they are the same person the
+     * hold point has no function. Approving an ITP is separated for an unusually external reason: the signature on it is
+     * a statement to a third party about how the work will be controlled. CEO +6.
+     *
+     * Requesting and recording are deliberately one grant: the request goes out and the result comes back to the same
+     * engineer, and splitting them would leave results in a notebook while the register says the inspection is awaited.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 56,
-        'Accountant' => 136,
-        'Manager' => 170,
-        'CEO' => 190,
+        'Employee' => 59,
+        'Accountant' => 139,
+        'Manager' => 176,
+        'CEO' => 196,
     ];
 
     protected function setUp(): void

@@ -175,12 +175,23 @@ class PanelPerformanceTest extends TestCase
      *
      * Raw rather than compressed, because compression is a deployment concern (Phase 5) and this has
      * to fail on a laptop where nothing is compressed. Measured 2026-08-14: 207 / 301 / 231 KB.
+     *
+     * **The Employees ceiling moved 360 -> 400 KB on 2026-08-22, and the reason is worth distinguishing from the one
+     * that must never move it.** The rail carries every domain's tree on every page, so licensing a module with a new
+     * navigation group makes every page in the panel bigger — `construction_qhse` and its `Quality & Safety` group put
+     * the Employees index 0.7 KB over. That is the budget measuring what it is for: bytes on the wire. It is *not*
+     * waste, unlike the query-count failures in the same file, which were a badge reading a whole table and a badge
+     * eager-loading a relation — both fixed rather than budgeted for.
+     *
+     * The distinction to hold: **raise this ceiling for markup a new screen legitimately adds; never raise it to make a
+     * page that got heavier for no reason pass.** The headroom is deliberately more than one module needs, because §17
+     * has five more registers to land and bumping by a kilobyte six times would turn a ratchet into a formality.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {
         $pages = [
             'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 260],
-            'employees' => [EmployeeResource::getUrl('index'), 360],
+            'employees' => [EmployeeResource::getUrl('index'), 400],
             'reports' => [Reports::getUrl(), 290],
         ];
 

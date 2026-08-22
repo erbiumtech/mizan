@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete (2026-08-22). Phase 10 — QHSE — is next, then Phase 11's reconciliation, WIP and
-close.**
+**Status:** **Phases 0 to 9 complete, and Phase 10a with them (2026-08-22). §17's NCRs, incidents, actions, permits and
+indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -2883,6 +2883,64 @@ document register before the modules that reference drawings.
   CAPA and close-out, the one actions table, incidents, permits, toolbox talks, the induction register
   and the indicators. **Ends with:** an NCR that proposes a deduction and never applies one, and a safety
   page that refuses to print a rate it cannot compute.
+
+  > **10a built 2026-08-22.** — `ConstructionItpTest` (35 tests). The `construction_qhse` module end to end — registry
+  > entry, provider, plugin, profile, its own navigation group — plus `construction_itps`,
+  > `construction_itp_activities`, `construction_itp_activity_parties`, `construction_inspections`,
+  > `construction_inspection_checks`, `ItpService`, `InspectionService` and two registers.
+  >
+  > **Everything here follows from taking `point_type` seriously**, which §17.1 calls "the entire reason an ITP exists".
+  > A hold point stops work; a witness point invites somebody and proceeds without them; a review point is paperwork.
+  > Three sentences, three commercial positions.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The point type and the notice period are snapshotted onto the inspection at request time.** A test revises the
+  >   plan so the point becomes a *review* point and asserts the inspection still says *hold* — an inspection carried
+  >   out under the old plan was carried out under the old rules, and reading the current plan would retroactively
+  >   change what it meant. §8's certificate terms and §13's notice days are frozen for the same reason; this is the
+  >   third instance and the pattern is now settled.
+  > - **Releasing a hold point is a separate act, a separate permission and three refusals.** `record()` will not write
+  >   the release even when asked to directly, and `release()` refuses anything that is not a hold point, anything not
+  >   yet inspected, and anything that failed. §17.1: "a hold point that releases nothing and blocks nothing is a
+  >   checkbox with extra steps."
+  > - **A hold point that names nobody cannot be issued**, and the refusal names the sequence numbers. Checked at *issue*
+  >   rather than at row level, because a plan halfway through being written legitimately has a hold point with no
+  >   parties yet. A review point needs nobody — it is documentation only.
+  > - **Party and role are separate columns on the pivot.** One point can need the Engineer to *approve* and a laboratory
+  >   to *verify*; folding the role into the party would lose which of them the work is waiting on. The relation is
+  >   ordered as entered, because an ITP is a document somebody compares with last month's copy.
+  > - **A revision is a new plan that supersedes the old one**, with every point and every party copied. A past
+  >   inspection keeps pointing at the document that was in force when it happened, which is the only reason ITPs carry
+  >   revisions at all.
+  > - **`passed` on a check-sheet line is nullable, not a boolean.** A sheet is filled in as the inspection proceeds, and
+  >   a false default would read every line nobody has reached yet as a failure.
+  >
+  > **The witness-point evidence is the quietly valuable part.** §17.1 says work may proceed past a witness point when
+  > the invited party does not attend — true only if the register can show they were *told*, so `notified_on` is separate
+  > from `requested_on` and `witness_attended` is a column rather than inferred from a name being filled in. The register
+  > flags short notice too, because that is the other side's first answer to "you went ahead without us".
+  >
+  > §17.6's first leading indicator lands early because the data is here: **hold points released at the first attempt**,
+  > null rather than a percentage where nothing has been inspected. 100% first-time on a job with no inspections is the
+  > flattering wrong answer §17.6's whole section is written against.
+  >
+  > **The module requires only `construction`**, with `construction_field`, `construction_contracts`, `employees` and
+  > `invoicing` all guarded — ISO 9001 and ISO 45001 certification is frequently the *reason* a contractor buys
+  > software, and a quality module that needed the books would be unsellable to exactly that customer. Only
+  > `construction_qhse -> invoicing` is a class-level coupling; the contract item is an unconstrained integer as usual.
+  > `RoleGrantsTest::EXPECTED` moved to 59 / 139 / 176 / 196.
+  >
+  > **`Quality & Safety` is a fourth construction navigation group**, by §18.2's own arithmetic: `Site` already carries
+  > seven entries, and these six registers would take it to thirteen. They are also a different person's screens on a
+  > different day — a quality engineer releasing a hold point and a foreman writing the diary are not the same visit.
+  >
+  > **And a budget moved, for the first time in this plan.** `PanelPerformanceTest`'s Employees page-size ceiling went
+  > 360 -> 400 KB: the domain rail carries every group's tree on every page, so a new navigation group makes every page
+  > bigger, and that is the budget measuring exactly what it is for. **Worth distinguishing from the query-count
+  > failures in the same file**, which were waste — a badge reading a whole table, a badge eager-loading a relation —
+  > and were fixed rather than budgeted for. Raise a ceiling for markup a new screen legitimately adds; never to make a
+  > page that got heavier for no reason pass.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 
