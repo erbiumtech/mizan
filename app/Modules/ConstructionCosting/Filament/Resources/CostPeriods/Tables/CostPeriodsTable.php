@@ -5,8 +5,8 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\CostPeriods\Tables;
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Models\GlPosting;
-use App\Modules\ConstructionCosting\Services\AccrualService;
 use App\Modules\ConstructionCosting\Services\ConstructionGlPostingService;
+use App\Modules\ConstructionCosting\Services\PeriodCloseService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -111,7 +111,9 @@ class CostPeriodsTable
                     ->visible(fn (CostPeriod $record): bool => $record->isOpen()
                         && (auth()->user()?->can('ConstructionCostCreate') ?? false))
                     ->action(function (CostPeriod $record): void {
-                        $run = app(AccrualService::class)->open($record->period_start->toDateString());
+                        // Through `PeriodCloseService::open()`, because §4.5 makes the unwind part of *opening the
+                        // month* rather than a maintenance task somebody remembers.
+                        $run = app(PeriodCloseService::class)->open($record->period_start->toDateString());
 
                         Notification::make()
                             ->success()
@@ -206,6 +208,86 @@ class CostPeriodsTable
                             ->title('Reversed')
                             ->body($posting->displayName().' has been backed out of the accounts, and its cost entries '
                                 .'are awaiting the general ledger again.')
+                            ->send();
+                    }),
+
+                /*
+                 * **The checklist, as its own action.** §4.3 makes the close a control rather than a formality, and a
+                 * control that says "cannot close" without saying why is a control people learn to force.
+                 */
+                Action::make('closeChecks')
+                    ->label('Check the close')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->color('gray')
+                    ->visible(fn (CostPeriod $record): bool => $record->isOpen()
+                        && (auth()->user()?->can('ConstructionCostView') ?? false))
+                    ->modalHeading(fn (CostPeriod $record): string => 'Can '.$record->label().' be closed?')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalDescription(fn (CostPeriod $record): string => app(PeriodCloseService::class)
+                        ->checks($record)
+                        ->describe()),
+
+                Action::make('closePeriod')
+                    ->label('Close the month')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (CostPeriod $record): string => 'Close '.$record->label())
+                    // No reopen, and the confirmation says so. §3.4: reopening a signed-off period invalidates the WIP
+                    // snapshot, the client certificate and the GL summary that all depended on its total.
+                    ->modalDescription(fn (CostPeriod $record): string => 'There is no reopen. A cost arriving later '
+                        .'lands in the earliest open month with its own date kept, which the Late Costs report shows. '
+                        .app(PeriodCloseService::class)->checks($record)->describe())
+                    ->visible(fn (CostPeriod $record): bool => $record->isOpen()
+                        && (auth()->user()?->can('ConstructionPeriodClose') ?? false))
+                    ->schema([
+                        Textarea::make('notes')->label('Note')->rows(2),
+                    ])
+                    ->action(function (CostPeriod $record, array $data): void {
+                        $closed = app(PeriodCloseService::class)->close($record, $data['notes'] ?? null);
+
+                        Notification::make()->success()
+                            ->title($closed->label().' is '.$closed->status)
+                            ->body('Job cost '.number_format((float) $closed->jc_control_total, 2)
+                                .' against general ledger '.number_format((float) $closed->gl_control_total, 2).'.')
+                            ->send();
+                    }),
+
+                /*
+                 * **§4.3's third mechanism, and the fourth is what makes it safe.**
+                 *
+                 * "A forced close never fudges the ledger. No plug entry, no balancing figure. Both sides stay true and
+                 * the difference stays visible in every later period until the cause is fixed."
+                 */
+                Action::make('forceClosePeriod')
+                    ->label('Close it anyway')
+                    ->icon('heroicon-o-exclamation-triangle')
+                    ->color('danger')
+                    ->visible(fn (CostPeriod $record): bool => $record->isOpen()
+                        && (auth()->user()?->can('ConstructionPeriodForceClose') ?? false)
+                        && ! app(PeriodCloseService::class)->checks($record)->canClose())
+                    ->modalHeading(fn (CostPeriod $record): string => 'Force '.$record->label().' closed')
+                    ->modalDescription(fn (CostPeriod $record): string => 'This corrects nothing. No plug entry, no '
+                        .'balancing figure — both ledgers stay exactly as they are and anything unexplained stays '
+                        .'visible in every later month until its cause is fixed. '
+                        .app(PeriodCloseService::class)->checks($record)->describe())
+                    ->schema([
+                        Textarea::make('reason')
+                            ->label('Why')
+                            ->required()
+                            ->rows(3)
+                            ->helperText('Recorded on the period along with every check it overrode, so whoever reads '
+                                .'it in a year can see what was known at the time.'),
+                    ])
+                    ->action(function (CostPeriod $record, array $data): void {
+                        app(PeriodCloseService::class)->forceClose($record, $data['reason']);
+
+                        Notification::make()->warning()
+                            ->title($record->label().' was forced closed')
+                            ->body('Nothing was adjusted. Everything that was unexplained still is, and the reason is '
+                                .'on the period along with what it overrode.')
+                            ->persistent()
                             ->send();
                     }),
             ]);
