@@ -1,7 +1,8 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a to 9f with them (2026-08-21). §16 is complete apart from the
-programme: activities, the schedule of §13 and the P6 import are what remain of Phase 9.**
+**Status:** **The plan is complete. Phases 0 to 11, 2026-08-22.** §4.3's fifth mechanism — one of every source type
+reconciling to `0.00` through the real services — is green, which is the assertion the whole of §3 and §4 was written
+against. Whole suite: **3,446 tests, 11,714 assertions, nothing failing.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -59,6 +60,18 @@ That closes the note 9a left unconditional, and the lesson underneath it is the 
 phase: **a module licence is not a proxy for data existing.** The guard used to ask "is the field module here" when the
 question it needed was "is there an open punch value to read", and 9a licensing the module three sub-phases before punch
 items existed is exactly how those two come apart.
+
+Phase 9g stored the programme, and §13's first line is the whole of it: **store the programme; never solve it.** No
+forward pass, no backward pass, no float derivation, no critical-path solver. `is_critical` and `total_float_days` are
+imported columns with a `source` printed beside them, and a test asserts by reflection that no method on the programme's
+own classes is even *named* for scheduling — because a behavioural test would pass on the day somebody added
+`recalculateDates()`.
+
+What the programme buys is the fifth exposure in this family, and the largest: **days a priced contract milestone is
+late against the accepted programme, less the extension of time actually awarded.** Liquidated damages accrue against
+that remainder. It is computable only because §13 keeps baseline and planned dates apart and because §13's delay events
+record what was *determined* rather than what was claimed — a test asserts that a claim for forty days excuses nothing
+until somebody determines it.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2689,6 +2702,18 @@ document register before the modules that reference drawings.
   > on the same grant as submitting for the same reason the RFI's answer does. `activity_id` is absent here too, for the
   > programme sub-phase to add with a real key alongside RFIs and punch items.
   >
+  > **A third portability-and-cost trap, caught by `PanelPerformanceTest` rather than by review, and it is the one worth
+  > generalising.** This register was given a navigation badge counting items already past their submit-by date — and
+  > since that date is deliberately not a column, the badge read *every* outstanding row and filtered in PHP. The test
+  > showed it as `select * from construction_submittals` sitting in the dashboard's query list, one query over budget on
+  > both the dashboard and the reports hub.
+  >
+  > The rule, now stated once for every phase after this: **a navigation badge renders on every page in the panel, so it
+  > must be a single indexed count or it must not exist.** §16.3's refusal to store the submit-by date is exactly what
+  > rules a badge out here, and the figure is not lost — the register's own column shows it per row and
+  > `lateToSubmit()` is the report, both on a page somebody opened on purpose. The RFI's overdue badge and the punch
+  > list's blocking-items badge stay, because both are one count against a composite index.
+  >
   > **9f built 2026-08-21.** — `ConstructionPunchListTest` (31 tests) plus four rewritten on
   > `ConstructionRetentionTest`. `construction_punch_lists`, `construction_punch_items`,
   > `construction_punch_inspections`, `PunchListService`, two policies and the register with its items tab.
@@ -2741,6 +2766,110 @@ document register before the modules that reference drawings.
   > `activity_id` is deliberately absent from RFIs, submittals *and* punch items, for one migration that builds
   > `construction_activities` and adds the column to all three with a real foreign key.
   >
+  > **9g built 2026-08-22.** — `ConstructionProgrammeTest` (32 tests). `construction_activities`,
+  > `construction_activity_predecessors`, `ProgrammeService`, `ProgrammeActivityPolicy`, the register with its
+  > predecessors tab, and `activity_id` wired into the registers that were waiting for it.
+  >
+  > **"Store the programme; never solve it" is enforced structurally, not just observed.** A test walks
+  > `ProgrammeService`, `ProgrammeActivity` and `ProgrammeActivityPredecessor` by reflection and fails on any
+  > *self-declared* method whose name reads like a scheduler — forward, backward, recalculate, reschedule, critical path,
+  > levelling, solve. A behavioural test would have passed on the day somebody added `recalculateDates()`. (It also
+  > taught the obvious lesson about reflection: the first version failed on Eloquent's own `resolveCustomBuilderClass`,
+  > because "resolve" contains "solve" — hence the declaring-class filter and a floor on how many methods it checked, so
+  > a test that checked nothing cannot pass forever.)
+  >
+  > **The exposure, and it is the largest of the five:** days a priced contract milestone is late against the *accepted*
+  > programme, less the extension of time *awarded*. Two design decisions make it computable and both are §13's:
+  >
+  > - **Baseline and planned are two pairs of dates.** A test asserts they give different numbers on the same activity —
+  >   15 days late against the baseline, 10 against the plan. One pair would let every re-programme silently retire the
+  >   delay that caused it, and a job that has re-programmed around its own delays would report zero.
+  > - **`ld_applies` is separate from `is_contract_milestone`**, because a contract names dates it does not price.
+  >   Sectional completion of a car park may be contractual with no damages against it, and levying damages against a
+  >   planner's marker is what that separation prevents.
+  >
+  > Four more decisions worth carrying forward:
+  >
+  > - **Predecessors are stored and never solved.** A test records a finish-to-start link with a five-day lag and asserts
+  >   every date on the successor is byte-for-byte unchanged. What the links are read for is `blockedBy()` — "cladding
+  >   cannot start, and the two activities in front of it have not started either" is a conversation; "cladding cannot
+  >   start" is not.
+  > - **Progress is its own permission, and the first third name in this module.** Percent complete and actual dates are
+  >   what §14's earned value is computed from, and the person who reports 80% is not usually the person who owns the
+  >   consequence of it being 60%. There is deliberately *no* fourth name for the baseline: this application does not
+  >   accept programmes, it stores what P6 exported, so guarding a column only an import writes would be theatre.
+  > - **Two progress combinations are refused because they are not facts**: 100% with no actual finish, and an actual
+  >   finish below 100%. And progress needs a `data_date` — 40% as at the 1st and as at the 30th are different facts, and
+  >   without it neither can be compared with last month.
+  > - **`external_id` is unique per job *and source*.** The accepted programme from P6 and a subcontractor's fragment
+  >   from MS Project can carry the same activity id meaning different things, and a key that collided would make the
+  >   second import overwrite the first.
+  >
+  > **A correction to what 9f's entry promised.** It said the programme sub-phase would add `activity_id` to RFIs,
+  > submittals *and punch items*. It adds it to RFIs, submittals and **delay events** — §13's "somewhere to hang a delay
+  > event" — and deliberately **not** to punch items, because §16.4 never asked for one and the reason holds: a snag is
+  > located in *space*, which is what its location and grid reference are for, and the activity that built the thing is
+  > finished by definition. A test asserts the column's absence rather than leaving it as an intention.
+  >
+  > **A naming collision worth recording:** `App\Models\Activity` is already CRM's morph alias, and `ModuleManifest`
+  > refuses a duplicate at boot — which is the guard working. The classes are `ProgrammeActivity` and
+  > `ProgrammeActivityPredecessor`, which reads better anyway: a CRM activity and a programme activity are not the same
+  > kind of thing. `RoleGrantsTest::EXPECTED` moved to 56 / 136 / 170 / 190.
+  >
+  > **The badge rule needed a second half, and `PanelPerformanceTest` is what forced it.** 9e's rule was *a badge must be
+  > a single indexed count or it must not exist*. By 9g `construction_field` shipped five registers and each of them
+  > wanted one — five counts on every page in the application, which the dashboard and reports budgets both rejected.
+  > Two were also worse than a count: the delay register had been reading every awaiting-notice event since 9a just to
+  > pick a shade of red, and the programme's first badge eager-loaded delay events to subtract awarded time.
+  >
+  > So: **a badge earns its per-page query only where the failure it warns about is silent and time-barred** — where not
+  > looking today permanently costs money. Two survive, and both are contractual windows that *close*: §13's notice clock
+  > and §16.2's overdue RFIs. A missed notice is gone and no screen recovers it. The punch-list holdback and the
+  > liquidated-damages exposure are money **held or accruing** — visible the moment somebody opens the certificate or the
+  > programme, and not extinguished by nobody looking today — so they live in the registers' own columns and filters. The
+  > budgets were left untouched, which is the point of having them.
+  >
+  > **9h built 2026-08-22, and Phase 9 is complete.** — `ConstructionProgrammeImportTest` (22 tests). `ProgrammeImport`
+  > with three parsers, `ProgrammeImportSummary`, the import page, and `construction.programme.hours_per_day`.
+  >
+  > **The decision that carries the money is what an import is allowed to overwrite.** A contractor sends a P6 update
+  > every month; if each one rewrote the baseline, every re-programme would silently retire the entitlement it was
+  > caused by. So `MODE_UPDATE` — the default — writes planned dates, actuals, progress, float and criticality and
+  > **leaves the accepted programme alone**, while `MODE_BASELINE` writes it deliberately and records the revision. A
+  > test imports a file that slips the slab by six weeks and asserts the plan moved, the baseline did not, and the
+  > lateness against the baseline is 42 days where against the plan it is zero — which is §13's argument for two pairs
+  > of dates, demonstrated rather than asserted. The first import into an empty programme seeds the baseline either way,
+  > because a job with nothing to measure against has nothing to protect. **And the summary says which of the two
+  > happened in words, every time** — "500 activities imported" with that left unsaid is the silence this section is
+  > written against.
+  >
+  > Five smaller decisions worth carrying forward:
+  >
+  > - **The XER is read by column *name*, never by position.** The column set genuinely differs between P6 versions, and
+  >   reading by index is how an importer silently puts a date in a float column. The test fixture deliberately puts
+  >   `task_name` before `task_code` and carries a trailing column nothing reads.
+  > - **The format is detected from the contents.** An extension is what a mail client decided to call the file; the
+  >   first bytes are what the tool wrote. `ERMHDR` is an XER, and the two XML dialects are told apart by what the
+  >   document says about itself.
+  > - **Units, and they are where an importer is silently wrong.** P6 counts durations, float and lag in *hours*; MS
+  >   Project counts slack in *tenths of a minute* — a factor of 4,800 if mistaken for hours. Both become days through
+  >   `hours_per_day`, which is **configuration rather than a constant** because a ten-hour shift would overstate every
+  >   float figure by a quarter, and float is what a delay argument turns on. Negative float survives: it is P6 saying
+  >   the programme is already impossible, and clamping it to zero would delete the most important number in the file.
+  > - **A row it cannot use is skipped and counted, and the page prints the reasons.** The failure mode of an importer is
+  >   not throwing — it is importing four hundred activities out of five hundred and reporting success. A relationship
+  >   naming an activity outside the file is normal in a filtered export, so it is named rather than dropped, and the
+  >   notification for a run with warnings is persistent because a toast that fades is the same as no message.
+  > - **An unreadable date becomes null, never today.** A guessed date on a programme is a guessed entitlement. And the
+  >   XML parser runs with `LIBXML_NONET | LIBXML_NOENT`: a programme file arrives by email from another company, and an
+  >   XML importer that resolves external entities is a file-read primitive handed to whoever sent it.
+  >
+  > **An imported network still moves nothing.** A test asserts the milestone's planned finish is exactly what the file
+  > said, when a scheduler would have pushed it out by the predecessor's five-day lag. That is what makes a P6
+  > round-trip safe, and it is the same property 9g asserted by reflection.
+  >
+  > No new permissions: the import writes the baseline, so it asks for `ConstructionProgrammeUpdate`.
+  >
   > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
   > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and
   > fails when `CrudRedirectsToListingTest` runs immediately before it. Adding one test file to `tests/Feature` shifted
@@ -2755,8 +2884,632 @@ document register before the modules that reference drawings.
   CAPA and close-out, the one actions table, incidents, permits, toolbox talks, the induction register
   and the indicators. **Ends with:** an NCR that proposes a deduction and never applies one, and a safety
   page that refuses to print a rate it cannot compute.
+
+  > **10a built 2026-08-22.** — `ConstructionItpTest` (35 tests). The `construction_qhse` module end to end — registry
+  > entry, provider, plugin, profile, its own navigation group — plus `construction_itps`,
+  > `construction_itp_activities`, `construction_itp_activity_parties`, `construction_inspections`,
+  > `construction_inspection_checks`, `ItpService`, `InspectionService` and two registers.
+  >
+  > **Everything here follows from taking `point_type` seriously**, which §17.1 calls "the entire reason an ITP exists".
+  > A hold point stops work; a witness point invites somebody and proceeds without them; a review point is paperwork.
+  > Three sentences, three commercial positions.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **The point type and the notice period are snapshotted onto the inspection at request time.** A test revises the
+  >   plan so the point becomes a *review* point and asserts the inspection still says *hold* — an inspection carried
+  >   out under the old plan was carried out under the old rules, and reading the current plan would retroactively
+  >   change what it meant. §8's certificate terms and §13's notice days are frozen for the same reason; this is the
+  >   third instance and the pattern is now settled.
+  > - **Releasing a hold point is a separate act, a separate permission and three refusals.** `record()` will not write
+  >   the release even when asked to directly, and `release()` refuses anything that is not a hold point, anything not
+  >   yet inspected, and anything that failed. §17.1: "a hold point that releases nothing and blocks nothing is a
+  >   checkbox with extra steps."
+  > - **A hold point that names nobody cannot be issued**, and the refusal names the sequence numbers. Checked at *issue*
+  >   rather than at row level, because a plan halfway through being written legitimately has a hold point with no
+  >   parties yet. A review point needs nobody — it is documentation only.
+  > - **Party and role are separate columns on the pivot.** One point can need the Engineer to *approve* and a laboratory
+  >   to *verify*; folding the role into the party would lose which of them the work is waiting on. The relation is
+  >   ordered as entered, because an ITP is a document somebody compares with last month's copy.
+  > - **A revision is a new plan that supersedes the old one**, with every point and every party copied. A past
+  >   inspection keeps pointing at the document that was in force when it happened, which is the only reason ITPs carry
+  >   revisions at all.
+  > - **`passed` on a check-sheet line is nullable, not a boolean.** A sheet is filled in as the inspection proceeds, and
+  >   a false default would read every line nobody has reached yet as a failure.
+  >
+  > **The witness-point evidence is the quietly valuable part.** §17.1 says work may proceed past a witness point when
+  > the invited party does not attend — true only if the register can show they were *told*, so `notified_on` is separate
+  > from `requested_on` and `witness_attended` is a column rather than inferred from a name being filled in. The register
+  > flags short notice too, because that is the other side's first answer to "you went ahead without us".
+  >
+  > §17.6's first leading indicator lands early because the data is here: **hold points released at the first attempt**,
+  > null rather than a percentage where nothing has been inspected. 100% first-time on a job with no inspections is the
+  > flattering wrong answer §17.6's whole section is written against.
+  >
+  > **The module requires only `construction`**, with `construction_field`, `construction_contracts`, `employees` and
+  > `invoicing` all guarded — ISO 9001 and ISO 45001 certification is frequently the *reason* a contractor buys
+  > software, and a quality module that needed the books would be unsellable to exactly that customer. Only
+  > `construction_qhse -> invoicing` is a class-level coupling; the contract item is an unconstrained integer as usual.
+  > `RoleGrantsTest::EXPECTED` moved to 59 / 139 / 176 / 196.
+  >
+  > **`Quality & Safety` is a fourth construction navigation group**, by §18.2's own arithmetic: `Site` already carries
+  > seven entries, and these six registers would take it to thirteen. They are also a different person's screens on a
+  > different day — a quality engineer releasing a hold point and a foreman writing the diary are not the same visit.
+  >
+  > **And a budget moved, for the first time in this plan.** `PanelPerformanceTest`'s Employees page-size ceiling went
+  > 360 -> 400 KB: the domain rail carries every group's tree on every page, so a new navigation group makes every page
+  > bigger, and that is the budget measuring exactly what it is for. **Worth distinguishing from the query-count
+  > failures in the same file**, which were waste — a badge reading a whole table, a badge eager-loading a relation —
+  > and were fixed rather than budgeted for. Raise a ceiling for markup a new screen legitimately adds; never to make a
+  > page that got heavier for no reason pass.
+  >
+  > **10b built 2026-08-22.** — `ConstructionNcrTest` (28 tests). `construction_ncrs`, `NcrService`, `NcrPolicy`, the
+  > register, and `NcrDeductionOffer` on the *contracts* side.
+  >
+  > **The property this sub-phase exists to prove is a negative one, and the exit condition of the whole phase asks for
+  > it: an NCR never deducts.** §17.2 is worth quoting in full because the code is shaped entirely by it — "it
+  > *proposes*; the certification service **offers** the deduction as a row on the certificate that a human confirms and
+  > signs for. FIDIC 14.6 permits the Engineer to withhold; it does not require it. A deduction appearing on a
+  > certificate that nobody decided on is the fastest available route to a dispute, and it will be the contractor's
+  > dispute, because the client's copy has already left the building."
+  >
+  > So: `proposeDeduction()` is the strongest verb in the quality module, and a test asserts it writes **zero rows** in
+  > `construction_certificate_deductions`. `NcrDeductionOffer::offersFor()` is a *read* — no observer, no scheduled job,
+  > nothing that runs while a certificate is being assembled. `take()` writes the row only when called with a
+  > certificate, an amount and a person, and it marks it **`is_automatic = false` with `approved_by` filled in** — two
+  > columns that already existed for exactly this distinction, since `AUTOMATIC_KINDS` is the set the certificate
+  > computes for itself and an NCR deduction is deliberately not in it.
+  >
+  > **And `deduction_certificate_id` is written on the contracts side, never by the quality module.** §17.2 names the
+  > precedent and it is exact: `final_settlements.payslip_id` is a nullable column recording which path paid a
+  > settlement, which the settlement never writes. *A proposal, not a posting, visible in the import graph* — and the new
+  > `construction_contracts -> construction_qhse` entry in `KNOWN_COUPLINGS` is where it is visible.
+  >
+  > **The amount is a decision, not a copy.** `take()` defaults to what was proposed and accepts less, because
+  > withholding less than the quality team assessed is the ordinary outcome of a conversation about it — and a version
+  > that copied the figure would make that conversation unrecordable. More than proposed is refused: it is a decision on
+  > its own terms and belongs in its own deduction, so the certificate can say where the figure came from.
+  >
+  > Five more decisions worth carrying forward:
+  >
+  > - **A disposition is chosen, never defaulted**, and `raise()` drops one that arrives with the form. It is "the field
+  >   that decides whether money changes hands", and a default of `rework` would settle that on every new row before
+  >   anybody had looked at the work.
+  > - **A concession needs its reference.** Asking the client to accept nonconforming work and not recording what they
+  >   said is how a job ends up with an as-built nobody can defend.
+  > - **Closing needs a re-inspection that passed, and not the one that failed.** Verifying an NCR against its own
+  >   failure "proves the opposite of what it claims" — a test asserts all three refusals.
+  > - **CAPA is two pairs**, and the register reports `fixed, not prevented`: the corrective action done and the
+  >   preventive action outstanding, which is the pour fixed and the reason it happened left alone. That is the commonest
+  >   CAPA failure and it is invisible in any design that merges the two fields.
+  > - **Severity is not a proxy for cost.** Critical means structural adequacy, safety or a statutory requirement.
+  >   Deriving it from `cost_impact` would make a cheap structural defect look minor, which is the one direction that
+  >   gets somebody hurt.
+  >
+  > **The exposure this register carries** is accepted nonconforming work with nothing proposed against it: *use as is*
+  > or *concession requested*, no deduction proposed, no back charge — the client took less than the specification and
+  > got nothing for it. Sixth instance of this section's shape, and the first where the money is leaving in the other
+  > direction.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 61 / 141 / 179 / 199. **Three names, and deliberately not a fourth**: proposing a
+  > deduction rides on `ConstructionNcrDisposition` because the two decisions are made in the same conversation and the
+  > proposal withholds nothing. There is no `ConstructionNcrDeduct` because the act that moves money is on the far side
+  > of the module boundary.
+  >
+  > **10c built 2026-08-22.** — `ConstructionQhseActionTest` (21 tests). `construction_actions`, `QhseAction`,
+  > `ActionService`, `QhseActionPolicy`, the register, and an actions tab on the NCR.
+  >
+  > **One table over five sources**, per §17.4: "four separate action tables produce four *overdue actions* reports that
+  > never agree, and the safety manager's one genuinely useful screen — everything overdue, from every source, in one
+  > list — becomes a four-way union nobody maintains." Polymorphic over the QHSE objects, with `job_id` denormalised
+  > beside the morph because every report on it is per job and reaching the job through five parent types would be five
+  > joins on every row of the one screen the table exists for.
+  >
+  > **The register has no create page**, and that is the design: an action is raised *against* the finding that produced
+  > it. An action with no subject is a task in a quality register, and this is not a task manager.
+  >
+  > Four decisions worth carrying forward:
+  >
+  > - **The assignee is three columns and the plain name works alone.** On most sites most of the people who have to do
+  >   something are a subcontractor's and are in no table here — the same argument §17.3 makes about an injured person's
+  >   name. `raise()` refuses an action with nobody against it: an action nobody is assigned to is an action nobody does.
+  > - **Done and verified are two acts with two permissions.** "Done" is the assignee's claim and the action stays live
+  >   showing *awaiting verification*; "verified" is somebody else's confirmation, and `verify()` refuses an action nobody
+  >   has claimed. Third instance of this rule after §16.4's passed re-inspection and §17.2's verified NCR — a register
+  >   where whoever caused a finding can close it is a register nobody reads.
+  > - **`containment` earns its place beside `corrective`.** Cordoning a hole off is not filling it, and a register that
+  >   could not distinguish them would report a site as having addressed something when all it did was put a barrier
+  >   round it.
+  > - **The class is `QhseAction`, not `Action`.** Filament has an `Action`, and a model sharing that name in a resource
+  >   file is a bug waiting for somebody's import statement. Second naming collision this phase after `ProgrammeActivity`
+  >   — worth noting that the *reasons* differ: that one was the morph map refusing a duplicate at boot, this one is
+  >   ordinary readability.
+  >
+  > **The tension §17.2 and §17.4 create between them is named rather than hidden.** §17.2 puts corrective and preventive
+  > action *on the NCR* because ISO 9001 asks for them there; §17.4 asks for one actions list. Mirroring either into the
+  > other would be two sources for one date — the trap this plan refuses everywhere else — so they are kept separate and
+  > `everythingOverdue()` **assembles both and labels the source of every row**: `Action · NCR` beside
+  > `NCR CAPA · corrective`. That is the same discipline §17.6 demands of an exposure denominator and §16.1's
+  > materials-on-site panel already follows: where a figure can come from more than one place, the report says which.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 63 / 143 / 182 / 202.
+  >
+  > **And the badge rule got its third refinement, from the same test.** The NCR and actions registers were each given
+  > one; `PanelPerformanceTest` put the reports hub over its query budget, and the honest response was to remove them
+  > rather than raise the budget. The operative word in the rule is **silent**: §13's notice clock qualifies because a
+  > window closes and no screen recovers it, and §17.1's hold point awaiting release qualifies because work is standing
+  > still for want of a signature nobody knows is missing. A critical NCR and an overdue action are *loud* — each is the
+  > first row of a screen somebody opens daily — so a count of them on every page in the application is spending the
+  > whole panel on a number already visible on its own.
+  >
+  > **10d built 2026-08-22.** — `ConstructionIncidentTest` (26 tests). `construction_incidents`,
+  > `construction_incident_witnesses`, `construction_incident_photos`, `IncidentService`, `IncidentPolicy`, the register
+  > and a witnesses tab.
+  >
+  > **Near miss is a kind rather than a checkbox, and the reason is arithmetic rather than taxonomy.** §17.3: "near-misses
+  > reported per lost-time injury is the leading indicator that predicts the next one." A near miss has no injury record
+  > to hang a flag on — nobody was hurt — so stored as a checkbox it cannot be counted and the ratio cannot exist. A test
+  > reports twelve near misses and asserts the ratio is **null** rather than zero, because no injury to divide by is the
+  > *good* state and must not read as a bad number.
+  >
+  > **Reporting is the widest permission in the whole module**, and that follows directly: a grant that made reporting
+  > hard would suppress the number it most needs. A site reporting no near misses is not a safe site, it is a quiet one.
+  >
+  > Five more decisions worth carrying forward:
+  >
+  > - **`occurred_at` is a datetime**, because shift timing is half the analysis. Hour ten of a twelve-hour shift is a
+  >   finding; the 14th of August is not. The register prints the hour of the day beside the date.
+  > - **The reporting delay is computed, printed on the register, and shown on the form while somebody types.** §17.3
+  >   makes it a safety metric in its own right — "a site that takes four days to report a first-aid case is a site where
+  >   the next one is not reported at all" — and it is kept from `reported_at` rather than `created_at`, because an
+  >   incident typed up a week later from a paper form was reported when it was reported. **What counts as late is
+  >   configuration**, because a procedure saying two hours and one saying a shift are not measuring the same thing.
+  > - **`is_lost_time` is never inferred from a day count.** A lost-time injury where nobody yet knows how long somebody
+  >   is off is the ordinary state for a fortnight, and deriving the flag would classify it as a medical-treatment case
+  >   for exactly as long as the reportable clock is running. First aid is deliberately outside the recordable set, since
+  >   including it is the commonest way a rate becomes incomparable with anybody else's.
+  > - **The injured person's name works alone**, per §17.3 — and so does a witness's. A register that required employee
+  >   records would record the witnesses who happened to be on the payroll, which is not the same set as the witnesses.
+  > - **A witness statement carries its own date**, and the tab prints the gap in days. One taken on the day is worth
+  >   several taken three weeks later, and an investigation that cannot say when it spoke to somebody is one nobody can
+  >   weigh. A statement typed with no date is dated on entry rather than stored undated.
+  >
+  > **The exposure here is the only statutory clock in the module**: reportable to an authority, with nothing recording
+  > that anybody told them. It is the module's second badge — the rule's word is *silent*, and a duty with a legal
+  > deadline that no other screen watches is exactly that. **Closing is refused twice over**: without a cause recorded,
+  > because an incident closed with no cause is a lesson nobody learned; and while a reportable incident has no authority
+  > date, because closing one would file a statutory duty as finished.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 65 / 145 / 185 / 205.
+  >
+  > **10e built 2026-08-22.** — `ConstructionPermitTest` (25 tests). `construction_permits`, `PermitService`,
+  > `PermitPolicy` and the register.
+  >
+  > **"A permit is time-boxed, and an expired-but-open permit is the failure mode that kills people."** Everything here
+  > follows from that sentence, and the register's third badge is that count.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **`valid_from` and `valid_to` are datetimes and both are required.** A permit valid "on the 20th" authorises hot
+  >   work at four in the morning. A test asserts the permit authorises nothing at 04:00 inside a 07:00–17:00 window,
+  >   which is a claim a date column cannot express.
+  > - **An extension is a new row and the original's window is untouched.** §17.5: "overwriting `valid_to` destroys the
+  >   record of what was authorised when." The extension starts *exactly* where the original ends, so no minute is
+  >   covered twice or not at all, the original closes at its own end time, and the extension arrives as a **draft** —
+  >   extending is a request and issuing is still a decision. The controls travel with it, so an extension is never a
+  >   permit with nothing recorded on it.
+  > - **Issuing is refused for a window that has already closed.** Authorising work that is already over is either a
+  >   mistake or a back-dated cover, and neither should be quiet. This turned out to shape the *tests* too: the only
+  >   honest way to produce an expired-and-open permit is to issue a live one and let time pass, which is what the tests
+  >   do.
+  > - **Issuing is also refused until the controls that type's procedure turns on are recorded** — hot work without a
+  >   fire watch, a confined space without a rescue plan, an excavation without the services scanned. Checked at issue
+  >   rather than at draft, because a half-written permit is the ordinary state of a draft.
+  > - **Nothing auto-closes an expired permit**, and that is the load-bearing refusal to build a convenience. A permit
+  >   quietly marked closed by a scheduled job is a hazard nobody walked back to; expiry makes it visible and a person
+  >   closes it.
+  > - **`area_made_safe` is asked at close-out, and closing without it needs a reason rather than being refused.** A
+  >   permit closed with nobody having walked the area is the sequence that burns a building down an hour after everybody
+  >   goes home — but a permit that *cannot* be closed stays open for ever, and then the expired-and-open list becomes
+  >   noise and stops being read. So it is allowed, with a sentence, and the register keeps the list of permits closed
+  >   with nothing recorded: that is a pattern rather than an event, and a site where it is common is a site where the
+  >   close-out is a signature.
+  >
+  > **`details` is JSON and the shared fields are columns**, exactly as §17.5 asks — thirteen types' fields as columns
+  > would be ninety mostly-null ones, and everything in a bag could not answer "what is open on level four right now".
+  > **Suspension keeps its reason after resumption**, because a permit suspended when the wind got up and then resumed is
+  > a different history from one that ran uninterrupted, and that history is what an investigation reads. And resuming
+  > after the window closed is refused: that is an extension, not a resumption.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 67 / 147 / 188 / 208. **`ConstructionPermitIssue` is the sharpest segregation in
+  > the module** — the person who wants to do the work is the last person who should decide it is safe to — while
+  > *suspending* is deliberately on the wide grant, because a permit that can only be suspended by whoever issued it is a
+  > permit that stays live while somebody goes looking for them.
+  >
+  > **And the query budgets moved for the first time**, dashboard 28 → 32 and reports 25 → 29, for this module's three
+  > navigation badges: a hold point awaiting release, an unreported reportable incident, and an expired-and-open permit.
+  > All three pass the *silent* test. The pairing with 10c is the point — **the rule decides what exists and the budget
+  > accommodates what the rule allows**, which is why two badges were deleted then and three are paid for now. The
+  > reverse would be the failure: trimming a justified count to fit, or raising a ceiling for one that was never
+  > justified.
+  >
+  > **10f built 2026-08-22.** — `ConstructionSitePersonnelTest` (23 tests). `construction_site_personnel`,
+  > `construction_competencies`, `construction_toolbox_talks` and its attendees, `SitePersonnelService`, two policies,
+  > two registers, and `construction:check-competency-expiry` with `CompetencyExpiring`.
+  >
+  > **A name is all that is ever required**, of somebody on the register and of an attendee at a talk. §17.5: "most
+  > attendees on most sites are a subcontractor's labourers." A register that asked for more would list the people who
+  > happened to be on the payroll, which is a small and unrepresentative slice of the people on site — the same argument
+  > §17.3 makes about an injured person, now made three times in this section.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **An induction is not a permanent state**, and `never inducted` is kept apart from `induction lapsed` because they
+  >   are different conversations: one person has to be put through an induction and the other has to be put through it
+  >   again. A single "not inducted" figure would hide which a site has.
+  > - **`is_mandatory` is what turns an expiry into a stoppage.** A first-aid certificate lapsing is a gap; a
+  >   confined-space ticket lapsing on somebody in a chamber this morning is an emergency. `isClearedToWork()` reads it,
+  >   and a test asserts a lapsed *optional* ticket leaves somebody cleared while a lapsed mandatory one does not.
+  > - **One row per person per job.** Somebody inducted on the tower is not inducted on the annexe.
+  > - **Renewing a ticket clears the warning ladder**, which is why it is an action rather than an edit: a renewed ticket
+  >   has to warn again next year, and a stale `expiry_notified_at_days` would silence it for good.
+  > - **An attendee's name is snapshotted onto the row even when the register is linked.** A test renames the register
+  >   entry and asserts the attendance sheet still says who was there. *Add everybody on the register* is the
+  >   seven-in-the-morning convenience, and it is idempotent so pressing it twice does not double the count.
+  >
+  > **The competency clock is the fourth instance of the notified-at-days ladder** after `employee_documents`, §12's
+  > compliance register and §13's notice clock — 60/30/14/7/0, once per threshold, `array_reverse`d so the tightest
+  > unwarned one fires. That last detail is written the same way in both places precisely because Phase 9a got it wrong
+  > once, and the test here asserts it skips from 30 straight to 7 rather than back to 14.
+  >
+  > **Toolbox talks count attendance, not talks**, which is §17.6's requirement: forty talks to two people each is not a
+  > briefed site. A talk with nobody recorded is **named** rather than counted as zero attendance, because a talk given
+  > and not written up is a paperwork gap while a talk nobody came to is a different problem — and only the first is
+  > worth chasing.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 69 / 149 / 190 / 210. **Two names, and the update grant is deliberately wide:**
+  > register-keeping is gate work done at seven in the morning by whoever is at the gate, and a permission that made it a
+  > supervisor's job would produce a register that lags the site by a week — which is a register nobody trusts to say who
+  > is cleared to work. Toolbox talks share it rather than earning their own, because a second name would only mean one of
+  > the two got filled in.
+  >
+  > **10g built 2026-08-22, and Phase 10 ends here.** — `ConstructionSafetyIndicatorsTest` (32 tests).
+  > `SafetyIndicators`, the `ExposureHours` and `SafetyRate` DTOs, `SafetyIndicatorsReport` and its view,
+  > `construction_jobs.exposure_hours_source`, and `construction.qhse.rate_base`.
+  >
+  > The phase's stated exit condition was "an NCR that proposes a deduction and never applies one, and **a safety page
+  > that refuses to print a rate it cannot compute**". Both halves now exist, and the second one is a type rather than a
+  > convention: **no method on `SafetyIndicators` returns a float.** Each returns a `SafetyRate` that is either a figure
+  > *with the base it was computed on* or a refusal *with the reason*, and `display()` — the only thing a Blade template
+  > reaches for — returns §17.6's words, "Insufficient exposure data". A caller cannot write `?? 0` by accident because
+  > there is no number to fall back from.
+  >
+  > **§17.6's silent failure was worth the whole sub-phase.** With no diary the denominator is zero and every rate renders
+  > as `0.00`, which reads as a perfect safety record and means nobody filled anything in. This is the one place in the
+  > module where the plan explicitly refuses graceful degradation, and the reason is that the degraded answer is *more*
+  > convincing than the real one. A missing figure prompts a question; a flattering figure ends the conversation.
+  >
+  > Four decisions worth carrying forward:
+  >
+  > - **A refusal distinguishes four states, and each is a different job to go and do.** No source named on the job;
+  >   a source whose module is not licensed; no *approved* diary in the period; approved days carrying no man-hours.
+  >   The last is the subtlest — somebody signed off days that record nobody on site, which is neither an absent diary nor
+  >   an empty site, and collapsing it into either would send whoever reads it to the wrong place.
+  > - **One source per job, and the report prints which.** §17.6's mirror-image failure is counting the same people from
+  >   the diary *and* Timesheets, halving every rate — and **a halved rate is worse than a missing one, because it looks
+  >   like a number somebody can act on.** `exposure_hours_source` is nullable with no default, because a default would
+  >   have quietly chosen for every job in every existing tenant and been wrong for whichever half keeps the other kind of
+  >   record. A test puts identical hours in both sources and asserts 400,000 rather than 800,000.
+  > - **The base travels with the figure, structurally.** `SafetyRate` cannot yield a value without one, `baseLabel()` is
+  >   printed on every row *and* on the section heading — because a heading is what ends up in a screenshot in a client
+  >   pack — and the page can switch base, which visibly changes every figure on it. §17.6's factor-of-five sentence is a
+  >   test: one injury in 100,000 hours is `10.00` per million and `2.00` per 200,000, both true of one site.
+  > - **The numerator travels too.** `5.00 per million` on two incidents in 400,000 hours is arithmetic on a small sample,
+  >   and printing the rate alone invites somebody to read it as a trend.
+  >
+  > **Nothing is stored, and that is asserted against the schema rather than trusted.** A first-aid case becomes a
+  > lost-time case the day somebody does not come back; reclassification is normal, and a stored LTIFR would still be
+  > reporting the old kind. One test reclassifies an incident and asserts the rate moves in the same request; another
+  > asserts no indicator table exists, so a later phase adding a snapshot for reporting speed has to argue for it here.
+  >
+  > **Both sources are read with the query builder, not through their models**, which is what keeps `construction_qhse`
+  > requiring only `construction` — `KNOWN_COUPLINGS` says this module reaches Invoicing and nothing else, and naming
+  > `DailyLogService` would have made that false. The duplicated *rule* (approved diaries only) is written in both places
+  > deliberately: a second reader that quietly counted drafts would produce two different safety rates from one site.
+  >
+  > **The leading indicators are on the same page on purpose.** None needs a denominator, so they survive the absence
+  > that silences everything above them — and a page of lagging figures is read once a month by whoever writes the
+  > report, while a page with both is read by somebody who can still change the outcome. Every one is null-not-zero for
+  > §18.1's reason: 0% induction coverage on an empty register would tell somebody to induct people who are not there,
+  > and "0 of 0 inspections planned" reads as a complete quality plan rather than an absent one.
+  >
+  > No new permission, no new badge. The page rides `ConstructionIncidentView`, and a monthly report is the opposite of
+  > the *silent* failure the badge rule exists for.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
+
+  > **11a built 2026-08-22.** — `ConstructionGlPostingTest` (33 tests). `construction_control_accounts`,
+  > `construction_gl_postings`, `construction_cost_entries.gl_purpose`, `ControlAccount`, `GlPosting`,
+  > `ConstructionGlPostingService`, the `PostingPlan` and `PostingLine` DTOs, two policies, the Control accounts and
+  > Cost periods screens, and `ConstructionGlPost`.
+  >
+  > **§4.1's rule is one sentence and the whole sub-phase is its consequences:** where a GL document already exists for
+  > a cost, construction posts nothing and mirrors it; where the cost is construction-only, construction posts a summary
+  > journal. A supplier invoice, a payment, a stock movement and a payslip already reached the books, and posting them
+  > again would state the company's cost twice with both figures looking right.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **`purpose` is a column §4.2 does not ask for, and posting is impossible without it.** `kind` says what an account
+  >   is *for the report*; it cannot say which of two `recovery` accounts absorbs labour burden. So `purpose` names the
+  >   rule — and it is **unique in the database**, because a service that found two candidates and took the first would
+  >   absorb half a company's burden to one account and half to another depending on insertion order, and no report
+  >   would ever say so. The nullability is doing the other half of the work: any number of accounts may be in scope of
+  >   the report with no rule attached, which is what the unique index on a nullable column means in both engines.
+  > - **The rule is written by whoever records the cost, not guessed by whoever posts it.** `gl_purpose` was added to
+  >   `construction_cost_entries` after a first draft inferred it, and §4.5 is what settled it: a goods-received accrual
+  >   and a subcontract accrual are the same shape of row owing different accounts, so no inference could tell them
+  >   apart at all. The inference survives as a fallback covering rows written before the column existed, documented as
+  >   such.
+  > - **A missing control account leaves the cost pending and says so, with the figure.** §7.3's failure is the one
+  >   being prevented — "charge either and never absorb it and job cost exceeds GL cost by exactly the burden, growing
+  >   every month, with no error anywhere" — and the answer is not a suspense account. Posting *what it can* rather than
+  >   refusing the whole run is deliberate: one missing account refusing everything would leave the whole period pending
+  >   and make §4.2's report unreadable rather than merely incomplete. What keeps that from being quiet is that
+  >   `PostingPlan::skipped` travels with every result, the confirmation modal prints it, and §4.2's drill-down carries
+  >   pending-by-age as a named cause.
+  > - **`GlPosting` is not a `CostBatch`, and the reason matters.** A batch *owns* the entries it created through
+  >   `batch_id`, and these entries already belong to the labour run that wrote them; taking their `batch_id` would
+  >   break what §3.2 built it for. §4.1's actual requirement is that "any GL line explodes into its constituents in one
+  >   query", which `construction_cost_entries.journal_entry_id` meets — so the trail is intact and §3.2's is untouched.
+  > - **The journal is dated to the period end, not the run date.** A June run made on the 4th of July belongs in June.
+  >   Dating it to today would push a month's cost into the next one every time somebody was late, which is a
+  >   restatement nobody asked for and nothing reports.
+  >
+  > Two smaller ones, both about not fudging. **An entry and its reversal in the same month write no journal line** — a
+  > zero-value line says nothing happened, which is worse than the silence it replaces — but they are still stamped as
+  > dealt with, because leaving them pending would report them as owed to the general ledger forever. And **a group that
+  > nets to a credit swaps the sides** rather than writing a negative debit, which would balance arithmetically and read
+  > as nonsense in the ledger.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 69 / 149 / 191 / 211. **`ConstructionGlPost` is Manager's rather than
+  > Accountant's**, because it is the only act in the suite that writes into another module's ledger and a posting made
+  > by the person who approved the cost is a posting nobody checked. Reversing rides on it — whoever may put a figure in
+  > the books is who may take it out, and the control is the required reason — and so does nominating the control
+  > accounts, which is one screenful of decisions taken once at implementation.
+  >
+  > The **Cost periods** screen has no create and no edit, and **no reopen at all**: a period is created by the first
+  > cost that lands in the month, and §3.4's rule about a late invoice is the door instead. Phase 11e adds the close to
+  > the same screen.
+  >
+  > **11b built 2026-08-22.** — `ConstructionAccrualTest` (36 tests). `AccrualService`, the `AccrualRun` and
+  > `AccrualResult` DTOs, `CostBatch::KIND_ACCRUAL_REVERSAL`, `gl_purpose` on the goods-receipt accrual and carried
+  > through `CostLedger::reverse()`, and the *Roll accruals into this month* action.
+  >
+  > §4.5's two accruals: goods received not invoiced, and subcontract work done not certified. Both batched
+  > `kind = accrual`, both unwound at period open.
+  >
+  > **The correction worth recording is the unwind's scope, because the faithful reading of the plan was wrong.** §4.5
+  > says accruals "auto-reverse at the opening of the next period", and a first draft restricted the reversal to *earlier*
+  > periods accordingly. That is a double-count: §4.5 is not the only thing that raises accruals — `GoodsReceiptService`
+  > raises one the moment a delivery is posted, because §5's committed-cost report is worthless if a delivery takes a
+  > month to appear. A pass that skipped the current period found that delivery still *outstanding*, raised a second
+  > accrual for it, and doubled the job's accrued cost for the month, which is §4.5's own warned failure arrived at from
+  > the opposite direction. **The rule is therefore: wipe everything standing, recompute** — and the invariant afterwards
+  > is that the only standing accruals are the ones that run raised. Two tests hold it: one asserts a receipt-time
+  > accrual is not accrued twice, and one asserts opening the same month twice changes the position by nothing.
+  >
+  > Repeated runs leave reversal pairs behind, and that is honest rather than untidy: each run is a dated event, the net
+  > after any run is right, and the alternative — netting the re-accrual off against whatever is already accrued — is the
+  > line-by-line matching §4.5 rejects by name.
+  >
+  > Four more decisions:
+  >
+  > - **The reversal is itself `kind = accrual`**, negative, and this is not a detail. §3.5 defines Actual as
+  >   `kind != accrual` and Accrued as `kind = accrual`; a reversal written as `kind = reversal` would net out of the
+  >   Accrued column into the Actual one, understating a job's actual cost by exactly the accrual — a job that looked
+  >   cheaper with nothing in any query to explain it. It is also why this does not call `CostLedger::reverse()`, which is
+  >   right for a correction and wrong here on both counts: that method writes `kind = reversal`, and it puts the reversal
+  >   in the *original's* period because §3.3 wants a correction to cancel where it happened.
+  > - **`accrual_reversal` is its own batch kind.** A `reversal` batch backs out something that was wrong; this backs out
+  >   something that was right last month. Sharing one kind would make "how often does this company correct itself"
+  >   unanswerable, since twelve routine unwinds a year would swamp the corrections.
+  > - **A delivery with no purchase order is reported rather than accrued.** There is no link through which an invoice
+  >   could ever be matched to it, so "not invoiced" is unanswerable — and a guess either way would be wrong on half the
+  >   deliveries in the country. Over-invoicing is likewise reported as nothing rather than as a negative accrual: a
+  >   supplier who has billed more than they delivered is a three-way-match variance, and crediting the job would be the
+  >   wrong argument in the wrong place.
+  > - **The subcontract accrual is per contract item, because that is the only level that names a cost code.** A
+  >   contract-level accrual would have to pick one code for a subcontract spanning six, and picking would be a guess; an
+  >   item with no code is named instead. The claim must be `submitted` or `under_review` — a draft is a subcontractor's
+  >   working paper nobody has received — and only `issued` or `paid` certificates net it down, because §10.1 keeps the
+  >   claim and the certificate apart precisely on the ground that the certifier's figure is not the claimant's.
+  >
+  > **The subcontract accrual reads `construction_contracts`, `construction_progress_claims` and
+  > `construction_certificate_lines` with the query builder and names no class of that module** — because
+  > `construction_contracts` already declares an edge to `construction_costing` (§6c's commitment path), so an import the
+  > other way would be a two-cycle and `TANGLED_MODULE_BUDGET = 0` would be right to fail it. A test asserts the absence
+  > *and* asserts the tables are read, so the claim is about a real temptation rather than a vacuous one.
+  >
+  > `CostLedger::reverse()` now carries `gl_purpose` through, which was a latent 11a defect: a reversal of burden that
+  > dropped the purpose would leave the negative side unruled, so the absorption account would carry the charge with no
+  > matching credit and §11a would report the reversal as unpostable forever.
+  >
+  > No new permission. Rolling accruals rides on `ConstructionCostCreate` — it raises cost entries and nothing else, and
+  > the segregation that matters is `ConstructionGlPost`, which is what puts them in the books.
+  >
+  > **11c built 2026-08-22.** — `ConstructionReconciliationTest` (38 tests). `construction_reconciliations`,
+  > `Reconciliation`, `ReconciliationService`, the `ReconciliationResult` and `ReconciliationCause` DTOs,
+  > `ReconciliationPolicy`, the Reconciliation report page, `construction:reconcile` weekly, and
+  > `ReconciliationUnbalanced`.
+  >
+  > §4's opening sentence is the whole brief: **"A second ledger that nobody proves is a second ledger that is wrong."**
+  > §3 bought the job-cost ledger; this is the invoice.
+  >
+  > **The arithmetic is §4.2's block, one column of the stored row per line of it**, so a run *is* the printed statement:
+  > GL cost on the control accounts, less cost carrying no job, plus job cost still awaiting the general ledger, against
+  > job cost recorded, difference nil. The filter on the GL side is `is_posted = true` with the date inside the window —
+  > `FinancialReportService`'s exactly, because §4.2 warns that any other filter makes "the two sides disagree about
+  > drafts and nobody will know why".
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **"Shown, never spread"**, and a test asserts the strong form: the reconciliation writes no cost entry, ever.
+  >   Apportioning unallocated GL cost across jobs would balance the report and put money on jobs nobody charged it to.
+  >   It comes off whole, on its own line, and it is *also* named as a cause — because balancing must not be the same as
+  >   being satisfied. A company posting half its cost outside the module would otherwise reconcile perfectly.
+  > - **A refusal, on §17.6's model.** With no cost control account nominated the difference would be the entire job cost
+  >   — a report that reads as a catastrophe and means nobody has set the module up. The page says what is missing and
+  >   prints no figure at all. This is the third place in the suite that rule has earned its keep.
+  > - **Mirrored entries now carry the invoice's `journal_entry_id`**, added here because §4.2's matching needs it: "this
+  >   was posted by somebody else" is not enough for a report that has to say *which* GL cost has a job behind it. It also
+  >   makes §4.2's nastiest named cause detectable at all — "cost entries pointing at a journal entry that was later
+  >   reversed or unposted" is undetectable unless a mirrored entry points at one. Accounting keeps no reversal flag, so
+  >   the detection is a posted `reversing` entry whose `reference` is the original's `entry_number`; and because
+  >   `JournalEntryService::reverse()` dates the reversal *today*, a March cost reversed in July leaves March's GL side
+  >   intact and July's short, which is exactly why the cause needs its own section rather than the residual.
+  > - **The residual is last and isolated**, §4.2 verbatim: "rounding, isolated so it cannot be used to explain anything
+  >   else". Several causes deliberately carry a zero amount — pending cost, unallocated GL cost, closed-job cost,
+  >   absorption gaps — because each is already a *line* of the statement or reconciles anyway. Counting them into the
+  >   residual would make it wrong; listing them is how somebody sees *which* account is missing, which is the difference
+  >   between a chase-list and a fix.
+  > - **Unallocated purchase invoices render when empty**, which is §4.2's instruction for that cause alone and the only
+  >   `renderWhenEmpty` flag in the codebase. §5 calls it "the single most likely silent failure in the module", so a
+  >   section that vanished when the list was empty would be indistinguishable from a section nobody had built.
+  >
+  > **The command is weekly, which is the opposite of every other clock in this suite, and the reason is stated in
+  > `routes/console.php`.** §13's notice, §12's compliance and §17.5's competencies all warn about a *deadline* — the
+  > tightest threshold is the day itself and a weekly run steps over it. A reconciliation has no deadline: the difference
+  > does not worsen for going another day unreported, and investigating one takes longer than a day. A nightly mail about
+  > the same unchanged 412,900 is a mail somebody filters into a folder, and then the month it changes goes unread. It
+  > reconciles **every open period** rather than the current one — a difference from March is still a difference in July —
+  > skips closed ones, and exits non-zero when anything is unbalanced so a scheduler sees it.
+  >
+  > **Accepting a difference is `ConstructionPeriodForceClose` and fixes nothing**, which is §4.3's fourth mechanism made
+  > literal: a test asserts no plug cost entry and no balancing journal, and that the difference is still there on the
+  > next look. Running a reconciliation rides on `ConstructionCostView`, because a control nobody may run is not a
+  > control. A run is never editable and never deletable — the way to change its answer is to run it again.
+  >
+  > **11d built 2026-08-22.** — `ConstructionWipTest` (38 tests). `construction_wip_snapshots`,
+  > `construction_jobs.percent_complete_method`, `WipSnapshot`, `WipService`, `WipSnapshotPolicy`, the Work in progress
+  > report and its help doc.
+  >
+  > **§4.4 is the one place this plan permits a stored total, and it argues the exception rather than assuming it.** The
+  > house rule in `docs/new-module-checklist.md` §10 says compute; §4.4 says a WIP position "is a judgement at a point in
+  > time — the surveyor's forecast, the surveyed percentage, the loss provision — not a derivation from immutable facts",
+  > and recomputing last March with today's forecast "would silently restate a month that was signed off, reported to a
+  > bank and used to compute a bonus". `locked_at` is the whole mechanism, and it is why every judgement input is
+  > snapshotted onto the row rather than referenced: a row that pointed at a forecast run would move when somebody
+  > re-forecast.
+  >
+  > Five decisions:
+  >
+  > - **The method is the job's choice and there is no default.** §4.4: "cost-to-cost, surveyed, or milestone — chosen per
+  >   job." A job with none gets no position at all and is **named** at the foot of the report, because choosing for a
+  >   company means choosing cost-to-cost, and cost-to-cost reports *more* progress the more a job overspends — so the
+  >   default would flatter exactly the job that needs watching. The method is snapshotted beside the percentage, because
+  >   62% cost-to-cost is not the same claim as 62% surveyed and a bank asking which will not accept "the system said so".
+  > - **Approved variations in the value, pending beside it.** A variation approved at a *provisional* price counts as
+  >   pending, on §9's ground that the scope is agreed and the money is not — which is precisely the "about to be in
+  >   trouble" state §4.4 wants visible outside the contract value.
+  > - **The whole expected loss, immediately.** Two tests: the same 3,000,000 at one per cent complete and at ninety-six.
+  >   And the provision **reduces the contract asset**, because a recognised loss is not an asset — a test shows a job
+  >   with an apparent asset turning into a liability the month the loss is taken, which is the whole reason the rule
+  >   exists.
+  > - **Asset and liability are two columns and are never netted**, at job level or in the totals. One job over-billed
+  >   does not offset another under-billed; those are two conversations with the bank.
+  > - **The journal posts the movement**, and §4.4 forbids having the choice twice — "choose one; two code paths each
+  >   choosing differently is the failure." A month that has not moved posts nothing, on §11a's argument about a
+  >   zero-value line; a falling position swaps the sides rather than writing a negative debit. Dated to the month end.
+  >
+  > **Two fixture defects were mine and both were instructive.** A hardcoded certificate period end meant July saw no
+  > billings, so every "nothing moved" test moved — the period end is now a parameter with a comment saying why. And a
+  > forecast issued in August left July falling back to cost-to-date, which reads as **100% complete**: right as a
+  > fallback, since it recognises no loss it cannot see, and wrong as a fixture.
+  >
+  > No new permission. Locking is `ConstructionPeriodClose`, deliberately the same grant as closing the month: freezing a
+  > position and closing a period are one decision at one moment, and separate names would let a month be closed on
+  > figures nobody froze. Posting the movement is `ConstructionGlPost`, because §4.1's boundary does not soften for WIP.
+  > Computing rides on `ConstructionCostView` — an unlocked position is a report.
+  >
+  > **11e built 2026-08-22.** — `ConstructionPeriodCloseTest` (28 tests). `PeriodCloseService`, the `CloseChecklist` and
+  > `CloseCheck` DTOs, the close / force-close / check actions on Cost periods, the lock and post actions on Work in
+  > progress, and the close half of the reconciliation help.
+  >
+  > §4.3's mechanisms 2, 3 and 4. **The fourth is what makes the third safe**, and it is asserted in the strong form:
+  > after a forced close, not one cost entry and not one journal line has been added, and the pending cost is still
+  > pending at the same figure. "No plug entry, no balancing figure" is a test rather than a promise.
+  >
+  > Five decisions:
+  >
+  > - **A month nobody has reconciled blocks, and that is worse than an unbalanced one.** §4 opens with "a second ledger
+  >   that nobody proves is a second ledger that is wrong", so a gate catching only *proved* differences would wave
+  >   through every company that never runs the report.
+  > - **Two blockers are this phase's rather than the plan's**, both because the failure is silent *and* permanent.
+  >   `ConstructionGlPostingService` refuses to post into a closed period, so closing a month with **pending cost**
+  >   orphans it from the accounts for good — and the blocker names the control account that is missing, so the fix is on
+  >   the screen. And an **unlocked WIP position** keeps recomputing against a month somebody signed, so the figure a bank
+  >   was shown and the figure on the screen drift apart with nothing to say when.
+  > - **The WIP blocker is proportionate.** A job with no position does not block — WIP is used or it is not, and a
+  >   company computing none must still be able to close. A job with a method chosen and no position is a *warning*, and
+  >   so are late costs and unrolled accruals. Hidden warnings are how a month gets closed on facts nobody was shown,
+  >   which is why `CloseCheck` keeps `passed` and `blocking` as separate fields.
+  > - **A balanced close is `reconciled`; a forced one is only `closed`.** §3.4 gives the period three statuses and the
+  >   third has to mean something stronger than the second, or the period list cannot tell a month that was proved from a
+  >   month that was signed for.
+  > - **A forced close records the reason *and every check it overrode*, in words.** "Closing anyway, the client needs
+  >   the report" tells whoever reads it in a year nothing about what was known at the time. Even a forced close records
+  >   both control totals, so the month somebody had doubts about is not the least explicable one in the book.
+  >
+  > **`close()` and `forceClose()` share one writer**, and that is the cheapest way to keep §4.3's fourth promise: the
+  > forced path runs exactly the same code and differs only in the note it records. And **there is no reopen** — a test
+  > asserts no method offers one, alongside the two doors both refusing a closed month with §3.4's sentence.
+  >
+  > §4.5's unwind moved onto `PeriodCloseService::open()`, which returns the `AccrualRun` rather than the period: the
+  > period is a row anybody can look up, and "reversed nothing, re-accrued 400,000" is the sentence somebody needs on
+  > screen. No new permission — `ConstructionPeriodClose` and `ConstructionPeriodForceClose` have existed since Phase 2
+  > waiting for exactly this.
+  >
+  > **11f built 2026-08-22, and Phase 11 ends here.** — `ConstructionFullCircleReconciliationTest` (7 tests).
+  >
+  > §4.3's fifth mechanism, and the plan's own words for what it is worth: **"that is what turns this section from a
+  > claim into an assertion."** One of every source type — allocated supplier invoice, GRN accrual, material issue,
+  > labour with burden, internal plant, subcontract certificate with retention, overhead allocation — over one month of
+  > one job, then post, then reconcile. `difference === 0.00`.
+  >
+  > **Driven through the real services, and that is the whole value.** `InvoiceAllocationService`,
+  > `GoodsReceiptService`, `LabourRecordService`, `PlantService`, `AccrualService`, `ConstructionGlPostingService`,
+  > `ReconciliationService`, `PeriodCloseService`. A full-circle test that wrote its cost entries directly would prove
+  > the reconciliation's arithmetic and nothing about the seven writers feeding it — which is exactly what §4.3 predicts
+  > goes wrong: "a reconciliation written at the end against eight source types that were built without it in mind is a
+  > reconciliation that will not balance, and nobody will know which of the eight is wrong."
+  >
+  > **The subcontract certificate turned out to be a document, not a cost entry.** `construction_contracts` writes no
+  > cost row at all — a payable certificate is a *document*, and the cost reaches the job as §4.5's
+  > work-done-not-certified accrual until the subcontractor invoices for it and the invoice is allocated. So the source
+  > type is exercised as the accrual, from a real claim against a real certificate with retention held, which is where the
+  > money actually is. Worth recording because §4.3's list reads as though seven writers of cost entries exist, and six
+  > do.
+  >
+  > Three tests beyond the headline one:
+  >
+  > - **Every treatment is present**, so the balancing figure is not about an empty month: `mirrored` from the invoice,
+  >   `pending` from five sources, `memo` from the material issue, and `posted` existing only after a run.
+  > - **A material issue changes neither side.** §6 makes an issue a reclassification, and the test computes the
+  >   reconciliation with and without one. If it reached either side, a company issuing from a store daily would never
+  >   balance.
+  > - **The counter-test, which is the one that makes the green matter.** Delete the burden absorption account and the
+  >   month *still balances* — §4.2 counts pending cost as a reconciling item — and the absorption-gap cause names
+  >   *Labour burden absorbed*, and the close blocks naming the same account. §4.3's argument has two halves: a
+  >   reconciliation that will not balance, and nobody knowing which of the eight is wrong. The headline test proves the
+  >   first. This proves the second.
+  >
+  > **On "the period summaries" in this phase's line above:** nothing in §3 or §4 specifies one beyond §3.4's control
+  > totals on `construction_cost_periods` — which 11e records at close, both sides, and the Cost periods screen prints
+  > along with what each month still owes the general ledger. Taken as delivered rather than quietly dropped.
+  >
+  > One defect the full-suite run caught, and it was 11a's rather than this phase's: the Control accounts create and edit
+  > pages had no redirect to their listing, which `CrudRedirectsToListingTest` exists to catch and did.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source

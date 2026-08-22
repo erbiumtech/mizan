@@ -372,7 +372,16 @@ class ModuleBoundaryTest extends TestCase
         // through `PunchListService`. Same guard, same direction, and the three answers it can give — unknown without
         // the module, nil with nothing flagged, or a figure with the count of unpriced items behind it — are what
         // replaced a note that had been unconditional since 9a.
-        'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
+        //
+        // `construction_qhse` joins it in Phase 10b, and it is §17.2's whole architecture made visible in this graph.
+        // An NCR **proposes** a deduction; `NcrDeductionOffer` on *this* side offers it as a row somebody confirms and
+        // signs for, and writes `construction_ncrs.deduction_certificate_id` to record that they did. The quality module
+        // never writes that column and never names a class of this one — the same shape as
+        // `final_settlements.payslip_id`, which §17.2 cites by name: *a proposal, not a posting, visible in the import
+        // graph.* Guarded, and the direction is forced: pointing qhse back at contracts would make the pair a cycle.
+        'construction_contracts' => [
+            'invoicing', 'accounting', 'construction_costing', 'construction_field', 'construction_qhse',
+        ],
         // Construction site operations -> Invoicing, and it is the smallest instance of the shape this section keeps
         // returning to: a diary's manpower line names the company that supplied the men, and a company is a Contact,
         // which Invoicing owns. `construction_field` requires only `construction` (§18), so the picker checks
@@ -392,6 +401,20 @@ class ModuleBoundaryTest extends TestCase
         // required, so naming `Location` costs the boundary nothing. Same for `Document`: promoting a photograph to the
         // ISO 19650 register is a spine call, which is why §15 put the register in the spine rather than here.
         'construction_field' => ['invoicing'],
+        // Construction QHSE -> Invoicing, and it is the same shape one module further along: an ITP point names the
+        // party who must attend, an inspection names its witness, and a party is a Contact — which Invoicing owns.
+        // `construction_qhse` requires only `construction` (§18), because ISO 9001 and ISO 45001 certification is often
+        // the *reason* a contractor buys software, and a quality module that needed the books would be unsellable to
+        // exactly that customer. The pickers check `modules()->enabled('invoicing')` and a free-text label carries the
+        // name without it.
+        //
+        // Note what is *not* here, and §17 is the reason each is absent. **`construction_field`** — §17.6's exposure
+        // hours come from the daily log, and the indicator page reads them through a guard rather than a class, because
+        // §17.6 calls that absence "a genuine silent failure rather than a graceful degradation" and makes the page
+        // refuse to print a rate. **`construction_contracts`** — the contract item an inspection or an NCR names is an
+        // unconstrained integer, exactly as §13's `contract_id` is. **`employees`** — §17.3 requires an injured person's
+        // name to work on its own, because a subcontractor's labourer is not in this system.
+        'construction_qhse' => ['invoicing'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void
@@ -546,7 +569,14 @@ class ModuleBoundaryTest extends TestCase
             // module the holdback is zero *and the release states that open punch items are recorded nowhere, so the
             // value is unknown rather than nil*. Releasing a whole retention balance on a job with fifty open items is
             // money that does not come back, which is why this one is a stated absence and not a quiet fallback.
-            'construction_contracts' => ['invoicing', 'accounting', 'construction_costing', 'construction_field'],
+            //
+            // Site quality degrades to a certificate with no offers, which is exactly the certificate this application
+            // produced before Phase 10b: `NcrDeductionOffer::offersFor()` returns an empty collection and `take()`
+            // refuses in one sentence. An NCR never deducted anything by itself, so there is nothing for the absence to
+            // switch off.
+            'construction_contracts' => [
+                'invoicing', 'accounting', 'construction_costing', 'construction_field', 'construction_qhse',
+            ],
 
             // A diary's manpower line names the company that supplied the men. Hidden without Invoicing, with the
             // free-text company name carrying it — the same shape as the job's client, two modules along.
@@ -555,6 +585,16 @@ class ModuleBoundaryTest extends TestCase
             // the fleet register are all read with the query builder, and the photograph's location and the register
             // container it can be promoted into are both in `construction`, which this module requires.
             'construction_field' => ['invoicing'],
+
+            // An ITP point's attending party and an inspection's witness are Contacts. Hidden without Invoicing, with
+            // the free-text label carrying the name — the same shape as the diary's supplying company, one module along.
+            //
+            // §17.6's exposure hours are the interesting absence: they come from `construction_field`'s daily log and
+            // are read behind a guard rather than through a class, because §17.6 is explicit that this is the one place
+            // in the module where degrading gracefully would be wrong. A zero denominator renders every frequency rate
+            // as 0.00, which reads as a perfect safety record and means nobody filled anything in — so the page refuses
+            // to print a rate and says why.
+            'construction_qhse' => ['invoicing'],
         ];
 
         foreach ($guarded as $module => $targets) {

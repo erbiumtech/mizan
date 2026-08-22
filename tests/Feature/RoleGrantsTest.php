@@ -238,13 +238,121 @@ class RoleGrantsTest extends AccountingTestCase
      * recorded with a passing result. That is stronger than a permission, because a permission can be granted to the
      * person who caused the defect and a missing passed inspection cannot be granted away at all.
      *
+     * Phase 9g, the programme, and **the first place in this module where a third name earns its place.** Reading and
+     * maintaining the programme is planning work; **recording progress is separate**, because percent complete and
+     * actual dates are what §14's earned value and every schedule index are computed from — and the person who reports
+     * 80% is not usually the person who owns the consequence of it being 60%. Progress claimed against a programme is
+     * the oldest optimism in construction.
+     *
+     * **Employee +2** (`ConstructionProgrammeView`, `ConstructionProgrammeProgress`): the look-ahead is site's document
+     * and site reports its own progress against it. **Accountant +2**, the same two. **Manager +1 of its own** for
+     * `ConstructionProgrammeUpdate` — the programme is the document a claim is measured against, so editing it is not
+     * the same act as reporting against it. CEO +3.
+     *
+     * Note what is deliberately not a fourth name: the baseline. It is the *accepted* programme, and this application
+     * does not accept programmes — it stores what P6 exported. Guarding a column only an import writes would be
+     * theatre.
+     *
+     * Phase 10a, the first permissions of the **`construction_qhse`** module, whose group is `ConstructionQhse`. Six
+     * names, and one of them is the reason §17.1 exists at all.
+     *
+     * **Employee +3** (`ConstructionItpView`, `ConstructionInspectionView`, `ConstructionInspectionUpdate`): requesting
+     * and recording inspections is site's — the fifth create grant site staff hold in this suite — because the person
+     * who can see that the rebar is ready is standing in front of it, and an inspection they cannot request is a hold
+     * point that gets passed by telephone. Reading the ITP is theirs too: the point of the document is that the people
+     * doing the work know what will be inspected and when. **Accountant +3**, the same three.
+     *
+     * **Manager +3 of its own**: `ConstructionItpUpdate`, `ConstructionItpApprove` and — the important one —
+     * **`ConstructionInspectionRelease`**. §17.1: "the whole function of a hold point is that work may not proceed past
+     * it." Releasing one authorises the next operation to start, and it is the act a certification body audits;
+     * *recording* that an inspection passed is not the same decision, and on a site where they are the same person the
+     * hold point has no function. Approving an ITP is separated for an unusually external reason: the signature on it is
+     * a statement to a third party about how the work will be controlled. CEO +6.
+     *
+     * Requesting and recording are deliberately one grant: the request goes out and the result comes back to the same
+     * engineer, and splitting them would leave results in a notebook while the register says the inspection is awaited.
+     *
+     * Phase 10b, non-conformance, three names. **Employee +2** (`ConstructionNcrView`, `ConstructionNcrUpdate`) —
+     * anybody who can see the work is wrong should be able to say so, and a register that made that difficult would
+     * record the nonconformities somebody remembered to mention. **Accountant +2**, the same two. **Manager +1 of its
+     * own** for `ConstructionNcrDisposition`, which §17.2 calls "the field that decides whether money changes hands":
+     * *use as is* and *concession requested* accept work below specification, which is the client giving something up,
+     * and that is not a call for whoever noticed the defect. CEO +3.
+     *
+     * **Proposing a deduction rides on the disposition grant rather than earning a fourth name**, because the two
+     * decisions are made in the same conversation and *the proposal withholds nothing*. The act that moves money is on
+     * the far side of the module boundary, taken by whoever signs the certificate — which is why there is no
+     * `ConstructionNcrDeduct` at all.
+     *
+     * Phase 10c, §17.4's one actions table, three names. **Employee +2** (`ConstructionActionView`,
+     * `ConstructionActionUpdate`) — the actions register is the working list and site is who works from it.
+     * **Accountant +2**, the same two. **Manager +1 of its own** for `ConstructionActionVerify`. CEO +3.
+     *
+     * The verify grant is the same argument §16.4 makes about a passed re-inspection and §17.2 about a verified NCR:
+     * "done" is the assignee's claim and "verified" is somebody else's confirmation. One grant for both would let
+     * whoever caused a finding close it — and an actions register nobody believes is a register nobody reads.
+     *
+     * Raising and completing stay one grant, because on a real site the person who writes the action down and the person
+     * who reports it done are frequently the same, and splitting them would leave finished work showing as outstanding
+     * for want of a second click.
+     *
+     * Phase 10d, incidents, three names — and **`ConstructionIncidentReport` is the widest grant in this entire module,
+     * deliberately.** §17.3's leading indicator is near misses per lost-time injury, and a permission that made
+     * reporting hard would suppress exactly the number it most needs: a site reporting no near misses is not a safe
+     * site, it is a quiet one. **Employee +2** (`View`, `Report`), **Accountant +2**, the same two.
+     *
+     * **Manager +1 of its own** for `ConstructionIncidentInvestigate`, which closes an incident and tells the authority.
+     * Closing asserts that the cause is understood and the lesson recorded, and the person who was involved is not the
+     * person to conclude that; the authority report is a statutory duty with somebody's name against it. CEO +3.
+     *
+     * Phase 10e, permits to work, three names — and **`ConstructionPermitIssue` is the sharpest segregation in this
+     * module.** Issuing a permit authorises high-risk work: hot work in a finished building, entry into a confined
+     * space, a lift over a live road. The person who wants to do the work is the last person who should decide it is
+     * safe to, and every permit-to-work regime is built on that separation.
+     *
+     * **Employee +2** (`ConstructionPermitView`, `ConstructionPermitRequest`): a supervisor who cannot raise a permit is
+     * a supervisor whose gang works without one. **Accountant +2**, the same two. **Manager +1 of its own** for
+     * `ConstructionPermitIssue`, which also carries resuming and closing out, because both are assertions about safety.
+     * CEO +3.
+     *
+     * *Suspending is deliberately on the wide grant*, not the issuing one: a permit that can only be suspended by
+     * whoever issued it is a permit that stays live while somebody goes looking for them.
+     *
+     * Phase 10f, the induction register, competencies and toolbox talks — **two names, and the update grant is
+     * deliberately wide.** **Employee +2** (`ConstructionPersonnelView`, `ConstructionPersonnelUpdate`), **Accountant
+     * +2**, inherited upward, and **Manager gains nothing of its own**.
+     *
+     * Putting somebody on the register, inducting them, recording their tickets and writing up a toolbox talk is *gate
+     * work*: it happens at seven in the morning, done by whoever is at the gate, for people who arrived that day. A
+     * permission that made it a supervisor's job would produce a register that lags the site by a week — and a register
+     * that lags is one nobody trusts to say who is cleared to work.
+     *
+     * Toolbox talks share the grant rather than earning their own, because both are the same job done by the same person
+     * at the same moment, and a second name would only mean one of the two got filled in. `View` is separate because
+     * this register holds names, phone numbers and medical certificates — the most personal data in the module.
+     *
+     * Phase 11a, the GL posting service — **one name, and it is Manager's rather than Accountant's.** **Employee and
+     * Accountant gain nothing; Manager +1** (`ConstructionGlPost`), inherited upward to CEO.
+     *
+     * §4.1 makes this the only act in the construction suite that writes into another module's ledger: it creates
+     * journal entries in the general ledger, they appear in the trial balance, and they change the company's reported
+     * cost. The surveyor records and approves the cost; this decides what of it reaches the books and against which
+     * accounts, and a posting made by the same person who approved the cost is a posting nobody checked — the same
+     * segregation the journal-entry powers already keep between whoever writes an entry and whoever posts it.
+     *
+     * **Reversing rides on it and nominating the control accounts rides on it too.** Whoever may put a figure in the
+     * books is who may take it back out; a second grant would leave a wrong posting sitting there while somebody went
+     * looking for the person who held it, and the control on a reversal is the required reason rather than a name.
+     * Nominating accounts is one screenful of decisions taken once at implementation by whoever owns the chart, which is
+     * §18.2's test for when a name is *not* worth having.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 54,
-        'Accountant' => 134,
-        'Manager' => 167,
-        'CEO' => 187,
+        'Employee' => 69,
+        'Accountant' => 149,
+        'Manager' => 191,
+        'CEO' => 211,
     ];
 
     protected function setUp(): void

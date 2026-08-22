@@ -53,6 +53,12 @@ return [
         'App\\Models\\MaterialIssueLine' => \App\Modules\ConstructionCosting\Models\MaterialIssueLine::class,
         'App\\Models\\PlantItem' => \App\Modules\ConstructionCosting\Models\PlantItem::class,
         'App\\Models\\PlantLog' => \App\Modules\ConstructionCosting\Models\PlantLog::class,
+        // §4's machinery. `ControlAccount` and `GlPosting` are both free basenames — nothing else in the application
+        // claims either, which is what makes the short alias safe here.
+        'App\\Models\\ControlAccount' => \App\Modules\ConstructionCosting\Models\ControlAccount::class,
+        'App\\Models\\GlPosting' => \App\Modules\ConstructionCosting\Models\GlPosting::class,
+        'App\\Models\\Reconciliation' => \App\Modules\ConstructionCosting\Models\Reconciliation::class,
+        'App\\Models\\WipSnapshot' => \App\Modules\ConstructionCosting\Models\WipSnapshot::class,
     ],
 
     'resources' => [
@@ -68,12 +74,16 @@ return [
         'App\\Filament\\Resources\\ConstructionCosting\\MaterialIssueResource' => \App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues\MaterialIssueResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\PlantItemResource' => \App\Modules\ConstructionCosting\Filament\Resources\PlantItems\PlantItemResource::class,
         'App\\Filament\\Resources\\ConstructionCosting\\PlantLogResource' => \App\Modules\ConstructionCosting\Filament\Resources\PlantLogs\PlantLogResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\ControlAccountResource' => \App\Modules\ConstructionCosting\Filament\Resources\ControlAccounts\ControlAccountResource::class,
+        'App\\Filament\\Resources\\ConstructionCosting\\CostPeriodResource' => \App\Modules\ConstructionCosting\Filament\Resources\CostPeriods\CostPeriodResource::class,
     ],
 
     'pages' => [
         'App\\Filament\\Pages\\ConstructionCosting\\JobCostReport' => \App\Modules\ConstructionCosting\Filament\Pages\JobCostReport::class,
         'App\\Filament\\Pages\\ConstructionCosting\\InvoiceAllocationQueue' => \App\Modules\ConstructionCosting\Filament\Pages\InvoiceAllocationQueue::class,
         'App\\Filament\\Pages\\ConstructionCosting\\ThreeWayMatchReport' => \App\Modules\ConstructionCosting\Filament\Pages\ThreeWayMatchReport::class,
+        'App\\Filament\\Pages\\ConstructionCosting\\ReconciliationReport' => \App\Modules\ConstructionCosting\Filament\Pages\ReconciliationReport::class,
+        'App\\Filament\\Pages\\ConstructionCosting\\WipReport' => \App\Modules\ConstructionCosting\Filament\Pages\WipReport::class,
     ],
 
     'permission_groups' => [
@@ -90,6 +100,24 @@ return [
         // is a separate decision made by a separate person.
         ['name' => 'ConstructionPeriodClose', 'group' => 'ConstructionCost'],
         ['name' => 'ConstructionPeriodForceClose', 'group' => 'ConstructionCost'],
+
+        /*
+         * **The only act in this module that leaves it**, which is why it is its own name (§4.1).
+         *
+         * Every other permission here governs a figure inside the job-cost ledger. This one creates journal entries in
+         * the general ledger: they appear in the trial balance, they change the company's reported cost, and they are
+         * another module's rows. §18.2's test is whether it is a separate decision made by a separate person, and it
+         * plainly is — a quantity surveyor approves cost and a book-keeper decides what reaches the accounts.
+         *
+         * **Reversing rides on it rather than earning a `ConstructionGlUnpost`.** Whoever may put a figure in the books
+         * is who may take it back out; a second grant would leave a wrong posting sitting there while somebody went
+         * looking for the person who held it. The control on a reversal is the required reason.
+         *
+         * **Nominating the control accounts rides on it too**, for §18.2's other reason: it is one screenful of
+         * decisions taken once at implementation by whoever owns the chart of accounts, and a separate name would be
+         * another row in every role form for a decision nobody makes separately.
+         */
+        ['name' => 'ConstructionGlPost', 'group' => 'ConstructionCost'],
 
         // Budget, measurement and forecast ride on the same group: they are one screenful of decisions taken by
         // the same person, and separate groups would be more rows in every role form for no decision anybody
@@ -288,6 +316,15 @@ return [
             'ConstructionRequisitionApprove',
             'ConstructionCostReverse',
             'ConstructionPeriodClose',
+            /*
+             * Writing construction's summary journals into the books, and nominating the accounts they reach.
+             *
+             * Manager rather than Accountant, deliberately. The surveyor records and approves the cost; this decides
+             * what of it reaches the general ledger and against which accounts, and a posting made by the same person
+             * who approved the cost is a posting nobody checked. It is the same segregation the journal-entry powers
+             * already keep between whoever writes an entry and whoever posts it.
+             */
+            'ConstructionGlPost',
             /*
              * What an hour of labour costs. Approval-shaped, and kept away from whoever files the workers — a
              * company-default rate revised by ten per cent restates the labour cost of everything booked from that
