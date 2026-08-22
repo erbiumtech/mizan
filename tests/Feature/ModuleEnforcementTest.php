@@ -4,17 +4,20 @@ namespace Tests\Feature;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Models\Employee;
 use App\Multitenancy\Tasks\SetPermissionsTeamIdTask;
 use App\Multitenancy\Tasks\SwitchTenantFilesystemTask;
 use App\Support\ModuleAuthorization;
+use App\Support\ModuleManifest;
 use App\Support\TenantSettings;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Concerns\MakesProjects;
 use Tests\TestCase;
@@ -45,7 +48,12 @@ class ModuleEnforcementTest extends TestCase
         ]]);
 
         $this->seed(PermissionSeeder::class);
-        ModuleAuthorization::flush();
+
+        // `ModuleAuthorization::flush()` used to be needed here, because the permission
+        // name => group map was read from the database and memoised — so a check made
+        // before this seeder ran cached an empty map for the process and stopped blocking
+        // anything. The map now comes from the module manifests, so there is nothing for a
+        // seeder to invalidate, and its absence here is part of what proves that.
 
         $this->company = Company::factory()->create(['slug' => 'acme']);
 
@@ -188,6 +196,86 @@ class ModuleEnforcementTest extends TestCase
         $this->setModule('invoicing', false);
 
         $this->assertFalse(Gate::allows('view', new \App\Modules\Invoicing\Models\Invoice));
+    }
+
+    /**
+     * **The hole the model-argument test above does not cover: a bare permission name.**
+     *
+     * `test_an_administrator_does_not_bypass_a_disabled_module` passes a model, which resolves through
+     * `ModuleMap` and never needed a database. A string permission — `ProductView`, `ReportView`, the
+     * form every report page and export action uses — resolves through the permission's *group*, and
+     * that is the path that was reachable: with the group unresolved, nothing is blocked, and the
+     * Administrator bypass in `AppServiceProvider::boot()` then grants it.
+     */
+    public function test_an_administrator_does_not_bypass_a_disabled_module_on_a_bare_permission_name(): void
+    {
+        $this->actingAs($this->user);
+
+        $this->setModule('inventory', true);
+        $this->assertTrue(Gate::allows('ProductView'), 'the permission is held while the module is on');
+
+        $this->setModule('inventory', false);
+
+        $this->assertFalse(
+            Gate::allows('ProductView'),
+            'A string permission owned by an unlicensed module must not authorize, Administrator or not.'
+        );
+    }
+
+    /**
+     * **The licence check does not depend on the permissions table being readable.**
+     *
+     * This is the bypass as it would have happened in production rather than in a test ordering. The map
+     * was `DB::table('permissions')` behind a `try/catch` that cached `[]` on failure and never retried,
+     * so one moment of the landlord table being unreachable — mid-migration, a worker booting before its
+     * connection is pointed at it — left the map permanently empty for the life of the process. Empty map,
+     * no group, no candidate module, nothing blocked, and every string permission of every unbought module
+     * granted. Silent, permanent, and fail-open.
+     *
+     * So: drop the table, flush the memo to simulate a cold process, and the deny must still fire. It
+     * does, because the map is built from the manifests — which are code, and cannot be half-there.
+     */
+    public function test_the_licence_deny_survives_the_permissions_table_being_unreadable(): void
+    {
+        $this->actingAs($this->user);
+        $this->setModule('inventory', false);
+
+        // A cold process, as if this were the very first authorization check it ever made.
+        ModuleAuthorization::flush();
+        Schema::drop('permissions');
+
+        $this->assertSame(
+            'inventory',
+            ModuleAuthorization::blockingModule($this->user, 'ProductView', []),
+            'the group resolves from the manifests, with no table to read'
+        );
+        $this->assertFalse(Gate::allows('ProductView'));
+    }
+
+    /**
+     * And the map is the manifests', not the table's — asserted by comparing the two.
+     *
+     * `PermissionSeeder` writes the table **from** `ModuleManifest::all()['permissions']`, so the column
+     * this used to read is a copy of what it now reads directly. If the two ever disagreed, the seeder and
+     * the licence gate would be answering from different lists, which is the drift this test exists to
+     * catch.
+     */
+    public function test_every_seeded_permission_group_matches_the_manifest(): void
+    {
+        $fromTable = DB::table('permissions')->whereNotNull('group')->pluck('group', 'name')->all();
+
+        $fromManifests = [];
+
+        foreach (ModuleManifest::all()['permissions'] ?? [] as $permission) {
+            $fromManifests[$permission['name']] = $permission['group'];
+        }
+
+        $this->assertNotEmpty($fromManifests, 'the manifests declare permissions');
+        $this->assertSame(
+            $fromManifests,
+            $fromTable,
+            'The seeded table and the manifests must agree — the licence gate reads the manifests.'
+        );
     }
 
     public function test_core_authorization_survives_every_module_being_off(): void

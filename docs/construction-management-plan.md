@@ -2870,16 +2870,32 @@ document register before the modules that reference drawings.
   >
   > No new permissions: the import writes the baseline, so it asks for `ConstructionProgrammeUpdate`.
   >
-  > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
-  > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and
-  > fails when `CrudRedirectsToListingTest` runs immediately before it. Adding one test file to `tests/Feature` shifted
-  > the chunk boundaries of a split full-suite run, which is how it was found — and it reproduces on a pristine HEAD
-  > checkout, so it is not this phase's. The diagnosis worth keeping: the inventory contribution in
-  > `InventoryServiceProvider` guards itself on `ProductView` and **not** on `modules()->enabled('inventory')`, because
-  > the design intends an unlicensed module's provider not to boot at all — which `DashboardStatsTest`'s own docblock
-  > admits "cannot be simulated in-process". So the assertion is passing for a reason unrelated to what it claims to
-  > test, and the reason is sensitive to what ran before it. Left alone here rather than fixed in a construction
-  > phase.
+  > **A pre-existing test fragility surfaced while verifying this phase, and chasing it down found a licence bypass.**
+  > `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passed alone and failed when
+  > `CrudRedirectsToListingTest` ran immediately before it. Adding one test file to `tests/Feature` shifted the chunk
+  > boundaries of a split full-suite run, which is how it was found; it reproduced on a pristine HEAD checkout, so it was
+  > not this phase's.
+  >
+  > **The first diagnosis recorded here was wrong and is corrected.** It said the inventory contribution guards on
+  > `ProductView` rather than on `modules()->enabled('inventory')`, so the assertion passed for an unrelated reason. That
+  > reading was mistaken: `AppServiceProvider::register()` installs a `Gate::before` that denies outright when the ability
+  > belongs to an unlicensed module, so `can('ProductView')` *is* a licence check and the guard is right.
+  >
+  > What was actually wrong sat one layer down, in `ModuleAuthorization`. A bare permission name resolves through the
+  > permission's **group**, and that map was `DB::table('permissions')` memoised for the process behind a `try/catch` that
+  > cached `[]` on failure and never retried. Any single moment of the landlord table being unreachable — mid-migration, a
+  > worker booting before its connection is pointed at it, a test whose first check preceded its seeder — left the map
+  > permanently empty: no group, no candidate module, nothing blocked, and then the Administrator bypass granting every
+  > string permission of every module the company never bought. **Silent, permanent and fail-open**, which is the class of
+  > failure this whole document is written against — and it was reachable in production, not only in a test ordering.
+  >
+  > Fixed on 2026-08-22 by building the map from `ModuleManifest::all()['permissions']`, which is where `PermissionSeeder`
+  > writes the table from — so the column it used to read was a copy of what it can read directly. Manifests are code and
+  > cannot be half-there, which removes the query from every authorization check as well as the window. Held by
+  > `ModuleEnforcementTest`: the deny survives the permissions table being dropped, an Administrator does not bypass an
+  > unlicensed module on a *bare* permission name (the model-argument path was already covered and was never affected),
+  > and the seeded table is asserted equal to the manifests. The `ModuleAuthorization::flush()` that used to be needed in
+  > that file's `setUp` is gone, and its absence is part of the proof.
 - **Phase 10 — QHSE.** `construction_qhse`: ITPs and inspections with real hold-point release, NCRs with
   CAPA and close-out, the one actions table, incidents, permits, toolbox talks, the induction register
   and the indicators. **Ends with:** an NCR that proposes a deduction and never applies one, and a safety
