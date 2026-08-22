@@ -64,6 +64,23 @@ return [
     ],
 
     /*
+     * Quality, health, safety and environment — `docs/construction-management-plan.md` §17.
+     */
+    'qhse' => [
+        /*
+         * **How long after an incident a report is still timely.**
+         *
+         * §17.3 makes the reporting delay a safety metric in its own right: "a site that takes four days to report a
+         * first-aid case is a site where the next one is not reported at all." What counts as late is *policy* rather
+         * than fact — a company whose procedure says two hours is not measuring the same thing as one that says a shift
+         * — so the threshold is configuration and the register reports the delay itself either way.
+         *
+         * Twenty-four hours is the commonest procedural position and the one most statutory regimes assume.
+         */
+        'report_within_hours' => 24,
+    ],
+
+    /*
      * The programme — `docs/construction-management-plan.md` §13.
      */
     'programme' => [

@@ -296,13 +296,22 @@ class RoleGrantsTest extends AccountingTestCase
      * who reports it done are frequently the same, and splitting them would leave finished work showing as outstanding
      * for want of a second click.
      *
+     * Phase 10d, incidents, three names — and **`ConstructionIncidentReport` is the widest grant in this entire module,
+     * deliberately.** §17.3's leading indicator is near misses per lost-time injury, and a permission that made
+     * reporting hard would suppress exactly the number it most needs: a site reporting no near misses is not a safe
+     * site, it is a quiet one. **Employee +2** (`View`, `Report`), **Accountant +2**, the same two.
+     *
+     * **Manager +1 of its own** for `ConstructionIncidentInvestigate`, which closes an incident and tells the authority.
+     * Closing asserts that the cause is understood and the lesson recorded, and the person who was involved is not the
+     * person to conclude that; the authority report is a statutory duty with somebody's name against it. CEO +3.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 63,
-        'Accountant' => 143,
-        'Manager' => 182,
-        'CEO' => 202,
+        'Employee' => 65,
+        'Accountant' => 145,
+        'Manager' => 185,
+        'CEO' => 205,
     ];
 
     protected function setUp(): void
