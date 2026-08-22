@@ -34,11 +34,13 @@ class PayComponent extends Model
     protected $fillable = [
         'code', 'label', 'kind', 'account_key', 'account_id',
         'is_taxable', 'is_column_backed', 'is_active', 'sort', 'description',
+        'prorates',
     ];
 
     protected $casts = [
         'is_taxable' => 'boolean',
         'is_column_backed' => 'boolean',
+        'prorates' => 'boolean',
         'is_active' => 'boolean',
         'sort' => 'integer',
     ];
@@ -47,6 +49,11 @@ class PayComponent extends Model
         'kind' => self::KIND_EARNING,
         'is_taxable' => true,
         'is_column_backed' => false,
+        // False, which is the conservative direction: an existing allowance keeps
+        // paying in full until somebody says it should scale with attendance.
+        // Defaulting true would quietly reduce every allowance in the first month a
+        // company switched pro-rating on.
+        'prorates' => false,
         'is_active' => true,
         'sort' => 100,
     ];

@@ -4,18 +4,17 @@ namespace App\Multitenancy;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Support\CompanyProfiles;
 use App\Support\Modules;
 use Database\Seeders\PermissionSeeder;
-use Database\Seeders\PersonalBaselineSeeder;
 use Database\Seeders\RoleSeeder;
-use Database\Seeders\TenantBaselineSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 use PDO;
 use RuntimeException;
+use Spatie\Permission\Models\Role;
 
 /**
  * Provisions a brand-new company: creates the landlord record, creates and
@@ -24,13 +23,27 @@ use RuntimeException;
  */
 class CompanyProvisioner
 {
+    /**
+     * @param  string|null  $profile  A key from config/company_profiles.php. Decides
+     *                                the starting licences and the baseline seeders.
+     *                                Null keeps the pre-profile behaviour exactly:
+     *                                registry defaults, or PERSONAL_DEFAULTS for a
+     *                                personal account.
+     */
     public function provision(
         string $name,
         ?string $slug = null,
         ?User $creator = null,
         bool $seedBaseline = true,
         string $type = Company::TYPE_BUSINESS,
+        ?string $profile = null,
     ): Company {
+        // Rejected before anything is written. A trading profile on a personal
+        // account would seed the business chart into a household, which is the
+        // one combination `type` exists to prevent — and it would be discovered
+        // months later as "why does my personal account have salary slabs".
+        $profile = $this->assertProfileMatchesType($profile, $type);
+
         $connection = $this->tenantConnectionName();
 
         if (! $connection || $connection === config('database.default')) {
@@ -52,19 +65,23 @@ class CompanyProvisioner
             'name' => $name,
             'slug' => $slug,
             'type' => $type,
+            'profile' => $profile,
             'database' => $database,
             'status' => 1,
         ]);
 
-        // A new company starts with Core only; a super admin grants the modules
-        // it has bought. Written before the tenant database exists because these
-        // rows are landlord-side and must survive a provisioning rollback being
-        // skipped — rollBack() deletes the company, which cascades them away.
+        // What this company starts licensed. Written before the tenant database
+        // exists because these rows are landlord-side and must survive a
+        // provisioning rollback being skipped — rollBack() deletes the company,
+        // which cascades them away.
         modules()->seedDefaults(
             $company->getKey(),
-            // A personal account starts with a ledger, staff records and the tax
-            // estimate rather than the business defaults — see PERSONAL_DEFAULTS.
-            $company->isPersonal() ? Modules::PERSONAL_DEFAULTS : null,
+            // The profile's preset if there is one. Otherwise the pre-profile
+            // rule, unchanged: a personal account starts with a ledger, staff
+            // records and the tax estimate (PERSONAL_DEFAULTS), and a business
+            // gets Core alone from the registry defaults.
+            CompanyProfiles::modules($profile)
+                ?? ($company->isPersonal() ? Modules::PERSONAL_DEFAULTS : null),
         );
 
         // Only tear down a database this call brought into existence.
@@ -82,16 +99,22 @@ class CompanyProvisioner
             ]);
 
             if ($seedBaseline) {
-                Artisan::call('db:seed', [
-                    // A household has no use for the business chart of accounts,
-                    // supplier transaction types, the bank list or payroll's
-                    // salary slabs. See PersonalBaselineSeeder for what it gets
-                    // instead.
-                    '--class' => $company->isPersonal()
-                        ? PersonalBaselineSeeder::class
-                        : TenantBaselineSeeder::class,
-                    '--force' => true,
-                ]);
+                // Run one seeder at a time rather than the aggregate baseline
+                // class, because a profile's list is not always either of the
+                // two aggregates — Bookkeeping Only is the business baseline
+                // minus the salary slabs it has no payroll for. With no profile
+                // this is TenantBaselineSeeder::seeders() or
+                // PersonalBaselineSeeder::seeders() in their own order, so an
+                // unprofiled company is seeded exactly as before.
+                //
+                // Order is load bearing: the chart before the transaction types
+                // keyed to its codes, the fiscal years before the salary slabs.
+                foreach (CompanyProfiles::seeders($profile, $company->type) as $seeder) {
+                    Artisan::call('db:seed', [
+                        '--class' => $seeder,
+                        '--force' => true,
+                    ]);
+                }
             }
 
             // Permissions first, and this ordering is load bearing.
@@ -131,6 +154,40 @@ class CompanyProvisioner
         }
 
         return $company;
+    }
+
+    /**
+     * A profile has to belong to the type it is being provisioned against.
+     *
+     * Returns the profile, or null where none was asked for. An unknown key is
+     * refused rather than ignored: silently dropping it would license the
+     * registry defaults and seed the business baseline while the caller — a
+     * form, a seeder, a console command — believed it had asked for something
+     * else, and nothing downstream would ever contradict that.
+     */
+    protected function assertProfileMatchesType(?string $profile, string $type): ?string
+    {
+        if ($profile === null || $profile === '') {
+            return null;
+        }
+
+        if (! CompanyProfiles::has($profile)) {
+            throw new RuntimeException(
+                "There is no company profile [{$profile}]. Known profiles: "
+                .implode(', ', CompanyProfiles::names()).'.'
+            );
+        }
+
+        $expected = CompanyProfiles::typeFor($profile);
+
+        if ($expected !== $type) {
+            throw new RuntimeException(
+                "The [{$profile}] profile is for a company of type [{$expected}], "
+                ."not [{$type}]. Provisioning it here would seed the wrong chart of accounts."
+            );
+        }
+
+        return $profile;
     }
 
     /**

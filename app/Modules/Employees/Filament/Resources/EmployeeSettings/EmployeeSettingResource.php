@@ -10,6 +10,7 @@ use App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\ListEmployee
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\Schemas\EmployeeSettingForm;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\Tables\EmployeeSettingsTable;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Support\ResourceContributions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -66,11 +67,18 @@ class EmployeeSettingResource extends Resource
         return EmployeeSettingsTable::configure($table);
     }
 
+    /**
+     * A slot, not a list.
+     *
+     * The added-components tab is Payroll's — it edits `EmployeeSettingComponent` and offers
+     * `PayComponent` — and it used to live here, naming both by their full class names to keep the import
+     * out of the lint. Payroll requires Employees, so that pair was a cycle whichever way it was written.
+     * Payroll now registers the tab from its own provider; see `App\Support\ResourceContributions` and
+     * docs/module-packaging-plan.md §11.
+     */
     public static function getRelations(): array
     {
-        return [
-            \App\Modules\Employees\Filament\Resources\EmployeeSettings\RelationManagers\ComponentsRelationManager::class,
-        ];
+        return ResourceContributions::relationManagersFor(static::class);
     }
 
     public static function getPages(): array

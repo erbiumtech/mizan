@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Employees\Models\Employee;

@@ -3,6 +3,9 @@
 namespace App\Modules\Invoicing;
 
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
+use App\Modules\Invoicing\Filament\Pages\AgedPayables;
+use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
+use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
@@ -11,6 +14,16 @@ use App\Modules\Invoicing\Policies\ContactPolicy;
 use App\Modules\Invoicing\Policies\InvoiceLinePolicy;
 use App\Modules\Invoicing\Policies\InvoicePolicy;
 use App\Modules\Invoicing\Policies\TaxRatePolicy;
+use App\Modules\Invoicing\Support\ContactCsvImporter;
+use App\Modules\Invoicing\Support\InvoicingReports;
+use App\Support\CsvImporters;
+use App\Support\CustomFieldSubjects;
+use App\Support\DashboardStats;
+use App\Support\JournalEntryOwners;
+use App\Support\ModuleMap;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,7 +48,68 @@ class InvoicingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // This module's reports in the Reports hub. Registered rather than listed in Core, which
+        // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
+        ReportCatalogue::register('Receivables & payables', AgedReceivables::class, 'What customers owe, bucketed by how late it is.');
+        ReportCatalogue::register('Receivables & payables', AgedPayables::class, 'What the company owes suppliers, bucketed by how late it is.');
+        ReportCatalogue::register('Statutory reporting', FbrInvoiceReporting::class, 'Invoices FBR has not accepted, and issued invoices it never received.');
+
+        // The records of this module that may carry custom fields. Registered by alias, which is what
+        // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
+        CustomFieldSubjects::register(ModuleMap::alias(Contact::class), 'Contacts');
+        CustomFieldSubjects::register(ModuleMap::alias(Invoice::class), 'Invoices');
+
+        // Clients and suppliers from a spreadsheet at setup. Core reads the CSV; what a row means is here,
+        // because `Contact` is this module's — see App\Support\CsvImporters.
+        // Sorted first, and so the type the page opens on: it is the one every company has a file of.
+        CsvImporters::register('contacts', ContactCsvImporter::class, 10);
+
         $this->commands([RaiseRecurringInvoices::class]);
+
+        // An invoice's journal entry is the accounting half of the invoice, so the register must refuse
+        // to edit it. Registered from here rather than named in Accounting: that naming was an
+        // `accounting -> invoicing` edge, and Accounting does not require Invoicing.
+        JournalEntryOwners::register('an invoice', Invoice::class);
+
+        // Invoicing's own three reports. See PayrollReports for the other half of the same change.
+        foreach (['AgedReceivables', 'AgedPayables'] as $key) {
+            ReportRenderers::register(
+                $key,
+                fn (string $asOf): array => app(InvoicingReports::class)->ageing($key, $asOf),
+            );
+        }
+
+        ReportRenderers::register(
+            'FbrInvoiceReporting',
+            fn (string $asOf): array => app(InvoicingReports::class)->fbrReconciliation($asOf),
+        );
+
+        DashboardStats::register('invoicing.unpaid', function () {
+            if (! auth()->user()?->can('InvoiceView')) {
+                return null;
+            }
+
+            // Single aggregate query instead of loading every open invoice.
+            //
+            // Credit notes are subtracted from the money and left out of the count, which is two
+            // different decisions. The money has to net or this figure overstates what is owed by every
+            // credit outstanding. The count must not, because "3 open" should mean three invoices
+            // somebody can chase — counting a credit note among them invites a call about a document the
+            // customer is owed rather than owes.
+            $open = Invoice::whereIn('kind', [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE])
+                ->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])
+                ->selectRaw(
+                    'COALESCE(SUM(CASE WHEN kind = ? THEN 1 ELSE 0 END), 0) as cnt, '
+                    .'COALESCE(SUM((total - amount_paid) * CASE WHEN kind = ? THEN -1 ELSE 1 END), 0) as outstanding_total',
+                    [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE]
+                )
+                ->first();
+
+            return Stat::make(
+                'Unpaid Customer Invoices',
+                'PKR '.number_format(round((float) $open->outstanding_total, 2), 2),
+            )->description(((int) $open->cnt).' open');
+        }, sort: 30);
 
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);

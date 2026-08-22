@@ -2,7 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Banks\Schemas;
 
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;

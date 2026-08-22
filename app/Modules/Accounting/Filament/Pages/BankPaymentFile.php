@@ -10,8 +10,9 @@ use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Services\BankPaymentExportService;
 use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Core\Models\FiscalYear;
-use App\Modules\Payroll\Filament\Concerns\SelectsSalaryMonth;
-use App\Modules\Payroll\Services\SalaryBankExportService;
+use App\Support\Banking\SelectsSalaryMonth;
+use App\Support\PaymentGenerators;
+use App\Support\PayrollMonth;
 use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -97,8 +98,11 @@ class BankPaymentFile extends Page
         $month = $this->data['month'] ?? null;
         $typeCode = $this->data['type'] ?? null;
 
-        if ((! $typeCode || $typeCode === 'salary') && $month) {
-            app(PaymentService::class)->generateSalaryPayments($month, $fiscalYear);
+        // Raise whatever the installed modules can raise for this month — today that is Payroll's
+        // salaries. Asking rather than naming is what removed the last accounting -> payroll edge; see
+        // App\Support\PaymentGenerators.
+        if ($month) {
+            PaymentGenerators::raise($month, $fiscalYear, $typeCode ?: null);
         }
 
         return Payment::with(['payable', 'transactionType', 'companyBankAccount.bank', 'payslip'])
@@ -210,7 +214,7 @@ class BankPaymentFile extends Page
         $fiscalYear = $this->fiscalYear();
 
         $year = ($month && $fiscalYear)
-            ? app(SalaryBankExportService::class)->yearForMonth($month, $fiscalYear)
+            ? PayrollMonth::yearFor($month, $fiscalYear)
             : now()->format('Y');
 
         $monthNumber = $month ? Carbon::parse("{$month} 1 {$year}")->format('m') : now()->format('m');

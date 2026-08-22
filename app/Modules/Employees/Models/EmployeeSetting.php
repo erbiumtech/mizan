@@ -154,10 +154,18 @@ class EmployeeSetting extends Model
         $this->setRawAttributes($this->getRawOriginal());
     }
 
-    public function components()
-    {
-        return $this->hasMany(\App\Modules\Payroll\Models\EmployeeSettingComponent::class, 'employee_setting_id');
-    }
+    /*
+     * `components()` is not declared here.
+     *
+     * It was a hasMany onto `Payroll\Models\EmployeeSettingComponent` — a model this module does not own,
+     * named by its full class name to keep the import out of the lint. Payroll *requires* Employees, so that
+     * made the pair mutually dependent and neither one extractable, and it was the edge holding four other
+     * modules in the same cycle.
+     *
+     * Payroll registers it at boot with `resolveRelationUsing()`, so `$setting->components()` behaves exactly
+     * as before and stops existing when Payroll is not installed — which is correct, since the rows belong to
+     * a table Payroll ships. See PayrollServiceProvider and docs/module-packaging-plan.md §11.
+     */
 
     public static function getActiveSettingForDate($employeeId, $date, $fiscalYearId = null)
     {

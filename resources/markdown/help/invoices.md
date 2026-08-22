@@ -56,10 +56,69 @@ rather than trusting the day's table.
 
 **Void** is only available on an **Issued** or **Partially Paid** invoice that
 has had **no payments recorded against it yet** — once money has moved, the
-invoice can't be voided at all; correct it by other means (a credit or a new
-invoice). Voiding reverses the posting entry and, for product lines, undoes
-the stock movement — a sale's consumed lot is restored, a purchase's lot must
-not have been partly used elsewhere or the void is refused.
+invoice can't be voided at all; use **Credit** instead. Voiding reverses the
+posting entry and, for product lines, undoes the stock movement — a sale's
+consumed lot is restored, a purchase's lot must not have been partly used
+elsewhere or the void is refused.
+
+An invoice that has been credited can't also be voided. Both reverse the same
+posting, so doing both would take the money out twice.
+
+## Crediting <!-- requires: InvoiceVoid -->
+
+**Credit** raises a credit note against a customer invoice: a separate document,
+numbered `CN-`, that reverses the sale. Use it when Void isn't available or isn't
+right — the invoice has been paid, or it's been reported to FBR and the 72-hour
+amendment window has closed.
+
+It's offered on any customer invoice that isn't a draft, isn't voided, and hasn't
+already been credited in full. Purchase bills can't be credited here: a supplier
+overcharging you is corrected by *their* credit note to you.
+
+**What it does.** Creates a credit note **as a draft**, copying the invoice's
+lines, tax and currency. Nothing posts until you issue it, exactly like an
+invoice. Once issued it reverses the revenue, the sales tax and the receivable —
+so the invoice and its credit note together come to nothing.
+
+**Crediting only part of an invoice.** Credit it in full, then delete the lines
+that were right before issuing. The total re-adds itself from whatever lines are
+left. You can also credit the same invoice more than once, up to its total.
+
+**A few things it deliberately doesn't do:**
+
+- **It doesn't touch the original invoice.** That's the point — if the invoice
+  was reported to FBR, FBR holds a record of it and it has to keep existing. The
+  correction is the second document, not the disappearance of the first.
+- **It doesn't return goods to stock.** Crediting a customer and taking the goods
+  back are different things, and plenty of credits (billed twice, priced wrong,
+  scrapped on site) return nothing. If stock genuinely comes back, record that as
+  a stock movement.
+- **It isn't paid.** A credit note reduces what the customer owes and shows as a
+  negative on their balance and in Aged Receivables. If you're handing the money
+  back, that's a payment out of the bank account it left.
+
+The reason you type in is stored with the credit note and added to the invoice's
+own history, so the invoice shows that it was corrected and why.
+
+### The 180-day limit
+
+If the company reports invoices to FBR, there's a deadline: a credit note only
+adjusts your output tax if it's issued **within 180 days of the supply** — counted
+from the invoice date, not from when it was reported.
+
+Past that, the Credit form asks for a **Commissioner extension reference**. The
+Commissioner Inland Revenue can extend the period once, by a further 180 days, on
+written request with reasons. You obtain that outside this application; the field
+records it, and it prints on the credit note, because it's the evidence that makes
+a late adjustment stand up.
+
+Past the extension, Credit is refused outright. There's no second extension to
+get, so a credit note raised then wouldn't adjust the tax anyway — that needs your
+tax advisor, not this screen.
+
+None of this applies if the company doesn't report invoices to FBR. The rule
+binds sales-tax-registered persons, so a company below the threshold can credit an
+old invoice without being asked for anything.
 
 ## Deleting a draft <!-- requires: InvoiceVoid -->
 
@@ -115,6 +174,18 @@ Either the invoice has a payment recorded against it already (void is refused
 once money has moved), or you don't hold `InvoiceVoid`.
 
 **I raised the wrong amount and it's already issued — now what?**
-If nothing has been paid against it, Void it and raise a corrected invoice. If
-a payment has already landed, voiding is blocked — this needs a manual
-correction rather than the built-in flow.
+If nothing has been paid against it, Void it and raise a corrected invoice. If a
+payment has already landed, voiding is blocked — use **Credit** to raise a credit
+note for the amount that was wrong, then invoice the right amount.
+
+**Why is the Credit button missing?**
+Either it's a draft (edit or delete it instead), it's already been voided, it's
+already been credited in full, it's a purchase bill, or you don't hold
+`InvoiceVoid` — the same permission gates both, because past the FBR reporting
+window crediting *is* how you reverse a sale.
+
+**Does a credit note need reporting to FBR?**
+Yes, if the company reports invoices. It's a separate document to FBR, and it
+shows in FBR Invoice Reporting under "Issued but never reported" until it's been
+sent. Whether a credit note is a sufficient correction in law is a question for
+the company's tax advisor.

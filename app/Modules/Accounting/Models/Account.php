@@ -123,7 +123,14 @@ class Account extends Model
      */
     public function descendants(): Collection
     {
-        return $this->children->flatMap(
+        // Loaded through the recursive relation rather than by touching `children` at each level.
+        // Walking the tree lazily cost one query per node — a chart of accounts is a few hundred of
+        // them — and `childrenRecursive` already exists for exactly this, fetching one query per depth
+        // instead. loadMissing is explicit, so it also satisfies preventLazyLoading; and because the
+        // recursive load fills the whole subtree, the call inside the recursion below is a no-op.
+        $this->loadMissing('childrenRecursive');
+
+        return $this->childrenRecursive->flatMap(
             fn (Account $child) => collect([$child])->merge($child->descendants())
         );
     }
@@ -204,9 +211,14 @@ class Account extends Model
      */
     public function getCalculatedBalanceAttribute(): float
     {
+        // Same reasoning as descendants(): the roll-up walks the whole subtree, so it loads it in one
+        // pass per depth through the recursive relation rather than a query per account. The nested
+        // call below finds it already loaded.
+        $this->loadMissing('childrenRecursive');
+
         $balance = (float) $this->balance;
 
-        foreach ($this->children as $child) {
+        foreach ($this->childrenRecursive as $child) {
             $balance += $child->calculated_balance;
         }
 

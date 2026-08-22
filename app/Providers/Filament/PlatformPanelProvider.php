@@ -12,6 +12,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -46,6 +47,19 @@ class PlatformPanelProvider extends PanelProvider
         return $panel
             ->id(User::PLATFORM_PANEL)
             ->path('platform')
+            /*
+             * Pages use the whole window, rather than being capped at 1280px and centred.
+             *
+             * Filament's default is Width::SevenExtraLarge, which on a large display leaves the content in
+             * a column down the middle with the rest empty — and the screens here are the ones that most
+             * want the room: a statement with a comparison column, a register of transactions, a table of
+             * twenty payroll figures. Width::Full lifts the cap (`:is(.fi-main).fi-width-full` is a
+             * max-width of 100%), so the width is decided by the content and the rail beside it.
+             *
+             * A page that wants a narrower measure can still say so — this is the panel's default, not a
+             * rule — and Filament's own sections and forms keep their internal widths.
+             */
+            ->maxContentWidth(Width::Full)
             // No ->tenant(): that is the entire point. And so no tenant menu and no
             // tenant registration — a company is created here as an ordinary record.
             ->viteTheme('resources/css/filament/admin/theme.css')

@@ -26,6 +26,13 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '2100', 'name' => 'Income Tax Payable', 'type' => 'liability', 'description' => 'Withholding tax deducted from salaries, payable to FBR'],
                 ['code' => '2150', 'name' => 'Sales Tax Payable', 'type' => 'liability', 'description' => 'Sales tax on invoices (output less input)'],
                 ['code' => '2200', 'name' => 'ESI / Health Insurance Payable', 'type' => 'liability'],
+                // Statutory contributions, one account each. Deliberately NOT folded
+                // into 2200: each scheme files its own monthly return, and a single
+                // account holding three of them cannot be reconciled against any of
+                // them. See config/statutory.php.
+                ['code' => '2210', 'name' => 'EOBI Payable', 'type' => 'liability', 'description' => 'Employee and employer EOBI contributions, payable monthly'],
+                ['code' => '2220', 'name' => 'Social Security Payable', 'type' => 'liability', 'description' => 'Provincial social security employer contribution (SESSI/PESSI and equivalents)'],
+                ['code' => '2230', 'name' => 'Provident Fund Payable', 'type' => 'liability', 'description' => 'Employee contribution and employer match held for the fund'],
                 ['code' => '2300', 'name' => 'Salaries Payable', 'type' => 'liability', 'description' => 'Net salaries owed to employees'],
                 ['code' => '2400', 'name' => 'Accounts Payable', 'type' => 'liability', 'description' => 'Amounts owed to suppliers on bills'],
             ]],
