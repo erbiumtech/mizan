@@ -2,7 +2,7 @@
 
 **Status:** **The plan is complete. Phases 0 to 11, 2026-08-22.** §4.3's fifth mechanism — one of every source type
 reconciling to `0.00` through the real services — is green, which is the assertion the whole of §3 and §4 was written
-against.
+against. Whole suite: **3,446 tests, 11,714 assertions, nothing failing.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
