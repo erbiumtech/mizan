@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 10 complete, and Phase 11a with them (2026-08-22).** What remains of Phase 11: §4.5's
-accruals and their reversal, §4.2's reconciliation report and its command, §4.4's WIP snapshots, and the period close.
+**Status:** **Phases 0 to 10 complete, and Phase 11a to 11b with them (2026-08-22).** What remains of Phase 11: §4.2's
+reconciliation report and its command, §4.4's WIP snapshots, and the period close.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3280,6 +3280,62 @@ document register before the modules that reference drawings.
   > The **Cost periods** screen has no create and no edit, and **no reopen at all**: a period is created by the first
   > cost that lands in the month, and §3.4's rule about a late invoice is the door instead. Phase 11e adds the close to
   > the same screen.
+  >
+  > **11b built 2026-08-22.** — `ConstructionAccrualTest` (36 tests). `AccrualService`, the `AccrualRun` and
+  > `AccrualResult` DTOs, `CostBatch::KIND_ACCRUAL_REVERSAL`, `gl_purpose` on the goods-receipt accrual and carried
+  > through `CostLedger::reverse()`, and the *Roll accruals into this month* action.
+  >
+  > §4.5's two accruals: goods received not invoiced, and subcontract work done not certified. Both batched
+  > `kind = accrual`, both unwound at period open.
+  >
+  > **The correction worth recording is the unwind's scope, because the faithful reading of the plan was wrong.** §4.5
+  > says accruals "auto-reverse at the opening of the next period", and a first draft restricted the reversal to *earlier*
+  > periods accordingly. That is a double-count: §4.5 is not the only thing that raises accruals — `GoodsReceiptService`
+  > raises one the moment a delivery is posted, because §5's committed-cost report is worthless if a delivery takes a
+  > month to appear. A pass that skipped the current period found that delivery still *outstanding*, raised a second
+  > accrual for it, and doubled the job's accrued cost for the month, which is §4.5's own warned failure arrived at from
+  > the opposite direction. **The rule is therefore: wipe everything standing, recompute** — and the invariant afterwards
+  > is that the only standing accruals are the ones that run raised. Two tests hold it: one asserts a receipt-time
+  > accrual is not accrued twice, and one asserts opening the same month twice changes the position by nothing.
+  >
+  > Repeated runs leave reversal pairs behind, and that is honest rather than untidy: each run is a dated event, the net
+  > after any run is right, and the alternative — netting the re-accrual off against whatever is already accrued — is the
+  > line-by-line matching §4.5 rejects by name.
+  >
+  > Four more decisions:
+  >
+  > - **The reversal is itself `kind = accrual`**, negative, and this is not a detail. §3.5 defines Actual as
+  >   `kind != accrual` and Accrued as `kind = accrual`; a reversal written as `kind = reversal` would net out of the
+  >   Accrued column into the Actual one, understating a job's actual cost by exactly the accrual — a job that looked
+  >   cheaper with nothing in any query to explain it. It is also why this does not call `CostLedger::reverse()`, which is
+  >   right for a correction and wrong here on both counts: that method writes `kind = reversal`, and it puts the reversal
+  >   in the *original's* period because §3.3 wants a correction to cancel where it happened.
+  > - **`accrual_reversal` is its own batch kind.** A `reversal` batch backs out something that was wrong; this backs out
+  >   something that was right last month. Sharing one kind would make "how often does this company correct itself"
+  >   unanswerable, since twelve routine unwinds a year would swamp the corrections.
+  > - **A delivery with no purchase order is reported rather than accrued.** There is no link through which an invoice
+  >   could ever be matched to it, so "not invoiced" is unanswerable — and a guess either way would be wrong on half the
+  >   deliveries in the country. Over-invoicing is likewise reported as nothing rather than as a negative accrual: a
+  >   supplier who has billed more than they delivered is a three-way-match variance, and crediting the job would be the
+  >   wrong argument in the wrong place.
+  > - **The subcontract accrual is per contract item, because that is the only level that names a cost code.** A
+  >   contract-level accrual would have to pick one code for a subcontract spanning six, and picking would be a guess; an
+  >   item with no code is named instead. The claim must be `submitted` or `under_review` — a draft is a subcontractor's
+  >   working paper nobody has received — and only `issued` or `paid` certificates net it down, because §10.1 keeps the
+  >   claim and the certificate apart precisely on the ground that the certifier's figure is not the claimant's.
+  >
+  > **The subcontract accrual reads `construction_contracts`, `construction_progress_claims` and
+  > `construction_certificate_lines` with the query builder and names no class of that module** — because
+  > `construction_contracts` already declares an edge to `construction_costing` (§6c's commitment path), so an import the
+  > other way would be a two-cycle and `TANGLED_MODULE_BUDGET = 0` would be right to fail it. A test asserts the absence
+  > *and* asserts the tables are read, so the claim is about a real temptation rather than a vacuous one.
+  >
+  > `CostLedger::reverse()` now carries `gl_purpose` through, which was a latent 11a defect: a reversal of burden that
+  > dropped the purpose would leave the negative side unruled, so the absorption account would carry the charge with no
+  > matching credit and §11a would report the reversal as unpostable forever.
+  >
+  > No new permission. Rolling accruals rides on `ConstructionCostCreate` — it raises cost entries and nothing else, and
+  > the segregation that matters is `ConstructionGlPost`, which is what puts them in the books.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source
