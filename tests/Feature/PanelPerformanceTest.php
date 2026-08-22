@@ -55,10 +55,26 @@ class PanelPerformanceTest extends TestCase
      *
      * @var array<string, array{cold: int, warm: int}>
      */
+    /*
+     * **Raised on 2026-08-22 for `construction_qhse`'s three navigation badges**, and the reasoning is the point rather
+     * than the number.
+     *
+     * A badge is one indexed count per page and the rule for earning one is that the failure it warns about is *silent* —
+     * that not looking today costs something nobody can otherwise see. This module has exactly three that qualify: a
+     * hold point that passed and was never released (work standing still for want of a signature), a reportable incident
+     * nobody told the authority about (a statutory clock no other screen watches), and **a permit past its window and
+     * still open**, which §17.5 calls "the failure mode that kills people".
+     *
+     * Two others were *removed* in Phase 10c when they pushed the reports hub over — a critical-NCR count and an
+     * overdue-action count, both of which are the first row of a screen somebody opens daily and therefore loud rather
+     * than silent. That is the same discipline as this increase, not the opposite of it: **the rule decides what exists
+     * and the budget accommodates what the rule allows.** What must never happen is the reverse — trimming a justified
+     * count to fit, or raising the ceiling for one that was never justified.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 28, 'warm' => 8],
+        'dashboard' => ['cold' => 32, 'warm' => 8],
         'employees' => ['cold' => 30, 'warm' => 10],
-        'reports' => ['cold' => 25, 'warm' => 6],
+        'reports' => ['cold' => 29, 'warm' => 6],
     ];
 
     private Company $company;

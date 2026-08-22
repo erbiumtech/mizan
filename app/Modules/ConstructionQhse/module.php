@@ -47,6 +47,7 @@ return [
         'App\\Models\\Incident' => \App\Modules\ConstructionQhse\Models\Incident::class,
         'App\\Models\\IncidentWitness' => \App\Modules\ConstructionQhse\Models\IncidentWitness::class,
         'App\\Models\\IncidentPhoto' => \App\Modules\ConstructionQhse\Models\IncidentPhoto::class,
+        'App\\Models\\Permit' => \App\Modules\ConstructionQhse\Models\Permit::class,
     ],
 
     'resources' => [
@@ -55,6 +56,7 @@ return [
         'App\\Filament\\Resources\\ConstructionQhse\\NcrResource' => \App\Modules\ConstructionQhse\Filament\Resources\Ncrs\NcrResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\QhseActionResource' => \App\Modules\ConstructionQhse\Filament\Resources\QhseActions\QhseActionResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\IncidentResource' => \App\Modules\ConstructionQhse\Filament\Resources\Incidents\IncidentResource::class,
+        'App\\Filament\\Resources\\ConstructionQhse\\PermitResource' => \App\Modules\ConstructionQhse\Filament\Resources\Permits\PermitResource::class,
     ],
 
     'permission_groups' => [
@@ -124,6 +126,22 @@ return [
         ['name' => 'ConstructionIncidentView', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionIncidentReport', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionIncidentInvestigate', 'group' => 'ConstructionQhse'],
+
+        /*
+         * Permits to work (§17.5), and **`ConstructionPermitIssue` is the sharpest segregation in this module.**
+         *
+         * Issuing a permit authorises high-risk work: hot work in a finished building, entry into a confined space, a
+         * lift over a live road. The person who wants to do the work is the last person who should decide it is safe to,
+         * and every permit-to-work regime in the world is built on that separation.
+         *
+         * Requesting is wide, because a supervisor who cannot raise a permit is a supervisor whose gang works without
+         * one. **Suspending is on the wide grant too** — a permit that can only be suspended by whoever issued it is a
+         * permit that stays live while somebody goes looking for them — while resuming and closing out are on the
+         * issuing grant, because both are assertions about safety.
+         */
+        ['name' => 'ConstructionPermitView', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionPermitRequest', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionPermitIssue', 'group' => 'ConstructionQhse'],
     ],
 
     'role_grants' => [
@@ -146,6 +164,9 @@ return [
             // The widest grant here: an incident nobody can report is an incident nobody reports.
             'ConstructionIncidentView',
             'ConstructionIncidentReport',
+            // A supervisor who cannot raise a permit is a supervisor whose gang works without one.
+            'ConstructionPermitView',
+            'ConstructionPermitRequest',
         ],
         'Accountant' => [
             'ConstructionItpView',
@@ -157,6 +178,8 @@ return [
             'ConstructionActionUpdate',
             'ConstructionIncidentView',
             'ConstructionIncidentReport',
+            'ConstructionPermitView',
+            'ConstructionPermitRequest',
         ],
         /*
          * **Approving an ITP and releasing a hold point are both Manager's**, and for the same reason: an ITP is the
@@ -173,6 +196,8 @@ return [
             'ConstructionActionVerify',
             // Concluding what caused something, and telling the authority.
             'ConstructionIncidentInvestigate',
+            // Authorising high-risk work, and signing that the area was made safe afterwards.
+            'ConstructionPermitIssue',
         ],
     ],
 

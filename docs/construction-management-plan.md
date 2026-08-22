@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete, and Phase 10a to 10d with them (2026-08-22). §17's permits, toolbox talks and
-indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
+**Status:** **Phases 0 to 9 complete, and Phase 10a to 10e with them (2026-08-22). §17's toolbox talks, the induction
+register and the indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3080,6 +3080,57 @@ document register before the modules that reference drawings.
   > date, because closing one would file a statutory duty as finished.
   >
   > `RoleGrantsTest::EXPECTED` moved to 65 / 145 / 185 / 205.
+  >
+  > **10e built 2026-08-22.** — `ConstructionPermitTest` (25 tests). `construction_permits`, `PermitService`,
+  > `PermitPolicy` and the register.
+  >
+  > **"A permit is time-boxed, and an expired-but-open permit is the failure mode that kills people."** Everything here
+  > follows from that sentence, and the register's third badge is that count.
+  >
+  > Six decisions worth carrying forward:
+  >
+  > - **`valid_from` and `valid_to` are datetimes and both are required.** A permit valid "on the 20th" authorises hot
+  >   work at four in the morning. A test asserts the permit authorises nothing at 04:00 inside a 07:00–17:00 window,
+  >   which is a claim a date column cannot express.
+  > - **An extension is a new row and the original's window is untouched.** §17.5: "overwriting `valid_to` destroys the
+  >   record of what was authorised when." The extension starts *exactly* where the original ends, so no minute is
+  >   covered twice or not at all, the original closes at its own end time, and the extension arrives as a **draft** —
+  >   extending is a request and issuing is still a decision. The controls travel with it, so an extension is never a
+  >   permit with nothing recorded on it.
+  > - **Issuing is refused for a window that has already closed.** Authorising work that is already over is either a
+  >   mistake or a back-dated cover, and neither should be quiet. This turned out to shape the *tests* too: the only
+  >   honest way to produce an expired-and-open permit is to issue a live one and let time pass, which is what the tests
+  >   do.
+  > - **Issuing is also refused until the controls that type's procedure turns on are recorded** — hot work without a
+  >   fire watch, a confined space without a rescue plan, an excavation without the services scanned. Checked at issue
+  >   rather than at draft, because a half-written permit is the ordinary state of a draft.
+  > - **Nothing auto-closes an expired permit**, and that is the load-bearing refusal to build a convenience. A permit
+  >   quietly marked closed by a scheduled job is a hazard nobody walked back to; expiry makes it visible and a person
+  >   closes it.
+  > - **`area_made_safe` is asked at close-out, and closing without it needs a reason rather than being refused.** A
+  >   permit closed with nobody having walked the area is the sequence that burns a building down an hour after everybody
+  >   goes home — but a permit that *cannot* be closed stays open for ever, and then the expired-and-open list becomes
+  >   noise and stops being read. So it is allowed, with a sentence, and the register keeps the list of permits closed
+  >   with nothing recorded: that is a pattern rather than an event, and a site where it is common is a site where the
+  >   close-out is a signature.
+  >
+  > **`details` is JSON and the shared fields are columns**, exactly as §17.5 asks — thirteen types' fields as columns
+  > would be ninety mostly-null ones, and everything in a bag could not answer "what is open on level four right now".
+  > **Suspension keeps its reason after resumption**, because a permit suspended when the wind got up and then resumed is
+  > a different history from one that ran uninterrupted, and that history is what an investigation reads. And resuming
+  > after the window closed is refused: that is an extension, not a resumption.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 67 / 147 / 188 / 208. **`ConstructionPermitIssue` is the sharpest segregation in
+  > the module** — the person who wants to do the work is the last person who should decide it is safe to — while
+  > *suspending* is deliberately on the wide grant, because a permit that can only be suspended by whoever issued it is a
+  > permit that stays live while somebody goes looking for them.
+  >
+  > **And the query budgets moved for the first time**, dashboard 28 → 32 and reports 25 → 29, for this module's three
+  > navigation badges: a hold point awaiting release, an unreported reportable incident, and an expired-and-open permit.
+  > All three pass the *silent* test. The pairing with 10c is the point — **the rule decides what exists and the budget
+  > accommodates what the rule allows**, which is why two badges were deleted then and three are paid for now. The
+  > reverse would be the failure: trimming a justified count to fit, or raising a ceiling for one that was never
+  > justified.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 

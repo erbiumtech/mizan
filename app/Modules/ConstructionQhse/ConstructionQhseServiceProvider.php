@@ -6,11 +6,13 @@ use App\Modules\ConstructionQhse\Models\Incident;
 use App\Modules\ConstructionQhse\Models\Inspection;
 use App\Modules\ConstructionQhse\Models\Itp;
 use App\Modules\ConstructionQhse\Models\Ncr;
+use App\Modules\ConstructionQhse\Models\Permit;
 use App\Modules\ConstructionQhse\Models\QhseAction;
 use App\Modules\ConstructionQhse\Policies\IncidentPolicy;
 use App\Modules\ConstructionQhse\Policies\InspectionPolicy;
 use App\Modules\ConstructionQhse\Policies\ItpPolicy;
 use App\Modules\ConstructionQhse\Policies\NcrPolicy;
+use App\Modules\ConstructionQhse\Policies\PermitPolicy;
 use App\Modules\ConstructionQhse\Policies\QhseActionPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -31,6 +33,7 @@ class ConstructionQhseServiceProvider extends ServiceProvider
         Ncr::class => NcrPolicy::class,
         QhseAction::class => QhseActionPolicy::class,
         Incident::class => IncidentPolicy::class,
+        Permit::class => PermitPolicy::class,
     ];
 
     public function boot(): void

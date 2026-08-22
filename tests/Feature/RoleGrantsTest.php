@@ -305,13 +305,26 @@ class RoleGrantsTest extends AccountingTestCase
      * Closing asserts that the cause is understood and the lesson recorded, and the person who was involved is not the
      * person to conclude that; the authority report is a statutory duty with somebody's name against it. CEO +3.
      *
+     * Phase 10e, permits to work, three names — and **`ConstructionPermitIssue` is the sharpest segregation in this
+     * module.** Issuing a permit authorises high-risk work: hot work in a finished building, entry into a confined
+     * space, a lift over a live road. The person who wants to do the work is the last person who should decide it is
+     * safe to, and every permit-to-work regime is built on that separation.
+     *
+     * **Employee +2** (`ConstructionPermitView`, `ConstructionPermitRequest`): a supervisor who cannot raise a permit is
+     * a supervisor whose gang works without one. **Accountant +2**, the same two. **Manager +1 of its own** for
+     * `ConstructionPermitIssue`, which also carries resuming and closing out, because both are assertions about safety.
+     * CEO +3.
+     *
+     * *Suspending is deliberately on the wide grant*, not the issuing one: a permit that can only be suspended by
+     * whoever issued it is a permit that stays live while somebody goes looking for them.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 65,
-        'Accountant' => 145,
-        'Manager' => 185,
-        'CEO' => 205,
+        'Employee' => 67,
+        'Accountant' => 147,
+        'Manager' => 188,
+        'CEO' => 208,
     ];
 
     protected function setUp(): void
