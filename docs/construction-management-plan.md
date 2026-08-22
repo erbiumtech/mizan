@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 10 complete, and Phase 11a to 11b with them (2026-08-22).** What remains of Phase 11: §4.2's
-reconciliation report and its command, §4.4's WIP snapshots, and the period close.
+**Status:** **Phases 0 to 10 complete, and Phase 11a to 11c with them (2026-08-22).** What remains of Phase 11: §4.4's
+WIP snapshots and the period close.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3336,6 +3336,58 @@ document register before the modules that reference drawings.
   >
   > No new permission. Rolling accruals rides on `ConstructionCostCreate` — it raises cost entries and nothing else, and
   > the segregation that matters is `ConstructionGlPost`, which is what puts them in the books.
+  >
+  > **11c built 2026-08-22.** — `ConstructionReconciliationTest` (38 tests). `construction_reconciliations`,
+  > `Reconciliation`, `ReconciliationService`, the `ReconciliationResult` and `ReconciliationCause` DTOs,
+  > `ReconciliationPolicy`, the Reconciliation report page, `construction:reconcile` weekly, and
+  > `ReconciliationUnbalanced`.
+  >
+  > §4's opening sentence is the whole brief: **"A second ledger that nobody proves is a second ledger that is wrong."**
+  > §3 bought the job-cost ledger; this is the invoice.
+  >
+  > **The arithmetic is §4.2's block, one column of the stored row per line of it**, so a run *is* the printed statement:
+  > GL cost on the control accounts, less cost carrying no job, plus job cost still awaiting the general ledger, against
+  > job cost recorded, difference nil. The filter on the GL side is `is_posted = true` with the date inside the window —
+  > `FinancialReportService`'s exactly, because §4.2 warns that any other filter makes "the two sides disagree about
+  > drafts and nobody will know why".
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **"Shown, never spread"**, and a test asserts the strong form: the reconciliation writes no cost entry, ever.
+  >   Apportioning unallocated GL cost across jobs would balance the report and put money on jobs nobody charged it to.
+  >   It comes off whole, on its own line, and it is *also* named as a cause — because balancing must not be the same as
+  >   being satisfied. A company posting half its cost outside the module would otherwise reconcile perfectly.
+  > - **A refusal, on §17.6's model.** With no cost control account nominated the difference would be the entire job cost
+  >   — a report that reads as a catastrophe and means nobody has set the module up. The page says what is missing and
+  >   prints no figure at all. This is the third place in the suite that rule has earned its keep.
+  > - **Mirrored entries now carry the invoice's `journal_entry_id`**, added here because §4.2's matching needs it: "this
+  >   was posted by somebody else" is not enough for a report that has to say *which* GL cost has a job behind it. It also
+  >   makes §4.2's nastiest named cause detectable at all — "cost entries pointing at a journal entry that was later
+  >   reversed or unposted" is undetectable unless a mirrored entry points at one. Accounting keeps no reversal flag, so
+  >   the detection is a posted `reversing` entry whose `reference` is the original's `entry_number`; and because
+  >   `JournalEntryService::reverse()` dates the reversal *today*, a March cost reversed in July leaves March's GL side
+  >   intact and July's short, which is exactly why the cause needs its own section rather than the residual.
+  > - **The residual is last and isolated**, §4.2 verbatim: "rounding, isolated so it cannot be used to explain anything
+  >   else". Several causes deliberately carry a zero amount — pending cost, unallocated GL cost, closed-job cost,
+  >   absorption gaps — because each is already a *line* of the statement or reconciles anyway. Counting them into the
+  >   residual would make it wrong; listing them is how somebody sees *which* account is missing, which is the difference
+  >   between a chase-list and a fix.
+  > - **Unallocated purchase invoices render when empty**, which is §4.2's instruction for that cause alone and the only
+  >   `renderWhenEmpty` flag in the codebase. §5 calls it "the single most likely silent failure in the module", so a
+  >   section that vanished when the list was empty would be indistinguishable from a section nobody had built.
+  >
+  > **The command is weekly, which is the opposite of every other clock in this suite, and the reason is stated in
+  > `routes/console.php`.** §13's notice, §12's compliance and §17.5's competencies all warn about a *deadline* — the
+  > tightest threshold is the day itself and a weekly run steps over it. A reconciliation has no deadline: the difference
+  > does not worsen for going another day unreported, and investigating one takes longer than a day. A nightly mail about
+  > the same unchanged 412,900 is a mail somebody filters into a folder, and then the month it changes goes unread. It
+  > reconciles **every open period** rather than the current one — a difference from March is still a difference in July —
+  > skips closed ones, and exits non-zero when anything is unbalanced so a scheduler sees it.
+  >
+  > **Accepting a difference is `ConstructionPeriodForceClose` and fixes nothing**, which is §4.3's fourth mechanism made
+  > literal: a test asserts no plug cost entry and no balancing journal, and that the difference is still there on the
+  > next look. Running a reconciliation rides on `ConstructionCostView`, because a control nobody may run is not a
+  > control. A run is never editable and never deletable — the way to change its answer is to run it again.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source
