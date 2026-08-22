@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a to 9g with them (2026-08-22). §16 is complete and §13's programme is
-stored. The P6/MS Project import is what remains of Phase 9.**
+**Status:** **Phases 0 to 9 complete (2026-08-22). Phase 10 — QHSE — is next, then Phase 11's reconciliation, WIP and
+close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -2827,6 +2827,47 @@ document register before the modules that reference drawings.
   > liquidated-damages exposure are money **held or accruing** — visible the moment somebody opens the certificate or the
   > programme, and not extinguished by nobody looking today — so they live in the registers' own columns and filters. The
   > budgets were left untouched, which is the point of having them.
+  >
+  > **9h built 2026-08-22, and Phase 9 is complete.** — `ConstructionProgrammeImportTest` (22 tests). `ProgrammeImport`
+  > with three parsers, `ProgrammeImportSummary`, the import page, and `construction.programme.hours_per_day`.
+  >
+  > **The decision that carries the money is what an import is allowed to overwrite.** A contractor sends a P6 update
+  > every month; if each one rewrote the baseline, every re-programme would silently retire the entitlement it was
+  > caused by. So `MODE_UPDATE` — the default — writes planned dates, actuals, progress, float and criticality and
+  > **leaves the accepted programme alone**, while `MODE_BASELINE` writes it deliberately and records the revision. A
+  > test imports a file that slips the slab by six weeks and asserts the plan moved, the baseline did not, and the
+  > lateness against the baseline is 42 days where against the plan it is zero — which is §13's argument for two pairs
+  > of dates, demonstrated rather than asserted. The first import into an empty programme seeds the baseline either way,
+  > because a job with nothing to measure against has nothing to protect. **And the summary says which of the two
+  > happened in words, every time** — "500 activities imported" with that left unsaid is the silence this section is
+  > written against.
+  >
+  > Five smaller decisions worth carrying forward:
+  >
+  > - **The XER is read by column *name*, never by position.** The column set genuinely differs between P6 versions, and
+  >   reading by index is how an importer silently puts a date in a float column. The test fixture deliberately puts
+  >   `task_name` before `task_code` and carries a trailing column nothing reads.
+  > - **The format is detected from the contents.** An extension is what a mail client decided to call the file; the
+  >   first bytes are what the tool wrote. `ERMHDR` is an XER, and the two XML dialects are told apart by what the
+  >   document says about itself.
+  > - **Units, and they are where an importer is silently wrong.** P6 counts durations, float and lag in *hours*; MS
+  >   Project counts slack in *tenths of a minute* — a factor of 4,800 if mistaken for hours. Both become days through
+  >   `hours_per_day`, which is **configuration rather than a constant** because a ten-hour shift would overstate every
+  >   float figure by a quarter, and float is what a delay argument turns on. Negative float survives: it is P6 saying
+  >   the programme is already impossible, and clamping it to zero would delete the most important number in the file.
+  > - **A row it cannot use is skipped and counted, and the page prints the reasons.** The failure mode of an importer is
+  >   not throwing — it is importing four hundred activities out of five hundred and reporting success. A relationship
+  >   naming an activity outside the file is normal in a filtered export, so it is named rather than dropped, and the
+  >   notification for a run with warnings is persistent because a toast that fades is the same as no message.
+  > - **An unreadable date becomes null, never today.** A guessed date on a programme is a guessed entitlement. And the
+  >   XML parser runs with `LIBXML_NONET | LIBXML_NOENT`: a programme file arrives by email from another company, and an
+  >   XML importer that resolves external entities is a file-read primitive handed to whoever sent it.
+  >
+  > **An imported network still moves nothing.** A test asserts the milestone's planned finish is exactly what the file
+  > said, when a scheduler would have pushed it out by the predecessor's five-day lag. That is what makes a P6
+  > round-trip safe, and it is the same property 9g asserted by reflection.
+  >
+  > No new permissions: the import writes the baseline, so it asks for `ConstructionProgrammeUpdate`.
   >
   > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
   > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and

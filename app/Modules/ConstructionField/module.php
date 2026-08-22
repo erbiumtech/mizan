@@ -51,6 +51,10 @@ return [
         'App\\Filament\\Resources\\ConstructionField\\ProgrammeActivityResource' => \App\Modules\ConstructionField\Filament\Resources\Activities\ActivityResource::class,
     ],
 
+    'pages' => [
+        'App\\Filament\\Pages\\ProgrammeImport' => \App\Modules\ConstructionField\Filament\Pages\ProgrammeImportPage::class,
+    ],
+
     'permission_groups' => [
         'ConstructionField',
     ],

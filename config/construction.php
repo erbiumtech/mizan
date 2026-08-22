@@ -64,6 +64,24 @@ return [
     ],
 
     /*
+     * The programme — `docs/construction-management-plan.md` §13.
+     */
+    'programme' => [
+        /*
+         * **How many hours make a working day**, which is the only unit conversion an imported programme needs.
+         *
+         * P6 counts durations, total float and relationship lag in *hours* against an activity's calendar; MS Project
+         * counts slack in tenths of a minute. Both have to become days to be readable beside a date, and nothing in
+         * either file says how long the working day is.
+         *
+         * Eight is the near-universal default. It is configuration rather than a constant because a job on a ten-hour
+         * shift would have every float figure overstated by a quarter — and float is what a delay argument turns on, so
+         * a quarter is not a rounding matter.
+         */
+        'hours_per_day' => 8,
+    ],
+
+    /*
      * Delay events — `docs/construction-management-plan.md` §13.
      *
      * `notice_required_by` is `occurred_on + contract notice days`. A contract states its own period in
