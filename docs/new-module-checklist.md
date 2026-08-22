@@ -78,6 +78,25 @@ silent:
 
 `ModuleCoverageTest` is what catches all three in CI, not the type checker.
 
+**The same shape once bit the other resolution path, and the fix is worth knowing
+before you add a permission.** A *bare* permission name — `ProductView`,
+`ReportView`, the form every report page and export action uses — has no class
+argument, so `blockingModule()` resolves it through the permission's **group**.
+That map used to be `DB::table('permissions')`, memoised for the process behind a
+`try/catch` that cached `[]` on failure and never retried. One moment of the
+landlord table being unreachable — mid-migration, a worker booting before its
+connection is pointed at it — left the map empty for the life of the process:
+no group, no candidate module, nothing blocked, and then the Administrator bypass
+in `AppServiceProvider::boot()` granting every string permission of every module
+the company never bought. Fail-open, silent and permanent.
+
+It now reads `ModuleManifest::all()['permissions']`, which is where
+`PermissionSeeder` gets the table from in the first place. **So declare a
+permission's `group` in `module.php` and the licence gate has it** — there is no
+seeding step in between and no cache to invalidate.
+`ModuleEnforcementTest::test_the_licence_deny_survives_the_permissions_table_being_unreadable`
+holds it.
+
 `requires` is a *licence* dependency, not an import graph (§13 of the modules
 plan is explicit about the difference). Declare it only when the module is
 genuinely unsellable without the other one; otherwise guard the call site and
