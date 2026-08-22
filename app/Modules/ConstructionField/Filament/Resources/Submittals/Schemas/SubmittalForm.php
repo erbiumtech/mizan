@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionField\Filament\Resources\Submittals\Schemas;
 
 use App\Modules\Construction\Models\Job;
+use App\Modules\ConstructionField\Models\ProgrammeActivity;
 use App\Modules\ConstructionField\Models\Submittal;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
@@ -144,6 +145,20 @@ class SubmittalForm
                             ->maxLength(255)
                             ->helperText('The current one. Each round records the revision it reviewed.'),
 
+                        /*
+                         * **Which activity this submittal gates** — §16.3's `activity_id`, wired in Phase 9g.
+                         *
+                         * The join that makes a submittal register a schedule control rather than a filing cabinet: an
+                         * approval outstanding against an activity that starts in three weeks is a different problem
+                         * from one against an activity that starts next year.
+                         */
+                        Select::make('activity_id')
+                            ->label('Gates activity')
+                            ->options(fn (callable $get): array => static::activities($get('job_id')))
+                            ->searchable()
+                            ->columnSpanFull()
+                            ->helperText('From the programme. What cannot start until this is approved.'),
+
                         Textarea::make('notes')->rows(2)->columnSpanFull(),
                     ]),
             ]);
@@ -178,6 +193,28 @@ class SubmittalForm
             : ($days === 0 ? 'today' : "in {$days} days");
 
         return $by->format('D d M Y')." ({$when}). ".$lead.' days of lead time subtracted.';
+    }
+
+    /**
+     * The job's programme activities.
+     *
+     * A real query: §13 and §16 both live in `construction_field`, so the programme is not a separate purchase.
+     *
+     * @return array<int, string>
+     */
+    private static function activities(int|string|null $jobId): array
+    {
+        if ($jobId === null) {
+            return [];
+        }
+
+        return ProgrammeActivity::query()
+            ->where('job_id', $jobId)
+            ->orderBy('code')
+            ->limit(500)
+            ->get()
+            ->mapWithKeys(fn (ProgrammeActivity $activity): array => [$activity->getKey() => $activity->displayName()])
+            ->all();
     }
 
     /**

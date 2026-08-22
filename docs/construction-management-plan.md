@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 8 complete, and Phase 9a to 9f with them (2026-08-21). §16 is complete apart from the
-programme: activities, the schedule of §13 and the P6 import are what remain of Phase 9.**
+**Status:** **Phases 0 to 8 complete, and Phase 9a to 9g with them (2026-08-22). §16 is complete and §13's programme is
+stored. The P6/MS Project import is what remains of Phase 9.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -59,6 +59,18 @@ That closes the note 9a left unconditional, and the lesson underneath it is the 
 phase: **a module licence is not a proxy for data existing.** The guard used to ask "is the field module here" when the
 question it needed was "is there an open punch value to read", and 9a licensing the module three sub-phases before punch
 items existed is exactly how those two come apart.
+
+Phase 9g stored the programme, and §13's first line is the whole of it: **store the programme; never solve it.** No
+forward pass, no backward pass, no float derivation, no critical-path solver. `is_critical` and `total_float_days` are
+imported columns with a `source` printed beside them, and a test asserts by reflection that no method on the programme's
+own classes is even *named* for scheduling — because a behavioural test would pass on the day somebody added
+`recalculateDates()`.
+
+What the programme buys is the fifth exposure in this family, and the largest: **days a priced contract milestone is
+late against the accepted programme, less the extension of time actually awarded.** Liquidated damages accrue against
+that remainder. It is computable only because §13 keeps baseline and planned dates apart and because §13's delay events
+record what was *determined* rather than what was claimed — a test asserts that a claim for forty days excuses nothing
+until somebody determines it.
 
 Phase 8a built §6's foundation, and it is **the cross-plan migration this document calls "the highest-value cross-plan
 note"**: `stock_locations` owned by Inventory, `stock_movements.stock_location_id` with its backfill, the movement-type
@@ -2689,6 +2701,18 @@ document register before the modules that reference drawings.
   > on the same grant as submitting for the same reason the RFI's answer does. `activity_id` is absent here too, for the
   > programme sub-phase to add with a real key alongside RFIs and punch items.
   >
+  > **A third portability-and-cost trap, caught by `PanelPerformanceTest` rather than by review, and it is the one worth
+  > generalising.** This register was given a navigation badge counting items already past their submit-by date — and
+  > since that date is deliberately not a column, the badge read *every* outstanding row and filtered in PHP. The test
+  > showed it as `select * from construction_submittals` sitting in the dashboard's query list, one query over budget on
+  > both the dashboard and the reports hub.
+  >
+  > The rule, now stated once for every phase after this: **a navigation badge renders on every page in the panel, so it
+  > must be a single indexed count or it must not exist.** §16.3's refusal to store the submit-by date is exactly what
+  > rules a badge out here, and the figure is not lost — the register's own column shows it per row and
+  > `lateToSubmit()` is the report, both on a page somebody opened on purpose. The RFI's overdue badge and the punch
+  > list's blocking-items badge stay, because both are one count against a composite index.
+  >
   > **9f built 2026-08-21.** — `ConstructionPunchListTest` (31 tests) plus four rewritten on
   > `ConstructionRetentionTest`. `construction_punch_lists`, `construction_punch_items`,
   > `construction_punch_inspections`, `PunchListService`, two policies and the register with its items tab.
@@ -2740,6 +2764,69 @@ document register before the modules that reference drawings.
   > **What remains of Phase 9 is the programme**, and it is now the only thing three registers are waiting on:
   > `activity_id` is deliberately absent from RFIs, submittals *and* punch items, for one migration that builds
   > `construction_activities` and adds the column to all three with a real foreign key.
+  >
+  > **9g built 2026-08-22.** — `ConstructionProgrammeTest` (32 tests). `construction_activities`,
+  > `construction_activity_predecessors`, `ProgrammeService`, `ProgrammeActivityPolicy`, the register with its
+  > predecessors tab, and `activity_id` wired into the registers that were waiting for it.
+  >
+  > **"Store the programme; never solve it" is enforced structurally, not just observed.** A test walks
+  > `ProgrammeService`, `ProgrammeActivity` and `ProgrammeActivityPredecessor` by reflection and fails on any
+  > *self-declared* method whose name reads like a scheduler — forward, backward, recalculate, reschedule, critical path,
+  > levelling, solve. A behavioural test would have passed on the day somebody added `recalculateDates()`. (It also
+  > taught the obvious lesson about reflection: the first version failed on Eloquent's own `resolveCustomBuilderClass`,
+  > because "resolve" contains "solve" — hence the declaring-class filter and a floor on how many methods it checked, so
+  > a test that checked nothing cannot pass forever.)
+  >
+  > **The exposure, and it is the largest of the five:** days a priced contract milestone is late against the *accepted*
+  > programme, less the extension of time *awarded*. Two design decisions make it computable and both are §13's:
+  >
+  > - **Baseline and planned are two pairs of dates.** A test asserts they give different numbers on the same activity —
+  >   15 days late against the baseline, 10 against the plan. One pair would let every re-programme silently retire the
+  >   delay that caused it, and a job that has re-programmed around its own delays would report zero.
+  > - **`ld_applies` is separate from `is_contract_milestone`**, because a contract names dates it does not price.
+  >   Sectional completion of a car park may be contractual with no damages against it, and levying damages against a
+  >   planner's marker is what that separation prevents.
+  >
+  > Four more decisions worth carrying forward:
+  >
+  > - **Predecessors are stored and never solved.** A test records a finish-to-start link with a five-day lag and asserts
+  >   every date on the successor is byte-for-byte unchanged. What the links are read for is `blockedBy()` — "cladding
+  >   cannot start, and the two activities in front of it have not started either" is a conversation; "cladding cannot
+  >   start" is not.
+  > - **Progress is its own permission, and the first third name in this module.** Percent complete and actual dates are
+  >   what §14's earned value is computed from, and the person who reports 80% is not usually the person who owns the
+  >   consequence of it being 60%. There is deliberately *no* fourth name for the baseline: this application does not
+  >   accept programmes, it stores what P6 exported, so guarding a column only an import writes would be theatre.
+  > - **Two progress combinations are refused because they are not facts**: 100% with no actual finish, and an actual
+  >   finish below 100%. And progress needs a `data_date` — 40% as at the 1st and as at the 30th are different facts, and
+  >   without it neither can be compared with last month.
+  > - **`external_id` is unique per job *and source*.** The accepted programme from P6 and a subcontractor's fragment
+  >   from MS Project can carry the same activity id meaning different things, and a key that collided would make the
+  >   second import overwrite the first.
+  >
+  > **A correction to what 9f's entry promised.** It said the programme sub-phase would add `activity_id` to RFIs,
+  > submittals *and punch items*. It adds it to RFIs, submittals and **delay events** — §13's "somewhere to hang a delay
+  > event" — and deliberately **not** to punch items, because §16.4 never asked for one and the reason holds: a snag is
+  > located in *space*, which is what its location and grid reference are for, and the activity that built the thing is
+  > finished by definition. A test asserts the column's absence rather than leaving it as an intention.
+  >
+  > **A naming collision worth recording:** `App\Models\Activity` is already CRM's morph alias, and `ModuleManifest`
+  > refuses a duplicate at boot — which is the guard working. The classes are `ProgrammeActivity` and
+  > `ProgrammeActivityPredecessor`, which reads better anyway: a CRM activity and a programme activity are not the same
+  > kind of thing. `RoleGrantsTest::EXPECTED` moved to 56 / 136 / 170 / 190.
+  >
+  > **The badge rule needed a second half, and `PanelPerformanceTest` is what forced it.** 9e's rule was *a badge must be
+  > a single indexed count or it must not exist*. By 9g `construction_field` shipped five registers and each of them
+  > wanted one — five counts on every page in the application, which the dashboard and reports budgets both rejected.
+  > Two were also worse than a count: the delay register had been reading every awaiting-notice event since 9a just to
+  > pick a shade of red, and the programme's first badge eager-loaded delay events to subtract awarded time.
+  >
+  > So: **a badge earns its per-page query only where the failure it warns about is silent and time-barred** — where not
+  > looking today permanently costs money. Two survive, and both are contractual windows that *close*: §13's notice clock
+  > and §16.2's overdue RFIs. A missed notice is gone and no screen recovers it. The punch-list holdback and the
+  > liquidated-damages exposure are money **held or accruing** — visible the moment somebody opens the certificate or the
+  > programme, and not extinguished by nobody looking today — so they live in the registers' own columns and filters. The
+  > budgets were left untouched, which is the point of having them.
   >
   > **A pre-existing test fragility surfaced while verifying this phase, and it is worth recording because it will
   > surface again.** `DashboardStatsTest::test_a_disabled_module_takes_its_figure_off_the_dashboard` passes alone and
