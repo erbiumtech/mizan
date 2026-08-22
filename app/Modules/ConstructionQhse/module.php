@@ -42,11 +42,13 @@ return [
         'App\\Models\\ItpActivityParty' => \App\Modules\ConstructionQhse\Models\ItpActivityParty::class,
         'App\\Models\\Inspection' => \App\Modules\ConstructionQhse\Models\Inspection::class,
         'App\\Models\\InspectionCheck' => \App\Modules\ConstructionQhse\Models\InspectionCheck::class,
+        'App\\Models\\Ncr' => \App\Modules\ConstructionQhse\Models\Ncr::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\ConstructionQhse\\ItpResource' => \App\Modules\ConstructionQhse\Filament\Resources\Itps\ItpResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\InspectionResource' => \App\Modules\ConstructionQhse\Filament\Resources\Inspections\InspectionResource::class,
+        'App\\Filament\\Resources\\ConstructionQhse\\NcrResource' => \App\Modules\ConstructionQhse\Filament\Resources\Ncrs\NcrResource::class,
     ],
 
     'permission_groups' => [
@@ -73,6 +75,20 @@ return [
         ['name' => 'ConstructionInspectionView', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionInspectionUpdate', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionInspectionRelease', 'group' => 'ConstructionQhse'],
+
+        /*
+         * Non-conformance (§17.2), and **`ConstructionNcrDisposition` is the second name in this module that has to be
+         * its own.** §17.2 calls disposition "the field that decides whether money changes hands": *use as is* and
+         * *concession requested* accept work that does not meet the specification, which is the client giving something
+         * up, and that is not a call for whoever noticed the defect.
+         *
+         * Proposing a deduction rides on the same grant, because the two decisions are made in the same conversation
+         * and **the proposal withholds nothing.** The act that moves money is on the other side of the module boundary
+         * entirely, taken by whoever signs the certificate.
+         */
+        ['name' => 'ConstructionNcrView', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionNcrUpdate', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionNcrDisposition', 'group' => 'ConstructionQhse'],
     ],
 
     'role_grants' => [
@@ -85,11 +101,17 @@ return [
             'ConstructionItpView',
             'ConstructionInspectionView',
             'ConstructionInspectionUpdate',
+            // Anybody who can see the work is wrong should be able to say so. A register that made this difficult would
+            // record the nonconformities somebody remembered to mention.
+            'ConstructionNcrView',
+            'ConstructionNcrUpdate',
         ],
         'Accountant' => [
             'ConstructionItpView',
             'ConstructionInspectionView',
             'ConstructionInspectionUpdate',
+            'ConstructionNcrView',
+            'ConstructionNcrUpdate',
         ],
         /*
          * **Approving an ITP and releasing a hold point are both Manager's**, and for the same reason: an ITP is the
@@ -100,6 +122,8 @@ return [
             'ConstructionItpUpdate',
             'ConstructionItpApprove',
             'ConstructionInspectionRelease',
+            // Accepting work that does not meet the specification, and proposing what should be withheld for it.
+            'ConstructionNcrDisposition',
         ],
     ],
 

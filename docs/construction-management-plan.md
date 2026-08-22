@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete, and Phase 10a with them (2026-08-22). §17's NCRs, incidents, actions, permits and
-indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
+**Status:** **Phases 0 to 9 complete, and Phase 10a and 10b with them (2026-08-22). §17's actions table, incidents,
+permits and indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -2941,6 +2941,59 @@ document register before the modules that reference drawings.
   > failures in the same file**, which were waste — a badge reading a whole table, a badge eager-loading a relation —
   > and were fixed rather than budgeted for. Raise a ceiling for markup a new screen legitimately adds; never to make a
   > page that got heavier for no reason pass.
+  >
+  > **10b built 2026-08-22.** — `ConstructionNcrTest` (28 tests). `construction_ncrs`, `NcrService`, `NcrPolicy`, the
+  > register, and `NcrDeductionOffer` on the *contracts* side.
+  >
+  > **The property this sub-phase exists to prove is a negative one, and the exit condition of the whole phase asks for
+  > it: an NCR never deducts.** §17.2 is worth quoting in full because the code is shaped entirely by it — "it
+  > *proposes*; the certification service **offers** the deduction as a row on the certificate that a human confirms and
+  > signs for. FIDIC 14.6 permits the Engineer to withhold; it does not require it. A deduction appearing on a
+  > certificate that nobody decided on is the fastest available route to a dispute, and it will be the contractor's
+  > dispute, because the client's copy has already left the building."
+  >
+  > So: `proposeDeduction()` is the strongest verb in the quality module, and a test asserts it writes **zero rows** in
+  > `construction_certificate_deductions`. `NcrDeductionOffer::offersFor()` is a *read* — no observer, no scheduled job,
+  > nothing that runs while a certificate is being assembled. `take()` writes the row only when called with a
+  > certificate, an amount and a person, and it marks it **`is_automatic = false` with `approved_by` filled in** — two
+  > columns that already existed for exactly this distinction, since `AUTOMATIC_KINDS` is the set the certificate
+  > computes for itself and an NCR deduction is deliberately not in it.
+  >
+  > **And `deduction_certificate_id` is written on the contracts side, never by the quality module.** §17.2 names the
+  > precedent and it is exact: `final_settlements.payslip_id` is a nullable column recording which path paid a
+  > settlement, which the settlement never writes. *A proposal, not a posting, visible in the import graph* — and the new
+  > `construction_contracts -> construction_qhse` entry in `KNOWN_COUPLINGS` is where it is visible.
+  >
+  > **The amount is a decision, not a copy.** `take()` defaults to what was proposed and accepts less, because
+  > withholding less than the quality team assessed is the ordinary outcome of a conversation about it — and a version
+  > that copied the figure would make that conversation unrecordable. More than proposed is refused: it is a decision on
+  > its own terms and belongs in its own deduction, so the certificate can say where the figure came from.
+  >
+  > Five more decisions worth carrying forward:
+  >
+  > - **A disposition is chosen, never defaulted**, and `raise()` drops one that arrives with the form. It is "the field
+  >   that decides whether money changes hands", and a default of `rework` would settle that on every new row before
+  >   anybody had looked at the work.
+  > - **A concession needs its reference.** Asking the client to accept nonconforming work and not recording what they
+  >   said is how a job ends up with an as-built nobody can defend.
+  > - **Closing needs a re-inspection that passed, and not the one that failed.** Verifying an NCR against its own
+  >   failure "proves the opposite of what it claims" — a test asserts all three refusals.
+  > - **CAPA is two pairs**, and the register reports `fixed, not prevented`: the corrective action done and the
+  >   preventive action outstanding, which is the pour fixed and the reason it happened left alone. That is the commonest
+  >   CAPA failure and it is invisible in any design that merges the two fields.
+  > - **Severity is not a proxy for cost.** Critical means structural adequacy, safety or a statutory requirement.
+  >   Deriving it from `cost_impact` would make a cheap structural defect look minor, which is the one direction that
+  >   gets somebody hurt.
+  >
+  > **The exposure this register carries** is accepted nonconforming work with nothing proposed against it: *use as is*
+  > or *concession requested*, no deduction proposed, no back charge — the client took less than the specification and
+  > got nothing for it. Sixth instance of this section's shape, and the first where the money is leaving in the other
+  > direction.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 61 / 141 / 179 / 199. **Three names, and deliberately not a fourth**: proposing a
+  > deduction rides on `ConstructionNcrDisposition` because the two decisions are made in the same conversation and the
+  > proposal withholds nothing. There is no `ConstructionNcrDeduct` because the act that moves money is on the far side
+  > of the module boundary.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 
