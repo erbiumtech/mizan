@@ -1,6 +1,6 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 9 complete, and Phase 10a to 10c with them (2026-08-22). §17's incidents, permits and
+**Status:** **Phases 0 to 9 complete, and Phase 10a to 10d with them (2026-08-22). §17's permits, toolbox talks and
 indicators are what remain of Phase 10, then Phase 11's reconciliation, WIP and close.**
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
@@ -3040,6 +3040,46 @@ document register before the modules that reference drawings.
   > still for want of a signature nobody knows is missing. A critical NCR and an overdue action are *loud* — each is the
   > first row of a screen somebody opens daily — so a count of them on every page in the application is spending the
   > whole panel on a number already visible on its own.
+  >
+  > **10d built 2026-08-22.** — `ConstructionIncidentTest` (26 tests). `construction_incidents`,
+  > `construction_incident_witnesses`, `construction_incident_photos`, `IncidentService`, `IncidentPolicy`, the register
+  > and a witnesses tab.
+  >
+  > **Near miss is a kind rather than a checkbox, and the reason is arithmetic rather than taxonomy.** §17.3: "near-misses
+  > reported per lost-time injury is the leading indicator that predicts the next one." A near miss has no injury record
+  > to hang a flag on — nobody was hurt — so stored as a checkbox it cannot be counted and the ratio cannot exist. A test
+  > reports twelve near misses and asserts the ratio is **null** rather than zero, because no injury to divide by is the
+  > *good* state and must not read as a bad number.
+  >
+  > **Reporting is the widest permission in the whole module**, and that follows directly: a grant that made reporting
+  > hard would suppress the number it most needs. A site reporting no near misses is not a safe site, it is a quiet one.
+  >
+  > Five more decisions worth carrying forward:
+  >
+  > - **`occurred_at` is a datetime**, because shift timing is half the analysis. Hour ten of a twelve-hour shift is a
+  >   finding; the 14th of August is not. The register prints the hour of the day beside the date.
+  > - **The reporting delay is computed, printed on the register, and shown on the form while somebody types.** §17.3
+  >   makes it a safety metric in its own right — "a site that takes four days to report a first-aid case is a site where
+  >   the next one is not reported at all" — and it is kept from `reported_at` rather than `created_at`, because an
+  >   incident typed up a week later from a paper form was reported when it was reported. **What counts as late is
+  >   configuration**, because a procedure saying two hours and one saying a shift are not measuring the same thing.
+  > - **`is_lost_time` is never inferred from a day count.** A lost-time injury where nobody yet knows how long somebody
+  >   is off is the ordinary state for a fortnight, and deriving the flag would classify it as a medical-treatment case
+  >   for exactly as long as the reportable clock is running. First aid is deliberately outside the recordable set, since
+  >   including it is the commonest way a rate becomes incomparable with anybody else's.
+  > - **The injured person's name works alone**, per §17.3 — and so does a witness's. A register that required employee
+  >   records would record the witnesses who happened to be on the payroll, which is not the same set as the witnesses.
+  > - **A witness statement carries its own date**, and the tab prints the gap in days. One taken on the day is worth
+  >   several taken three weeks later, and an investigation that cannot say when it spoke to somebody is one nobody can
+  >   weigh. A statement typed with no date is dated on entry rather than stored undated.
+  >
+  > **The exposure here is the only statutory clock in the module**: reportable to an authority, with nothing recording
+  > that anybody told them. It is the module's second badge — the rule's word is *silent*, and a duty with a legal
+  > deadline that no other screen watches is exactly that. **Closing is refused twice over**: without a cause recorded,
+  > because an incident closed with no cause is a lesson nobody learned; and while a reportable incident has no authority
+  > date, because closing one would file a statutory duty as finished.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 65 / 145 / 185 / 205.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
 

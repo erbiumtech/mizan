@@ -44,6 +44,9 @@ return [
         'App\\Models\\InspectionCheck' => \App\Modules\ConstructionQhse\Models\InspectionCheck::class,
         'App\\Models\\Ncr' => \App\Modules\ConstructionQhse\Models\Ncr::class,
         'App\\Models\\QhseAction' => \App\Modules\ConstructionQhse\Models\QhseAction::class,
+        'App\\Models\\Incident' => \App\Modules\ConstructionQhse\Models\Incident::class,
+        'App\\Models\\IncidentWitness' => \App\Modules\ConstructionQhse\Models\IncidentWitness::class,
+        'App\\Models\\IncidentPhoto' => \App\Modules\ConstructionQhse\Models\IncidentPhoto::class,
     ],
 
     'resources' => [
@@ -51,6 +54,7 @@ return [
         'App\\Filament\\Resources\\ConstructionQhse\\InspectionResource' => \App\Modules\ConstructionQhse\Filament\Resources\Inspections\InspectionResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\NcrResource' => \App\Modules\ConstructionQhse\Filament\Resources\Ncrs\NcrResource::class,
         'App\\Filament\\Resources\\ConstructionQhse\\QhseActionResource' => \App\Modules\ConstructionQhse\Filament\Resources\QhseActions\QhseActionResource::class,
+        'App\\Filament\\Resources\\ConstructionQhse\\IncidentResource' => \App\Modules\ConstructionQhse\Filament\Resources\Incidents\IncidentResource::class,
     ],
 
     'permission_groups' => [
@@ -105,6 +109,21 @@ return [
         ['name' => 'ConstructionActionView', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionActionUpdate', 'group' => 'ConstructionQhse'],
         ['name' => 'ConstructionActionVerify', 'group' => 'ConstructionQhse'],
+
+        /*
+         * Incidents (§17.3), and **`ConstructionIncidentReport` is the widest grant in this module on purpose.**
+         *
+         * §17.3's leading indicator is near misses per lost-time injury, and a permission that made reporting hard would
+         * suppress exactly the number it most needs. Anybody who can see something nearly go wrong should be able to
+         * write it down — which is why reporting sits with Employee and is not gated behind a safety role.
+         *
+         * **`ConstructionIncidentInvestigate` is separate** because closing an incident asserts that its cause is
+         * understood and its lesson recorded, and the person who was involved is not the person to conclude that. It
+         * also carries the authority report, which is a statutory duty with somebody's name against it.
+         */
+        ['name' => 'ConstructionIncidentView', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionIncidentReport', 'group' => 'ConstructionQhse'],
+        ['name' => 'ConstructionIncidentInvestigate', 'group' => 'ConstructionQhse'],
     ],
 
     'role_grants' => [
@@ -124,6 +143,9 @@ return [
             // Actions are the working list, and site is who works from it.
             'ConstructionActionView',
             'ConstructionActionUpdate',
+            // The widest grant here: an incident nobody can report is an incident nobody reports.
+            'ConstructionIncidentView',
+            'ConstructionIncidentReport',
         ],
         'Accountant' => [
             'ConstructionItpView',
@@ -133,6 +155,8 @@ return [
             'ConstructionNcrUpdate',
             'ConstructionActionView',
             'ConstructionActionUpdate',
+            'ConstructionIncidentView',
+            'ConstructionIncidentReport',
         ],
         /*
          * **Approving an ITP and releasing a hold point are both Manager's**, and for the same reason: an ITP is the
@@ -147,6 +171,8 @@ return [
             'ConstructionNcrDisposition',
             // Confirming somebody else's work is done.
             'ConstructionActionVerify',
+            // Concluding what caused something, and telling the authority.
+            'ConstructionIncidentInvestigate',
         ],
     ],
 
