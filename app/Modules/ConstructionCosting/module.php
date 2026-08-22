@@ -57,6 +57,7 @@ return [
         // claims either, which is what makes the short alias safe here.
         'App\\Models\\ControlAccount' => \App\Modules\ConstructionCosting\Models\ControlAccount::class,
         'App\\Models\\GlPosting' => \App\Modules\ConstructionCosting\Models\GlPosting::class,
+        'App\\Models\\Reconciliation' => \App\Modules\ConstructionCosting\Models\Reconciliation::class,
     ],
 
     'resources' => [
@@ -80,6 +81,7 @@ return [
         'App\\Filament\\Pages\\ConstructionCosting\\JobCostReport' => \App\Modules\ConstructionCosting\Filament\Pages\JobCostReport::class,
         'App\\Filament\\Pages\\ConstructionCosting\\InvoiceAllocationQueue' => \App\Modules\ConstructionCosting\Filament\Pages\InvoiceAllocationQueue::class,
         'App\\Filament\\Pages\\ConstructionCosting\\ThreeWayMatchReport' => \App\Modules\ConstructionCosting\Filament\Pages\ThreeWayMatchReport::class,
+        'App\\Filament\\Pages\\ConstructionCosting\\ReconciliationReport' => \App\Modules\ConstructionCosting\Filament\Pages\ReconciliationReport::class,
     ],
 
     'permission_groups' => [

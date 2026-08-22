@@ -118,10 +118,17 @@ class InvoiceAllocationService
              *
              * `mirrored`, not `pending`: the purchase invoice is what reaches the general ledger, and this is the same
              * money seen from the job's side. An entry marked `pending` here would sit on §4's chase-list forever.
+             *
+             * **And it carries the journal entry the invoice reached**, which §4.2's reconciliation needs. Saying "somebody
+             * else posted this" is not enough for a report that has to say *which* GL cost has a job behind it — and
+             * §4.2's nastiest named cause is "cost entries pointing at a journal entry that was later reversed or
+             * unposted", which is undetectable unless a mirrored entry points at one. Null where the invoice has not
+             * been posted yet, which is a state §4.2 reports rather than a state this refuses.
              */
             $entry = $this->ledger->record($job, $code, [
                 'kind' => CostEntry::KIND_ACTUAL,
                 'gl_treatment' => CostEntry::GL_MIRRORED,
+                'journal_entry_id' => $invoice->journal_entry_id,
                 'amount' => round($amount, 2),
                 'quantity' => $attributes['quantity'] ?? null,
                 'incurred_on' => $invoice->invoice_date?->toDateString() ?? now()->toDateString(),
