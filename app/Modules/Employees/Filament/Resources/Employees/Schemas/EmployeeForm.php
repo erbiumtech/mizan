@@ -116,6 +116,22 @@ class EmployeeForm
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
+                // A job fact like the two above, so the same admin-only gate: an
+                // employee promoting themselves off probation would be a payroll
+                // and a gratuity problem, not just a data one. Changing it writes
+                // a dated history row, which is what makes "were they permanent
+                // in March" answerable — see App\Modules\Employees\Services\JobHistory.
+                //
+                // Options from the model, not spelled again here: two screens
+                // each writing their own list is how Company::TYPE_LABELS came to
+                // exist.
+                Select::make('employment_type')
+                    ->label('Employment Type')
+                    ->options(Employee::EMPLOYMENT_TYPES)
+                    ->placeholder('Not recorded')
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly()),
+
                 // Reporting line. Only Admins/Managers/CEO may assign it. The
                 // picker excludes the employee themselves and their whole
                 // downline to prevent cycles; a matching validation rule

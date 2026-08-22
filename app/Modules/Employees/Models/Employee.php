@@ -4,12 +4,11 @@ namespace App\Modules\Employees\Models;
 
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Core\Models\User;
-use App\Modules\Projects\Models\Project;
+use App\Modules\Employees\Services\JobHistory;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -19,7 +18,11 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id', 'name', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
-        'is_active', 'designation', 'department',
+        'is_active', 'designation', 'department', 'employment_type',
+        // What this employee's time bills at, when the project does not say. Nullable
+        // and unused by any company that bills by headcount rather than by the hour.
+        'hourly_rate',
+        'left_on', 'leaving_reason', 'notice_served_until',
         'date_of_joining', 'date_of_birth', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',
     ];
@@ -27,6 +30,10 @@ class Employee extends Model
     protected $casts = [
         'date_of_joining' => 'date',
         'date_of_birth' => 'date',
+        // When they left, if they have. Not a substitute for `is_active`, which
+        // stays the flag every query filters on — see the migration.
+        'left_on' => 'date',
+        'notice_served_until' => 'date',
     ];
 
     protected static function booted()
@@ -62,6 +69,23 @@ class Employee extends Model
             $employee->routeChangesThroughApproval();
         });
 
+        // Every change to a job fact becomes a history row, whatever made it.
+        //
+        // On the model rather than in the Filament resource on purpose: these
+        // columns are written by the employee form, by an approved
+        // EmployeeChangeRequest, by the CSV importer and by tinker, and a hook on
+        // one of those four would leave the other three overwriting history
+        // silently — which is the exact failure App\Modules\Employees\Services\JobHistory
+        // exists to end. `updated` rather than `saving`, because a row should
+        // record a change that actually landed.
+        static::updated(function (Employee $employee) {
+            if (static::$skipJobHistory || ! $employee->wasChanged(self::JOB_FACTS)) {
+                return;
+            }
+
+            app(JobHistory::class)->captureCurrent($employee);
+        });
+
         static::deleting(function ($employee) {
             // Keep the hierarchy connected when a manager is removed: reparent
             // their direct reports to the manager's own manager (or detach to
@@ -69,6 +93,57 @@ class Employee extends Model
             self::where('manager_id', $employee->id)
                 ->update(['manager_id' => $employee->manager_id]);
         });
+    }
+
+    /**
+     * The job facts that are worth a history row — the columns whose past values
+     * an approval chain or a cost report has to be able to reconstruct.
+     *
+     * Deliberately not every column. A corrected phone number has no history
+     * anybody needs, and recording one would bury the three that matter.
+     *
+     * @var array<int, string>
+     */
+    public const JOB_FACTS = ['designation', 'department', 'manager_id', 'employment_type'];
+
+    /**
+     * What kinds of employment a company records, as value => label.
+     *
+     * A constant rather than an enum column: an enum change is a table rebuild on
+     * MySQL and unsupported on SQLite, and the list varies by company. Kept here
+     * rather than in the form so the form and any future report agree — the
+     * lesson `Company::TYPE_LABELS` records, where two screens each wrote their
+     * own pair and disagreed.
+     *
+     * @var array<string, string>
+     */
+    public const EMPLOYMENT_TYPES = [
+        'permanent' => 'Permanent',
+        'contract' => 'Contract',
+        'probation' => 'Probation',
+        'intern' => 'Intern',
+    ];
+
+    /** Set while JobHistory writes its own denormalised sync back to this row. */
+    protected static bool $skipJobHistory = false;
+
+    /**
+     * Run a write without it recording a history row.
+     *
+     * For exactly one caller: `JobHistory::record()` writes the row itself and
+     * then projects it onto these columns, so the hook above would file a
+     * duplicate for the same change — and, because that sync saves the employee,
+     * would do it on every save in a loop.
+     */
+    public static function withoutJobHistory(callable $callback): mixed
+    {
+        static::$skipJobHistory = true;
+
+        try {
+            return $callback();
+        } finally {
+            static::$skipJobHistory = false;
+        }
     }
 
     /** Set while an approved request is being written, to avoid re-routing it. */
@@ -198,6 +273,21 @@ class Employee extends Model
         return $this->hasMany(self::class, 'manager_id');
     }
 
+    /**
+     * Every recorded change to this employee's job, newest first.
+     *
+     * Newest first because the one question this relation is loaded for is "what
+     * is the latest row at or before date X", and `->first()` after a `where`
+     * answers it without a second sort. It is emptiest exactly where it matters —
+     * every employee that predates this feature has no rows at all — so read
+     * through `App\Modules\Employees\Services\JobHistory`, which falls back to the
+     * current columns on this record instead of answering null.
+     */
+    public function jobHistory(): HasMany
+    {
+        return $this->hasMany(EmployeeJobHistory::class)->orderByDesc('effective_from');
+    }
+
     /** Display label used in selects/columns: "EMP-1 - John Doe". */
     public function getDisplayLabelAttribute(): string
     {
@@ -214,6 +304,16 @@ class Employee extends Model
      */
     public function fullName(): string
     {
+        // Loaded explicitly rather than read lazily. This is called from selects, columns and labels
+        // all over the panel, on records that arrive from anywhere, so it cannot assume the caller
+        // eager-loaded the user — and reading it lazily is a violation the moment the guard is on.
+        //
+        // Note what this does *not* fix: one query per employee is still one query per employee, and
+        // `loadMissing` only makes that explicit rather than fatal. Anywhere this is called over a
+        // list — a table column, a select's options — the query behind the list should eager-load
+        // `user`, and this stays as the safety net for the single-record callers.
+        $this->loadMissing('user');
+
         return (string) ($this->user?->name ?? $this->name ?? '');
     }
 
@@ -228,34 +328,19 @@ class Employee extends Model
         return $this->hasMany(EmployeeChangeRequest::class);
     }
 
-    /** Projects this employee is (or was) assigned to, with the stint pivot. */
-    public function projects(): BelongsToMany
-    {
-        return $this->belongsToMany(Project::class, 'project_employee')
-            ->withPivot(['id', 'role', 'allocation_pct', 'from_date', 'to_date'])
-            ->withTimestamps();
-    }
-
-    /** Assignments that have not ended yet. */
-    public function currentProjects(): BelongsToMany
-    {
-        return $this->projects()->where(function ($query) {
-            $query->whereNull('project_employee.to_date')
-                ->orWhereDate('project_employee.to_date', '>=', today()->toDateString());
-        });
-    }
-
-    /** Projects where this employee is the primary manager. */
-    public function managedProjects(): HasMany
-    {
-        return $this->hasMany(Project::class, 'manager_employee_id');
-    }
-
-    /** Projects where this employee is the secondary manager / stand-in. */
-    public function secondaryProjects(): HasMany
-    {
-        return $this->hasMany(Project::class, 'secondary_employee_id');
-    }
+    /*
+     * The four project relations that used to be declared here are registered by Projects instead —
+     * `ProjectsServiceProvider::contributeToEmployees()`, through `Model::resolveRelationUsing()`.
+     * `$employee->projects()`, `->managedProjects()` and `->secondaryProjects()` all still work, and now
+     * exist only when the Projects module does, which is the honest answer.
+     *
+     * The reason is packaging, not taste: `projects` requires `employees`, so an Employee naming a
+     * Project made the pair a cycle, and a cycle cannot be expressed as a composer dependency at all.
+     * A string class name would have hidden that from the lint while leaving it true — see
+     * docs/module-packaging-plan.md, phase 0, on the difference.
+     *
+     * `currentProjects()` went with them and was not re-registered: nothing called it.
+     */
 
     /** The employee record of the signed-in user, if they have one. */
     public static function forUser(?int $userId = null): ?self

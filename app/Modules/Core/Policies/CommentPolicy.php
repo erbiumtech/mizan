@@ -4,7 +4,7 @@ namespace App\Modules\Core\Policies;
 
 use App\Modules\Core\Models\Comment;
 use App\Modules\Core\Models\User;
-use App\Modules\Payroll\Models\Payslip;
+use App\Support\Contracts\OwnedByUser;
 
 class CommentPolicy
 {
@@ -54,10 +54,12 @@ class CommentPolicy
     {
         $commentable = $comment->commentable;
 
-        if ($commentable instanceof Payslip) {
-            return $commentable->employee && $commentable->employee->user_id === $user->id;
-        }
-
-        return false;
+        // Asked of the model, not decided here.
+        //
+        // This was `$commentable instanceof Payslip`, which made Core's comment policy depend on Payroll
+        // for one question (docs/module-packaging-plan.md §9). Any commentable model may now answer it, so
+        // the self-service visibility a payslip had is available to an expense claim or a leave request by
+        // implementing one method.
+        return $commentable instanceof OwnedByUser && $commentable->isOwnedBy($user);
     }
 }

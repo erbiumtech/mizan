@@ -108,13 +108,14 @@ class CrossDatabaseUserColumnTest extends AccountingTestCase
 
     public function test_the_employees_list_loads(): void
     {
-        Livewire::test(ListEmployees::class)->assertSuccessful();
+        Livewire::test(ListEmployees::class)->loadTable()->assertSuccessful();
     }
 
     /** The reported failure: the paginator's count query spanned both databases. */
     public function test_searching_by_user_name_works_across_the_database_boundary(): void
     {
         Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->set('tableSearch', 'Zoe')
             ->assertSuccessful()
             ->assertSee('EMP-Z')
@@ -124,6 +125,7 @@ class CrossDatabaseUserColumnTest extends AccountingTestCase
     public function test_searching_by_company_email_works_across_the_database_boundary(): void
     {
         Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->set('tableSearch', 'adam@test.local')
             ->assertSuccessful()
             ->assertSee('EMP-A')
@@ -133,6 +135,7 @@ class CrossDatabaseUserColumnTest extends AccountingTestCase
     public function test_a_search_matching_no_user_returns_nothing_rather_than_everything(): void
     {
         Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->set('tableSearch', 'nobody-by-this-name')
             ->assertSuccessful()
             ->assertDontSee('EMP-A')
@@ -147,6 +150,7 @@ class CrossDatabaseUserColumnTest extends AccountingTestCase
             ->all();
 
         $ascending = Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->sortTable('user.name')
             ->assertSuccessful();
 
@@ -161,6 +165,7 @@ class CrossDatabaseUserColumnTest extends AccountingTestCase
     public function test_searching_a_tenant_column_still_works(): void
     {
         Livewire::test(ListEmployees::class)
+            ->loadTable()
             ->set('tableSearch', 'EMP-Z')
             ->assertSuccessful()
             ->assertSee('EMP-Z')

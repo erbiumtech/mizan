@@ -1,6 +1,17 @@
 # Custom Fields — Implementation Plan
 
-**Status:** Proposed
+**Status:** **Built — via the fallback route, not the plugin.** The paid Relaticle
+plugin was not bought. Custom fields are the "build-it-ourselves lite" design in
+§6: `custom_fields` + `custom_field_values` (three tenant migrations from
+`2026_07_25_210000`, adding validation then placeholders), with
+`App\Filament\Support\CustomFieldsSchema` supplying form and table components, wired
+into Invoices, Contacts, Employees and Products.
+
+**§5's phased plan below is therefore for the route not taken**, which is why its
+boxes are unticked — Phase 0 begins *"acquire license"*. It is kept as the record of
+what buying the plugin would have cost, not as outstanding work. The real design is
+§6 onward.
+
 **Created:** 2026-07-25
 **Source:** [Relaticle Custom Fields — plugin page](https://filamentphp.com/plugins/relaticle-custom-fields#key-features) · [install docs](https://relaticle.github.io/custom-fields/getting-started/installation)
 

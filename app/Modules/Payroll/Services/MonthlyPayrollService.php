@@ -6,7 +6,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 use Illuminate\Support\Collection;
 
 /**
@@ -41,21 +41,54 @@ class MonthlyPayrollService
 
         $created = collect();
 
+        $figures = app(AttendanceFigures::class);
+
         foreach ($this->employeesDueAPayslip($month, $fiscalYear) as $employee) {
-            $created->push(Payslip::create([
+            $payslip = Payslip::create([
                 'employee_id' => $employee->id,
                 'fiscal_year_id' => $fiscalYear->id,
                 'month' => $month,
-                // Attendance is what payroll cannot know: these are the defaults a
-                // clerk adjusts, the same ones the form starts from.
-                'total_working_days' => 0,
-                'paid_days' => 0,
-                'lop_days' => 0,
-                'leaves_taken' => 0,
-            ]));
+                // Attendance was what payroll could not know. With `leave` and
+                // `attendance` licensed it now can, so these come from the records
+                // rather than from zeros a clerk has to correct — and AttendanceFigures
+                // returns exactly those zeros for a company that has neither module,
+                // which is the behaviour this line always had.
+                //
+                // Zeros still mean "not known", and pro-rating still refuses to divide
+                // by them. Filling these in does not by itself change any pay: that
+                // needs payroll.prorate_on_attendance, which is off.
+                ...$figures->for($employee, $month, $fiscalYear),
+                ...$this->overtimeFor($figures, $employee, $month, $fiscalYear),
+            ]);
+
+            // Claim the leave days this payslip counted, so no later month counts them
+            // again — and so leave approved for a month that is already signed off lands
+            // here rather than being lost. Done AFTER creation because it needs the
+            // payslip's id, and only here: reading the figures happens on every form
+            // render, and a read that claimed days would burn them for whoever looked.
+            $figures->settle($employee, $month, $fiscalYear, $payslip);
+
+            $created->push($payslip);
         }
 
         return $created;
+    }
+
+    /**
+     * The month's overtime minutes, when attendance can say.
+     *
+     * Kept separate from the four attendance columns because it is phase 3a rather than
+     * phase 3, and because an empty array is the right answer for a company without
+     * attendance — writing `overtime_minutes => 0` would claim the month had none,
+     * where null says nobody measured.
+     *
+     * @return array<string, int>
+     */
+    private function overtimeFor(AttendanceFigures $figures, $employee, string $month, FiscalYear $fiscalYear): array
+    {
+        $minutes = $figures->overtimeMinutes($employee, $month, $fiscalYear);
+
+        return $minutes > 0 ? ['overtime_minutes' => $minutes] : [];
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Modules\Core\Models\User;

@@ -8,6 +8,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CustomField;
 use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Core\Models\Holiday;
 use App\Modules\Core\Models\TableView;
 use App\Modules\Core\Models\User;
 use App\Modules\Core\Policies\ActivityLogPolicy;
@@ -16,10 +17,12 @@ use App\Modules\Core\Policies\CompanyPolicy;
 use App\Modules\Core\Policies\CustomFieldPolicy;
 use App\Modules\Core\Policies\EmailTemplatePolicy;
 use App\Modules\Core\Policies\FiscalYearPolicy;
+use App\Modules\Core\Policies\HolidayPolicy;
 use App\Modules\Core\Policies\PermissionPolicy;
 use App\Modules\Core\Policies\RolePolicy;
 use App\Modules\Core\Policies\TableViewPolicy;
 use App\Modules\Core\Policies\UserPolicy;
+use App\Modules\Core\Services\HolidayCalendar;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
@@ -44,6 +47,7 @@ class CoreServiceProvider extends ServiceProvider
         Company::class => CompanyPolicy::class,
         CustomField::class => CustomFieldPolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
+        Holiday::class => HolidayPolicy::class,
         TableView::class => TableViewPolicy::class,
         EmailTemplate::class => EmailTemplatePolicy::class,
         User::class => UserPolicy::class,
@@ -55,6 +59,15 @@ class CoreServiceProvider extends ServiceProvider
         Role::class => RolePolicy::class,
         Permission::class => PermissionPolicy::class,
     ];
+
+    public function register(): void
+    {
+        // A singleton because its cache is only worth having if it is shared:
+        // the leave-day generator resolves it once and loops, but attendance and
+        // any validation in the same request resolve it again, and a fresh
+        // instance each time reads the whole table each time.
+        $this->app->singleton(HolidayCalendar::class);
+    }
 
     public function boot(): void
     {

@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Models;
 
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
+use App\Modules\Core\Models\Bank;
 use App\Traits\Auditable;
 
 class Beneficiary extends Model

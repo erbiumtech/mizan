@@ -2,8 +2,8 @@
 
 namespace App\Modules\Core\Filament\Resources\FiscalYears\Tables;
 
-use App\Modules\Accounting\Services\FiscalYearClosingService;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\Contracts\FiscalYearCloseCheck;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -57,7 +57,7 @@ class FiscalYearsTable
                     // The blockers are listed up front: finding out why only after
                     // confirming a lock is a poor trade.
                     ->modalDescription(function (FiscalYear $record): string {
-                        $blockers = app(FiscalYearClosingService::class)->blockers($record);
+                        $blockers = app(FiscalYearCloseCheck::class)->blockers($record);
 
                         return $blockers === []
                             ? "Once closed, nothing may post into {$record->name}. You can reopen it later."
@@ -66,7 +66,7 @@ class FiscalYearsTable
                     ->modalSubmitActionLabel('Close year')
                     ->action(function (FiscalYear $record): void {
                         try {
-                            app(FiscalYearClosingService::class)->close($record, auth()->user());
+                            app(FiscalYearCloseCheck::class)->close($record, auth()->user());
 
                             Notification::make()
                                 ->title("Fiscal year {$record->name} closed.")
@@ -91,7 +91,7 @@ class FiscalYearsTable
                     ->requiresConfirmation()
                     ->modalDescription(fn (FiscalYear $record): string => "Reopening {$record->name} allows entries to post into it again.")
                     ->action(function (FiscalYear $record): void {
-                        app(FiscalYearClosingService::class)->reopen($record, auth()->user());
+                        app(FiscalYearCloseCheck::class)->reopen($record, auth()->user());
 
                         Notification::make()
                             ->title("Fiscal year {$record->name} reopened.")

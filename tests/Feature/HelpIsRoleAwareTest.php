@@ -251,6 +251,9 @@ class HelpIsRoleAwareTest extends TestCase
 
         $held = \Spatie\Permission\Models\Role::query()
             ->where('company_id', $company->getKey())
+            // Eager-loaded: the flatMap below reads every role's permissions, which is a query per
+            // role read lazily — and a violation now that lazy loading is off outside production.
+            ->with('permissions')
             ->get()
             ->flatMap(fn ($role) => $role->permissions->pluck('name'))
             ->unique()

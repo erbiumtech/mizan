@@ -8,19 +8,25 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Payroll\Events\PayslipReviewed;
 use App\Modules\Payroll\Services\PayComponentRecorder;
 use App\Modules\Payroll\Services\PayrollPostingService;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use App\Notifications\PayslipRejected;
+use App\Support\Contracts\AdvanceLedger;
+use App\Support\Contracts\OwnedByUser;
+use App\Support\Contracts\ReimbursableClaims;
 use App\Support\Impersonation;
+use App\Support\PayrollMonth;
+use App\Support\PayslipSettlement;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
-class Payslip extends Model
+class Payslip extends Model implements OwnedByUser
 {
     use Auditable, HasComments;
 
@@ -32,7 +38,13 @@ class Payslip extends Model
 
     protected $fillable = [
         'employee_id', 'month', 'fiscal_year_id', 'total_working_days', 'paid_days', 'lop_days',
-        'leaves_taken', 'basic_wage', 'medical_allowance', 'device_allowance',
+        'leaves_taken',
+        // Phase 3/3a: what the calculation RECORDED about this month, so a
+        // recalculation reproduces it rather than re-deriving it from settings that
+        // may since have changed. See AttendanceProration::recordedBasis().
+        'proration_divisor', 'proration_basis_days',
+        'overtime_minutes', 'overtime_hourly_rate', 'overtime_multiplier',
+        'basic_wage', 'medical_allowance', 'device_allowance',
         'petrol_allowance', 'extra_work_hours', 'bonus', 'withholding_tax',
         'advances', 'meal_deduction', 'esi_health_insurance', 'annual_income_tax', 'total_net_income', 'total_earnings',
         'total_deductions', 'net_salary',
@@ -115,6 +127,13 @@ class Payslip extends Model
             'employee_review_recorded_by_name' => $onBehalfOf?->name,
         ]);
 
+        // Anything holding a copy of this decision updates itself now. Today that is the salary payment,
+        // which refuses to be released until the payslip is accepted and reads its own column rather than
+        // this one — see docs/module-packaging-plan.md §8 Group C. Fired after the update so a listener
+        // reads the new state, and before the notification so a rejection cannot be told to staff while a
+        // payment still looks releasable.
+        PayslipReviewed::dispatch($this);
+
         if ($status === self::REVIEW_REJECTED) {
             $staff = User::holdingPermission('PayslipUpdate')
                 ->where('id', '!=', $this->employee?->user_id)
@@ -128,6 +147,17 @@ class Payslip extends Model
         }
 
         return $this;
+    }
+
+    /**
+     * Whose payslip this is.
+     *
+     * Answers App\Support\Contracts\OwnedByUser, which is how `CommentPolicy` lets an employee read the
+     * comments on their own payslip without Core's policy knowing what a payslip is.
+     */
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->employee !== null && $this->employee->user_id === $user->getKey();
     }
 
     public function employee()
@@ -158,6 +188,32 @@ class Payslip extends Model
     public function journalEntries()
     {
         return $this->morphMany(JournalEntry::class, 'source');
+    }
+
+    /**
+     * This payslip as something another module's ledger can settle against.
+     *
+     * The advance ledger and the claims process both attach to a payslip, and both live in modules that
+     * *require* Payroll — so the contracts they are asked through cannot name this class, or shared code would
+     * be undeployable without this module. They get the four values they read from one instead. See
+     * `App\Support\PayslipSettlement` and docs/module-packaging-plan.md §11.
+     *
+     * **The date is computed here, and that is the point.** "The month payroll took it, not the day the row
+     * was written" is a payroll fact: a July payslip is often processed in August, and dating a recovery by
+     * when somebody pressed save would put July's instalment in August — visible on the advance's own history,
+     * and wrong on any bill that credits a month's repayments back. This was `AdvanceService::recoveryDate()`,
+     * and it belongs on this side of the boundary.
+     *
+     * @param  float  $amount  what the payslip took or pays back — `advances` or `expense_reimbursement`
+     */
+    public function settlementOf(float $amount): PayslipSettlement
+    {
+        return new PayslipSettlement(
+            payslipId: $this->getKey(),
+            employeeId: $this->employee_id,
+            amount: $amount,
+            effectiveOn: PayrollMonth::lastDay($this->month, $this->fiscalYear)->toDateString(),
+        );
     }
 
     protected static function booted()
@@ -237,7 +293,21 @@ class Payslip extends Model
                 $payslip->meal_deduction,
                 $payslip->esi_health_insurance,
                 $payslip->expense_reimbursement,
-                $payslip->id
+                $payslip->id,
+                // Phase 3/3a. What the payslip knows about the month: the pro-rating
+                // inputs, and whatever it has already recorded about how it was
+                // calculated. Passing the recorded values is what stops a settled
+                // month moving when a company later changes the divisor — this hook
+                // re-runs on EVERY save, including a clerk fixing a typo.
+                [
+                    'total_working_days' => $payslip->total_working_days,
+                    'lop_days' => $payslip->lop_days,
+                    'proration_divisor' => $payslip->proration_divisor,
+                    'proration_basis_days' => $payslip->proration_basis_days,
+                    'overtime_minutes' => $payslip->overtime_minutes,
+                    'overtime_hourly_rate' => $payslip->overtime_hourly_rate,
+                    'overtime_multiplier' => $payslip->overtime_multiplier,
+                ]
             );
 
             if ($calculatedData) {
@@ -255,6 +325,16 @@ class Payslip extends Model
                 $payslip->total_earnings = $calculatedData['total_earnings'];
                 $payslip->total_deductions = $calculatedData['total_deductions'];
                 $payslip->net_salary = $calculatedData['net_salary'];
+
+                // Written back so the next recalculation reproduces this one. Null
+                // when nothing was pro-rated or no overtime was paid, which clears a
+                // stale basis on a payslip whose attendance was corrected to a full
+                // month.
+                $payslip->proration_divisor = $calculatedData['proration_divisor'] ?? null;
+                $payslip->proration_basis_days = $calculatedData['proration_basis_days'] ?? null;
+                $payslip->overtime_minutes = $calculatedData['overtime_minutes'] ?? null;
+                $payslip->overtime_hourly_rate = $calculatedData['overtime_hourly_rate'] ?? null;
+                $payslip->overtime_multiplier = $calculatedData['overtime_multiplier'] ?? null;
             }
         };
 
@@ -276,38 +356,23 @@ class Payslip extends Model
         // follows what payroll actually took. Idempotent per payslip: payroll
         // recalculates on every save, and a second row would recover the same
         // instalment twice.
-        $syncAdvances = function ($payslip) {
-            if (! modules()->enabled('advances')) {
-                return;
-            }
-
-            app(\App\Modules\Advances\Services\AdvanceService::class)->recordRecoveryFor($payslip);
-        };
-
-        static::saved(function ($payslip) use ($syncAdvances) {
+        //
+        // Asked of a contract, not of `Advances\Services\AdvanceService`. Advances *requires* Payroll, so
+        // naming it here was a two-cycle — the last one in the application together with the identical one
+        // through Expenses. The licence guard went with the implementation; the null default does nothing.
+        // See App\Support\Contracts\AdvanceLedger and docs/module-packaging-plan.md §11.
+        static::saved(function (Payslip $payslip) {
             if (! static::isReviewOnlyChange($payslip->getChanges())) {
-                $syncAdvances($payslip);
+                app(AdvanceLedger::class)->recordRecoveryFor($payslip->settlementOf((float) $payslip->advances));
             }
         });
 
         // Deleting the payslip gives its recovery back — the money was never
         // taken, so the balance must go up again. The cascade on payslip_id does
-        // this at the database level; settling is what needs correcting.
-        static::deleted(function ($payslip) {
-            if (! modules()->enabled('advances')) {
-                return;
-            }
-
-            \App\Modules\Advances\Models\Advance::where('employee_id', $payslip->employee_id)
-                ->get()
-                ->each(function ($advance) {
-                    $advance->refresh();
-
-                    if ($advance->status === \App\Modules\Advances\Models\Advance::STATUS_SETTLED
-                        && $advance->remainingAmount() > 0) {
-                        $advance->update(['status' => \App\Modules\Advances\Models\Advance::STATUS_ACTIVE]);
-                    }
-                });
+        // this at the database level; settling is what needs correcting, and *when* an
+        // advance is owed again is the ledger's judgement rather than payroll's.
+        static::deleted(function (Payslip $payslip) {
+            app(AdvanceLedger::class)->reopenSettledFor($payslip->employee_id);
         });
 
         // What this payslip actually paid, component by component.
@@ -323,48 +388,29 @@ class Payslip extends Model
             app(PayComponentRecorder::class)->record($payslip);
         });
 
-        // Expense claims the payslip reimburses. Same shape as the advances above:
-        // idempotent per payslip, because payroll recalculates on every save, and
-        // reversed on delete — a claim whose payslip is gone is owed again.
-        $syncClaims = function ($payslip) {
-            if (! modules()->enabled('expenses')) {
-                return;
-            }
-
-            app(\App\Modules\Expenses\Services\ExpenseClaimService::class)->settleAgainst($payslip);
-        };
-
-        static::saved(function ($payslip) use ($syncClaims) {
+        // Expense claims the payslip reimburses. Same shape as the advances above, and the same inversion:
+        // asked of App\Support\Contracts\ReimbursableClaims, because Expenses requires Payroll too.
+        static::saved(function (Payslip $payslip) {
             if (! static::isReviewOnlyChange($payslip->getChanges())) {
-                $syncClaims($payslip);
+                app(ReimbursableClaims::class)
+                    ->settleForPayslip($payslip->settlementOf((float) $payslip->expense_reimbursement));
             }
         });
 
         // Two phases, because expense_claims.payslip_id is nullOnDelete: by the time
         // `deleted` runs the database has already cut the link, so the claims have to
         // be noted while the payslip still exists and released once it is gone.
+        //
+        // The noted list stays here rather than becoming state on the implementation, which would then have
+        // to survive between two callbacks — and would be shared by every payslip deleted in the request.
         $claimsToRelease = [];
 
-        static::deleting(function ($payslip) use (&$claimsToRelease) {
-            if (! modules()->enabled('expenses')) {
-                return;
-            }
-
-            $claimsToRelease = \App\Modules\Expenses\Models\ExpenseClaim::where('payslip_id', $payslip->getKey())
-                ->pluck('id')
-                ->all();
+        static::deleting(function (Payslip $payslip) use (&$claimsToRelease) {
+            $claimsToRelease = app(ReimbursableClaims::class)->pendingReleaseFor($payslip->getKey());
         });
 
-        static::deleted(function ($payslip) use (&$claimsToRelease) {
-            if (! modules()->enabled('expenses') || $claimsToRelease === []) {
-                return;
-            }
-
-            $service = app(\App\Modules\Expenses\Services\ExpenseClaimService::class);
-
-            foreach (\App\Modules\Expenses\Models\ExpenseClaim::whereIn('id', $claimsToRelease)->get() as $claim) {
-                $service->release($claim);
-            }
+        static::deleted(function (Payslip $payslip) use (&$claimsToRelease) {
+            app(ReimbursableClaims::class)->releaseAll($claimsToRelease);
 
             $claimsToRelease = [];
         });

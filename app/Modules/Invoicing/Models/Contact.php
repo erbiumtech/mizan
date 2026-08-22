@@ -4,7 +4,7 @@ namespace App\Modules\Invoicing\Models;
 
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
-use App\Modules\Accounting\Models\Bank;
+use App\Modules\Core\Models\Bank;
 use App\Traits\Auditable;
 
 class Contact extends Model

@@ -3,6 +3,7 @@
 namespace App\Modules\Employees\Filament\Resources\Employees\Tables;
 
 use App\Filament\Support\CustomFieldsSchema;
+use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
@@ -20,7 +21,17 @@ class EmployeesTable
 {
     public static function configure(Table $table): Table
     {
+        // Painted before it is filled.
+        //
+        // Without this the whole page waits on this table's query, its count and
+        // its filters before a single pixel arrives; with it the shell and the
+        // heading render immediately and the rows follow in a second request.
+        // Applied to the long lists rather than to every table — on a table of
+        // twenty rows it buys a round trip and nothing else.
+        //
+        // See docs/page-load-performance-plan.md.
         return $table
+            ->deferLoading()
             ->columns([
                 // Nova ID: canSee Administrators only.
                 TextColumn::make('id')
@@ -90,6 +101,28 @@ class EmployeesTable
                     ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->email ?? 'No Email'])
                         ->toArray())
+                    ->searchable(),
+
+                /*
+                 * Which bank an employee is paid into.
+                 *
+                 * This replaces the read-only Employees list that used to hang off BankResource as a
+                 * relation manager. That list needed `Bank::employees()`, which is the relation that kept
+                 * the bank table tied to the Employees module and stopped either being packaged
+                 * separately (docs/module-packaging-plan.md §7). The question it answered — "who banks
+                 * here" — belongs on this screen anyway: it composes with the other filters, it obeys the
+                 * downline scoping every other filter here obeys, and it is where somebody looking for an
+                 * employee already is.
+                 *
+                 * Filters on `bank_id` rather than on the denormalised `bank_code`, because two banks can
+                 * share a code in a chart that has been edited by hand and the id cannot.
+                 */
+                SelectFilter::make('bank_id')
+                    ->label('Bank')
+                    ->options(fn (): array => Bank::query()
+                        ->orderBy('bank_name')
+                        ->pluck('bank_name', 'id')
+                        ->all())
                     ->searchable(),
             ])
             ->recordActions([

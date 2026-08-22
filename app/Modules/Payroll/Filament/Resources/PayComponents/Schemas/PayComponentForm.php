@@ -47,6 +47,18 @@ class PayComponentForm
                 ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_EARNING)
                 ->helperText('Off for money that is not income — a reimbursement of the employee\'s own spending.'),
 
+            // Only offered on earnings, and only where it can do anything. A deduction
+            // never pro-rates by attendance — being away does not reduce what somebody
+            // owes — so the flag would be a switch with no effect.
+            Toggle::make('prorates')
+                ->label('Reduce this for unpaid absence')
+                ->default(false)
+                ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_EARNING
+                    && modules()->enabled('attendance'))
+                ->helperText(fn (): string => setting('payroll.prorate_on_attendance')
+                    ? 'On, this scales with the days actually paid, exactly as the basic wage does. Leave it off for a fixed allowance that is paid whole whatever the attendance — a device or internet allowance usually is.'
+                    : 'Has no effect until "Reduce pay for unpaid absence" is switched on in Company Settings, which it is not. Setting it now decides what happens if that is ever turned on.'),
+
             Select::make('account_id')
                 ->label('Posts to')
                 ->options(fn (): array => Account::where('allow_manual_entry', true)

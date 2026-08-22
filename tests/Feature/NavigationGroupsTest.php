@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Navigation\DomainNavigationManager;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Support\NavigationTree;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
@@ -48,10 +50,32 @@ class NavigationGroupsTest extends TestCase
         // getNavigation(), not buildNavigation(): the latter answers only when
         // a custom navigation builder closure is registered, and returns an empty
         // array otherwise — a test asserting against it would pass on nothing.
-        foreach (Filament::getPanel('admin')->getNavigation() as $group) {
-            $navigation[$group->getLabel() ?? ''] = collect($group->getItems())
-                ->map(fn ($item): string => $item->getLabel())
-                ->all();
+        //
+        // Read unfiltered, because what this file is about is which groups the panel *offers* a
+        // company type. The sidebar now shows one domain at a time (see NavigationDomains), so
+        // getNavigation() on its own answers "what is in the domain this request is in" — which
+        // for a test with no panel route is Home, and would reduce every assertion here to three
+        // items. The subject did not change; the way to see all of it did.
+        $groups = DomainNavigationManager::withoutFiltering(
+            fn (): array => Filament::getPanel('admin')->getNavigation(),
+        );
+
+        // Folded back to the groups the classes declare. The columns now show those groups split into
+        // branches — Employee as Employees / Payroll / Leave / … — see NavigationTree. What this file
+        // is about is which groups the application organises its screens into and which screen belongs
+        // to which, and that is unchanged by how a column chooses to show them; every assertion below
+        // and the reasoning attached to it still holds at this level.
+        //
+        // Read from the rendered navigation rather than from the classes, because half of these
+        // assertions are about what a *particular* company and role are offered, and that only comes
+        // out of navigation Filament has actually filtered.
+        foreach ($groups as $group) {
+            $label = NavigationTree::declaredFor($group->getLabel() ?? '');
+
+            $navigation[$label] = [
+                ...$navigation[$label] ?? [],
+                ...collect($group->getItems())->map(fn ($item): string => $item->getLabel())->all(),
+            ];
         }
 
         return $navigation;
@@ -212,13 +236,72 @@ class NavigationGroupsTest extends TestCase
         // No Personal either, and that is the assertion rather than an omission:
         // this runs against a business, and the individual tax brackets have no
         // business being offered there. See the personal case below.
+        //
+        // `Sales` is CRM's, added deliberately rather than folded into
+        // "Invoicing & Inventory". The two answer different questions: Invoicing is
+        // what has been sold and what is owed for it, Sales is who has not bought yet.
+        // Putting leads beside invoices would also make the group appear for a company
+        // that licensed CRM without Invoicing, which docs/crms-plan.md §1 requires to
+        // be possible. It holds leads and their sources now, and the pipeline, deals
+        // and quotes of later phases.
+        //
+        // Leave went into the existing `Employee` group rather than getting one of its
+        // own, beside payslips and expense claims — an employee looking for their leave
+        // balance is looking where they look for their payslip.
+        // `Hiring` and `Performance` are their own groups rather than more of `Employee`,
+        // and for the same reason `Sales` is not part of Invoicing: they answer different
+        // questions about different people. Everything under `Employee` is about somebody
+        // the company employs — their payslip, their leave, their attendance, their kit.
+        // Hiring is about people it does not employ, and might not. Performance is a
+        // separate conversation with its own cycle, and folding it in would put appraisal
+        // ratings next to salary settings, which is the exact adjacency §4.5 spends its
+        // length arguing against.
+        // `Support` is its own group rather than more of `Sales`, on the same reasoning that
+        // separates Sales from Invoicing: they are about different moments with the same people.
+        // Sales is winning the work; Support is what happens after it is delivered, and the
+        // people doing the two are usually not the same. Quotes and campaigns DO sit under
+        // Sales, because both are things you send while trying to win something.
+        // `Construction` is its own group and its own rail domain, not a fold into Accounting or a second
+        // Employee section. A job is a contract to build something, and the people, the cost and the
+        // certificates all hang off it — see docs/construction-management-plan.md §18.2, which measured the
+        // alternative: Finance is already 24 classes across three groups, and folding construction in would
+        // push it past fifty across seven, which is the flat-many-groups problem the two-level shell exists
+        // to solve.
+        // `Contracts` is a second construction group rather than more of `Construction`, and §18.2 decided it
+        // for a measurable reason: the two are opened by different people on different days. `Construction` is
+        // the job, its coding and what it has cost; `Contracts` is what was agreed with the employer and the
+        // subcontractors — the schedule, the variations, the certificates, the retention. Folding them together
+        // would take the construction domain past the six-entry threshold `NavigationTree` exists to keep
+        // groups under, and would put the retention ledger next to the cost-code library.
+        // `Site` is the third construction group, added with `construction_field` in Phase 9a, and it is decided by
+        // exactly the same measurement as `Contracts`: it is opened by different people on different days. The site
+        // diary, the delay register, RFIs, submittals and punch lists are the site team's screens — filled in on a
+        // phone, at the end of a shift, by somebody who was there — where `Construction` is the commercial coding of
+        // the job and `Contracts` is what was agreed with the employer. Folding the diary in beside the cost-code
+        // library would also take the construction domain past the six-entry threshold `NavigationTree` keeps groups
+        // under, which is the arithmetic §18.2 used for the first split.
         $this->assertSame([
             'Access Control',
             'Accounting',
             'Audit & Taxes',
+            'Construction',
+            'Contracts',
             'Employee',
+            'Hiring',
             'Invoicing & Inventory',
+            'Performance',
+            // `Quality & Safety` is the fourth construction group, added with `construction_qhse` in Phase 10a, and the
+            // measurement is §18.2's again. Site already carries the diary, the delay register, RFIs, submittals, punch
+            // lists, the programme and its import — seven entries, already past the threshold `NavigationTree` keeps
+            // groups under — so folding ITPs, inspections, NCRs, incidents, permits and the induction register in would
+            // take it to thirteen. They are also a different person's screens on a different day: a quality engineer
+            // releasing a hold point and a foreman writing the diary are not the same visit to the application, and ISO
+            // 9001 and ISO 45001 certification is frequently the reason this module was bought at all.
+            'Quality & Safety',
+            'Sales',
             'Settings',
+            'Site',
+            'Support',
         ], $labels);
     }
 

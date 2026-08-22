@@ -6,7 +6,7 @@ use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
-use App\Modules\Payroll\Support\PayrollMonth;
+use App\Support\PayrollMonth;
 
 /**
  * Writes what a payslip paid, component by component.

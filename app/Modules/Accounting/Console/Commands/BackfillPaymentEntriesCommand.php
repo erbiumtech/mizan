@@ -6,7 +6,6 @@ use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Services\PaymentService;
-use App\Modules\Payroll\Models\Payslip;
 use App\Support\ModuleMap;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -29,6 +28,9 @@ use Throwable;
  */
 class BackfillPaymentEntriesCommand extends Command
 {
+    /** The alias `journal_entries.source_type` carries for a payroll-sourced entry. See AliasLockTest. */
+    private const PAYSLIP_SOURCE = 'App\Models\Payslip';
+
     use TenantAware;
 
     protected $signature = 'accounting:backfill-payments
@@ -132,7 +134,13 @@ class BackfillPaymentEntriesCommand extends Command
     private function warnAboutUnpostedPayroll(): void
     {
         $waiting = JournalEntry::whereNotNull('source_id')
-            ->where('source_type', ModuleMap::alias(Payslip::class))
+            // The alias as a literal, not `ModuleMap::alias(Payslip::class)`.
+            //
+            // `source_type` holds an alias, and an alias is a storage format rather than a class name —
+            // `tests/alias-lock.json` pins this one and `AliasLockTest` fails if it ever changes. So the
+            // string is the *more* stable reference of the two, and using it lets this command stop
+            // importing a Payroll model to name a column value. See docs/module-packaging-plan.md §8.
+            ->where('source_type', self::PAYSLIP_SOURCE)
             ->where('is_posted', false)
             ->count();
 

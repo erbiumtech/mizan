@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Core\Models\User;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
-use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\ProjectsRelationManager;
+use App\Modules\Projects\Filament\RelationManagers\EmployeeProjectsRelationManager;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\EditProject;
 use App\Modules\Projects\Filament\Resources\Projects\RelationManagers\EmployeesRelationManager;
-use App\Modules\Core\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -147,7 +147,7 @@ class ProjectAssignmentTest extends TestCase
 
         $mine->assign($employee);
 
-        $component = Livewire::test(ProjectsRelationManager::class, [
+        $component = Livewire::test(EmployeeProjectsRelationManager::class, [
             'ownerRecord' => $employee,
             'pageClass' => ViewEmployee::class,
         ]);

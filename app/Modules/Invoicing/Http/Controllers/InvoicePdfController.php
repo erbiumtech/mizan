@@ -17,7 +17,9 @@ class InvoicePdfController extends Controller
      */
     public function __invoke(Request $request, string $company, int $invoice)
     {
-        $record = Invoice::with(['contact', 'lines.product'])->findOrFail($invoice);
+        // creditedInvoice: a credit note prints the number of the invoice it reverses, and a
+        // credit note nobody can trace back to an invoice is not much of a correction.
+        $record = Invoice::with(['contact', 'lines.product', 'creditedInvoice'])->findOrFail($invoice);
 
         abort_unless($request->user()->can('view', $record), 403);
 
