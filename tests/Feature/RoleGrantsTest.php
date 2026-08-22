@@ -238,13 +238,28 @@ class RoleGrantsTest extends AccountingTestCase
      * recorded with a passing result. That is stronger than a permission, because a permission can be granted to the
      * person who caused the defect and a missing passed inspection cannot be granted away at all.
      *
+     * Phase 9g, the programme, and **the first place in this module where a third name earns its place.** Reading and
+     * maintaining the programme is planning work; **recording progress is separate**, because percent complete and
+     * actual dates are what §14's earned value and every schedule index are computed from — and the person who reports
+     * 80% is not usually the person who owns the consequence of it being 60%. Progress claimed against a programme is
+     * the oldest optimism in construction.
+     *
+     * **Employee +2** (`ConstructionProgrammeView`, `ConstructionProgrammeProgress`): the look-ahead is site's document
+     * and site reports its own progress against it. **Accountant +2**, the same two. **Manager +1 of its own** for
+     * `ConstructionProgrammeUpdate` — the programme is the document a claim is measured against, so editing it is not
+     * the same act as reporting against it. CEO +3.
+     *
+     * Note what is deliberately not a fourth name: the baseline. It is the *accepted* programme, and this application
+     * does not accept programmes — it stores what P6 exported. Guarding a column only an import writes would be
+     * theatre.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 54,
-        'Accountant' => 134,
-        'Manager' => 167,
-        'CEO' => 187,
+        'Employee' => 56,
+        'Accountant' => 136,
+        'Manager' => 170,
+        'CEO' => 190,
     ];
 
     protected function setUp(): void

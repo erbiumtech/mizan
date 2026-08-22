@@ -5,12 +5,14 @@ namespace App\Modules\ConstructionField;
 use App\Modules\ConstructionField\Console\Commands\CheckDelayNotices;
 use App\Modules\ConstructionField\Models\DailyLog;
 use App\Modules\ConstructionField\Models\DelayEvent;
+use App\Modules\ConstructionField\Models\ProgrammeActivity;
 use App\Modules\ConstructionField\Models\PunchItem;
 use App\Modules\ConstructionField\Models\PunchList;
 use App\Modules\ConstructionField\Models\Rfi;
 use App\Modules\ConstructionField\Models\Submittal;
 use App\Modules\ConstructionField\Policies\DailyLogPolicy;
 use App\Modules\ConstructionField\Policies\DelayEventPolicy;
+use App\Modules\ConstructionField\Policies\ProgrammeActivityPolicy;
 use App\Modules\ConstructionField\Policies\PunchItemPolicy;
 use App\Modules\ConstructionField\Policies\PunchListPolicy;
 use App\Modules\ConstructionField\Policies\RfiPolicy;
@@ -35,6 +37,7 @@ class ConstructionFieldServiceProvider extends ServiceProvider
         Submittal::class => SubmittalPolicy::class,
         PunchList::class => PunchListPolicy::class,
         PunchItem::class => PunchItemPolicy::class,
+        ProgrammeActivity::class => ProgrammeActivityPolicy::class,
     ];
 
     public function boot(): void

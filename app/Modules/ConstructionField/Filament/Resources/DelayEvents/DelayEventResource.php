@@ -54,12 +54,20 @@ class DelayEventResource extends Resource
         return $awaiting > 0 ? (string) $awaiting : null;
     }
 
+    /**
+     * **Amber, always, and that is a considered answer rather than a missing feature.**
+     *
+     * The obvious version turns red once an awaiting-notice event is already time-barred — and it cost a second query on
+     * every page in the panel to decide a shade. Phase 9g measured it: `construction_field` ships five registers, each
+     * wanted a badge, and `PanelPerformanceTest` priced the lot.
+     *
+     * The count is the actionable number and it is already here. Which of those events is time-barred is on the
+     * register, where the rows are loaded anyway and the badge is red per row. A colour is not worth a query the whole
+     * application pays for.
+     */
     public static function getNavigationBadgeColor(): ?string
     {
-        return DelayEvent::query()->awaitingNotice()->get()
-            ->contains(fn (DelayEvent $event): bool => $event->isTimeBarred())
-            ? 'danger'
-            : 'warning';
+        return 'warning';
     }
 
     public static function getEloquentQuery(): Builder

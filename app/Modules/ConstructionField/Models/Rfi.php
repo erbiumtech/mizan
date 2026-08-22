@@ -94,7 +94,7 @@ class Rfi extends Model
 
     protected $fillable = [
         'job_id', 'contract_id', 'rfi_number', 'subject', 'question', 'proposed_solution', 'discipline',
-        'location_id', 'drawing_document_id', 'specification_reference',
+        'location_id', 'drawing_document_id', 'specification_reference', 'activity_id',
         'raised_by', 'raised_on', 'required_by',
         'ball_in_court', 'ball_in_court_contact_id', 'status',
         'cost_impact_flag', 'cost_impact_estimate', 'time_impact_flag', 'time_impact_days',
@@ -173,6 +173,16 @@ class Rfi extends Model
     public function answeredByContact(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'answered_by_contact_id');
+    }
+
+    /**
+     * The programme activity this question blocks — §16.2's `activity_id`, wired in Phase 9g.
+     *
+     * An RFI against a dated activity is assessable; one against nothing is a complaint.
+     */
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(ProgrammeActivity::class, 'activity_id');
     }
 
     /** The notice raised for this RFI's time impact, where somebody raised one. */
