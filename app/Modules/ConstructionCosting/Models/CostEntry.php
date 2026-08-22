@@ -71,7 +71,7 @@ class CostEntry extends Model
     protected $fillable = [
         'job_id', 'wbs_node_id', 'cost_code_id', 'cost_type', 'kind', 'amount',
         'quantity', 'unit_of_measure', 'unit_rate', 'incurred_on', 'posting_period', 'is_late_for_period',
-        'fiscal_year_id', 'gl_treatment', 'journal_entry_id', 'gl_account_id', 'posted_to_gl_at',
+        'fiscal_year_id', 'gl_treatment', 'gl_purpose', 'journal_entry_id', 'gl_account_id', 'posted_to_gl_at',
         'batch_id', 'contact_id', 'employee_id', 'worker_id', 'is_burden',
         'reverses_id', 'reversed_by_id', 'description', 'reference',
         'source_type', 'source_id', 'created_by',

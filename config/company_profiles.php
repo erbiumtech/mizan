@@ -145,7 +145,7 @@ return [
         // which would drag a software-delivery module with environment health checks into a contractor's
         // licence set, and §18.1 already has timesheets as *guarded* — importing timesheet entries as labour
         // records — rather than profiled. Site sheets are the primary labour path anyway (§7).
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts', 'construction_field'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts', 'construction_field', 'construction_qhse'],
         // The construction accounts on top of the business baseline (§18.2): a separate seeder rather than a dozen
         // rows added to every bookkeeping company's chart, which is what the profile mechanism is for.
         'seeders' => [...$businessWithLeave, ConstructionAccountsSeeder::class],

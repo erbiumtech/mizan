@@ -55,10 +55,26 @@ class PanelPerformanceTest extends TestCase
      *
      * @var array<string, array{cold: int, warm: int}>
      */
+    /*
+     * **Raised on 2026-08-22 for `construction_qhse`'s three navigation badges**, and the reasoning is the point rather
+     * than the number.
+     *
+     * A badge is one indexed count per page and the rule for earning one is that the failure it warns about is *silent* —
+     * that not looking today costs something nobody can otherwise see. This module has exactly three that qualify: a
+     * hold point that passed and was never released (work standing still for want of a signature), a reportable incident
+     * nobody told the authority about (a statutory clock no other screen watches), and **a permit past its window and
+     * still open**, which §17.5 calls "the failure mode that kills people".
+     *
+     * Two others were *removed* in Phase 10c when they pushed the reports hub over — a critical-NCR count and an
+     * overdue-action count, both of which are the first row of a screen somebody opens daily and therefore loud rather
+     * than silent. That is the same discipline as this increase, not the opposite of it: **the rule decides what exists
+     * and the budget accommodates what the rule allows.** What must never happen is the reverse — trimming a justified
+     * count to fit, or raising the ceiling for one that was never justified.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 28, 'warm' => 8],
+        'dashboard' => ['cold' => 32, 'warm' => 8],
         'employees' => ['cold' => 30, 'warm' => 10],
-        'reports' => ['cold' => 25, 'warm' => 6],
+        'reports' => ['cold' => 29, 'warm' => 6],
     ];
 
     private Company $company;
@@ -82,6 +98,16 @@ class PanelPerformanceTest extends TestCase
 
         $this->actingAs($user);
         $this->setCurrentTenant($this->company);
+
+        /*
+         * **Flushed, because everything measured here is a function of what is licensed.**
+         *
+         * `modules()` memoises the resolved licence set, and a test that ran before this one may have left another
+         * company's answer in it — so the sidebar renders a different number of groups and the page-size measurement
+         * moves. Found in Phase 10b: the Employees size budget passed in isolation and failed in a combined run, which
+         * is the *measurement* being unstable rather than the page.
+         */
+        modules()->flush();
     }
 
     public function test_the_dashboard_stays_within_its_query_budget(): void
@@ -175,13 +201,26 @@ class PanelPerformanceTest extends TestCase
      *
      * Raw rather than compressed, because compression is a deployment concern (Phase 5) and this has
      * to fail on a laptop where nothing is compressed. Measured 2026-08-14: 207 / 301 / 231 KB.
+     *
+     * **All three ceilings moved on 2026-08-22 — 260/360/290 to 300/400/330 — and the reason is worth distinguishing
+     * from the one that must never move them.** The rail carries every domain's tree on every page, so licensing a
+     * module with a new navigation group makes every page in the panel bigger: `construction_qhse` and its
+     * `Quality & Safety` group put the Employees index 0.7 KB over, and its second register put the dashboard 0.9 KB
+     * over. That is the budget measuring exactly what it is for — bytes on the wire — and it is **not** waste, unlike
+     * the query-count failures in this same file, which were a badge reading a whole table and a badge eager-loading a
+     * relation. Those were fixed rather than budgeted for.
+     *
+     * The distinction to hold: **raise a ceiling for markup a new screen legitimately adds; never raise one to make a
+     * page that got heavier for no reason pass.** The headroom is deliberately more than the next register needs,
+     * because §17 has four more to land and bumping by a kilobyte each time turns a ratchet into a formality — the
+     * numbers below are ~15% above what a fully licensed construction company renders today.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {
         $pages = [
-            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 260],
-            'employees' => [EmployeeResource::getUrl('index'), 360],
-            'reports' => [Reports::getUrl(), 290],
+            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 300],
+            'employees' => [EmployeeResource::getUrl('index'), 400],
+            'reports' => [Reports::getUrl(), 330],
         ];
 
         foreach ($pages as $page => [$url, $ceilingKb]) {

@@ -28,6 +28,18 @@ class CostBatch extends Model
 
     public const KIND_REVERSAL = 'reversal';
 
+    /**
+     * §4.5's monthly unwind, and its own kind rather than `reversal`.
+     *
+     * A `reversal` batch backs out something that was wrong. This one backs out something that was right last month and
+     * is no longer — the accrual whose invoice has since arrived, or which is about to be re-raised from today's facts.
+     * Sharing one kind would make "how often does this company correct itself" unanswerable, since twelve routine
+     * unwinds a year would swamp the corrections.
+     */
+    public const KIND_ACCRUAL_REVERSAL = 'accrual_reversal';
+
+    public const KIND_IMPORT = 'import';
+
     protected $table = 'construction_cost_batches';
 
     protected $fillable = [

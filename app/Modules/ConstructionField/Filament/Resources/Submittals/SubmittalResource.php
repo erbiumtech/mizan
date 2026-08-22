@@ -46,27 +46,21 @@ class SubmittalResource extends Resource
 
     protected static ?string $pluralLabel = 'Submittals';
 
-    /**
-     * How many are already past their computed submit-by date.
+    /*
+     * **There is deliberately no navigation badge, and it is §16.3's own rule that rules one out.**
      *
-     * Counted in PHP because the date is not a column — which is the whole of §16.3. The query is narrowed to the ones
-     * still awaiting submission first, so this reads a short list rather than the register.
+     * The number worth badging is how many items are already past their computed submit-by date. That date is not a
+     * column — the whole argument of §16.3 is that storing it makes it stale the day the programme moves — so counting
+     * the late ones needs either a dialect-specific date expression (`julianday` on SQLite, `DATEDIFF` on MySQL, and
+     * Phase 9e recorded why that is a query that only works in tests) or a read of every outstanding row.
+     *
+     * A navigation badge renders on **every page in the panel**, which makes it the one place in this application that
+     * can afford neither. The first draft did the read, and `PanelPerformanceTest` caught it as
+     * `select * from construction_submittals` in the dashboard's query list — exactly the check working.
+     *
+     * The figure is not lost: the register's `Submit by` column shows it per row and `SubmittalService::lateToSubmit()`
+     * is the report, both on a page somebody opened on purpose.
      */
-    public static function getNavigationBadge(): ?string
-    {
-        $late = Submittal::query()
-            ->awaitingSubmission()
-            ->get()
-            ->filter(fn (Submittal $submittal): bool => $submittal->isLateToSubmit())
-            ->count();
-
-        return $late > 0 ? (string) $late : null;
-    }
-
-    public static function getNavigationBadgeColor(): ?string
-    {
-        return 'danger';
-    }
 
     public static function getEloquentQuery(): Builder
     {

@@ -147,6 +147,10 @@ class CostLedger
                 'gl_treatment' => $entry->gl_treatment === CostEntry::GL_MEMO
                     ? CostEntry::GL_MEMO
                     : CostEntry::GL_PENDING,
+                // The same credit the original owed — §4.1. A reversal of burden still absorbs against Labour Burden
+                // Absorbed; dropping the purpose would leave the negative side unruled, so §11a would report it as
+                // unpostable and the absorption account would carry the charge with no matching credit.
+                'gl_purpose' => $entry->gl_purpose,
                 'is_burden' => $entry->is_burden,
                 'reverses_id' => $entry->getKey(),
                 'description' => $reason ?: "Reversal of #{$entry->getKey()}",
