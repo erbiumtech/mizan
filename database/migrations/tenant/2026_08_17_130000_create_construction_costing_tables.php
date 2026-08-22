@@ -169,7 +169,7 @@ return new class extends Migration
              * somebody forgets, and the query that forgets it is a cost report that is wrong and looks fine."
              */
             $table->index(['job_id', 'posting_period']);
-            $table->index(['job_id', 'cost_code_id', 'posting_period'], 'cost_entries_job_code_period_index');
+            $table->index(['job_id', 'cost_code_id', 'posting_period']);
             $table->index(['posting_period', 'gl_treatment']);
             $table->index('wbs_node_id');
             $table->index('batch_id');

@@ -120,8 +120,7 @@ return new class extends Migration
             // What it was measured against, kept so a later reader can see why the figure is what it is.
             $table->decimal('budget_at_completion', 15, 2)->nullable();
             $table->foreignId('measured_against_version_id')->nullable()
-                ->constrained('construction_budget_versions', 'id', 'progress_measurements_budget_version_fk')
-                ->nullOnDelete();
+                ->constrained('construction_budget_versions')->nullOnDelete();
 
             $table->unsignedBigInteger('measured_by')->nullable();
             $table->date('measured_on')->nullable();

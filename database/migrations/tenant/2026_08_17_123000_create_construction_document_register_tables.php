@@ -26,18 +26,6 @@ return new class extends Migration
     public function up(): void
     {
         /*
-         * Re-runnable by table. MySQL does not roll back DDL, so a `create` that fails part-way leaves the
-         * tables before it standing while the migration stays unrecorded — and the retry then dies on its own
-         * output rather than on the original fault. Each table is created only if it is absent so the retry
-         * carries on from where it stopped.
-         */
-        $createIfMissing = function (string $table, Closure $callback): void {
-            if (! Schema::hasTable($table)) {
-                Schema::create($table, $callback);
-            }
-        };
-
-        /*
          * The naming convention is a **per-job record, not a hardcoded list**, and §15 is emphatic about why:
          * ISO 19650 mandates the *fields*, and every project issues its own code lists for what goes in them.
          * Hardcoding the codes makes the module unusable on job number two.
@@ -46,7 +34,7 @@ return new class extends Migration
          * only ever read as a whole — a table of allowed values per field per job would be five joins to
          * validate one filename.
          */
-        $createIfMissing('construction_naming_conventions', function (Blueprint $table) {
+        Schema::create('construction_naming_conventions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_id')->constrained('construction_jobs')->cascadeOnDelete();
             $table->string('name');
@@ -66,7 +54,7 @@ return new class extends Migration
             $table->index('job_id');
         });
 
-        $createIfMissing('construction_documents', function (Blueprint $table) {
+        Schema::create('construction_documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_id')->constrained('construction_jobs')->cascadeOnDelete();
 
@@ -126,7 +114,7 @@ return new class extends Migration
             $table->index('document_type');
         });
 
-        $createIfMissing('construction_document_revisions', function (Blueprint $table) {
+        Schema::create('construction_document_revisions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('document_id')->constrained('construction_documents')->cascadeOnDelete();
 
@@ -170,18 +158,12 @@ return new class extends Migration
             $table->index('status');
         });
 
-        // Deferred because the two tables reference each other; guarded for the same reason the creates are.
-        $hasRevisionKey = collect(Schema::getForeignKeys('construction_documents'))
-            ->contains(fn (array $key) => in_array('current_revision_id', $key['columns'], true));
+        Schema::table('construction_documents', function (Blueprint $table) {
+            $table->foreign('current_revision_id')
+                ->references('id')->on('construction_document_revisions')->nullOnDelete();
+        });
 
-        if (! $hasRevisionKey) {
-            Schema::table('construction_documents', function (Blueprint $table) {
-                $table->foreign('current_revision_id')
-                    ->references('id')->on('construction_document_revisions')->nullOnDelete();
-            });
-        }
-
-        $createIfMissing('construction_transmittals', function (Blueprint $table) {
+        Schema::create('construction_transmittals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_id')->constrained('construction_jobs')->cascadeOnDelete();
             $table->string('reference')->comment('TR-014');
@@ -197,7 +179,7 @@ return new class extends Migration
             $table->unique(['job_id', 'reference']);
         });
 
-        $createIfMissing('construction_transmittal_items', function (Blueprint $table) {
+        Schema::create('construction_transmittal_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('transmittal_id')->constrained('construction_transmittals')->cascadeOnDelete();
             // The *revision*, not the document: a transmittal is a record of which version went out, and
@@ -207,14 +189,14 @@ return new class extends Migration
             $table->string('media')->nullable()->comment('PDF, paper, A1 print');
             $table->timestamps();
 
-            $table->unique(['transmittal_id', 'document_revision_id'], 'transmittal_items_revision_unique');
+            $table->unique(['transmittal_id', 'document_revision_id']);
         });
 
         /*
          * The acknowledgement record is the point of the whole table: **a transmittal nobody acknowledged is a
          * drawing somebody will later say they never received**, and that argument is worth money on a claim.
          */
-        $createIfMissing('construction_transmittal_recipients', function (Blueprint $table) {
+        Schema::create('construction_transmittal_recipients', function (Blueprint $table) {
             $table->id();
             $table->foreignId('transmittal_id')->constrained('construction_transmittals')->cascadeOnDelete();
             $table->foreignId('contact_id')->nullable()->constrained('contacts')->nullOnDelete();
