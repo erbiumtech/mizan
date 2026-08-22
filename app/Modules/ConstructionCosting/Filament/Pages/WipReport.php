@@ -126,6 +126,86 @@ class WipReport extends Page
                         ->persistent($refused !== [])
                         ->send();
                 }),
+
+            /*
+             * **Locking the month's positions**, which §11e's close checklist blocks on.
+             *
+             * `ConstructionPeriodClose`, deliberately the same grant as closing the month: freezing a position and
+             * closing a period are one decision made at one moment by one person. Separate names would let a month be
+             * closed on figures nobody froze, or frozen figures sit against a month still taking cost.
+             */
+            Action::make('lockAll')
+                ->label('Lock the month')
+                ->icon('heroicon-o-lock-closed')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Freeze this month\'s positions')
+                ->modalDescription('Recomputes each position once and then freezes it. After this they do not move — '
+                    .'which is the point: the month gets signed off, reported to a bank and used to compute a bonus, and '
+                    .'recomputing it later with today\'s forecast would restate all three silently.')
+                ->visible(fn (): bool => (auth()->user()?->can('ConstructionPeriodClose') ?? false)
+                    && $this->rows()->contains(fn (WipSnapshot $r): bool => ! $r->isLocked()))
+                ->action(function (): void {
+                    $locked = 0;
+
+                    foreach ($this->rows() as $row) {
+                        if ($row->isLocked() || $row->job === null) {
+                            continue;
+                        }
+
+                        app(WipService::class)->lock($row->job, $this->periodStart());
+                        $locked++;
+                    }
+
+                    Notification::make()->success()
+                        ->title($locked.' position(s) locked')
+                        ->body('They will not move again. Post the movement to put it in the accounts.')
+                        ->send();
+                }),
+
+            /*
+             * **Posting the movement** — §4.4's settled choice, and `ConstructionGlPost` because it writes a journal
+             * entry into the general ledger. §4.1's boundary does not soften for WIP.
+             */
+            Action::make('postMovements')
+                ->label('Post the movement')
+                ->icon('heroicon-o-book-open')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Post the month\'s movement')
+                ->modalDescription('One journal per job, for the **movement** from its previous locked position rather '
+                    .'than the balance. A position that has not moved posts nothing — a zero-value line in the accounts '
+                    .'says nothing happened, which is worse than the silence it replaces.')
+                ->visible(fn (): bool => (auth()->user()?->can('ConstructionGlPost') ?? false)
+                    && $this->rows()->contains(fn (WipSnapshot $r): bool => $r->isLocked() && ! $r->isPosted()))
+                ->action(function (): void {
+                    $posted = 0;
+                    $unchanged = 0;
+                    $refused = [];
+
+                    foreach ($this->rows() as $row) {
+                        if (! $row->isLocked() || $row->isPosted()) {
+                            continue;
+                        }
+
+                        try {
+                            app(WipService::class)->postMovement($row) === null ? $unchanged++ : $posted++;
+                        } catch (\InvalidArgumentException $e) {
+                            $refused[] = $e->getMessage();
+                        }
+                    }
+
+                    Notification::make()
+                        ->status($refused === [] ? 'success' : 'warning')
+                        ->title($posted.' movement(s) posted')
+                        ->body($refused === []
+                            ? ($unchanged === 0
+                                ? 'Each journal is dated to the month end.'
+                                : $unchanged.' position(s) had not moved, so nothing was written for them.')
+                            : $refused[0])
+                        ->persistent($refused !== [])
+                        ->send();
+                }),
         ];
     }
 

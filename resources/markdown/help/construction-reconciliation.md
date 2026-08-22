@@ -111,11 +111,68 @@ The cost entries go back to *pending* — which is what they are. The cost is st
 on the job and no longer in the accounts, and the report should say so. Marking
 them memo would balance the report and lose the cost.
 
+## Closing a month <!-- requires: ConstructionPeriodClose -->
+
+**Check the close** first. It lists every gate and says which are shut and why —
+a control that says "cannot close" without saying why is a control people learn
+to force.
+
+Two gates stop a close outright:
+
+- **The two ledgers must agree.** A month nobody has reconciled blocks as well,
+  and that's worse than an unbalanced one: a second ledger nobody proves is a
+  second ledger that's wrong, so a gate catching only *proved* differences would
+  wave through every company that never runs the report.
+- **Nothing may be awaiting the general ledger.** Posting refuses to reach a
+  closed month, so closing with pending entries orphans that cost from your
+  accounts permanently. The blocker names the control account that's missing, if
+  that's the reason.
+
+One more blocks conditionally: an **unlocked work-in-progress position**. A
+locked position doesn't move — that's the point of locking it. One left unlocked
+against a closed month keeps recomputing from a forecast that has since changed,
+so the figure the bank was shown and the figure on your screen drift apart with
+nothing to say when they parted. A company that computes no positions isn't
+stopped by this.
+
+Everything else is a **warning**: late costs, a job that expected a position and
+hasn't got one, accruals that were never rolled. Not fatal, and hidden warnings
+are how a month gets closed on facts nobody was shown.
+
+A month that closes balanced is marked **reconciled** rather than just *closed*.
+The distinction is deliberate — see below.
+
+## Closing over a difference <!-- requires: ConstructionPeriodForceClose -->
+
+Sometimes the report has to go out. **Close it anyway** does that, and needs a
+reason.
+
+**It corrects nothing.** No plug entry, no balancing figure, no adjustment of any
+kind. Both ledgers stay exactly as they were and anything unexplained stays
+visible in every later month until its cause is fixed. What gets recorded is your
+name, your reason, and **every check it overrode, in words** — because a reason
+with no facts beside it ("closing anyway, the client needs the report") tells
+whoever reads it in a year nothing about what was known at the time.
+
+A forced close is marked **closed**, never **reconciled**. That's how the period
+list tells a month that was proved from a month that was signed for.
+
 ## Cost periods, and the door that isn't there
 
 A period is created by the first cost that lands in that month. There's no form
 to create one, because a table of empty future months is a list of things that
 look closable.
+
+**Roll accruals into this month** is what opening a month means: it reverses
+every accrual still standing and re-raises whatever is still outstanding from
+today's facts. It belongs to *opening* rather than closing for a specific reason
+— if the reversal doesn't run, the accrual and the real invoice both sit in your
+ledger and the job costs double for a month. A step attached to opening runs
+before anybody looks at the figures. A step attached to closing runs after
+everybody has.
+
+Safe to run twice: the second run finds nothing to reverse and recomputes rather
+than adds.
 
 **There is no reopen.** Reopening a signed-off period to slot one late invoice in
 invalidates the WIP snapshot, the client certificate and the GL summary that all

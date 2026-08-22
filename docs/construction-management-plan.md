@@ -1,7 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 10 complete, and Phase 11a to 11d with them (2026-08-22).** What remains of Phase 11: the
-period close, and the full-circle assertion §4.3 asks for.
+**Status:** **Phases 0 to 10 complete, and Phase 11a to 11e with them (2026-08-22).** What remains: §4.3's fifth
+mechanism — the full-circle test that posts one of every source type and asserts the difference is nil.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3430,6 +3430,44 @@ document register before the modules that reference drawings.
   > position and closing a period are one decision at one moment, and separate names would let a month be closed on
   > figures nobody froze. Posting the movement is `ConstructionGlPost`, because §4.1's boundary does not soften for WIP.
   > Computing rides on `ConstructionCostView` — an unlocked position is a report.
+  >
+  > **11e built 2026-08-22.** — `ConstructionPeriodCloseTest` (28 tests). `PeriodCloseService`, the `CloseChecklist` and
+  > `CloseCheck` DTOs, the close / force-close / check actions on Cost periods, the lock and post actions on Work in
+  > progress, and the close half of the reconciliation help.
+  >
+  > §4.3's mechanisms 2, 3 and 4. **The fourth is what makes the third safe**, and it is asserted in the strong form:
+  > after a forced close, not one cost entry and not one journal line has been added, and the pending cost is still
+  > pending at the same figure. "No plug entry, no balancing figure" is a test rather than a promise.
+  >
+  > Five decisions:
+  >
+  > - **A month nobody has reconciled blocks, and that is worse than an unbalanced one.** §4 opens with "a second ledger
+  >   that nobody proves is a second ledger that is wrong", so a gate catching only *proved* differences would wave
+  >   through every company that never runs the report.
+  > - **Two blockers are this phase's rather than the plan's**, both because the failure is silent *and* permanent.
+  >   `ConstructionGlPostingService` refuses to post into a closed period, so closing a month with **pending cost**
+  >   orphans it from the accounts for good — and the blocker names the control account that is missing, so the fix is on
+  >   the screen. And an **unlocked WIP position** keeps recomputing against a month somebody signed, so the figure a bank
+  >   was shown and the figure on the screen drift apart with nothing to say when.
+  > - **The WIP blocker is proportionate.** A job with no position does not block — WIP is used or it is not, and a
+  >   company computing none must still be able to close. A job with a method chosen and no position is a *warning*, and
+  >   so are late costs and unrolled accruals. Hidden warnings are how a month gets closed on facts nobody was shown,
+  >   which is why `CloseCheck` keeps `passed` and `blocking` as separate fields.
+  > - **A balanced close is `reconciled`; a forced one is only `closed`.** §3.4 gives the period three statuses and the
+  >   third has to mean something stronger than the second, or the period list cannot tell a month that was proved from a
+  >   month that was signed for.
+  > - **A forced close records the reason *and every check it overrode*, in words.** "Closing anyway, the client needs
+  >   the report" tells whoever reads it in a year nothing about what was known at the time. Even a forced close records
+  >   both control totals, so the month somebody had doubts about is not the least explicable one in the book.
+  >
+  > **`close()` and `forceClose()` share one writer**, and that is the cheapest way to keep §4.3's fourth promise: the
+  > forced path runs exactly the same code and differs only in the note it records. And **there is no reopen** — a test
+  > asserts no method offers one, alongside the two doors both refusing a closed month with §3.4's sentence.
+  >
+  > §4.5's unwind moved onto `PeriodCloseService::open()`, which returns the `AccrualRun` rather than the period: the
+  > period is a row anybody can look up, and "reversed nothing, re-accrued 400,000" is the sentence somebody needs on
+  > screen. No new permission — `ConstructionPeriodClose` and `ConstructionPeriodForceClose` have existed since Phase 2
+  > waiting for exactly this.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source
