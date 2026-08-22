@@ -78,6 +78,10 @@ class Job extends Model
         // Counting both halves every frequency rate, and a halved rate is worse than a missing one because it looks
         // like a number somebody can act on. Nullable, and the null is a state the safety report has to name.
         'exposure_hours_source',
+        // §4.4: how this job's percent complete is measured — cost-to-cost, surveyed or milestone. Nullable with no
+        // default, because choosing for a company would pick the answer that flatters an over-spending job: cost-to-cost
+        // reports more progress for spending more money, which is exactly backwards.
+        'percent_complete_method',
     ];
 
     /**

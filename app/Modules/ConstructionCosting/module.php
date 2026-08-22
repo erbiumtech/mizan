@@ -58,6 +58,7 @@ return [
         'App\\Models\\ControlAccount' => \App\Modules\ConstructionCosting\Models\ControlAccount::class,
         'App\\Models\\GlPosting' => \App\Modules\ConstructionCosting\Models\GlPosting::class,
         'App\\Models\\Reconciliation' => \App\Modules\ConstructionCosting\Models\Reconciliation::class,
+        'App\\Models\\WipSnapshot' => \App\Modules\ConstructionCosting\Models\WipSnapshot::class,
     ],
 
     'resources' => [
@@ -82,6 +83,7 @@ return [
         'App\\Filament\\Pages\\ConstructionCosting\\InvoiceAllocationQueue' => \App\Modules\ConstructionCosting\Filament\Pages\InvoiceAllocationQueue::class,
         'App\\Filament\\Pages\\ConstructionCosting\\ThreeWayMatchReport' => \App\Modules\ConstructionCosting\Filament\Pages\ThreeWayMatchReport::class,
         'App\\Filament\\Pages\\ConstructionCosting\\ReconciliationReport' => \App\Modules\ConstructionCosting\Filament\Pages\ReconciliationReport::class,
+        'App\\Filament\\Pages\\ConstructionCosting\\WipReport' => \App\Modules\ConstructionCosting\Filament\Pages\WipReport::class,
     ],
 
     'permission_groups' => [
