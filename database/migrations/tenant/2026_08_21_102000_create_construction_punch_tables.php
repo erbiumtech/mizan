@@ -156,7 +156,7 @@ return new class extends Migration
             $table->unique(['punch_list_id', 'reference']);
             $table->index(['job_id', 'status']);
             // The holdback query: open items on this job that stop the employer taking it over.
-            $table->index(['job_id', 'affects_practical_completion', 'status'], 'punch_items_job_completion_status_index');
+            $table->index(['job_id', 'affects_practical_completion', 'status']);
             $table->index(['location_id', 'status']);
             $table->index('trade_id');
             $table->index('back_charge_id');

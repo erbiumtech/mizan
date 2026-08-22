@@ -117,7 +117,7 @@ return new class extends Migration
             $table->index('daily_log_id');
             $table->index('goods_receipt_id');
             // The two exposure queries: what is standing on site, and what accounts have not seen.
-            $table->index(['is_materials_on_site', 'goods_receipt_id'], 'daily_log_deliveries_on_site_receipt_index');
+            $table->index(['is_materials_on_site', 'goods_receipt_id']);
         });
 
         Schema::create('construction_daily_log_photos', function (Blueprint $table) {
