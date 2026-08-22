@@ -144,7 +144,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['contract_id', 'certificate_number']);
+            $table->unique(['contract_id', 'certificate_number'], 'payment_certificates_contract_number_unique');
             // Numbering per contract must have no gaps: a missing certificate number is a question at
             // adjudication (§8.3).
             $table->unique(['contract_id', 'sequence']);
@@ -193,7 +193,9 @@ return new class extends Migration
          */
         Schema::create('construction_certificate_deductions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('payment_certificate_id')->constrained('construction_payment_certificates')->cascadeOnDelete();
+            $table->foreignId('payment_certificate_id')
+                ->constrained('construction_payment_certificates', 'id', 'certificate_deductions_certificate_fk')
+                ->cascadeOnDelete();
 
             $table->enum('kind', [
                 'retention', 'retention_release', 'advance_recovery', 'ncr', 'liquidated_damages',
@@ -223,7 +225,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['payment_certificate_id', 'kind']);
+            $table->index(['payment_certificate_id', 'kind'], 'certificate_deductions_certificate_kind_index');
             $table->index(['source_type', 'source_id']);
         });
     }
