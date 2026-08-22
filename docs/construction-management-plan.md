@@ -1,6 +1,7 @@
 # Construction Management — Plan
 
-**Status:** **Phases 0 to 10 complete (2026-08-22).** Phase 11's reconciliation, WIP and close is all that remains.
+**Status:** **Phases 0 to 10 complete, and Phase 11a with them (2026-08-22).** What remains of Phase 11: §4.5's
+accruals and their reversal, §4.2's reconciliation report and its command, §4.4's WIP snapshots, and the period close.
 
 Phase 9a built what §13 says to build before anything else in the phase: **the delay-event notice clock and its
 notification** — 34 tests, and the first tables of a new module, `construction_field`. §13's argument for the ordering is
@@ -3225,6 +3226,60 @@ document register before the modules that reference drawings.
   > the *silent* failure the badge rule exists for.
 - **Phase 11 — Reconciliation, WIP and close.** The GL posting service, accruals and their reversal, the
   reconciliation report and its command, WIP snapshots, the period close, and the period summaries.
+
+  > **11a built 2026-08-22.** — `ConstructionGlPostingTest` (33 tests). `construction_control_accounts`,
+  > `construction_gl_postings`, `construction_cost_entries.gl_purpose`, `ControlAccount`, `GlPosting`,
+  > `ConstructionGlPostingService`, the `PostingPlan` and `PostingLine` DTOs, two policies, the Control accounts and
+  > Cost periods screens, and `ConstructionGlPost`.
+  >
+  > **§4.1's rule is one sentence and the whole sub-phase is its consequences:** where a GL document already exists for
+  > a cost, construction posts nothing and mirrors it; where the cost is construction-only, construction posts a summary
+  > journal. A supplier invoice, a payment, a stock movement and a payslip already reached the books, and posting them
+  > again would state the company's cost twice with both figures looking right.
+  >
+  > Five decisions worth carrying forward:
+  >
+  > - **`purpose` is a column §4.2 does not ask for, and posting is impossible without it.** `kind` says what an account
+  >   is *for the report*; it cannot say which of two `recovery` accounts absorbs labour burden. So `purpose` names the
+  >   rule — and it is **unique in the database**, because a service that found two candidates and took the first would
+  >   absorb half a company's burden to one account and half to another depending on insertion order, and no report
+  >   would ever say so. The nullability is doing the other half of the work: any number of accounts may be in scope of
+  >   the report with no rule attached, which is what the unique index on a nullable column means in both engines.
+  > - **The rule is written by whoever records the cost, not guessed by whoever posts it.** `gl_purpose` was added to
+  >   `construction_cost_entries` after a first draft inferred it, and §4.5 is what settled it: a goods-received accrual
+  >   and a subcontract accrual are the same shape of row owing different accounts, so no inference could tell them
+  >   apart at all. The inference survives as a fallback covering rows written before the column existed, documented as
+  >   such.
+  > - **A missing control account leaves the cost pending and says so, with the figure.** §7.3's failure is the one
+  >   being prevented — "charge either and never absorb it and job cost exceeds GL cost by exactly the burden, growing
+  >   every month, with no error anywhere" — and the answer is not a suspense account. Posting *what it can* rather than
+  >   refusing the whole run is deliberate: one missing account refusing everything would leave the whole period pending
+  >   and make §4.2's report unreadable rather than merely incomplete. What keeps that from being quiet is that
+  >   `PostingPlan::skipped` travels with every result, the confirmation modal prints it, and §4.2's drill-down carries
+  >   pending-by-age as a named cause.
+  > - **`GlPosting` is not a `CostBatch`, and the reason matters.** A batch *owns* the entries it created through
+  >   `batch_id`, and these entries already belong to the labour run that wrote them; taking their `batch_id` would
+  >   break what §3.2 built it for. §4.1's actual requirement is that "any GL line explodes into its constituents in one
+  >   query", which `construction_cost_entries.journal_entry_id` meets — so the trail is intact and §3.2's is untouched.
+  > - **The journal is dated to the period end, not the run date.** A June run made on the 4th of July belongs in June.
+  >   Dating it to today would push a month's cost into the next one every time somebody was late, which is a
+  >   restatement nobody asked for and nothing reports.
+  >
+  > Two smaller ones, both about not fudging. **An entry and its reversal in the same month write no journal line** — a
+  > zero-value line says nothing happened, which is worse than the silence it replaces — but they are still stamped as
+  > dealt with, because leaving them pending would report them as owed to the general ledger forever. And **a group that
+  > nets to a credit swaps the sides** rather than writing a negative debit, which would balance arithmetically and read
+  > as nonsense in the ledger.
+  >
+  > `RoleGrantsTest::EXPECTED` moved to 69 / 149 / 191 / 211. **`ConstructionGlPost` is Manager's rather than
+  > Accountant's**, because it is the only act in the suite that writes into another module's ledger and a posting made
+  > by the person who approved the cost is a posting nobody checked. Reversing rides on it — whoever may put a figure in
+  > the books is who may take it out, and the control is the required reason — and so does nominating the control
+  > accounts, which is one screenful of decisions taken once at implementation.
+  >
+  > The **Cost periods** screen has no create and no edit, and **no reopen at all**: a period is created by the first
+  > cost that lands in the month, and §3.4's rule about a late invoice is the door instead. Phase 11e adds the close to
+  > the same screen.
 
 Phase 11 last is uncomfortable and is still right — it needs every source type to exist before it can
 prove anything. But **§4's assertion test must be written incrementally from Phase 5 onward, one source
