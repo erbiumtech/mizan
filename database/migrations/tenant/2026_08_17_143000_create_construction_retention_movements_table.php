@@ -63,7 +63,8 @@ return new class extends Migration
             // The deduction row on the certificate this movement corresponds to, which is what lets the
             // reconciliation of §11 compare the two registers row by row rather than in total.
             $table->foreignId('certificate_deduction_id')->nullable()
-                ->constrained('construction_certificate_deductions')->nullOnDelete();
+                ->constrained('construction_certificate_deductions', 'id', 'retention_movements_deduction_fk')
+                ->nullOnDelete();
 
             /*
              * The bond or guarantee that substituted for cash. Nullable and unconstrained: the securities
