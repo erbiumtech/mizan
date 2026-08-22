@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\CostPeriods\Tables;
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Models\GlPosting;
+use App\Modules\ConstructionCosting\Services\AccrualService;
 use App\Modules\ConstructionCosting\Services\ConstructionGlPostingService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -86,6 +87,40 @@ class CostPeriodsTable
                 ]),
             ])
             ->recordActions([
+                /*
+                 * **§4.5's month-open, and it is deliberately the first action on the row.**
+                 *
+                 * "The reversal belongs to period *open* rather than period close", and §4.5 says why in terms of its
+                 * own failure mode: if the reversal does not run, "the accrual and the real invoice both sit in the
+                 * ledger and the job costs double for a month". Attached to opening the month it runs before anybody
+                 * looks at the figures. Attached to closing it, it runs after everybody has.
+                 *
+                 * Idempotent, so running it twice is safe: the reversal finds nothing outstanding the second time, and
+                 * the re-accrual is a fresh computation from today's facts rather than an increment.
+                 */
+                Action::make('rollAccruals')
+                    ->label('Roll accruals into this month')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (CostPeriod $record): string => 'Open '.$record->label())
+                    ->modalDescription('Reverses every accrual still standing from an earlier month, then re-raises '
+                        .'whatever is still outstanding from today\'s facts: goods received and not invoiced, and '
+                        .'subcontract work done and not certified. Safe to run again — the second run finds nothing to '
+                        .'reverse and recomputes rather than adds.')
+                    ->visible(fn (CostPeriod $record): bool => $record->isOpen()
+                        && (auth()->user()?->can('ConstructionCostCreate') ?? false))
+                    ->action(function (CostPeriod $record): void {
+                        $run = app(AccrualService::class)->open($record->period_start->toDateString());
+
+                        Notification::make()
+                            ->success()
+                            ->title('Opened '.$record->label())
+                            ->body($run->describe())
+                            ->persistent()
+                            ->send();
+                    }),
+
                 /*
                  * **The preview, and it is a separate action from the posting for a reason.**
                  *
