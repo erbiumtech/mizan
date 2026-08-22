@@ -79,6 +79,18 @@ class Incident extends Model
     /** The kinds that stop somebody working, which is what a frequency rate counts. */
     public const LOST_TIME_KINDS = [self::KIND_LOST_TIME, self::KIND_FATALITY];
 
+    /**
+     * Every kind where a person was hurt — first aid included. §17.6's accident frequency rate.
+     *
+     * Kept beside `RECORDABLE` rather than instead of it because the two answer different questions: how often somebody
+     * is hurt badly enough to be counted, and how often somebody is hurt at all. A site whose recordable rate is falling
+     * while this one is flat has got better at classification, not at safety.
+     */
+    public const INJURY_KINDS = [
+        self::KIND_FIRST_AID, self::KIND_MEDICAL_TREATMENT, self::KIND_RESTRICTED_WORK,
+        self::KIND_LOST_TIME, self::KIND_FATALITY, 'occupational_illness',
+    ];
+
     /** Nobody was hurt — and these are the ones worth *more* than the injuries, as leading indicators. */
     public const NO_INJURY_KINDS = [self::KIND_NEAR_MISS, 'unsafe_act', 'unsafe_condition'];
 

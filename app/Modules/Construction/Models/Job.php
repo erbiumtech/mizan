@@ -74,6 +74,10 @@ class Job extends Model
         'liquidated_damages_per_day', 'liquidated_damages_cap_pct', 'payment_terms_days',
         'certifier_contact_id', 'manager_employee_id', 'qs_employee_id', 'site_agent_employee_id',
         'closed_at',
+        // §17.6: which source a job's safety exposure hours come from — the site diary or Timesheets, never both.
+        // Counting both halves every frequency rate, and a halved rate is worse than a missing one because it looks
+        // like a number somebody can act on. Nullable, and the null is a state the safety report has to name.
+        'exposure_hours_source',
     ];
 
     /**

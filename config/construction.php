@@ -78,6 +78,23 @@ return [
          * Twenty-four hours is the commonest procedural position and the one most statutory regimes assume.
          */
         'report_within_hours' => 24,
+
+        /*
+         * **The base every frequency rate is computed on** — §17.6.
+         *
+         * Configuration rather than a constant because there is no single answer, and §17.6 is precise about the damage
+         * that does: "a frequency rate without its base is a number that gets compared against a competitor's figure
+         * computed on a different one, and 1,000,000 against 200,000 is a factor of five with both called *the
+         * standard*." A UK contractor quoting AFR per 100,000 and a Gulf contractor quoting LTIFR per 1,000,000 are both
+         * right, and a company that switches basis mid-year has invented an improvement.
+         *
+         * So the base is settable, and — the part that matters more than the default — it is **printed on the face of
+         * every rate** by `SafetyRate::baseLabel()`. Changing this number changes every figure on the page by an order of
+         * magnitude, and the page says which number it used.
+         *
+         * A million hours is the OSHA/ILO-style basis and the one most client reporting packs ask for.
+         */
+        'rate_base' => 1_000_000,
     ],
 
     /*
