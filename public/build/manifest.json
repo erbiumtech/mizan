@@ -5,11 +5,7 @@
     "isEntry": true
   },
   "resources/css/filament/admin/theme.css": {
-<<<<<<< HEAD
-    "file": "assets/theme-CFqXq5cz.css",
-=======
     "file": "assets/theme-DlqRdyM0.css",
->>>>>>> salary-varification
     "src": "resources/css/filament/admin/theme.css",
     "isEntry": true
   },
