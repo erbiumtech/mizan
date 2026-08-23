@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 0.1, 0.5, 1.1 and 1.2 landed — see [What landed](#what-landed); the rest outstanding
+**Status:** Phases 0.1, 0.5, 1.1, 1.2 and 1.3 landed — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -208,7 +208,7 @@ a page + hub entry + pane adapter, with **no new business logic**.
    (`rotting`, a table of opportunities with days since last activity), *Target Attainment*
    (`attainment`). Five reports, one service, no new logic. `activity()` belongs in the same section
    as a sixth if the owner filter is worth exposing.
-3. **Support SLA & Performance** — `TicketService::performance($from, $to)` as the report and
+3. **Support SLA & Performance** — *done, 2026-08-23.* `TicketService::performance($from, $to)` as the report and
    `breaches()` as its exception list: response and resolution against each category's
    `sla_*_minutes`, by assignee, with reopened count and satisfaction. Both methods are tested and
    unused.
@@ -476,6 +476,39 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the SLA report and its exception list (Phase 1.3).**
+
+- **Both methods were implemented, tested and unreachable**, which is the clearest case of this plan's
+  premise in the application: an SLA that is measured and never shown is a commitment nobody can be held
+  to. `Support\Support\SupportReports` turns them into *SLA Performance* — met against missed for the
+  month — and *SLA Breaches*, the open tickets that have missed one or are about to.
+- **A report and an exception list rather than two reports.** The first is read at a month end and quoted
+  in a review; the second is read every morning, because everything on it is still fixable. Separate
+  screens for that reason and not because the data differs.
+- **`TicketService` gained a second grouping and two aggregates, and no clock arithmetic.**
+  `performance()` grouped by category only, and the plan asked for assignee, reopenings and satisfaction
+  as well. `performanceByAssignee()` shares one private aggregator with it; both return the same row
+  shape. The category rows come first on the report and the assignee rows second, deliberately: the
+  commitment belongs to the category — the only thing in the schema carrying an `sla_*_minutes` figure —
+  so a rate per person is a diagnosis and not a ranking, and somebody working the urgent queue is measured
+  against a tighter clock than somebody on the general one.
+- **Two groupings in one table is an arithmetic trap, and the test is the guard.** The assignee rows are
+  the same tickets again, so a total summing every row doubles every figure and still looks like a total.
+  The record row adds up the category rows alone; mutating it to sum both fails four tests.
+- **Three absences stated rather than defaulted:** no ratings is a dash, because an average of nothing
+  reported as 0 says a team was hated when it was never asked; a month with no tickets says so rather than
+  reporting nought per cent met; and an unassigned ticket in breach is named and counted in its own tile,
+  because it is the worst row in the table and a blank cell reads as missing data.
+- **The window is measured on `opened_at`, and that is the load-bearing choice.** An SLA is the promise
+  made when a ticket arrives. Measured on resolution, every still-open ticket drops out of every month's
+  figures — so the report would improve as the backlog got worse, which is the most dangerous direction
+  for a service measure to lie in. Mutating the column to `resolved_at` fails six tests.
+- **Both reports say "reported, not enforced" on their own faces.** The module's rule is that the clocks
+  are measured and nothing acts on them, and a percentage that looks like a penalty invites somebody to
+  close tickets in order to improve it. Asserted, not just written.
+- Time is frozen in the test, because every breach figure is measured against `now()`: a report over a
+  past month shows every ticket in it as catastrophically overdue — correctly, and uselessly for a test.
 
 **2026-08-23 — the CRM pipeline set (Phase 1.2), Phase 0.1's sections, and the two couplings that were in
 the way.**
