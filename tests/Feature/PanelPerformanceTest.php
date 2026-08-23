@@ -214,13 +214,24 @@ class PanelPerformanceTest extends TestCase
      * page that got heavier for no reason pass.** The headroom is deliberately more than the next register needs,
      * because §17 has four more to land and bumping by a kilobyte each time turns a ratchet into a formality — the
      * numbers below are ~15% above what a fully licensed construction company renders today.
+     *
+     * **The reports ceiling moved on 2026-08-23 — 330 to 360 — for the same kind of reason, and it exposed that the
+     * headroom above was already spent.** Every report in `docs/reports-expansion-plan.md` is a card in the hub and a
+     * row in its sidebar column, so the hub is the one page in the panel that grows with each phase. The asset
+     * register (Phase 2.5) put it 3 KB over; measured without it the page was already 328–329 KB against 330, so the
+     * ~15% claimed above had become ~0.5% while nothing failed.
+     *
+     * Two things follow, and the second is the one to act on. A card costs ~4.5 KB, so 360 buys roughly six more
+     * reports rather than one — Phase 2 has three left and Phase 3 eleven. **At that rate the remaining plan needs
+     * ~60 KB the ceiling does not have, so the hub's card markup is what should give way next, not this number.**
+     * Raising it again without looking at the card would be the formality this comment warns about.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {
         $pages = [
             'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 300],
             'employees' => [EmployeeResource::getUrl('index'), 400],
-            'reports' => [Reports::getUrl(), 330],
+            'reports' => [Reports::getUrl(), 360],
         ];
 
         foreach ($pages as $page => [$url, $ceilingKb]) {
