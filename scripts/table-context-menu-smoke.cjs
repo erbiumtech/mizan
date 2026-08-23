@@ -18,6 +18,7 @@
  * rather than the page's.
  */
 const harness = process.argv[2];
+const table = process.argv[3] ?? 'invoices';
 
 if (!harness) {
   console.error('Usage: node scripts/table-context-menu-smoke.cjs <harness.html>');
@@ -164,6 +165,26 @@ if (!harness) {
     window.__selection = new Set();
     rightClick(rows[0]);
     out.unselectedItems = actionLabels();
+
+    /*
+     * §5 — grouped sections, and the Copy section.
+     *
+     * The heading names the `ActionGroup` the items below it came from, mirroring the row's own grouping.
+     * Reported rather than asserted here because only one table in the application has such a group; the
+     * runner decides what to require based on which table it was given.
+     */
+    out.headings = Array.from(menu().querySelectorAll('.fi-ta-context-menu-heading')).map((el) =>
+      el.textContent.trim(),
+    );
+    out.separatorCount = menu().querySelectorAll('.fi-ta-context-menu-separator').length;
+    out.namedSeparators = Array.from(menu().querySelectorAll('.fi-ta-context-menu-separator[aria-label]')).map(
+      (el) => el.getAttribute('aria-label'),
+    );
+    out.headingsAreHiddenFromAt = Array.from(
+      menu().querySelectorAll('.fi-ta-context-menu-heading'),
+    ).every((el) => el.getAttribute('aria-hidden') === 'true');
+    out.copyItems = out.unselectedItems.filter((label) => label.startsWith('Copy'));
+    out.noLeadingSeparator = !menu().firstElementChild?.classList.contains('fi-ta-context-menu-separator');
 
     /*
      * §4 — the keyboard route.
@@ -338,6 +359,35 @@ if (!harness) {
     result.turningItBackOnWorks,
     'a toggle in another tab should take effect on the next right-click',
   );
+
+  // §5
+  expect('no separator leads the menu', result.noLeadingSeparator, 'a rule at the top looks like a fault');
+  expect(
+    'the Copy section offers link, id and name',
+    result.copyItems.length === 3,
+    `got ${JSON.stringify(result.copyItems)}`,
+  );
+  expect('every heading is hidden from assistive tech', result.headingsAreHiddenFromAt);
+
+  if (table === 'projects') {
+    expect(
+      'an ActionGroup becomes a named section',
+      result.headings.length > 0,
+      'the projects table has the only record-level ActionGroup in the application — if this is empty, '
+        + 'either the group stopped rendering or the fixture stopped creating environments',
+    );
+    expect(
+      'the section name is announced by its separator',
+      result.namedSeparators.length > 0,
+      'a labelled separator is how the group name reaches a screen reader without a non-menuitem child',
+    );
+  } else {
+    expect(
+      'a table with no groups produces no headings',
+      result.headings.length === 0,
+      `got ${JSON.stringify(result.headings)}`,
+    );
+  }
   expect('no page errors', pageErrors.length === 0, pageErrors.join(' | '));
 
   console.log(JSON.stringify({ result, pageErrors, failures }, null, 2));

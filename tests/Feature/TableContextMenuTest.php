@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Modules\Core\Filament\Resources\ActivityLogs\Pages\ListActivityLogs;
+use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\ListInvoices;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Projects\Filament\Resources\Projects\Pages\ListProjects;
+use App\Modules\Projects\Models\Project;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
@@ -735,6 +738,114 @@ class TableContextMenuTest extends AccountingTestCase
         return (string) file_get_contents(resource_path('js/table-context-menu.js'));
     }
 
+    // ---------------------------------------------------------------- sections and copy
+
+    /**
+     * **Exactly one table puts an `ActionGroup` in `recordActions()`, and Phase 1 said fifty.**
+     *
+     * That claim was wrong and is corrected here in a way that cannot rot. It came from
+     * `grep -l "ActionGroup::make"` over files containing `recordActions` — which counts
+     * **`BulkActionGroup::make`** too, since one string contains the other, and every table has one of
+     * those in its toolbar. Parsing the `recordActions([...])` block itself gives one: the Projects table's
+     * *Open* group of environment links.
+     *
+     * Pinned rather than merely corrected, because §5's grouped sections have nowhere else to be proven —
+     * if that group disappears, `table-context-menu:smoke --table=projects` starts passing by finding
+     * nothing, and this fails instead.
+     */
+    public function test_exactly_one_table_groups_its_record_actions(): void
+    {
+        $withGroups = [];
+
+        foreach ($this->tableSources() as $path => $source) {
+            if (! preg_match('/->recordActions\(\s*\[(.*?)\]\s*\)/s', $source, $matches)) {
+                continue;
+            }
+
+            if (str_contains($matches[1], 'ActionGroup::make')) {
+                $withGroups[] = basename($path);
+            }
+        }
+
+        $this->assertSame(
+            ['ProjectsTable.php'],
+            $withGroups,
+            'If a table gained a record-level ActionGroup, add it to the smoke command so §5 stays proven. '
+            .'If Projects lost its group, the grouped-section assertions have nothing left to check.',
+        );
+    }
+
+    /**
+     * A grouped action is a *section*, and its name comes from the row's own trigger — §5.
+     *
+     * Mirroring rather than inventing: the row already labels the group, so the menu shows the same word.
+     * An unlabelled group — the common icon-only "⋯" trigger — gets a separator and no heading, because a
+     * heading reading *Actions* is noise.
+     */
+    public function test_a_group_is_mirrored_as_a_named_section(): void
+    {
+        $source = $this->script();
+
+        $this->assertStringContainsString("closest('.fi-dropdown-panel')", $source, 'membership is the panel');
+        $this->assertStringContainsString('DROPDOWN_TRIGGER', $source, 'and the name is the trigger\'s');
+
+        // Headings are hidden from assistive tech because the separator above carries the same name — a
+        // labelled separator is valid inside `role="menu"` where a heading element is not.
+        $this->assertStringContainsString("setAttribute('aria-hidden', 'true')", $source);
+        $this->assertStringContainsString("hr.setAttribute('aria-label', label)", $source);
+    }
+
+    /**
+     * **The Copy section: link, id, and what the row is called** — §5's "the item people ask for".
+     *
+     * The id is the one that looks least useful and is asked for most: it is what somebody pastes into a
+     * support ticket or a SQL console, and reading it off the URL bar means opening the record first.
+     *
+     * Guarded on `navigator.clipboard`, which is undefined on insecure origins — an item that silently
+     * fails is worse than one that was never there.
+     */
+    public function test_the_copy_section_offers_link_id_and_name(): void
+    {
+        $source = $this->script();
+
+        $this->assertStringContainsString("label: 'Copy link'", $source);
+        $this->assertStringContainsString('Copy ID ${key}', $source);
+        $this->assertStringContainsString('navigator.clipboard?.writeText', $source);
+    }
+
+    /**
+     * Destructive items are coloured, which was Phase 1's work and is §5's third bullet.
+     *
+     * Read from the class Filament already put on the element rather than from a list of action names kept
+     * here — a list would go stale silently the first time somebody added a destructive action, and the
+     * failure would be a delete that does not look like one.
+     */
+    public function test_destructive_items_take_their_colour_from_the_row(): void
+    {
+        $source = $this->script();
+
+        $this->assertStringContainsString('fi-color-danger', $source);
+        $this->assertStringContainsString('fi-ta-context-menu-item-danger', $source);
+
+        $theme = (string) file_get_contents(resource_path('css/filament/admin/theme.css'));
+        $this->assertStringContainsString('.fi-ta-context-menu-item-danger', $theme);
+    }
+
+    /**
+     * An empty section leaves no separator behind — §5.
+     *
+     * A row with no URL has no link section, a table with no groups has no group section, and an insecure
+     * origin has no Copy section. Each is normal, and each would otherwise leave a rule floating against
+     * nothing — which reads as a rendering fault rather than as an absence.
+     */
+    public function test_empty_sections_leave_no_stray_separators(): void
+    {
+        $source = $this->script();
+
+        $this->assertStringContainsString('sections.filter((section) => section.items.length > 0)', $source);
+        $this->assertStringContainsString('if (index > 0)', $source, 'never a separator before the first section');
+    }
+
     // ---------------------------------------------------------------- the browser harness
 
     /**
@@ -758,14 +869,51 @@ class TableContextMenuTest extends AccountingTestCase
             $this->markTestSkipped('Set CONTEXT_MENU_HARNESS, or run `php artisan table-context-menu:smoke`.');
         }
 
-        $this->invoice(Invoice::STATUS_DRAFT, 'SMOKE-DRAFT');
-        $this->invoice(Invoice::STATUS_ISSUED, 'SMOKE-ISSUED');
-
-        $markup = Livewire::test(ListInvoices::class)->loadTable()->html();
+        $markup = getenv('CONTEXT_MENU_TABLE') === 'projects'
+            ? $this->renderProjectsTable()
+            : $this->renderInvoicesTable();
 
         $this->assertStringContainsString('fi-ta-row', $markup, 'the harness needs rendered rows');
 
         file_put_contents($target, $markup);
+    }
+
+    /** Two invoices in two states — the per-record case, and the one with bulk actions. */
+    private function renderInvoicesTable(): string
+    {
+        $this->invoice(Invoice::STATUS_DRAFT, 'SMOKE-DRAFT');
+        $this->invoice(Invoice::STATUS_ISSUED, 'SMOKE-ISSUED');
+
+        return Livewire::test(ListInvoices::class)->loadTable()->html();
+    }
+
+    /**
+     * **The one table in this application with an `ActionGroup` in `recordActions()`** — §5's grouped
+     * sections have nowhere else to be proven.
+     *
+     * Its "Open" group holds one action per configured environment URL, and those are built from the
+     * `project_environments` relation rather than from columns on the project — so a project without
+     * environment rows renders an *empty* group and no dropdown at all. Two rows are created here for that
+     * reason: without them the harness would contain no group and the group assertions would pass by
+     * finding nothing.
+     */
+    private function renderProjectsTable(): string
+    {
+        CompanyModule::updateOrCreate(
+            ['company_id' => $this->tenant->getKey(), 'module' => 'projects'],
+            ['licensed' => true, 'enabled' => true],
+        );
+        modules()->flush();
+
+        foreach ([['PRJ-SMOKE-1', 'Context menu project'], ['PRJ-SMOKE-2', 'Second project']] as [$code, $name]) {
+            $project = Project::create(['code' => $code, 'name' => $name, 'status' => 'active']);
+
+            foreach (['prod' => 'https://example.test', 'qual' => 'https://qa.example.test'] as $kind => $url) {
+                $project->environments()->create(['kind' => $kind, 'url' => $url]);
+            }
+        }
+
+        return Livewire::test(ListProjects::class)->loadTable()->html();
     }
 
     // ---------------------------------------------------------------- cost

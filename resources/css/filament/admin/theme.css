@@ -2323,3 +2323,16 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 .fi-ta-context-menu-item-muted:focus-visible {
     @apply bg-gray-50 text-gray-700 dark:bg-white/5 dark:text-gray-200;
 }
+
+/*
+ * Section headings inside the menu — docs/table-context-menu-plan.md §5.
+ *
+ * The name of the `ActionGroup` the items below came from, mirroring how the row itself groups them. Small
+ * and quiet, because it is a signpost rather than a choice — and `aria-hidden`, since the labelled
+ * separator above it already announces the same name and hearing it twice is worse than once.
+ */
+.fi-ta-context-menu-heading {
+    padding: 0.375rem 0.5rem 0.125rem;
+
+    @apply text-xs font-medium text-gray-400 dark:text-gray-500;
+}

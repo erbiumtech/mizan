@@ -1,6 +1,8 @@
 # Right-Click Context Menu in Tables — Plan
 
-**Status:** Phases 0-4 done — every table, bulk, keyboard, touch and an off switch. Phase 5 outstanding.
+**Status:** **The plan is complete. Phases 0-5, 2026-08-23.** Right-click works on every table with no
+per-table code, with bulk on a selection, keyboard and touch routes, an off switch, and sections mirroring
+the row's own `ActionGroup`s.
 **Created:** 2026-08-14
 **Inspiration:** [Filament Examples — Right-Click Menu in Table](https://filamentexamples.com/project/filament-right-click-menu-in-table),
 which demonstrates the MIT package `leek/filament-right-click` (`^4.0 || ^5.0`, latest 1.5.2,
@@ -281,8 +283,12 @@ Livewire tests cannot right-click, so the plan splits deliberately:
   >    content layout's single anchor. A selector for the latter alone would have shipped a menu with no
   >    link items — the one part of this feature the opening section calls non-negotiable.
   >
-  > **And a finding that makes Phase 2 cheap rather than hard.** A third of the files declaring
-  > `recordActions()` also use `ActionGroup::make`, and `ActionGroup::toEmbeddedHtml()` writes its items
+  > **And a finding that makes Phase 2 cheap rather than hard.** ~~A third of the files declaring
+  > `recordActions()` also use `ActionGroup::make`~~ — **corrected in Phase 5: exactly one does.** That
+  > figure came from `grep -l "ActionGroup::make"` over files containing `recordActions`, which counts
+  > `Bulk`**`ActionGroup::make`** too, since one string contains the other and every table has one in its
+  > toolbar. Parsing the `recordActions([...])` block gives one table: Projects. The finding below still
+  > holds and still matters — `ActionGroup::toEmbeddedHtml()` writes its items
   > **eagerly** into an `x-cloak` panel that is present in the DOM, already `isHidden()`-filtered for that
   > record (`vendor/filament/actions/src/ActionGroup.php:494-560`). So grouped actions reach the menu with
   > no dropdown opened and no second visibility decision. `extraRecordLinkAttributes()` also lands on the
@@ -491,6 +497,48 @@ Livewire tests cannot right-click, so the plan splits deliberately:
 - **Phase 5 — Polish.** Grouped sections and separators mirroring `ActionGroup`s, colours for destructive
   items, and a "Copy" section (link, id, the row's primary label) which is the item people ask for once
   the menu exists.
+
+  > **Phase 5 built 2026-08-23 — the plan is complete.** — sections and group mirroring, the Copy section,
+  > six tests, six more browser assertions, and `table-context-menu:smoke` now driving **two** tables.
+  >
+  > A projects row now reads: *Open / Open in new tab* — *View / Edit* — **Open** *· Production /
+  > Qualification* — *Copy link / Copy ID 1 / Copy "PRJ-SMOKE-1"* — *Turn off right-click menus*. Five
+  > sections, four separators, one heading taken from the row's own group trigger.
+  >
+  > **The correction that shaped this phase: exactly one table in the application puts an `ActionGroup` in
+  > `recordActions()`.** Phase 1's entry above said a third of them did, and that was wrong —
+  > `grep -l "ActionGroup::make"` counts `Bulk`**`ActionGroup::make`** too, since one string contains the
+  > other and every table has one in its toolbar. Parsing the `recordActions([...])` block gives one:
+  > Projects' *Open* group of environment links. A test now pins that number, because §5's grouped sections
+  > have nowhere else to be proven — if that group disappears, the browser assertions would start passing by
+  > finding nothing.
+  >
+  > **Which is why the smoke command now runs both tables.** Invoices is the per-record and bulk case;
+  > Projects is the only grouped one. Running one and calling the feature tested would leave half of it
+  > unexercised — and the Projects group only renders when a project has `project_environments` rows, since
+  > the actions are built per configured URL rather than from columns, so the harness creates them.
+  >
+  > Four decisions:
+  >
+  > - **The group's name comes from the row's own trigger**, not from a heading we invent. And an
+  >   *unlabelled* group — the common icon-only "⋯" trigger — gets a separator and no heading, because a
+  >   heading reading *Actions* is noise.
+  > - **The name reaches a screen reader through a labelled separator**, and the visible heading is
+  >   `aria-hidden`. A heading element inside `role="menu"` is not a `menuitem` and has no valid role there;
+  >   `role="separator"` with `aria-label` is valid, is announced, and says the same thing once.
+  > - **Empty sections leave no separator.** A row with no URL has no link section, a table with no groups
+  >   has no group section, an insecure origin has no Copy section — each normal, and each would otherwise
+  >   leave a rule floating against nothing, which reads as a rendering fault rather than an absence.
+  > - **`Copy ID` earns its place** even though it looks the least useful of the three: it is what somebody
+  >   pastes into a support ticket or a SQL console, and reading it off the URL bar means opening the record
+  >   first.
+  >
+  > §5's third bullet — colours for destructive items — was delivered in Phase 1 and is now covered by a
+  > test rather than left implicit: the colour is read from the class Filament already put on the element,
+  > so a destructive action added later looks destructive without anybody maintaining a list.
+  >
+  > One more of my own errors, and it is the plainest yet: `private function run()` on a Laravel command
+  > collides with `Illuminate\Console\Command::run()`, which is public. Renamed to `smokeTable()`.
 
 ## Risks
 

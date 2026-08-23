@@ -29,19 +29,46 @@ use Symfony\Component\Process\Process;
 class SmokeTableContextMenu extends Command
 {
     protected $signature = 'table-context-menu:smoke
+                            {--table= : One of invoices, projects. Default: both}
                             {--keep : Leave the generated harness on disk for inspection}';
 
     protected $description = 'Right-click a real rendered table row in headless Chrome and check the menu behaves';
 
+    /**
+     * Both tables by default, and that is the point of the loop.
+     *
+     * **Invoices** is the per-record case: its actions are permission *and* state, so a draft row and an
+     * issued row differ, and it is the table with bulk actions. **Projects** is the only table in this
+     * application with an `ActionGroup` in `recordActions()`, so §5's grouped sections have nowhere else to
+     * be proven. Running one and calling the feature tested would leave half of it unexercised.
+     */
     public function handle(): int
     {
-        $harness = storage_path('app/table-context-menu-harness.html');
+        $tables = $this->option('table') ? [$this->option('table')] : ['invoices', 'projects'];
+        $failed = false;
+
+        foreach ($tables as $table) {
+            $this->newLine();
+            $this->info("── {$table} ".str_repeat('─', max(0, 40 - strlen($table))));
+
+            if (! $this->smokeTable($table)) {
+                $failed = true;
+            }
+        }
+
+        return $failed ? self::FAILURE : self::SUCCESS;
+    }
+
+    /** Named `smokeTable` rather than `run`: `Illuminate\Console\Command::run()` is public and final in effect. */
+    private function smokeTable(string $table): bool
+    {
+        $harness = storage_path("app/table-context-menu-harness-{$table}.html");
 
         File::ensureDirectoryExists(dirname($harness));
         File::delete($harness);
 
-        if (! $this->renderATable($harness)) {
-            return self::FAILURE;
+        if (! $this->renderATable($harness, $table)) {
+            return false;
         }
 
         // The test wrote raw table markup; wrap it in the page the browser opens.
@@ -50,7 +77,7 @@ class SmokeTableContextMenu extends Command
         $this->line('Harness: '.$harness);
 
         $process = new Process(
-            ['node', 'scripts/table-context-menu-smoke.cjs', $harness],
+            ['node', 'scripts/table-context-menu-smoke.cjs', $harness, $table],
             base_path(),
             timeout: 180,
         );
@@ -61,7 +88,7 @@ class SmokeTableContextMenu extends Command
             File::delete($harness);
         }
 
-        return $process->isSuccessful() ? self::SUCCESS : self::FAILURE;
+        return $process->isSuccessful();
     }
 
     /**
@@ -77,7 +104,7 @@ class SmokeTableContextMenu extends Command
      * menus. A table whose every row offered the same actions would let every browser assertion pass
      * while proving nothing about the one property this feature is for.
      */
-    private function renderATable(string $harness): bool
+    private function renderATable(string $harness, string $table): bool
     {
         $phpunit = new Process(
             [
@@ -99,6 +126,7 @@ class SmokeTableContextMenu extends Command
              */
             [
                 'CONTEXT_MENU_HARNESS' => $harness,
+                'CONTEXT_MENU_TABLE' => $table,
                 'APP_ENV' => 'testing',
                 'DB_CONNECTION' => 'sqlite',
                 'DB_DATABASE' => ':memory:',
