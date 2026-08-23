@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1–2.3 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 six of eight done (2.1–2.6 landed); the rest outstanding — see [What landed](#what-landed)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -243,15 +243,23 @@ the assertion its test should make, not the row count.
 3. **Unbilled WIP** — *done, 2026-08-23.* Approved billable timesheet entries with no billing run, by project and
    customer, at their rate. A balance-sheet figure that is invisible today; also the report that shows
    revenue being lost to unbilled time.
-4. **Stock on Hand & Valuation** — per product: quantity, average cost, value, reconciled to that
+4. **Stock on Hand & Valuation** — *done, 2026-08-23.* Per product: quantity, average cost, value, reconciled to that
    product's `inventory_account_id`; plus below-`reorder_level` and no-movement-in-N-days as flags on
    the same rows rather than as separate reports.
-5. **Fixed Asset Register & Depreciation Schedule** — cost, accumulated depreciation, net book value
-   per asset, reconciled to the asset and accumulated-depreciation accounts, with the next twelve
-   months' charge from `DepreciationService`'s own method. A standard note to the accounts.
-6. **Bank Reconciliation Statement** — statement balance → unpresented cheques and deposits → ledger
-   balance, from `BankReconciliationService::ledgerBalance()` and `reconciled_at`. Asked for at every
-   year end.
+5. **Fixed Asset Register & Depreciation Schedule** — *done, 2026-08-23, and it is the one report in
+   Phases 1 and 2 that needed new business logic — see [What landed](#what-landed).* Cost, accumulated
+   depreciation, net book value per asset, reconciled to the asset and accumulated-depreciation accounts,
+   with the next twelve months' charge from `DepreciationService::schedule()`. **The sentence above used to
+   say "from `DepreciationService`'s own method", and the service had no such method** — every method it had
+   posted journal entries, so the forecast had to be written before the report could be. A standard note to
+   the accounts.
+6. **Bank Reconciliation Statement** — *done, 2026-08-23, and it found that this application cannot
+   complete the reconciliation it describes — see [What landed](#what-landed).* Statement balance →
+   unpresented cheques and deposits → ledger balance, from `BankReconciliationService::ledgerBalance()` and
+   `reconciled_at`. Asked for at every year end. **"Asked for at every year end" assumed a report over
+   completed statements, and it cannot be one:** `complete()` requires the statement balance to equal the
+   ledger balance exactly, so a statement carrying an unpresented cheque can never be closed and a closed one
+   has nothing to reconcile. The report is about the open ones.
 7. **Employee Advances Outstanding** — advances less recoveries per employee, with the instalment and
    the months remaining. A receivable from staff; feeds final settlement, so a wrong figure leaves the
    company out of pocket.
@@ -477,6 +485,136 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the bank reconciliation (Phase 2.6), and a workflow that forbids the thing being reported.**
+
+- **`complete()` refuses any statement whose closing balance is not exactly the ledger balance, and an
+  unpresented cheque is precisely a difference between those two.** So the statements that have something to
+  reconcile are the ones this application will not let anybody close, and every *completed* statement
+  necessarily reconciles to nil. Proved before it was written up rather than read off the code: one 500
+  inflow matched, one 120 cheque written and unpresented, every statement line matched, `isFullyMatched()`
+  true — and `complete()` throws *"Closing balance 500.00 does not match ledger balance 380.00"*. That is a
+  textbook reconciliation being rejected as an error.
+- **So the report is about open statements, which is the opposite of what "asked for at every year end"
+  implied.** It is the only place the 120 is named and added up. Whether `complete()`'s rule should be relaxed
+  — a reconciliation completes *with* unpresented items, that is what the statement is for — is a change to
+  posting behaviour with its own tests asserting the current rule, so it is left as a finding rather than
+  folded into a report. `BankReconciliationStatementReportTest` pins the refusal, so the day that rule
+  changes, the test and the report's note both say so.
+- **The identity, stated per account rather than in aggregate.** A bank account is debit-normal: a cheque we
+  have written and the bank has not paid is a credit the ledger has made and the bank has not, so the bank
+  reads *higher* by that amount, and a deposit in transit is the mirror. Bank, less unpresented, plus in
+  transit, equals the books — and what survives both adjustments is real, usually a charge the bank applied
+  and nobody booked.
+- **Unmatched statement lines are counted, not valued.** They are the usual explanation for a surviving
+  difference, but an unmatched line's amount is the *bank's* figure: folding it into the reconciliation would
+  be asserting the journal entry it should have produced. So the note says how many and leaves the difference
+  standing.
+- **`reconciled_at` is the whole mechanism, and its absence is the definition.** Matching stamps the ledger
+  line; a posted line without the stamp is by definition something the bank has not seen. Excluding a line
+  clears it again, which is right — an excluded line is one nobody claims ties to the ledger — and the test
+  for that asserts the ledger side goes back into "in transit".
+- **The ledger figure is batched, and the equivalence is asserted against `ledgerBalance()` statement by
+  statement.** `ledgerBalance()` builds an account's entire ledger to return one closing number, which is
+  right for one statement on screen and wrong for a report over every bank account. It is also the figure
+  `complete()` checks, so a second way of computing it could tell a company its books agree while the
+  workflow says they do not. Same protection, same reason, as 2.4's batched valuation and 1.1's ledger.
+- **One statement per account: the latest at or before the date.** A reconciliation is a position at a
+  statement date, not at an arbitrary one, so asking for it in September gives the August reconciliation
+  rather than an empty page — and each account's figures are read at *its own* statement date, which the test
+  proves by putting one account on July and another on August.
+
+
+**2026-08-23 — the asset register (Phase 2.5), and the method this plan said it already had.**
+
+- **This was not a "no new business logic" item, which is what Phase 2 promised.** The plan costed the
+  twelve-month charge as coming "from `DepreciationService`'s own method". The service had three methods: two
+  that post depreciation and one that writes an asset off. There was no read-only projection anywhere, so the
+  only way to learn what the next year's charge would be was to *book* the next year's charge —
+  `runForMonth()` twelve times, auto-approved and posted. `DepreciationService::schedule()` is the method the
+  plan assumed. It walks a replica of the asset forward through the model's own `monthlyDepreciation()` and
+  saves nothing.
+- **The test for it is the equivalence: project twelve months, then book twelve months, and assert the two
+  are the same list of figures.** Declining balance is why that test earns its keep — the charge is a
+  proportion of book value, so it falls every month, and a second implementation of the `2 / life` rate would
+  have been free to drift from the entries it predicts with nothing to notice. Same protection, same reason,
+  as the batched valuation in 2.4 and the general ledger in 1.1.
+- **The cached `accumulated_depreciation` column cannot answer an "as at" question**, and every report in
+  Phases 1 and 2 takes a date. A cache has no history: it holds today's total, and the migration says as
+  much. Comparing it against `balancesFor()`, which *is* as at the date, would have reported the gap between
+  two **dates** as a discrepancy — in the one report whose whole purpose is proving that two figures agree.
+  So depreciation here is summed from the posted entries against account 1500 instead. Credits less debits
+  against that account, not a memo match: the account is the definition of the figure, and
+  `DepreciationService`'s own `memo like 'Depreciation%'` test would drop an asset's whole history out of the
+  note the day somebody reworded a memo.
+- **Which makes the cache itself checkable, and that is the third thing the note says.** Not a reconciliation
+  — both figures are ours — but the register screen, the asset form and every future declining-balance charge
+  are computed from the cached one, so a drift means all three are wrong. This report is the only place the
+  two are ever put side by side.
+- **And `accounting:rebuild-asset-depreciation` ships with it, because a figure somebody is told is wrong and
+  cannot fix is half a feature.** It rewrites each asset's cached total from its posted entries, touching only
+  the ones that disagree, and derives the status from the corrected figure — an asset whose cache had it
+  written off as `fully_depreciated` goes back to `active` with life left in it, which is the half of the
+  repair nobody expects and the reason the command prints a status column before writing. The command and the
+  report both read `DepreciationService::bookedFor()`, so the thing that reports the drift and the thing that
+  repairs it cannot hold two opinions about what the ledger says.
+- **Both sides separately, because net book value is a subtraction.** Cost ties to each asset's own account,
+  depreciation to 1500. A reader told only that the net is out by a figure does not know which half to go and
+  look at: a misposted cost and a hand-booked depreciation entry read identically in the net and are found in
+  completely different places. The note also says which way round the difference falls, because those are two
+  different faults.
+- **The commonest cost-side difference is nobody's mistake, and it is worth stating plainly: nothing posts an
+  asset's cost when it is entered.** `FixedAsset` has an *optional* `journal_entry_id` and no code fills it
+  in, so a company that books purchases straight to the bank has every asset in this register and none of them
+  in an asset account. The note names that case as "the register carries cost the asset accounts do not"
+  rather than calling it a discrepancy.
+- **"As at" governs which assets exist, not only their figures.** `status` is the state *now*, so filtering on
+  it would have dropped assets out of last year's note the moment somebody disposed of one this year — and
+  last year's note would silently change. An asset belongs on the register when it was bought by the date and
+  not disposed of until after it.
+- **A month nobody ran is still to come.** Depreciation is booked by hand, from an action on the register, so
+  months get missed. The projection starts at the month of the report date, or after the last month actually
+  booked, whichever is later — so a missed charge stays in "still to come" instead of falling between a
+  depreciation total that never included it and a forecast that starts after it. The months are asserted at
+  the service level, because for a straight-line asset with life to spare the twelve-month *total* is
+  identical either way: a window that had slipped a month would not show up in a total at all.
+
+
+**2026-08-23 — the stocktake (Phase 2.4), and three wrong premises its own tests caught.**
+
+- **It reconciles, and this one has something real to reconcile against**, unlike leave liability and
+  unbilled WIP. Purchases debit a product's inventory account and sales take cost out of it, so the account
+  and the valuation are two independent statements of one figure. The report states both and says whether
+  they agree.
+- **`InventoryValuationService::valuationForAll()` is new and batched**, because `onHand()`, `stockValue()`
+  and `averageCost()` are per product and the middle one is two queries — 3n+ for a catalogue. It must agree
+  with the three of them exactly, and the test asserts that product by product over a FIFO product, an
+  average-cost one and one sold out entirely. That is the same protection the general ledger's batching got
+  in Phase 1.1, for the same reason: two ways of computing one figure is a drift waiting to happen.
+- **Three premises I had wrong, each found by a failing test rather than by reading:**
+  - **`reorder_level` defaults to `0`, not null.** Treating nought as a threshold flagged every sold-out
+    product, since `0 <= 0` — the opposite of useful, because a product with no reorder level is one nobody
+    wants to be told about. Nought now means "no level".
+  - **There is no such thing as stock in no account.** `InventoryService::inventoryAccountId()` falls back to
+    1300 when a product names none, so the report's "unmapped products explain the difference" branch
+    described a state that cannot occur. The account is now resolved through that same method — made public
+    for it — rather than read off the product, so the report reconciles against the account the posting
+    actually used.
+  - **The "nothing to reconcile to" branch was unreachable** once the fallback was understood. Removed: an
+    unreachable branch about money is worse than an absent one, because it reads as having been considered.
+- **What the difference actually is, in practice: stock on deactivated products.** The rows are active
+  products and deactivating one does not unpost the entries that put its stock in the accounts, so this is
+  the commonest difference and it is nobody's mistake. It is added before comparing and named in the note,
+  rather than reported as a discrepancy.
+- **`InventoryService::accountId()` is memoised, and the report's query-count test is what noticed.** A code
+  maps to an id for the life of a request; it was a query every time, which is unremarkable once per posting
+  and ten identical lookups when a report resolves ten products' accounts. Per instance rather than static,
+  so a test that swaps the chart of accounts gets a fresh answer.
+- **Both flags share one cell**, which is the plan's instruction — "flags on the same rows rather than as
+  separate reports" — because a product both below its reorder level *and* untouched for months is the case
+  worth acting on. *Never moved* is distinguished from *No movement*: no history and moved-long-ago are
+  opposite facts, and treating the first as fresh would hide every product somebody set up and forgot.
+
 
 **2026-08-23 — unbilled WIP (Phase 2.3), and the risk list's cross-module gate turns out to already exist.**
 

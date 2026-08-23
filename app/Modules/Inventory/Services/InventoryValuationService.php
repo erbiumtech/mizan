@@ -4,7 +4,9 @@ namespace App\Modules\Inventory\Services;
 
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\StockLocation;
+use App\Modules\Inventory\Models\StockMovement;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
 /**
@@ -55,6 +57,63 @@ class InventoryValuationService
         $onHand = $this->onHand($product, $at);
 
         return $onHand > 0 ? round($this->stockValue($product, $at) / $onHand, 4) : 0.0;
+    }
+
+    /**
+     * On hand, value and average cost for every product at once — `docs/reports-expansion-plan.md` Phase 2.4.
+     *
+     * **One grouped query for the whole catalogue**, where the three methods above are per product and
+     * `stockValue()` alone is two queries. Called down a product list that is 3n+ queries for one screen, and
+     * this plan's risk list names that shape by name: "these reports are loops over employees, products and
+     * projects, and this is exactly how `/payroll-runs` came to run ~100 queries a page."
+     *
+     * **It must agree with the per-product methods exactly, and `InventoryStockReportTest` asserts that
+     * product by product rather than taking it on trust.** That is the same protection the general ledger's
+     * batching got in Phase 1.1: two ways of computing one figure is a drift waiting to happen, and the
+     * equivalence test is the specification rather than a nicety. The arithmetic below is deliberately the
+     * same three expressions — `sum(quantity)`, `sum(quantity * unit_cost)` over the ins less
+     * `sum(total_cost)` over the outs, and one divided by the other — so a reader can check it against the
+     * methods above by eye.
+     *
+     * As at a date, because a valuation is a balance and a balance is always as at something. Null is
+     * everything, matching the rest of this class.
+     *
+     * @return array<int, array{on_hand: float, value: float, average_cost: float, last_movement: ?string}>
+     *                                                                                                      product id => figures
+     */
+    public function valuationForAll(?string $asOf = null): array
+    {
+        $rows = StockMovement::query()
+            ->when($asOf, fn (Builder $query) => $query->whereDate('movement_date', '<=', $asOf))
+            ->groupBy('product_id')
+            ->selectRaw('product_id')
+            ->selectRaw('COALESCE(SUM(quantity), 0) as on_hand')
+            ->selectRaw('COALESCE(SUM(CASE WHEN quantity > 0 THEN quantity * unit_cost ELSE 0 END), 0) as cost_in')
+            ->selectRaw('COALESCE(SUM(CASE WHEN quantity < 0 THEN total_cost ELSE 0 END), 0) as cost_out')
+            // The most recent movement, for the "nothing has moved" flag. Free here, and a second query per
+            // product everywhere else.
+            ->selectRaw('MAX(movement_date) as last_movement')
+            ->get();
+
+        $valuation = [];
+
+        foreach ($rows as $row) {
+            $onHand = round((float) $row->on_hand, 2);
+            $value = round((float) $row->cost_in - (float) $row->cost_out, 2);
+
+            $valuation[(int) $row->product_id] = [
+                'on_hand' => $onHand,
+                'value' => $value,
+                // Guarded exactly as `averageCost()` guards it: nought on hand has no average, and dividing
+                // would be a crash on the one product a stocktake had just cleared out.
+                'average_cost' => $onHand > 0 ? round($value / $onHand, 4) : 0.0,
+                'last_movement' => $row->last_movement === null
+                    ? null
+                    : Carbon::parse($row->last_movement)->toDateString(),
+            ];
+        }
+
+        return $valuation;
     }
 
     /**

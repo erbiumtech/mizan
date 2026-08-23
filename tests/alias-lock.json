@@ -317,6 +317,7 @@
         "App\\Filament\\Pages\\Auth\\EditProfile": "App\\Modules\\Core\\Filament\\Pages\\Auth\\EditProfile",
         "App\\Filament\\Pages\\BalanceSheet": "App\\Modules\\Accounting\\Filament\\Pages\\BalanceSheet",
         "App\\Filament\\Pages\\BankPaymentFile": "App\\Modules\\Accounting\\Filament\\Pages\\BankPaymentFile",
+        "App\\Filament\\Pages\\BankReconciliationStatement": "App\\Modules\\Accounting\\Filament\\Pages\\BankReconciliationStatement",
         "App\\Filament\\Pages\\BudgetVsActual": "App\\Modules\\Accounting\\Filament\\Pages\\BudgetVsActual",
         "App\\Filament\\Pages\\CashFlow": "App\\Modules\\Accounting\\Filament\\Pages\\CashFlow",
         "App\\Filament\\Pages\\CompanySettings": "App\\Modules\\Core\\Filament\\Pages\\CompanySettings",
@@ -331,6 +332,7 @@
         "App\\Filament\\Pages\\FbrInvoiceReporting": "App\\Modules\\Invoicing\\Filament\\Pages\\FbrInvoiceReporting",
         "App\\Filament\\Pages\\FbrTaxFile": "App\\Modules\\Payroll\\Filament\\Pages\\FbrTaxFile",
         "App\\Filament\\Pages\\FindTransactions": "App\\Modules\\Accounting\\Filament\\Pages\\FindTransactions",
+        "App\\Filament\\Pages\\FixedAssetRegister": "App\\Modules\\Accounting\\Filament\\Pages\\FixedAssetRegister",
         "App\\Filament\\Pages\\GeneralLedger": "App\\Modules\\Accounting\\Filament\\Pages\\GeneralLedger",
         "App\\Filament\\Pages\\GnuCashImport": "App\\Modules\\Accounting\\Filament\\Pages\\GnuCashImport",
         "App\\Filament\\Pages\\Modules": "App\\Modules\\Core\\Filament\\Pages\\Modules",
@@ -358,7 +360,8 @@
         "App\\Filament\\Pages\\CashCommitments": "App\\Modules\\Accounting\\Filament\\Pages\\CashCommitments",
         "App\\Filament\\Pages\\PayrollRegister": "App\\Modules\\Payroll\\Filament\\Pages\\PayrollRegister",
         "App\\Filament\\Pages\\LeaveLiability": "App\\Modules\\Lifecycle\\Filament\\Pages\\LeaveLiability",
-        "App\\Filament\\Pages\\UnbilledWip": "App\\Modules\\Timesheets\\Filament\\Pages\\UnbilledWip"
+        "App\\Filament\\Pages\\UnbilledWip": "App\\Modules\\Timesheets\\Filament\\Pages\\UnbilledWip",
+        "App\\Filament\\Pages\\StockOnHand": "App\\Modules\\Inventory\\Filament\\Pages\\StockOnHand"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

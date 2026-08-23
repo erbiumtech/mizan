@@ -30,6 +30,11 @@ return [
         'App\\Filament\\Resources\\StockLocations\\StockLocationResource' => \App\Modules\Inventory\Filament\Resources\StockLocations\StockLocationResource::class,
     ],
 
+    /** The stocktake report (reports-expansion-plan.md Phase 2.4). A page: a report is a question. */
+    'pages' => [
+        'App\\Filament\\Pages\\StockOnHand' => \App\Modules\Inventory\Filament\Pages\StockOnHand::class,
+    ],
+
     'permission_groups' => [
         'Inventory',
     ],
@@ -77,6 +82,8 @@ return [
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
     'navigation' => [
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
         'Invoicing & Inventory' => 'finance',
     ],
 ];
