@@ -109,4 +109,54 @@ class TenantConnectionGuardTest extends TestCase
 
             TEXT);
     }
+
+    /**
+     * The same bug in the shape that fails *silently*, which is the worse one.
+     *
+     * `DB::transaction()` opens one on the default connection, so a block of tenant writes wrapped in it is
+     * not in a transaction at all — each write commits on the spot and a failure part-way leaves the earlier
+     * ones standing. Nothing errors; the data is simply half-written.
+     *
+     * `TenantTransaction` exists because of it and records the incident: "a payslip save reversed its existing
+     * journal entry, then failed validating the replacement, and the reversal stayed posted with nothing left
+     * to replace it." `GnuCashImportService` records a second one, where a rolled-back "preview" committed a
+     * permanent import. It had reached fourteen more call sites across Attendance, Recruitment, CRM,
+     * Lifecycle, Quotations and Leave before this test existed.
+     *
+     * Scoped to `app/Modules`, which is where tenant services live. A landlord-only write — the company
+     * registry, permissions — is correctly a `DB::transaction()`, so this is not a blanket ban; if one is
+     * genuinely needed under a module, `DB::connection('...')->transaction()` says so explicitly and passes.
+     */
+    public function test_no_module_service_opens_a_transaction_on_the_default_connection(): void
+    {
+        $violations = [];
+
+        foreach ($this->sourceFiles() as $path) {
+            if (! str_contains($path, '/Modules/')) {
+                continue;
+            }
+
+            foreach (explode("\n", (string) file_get_contents($path)) as $number => $line) {
+                // Skip docblocks and comments, which discuss this bug at length on purpose.
+                if (preg_match('/^\s*(\*|\/\/|#)/', $line)) {
+                    continue;
+                }
+
+                if (str_contains($line, 'DB::transaction(')) {
+                    $violations[] = str_replace(base_path().'/', '', $path).':'.($number + 1);
+                }
+            }
+        }
+
+        $this->assertSame([], $violations, count($violations).<<<'TEXT'
+             transaction(s) under app/Modules open on the default connection.
+
+            Tenant writes inside them are not transactional: each commits immediately, and a failure part-way
+            leaves the earlier ones standing with nothing to roll them back. It fails silently — no error, just
+            half-written data.
+
+            Fix: use App\Support\TenantTransaction; then TenantTransaction::run(fn () => ...).
+
+            TEXT);
+    }
 }

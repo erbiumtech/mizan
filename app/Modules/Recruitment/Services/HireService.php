@@ -10,7 +10,7 @@ use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Offer;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -68,7 +68,7 @@ class HireService
 
         $applicant = $application->applicant;
 
-        return DB::transaction(function () use ($offer, $application, $applicant, $withLogin, $employeeCode): Employee {
+        return TenantTransaction::run(function () use ($offer, $application, $applicant, $withLogin, $employeeCode): Employee {
             $user = $withLogin ? $this->createUser($applicant) : null;
 
             $attributes = [

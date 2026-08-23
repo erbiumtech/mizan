@@ -7,7 +7,7 @@ use App\Modules\Crm\Models\LostReason;
 use App\Modules\Crm\Models\Opportunity;
 use App\Modules\Crm\Models\OpportunityStageHistory;
 use App\Modules\Crm\Models\PipelineStage;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 /**
@@ -32,7 +32,7 @@ class OpportunityService
      */
     public function open(Opportunity $opportunity): Opportunity
     {
-        return DB::transaction(function () use ($opportunity): Opportunity {
+        return TenantTransaction::run(function () use ($opportunity): Opportunity {
             $opportunity->save();
 
             $this->recordMove($opportunity, from: null, to: $opportunity->stage, movedBy: auth()->user());
@@ -69,7 +69,7 @@ class OpportunityService
 
         $from = $opportunity->stage;
 
-        return DB::transaction(function () use ($opportunity, $stage, $from, $by): Opportunity {
+        return TenantTransaction::run(function () use ($opportunity, $stage, $from, $by): Opportunity {
             $opportunity->forceFill([
                 'pipeline_stage_id' => $stage->getKey(),
                 // The new stage's probability, unless somebody has deliberately overridden
@@ -110,7 +110,7 @@ class OpportunityService
 
         $stage = $opportunity->pipeline->wonStage();
 
-        return DB::transaction(function () use ($opportunity, $stage, $by, $recordMove): Opportunity {
+        return TenantTransaction::run(function () use ($opportunity, $stage, $by, $recordMove): Opportunity {
             $from = $opportunity->stage;
 
             $opportunity->forceFill([
@@ -156,7 +156,7 @@ class OpportunityService
 
         $stage = $opportunity->pipeline->lostStage();
 
-        return DB::transaction(function () use ($opportunity, $reason, $stage, $by, $recordMove): Opportunity {
+        return TenantTransaction::run(function () use ($opportunity, $reason, $stage, $by, $recordMove): Opportunity {
             $from = $opportunity->stage;
 
             $opportunity->forceFill([
@@ -182,7 +182,7 @@ class OpportunityService
             return $opportunity;
         }
 
-        return DB::transaction(function () use ($opportunity, $stage, $by): Opportunity {
+        return TenantTransaction::run(function () use ($opportunity, $stage, $by): Opportunity {
             $from = $opportunity->stage;
 
             $opportunity->forceFill([
