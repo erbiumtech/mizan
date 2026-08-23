@@ -51,6 +51,22 @@ class CashCommitmentsReportTest extends AccountingTestCase
         $this->setCurrentTenant();
     }
 
+    /**
+     * Put the registry back, because this file is the only thing in the suite that empties it.
+     *
+     * `CashCommitments` is static, so a flush outlives the test that did it. In practice every following
+     * test boots a fresh application and both providers register again — but that is a property of how the
+     * suite happens to run, not a promise, and it would stop being true the day registration moved into
+     * `register()` or behind a singleton. Restoring here costs nothing and means the test cannot be the
+     * reason something unrelated fails three hundred cases later.
+     */
+    protected function tearDown(): void
+    {
+        CashCommitments::flush();
+
+        parent::tearDown();
+    }
+
     // ────────────────────────────────────────────────────────────── fixtures ──
 
     private function account(string $code): Account
