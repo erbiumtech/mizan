@@ -34,6 +34,12 @@ return [
         'App\\Filament\\Resources\\TimesheetEntries\\TimesheetEntryResource' => \App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource::class,
     ],
 
+    /** The two reports. Pages rather than a resource: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\TimesheetUtilisation' => \App\Modules\Timesheets\Filament\Pages\TimesheetUtilisation::class,
+        'App\\Filament\\Pages\\PlanVersusActual' => \App\Modules\Timesheets\Filament\Pages\PlanVersusActual::class,
+    ],
+
     'permission_groups' => [
         'Timesheet',
     ],
@@ -71,5 +77,7 @@ return [
      */
     'navigation' => [
         'Employee' => 'people',
+        // The two reports declare the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
     ],
 ];

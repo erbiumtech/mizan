@@ -154,3 +154,35 @@ Three things about the figures:
 
 The totals row adds up the category rows only — adding both halves would count
 every ticket twice.
+
+## People and payroll
+
+**Timesheet Utilisation** and **Plan vs Actual** read a month of booked time
+across everybody, rather than one person at a time.
+
+The first splits each person's hours into billable and non-billable and states
+the **billable share** — of the time they recorded, how much was billable. There
+is deliberately no capacity column and no percentage against one: this
+application will not state how many hours somebody was expected to work, because
+a rule that made timesheets and attendance reconcile would make people book the
+difference somewhere to make the screen agree. That produces worse data than the
+gap it closed.
+
+The second is a grid of people against projects, and each cell reads
+`12.5h / 50%` — hours booked, then the allocation the assignment promised. Three
+cases are worth hunting for:
+
+- an allocation with no hours against it,
+- hours against a project with no allocation,
+- and a person whose total is nowhere near any of their allocations.
+
+Two things about that grid. It **scrolls sideways** rather than cutting columns
+off, and on a wide report the header and totals rows stop following you down the
+page — that is the trade for having every column present. And it draws columns for
+the **twelve busiest projects**; if there are more it says so underneath, while
+the Booked column on the right still totals every project, so a person's total
+always matches their own timesheet.
+
+Both reports count **every entry dated in the month, approved or not.** These are
+management reports about what was recorded, not billing documents. Billing has its
+own rules and its own screens.

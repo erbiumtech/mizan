@@ -10,6 +10,18 @@
     `columns`, `grid`, `numeric`, `rows`, `note`, `empty`, and optionally `footer`/`footer_span`.
 --}}
 @php($grid = 'grid-template-columns: '.$statement['grid'])
+{{--
+    A wide table scrolls sideways instead of being clipped — reports-expansion-plan.md Phase 0.2.
+
+    `.fi-explorer-statement` is `overflow: clip` for its rounded corners, so a report with more columns
+    than the pane is wide simply lost the ones that did not fit: no scrollbar, no hint, columns absent.
+    The wrapper is conditional because it re-parents `position: sticky` — inside it the header and the
+    record row stop sticking to the viewport, which is a fair trade for a matrix and a pointless loss for
+    a two-column report. Only a report that declares itself wide pays it.
+--}}
+@if ($statement['wide'] ?? false)
+<div class="fi-explorer-scroll">
+@endif
 <div class="fi-explorer-statement fi-explorer-table">
     <div class="fi-explorer-statement-head" style="{{ $grid }}">
         @foreach ($statement['columns'] as $i => $column)
@@ -60,3 +72,6 @@
 
     <div class="fi-explorer-statement-foot">{{ $statement['note'] }}</div>
 </div>
+@if ($statement['wide'] ?? false)
+</div>
+@endif
