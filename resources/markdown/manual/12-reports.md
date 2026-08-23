@@ -274,3 +274,30 @@ filed by month name rather than by date — the report prints the month it chose
 at all. And **Earnings here includes expense reimbursement**, which a payslip's own
 "total earnings" excludes — so that Earnings less Deductions equals Net exactly,
 with the reimbursement visible in its own column.
+
+### Leave Liability
+
+What unused encashable leave would cost if everybody took it as cash on the date
+you give it. Also under People and payroll.
+
+**This figure is in no account, and the report says so under the total.** Nothing
+in this application posts a leave provision — there is no leave-liability account
+and no entry creates one — so the amount here appears nowhere in the balance sheet.
+Every other report in this chapter that quotes a liability can check itself against
+the ledger; this one cannot, because the balance it would check against does not
+exist. What to do about that is a decision for whoever owns the accounts, and this
+is the number they need to make it.
+
+Only **encashable** leave types count, because only those become money — a type
+that lapses at year end costs nobody anything. If none of your types are
+encashable, the report says that rather than showing a nought, which is a different
+fact from "nobody has any left".
+
+The amount is the same calculation a final settlement uses: the same types, the
+same positive-balance rule, and basic wage over the encashment divisor. That is
+deliberate, so the accrual and what actually gets paid cannot disagree.
+
+Two readings to know. Only people **still in service** appear — a leaver is a
+payable or a debt, not a provision. And somebody with **no recorded wage** shows
+their days with dashes for the money, because those days are worth an amount nobody
+has recorded; the note then says the total is incomplete.

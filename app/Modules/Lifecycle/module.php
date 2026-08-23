@@ -37,9 +37,10 @@ return [
         'App\\Filament\\Resources\\FinalSettlements\\FinalSettlementResource' => \App\Modules\Lifecycle\Filament\Resources\FinalSettlements\FinalSettlementResource::class,
     ],
 
-    /** The expiring-documents report. A page, not a resource: a report is a question. */
+    /** The two reports. Pages, not resources: a report is a question, not rows to edit. */
     'pages' => [
         'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
+        'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
     ],
 
     'permission_groups' => [

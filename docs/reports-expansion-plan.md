@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1, 2.2 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -236,7 +236,7 @@ the assertion its test should make, not the row count.
    employee, footed against the payroll journal for that run. The single most-asked-for payroll report;
    today only per-payslip views exist. Component definitions carry `account_id`, so the reconciliation
    is per column rather than in aggregate.
-2. **Leave Liability** — unused entitlement × daily rate per employee, as at a date. This is an
+2. **Leave Liability** — *done, 2026-08-23, and it is the one Phase 2 report that ties to nothing — see [What landed](#what-landed).* Unused entitlement × daily rate per employee, as at a date. This is an
    accrual that belongs in the accounts and is currently in nobody's figures. `LeaveBalance::for()`
    gives the breakdown; `LeaveYear::windowFor()` gives the window, which differs per employee on an
    anniversary basis and is exactly the kind of thing a hand-built report gets wrong.
@@ -477,6 +477,45 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — leave liability (Phase 2.2), and the report that proves Phase 2's rule has an exception.**
+
+- **Phase 2's opening rule does not hold for 2.2, and Phase 2.2's own text is why.** The rule is that "every
+  one of them carries a record row that ties to a ledger balance"; the item says the accrual "belongs in the
+  accounts and is currently in nobody's figures". Both cannot be true, and the item is the one that is:
+  there is no leave-liability account in `config/accounting.php`'s payroll mapping and nothing posts one. So
+  the report states *"not posted to any account"* on its face, every time. Inventing a comparison against an
+  account that does not hold this would have been worse than having none, and delivering that fact is the
+  report's whole value — a provision nobody has posted is exactly as real as one that has been, and the only
+  difference is that the balance sheet does not know.
+- **The figure is `FinalSettlementBuilder::leaveEncashment()`, not a formula of this report's own.** A leave
+  liability is what the company would have to pay, so the only defensible definition is the one the
+  settlement uses: same encashable types, same positive-balance-only rule, same `statutory.encashment_divisor`.
+  A second formula would drift, and the drift would surface as a leaver settled for an amount the accrual
+  never held. The test asks the builder directly and compares — if this report ever grows arithmetic of its
+  own, that is what fails.
+- **It lives in Lifecycle, not Leave**, for the same reason: the calculation is Lifecycle's, and putting the
+  report beside it is what keeps the accrual and the settlement from being two numbers. It also needs no new
+  module edge — `lifecycle -> leave` already exists for exactly this calculation.
+- **Only encashable types, and "nothing is encashable" is a different sentence from "nobody has any left".**
+  A nought against both would read as a company that happens to be up to date, when in one case there is
+  nothing to be up to date about.
+- **Days that cannot be priced read as unknown, not as nought — a defect the tests caught.** An employee with
+  no recorded wage returns 0.0 from the builder, correctly, since it has no rate to multiply by; printing
+  that as `0` says the days are worth nothing. They are worth an amount nobody has recorded the wage to
+  compute. Both money cells are now dashes and the note says how many people that applies to and that the
+  total is therefore incomplete.
+- **A leaver is not a provision.** Somebody who has left has either been settled — the money is a payable —
+  or has not, in which case it is a debt. Only people still in service at the date are on it.
+- **The `Illuminate\Support\Carbon` mistake from Phase 1.7 recurred in this file a day later**, because the
+  shorter import is the one muscle memory reaches for and the failure surfaces inside the service rather than
+  at the report's own boundary. Recorded as a standing rule rather than a second incident: always import
+  Illuminate's here.
+- **The cost is a few queries per employee, accepted and stated.** `LeaveBalance::for()` answers per employee
+  per type. Batching it would have meant a second implementation, which is the thing this report exists to
+  avoid; if it ever bites, the fix belongs in `LeaveBalance` as a bulk method the single-employee one also
+  calls.
+
 
 **2026-08-23 — the payroll register (Phase 2.1), the first of the reports that reconcile.**
 
