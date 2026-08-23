@@ -9,6 +9,7 @@ use App\Modules\Accounting\Console\Commands\RebuildAssetDepreciationCommand;
 use App\Modules\Accounting\Filament\Pages\AccountRegister;
 use App\Modules\Accounting\Filament\Pages\BalanceSheet;
 use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Accounting\Filament\Pages\BankReconciliationStatement;
 use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
 use App\Modules\Accounting\Filament\Pages\CashCommitments as CashCommitmentsPage;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
@@ -62,6 +63,7 @@ use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use App\Modules\Accounting\Services\FiscalYearClosingService;
+use App\Modules\Accounting\Support\BankReconciliationReports;
 use App\Modules\Accounting\Support\CashCommitmentReports;
 use App\Modules\Accounting\Support\FixedAssetReports;
 use App\Modules\Accounting\Support\LoanReports;
@@ -187,6 +189,25 @@ class AccountingServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'FixedAssetRegister',
             fn (string $asOf): array => app(FixedAssetReports::class)->register($asOf),
+        );
+
+        /*
+         * What the bank says against what the books say — Phase 2.6.
+         *
+         * The plan costed this as a report over completed statements. It cannot be: `complete()` requires the
+         * statement balance to equal the ledger balance exactly, and an unpresented cheque makes those differ
+         * by definition, so the statements with something to reconcile are precisely the ones that cannot be
+         * closed. The report is therefore about open statements, and it is where the figure `complete()`
+         * rejects is finally named.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            BankReconciliationStatement::class,
+            'The bank balance, the cheques it has not seen, and whether the books agree.',
+        );
+        ReportRenderers::register(
+            'BankReconciliationStatement',
+            fn (string $asOf): array => app(BankReconciliationReports::class)->statement($asOf),
         );
 
         // The records of this module that may carry custom fields. Registered by alias, which is what
