@@ -4,7 +4,7 @@ namespace App\Modules\Quotations\Services;
 
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Quotations\Models\Quotation;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -71,7 +71,7 @@ class QuotationService
             throw new InvalidArgumentException('This quote has already become an invoice and cannot be revised.');
         }
 
-        return DB::transaction(function () use ($quotation): Quotation {
+        return TenantTransaction::run(function () use ($quotation): Quotation {
             $revision = $quotation->replicate([
                 'number', 'status', 'version', 'supersedes_id', 'invoice_id',
                 'accepted_at', 'declined_at', 'decline_reason',
@@ -215,7 +215,7 @@ class QuotationService
             );
         }
 
-        return DB::transaction(function () use ($quotation): Invoice {
+        return TenantTransaction::run(function () use ($quotation): Invoice {
             $invoice = Invoice::create([
                 'kind' => Invoice::KIND_SALE,
                 // DRAFT, always. Issuing transmits, and transmission is what cannot be undone.
