@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Support;
 
 use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Core\Models\Company;
+use App\Support\Reporting\ReportPeriod;
 use Carbon\Carbon;
 
 /**

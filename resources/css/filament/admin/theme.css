@@ -924,6 +924,35 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     }
 }
 
+/*
+ * A report on its own page — reports-expansion-plan.md Phase 1.2.
+ *
+ * Everything below `.fi-explorer-pane-body` is already written for the explorer's right-hand pane and
+ * none of it is nested under `.fi-explorer`, so a page including the same partials inherits the whole
+ * look. These two rules are all the page adds: a wrapper, and a row for its one control. The pane's own
+ * `.fi-explorer-controls` is not reused because it lives in a header with a border and a background, and
+ * a page has no such header to sit in.
+ */
+.fi-explorer-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fi-explorer-page-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* No side padding on a page: the panel's own content area already provides it, and doubling it puts a
+   report's first column a centimetre further in than every other screen's. */
+.fi-explorer-page .fi-explorer-pane-body {
+    padding-inline: 0;
+    padding-block: 0;
+}
+
 .fi-explorer-pane-body {
     display: flex;
     flex-direction: column;

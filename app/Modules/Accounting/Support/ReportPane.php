@@ -15,6 +15,7 @@ use App\Modules\Accounting\Services\PettyCashService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use App\Modules\Core\Models\FiscalYear;
 use App\Support\Reporting\ReportPaneRenderer;
+use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\Reporting\ReportShapes;
 use Carbon\Carbon;
@@ -121,9 +122,22 @@ class ReportPane implements ReportPaneRenderer
         return self::KINDS[$key] ?? null;
     }
 
+    /**
+     * Whether the pane can draw a report at all.
+     *
+     * **Also true for a report whose module registered a renderer**, which is the change that lets a module
+     * add a report without editing this file. `KINDS` above is Accounting's own list, and it was the last
+     * thing keeping a Payroll or CRM report from being a purely module-local addition: `for()` has asked
+     * `ReportRenderers` first since §8's split, but `supports()` still read a const in Accounting — so
+     * `ReportPaneTest`'s coverage loop failed for a report Accounting had never heard of, and the fix looked
+     * like "add a line here" rather than "the coupling is here".
+     *
+     * The kind itself is not needed for this answer: a registered renderer returns its own `kind` in the
+     * payload, which is what the view branches on.
+     */
     public static function supports(?string $key): bool
     {
-        return self::kindFor($key) !== null;
+        return self::kindFor($key) !== null || ReportRenderers::has($key);
     }
 
     /**

@@ -99,8 +99,11 @@ class ReportPaneTest extends AccountingTestCase
             .'which looks deliberate and is not',
         );
 
-        // Guards the guard: an empty catalogue would satisfy the loop above.
-        $this->assertGreaterThanOrEqual(17, count(Reports::catalogue()));
+        // Guards the guard: an empty catalogue would satisfy the loop above. Raised from 17 to 23 with
+        // CRM's five (reports-expansion-plan.md Phase 1.2) — a floor that lags the catalogue only proves
+        // it is not empty, where one that matches it also catches a report that quietly stops being
+        // registered, which is the other half of the same failure.
+        $this->assertGreaterThanOrEqual(23, count(Reports::catalogue()));
     }
 
     /**
