@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 five of eight done (2.1–2.5 landed); the rest outstanding — see [What landed](#what-landed)
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 six of eight done (2.1–2.6 landed); the rest outstanding — see [What landed](#what-landed)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -253,9 +253,13 @@ the assertion its test should make, not the row count.
    say "from `DepreciationService`'s own method", and the service had no such method** — every method it had
    posted journal entries, so the forecast had to be written before the report could be. A standard note to
    the accounts.
-6. **Bank Reconciliation Statement** — statement balance → unpresented cheques and deposits → ledger
-   balance, from `BankReconciliationService::ledgerBalance()` and `reconciled_at`. Asked for at every
-   year end.
+6. **Bank Reconciliation Statement** — *done, 2026-08-23, and it found that this application cannot
+   complete the reconciliation it describes — see [What landed](#what-landed).* Statement balance →
+   unpresented cheques and deposits → ledger balance, from `BankReconciliationService::ledgerBalance()` and
+   `reconciled_at`. Asked for at every year end. **"Asked for at every year end" assumed a report over
+   completed statements, and it cannot be one:** `complete()` requires the statement balance to equal the
+   ledger balance exactly, so a statement carrying an unpresented cheque can never be closed and a closed one
+   has nothing to reconcile. The report is about the open ones.
 7. **Employee Advances Outstanding** — advances less recoveries per employee, with the instalment and
    the months remaining. A receivable from staff; feeds final settlement, so a wrong figure leaves the
    company out of pocket.
@@ -481,6 +485,45 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the bank reconciliation (Phase 2.6), and a workflow that forbids the thing being reported.**
+
+- **`complete()` refuses any statement whose closing balance is not exactly the ledger balance, and an
+  unpresented cheque is precisely a difference between those two.** So the statements that have something to
+  reconcile are the ones this application will not let anybody close, and every *completed* statement
+  necessarily reconciles to nil. Proved before it was written up rather than read off the code: one 500
+  inflow matched, one 120 cheque written and unpresented, every statement line matched, `isFullyMatched()`
+  true — and `complete()` throws *"Closing balance 500.00 does not match ledger balance 380.00"*. That is a
+  textbook reconciliation being rejected as an error.
+- **So the report is about open statements, which is the opposite of what "asked for at every year end"
+  implied.** It is the only place the 120 is named and added up. Whether `complete()`'s rule should be relaxed
+  — a reconciliation completes *with* unpresented items, that is what the statement is for — is a change to
+  posting behaviour with its own tests asserting the current rule, so it is left as a finding rather than
+  folded into a report. `BankReconciliationStatementReportTest` pins the refusal, so the day that rule
+  changes, the test and the report's note both say so.
+- **The identity, stated per account rather than in aggregate.** A bank account is debit-normal: a cheque we
+  have written and the bank has not paid is a credit the ledger has made and the bank has not, so the bank
+  reads *higher* by that amount, and a deposit in transit is the mirror. Bank, less unpresented, plus in
+  transit, equals the books — and what survives both adjustments is real, usually a charge the bank applied
+  and nobody booked.
+- **Unmatched statement lines are counted, not valued.** They are the usual explanation for a surviving
+  difference, but an unmatched line's amount is the *bank's* figure: folding it into the reconciliation would
+  be asserting the journal entry it should have produced. So the note says how many and leaves the difference
+  standing.
+- **`reconciled_at` is the whole mechanism, and its absence is the definition.** Matching stamps the ledger
+  line; a posted line without the stamp is by definition something the bank has not seen. Excluding a line
+  clears it again, which is right — an excluded line is one nobody claims ties to the ledger — and the test
+  for that asserts the ledger side goes back into "in transit".
+- **The ledger figure is batched, and the equivalence is asserted against `ledgerBalance()` statement by
+  statement.** `ledgerBalance()` builds an account's entire ledger to return one closing number, which is
+  right for one statement on screen and wrong for a report over every bank account. It is also the figure
+  `complete()` checks, so a second way of computing it could tell a company its books agree while the
+  workflow says they do not. Same protection, same reason, as 2.4's batched valuation and 1.1's ledger.
+- **One statement per account: the latest at or before the date.** A reconciliation is a position at a
+  statement date, not at an arbitrary one, so asking for it in September gives the August reconciliation
+  rather than an empty page — and each account's figures are read at *its own* statement date, which the test
+  proves by putting one account on July and another on August.
+
 
 **2026-08-23 — the asset register (Phase 2.5), and the method this plan said it already had.**
 
