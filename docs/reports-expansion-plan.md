@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1–2.3 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 half done (2.1–2.4 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -243,7 +243,7 @@ the assertion its test should make, not the row count.
 3. **Unbilled WIP** — *done, 2026-08-23.* Approved billable timesheet entries with no billing run, by project and
    customer, at their rate. A balance-sheet figure that is invisible today; also the report that shows
    revenue being lost to unbilled time.
-4. **Stock on Hand & Valuation** — per product: quantity, average cost, value, reconciled to that
+4. **Stock on Hand & Valuation** — *done, 2026-08-23.* Per product: quantity, average cost, value, reconciled to that
    product's `inventory_account_id`; plus below-`reorder_level` and no-movement-in-N-days as flags on
    the same rows rather than as separate reports.
 5. **Fixed Asset Register & Depreciation Schedule** — cost, accumulated depreciation, net book value
@@ -477,6 +477,42 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the stocktake (Phase 2.4), and three wrong premises its own tests caught.**
+
+- **It reconciles, and this one has something real to reconcile against**, unlike leave liability and
+  unbilled WIP. Purchases debit a product's inventory account and sales take cost out of it, so the account
+  and the valuation are two independent statements of one figure. The report states both and says whether
+  they agree.
+- **`InventoryValuationService::valuationForAll()` is new and batched**, because `onHand()`, `stockValue()`
+  and `averageCost()` are per product and the middle one is two queries — 3n+ for a catalogue. It must agree
+  with the three of them exactly, and the test asserts that product by product over a FIFO product, an
+  average-cost one and one sold out entirely. That is the same protection the general ledger's batching got
+  in Phase 1.1, for the same reason: two ways of computing one figure is a drift waiting to happen.
+- **Three premises I had wrong, each found by a failing test rather than by reading:**
+  - **`reorder_level` defaults to `0`, not null.** Treating nought as a threshold flagged every sold-out
+    product, since `0 <= 0` — the opposite of useful, because a product with no reorder level is one nobody
+    wants to be told about. Nought now means "no level".
+  - **There is no such thing as stock in no account.** `InventoryService::inventoryAccountId()` falls back to
+    1300 when a product names none, so the report's "unmapped products explain the difference" branch
+    described a state that cannot occur. The account is now resolved through that same method — made public
+    for it — rather than read off the product, so the report reconciles against the account the posting
+    actually used.
+  - **The "nothing to reconcile to" branch was unreachable** once the fallback was understood. Removed: an
+    unreachable branch about money is worse than an absent one, because it reads as having been considered.
+- **What the difference actually is, in practice: stock on deactivated products.** The rows are active
+  products and deactivating one does not unpost the entries that put its stock in the accounts, so this is
+  the commonest difference and it is nobody's mistake. It is added before comparing and named in the note,
+  rather than reported as a discrepancy.
+- **`InventoryService::accountId()` is memoised, and the report's query-count test is what noticed.** A code
+  maps to an id for the life of a request; it was a query every time, which is unremarkable once per posting
+  and ten identical lookups when a report resolves ten products' accounts. Per instance rather than static,
+  so a test that swaps the chart of accounts gets a fresh answer.
+- **Both flags share one cell**, which is the plan's instruction — "flags on the same rows rather than as
+  separate reports" — because a product both below its reorder level *and* untouched for months is the case
+  worth acting on. *Never moved* is distinguished from *No movement*: no history and moved-long-ago are
+  opposite facts, and treating the first as fresh would hide every product somebody set up and forgot.
+
 
 **2026-08-23 — unbilled WIP (Phase 2.3), and the risk list's cross-module gate turns out to already exist.**
 

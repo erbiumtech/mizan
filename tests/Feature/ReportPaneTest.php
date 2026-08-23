@@ -100,10 +100,10 @@ class ReportPaneTest extends AccountingTestCase
         );
 
         // Guards the guard: an empty catalogue would satisfy the loop above. Raised from 17 with CRM's
-        // five (reports-expansion-plan.md Phase 1.2) again with Support's two (Phase 1.3) again with Timesheets' two (1.4) Lifecycle's one (1.5) the loan book (1.6) the forward cash view (1.7) the payroll register (2.1) leave liability (2.2) and unbilled WIP (2.3) — a floor
+        // five (reports-expansion-plan.md Phase 1.2) again with Support's two (Phase 1.3) again with Timesheets' two (1.4) Lifecycle's one (1.5) the loan book (1.6) the forward cash view (1.7) the payroll register (2.1) leave liability (2.2) unbilled WIP (2.3) and the stocktake (2.4) — a floor
         // that lags the catalogue only proves it is not empty, where one that matches it also catches a
         // report that quietly stops being registered, which is the other half of the same failure.
-        $this->assertGreaterThanOrEqual(33, count(Reports::catalogue()));
+        $this->assertGreaterThanOrEqual(34, count(Reports::catalogue()));
     }
 
     /**

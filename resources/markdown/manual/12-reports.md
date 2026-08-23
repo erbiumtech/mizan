@@ -330,3 +330,35 @@ is a different figure about construction jobs and does not overlap.)
 Two smaller readings: it follows your company's "require approval to bill" setting
 rather than assuming one, and an internal project says *Internal* rather than
 leaving the customer blank.
+
+### Stock on Hand
+
+Under Operations: every active product with how much is on hand, what it cost on
+average, what it is worth, its reorder level and any flags — all as at a date.
+
+**Stock value** is the valuation added up; **Inventory accounts** is what the ledger
+says those accounts hold. They should match, and the line underneath says whether
+they do. Two things explain a difference:
+
+- **Stock on deactivated products.** The rows are active products, but switching a
+  product off does not unpost the entries that put its stock in the accounts. This
+  is the commonest difference and nobody's mistake — the report names the amount.
+- **Anything else** means a movement posted against the account by hand, or a
+  product moved between accounts after stock was booked to the first.
+
+A product that names no inventory account is *not* outside the accounts — its stock
+sits in the default one, and the report reconciles against the same account the
+posting used.
+
+**The flags share one column** on purpose, because a product both below its reorder
+level and untouched for months is the case worth acting on:
+
+- **Reorder** — on hand is at or below the reorder level. A level of zero means
+  there is no level, so those products are never flagged.
+- **No movement** — nothing in or out for 90 days.
+- **Never moved** — no movement history at all, usually something set up and
+  forgotten. Deliberately distinguished from the above: "no history" and "moved
+  long ago" are opposite facts.
+
+A product with nothing on hand shows a dash for average cost rather than a nought,
+which would claim the stock was free.
