@@ -185,6 +185,7 @@
                 label: labelOf(el),
                 icon: iconOf(el),
                 danger: isDanger(el),
+                group: groupOf(el),
             }))
             .filter((item) => item.label !== '')
     }
@@ -231,6 +232,30 @@
      * destructive action, and the failure would be a delete that does not look like one.
      */
     const isDanger = (el) => /(^|\s|-)fi-color-danger(\s|$|-)/.test(el.className)
+
+    /**
+     * The `ActionGroup` an action belongs to, by name — §5's grouped sections.
+     *
+     * An `ActionGroup` renders a `.fi-dropdown` holding a `.fi-dropdown-trigger` and a cloaked
+     * `.fi-dropdown-panel` (`vendor/filament/actions/src/ActionGroup.php:533-560`). An action inside that
+     * panel belongs to the group; anything else is a direct action on the row. The name comes from the
+     * trigger, which is what the row itself labels the group with — so the menu mirrors the row rather than
+     * inventing its own headings.
+     *
+     * Null for an unlabelled group, which is the common icon-only "⋯" trigger: a heading reading *Actions*
+     * or nothing at all is noise, and the separator alone is the honest way to show the boundary.
+     */
+    const groupOf = (el) => {
+        const dropdown = el.closest('.fi-dropdown')
+
+        if (!dropdown || !el.closest('.fi-dropdown-panel')) {
+            return null
+        }
+
+        const label = labelOf(dropdown.querySelector(DROPDOWN_TRIGGER) ?? dropdown)
+
+        return label && label.length <= 24 ? label : null
+    }
 
     // ---------------------------------------------------------------- selection and bulk
 
@@ -385,10 +410,45 @@
             { label: 'Open in new tab', href: anchor.href, newTab: true },
         ]
 
-        // Only offered where the browser will actually do it. `navigator.clipboard` is undefined on
-        // insecure origins, and an item that silently fails is worse than one that was never there.
-        if (navigator.clipboard?.writeText) {
-            items.push({ label: 'Copy link', copy: anchor.href })
+        return items
+    }
+
+    /**
+     * The Copy section — §5, "the item people ask for once the menu exists".
+     *
+     * Three things worth copying off a row: its link, its id, and what it is called. The id is the one that
+     * looks least useful and is asked for most — it is what somebody pastes into a support ticket, a SQL
+     * console or a message to a colleague, and reading it off the URL bar means opening the record first.
+     *
+     * Only offered where the browser will actually do it. `navigator.clipboard` is undefined on insecure
+     * origins, and an item that silently fails is worse than one that was never there.
+     */
+    const copyItemsFor = (row) => {
+        if (!navigator.clipboard?.writeText) {
+            return []
+        }
+
+        const items = []
+        const anchor = row.querySelector('a.fi-ta-record-content[href], a.fi-ta-col[href]')
+
+        if (anchor) {
+            items.push({ label: 'Copy link', copy: anchor.href, muted: true })
+        }
+
+        const key = recordKeyOf(row)
+
+        if (key) {
+            items.push({ label: `Copy ID ${key}`, copy: key, muted: true })
+        }
+
+        // The row's own name, quoted so it is obvious which part is the record and which is the verb.
+        const name = row.querySelector('.fi-ta-col, .fi-ta-record-content')
+            ?.textContent?.replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 40)
+
+        if (name) {
+            items.push({ label: `Copy “${name}”`, copy: name, muted: true })
         }
 
         return items
@@ -457,12 +517,33 @@
         }
     }
 
-    const separator = () => {
+    /**
+     * A boundary between sections, optionally named.
+     *
+     * A **labelled** separator is valid ARIA and is announced, which is how a group's name reaches a screen
+     * reader without putting a non-`menuitem` element inside a `role="menu"`. The visible heading below is
+     * `aria-hidden`, so the name is announced once rather than twice.
+     */
+    const separator = (label = null) => {
         const hr = document.createElement('div')
         hr.className = 'fi-ta-context-menu-separator'
         hr.setAttribute('role', 'separator')
 
+        if (label) {
+            hr.setAttribute('aria-label', label)
+        }
+
         return hr
+    }
+
+    /** The group's name, for sighted readers. Announced by the separator above it, so hidden from AT. */
+    const heading = (label) => {
+        const el = document.createElement('div')
+        el.className = 'fi-ta-context-menu-heading'
+        el.setAttribute('aria-hidden', 'true')
+        el.textContent = label
+
+        return el
     }
 
     /** A menu row. Anchors stay anchors, so the browser keeps its own behaviour on them. */
@@ -617,13 +698,54 @@
 
         if (count > 0) {
             if (selection.isSelected(recordKeyOf(row))) {
-                return { items: bulkActionsIn(row, count), bulk: true }
+                return {
+                    sections: [{ label: null, items: bulkActionsIn(row, count) }],
+                    bulk: true,
+                }
             }
 
             selection.clear()
         }
 
-        return { items: [...linkItemsFor(row), null, ...actionsIn(row)], bulk: false }
+        return { sections: rowSections(row), bulk: false }
+    }
+
+    /**
+     * A row's menu, in sections — §5.
+     *
+     * Links, then the row's direct actions, then one section per `ActionGroup` **mirroring the row's own
+     * grouping**, then Copy. Sections rather than one flat list because the row already draws these
+     * distinctions and a menu that discarded them would be a longer list of the same things in a less
+     * meaningful order.
+     *
+     * `null` is a plain separator; a string is a named one. Both are dropped by `openFor` when they would
+     * lead or trail, so a row with no links or no groups produces no stray rules.
+     */
+    const rowSections = (row) => {
+        const actions = actionsIn(row)
+        const ungrouped = actions.filter((item) => item.group === null)
+
+        // Group names in the order the row rendered them, so the menu reads top to bottom the same way.
+        const groups = []
+
+        for (const item of actions) {
+            if (item.group !== null && !groups.includes(item.group)) {
+                groups.push(item.group)
+            }
+        }
+
+        const sections = [
+            { label: null, items: linkItemsFor(row) },
+            { label: null, items: ungrouped },
+        ]
+
+        for (const group of groups) {
+            sections.push({ label: group, items: actions.filter((item) => item.group === group) })
+        }
+
+        sections.push({ label: null, items: copyItemsFor(row) })
+
+        return sections
     }
 
     /**
@@ -634,17 +756,18 @@
      * open against the row itself.
      */
     const openFor = (row, at) => {
-        const { items, bulk } = menuContentsFor(row)
+        const { sections, bulk } = menuContentsFor(row)
 
-        // `null` is the separator placeholder from the row branch; drop it if either side came back empty.
-        const content = items.filter((item, at) => item !== null || (items[at - 1] && items[at + 1]))
+        // Empty sections vanish, which is what keeps a row with no links or no groups from producing stray
+        // rules. Done here rather than at each builder so every branch gets it for free.
+        const filled = sections.filter((section) => section.items.length > 0)
 
         // Nothing to offer. Fail open: the native menu is more useful than an empty box of ours.
         //
         // Reached in one real case worth naming — a selection whose bulk actions are all hidden by policy.
         // Filament renders none of them, so there is nothing to show, and the honest answer is to let the
         // browser have the gesture rather than open a menu with one item in it that says nothing.
-        if (content.filter(Boolean).length === 0) {
+        if (filled.length === 0) {
             return false
         }
 
@@ -653,7 +776,19 @@
         menu.classList.toggle('fi-ta-context-menu-bulk', bulk)
         menu.setAttribute('aria-label', bulk ? 'Actions for the selected rows' : labelForRow(row))
 
-        content.forEach((item) => menu.appendChild(item === null ? separator() : buildItem(item)))
+        filled.forEach((section, index) => {
+            // A separator *between* sections, never before the first — a rule at the top of a menu looks
+            // like a rendering fault.
+            if (index > 0) {
+                menu.appendChild(separator(section.label))
+            }
+
+            if (section.label) {
+                menu.appendChild(heading(section.label))
+            }
+
+            section.items.forEach((item) => menu.appendChild(buildItem(item)))
+        })
 
         /*
          * The off switch, last and behind a rule — §4 and the Risks section.
