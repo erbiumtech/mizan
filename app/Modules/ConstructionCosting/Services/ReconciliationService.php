@@ -9,8 +9,8 @@ use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Models\Reconciliation;
 use App\Modules\ConstructionCosting\Support\ReconciliationCause;
 use App\Modules\ConstructionCosting\Support\ReconciliationResult;
+use App\Support\TenantDb;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -167,7 +167,7 @@ class ReconciliationService
      */
     private function glCostFor(array $costAccountIds, string $start, string $end): float
     {
-        $rows = DB::table('journal_entry_lines as jel')
+        $rows = TenantDb::table('journal_entry_lines as jel')
             ->join('journal_entries as je', 'je.id', '=', 'jel.journal_entry_id')
             ->whereIn('jel.account_id', $costAccountIds)
             ->where('je.is_posted', true)
@@ -200,7 +200,7 @@ class ReconciliationService
             ->pluck('journal_entry_id')
             ->all();
 
-        $rows = DB::table('journal_entry_lines as jel')
+        $rows = TenantDb::table('journal_entry_lines as jel')
             ->join('journal_entries as je', 'je.id', '=', 'jel.journal_entry_id')
             ->whereIn('jel.account_id', $costAccountIds)
             ->where('je.is_posted', true)
@@ -376,7 +376,7 @@ class ReconciliationService
      */
     private function journalReversedOrUnposted(string $start): ReconciliationCause
     {
-        $rows = DB::table('construction_cost_entries as ce')
+        $rows = TenantDb::table('construction_cost_entries as ce')
             ->join('journal_entries as je', 'je.id', '=', 'ce.journal_entry_id')
             ->whereDate('ce.posting_period', $start)
             ->where('ce.gl_treatment', '!=', CostEntry::GL_MEMO)
@@ -448,7 +448,7 @@ class ReconciliationService
             );
         }
 
-        $rows = DB::table('invoices as i')
+        $rows = TenantDb::table('invoices as i')
             ->where('i.kind', 'purchase')
             ->whereDate('i.invoice_date', '>=', $start)
             ->whereDate('i.invoice_date', '<=', $end)
@@ -487,7 +487,7 @@ class ReconciliationService
      */
     private function closedJobEntries(string $start): ReconciliationCause
     {
-        $rows = DB::table('construction_cost_entries as ce')
+        $rows = TenantDb::table('construction_cost_entries as ce')
             ->join('construction_jobs as j', 'j.id', '=', 'ce.job_id')
             ->whereDate('ce.posting_period', $start)
             ->whereIn('j.status', Job::DORMANT_STATUSES)

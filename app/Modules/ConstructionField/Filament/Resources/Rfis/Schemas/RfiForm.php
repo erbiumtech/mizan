@@ -7,6 +7,7 @@ use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\Location;
 use App\Modules\ConstructionField\Models\ProgrammeActivity;
 use App\Modules\ConstructionField\Models\Rfi;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -14,7 +15,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Asking the question — §16.2.
@@ -209,7 +209,7 @@ class RfiForm
             return [];
         }
 
-        return DB::table('construction_contracts')
+        return TenantDb::table('construction_contracts')
             ->where('job_id', $jobId)
             ->orderBy('contract_number')
             ->get(['id', 'contract_number', 'title'])

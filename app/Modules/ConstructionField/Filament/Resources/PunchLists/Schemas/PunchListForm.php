@@ -5,13 +5,13 @@ namespace App\Modules\ConstructionField\Filament\Resources\PunchLists\Schemas;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\Location;
 use App\Modules\ConstructionField\Models\PunchList;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Opening a list — §16.4.
@@ -95,7 +95,7 @@ class PunchListForm
             return [];
         }
 
-        return DB::table('construction_contracts')
+        return TenantDb::table('construction_contracts')
             ->where('job_id', $jobId)
             ->orderBy('contract_number')
             ->get(['id', 'contract_number', 'title'])

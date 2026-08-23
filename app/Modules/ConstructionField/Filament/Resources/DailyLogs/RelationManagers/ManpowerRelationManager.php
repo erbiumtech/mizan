@@ -6,6 +6,7 @@ use App\Modules\ConstructionField\Models\DailyLog;
 use App\Modules\ConstructionField\Models\DailyLogManpower;
 use App\Modules\ConstructionField\Services\DailyLogService;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\TenantDb;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -17,7 +18,6 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Who was on site — §16.1, and §17.6's denominator.
@@ -91,7 +91,7 @@ class ManpowerRelationManager extends RelationManager
             return [];
         }
 
-        return DB::table('construction_trades')
+        return TenantDb::table('construction_trades')
             ->where('is_active', true)
             ->orderBy('code')
             ->get(['id', 'code', 'name'])
