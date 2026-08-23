@@ -352,7 +352,8 @@
         "App\\Filament\\Pages\\SlaPerformance": "App\\Modules\\Support\\Filament\\Pages\\SlaPerformance",
         "App\\Filament\\Pages\\SlaBreaches": "App\\Modules\\Support\\Filament\\Pages\\SlaBreaches",
         "App\\Filament\\Pages\\TimesheetUtilisation": "App\\Modules\\Timesheets\\Filament\\Pages\\TimesheetUtilisation",
-        "App\\Filament\\Pages\\PlanVersusActual": "App\\Modules\\Timesheets\\Filament\\Pages\\PlanVersusActual"
+        "App\\Filament\\Pages\\PlanVersusActual": "App\\Modules\\Timesheets\\Filament\\Pages\\PlanVersusActual",
+        "App\\Filament\\Pages\\DocumentsExpiring": "App\\Modules\\Lifecycle\\Filament\\Pages\\DocumentsExpiring"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

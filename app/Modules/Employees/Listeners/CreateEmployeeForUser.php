@@ -21,9 +21,16 @@ class CreateEmployeeForUser
     {
         $user = $event->user;
 
-        Employee::firstOrCreate(
+        // The code is the company's own sequence, not the user id. Users are landlord
+        // records shared across companies, so `EMP-`.$user->getKey() numbered every
+        // company off one global counter and no company's codes began at one.
+        //
+        // Wrapped because two accounts created at the same moment would read the same
+        // highest code; the second insert would then fail on a unique index, on a page
+        // whose operator did nothing wrong.
+        Employee::withGeneratedCode(fn (string $code): Employee => Employee::firstOrCreate(
             ['user_id' => $user->getKey()],
-            ['employee_id' => 'EMP-'.$user->getKey(), 'is_active' => 1],
-        );
+            ['employee_id' => $code, 'is_active' => 1],
+        ));
     }
 }
