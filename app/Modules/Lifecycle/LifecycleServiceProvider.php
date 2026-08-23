@@ -4,6 +4,7 @@ namespace App\Modules\Lifecycle;
 
 use App\Modules\Lifecycle\Console\Commands\CheckDocumentExpiry;
 use App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring;
+use App\Modules\Lifecycle\Filament\Pages\LeaveLiability;
 use App\Modules\Lifecycle\Models\ChecklistItem;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use App\Modules\Lifecycle\Models\EmployeeChecklist;
@@ -69,9 +70,19 @@ class LifecycleServiceProvider extends ServiceProvider
             'Visas, licences and contracts lapsing soon, and the ones that already have.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            LeaveLiability::class,
+            'What unused encashable leave would cost — the accrual that is in no account.',
+        );
+
         ReportRenderers::register(
             'DocumentsExpiring',
             fn (string $asOf): array => app(LifecycleReports::class)->documentsExpiring($asOf),
+        );
+        ReportRenderers::register(
+            'LeaveLiability',
+            fn (string $asOf): array => app(LifecycleReports::class)->leaveLiability($asOf),
         );
     }
 }
