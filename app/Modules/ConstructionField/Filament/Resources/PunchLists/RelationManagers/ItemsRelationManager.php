@@ -7,6 +7,7 @@ use App\Modules\ConstructionField\Models\PunchInspection;
 use App\Modules\ConstructionField\Models\PunchItem;
 use App\Modules\ConstructionField\Models\PunchList;
 use App\Modules\ConstructionField\Services\PunchListService;
+use App\Support\TenantDb;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -26,7 +27,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -165,7 +165,7 @@ class ItemsRelationManager extends RelationManager
             return [];
         }
 
-        return DB::table('construction_trades')
+        return TenantDb::table('construction_trades')
             ->where('is_active', true)
             ->orderBy('code')
             ->get(['id', 'code', 'name'])

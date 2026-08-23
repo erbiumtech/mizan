@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationMan
 use App\Modules\ConstructionField\Models\DailyLog;
 use App\Modules\ConstructionField\Models\DailyLogPlant;
 use App\Modules\ConstructionField\Services\DailyLogService;
+use App\Support\TenantDb;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -16,7 +17,6 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /**
  * What plant did — §16.1.
@@ -87,7 +87,7 @@ class PlantRelationManager extends RelationManager
             return [];
         }
 
-        return DB::table('construction_plant_items')
+        return TenantDb::table('construction_plant_items')
             ->where('is_active', true)
             ->orderBy('code')
             ->get(['id', 'code', 'name'])

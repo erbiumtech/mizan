@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionField\Filament\Resources\Activities\Schemas;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\WbsNode;
 use App\Modules\ConstructionField\Models\ProgrammeActivity;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -13,7 +14,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * One activity, entered by hand.
@@ -229,13 +229,13 @@ class ActivityForm
             return [];
         }
 
-        $contracts = DB::table('construction_contracts')->where('job_id', $jobId)->pluck('id');
+        $contracts = TenantDb::table('construction_contracts')->where('job_id', $jobId)->pluck('id');
 
         if ($contracts->isEmpty()) {
             return [];
         }
 
-        return DB::table('construction_contract_items')
+        return TenantDb::table('construction_contract_items')
             ->whereIn('contract_id', $contracts)
             ->where('is_active', true)
             ->orderBy('sort')->orderBy('item_no')

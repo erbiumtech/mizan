@@ -7,9 +7,9 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
+use App\Support\TenantDb;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -276,7 +276,7 @@ class TimesheetService
 
         // The stints overlapping the month. `to_date` null is an open stint, which is the common case for
         // anybody currently on a project.
-        $stints = DB::table('project_employee')
+        $stints = TenantDb::table('project_employee')
             ->where('from_date', '<=', $to)
             ->where(fn ($query) => $query->whereNull('to_date')->orWhere('to_date', '>=', $from))
             ->get(['employee_id', 'project_id', 'allocation_pct']);

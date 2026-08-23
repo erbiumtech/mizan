@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionField\Filament\Resources\Submittals\Tables;
 use App\Modules\ConstructionField\Models\Submittal;
 use App\Modules\ConstructionField\Models\SubmittalReview;
 use App\Modules\ConstructionField\Services\SubmittalService;
+use App\Support\TenantDb;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -281,7 +282,7 @@ class SubmittalsTable
             return [];
         }
 
-        return \Illuminate\Support\Facades\DB::table('contacts')
+        return TenantDb::table('contacts')
             ->orderBy('name')
             ->limit(500)
             ->pluck('name', 'id')

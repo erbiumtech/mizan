@@ -11,8 +11,8 @@ use App\Modules\ConstructionCosting\Models\WipSnapshot;
 use App\Modules\ConstructionCosting\Support\AccrualRun;
 use App\Modules\ConstructionCosting\Support\CloseCheck;
 use App\Modules\ConstructionCosting\Support\CloseChecklist;
+use App\Support\TenantDb;
 use App\Support\TenantTransaction;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -339,7 +339,7 @@ class PeriodCloseService
      */
     private function accrualCheck(string $start): CloseCheck
     {
-        $rolled = DB::table('construction_cost_batches')
+        $rolled = TenantDb::table('construction_cost_batches')
             ->whereIn('kind', ['accrual', 'accrual_reversal'])
             ->whereDate('period_start', $start)
             ->exists();
@@ -415,7 +415,7 @@ class PeriodCloseService
 
         $end = CostPeriod::startFor($start)->copy()->endOfMonth()->toDateString();
 
-        $row = DB::table('journal_entry_lines as jel')
+        $row = TenantDb::table('journal_entry_lines as jel')
             ->join('journal_entries as je', 'je.id', '=', 'jel.journal_entry_id')
             ->whereIn('jel.account_id', $accountIds)
             ->where('je.is_posted', true)

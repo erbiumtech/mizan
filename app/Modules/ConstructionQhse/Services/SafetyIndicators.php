@@ -10,6 +10,7 @@ use App\Modules\ConstructionQhse\Models\ItpActivity;
 use App\Modules\ConstructionQhse\Models\QhseAction;
 use App\Modules\ConstructionQhse\Support\ExposureHours;
 use App\Modules\ConstructionQhse\Support\SafetyRate;
+use App\Support\TenantDb;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -83,7 +84,7 @@ class SafetyIndicators
             );
         }
 
-        $logs = DB::table('construction_daily_logs')
+        $logs = TenantDb::table('construction_daily_logs')
             ->whereIn('job_id', Job::query()->inSubtree($job)->select('id'))
             ->whereNotNull('approved_at')
             ->whereDate('log_date', '>=', Carbon::parse($from)->toDateString())
@@ -97,7 +98,7 @@ class SafetyIndicators
             );
         }
 
-        $hours = (float) DB::table('construction_daily_log_manpower')
+        $hours = (float) TenantDb::table('construction_daily_log_manpower')
             ->whereIn('daily_log_id', $logs)
             ->sum(DB::raw('hours + overtime_hours'));
 
@@ -138,7 +139,7 @@ class SafetyIndicators
 
         // Minutes, because that is what the table stores — §7's own comment says why: "a rate multiplied by a rounded
         // decimal of hours accumulates error across a month of entries". Summed as minutes and divided once.
-        $minutes = (int) DB::table('timesheet_entries')
+        $minutes = (int) TenantDb::table('timesheet_entries')
             ->whereIn('project_id', $projects)
             ->whereDate('date', '>=', Carbon::parse($from)->toDateString())
             ->whereDate('date', '<=', Carbon::parse($to)->toDateString())

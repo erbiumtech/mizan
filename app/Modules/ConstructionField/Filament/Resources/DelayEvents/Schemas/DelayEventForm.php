@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionField\Filament\Resources\DelayEvents\Schemas;
 use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionField\Models\DelayEvent;
 use App\Modules\ConstructionField\Services\DelayEventService;
+use App\Support\TenantDb;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
@@ -13,7 +14,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * What happened, when, and whose risk it was.
@@ -136,7 +136,7 @@ class DelayEventForm
             return [];
         }
 
-        return DB::table('construction_contracts')
+        return TenantDb::table('construction_contracts')
             ->where('job_id', $jobId)
             ->orderBy('contract_number')
             ->pluck('contract_number', 'id')
