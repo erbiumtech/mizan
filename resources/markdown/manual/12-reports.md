@@ -301,3 +301,32 @@ Two readings to know. Only people **still in service** appear — a leaver is a
 payable or a debt, not a provision. And somebody with **no recorded wage** shows
 their days with dashes for the money, because those days are worth an amount nobody
 has recorded; the note then says the total is incomplete.
+
+### Unbilled WIP
+
+Under Operations: hours that have been worked, approved, and never invoiced — by
+project, with the customer and what they are worth at the rate that would be
+charged.
+
+Two ways to read it. It is an **asset** — work delivered and not yet billed — and
+it is **revenue leaking**, because an hour that has sat unbilled for five months is
+usually one nobody is going to bill.
+
+It is a balance rather than a period: everything unbilled up to the date, however
+old. That is deliberate, since a month-scoped view would hide exactly the hours
+worth chasing.
+
+**Two hour figures, and the difference matters.** *Hours* is everything unbilled.
+*Unpriced hours* is the part of them that no rate could be found for — not on the
+project, the employee, or the company default. Those hours are **not** in the Value
+column, and the note says how many are missing from it. A made-up rate would make
+this a wrong number on a balance sheet, which is worse than an incomplete one that
+says so; if the unpriced figure is large, the fix is to set a rate.
+
+Like Leave Liability, **this figure is in no account** and the report says so.
+Nothing here posts work in progress for timesheet hours. (Construction's WIP report
+is a different figure about construction jobs and does not overlap.)
+
+Two smaller readings: it follows your company's "require approval to bill" setting
+rather than assuming one, and an internal project says *Internal* rather than
+leaving the customer blank.

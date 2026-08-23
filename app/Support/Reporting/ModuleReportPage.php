@@ -136,11 +136,24 @@ abstract class ModuleReportPage extends Page
     }
 
     /**
-     * `ReportView`, plus the module.
+     * `ReportView`, plus the module — which already covers every module the report reads.
      *
      * Restated here rather than inherited from `BelongsToModule::canAccess()`, which the trait's own
      * comment warns about: a subclass defining `canAccess()` shadows it silently. Every report page in this
      * application gates on both, and `ModuleGatingTest` asserts the behaviour rather than the trait.
+     *
+     * **A cross-module report needs nothing extra here, which took a wrong turn to establish.**
+     * `docs/reports-expansion-plan.md`'s risk list asks that such a report "gate on *every* module it reads,
+     * not just the one it lives in", and Phase 2.3 was built with a `$alsoRequires` list to do it. The list
+     * was redundant: `Modules::enabledFor()` walks a module's declared requirements recursively — "a module
+     * is only usable when everything it declares as a requirement is usable" — so a report owned by
+     * Timesheets is already unavailable when Projects is off, because Timesheets requires Projects.
+     *
+     * That leaves exactly one case the manifest does not cover: a module a report reads and its owner does
+     * *not* require. But such a module is by definition optional to the owner, so the right answer is for
+     * the report to **degrade** — Unbilled WIP shows a customer id instead of a name without Invoicing —
+     * rather than to disappear. Gating on it would deny the report to a company that could perfectly well
+     * read it. So there is no third case, and no machinery for one.
      */
     public static function canAccess(): bool
     {
