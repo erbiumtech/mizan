@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 0.5 and Phase 1.1 landed 2026-08-16 — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1–2.3 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -145,8 +145,9 @@ is that gap, not a new persistence layer.
 
 **The fiscal year is 1 July – 30 June and periods must go through `ReportPeriod`.**
 `ReportPeriod::toDate()`/`previous()`/`months()`
-(`app/Modules/Accounting/Support/ReportPeriod.php`) exist because `Carbon::startOfYear()` reported six
-months of trading as twelve. Every new period report uses them; none calls `startOfYear()`.
+(`app/Support/Reporting/ReportPeriod.php` — it was in Accounting until Phase 1.2 moved it) exist because
+`Carbon::startOfYear()` reported six months of trading as twelve. Every new period report uses them; none
+calls `startOfYear()`.
 
 **The data behind the new reports, confirmed in the tenant schema:**
 
@@ -171,10 +172,13 @@ months of trading as twelve. Every new period report uses them; none calls `star
 
 Nothing here ships a report; it removes the friction from the thirty-odd that follow.
 
-1. **A new section for the hub.** `Reports::SECTIONS` has six sections and the new reports do not fit
-   them: "People & payroll", "Operations", "Sales & pipeline" are the three the list below wants.
-   Section order is the reading order in both the hub and the sidebar column, so decide it once.
-2. **A `matrix` kind in `ReportPane`.** Three of the highest-value reports (payroll register,
+1. **A new section for the hub.** *Done, 2026-08-23 with Phase 1.2.* `Reports::SECTIONS` has six sections
+   and the new reports do not fit them: "People & payroll", "Operations", "Sales & pipeline" are the three
+   the list below wants. Section order is the reading order in both the hub and the sidebar column, so
+   decide it once — which is why all three are declared empty in `ReportCatalogue` rather than appearing
+   when a module happens to boot.
+2. **A `matrix` kind in `ReportPane`.** *Answered 2026-08-23 with Phase 1.4, and the answer is no kind —
+   see [What landed](#what-landed).* Three of the highest-value reports (payroll register,
    attendance register, plan-versus-actual) are an *employee × column* grid with a totals row and a
    totals column, which `table` can render but not total per column beyond one footer row. Either
    extend `table` with a `column_totals` flag or add a kind. Decide before writing the payroll
@@ -183,7 +187,9 @@ Nothing here ships a report; it removes the friction from the thirty-odd that fo
    (`ASKS` currently offers account/budget/search/month). Add `period` — from/to through
    `ReportPeriod` — rather than letting each report invent its own date pair.
 4. **Extend `ReportPaneTest`'s coverage loop** to assert every new report's payload shape as they land;
-   it already loops the catalogue, so this is free once the reports are registered.
+   it already loops the catalogue, so this is free once the reports are registered. *Confirmed free,
+   2026-08-23: the five CRM reports arrived in that loop with no change to it. Its "not empty" floor was
+   raised from 17 to 23 to match, so a report that stops being registered fails it too.*
 5. **Make `FilamentReportPagesSmokeTest` enumerate the hub rather than a hand-written list.** It names
    eight page classes literally, so a new report page renders in nobody's test until somebody remembers
    to add it. `Reports::linkedPages()` is the list it should loop — one change, and every report added
@@ -198,24 +204,24 @@ a page + hub entry + pane adapter, with **no new business logic**.
    its entries in date order, opening → movement → closing. The one report an auditor asks for first,
    and the only reason it is missing is that nothing ever called the method. Drill-through to the
    account register already exists (`ReportPane::drillable()`).
-2. **CRM pipeline set** — five reports off `PipelineReports`: *Pipeline by Stage* (`byStage`),
+2. **CRM pipeline set** — *done, 2026-08-23.* Five reports off `PipelineReports`: *Pipeline by Stage* (`byStage`),
    *Sales Forecast* (`forecast`, weighted at the stored rate), *Win/Loss* (`winLoss`), *Rotting Deals*
    (`rotting`, a table of opportunities with days since last activity), *Target Attainment*
    (`attainment`). Five reports, one service, no new logic. `activity()` belongs in the same section
    as a sixth if the owner filter is worth exposing.
-3. **Support SLA & Performance** — `TicketService::performance($from, $to)` as the report and
+3. **Support SLA & Performance** — *done, 2026-08-23.* `TicketService::performance($from, $to)` as the report and
    `breaches()` as its exception list: response and resolution against each category's
    `sla_*_minutes`, by assignee, with reopened count and satisfaction. Both methods are tested and
    unused.
-4. **Timesheet Utilisation** — `utilisationFor($employee, $year, $month)` across every employee for a
+4. **Timesheet Utilisation** — *done, 2026-08-23.* `utilisationFor($employee, $year, $month)` across every employee for a
    month: billable, non-billable, capacity, percentage. `planVersusActual()` is the second report, and
    the `matrix` decision from Phase 0.2 applies to both.
-5. **Documents Expiring** — `DocumentExpiryCheck::due()` as a table: employee, document kind, number,
+5. **Documents Expiring** — *done, 2026-08-23, though not off `due()` — see [What landed](#what-landed).* `DocumentExpiryCheck::due()` as a table: employee, document kind, number,
    expiry, days remaining. Compliance-critical and currently only ever emailed.
-6. **Loans Outstanding** — `LoanService::generateSchedule()` aggregated across loans: principal
+6. **Loans Outstanding** — *done, 2026-08-23.* `LoanService::generateSchedule()` aggregated across loans: principal
    outstanding, interest to come, the next twelve months' instalments. Footed against the loan
    liability accounts.
-7. **Cash Commitments (90 days)** — `ScheduledTransactionService::due()/outstandingFor()`,
+7. **Cash Commitments (90 days)** — *done, 2026-08-23.* `ScheduledTransactionService::due()/outstandingFor()`,
    `SubscriptionBillingService::due()` and recurring invoices in one forward-looking table: what will
    hit the bank, when, and whether it is already raised. Nothing in the application answers this today.
 
@@ -226,15 +232,15 @@ a standalone HR system cannot: the ledger is in the same database, so each repor
 against the accounts. Every one of them carries a record row that ties to a ledger balance — which is
 the assertion its test should make, not the row count.
 
-1. **Payroll Register** — employee × pay component for a month, with a total per component and per
+1. **Payroll Register** — *done, 2026-08-23.* Employee × pay component for a month, with a total per component and per
    employee, footed against the payroll journal for that run. The single most-asked-for payroll report;
    today only per-payslip views exist. Component definitions carry `account_id`, so the reconciliation
    is per column rather than in aggregate.
-2. **Leave Liability** — unused entitlement × daily rate per employee, as at a date. This is an
+2. **Leave Liability** — *done, 2026-08-23, and it is the one Phase 2 report that ties to nothing — see [What landed](#what-landed).* Unused entitlement × daily rate per employee, as at a date. This is an
    accrual that belongs in the accounts and is currently in nobody's figures. `LeaveBalance::for()`
    gives the breakdown; `LeaveYear::windowFor()` gives the window, which differs per employee on an
    anniversary basis and is exactly the kind of thing a hand-built report gets wrong.
-3. **Unbilled WIP** — approved billable timesheet entries with no billing run, by project and
+3. **Unbilled WIP** — *done, 2026-08-23.* Approved billable timesheet entries with no billing run, by project and
    customer, at their rate. A balance-sheet figure that is invisible today; also the report that shows
    revenue being lost to unbilled time.
 4. **Stock on Hand & Valuation** — per product: quantity, average cost, value, reconciled to that
@@ -471,6 +477,352 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — unbilled WIP (Phase 2.3), and the risk list's cross-module gate turns out to already exist.**
+
+- **A balance, not a period, and that is the load-bearing choice.** `billableFor()` answers a billing run's
+  question — one project, one month — and building the report on it would have shown only the current month
+  while looking entirely correct. An hour booked in March and still unbilled in August is exactly the hour
+  worth seeing. `TimesheetService::unbilledWip()` is one grouped query for the whole balance; the test proves
+  a five-month-old hour is on it, and that ten projects do not cost ten queries.
+- **Unpriceable hours are named and left out of the value.** That is `BillableHours`' rule for invoices —
+  "named, never silently dropped and never billed at a guess" — and a balance-sheet figure has more to lose
+  from a guess, not less. So there are two hour figures: everything unbilled, and the part of it no rate
+  could be found for. The hours count as hours because they were worked; the money states only what could
+  actually be invoiced, and the note says how much is missing from it.
+- **The approval rule is read, not assumed.** `timesheets.require_approval_to_bill` decides whether
+  unapproved time can be billed, and a WIP figure including time that billing would refuse is a figure no
+  invoice could realise. Asserted in both settings.
+- **The third Phase 2 report with nothing to tie to.** Nothing posts unbilled work in progress for timesheet
+  hours — construction's WIP is a different figure about a different subject — so it says "not posted to any
+  account" like leave liability does. Phase 2's blanket rule now looks like it holds for the reports whose
+  figure the ledger already carries, and not for the ones whose figure it does not; two of the three built so
+  far are the second kind.
+- **The risk list's cross-module gate needs no code, and finding that out cost a wrong turn worth recording.**
+  The list asks that such a report "gate on *every* module it reads, not just the one it lives in", so this
+  page was built with an `$alsoRequires` list on `ModuleReportPage`. A failing test showed the list was
+  redundant: `Modules::enabledFor()` walks a module's declared requirements recursively — "a module is only
+  usable when everything it declares as a requirement is usable" — so a Timesheets report is already
+  unavailable when Projects is off. The machinery is gone. What remains is the one case the manifest does not
+  cover — a module a report reads and its owner does not *require* — and there gating is the wrong answer
+  anyway: such a module is optional to the owner, so the report should degrade rather than disappear. Unbilled
+  WIP shows a customer id instead of a name without Invoicing, and a company that invoices elsewhere still
+  gets its report.
+- **The customer name is read through the query builder, not a model.** `Project` deliberately has no
+  `Contact` relation — its own comment says declaring one "would make Projects import Invoicing for nothing" —
+  and through `TenantDb` rather than `DB`, because a bare `DB::table()` builds against the *landlord*
+  connection and would look for `contacts` in the wrong database. The suite cannot catch that on its own; the
+  two connections coincide under test.
+
+
+**2026-08-23 — leave liability (Phase 2.2), and the report that proves Phase 2's rule has an exception.**
+
+- **Phase 2's opening rule does not hold for 2.2, and Phase 2.2's own text is why.** The rule is that "every
+  one of them carries a record row that ties to a ledger balance"; the item says the accrual "belongs in the
+  accounts and is currently in nobody's figures". Both cannot be true, and the item is the one that is:
+  there is no leave-liability account in `config/accounting.php`'s payroll mapping and nothing posts one. So
+  the report states *"not posted to any account"* on its face, every time. Inventing a comparison against an
+  account that does not hold this would have been worse than having none, and delivering that fact is the
+  report's whole value — a provision nobody has posted is exactly as real as one that has been, and the only
+  difference is that the balance sheet does not know.
+- **The figure is `FinalSettlementBuilder::leaveEncashment()`, not a formula of this report's own.** A leave
+  liability is what the company would have to pay, so the only defensible definition is the one the
+  settlement uses: same encashable types, same positive-balance-only rule, same `statutory.encashment_divisor`.
+  A second formula would drift, and the drift would surface as a leaver settled for an amount the accrual
+  never held. The test asks the builder directly and compares — if this report ever grows arithmetic of its
+  own, that is what fails.
+- **It lives in Lifecycle, not Leave**, for the same reason: the calculation is Lifecycle's, and putting the
+  report beside it is what keeps the accrual and the settlement from being two numbers. It also needs no new
+  module edge — `lifecycle -> leave` already exists for exactly this calculation.
+- **Only encashable types, and "nothing is encashable" is a different sentence from "nobody has any left".**
+  A nought against both would read as a company that happens to be up to date, when in one case there is
+  nothing to be up to date about.
+- **Days that cannot be priced read as unknown, not as nought — a defect the tests caught.** An employee with
+  no recorded wage returns 0.0 from the builder, correctly, since it has no rate to multiply by; printing
+  that as `0` says the days are worth nothing. They are worth an amount nobody has recorded the wage to
+  compute. Both money cells are now dashes and the note says how many people that applies to and that the
+  total is therefore incomplete.
+- **A leaver is not a provision.** Somebody who has left has either been settled — the money is a payable —
+  or has not, in which case it is a debt. Only people still in service at the date are on it.
+- **The `Illuminate\Support\Carbon` mistake from Phase 1.7 recurred in this file a day later**, because the
+  shorter import is the one muscle memory reaches for and the failure surfaces inside the service rather than
+  at the report's own boundary. Recorded as a standing rule rather than a second incident: always import
+  Illuminate's here.
+- **The cost is a few queries per employee, accepted and stated.** `LeaveBalance::for()` answers per employee
+  per type. Batching it would have meant a second implementation, which is the thing this report exists to
+  avoid; if it ever bites, the fix belongs in `LeaveBalance` as a bulk method the single-employee one also
+  calls.
+
+
+**2026-08-23 — the payroll register (Phase 2.1), the first of the reports that reconcile.**
+
+- **It is built from `payslip_pay_components` alone, and that is only correct because of
+  `PayComponentRecorder`.** Half of pay in this application lives in payslip *columns* and half in component
+  rows — every shipped component is `is_column_backed` — and the recorder copies the columns into rows on
+  every save. So the component table is the complete record of what a payslip paid, which is what
+  `PayComponentSeeder`'s own comment says the rows are for: "a report … can ask what pay is made of instead
+  of carrying its own list, which is how the billing statement came to keep a hand-maintained column map
+  with an 'Other' bucket". This report keeps none.
+- **The tie is exact, not approximate.** The payroll entry credits *salaries payable* with each payslip's
+  net salary, so the register's net total must equal that credit across the month's posted payslips. Three
+  states are tested: everything posted and agreeing; a payslip unposted, which is named as the reason and
+  not called a discrepancy; and a payslip altered behind the model after its entry was posted, which is.
+- **The scoping needed its own test, and a mutation is what proved it.** Reading the account *balance*
+  instead of the credits from these payslips' entries left the first reconciliation test green — with one
+  month of fixtures the two readings are identical. Salaries payable carries every month's unpaid salaries
+  and every payment against them, so a balance would be neither independent of the register nor the same
+  figure. Two months of payslips now pin it, and the mutation fails.
+- **A component deactivated after it was paid keeps its column.** Reading only `active()` components would
+  take the amount out of the columns and leave it in the row total, so the register would stop adding up —
+  silently, and only in the months where somebody had tidied the component list.
+- **`Earnings` here includes expense reimbursement and the payslip's own `total_earnings` does not.** The
+  register's own arithmetic has to close — earnings less deductions equals net — and net salary *is*
+  `total_earnings + reimbursement - total_deductions`. So the column is every earning component, the
+  reimbursement is visible in its own column, and the help says so rather than leaving two documents
+  disagreeing about a word.
+- **A dash is not a nought.** The recorder deletes a component row whose amount rounds to nothing, so an
+  empty cell means the component was not part of that person's pay — where a nought would claim it was and
+  came to nil.
+- **Two corrections to my own work:** a private `post()` helper in the test is a *fatal* error, not a
+  shadowed method, because `TestCase::post()` is public — the same collision as `run()` on a console command
+  a fortnight ago; and I had written that two payslips for one person in a month was reachable when
+  `payslips` carries a unique key on (employee, month, fiscal year). The test now pins that key instead,
+  since it is what makes a row-per-payslip register readable as a row-per-person one.
+- `PayrollReports::fiscalYear()` now calls `ReportPeriod::yearFor()` rather than spelling the same query out
+  again. Two copies of the fiscal-year rule is how `PayrollMonth` came to have two implementations that
+  disagreed for every year not starting in July or January.
+
+
+**2026-08-23 — Cash Commitments (Phase 1.7). Phase 1 is complete.**
+
+- **The plan's note was "nothing in the application answers this today", and the reason was three runners.**
+  Scheduled entries, beneficiary subscriptions and recurring invoices each had something that *raised* them
+  and nothing that listed what was coming, so a company could see everything it had been billed for and
+  nothing it had committed to.
+- **`outstandingFor()` was the wrong method, for two separate reasons, and neither would have shown as an
+  error.** It answers a *posting run*: outstanding occurrences only, capped at `MAX_PER_RUN` so that nobody
+  has to review two hundred back-dated entries at once. A forward-looking report needs the occurrences that
+  have *not* come round yet — the outstanding ones are the things that already happened — and it must not
+  inherit a cap, or it is quietly short with nothing on screen to say so.
+  `ScheduledTransactionService::occurrencesBetween()` is new, uncapped, forward, and one query for the
+  raised dates of the whole book rather than one per schedule.
+- **The three sources are registered, not imported.** Recurring invoices are Invoicing's, the report is
+  Accounting's, and `docs/module-packaging-plan.md` §8 spent a phase removing `accounting -> invoicing` —
+  one column of one report is not a reason to buy it back. `App\Support\CashCommitments` follows
+  `PaymentGenerators`: the report asks, each module answers for itself. A company without invoicing gets a
+  shorter list and no *arriving* total rather than an error, and a later phase can register loan instalments
+  or a payroll month without the report learning anything new. Asserted by flushing the registry and
+  re-registering only Accounting's two.
+- **`Raised` is a column, not a filter**, because a commitment and a payable are read differently: one is
+  something to chase, the other a decision still open. Conflating them would have double-counted everything
+  the runner had already done.
+- **Directions are words and amounts carry no sign.** A single column with some figures negative gets added
+  up wrongly by hand every time, so *Out* and *In* are their own column, the two totals are the two
+  directions, and the record row states the **net** — a column mixing directions has no meaningful sum.
+- **Two type errors and two test faults worth recording.** `SubscriptionBillingService::due()` and
+  `RecurringInvoiceService::due()` both hint `Illuminate\Support\Carbon`, and an instance of `Carbon\Carbon`
+  is not an instance of its own subclass — which fails at the call rather than at the boundary, so it
+  reached a rendered page before a test caught it. And my own first version of the "no negative amounts"
+  test scanned the whole table for a hyphen and failed on the dates: the shape of assertion that passes for
+  the wrong reason as often as it fails for one.
+- Also reverted: `pint` run over a whole module directory reformatted three files nobody had touched
+  (stale imports). Pre-existing drift, not this phase's to fix, and not this phase's to hide in a commit
+  either.
+
+
+**2026-08-23 — the loan book (Phase 1.6), and the first report that reconciles.**
+
+- **The schedule was rendered in exactly one place**, the relation manager inside a single loan, so a
+  company could read any one amortisation table and could not answer "what do we owe". The plan's words:
+  "there is no portfolio view."
+- **It states what the schedules say beside what the accounts say, and names the gap.** Phase 2 is the phase
+  of reports that reconcile and its rule is stated there — "post entries, run the report, assert the record
+  row equals the ledger balance … a row-count assertion proves nothing here". This is a Phase 1 item that
+  can already make that claim, because the schedule and the ledger are in the same database, so it makes it.
+  Two tests: one posts a drawdown and two instalments and asserts the two figures are *identical*; the other
+  posts a 50,000 repayment by hand and asserts the report notices and names it.
+- **That difference is the report's most valuable figure**, which is why the second tile is the ledger
+  balance rather than a note. Schedules and liability accounts drift for real reasons — an instalment paid
+  outside the application, a manual entry, a loan restructured without rebuilding its table — and the report
+  cannot know which side is right, so it states both. Agreement is also said out loud, because two
+  similar-looking numbers with no comment invite a reader to decide for themselves whether it matters.
+- **`GeneralLedgerService::balancesFor()` is new and batched.** `balanceAsOf()` is two queries for one
+  account — the shape that cost the general ledger 136 queries before Phase 1.1 rewrote it — and there is no
+  reason to reintroduce it one report at a time. The instalments are one query for the whole book too:
+  `scheduledOutstanding()`, `totalInterest()` and `nextDue()` are a query each and stay for the per-loan
+  screen, where the count is one.
+- **Registered through `ReportRenderers` rather than as another arm of `ReportPane`'s `match`**, which is how
+  Accounting's older eleven are drawn. The newer path gives the page, the date and the module gate for free
+  and keeps the pane from growing a method per report; `for()` asks `ReportRenderers` first, so both routes
+  reach one closure.
+- **Three faults in my own fixtures, each of which would have made a test pass while proving nothing:**
+  `recordInstalment()` posts only where a second approver is *not* required, and this environment requires
+  one — so the schedule advanced while the ledger stood still and the report was right to say they
+  disagreed; the record row was compared exactly against a column of individually-rounded cells, which
+  cannot tie to the paisa (the footer states the true total, because a footer agreeing with the screen and
+  disagreeing with the ledger is the wrong one to be right about); and the gating test ran as an
+  Administrator, who has `ReportView`, so it asserted that an open gate was shut.
+- Worth knowing and stated in the help: an **inactive** loan is off the report *and* its liability account
+  is out of the comparison, so a deactivated loan with a balance still in the accounts will not show as a
+  difference here.
+
+
+**2026-08-23 — Documents Expiring (Phase 1.5), built on a method that had to be written first.**
+
+- **This phase says "`due()` as a table" and `due()` is the wrong method**, which is worth recording because
+  the mistake would have shipped looking correct. `due()` is the *notification* query: it suppresses a
+  document once its threshold has been warned at, so a daily job does not mail the same warning for thirty
+  days. A report built on it shows fewer documents the more reliably the reminders go out — emptiest on the
+  company that has been most diligent, and silent about why. `DocumentExpiryCheck::expiring()` is the
+  listing: everything inside the window, warned about or not. The first test in
+  `LifecycleReportsTest` asserts both halves — that the reminder query is silent for a row the report
+  still shows — so the distinction cannot quietly collapse later.
+- **The window is the widest configured reminder threshold**, not a number in this file. So the report
+  covers exactly the population the mail watches, and a company that widens
+  `lifecycle.document_expiry_thresholds` widens both at once instead of owning a report that disagrees with
+  its own email. The status bands are named off the same config, so a company warning at 90 days reads a
+  *Within 90 days* band.
+- **Expired documents are listed, counted in their own tile, and stated as an overdue count.** `-50` and
+  `50 ago` are the same figure with opposite readings, and the bare negative invites the wrong one. An
+  expired visa is also not a warning that stops being true, which `due()` already says about its smallest
+  threshold and a listing has even less excuse to drop.
+- **Two absences stated rather than blanked:** a document with no number recorded reads *Not recorded*,
+  because a blank cell in a compliance list looks like a fault in the report; and the document kind is
+  humanised, because `cnic` is a column value and not something to read.
+- Worth knowing and stated in the help: this report can only be as complete as what has been entered. A
+  document that *should* carry an expiry and has none recorded appears nowhere, and no report can find it.
+
+
+**2026-08-23 — the timesheet reports (Phase 1.4), and Phase 0.2's `matrix` question answered.**
+
+- **Phase 0.2's answer is that no `matrix` kind is needed.** That phase proposed one on the grounds that
+  `table` "can render but not total per column beyond one footer row". Looking at it, `table` already does
+  both halves: `columns` is an array, so the columns can be data, and the footer row *is* the per-column
+  total — a totals column on the right is one more column the report computes. A second kind had nothing to
+  add and would have been a second place to fix a drill-through or a sticky header.
+- **What `table` genuinely could not do was be wider than the screen.** `.fi-explorer-statement` is
+  `overflow: clip`, for its rounded corners, so a twelve-project matrix was **silently cut off** — no
+  scrollbar, no hint, columns simply absent. That is the bug behind the request. `ReportShapes::table()`
+  takes a `wide` flag, the shared partial wraps a wide table in a scroll container, and every wide report
+  in Phases 2 and 3 gets it for free. Declared rather than measured, and conditional, because the wrapper
+  re-parents `position: sticky`: inside it the header and record row stop following the reader down the
+  page. A matrix trades that for columns that exist; a two-column report should not pay it.
+- **Both methods answered for one employee, which is what made them unreachable rather than merely
+  unused.** The question anybody asks is about the team, and asking it of `utilisationFor()` meant a loop
+  over a method that reaches `AttendanceCalendar::summarise()` — which walks every day of the month doing a
+  holiday lookup and a shift-pattern lookup per day. The bulk methods are three and four grouped queries
+  whatever the headcount, and the test measures it: **6 queries against 953** for ten employees over three
+  projects, when mutated back to the loop. That is the risk this plan named for these reports, quantified.
+- **The plan asked for a capacity column and this module refuses to state one, so the report does not.**
+  `utilisationFor()` returns `expected_hours` as null in every branch, and its own comment says why: a rule
+  that made timesheets and attendance reconcile "would make people book the difference somewhere to make
+  the screen agree, which produces worse data than the gap it closed". A report is exactly where an
+  invented denominator would be read as fact. *Billable share* — what proportion of recorded time was
+  billable — is the ratio the data supports, and it assumes nothing about what a month should have held.
+  The report's columns are asserted, because that is where a capacity figure would have to appear.
+- **The matrix shows every pairing either side knows about**, not only the ones where both exist: an
+  allocation with no hours booked against it is the most interesting row on the report, and hours booked
+  against a project nobody was assigned to is the second. A report showing only the agreeing pairings would
+  always agree with itself.
+- **The column cap says what it dropped, and the row total does not.** Twelve project columns, busiest
+  first; the note names how many quieter projects lost their column. But the *Booked* column on the right
+  totals every project including those — a capped report whose totals add up only the visible columns
+  disagrees with the timesheet it came from and looks entirely right, which is why it has a test of its own.
+- **`is_billable` is filtered loosely on purpose.** It comes back as 1/0 from MySQL and true/false from
+  SQLite; a strict comparison reported every hour as non-billable on one of the two drivers.
+
+
+**2026-08-23 — the SLA report and its exception list (Phase 1.3).**
+
+- **Both methods were implemented, tested and unreachable**, which is the clearest case of this plan's
+  premise in the application: an SLA that is measured and never shown is a commitment nobody can be held
+  to. `Support\Support\SupportReports` turns them into *SLA Performance* — met against missed for the
+  month — and *SLA Breaches*, the open tickets that have missed one or are about to.
+- **A report and an exception list rather than two reports.** The first is read at a month end and quoted
+  in a review; the second is read every morning, because everything on it is still fixable. Separate
+  screens for that reason and not because the data differs.
+- **`TicketService` gained a second grouping and two aggregates, and no clock arithmetic.**
+  `performance()` grouped by category only, and the plan asked for assignee, reopenings and satisfaction
+  as well. `performanceByAssignee()` shares one private aggregator with it; both return the same row
+  shape. The category rows come first on the report and the assignee rows second, deliberately: the
+  commitment belongs to the category — the only thing in the schema carrying an `sla_*_minutes` figure —
+  so a rate per person is a diagnosis and not a ranking, and somebody working the urgent queue is measured
+  against a tighter clock than somebody on the general one.
+- **Two groupings in one table is an arithmetic trap, and the test is the guard.** The assignee rows are
+  the same tickets again, so a total summing every row doubles every figure and still looks like a total.
+  The record row adds up the category rows alone; mutating it to sum both fails four tests.
+- **Three absences stated rather than defaulted:** no ratings is a dash, because an average of nothing
+  reported as 0 says a team was hated when it was never asked; a month with no tickets says so rather than
+  reporting nought per cent met; and an unassigned ticket in breach is named and counted in its own tile,
+  because it is the worst row in the table and a blank cell reads as missing data.
+- **The window is measured on `opened_at`, and that is the load-bearing choice.** An SLA is the promise
+  made when a ticket arrives. Measured on resolution, every still-open ticket drops out of every month's
+  figures — so the report would improve as the backlog got worse, which is the most dangerous direction
+  for a service measure to lie in. Mutating the column to `resolved_at` fails six tests.
+- **Both reports say "reported, not enforced" on their own faces.** The module's rule is that the clocks
+  are measured and nothing acts on them, and a percentage that looks like a penalty invites somebody to
+  close tickets in order to improve it. Asserted, not just written.
+- Time is frozen in the test, because every breach figure is measured against `now()`: a report over a
+  past month shows every ticket in it as catastrophically overdue — correctly, and uselessly for a test.
+
+**2026-08-23 — the CRM pipeline set (Phase 1.2), Phase 0.1's sections, and the two couplings that were in
+the way.**
+
+- **Five reports, one service, and no figure computed twice.** `PipelineReports` had carried `byStage`,
+  `forecast`, `winLoss`, `rotting` and `attainment` with tests since CRM shipped, called by nothing but
+  `SalesTargetResource`. `Crm\Support\CrmReports` is the adapter — it chooses each report's period, states
+  its figures and says what they mean, and computes none of them. The service gained two filters and no
+  arithmetic, for the reason four bullets down.
+- **Each report's period is derived from the one date the pane carries, and each derives a different one.**
+  *By stage* and *rotting* are snapshots and take no window. *Forecast* looks **forward** to the end of that
+  month, because a forecast of a period that has closed is a win/loss report. *Win/loss* looks **back**
+  across the fiscal year through `ReportPeriod` — 1 July, not 1 January, and the test puts a deal in the
+  month where the two answers differ. So Phase 0.3's `period` filter is still not needed, and still
+  outstanding.
+- **`ReportPeriod` moved to `app/Support/Reporting/`.** CRM using it from Accounting would have bought a
+  `crm -> accounting` edge for a date pair, and `crm` requires nothing by design (`crms-plan.md` §1). It
+  imports Core and Carbon only, and Support, Timesheets and Lifecycle would each have bought the same edge
+  for the same reason in 1.3–1.5. Same call `ReportShapes` got in packaging §8, one class along.
+- **`NoReportPane` refused every report, including the ones it could draw.** It is the pane a company with
+  no accounting module gets, and it answered `false` to `supportsReport()` unconditionally — so a CRM-only
+  company saw the five reports listed in the hub and could open them one page at a time and never in the
+  explorer. It now consults `ReportRenderers`, which is host-level, and still refuses everything of
+  Accounting's. Exactly the coupling `ReportPane::supports()` shed a fortnight ago, in the class nobody
+  looked at next.
+- **A report page is now four declarations.** `TaxSummary` and `GeneralLedger` are ~110 lines each, and
+  five more of those differing in a title and an icon was four copies too many:
+  `App\Support\Reporting\ModuleReportPage` holds the date, the key, the payload and the gate, and each of
+  the five declares a title, an icon, a sort and its own `HelpAction` literal — the last of those because
+  `HelpCoverageTest` reads each page's own source, and is right to.
+- **The page and the pane draw one payload through one set of partials.** The pane's tiles and table markup
+  are now `filament/partials/report-tiles` and `report-table`, included by the hub and by the shared page
+  view both. The payload equality is asserted per report, and so is the sharing of the markup — a page free
+  to render its own footer would pass the first assertion while showing a different report.
+- **`PipelineReports` gained two filters, and no arithmetic.** The forecast's stage rows were the whole
+  open pipeline sitting under a total for one month — a reader adding the Weighted column would have got a
+  different figure from the tile above it, and every other number on the page would then be in doubt. So
+  `byStage()` takes an optional closing window and `forecast()` an optional pipeline, and the report reads
+  one pipeline and one window through both halves. That is a filter on an existing aggregation rather than
+  a new figure, which is the line Phase 1's "no new business logic" is drawing; shipping rows that do not
+  add up to their own total would have been the plan's own "plausible number that is wrong". The report is
+  footed now, so the column and the tile are asserted equal rather than hoped equal.
+- **Three defects the tests found, all of them mine and all invisible to a passing render:** the rotting
+  list read `->name` on a model whose column is `title`, so every deal was listed as a blank; three tiles
+  omitted `accent` and took the page down with an undefined key; and the forecast named its currencies only
+  when it had collected two distinct codes, which is silent on the case that matters — one converted deal
+  among a page of local ones, where the local ones store no code at all.
+- **The help doc claimed row-level scoping that does not exist.** CRM uses `EmployeeAccess` to filter the
+  owner *picker* on the lead form and nowhere else, so these reports show every deal in the company. The
+  doc now says that, and says the consequence: somebody who should not see the whole pipeline should not
+  have `ReportView`.
+- **Phase 0.1 done:** *Sales & pipeline*, *People & payroll* and *Operations* are declared in
+  `ReportCatalogue`, empty, after the six financial sections. Empty ones are dropped, so a company without
+  CRM sees no heading rather than an empty one — and the order is a decision rather than a consequence of
+  `bootstrap/providers.php` order.
+
+Not done from Phase 0: the `matrix` kind and the `period` filter. Neither was needed for these five; each
+should still land with the first report that needs it. Phase 0.4 turned out to need nothing — the five
+arrived inside `ReportPaneTest`'s existing loop, as it predicted.
 
 **2026-08-16 — the General Ledger (Phase 1.1), and the smoke-test fix from Phase 0.5.**
 

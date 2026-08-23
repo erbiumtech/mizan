@@ -9,6 +9,7 @@ use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Support\AccrualResult;
 use App\Modules\ConstructionCosting\Support\AccrualRun;
+use App\Support\TenantDb;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -193,7 +194,7 @@ class AccrualService
          * Received value per commitment line, posted receipts only, and only what was received **on or before** the end
          * of this month. A delivery dated into next month is not an accrual for this one.
          */
-        $received = DB::table('construction_goods_receipt_lines as grl')
+        $received = TenantDb::table('construction_goods_receipt_lines as grl')
             ->join('construction_goods_receipts as gr', 'gr.id', '=', 'grl.goods_receipt_id')
             ->where('gr.status', 'posted')
             ->whereDate('gr.received_on', '<=', CostPeriod::startFor($start)->copy()->endOfMonth()->toDateString())
@@ -202,13 +203,13 @@ class AccrualService
             ->selectRaw('grl.commitment_line_id, grl.job_id, grl.cost_code_id, grl.wbs_node_id, SUM(grl.amount) as amount')
             ->get();
 
-        $invoiced = DB::table('construction_invoice_allocations')
+        $invoiced = TenantDb::table('construction_invoice_allocations')
             ->whereNotNull('commitment_line_id')
             ->groupBy('commitment_line_id')
             ->selectRaw('commitment_line_id, SUM(amount) as amount')
             ->pluck('amount', 'commitment_line_id');
 
-        $orphans = DB::table('construction_goods_receipt_lines as grl')
+        $orphans = TenantDb::table('construction_goods_receipt_lines as grl')
             ->join('construction_goods_receipts as gr', 'gr.id', '=', 'grl.goods_receipt_id')
             ->where('gr.status', 'posted')
             ->whereNull('grl.commitment_line_id')
@@ -274,7 +275,7 @@ class AccrualService
          * job is through the contract rather than the claim, because a claim belongs to a contract and a contract to a
          * job.
          */
-        $claimed = DB::table('construction_progress_claim_lines as pcl')
+        $claimed = TenantDb::table('construction_progress_claim_lines as pcl')
             ->join('construction_progress_claims as pc', 'pc.id', '=', 'pcl.progress_claim_id')
             ->join('construction_contracts as c', 'c.id', '=', 'pc.contract_id')
             ->join('construction_contract_items as ci', 'ci.id', '=', 'pcl.contract_item_id')
@@ -307,7 +308,7 @@ class AccrualService
          * certifier's figure is not the claimant's — and a void one has been withdrawn. Counting either would net an
          * accrual off against a document nobody has signed.
          */
-        $certified = DB::table('construction_certificate_lines as cl')
+        $certified = TenantDb::table('construction_certificate_lines as cl')
             ->join('construction_payment_certificates as pcert', 'pcert.id', '=', 'cl.payment_certificate_id')
             ->whereIn('pcert.status', ['issued', 'paid'])
             ->whereIn('cl.contract_item_id', $claimed->keys()->all())

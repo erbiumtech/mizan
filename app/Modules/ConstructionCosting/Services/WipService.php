@@ -11,6 +11,7 @@ use App\Modules\ConstructionCosting\Models\CostPeriod;
 use App\Modules\ConstructionCosting\Models\ForecastRun;
 use App\Modules\ConstructionCosting\Models\ProgressMeasurement;
 use App\Modules\ConstructionCosting\Models\WipSnapshot;
+use App\Support\TenantDb;
 use App\Support\TenantTransaction;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -330,7 +331,7 @@ class WipService
             return ['final_cost' => $costToDate, 'run_id' => null];
         }
 
-        $final = (float) DB::table('construction_forecast_lines')
+        $final = (float) TenantDb::table('construction_forecast_lines')
             ->where('forecast_run_id', $run->getKey())
             ->sum('forecast_final_cost');
 
@@ -356,7 +357,7 @@ class WipService
         $jobIds = Job::query()->inSubtree($job)->pluck('id');
 
         // The client-side contracts: `side = receivable` is §8.1's discriminator in the one table it uses for both.
-        $contracts = DB::table('construction_contracts')
+        $contracts = TenantDb::table('construction_contracts')
             ->whereIn('job_id', $jobIds)
             ->where('side', 'receivable')
             ->pluck('contract_sum', 'id');
@@ -377,7 +378,7 @@ class WipService
 
         $contractIds = $contracts->keys()->all();
 
-        $approved = (float) DB::table('construction_variations')
+        $approved = (float) TenantDb::table('construction_variations')
             ->whereIn('contract_id', $contractIds)
             ->whereIn('status', ['approved', 'incorporated'])
             ->where('is_price_provisional', false)
@@ -389,7 +390,7 @@ class WipService
          * The provisional ones belong here rather than nowhere: the scope is agreed and the money is not, which is
          * exactly the "about to be in trouble" state §4.4 wants visible beside the contract value rather than inside it.
          */
-        $pending = (float) DB::table('construction_variations')
+        $pending = (float) TenantDb::table('construction_variations')
             ->whereIn('contract_id', $contractIds)
             ->where(fn ($q) => $q
                 ->whereIn('status', ['submitted', 'priced', 'approved_in_principle'])
@@ -400,7 +401,7 @@ class WipService
 
         $original = round((float) $contracts->sum(), 2);
 
-        $billings = (float) DB::table('construction_payment_certificates')
+        $billings = (float) TenantDb::table('construction_payment_certificates')
             ->whereIn('contract_id', $contractIds)
             ->whereIn('status', ['issued', 'paid'])
             ->whereDate('period_end', '<=', $end)
@@ -488,7 +489,7 @@ class WipService
         $end = CostPeriod::startFor($start)->copy()->endOfMonth()->toDateString();
         $jobIds = Job::query()->inSubtree($job)->pluck('id');
 
-        $items = DB::table('construction_contract_items as ci')
+        $items = TenantDb::table('construction_contract_items as ci')
             ->join('construction_contracts as c', 'c.id', '=', 'ci.contract_id')
             ->whereIn('c.job_id', $jobIds)
             ->where('c.side', 'receivable')
@@ -500,7 +501,7 @@ class WipService
             return 0.0;
         }
 
-        $achieved = (float) DB::table('construction_certificate_lines as cl')
+        $achieved = (float) TenantDb::table('construction_certificate_lines as cl')
             ->join('construction_payment_certificates as pc', 'pc.id', '=', 'cl.payment_certificate_id')
             ->whereIn('pc.status', ['issued', 'paid'])
             ->whereDate('pc.period_end', '<=', $end)

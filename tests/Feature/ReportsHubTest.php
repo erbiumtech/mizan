@@ -110,6 +110,17 @@ class ReportsHubTest extends TestCase
             'Statutory reporting',
             'Ledgers & books',
             'Bank files',
+            // CRM's five (reports-expansion-plan.md Phase 1.2). After the financial sections because a
+            // company opening the hub is usually there for the statements — and the section is declared
+            // empty in ReportCatalogue rather than created on first registration, so this order is a
+            // decision rather than a consequence of bootstrap/providers.php order.
+            'Sales & pipeline',
+            // Timesheets' two (Phase 1.4). Before Operations because these are read about people, and
+            // Phase 2's payroll register and leave liability join them here.
+            'People & payroll',
+            // Support's SLA pair (Phase 1.3). Phase 3 fills this section with attendance, quotations and
+            // campaigns; it is last because a company opening the hub is usually there for the statements.
+            'Operations',
         ], array_keys(Reports::sections()));
 
         // Named rather than counted: a rename that dropped one would still count
@@ -120,8 +131,11 @@ class ReportsHubTest extends TestCase
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
             'FBR Invoice Reporting',
-            'Account Register', 'Petty Cash Book',
+            'Account Register', 'Petty Cash Book', 'Loans Outstanding', 'Cash Commitments',
             'Bank Payment File',
+            'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
+            'SLA Performance', 'SLA Breaches', 'Unbilled WIP',
+            'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register', 'Leave Liability',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }

@@ -55,6 +55,9 @@ return [
     ],
 
     'pages' => [
+        // The loan book (Phase 1.6) and the forward cash view (1.7).
+        'App\\Filament\\Pages\\CashCommitments' => \App\Modules\Accounting\Filament\Pages\CashCommitments::class,
+        'App\\Filament\\Pages\\LoansOutstanding' => \App\Modules\Accounting\Filament\Pages\LoansOutstanding::class,
         'App\\Filament\\Pages\\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
         'App\\Filament\\Pages\\FindTransactions' => \App\Modules\Accounting\Filament\Pages\FindTransactions::class,
         'App\\Filament\\Pages\\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,

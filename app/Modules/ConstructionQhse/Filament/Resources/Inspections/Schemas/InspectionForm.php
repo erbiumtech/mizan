@@ -7,6 +7,7 @@ use App\Modules\Construction\Models\Location;
 use App\Modules\ConstructionQhse\Models\Inspection;
 use App\Modules\ConstructionQhse\Models\Itp;
 use App\Modules\ConstructionQhse\Models\ItpActivity;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -14,7 +15,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Requesting an inspection.
@@ -192,13 +192,13 @@ class InspectionForm
             return [];
         }
 
-        $contracts = DB::table('construction_contracts')->where('job_id', $jobId)->pluck('id');
+        $contracts = TenantDb::table('construction_contracts')->where('job_id', $jobId)->pluck('id');
 
         if ($contracts->isEmpty()) {
             return [];
         }
 
-        return DB::table('construction_contract_items')
+        return TenantDb::table('construction_contract_items')
             ->whereIn('contract_id', $contracts)
             ->where('is_active', true)
             ->orderBy('sort')->orderBy('item_no')

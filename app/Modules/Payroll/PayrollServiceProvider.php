@@ -12,6 +12,7 @@ use App\Modules\Payroll\Console\Commands\SetPayrollAutoPosting;
 use App\Modules\Payroll\Console\Commands\VerifyPayComponents;
 use App\Modules\Payroll\Events\PayslipReviewed;
 use App\Modules\Payroll\Filament\Pages\FbrTaxFile;
+use App\Modules\Payroll\Filament\Pages\PayrollRegister;
 use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Payroll\Filament\Pages\TaxSummary;
 use App\Modules\Payroll\Filament\RelationManagers\EmployeeSettingComponentsRelationManager;
@@ -71,6 +72,19 @@ class PayrollServiceProvider extends ServiceProvider
     {
         // This module's reports in the Reports hub. Registered rather than listed in Core, which
         // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
+        /*
+         * The month's register — reports-expansion-plan.md Phase 2.1.
+         *
+         * Filed under *People & payroll* rather than *Payroll & tax*: that section is the three filing
+         * outputs, and this is a management report about a month. It sits beside the timesheet pair, which
+         * is what somebody comparing hours against pay would want.
+         */
+        ReportCatalogue::register(
+            'People & payroll',
+            PayrollRegister::class,
+            'Every employee by every part of their pay for a month, tied to the payroll journal.',
+        );
+
         ReportCatalogue::register('Payroll & tax', TaxSummary::class, 'Tax withheld per employee for the year, with the slab it fell in.');
         ReportCatalogue::register('Payroll & tax', FbrTaxFile::class, 'The withholding statement, in the format FBR accepts.');
         ReportCatalogue::register('Payroll & tax', SalaryBankFile::class, 'Salary payments as a bank upload file, for a payroll month.');
@@ -106,6 +120,7 @@ class PayrollServiceProvider extends ServiceProvider
         // do it — see docs/module-packaging-plan.md §8 Group A.
         ReportRenderers::register('TaxSummary', fn (string $asOf, bool $comparison, array $asked): array => app(PayrollReports::class)
             ->taxSummary($asOf, $asked['month'] ?? null));
+        ReportRenderers::register('PayrollRegister', fn (string $asOf): array => app(PayrollReports::class)->register($asOf));
         ReportRenderers::register('FbrTaxFile', fn (string $asOf): array => app(PayrollReports::class)->taxFile($asOf));
         ReportRenderers::register('SalaryBankFile', fn (string $asOf): array => app(PayrollReports::class)->salaryFile($asOf));
 

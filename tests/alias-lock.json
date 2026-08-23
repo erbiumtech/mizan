@@ -343,7 +343,22 @@
         "App\\Filament\\Pages\\TaxEstimate": "App\\Modules\\PersonalFinance\\Filament\\Pages\\TaxEstimate",
         "App\\Filament\\Pages\\TaxSummary": "App\\Modules\\Payroll\\Filament\\Pages\\TaxSummary",
         "App\\Filament\\Pages\\TrialBalance": "App\\Modules\\Accounting\\Filament\\Pages\\TrialBalance",
-        "App\\Filament\\Pages\\UserManual": "App\\Modules\\Core\\Filament\\Pages\\UserManual"
+        "App\\Filament\\Pages\\UserManual": "App\\Modules\\Core\\Filament\\Pages\\UserManual",
+        "App\\Filament\\Pages\\PipelineByStage": "App\\Modules\\Crm\\Filament\\Pages\\PipelineByStage",
+        "App\\Filament\\Pages\\SalesForecast": "App\\Modules\\Crm\\Filament\\Pages\\SalesForecast",
+        "App\\Filament\\Pages\\WinLoss": "App\\Modules\\Crm\\Filament\\Pages\\WinLoss",
+        "App\\Filament\\Pages\\RottingDeals": "App\\Modules\\Crm\\Filament\\Pages\\RottingDeals",
+        "App\\Filament\\Pages\\TargetAttainment": "App\\Modules\\Crm\\Filament\\Pages\\TargetAttainment",
+        "App\\Filament\\Pages\\SlaPerformance": "App\\Modules\\Support\\Filament\\Pages\\SlaPerformance",
+        "App\\Filament\\Pages\\SlaBreaches": "App\\Modules\\Support\\Filament\\Pages\\SlaBreaches",
+        "App\\Filament\\Pages\\TimesheetUtilisation": "App\\Modules\\Timesheets\\Filament\\Pages\\TimesheetUtilisation",
+        "App\\Filament\\Pages\\PlanVersusActual": "App\\Modules\\Timesheets\\Filament\\Pages\\PlanVersusActual",
+        "App\\Filament\\Pages\\DocumentsExpiring": "App\\Modules\\Lifecycle\\Filament\\Pages\\DocumentsExpiring",
+        "App\\Filament\\Pages\\LoansOutstanding": "App\\Modules\\Accounting\\Filament\\Pages\\LoansOutstanding",
+        "App\\Filament\\Pages\\CashCommitments": "App\\Modules\\Accounting\\Filament\\Pages\\CashCommitments",
+        "App\\Filament\\Pages\\PayrollRegister": "App\\Modules\\Payroll\\Filament\\Pages\\PayrollRegister",
+        "App\\Filament\\Pages\\LeaveLiability": "App\\Modules\\Lifecycle\\Filament\\Pages\\LeaveLiability",
+        "App\\Filament\\Pages\\UnbilledWip": "App\\Modules\\Timesheets\\Filament\\Pages\\UnbilledWip"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",
