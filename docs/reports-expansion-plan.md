@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 0.1, 0.2, 0.5, 1.1, 1.2, 1.3 and 1.4 landed — see [What landed](#what-landed); the rest outstanding
+**Status:** Phases 0.1, 0.2, 0.5, 1.1, 1.2, 1.3, 1.4 and 1.5 landed — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -216,7 +216,7 @@ a page + hub entry + pane adapter, with **no new business logic**.
 4. **Timesheet Utilisation** — *done, 2026-08-23.* `utilisationFor($employee, $year, $month)` across every employee for a
    month: billable, non-billable, capacity, percentage. `planVersusActual()` is the second report, and
    the `matrix` decision from Phase 0.2 applies to both.
-5. **Documents Expiring** — `DocumentExpiryCheck::due()` as a table: employee, document kind, number,
+5. **Documents Expiring** — *done, 2026-08-23, though not off `due()` — see [What landed](#what-landed).* `DocumentExpiryCheck::due()` as a table: employee, document kind, number,
    expiry, days remaining. Compliance-critical and currently only ever emailed.
 6. **Loans Outstanding** — `LoanService::generateSchedule()` aggregated across loans: principal
    outstanding, interest to come, the next twelve months' instalments. Footed against the loan
@@ -477,6 +477,32 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — Documents Expiring (Phase 1.5), built on a method that had to be written first.**
+
+- **This phase says "`due()` as a table" and `due()` is the wrong method**, which is worth recording because
+  the mistake would have shipped looking correct. `due()` is the *notification* query: it suppresses a
+  document once its threshold has been warned at, so a daily job does not mail the same warning for thirty
+  days. A report built on it shows fewer documents the more reliably the reminders go out — emptiest on the
+  company that has been most diligent, and silent about why. `DocumentExpiryCheck::expiring()` is the
+  listing: everything inside the window, warned about or not. The first test in
+  `LifecycleReportsTest` asserts both halves — that the reminder query is silent for a row the report
+  still shows — so the distinction cannot quietly collapse later.
+- **The window is the widest configured reminder threshold**, not a number in this file. So the report
+  covers exactly the population the mail watches, and a company that widens
+  `lifecycle.document_expiry_thresholds` widens both at once instead of owning a report that disagrees with
+  its own email. The status bands are named off the same config, so a company warning at 90 days reads a
+  *Within 90 days* band.
+- **Expired documents are listed, counted in their own tile, and stated as an overdue count.** `-50` and
+  `50 ago` are the same figure with opposite readings, and the bare negative invites the wrong one. An
+  expired visa is also not a warning that stops being true, which `due()` already says about its smallest
+  threshold and a listing has even less excuse to drop.
+- **Two absences stated rather than blanked:** a document with no number recorded reads *Not recorded*,
+  because a blank cell in a compliance list looks like a fault in the report; and the document kind is
+  humanised, because `cnic` is a column value and not something to read.
+- Worth knowing and stated in the help: this report can only be as complete as what has been entered. A
+  document that *should* carry an expiry and has none recorded appears nowhere, and no report can find it.
+
 
 **2026-08-23 — the timesheet reports (Phase 1.4), and Phase 0.2's `matrix` question answered.**
 

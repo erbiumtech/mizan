@@ -186,3 +186,23 @@ always matches their own timesheet.
 Both reports count **every entry dated in the month, approved or not.** These are
 management reports about what was recorded, not billing documents. Billing has its
 own rules and its own screens.
+
+### Documents Expiring
+
+Also under People and payroll, and the one report here that is about compliance
+rather than money: every employee document with an expiry inside the reminder
+window, soonest first, with the already-expired at the top.
+
+It is **not** the same list as the reminder emails. Those go quiet on purpose — a
+document is warned about when it crosses 60, 30 and 7 days and is silent in
+between, because a job that mails the same warning every morning trains people to
+filter it. This report has no such memory and lists everything in the window,
+warned about or not.
+
+Two things follow from that. The window and the status bands come from the same
+thresholds the emails use, so widening those widens this. And an expired document
+stays on the list with its days shown as `12 ago` rather than a negative number,
+because a deadline that has passed is a different problem from one approaching.
+
+The report can only be as complete as what has been entered: a document that
+should carry an expiry date and has none recorded appears nowhere.

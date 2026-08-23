@@ -71,9 +71,8 @@ class HireService
         return DB::transaction(function () use ($offer, $application, $applicant, $withLogin, $employeeCode): Employee {
             $user = $withLogin ? $this->createUser($applicant) : null;
 
-            $employee = Employee::create([
+            $attributes = [
                 'user_id' => $user?->getKey(),
-                'employee_id' => $employeeCode ?: $this->nextEmployeeCode(),
                 'name' => $applicant->name,
                 'personal_email' => $applicant->email,
                 'phone' => $applicant->phone,
@@ -84,7 +83,17 @@ class HireService
                 'manager_id' => $application->vacancy?->hiring_manager_employee_id,
                 'date_of_joining' => $offer->joining_date->toDateString(),
                 'is_active' => true,
-            ]);
+            ];
+
+            // A code the caller chose is used exactly as given. Only a *generated* code may
+            // be regenerated on a collision — retrying a chosen one would quietly substitute
+            // a different code for the one they asked for, and they should hear about the
+            // clash instead.
+            $employee = $employeeCode
+                ? Employee::create($attributes + ['employee_id' => $employeeCode])
+                : Employee::withGeneratedCode(
+                    fn (string $code): Employee => Employee::create($attributes + ['employee_id' => $code])
+                );
 
             $this->createPackage($employee, $offer);
 
@@ -202,19 +211,5 @@ class HireService
             ->whereDate('start_date', '<=', $joining)
             ->whereDate('end_date', '>=', $joining)
             ->first();
-    }
-
-    /**
-     * The next employee code.
-     *
-     * Deliberately simple and deliberately overridable by the caller: companies have
-     * their own conventions, and guessing at one is worse than offering a default
-     * somebody can type over.
-     */
-    private function nextEmployeeCode(): string
-    {
-        $count = Employee::query()->count() + 1;
-
-        return 'EMP-'.str_pad((string) $count, 4, '0', STR_PAD_LEFT);
     }
 }
