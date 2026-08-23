@@ -131,7 +131,7 @@ class ReportsHubTest extends TestCase
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
             'FBR Invoice Reporting',
-            'Account Register', 'Petty Cash Book',
+            'Account Register', 'Petty Cash Book', 'Loans Outstanding',
             'Bank Payment File',
             'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
             'SLA Performance', 'SLA Breaches',
