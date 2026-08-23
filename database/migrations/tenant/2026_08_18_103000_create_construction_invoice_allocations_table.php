@@ -76,7 +76,7 @@ return new class extends Migration
             $table->unsignedBigInteger('allocated_by')->nullable();
             $table->timestamps();
 
-            $table->index(['invoice_id', 'invoice_line_id']);
+            $table->index(['invoice_id', 'invoice_line_id'], 'invoice_allocations_invoice_line_index');
             $table->index(['job_id', 'cost_code_id']);
             $table->index('commitment_line_id');
         });

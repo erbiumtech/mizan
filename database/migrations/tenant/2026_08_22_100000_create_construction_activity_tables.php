@@ -135,7 +135,7 @@ return new class extends Migration
             $table->index(['job_id', 'planned_start']);
             $table->index(['job_id', 'baseline_finish']);
             // The liquidated-damages exposure: contractual milestones, late.
-            $table->index(['job_id', 'is_contract_milestone', 'actual_finish']);
+            $table->index(['job_id', 'is_contract_milestone', 'actual_finish'], 'activities_job_milestone_finish_index');
             $table->index('is_critical');
         });
 
@@ -151,7 +151,9 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('activity_id')->constrained('construction_activities')->cascadeOnDelete();
-            $table->foreignId('predecessor_activity_id')->constrained('construction_activities')->cascadeOnDelete();
+            $table->foreignId('predecessor_activity_id')
+                ->constrained('construction_activities', 'id', 'activity_predecessors_predecessor_fk')
+                ->cascadeOnDelete();
 
             // Finish-to-start, start-to-start, finish-to-finish, start-to-finish — the four P6 exports.
             $table->enum('relationship', ['fs', 'ss', 'ff', 'sf'])->default('fs');
@@ -160,7 +162,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['activity_id', 'predecessor_activity_id', 'relationship']);
+            $table->unique(['activity_id', 'predecessor_activity_id', 'relationship'], 'activity_predecessors_unique');
             $table->index('predecessor_activity_id');
         });
 
