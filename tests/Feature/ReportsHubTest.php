@@ -135,7 +135,7 @@ class ReportsHubTest extends TestCase
             'Bank Payment File',
             'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
             'SLA Performance', 'SLA Breaches',
-            'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring',
+            'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }
