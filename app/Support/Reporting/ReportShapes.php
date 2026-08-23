@@ -28,6 +28,9 @@ trait ReportShapes
      * which. `numeric` says which to right-align — a column of amounts read down the left edge is a
      * column nobody can add up.
      *
+     * `wide` is for the reports whose columns are data rather than a fixed set — an employee-by-project
+     * matrix, a day-by-employee register. See the note on the returned key.
+     *
      * @param  array<int, string>  $columns
      * @param  array<int, array<int, string>>  $rows
      * @param  array<int, array<string, mixed>>  $tiles
@@ -45,6 +48,7 @@ trait ReportShapes
         string $note,
         ?array $footer = null,
         string $empty = 'Nothing to show for this period.',
+        bool $wide = false,
     ): array {
         return [
             'kind' => 'table',
@@ -62,6 +66,28 @@ trait ReportShapes
             'footer' => $footer,
             'footer_span' => $footer === null ? 1 : self::span($footer),
             'empty' => $empty,
+            /*
+             * Whether this table is wider than the pane and must scroll sideways —
+             * `docs/reports-expansion-plan.md` Phase 0.2, and the answer to the `matrix` question it asks.
+             *
+             * That phase proposed a `matrix` kind for the employee-by-column reports, on the grounds that
+             * `table` "can render but not total per column beyond one footer row". Looking at it, `table`
+             * already does both halves: `columns` is an array, so the columns can be data, and the footer
+             * row *is* the per-column total — a totals column on the right is one more column the report
+             * computes. There is nothing for a second kind to add, and a second renderer is a second place
+             * to fix a drill-through or a sticky header.
+             *
+             * What `table` genuinely could not do is be wider than the screen. `.fi-explorer-statement` is
+             * `overflow: clip`, for its rounded corners, so a twelve-project matrix was **silently cut
+             * off** — no scrollbar, no hint, columns simply absent. That is the bug behind the request, and
+             * one wrapper fixes it for every wide report in Phases 2 and 3 as well.
+             *
+             * Declared rather than measured, and only true where a report says so, because the wrapper
+             * costs something: a horizontal scroll container re-parents `position: sticky`, so a wide
+             * table's header and record row stop sticking to the viewport. A matrix trades that for
+             * columns that exist; a two-column report should not pay it.
+             */
+            'wide' => $wide,
             'balanced' => true,
         ];
     }

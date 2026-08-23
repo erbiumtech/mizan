@@ -9,6 +9,7 @@ use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -170,6 +171,150 @@ class TimesheetService
             'expected_hours' => null,
             'note' => $summary->completenessNote(),
         ];
+    }
+
+    /**
+     * Every employee's booked time for a month, split billable against not — the company-wide figure.
+     *
+     * **Three queries whatever the headcount, and that is the whole design.** `utilisationFor()` above
+     * answers for one person and reaches `AttendanceCalendar::summarise()`, which walks every day of the
+     * month doing a holiday lookup and a shift-pattern lookup per day. Called once per employee that is
+     * hundreds of queries for one screen — the exact fault `docs/page-load-performance-plan.md` was
+     * written about, and the risk `docs/reports-expansion-plan.md` names for these reports by name. So
+     * this aggregates in the database instead of looping: one grouped sum, one distinct-project count, one
+     * lookup to put names to the ids.
+     *
+     * **No capacity figure, and no percentage against one.** The plan asks for capacity and this module
+     * refuses to state it — `utilisationFor()` returns `expected_hours` as null in every branch, because
+     * (its words) a rule that made timesheets and attendance reconcile "would make people book the
+     * difference somewhere to make the screen agree, which produces worse data than the gap it closed".
+     * Inventing a denominator here would undo that decision quietly, in a report, where it would be read
+     * as fact. `billable_share` is the ratio the data does support: what proportion of the time somebody
+     * recorded was billable. It needs no assumption about what their month should have held.
+     *
+     * @return array<int, array{employee: string, billable_hours: float, non_billable_hours: float, booked_hours: float, billable_share: ?float, projects: int}>
+     */
+    public function utilisation(int $year, int $month): array
+    {
+        $minutes = TimesheetEntry::query()
+            ->inMonth($year, $month)
+            ->selectRaw('employee_id, is_billable, sum(minutes) as minutes')
+            ->groupBy('employee_id', 'is_billable')
+            ->get();
+
+        if ($minutes->isEmpty()) {
+            return [];
+        }
+
+        $projects = TimesheetEntry::query()
+            ->inMonth($year, $month)
+            ->selectRaw('employee_id, count(distinct project_id) as projects')
+            ->groupBy('employee_id')
+            ->pluck('projects', 'employee_id');
+
+        $names = Employee::query()
+            ->whereKey($minutes->pluck('employee_id')->unique()->all())
+            ->with('user')
+            ->get()
+            ->mapWithKeys(fn (Employee $employee): array => [$employee->getKey() => $employee->display_label]);
+
+        return $minutes
+            ->groupBy('employee_id')
+            ->map(function (Collection $rows, $employeeId) use ($names, $projects): array {
+                // `is_billable` comes back as 1/0 from MySQL and true/false from SQLite, so it is filtered
+                // loosely on purpose. A strict comparison here silently reported every hour as
+                // non-billable on one of the two drivers.
+                $billable = (int) $rows->where('is_billable', true)->sum('minutes');
+                $other = (int) $rows->where('is_billable', false)->sum('minutes');
+                $booked = $billable + $other;
+
+                return [
+                    // An employee deleted since booking the time still has the time; naming the id is
+                    // better than dropping the hours out of the company total to keep the list tidy.
+                    'employee' => $names[$employeeId] ?? 'Employee #'.$employeeId,
+                    'billable_hours' => round($billable / 60, 2),
+                    'non_billable_hours' => round($other / 60, 2),
+                    'booked_hours' => round($booked / 60, 2),
+                    // Null where nothing was booked at all, which cannot happen through the group above
+                    // but would be a division by nought if it ever did.
+                    'billable_share' => $booked === 0 ? null : round($billable / $booked * 100, 1),
+                    'projects' => (int) ($projects[$employeeId] ?? 0),
+                ];
+            })
+            ->sortByDesc('booked_hours')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Planned allocation against time actually booked, for everybody, as a grid.
+     *
+     * The company-wide form of `planVersusActual()` below, and the report `docs/reports-expansion-plan.md`
+     * Phase 1.4 asks for. Same two facts per pairing — the stint's `allocation_pct` and the hours booked —
+     * with one row per employee and one column per project.
+     *
+     * **Four queries, again regardless of headcount.** The per-employee method runs a grouped sum and a
+     * pivot query *each*; over forty employees that is eighty queries to fill one screen.
+     *
+     * Every pairing that either side knows about, not only the ones with both: a project somebody is
+     * allocated to and has booked no time against is the row worth looking at, and so is time booked
+     * against a project nobody allocated them to. Dropping either would make the report agree with itself
+     * and stop being worth opening.
+     *
+     * @return array{employees: array<int, string>, projects: array<int, string>, cells: array<string, array{allocation_pct: ?float, booked_hours: float}>}
+     */
+    public function allocationGrid(int $year, int $month): array
+    {
+        $from = Carbon::create($year, $month, 1)->toDateString();
+        $to = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+        $booked = TimesheetEntry::query()
+            ->inMonth($year, $month)
+            ->selectRaw('employee_id, project_id, sum(minutes) as minutes')
+            ->groupBy('employee_id', 'project_id')
+            ->get();
+
+        // The stints overlapping the month. `to_date` null is an open stint, which is the common case for
+        // anybody currently on a project.
+        $stints = DB::table('project_employee')
+            ->where('from_date', '<=', $to)
+            ->where(fn ($query) => $query->whereNull('to_date')->orWhere('to_date', '>=', $from))
+            ->get(['employee_id', 'project_id', 'allocation_pct']);
+
+        $employeeIds = $booked->pluck('employee_id')->merge($stints->pluck('employee_id'))->unique();
+        $projectIds = $booked->pluck('project_id')->merge($stints->pluck('project_id'))->unique();
+
+        $employees = Employee::query()
+            ->whereKey($employeeIds->all())
+            ->with('user')
+            ->get()
+            ->mapWithKeys(fn (Employee $employee): array => [$employee->getKey() => $employee->display_label])
+            ->all();
+
+        $projects = Project::query()
+            ->whereKey($projectIds->all())
+            ->pluck('name', 'id')
+            ->all();
+
+        $cells = [];
+
+        foreach ($stints as $stint) {
+            $key = $stint->employee_id.':'.$stint->project_id;
+            $cells[$key] = [
+                'allocation_pct' => $stint->allocation_pct === null ? null : (float) $stint->allocation_pct,
+                'booked_hours' => 0.0,
+            ];
+        }
+
+        foreach ($booked as $row) {
+            $key = $row->employee_id.':'.$row->project_id;
+            $cells[$key] = [
+                'allocation_pct' => $cells[$key]['allocation_pct'] ?? null,
+                'booked_hours' => round(((int) $row->minutes) / 60, 2),
+            ];
+        }
+
+        return ['employees' => $employees, 'projects' => $projects, 'cells' => $cells];
     }
 
     /**

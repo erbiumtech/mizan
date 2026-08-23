@@ -953,6 +953,32 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     padding-block: 0;
 }
 
+/*
+ * A report wider than the pane, scrolling sideways — reports-expansion-plan.md Phase 0.2.
+ *
+ * `.fi-explorer-statement` clips its overflow so its rounded corners cut the header and the record row
+ * cleanly. That is right for every report whose columns are a fixed set and silently destructive for one
+ * whose columns are data: a twelve-project matrix lost whichever columns did not fit, with no scrollbar
+ * and nothing on screen to say so.
+ *
+ * `max-content` rather than a pixel figure because only the report knows how wide it is — it states its
+ * own `grid-template-columns`, and this makes the statement as wide as that grid needs instead of letting
+ * flex squeeze the columns until the figures wrap.
+ *
+ * Applied only where a report declares itself wide. Inside a horizontal scroll container `position:
+ * sticky` resolves against the container rather than the viewport, so the sticky header and the sticky
+ * total stop following the reader down the page; a matrix trades that for columns that exist, and no
+ * other report should have to.
+ */
+.fi-explorer-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+.fi-explorer-scroll > .fi-explorer-statement {
+    min-width: max-content;
+}
+
 .fi-explorer-pane-body {
     display: flex;
     flex-direction: column;

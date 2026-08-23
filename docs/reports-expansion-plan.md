@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 0.1, 0.5, 1.1, 1.2 and 1.3 landed — see [What landed](#what-landed); the rest outstanding
+**Status:** Phases 0.1, 0.2, 0.5, 1.1, 1.2, 1.3 and 1.4 landed — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -177,7 +177,8 @@ Nothing here ships a report; it removes the friction from the thirty-odd that fo
    the list below wants. Section order is the reading order in both the hub and the sidebar column, so
    decide it once — which is why all three are declared empty in `ReportCatalogue` rather than appearing
    when a module happens to boot.
-2. **A `matrix` kind in `ReportPane`.** Three of the highest-value reports (payroll register,
+2. **A `matrix` kind in `ReportPane`.** *Answered 2026-08-23 with Phase 1.4, and the answer is no kind —
+   see [What landed](#what-landed).* Three of the highest-value reports (payroll register,
    attendance register, plan-versus-actual) are an *employee × column* grid with a totals row and a
    totals column, which `table` can render but not total per column beyond one footer row. Either
    extend `table` with a `column_totals` flag or add a kind. Decide before writing the payroll
@@ -212,7 +213,7 @@ a page + hub entry + pane adapter, with **no new business logic**.
    `breaches()` as its exception list: response and resolution against each category's
    `sla_*_minutes`, by assignee, with reopened count and satisfaction. Both methods are tested and
    unused.
-4. **Timesheet Utilisation** — `utilisationFor($employee, $year, $month)` across every employee for a
+4. **Timesheet Utilisation** — *done, 2026-08-23.* `utilisationFor($employee, $year, $month)` across every employee for a
    month: billable, non-billable, capacity, percentage. `planVersusActual()` is the second report, and
    the `matrix` decision from Phase 0.2 applies to both.
 5. **Documents Expiring** — `DocumentExpiryCheck::due()` as a table: employee, document kind, number,
@@ -476,6 +477,45 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the timesheet reports (Phase 1.4), and Phase 0.2's `matrix` question answered.**
+
+- **Phase 0.2's answer is that no `matrix` kind is needed.** That phase proposed one on the grounds that
+  `table` "can render but not total per column beyond one footer row". Looking at it, `table` already does
+  both halves: `columns` is an array, so the columns can be data, and the footer row *is* the per-column
+  total — a totals column on the right is one more column the report computes. A second kind had nothing to
+  add and would have been a second place to fix a drill-through or a sticky header.
+- **What `table` genuinely could not do was be wider than the screen.** `.fi-explorer-statement` is
+  `overflow: clip`, for its rounded corners, so a twelve-project matrix was **silently cut off** — no
+  scrollbar, no hint, columns simply absent. That is the bug behind the request. `ReportShapes::table()`
+  takes a `wide` flag, the shared partial wraps a wide table in a scroll container, and every wide report
+  in Phases 2 and 3 gets it for free. Declared rather than measured, and conditional, because the wrapper
+  re-parents `position: sticky`: inside it the header and record row stop following the reader down the
+  page. A matrix trades that for columns that exist; a two-column report should not pay it.
+- **Both methods answered for one employee, which is what made them unreachable rather than merely
+  unused.** The question anybody asks is about the team, and asking it of `utilisationFor()` meant a loop
+  over a method that reaches `AttendanceCalendar::summarise()` — which walks every day of the month doing a
+  holiday lookup and a shift-pattern lookup per day. The bulk methods are three and four grouped queries
+  whatever the headcount, and the test measures it: **6 queries against 953** for ten employees over three
+  projects, when mutated back to the loop. That is the risk this plan named for these reports, quantified.
+- **The plan asked for a capacity column and this module refuses to state one, so the report does not.**
+  `utilisationFor()` returns `expected_hours` as null in every branch, and its own comment says why: a rule
+  that made timesheets and attendance reconcile "would make people book the difference somewhere to make
+  the screen agree, which produces worse data than the gap it closed". A report is exactly where an
+  invented denominator would be read as fact. *Billable share* — what proportion of recorded time was
+  billable — is the ratio the data supports, and it assumes nothing about what a month should have held.
+  The report's columns are asserted, because that is where a capacity figure would have to appear.
+- **The matrix shows every pairing either side knows about**, not only the ones where both exist: an
+  allocation with no hours booked against it is the most interesting row on the report, and hours booked
+  against a project nobody was assigned to is the second. A report showing only the agreeing pairings would
+  always agree with itself.
+- **The column cap says what it dropped, and the row total does not.** Twelve project columns, busiest
+  first; the note names how many quieter projects lost their column. But the *Booked* column on the right
+  totals every project including those — a capped report whose totals add up only the visible columns
+  disagrees with the timesheet it came from and looks entirely right, which is why it has a test of its own.
+- **`is_billable` is filtered loosely on purpose.** It comes back as 1/0 from MySQL and true/false from
+  SQLite; a strict comparison reported every hour as non-billable on one of the two drivers.
+
 
 **2026-08-23 — the SLA report and its exception list (Phase 1.3).**
 
