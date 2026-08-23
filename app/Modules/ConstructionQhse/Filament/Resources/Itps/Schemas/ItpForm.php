@@ -5,12 +5,12 @@ namespace App\Modules\ConstructionQhse\Filament\Resources\Itps\Schemas;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\WbsNode;
 use App\Modules\ConstructionQhse\Models\Itp;
+use App\Support\TenantDb;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * The plan's cover sheet.
@@ -103,7 +103,7 @@ class ItpForm
             return [];
         }
 
-        return DB::table('construction_contracts')
+        return TenantDb::table('construction_contracts')
             ->where('job_id', $jobId)
             ->orderBy('contract_number')
             ->get(['id', 'contract_number', 'title'])

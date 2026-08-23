@@ -6,7 +6,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Modules\Leave\Notifications\LeaveRequestDecided;
 use App\Modules\Leave\Notifications\LeaveRequestSubmitted;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
@@ -95,7 +95,7 @@ class LeaveRequestService
             );
         }
 
-        DB::transaction(function () use ($request, $approver): void {
+        TenantTransaction::run(function () use ($request, $approver): void {
             $request->update([
                 'status' => LeaveRequest::STATUS_APPROVED,
                 'decided_by' => $approver->getKey(),
@@ -173,7 +173,7 @@ class LeaveRequestService
             throw new InvalidArgumentException("This request is already {$request->status}.");
         }
 
-        DB::transaction(function () use ($request, $user): void {
+        TenantTransaction::run(function () use ($request, $user): void {
             $request->days()->delete();
 
             $request->update([

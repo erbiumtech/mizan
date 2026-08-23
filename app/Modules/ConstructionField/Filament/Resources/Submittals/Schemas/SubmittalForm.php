@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionField\Filament\Resources\Submittals\Schemas;
 use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionField\Models\ProgrammeActivity;
 use App\Modules\ConstructionField\Models\Submittal;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -13,7 +14,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * What has to be approved, and when it has to go in.
@@ -231,7 +231,7 @@ class SubmittalForm
             return [];
         }
 
-        return DB::table('construction_contracts')
+        return TenantDb::table('construction_contracts')
             ->where('job_id', $jobId)
             ->orderBy('contract_number')
             ->get(['id', 'contract_number', 'title'])

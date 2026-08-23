@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Accounting\Support;
+namespace App\Support\Reporting;
 
 use App\Modules\Core\Models\FiscalYear;
 use Carbon\Carbon;
@@ -16,6 +16,13 @@ use Carbon\Carbon;
  *
  * So the span starts where the fiscal year containing the date starts. Falls back to the calendar year
  * only when no fiscal year covers the date at all, which is a company that has not set one up.
+ *
+ * **Shared code rather than Accounting's, for the same reason `ReportShapes` is.** This was
+ * `Accounting\Support\ReportPeriod` until CRM's five reports needed it, and a `crm -> accounting` edge
+ * bought for a date pair is precisely what `docs/module-packaging-plan.md` §8 Group A calls
+ * "host-application code filed inside a module". It imports nothing but Core and Carbon, and every module
+ * that reports over a span needs it — Support, Timesheets and Lifecycle each would have bought the same
+ * edge for the same reason. See `ModuleBoundaryTest`, whose tangled-module budget is nought.
  */
 class ReportPeriod
 {

@@ -38,6 +38,22 @@ class ReportCatalogue
         'Statutory reporting' => [],
         'Ledgers & books' => [],
         'Bank files' => [],
+
+        /*
+         * The sections `docs/reports-expansion-plan.md` Phase 0.1 asks for.
+         *
+         * Declared here, empty, rather than created on first registration — the plan's reason is that
+         * "section order is the reading order in both the hub and the sidebar column, so decide it once",
+         * and a section that appears when a module happens to boot is a reading order decided by
+         * `bootstrap/providers.php`. Empty sections are dropped by `sections()`, so a company without CRM
+         * sees no *Sales & pipeline* heading rather than an empty one.
+         *
+         * After the financial ones, because a company opening the hub is usually there for the statements —
+         * and these three read as the questions the rest of the application answers.
+         */
+        'Sales & pipeline' => [],
+        'People & payroll' => [],
+        'Operations' => [],
     ];
 
     /**

@@ -95,6 +95,65 @@ class ScheduledTransactionService
     }
 
     /**
+     * Every occurrence of every active schedule inside a window, raised or not.
+     *
+     * **Forward-looking, and uncapped, which is what makes it different from `due()`/`outstandingFor()`
+     * above.** Those two answer a *posting run*: only what is outstanding now, and at most
+     * `MAX_PER_RUN` of it, because a run that raised two hundred back-dated entries in one go is a run
+     * nobody can review. Neither limit belongs in a report — the cap would silently shorten a ninety-day
+     * view of a weekly schedule, and "outstanding only" would hide the occurrences that have not come round
+     * yet, which are the whole point of looking forward.
+     *
+     * Written for the cash-commitments report, `docs/reports-expansion-plan.md` Phase 1.7.
+     *
+     * @return array<int, array{schedule: ScheduledTransaction, date: CarbonImmutable, raised: bool}>
+     */
+    public function occurrencesBetween(string $from, string $to): array
+    {
+        $start = CarbonImmutable::parse($from)->startOfDay();
+        $end = CarbonImmutable::parse($to)->startOfDay();
+
+        $schedules = ScheduledTransaction::active()->with('lines')->get();
+
+        if ($schedules->isEmpty()) {
+            return [];
+        }
+
+        // One query for every schedule's raised dates rather than one per schedule: this is a report over
+        // the whole book, and `outstandingFor()` asks per schedule because it is called for one.
+        $raised = JournalEntry::query()
+            // Through the scope, not a literal alias: `source_type` holds a stable token rather than a
+            // class name, and one place in this application knows how to turn one into the other.
+            ->forSource(ScheduledTransaction::class)
+            ->whereIn('source_id', $schedules->modelKeys())
+            ->get(['source_id', 'entry_date'])
+            ->groupBy('source_id')
+            ->map(fn ($rows): array => $rows
+                ->map(fn ($row): string => CarbonImmutable::parse($row->entry_date)->toDateString())
+                ->all());
+
+        $rows = [];
+
+        foreach ($schedules as $schedule) {
+            $already = $raised->get($schedule->getKey(), []);
+
+            foreach ($schedule->occurrencesUpTo($end) as $date) {
+                if ($date->lessThan($start)) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'schedule' => $schedule,
+                    'date' => $date,
+                    'raised' => in_array($date->toDateString(), $already, true),
+                ];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
      * Raise every outstanding entry for every active schedule.
      *
      * @return Collection<int, JournalEntry>

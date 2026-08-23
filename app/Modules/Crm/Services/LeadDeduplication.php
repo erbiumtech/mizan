@@ -3,7 +3,7 @@
 namespace App\Modules\Crm\Services;
 
 use App\Modules\Crm\Models\Lead;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 /**
@@ -98,7 +98,7 @@ class LeadDeduplication
             [$keep, $discard] = [$discard, $keep];
         }
 
-        return DB::transaction(function () use ($keep, $discard): Lead {
+        return TenantTransaction::run(function () use ($keep, $discard): Lead {
             $this->movePolymorphic($keep, $discard);
 
             // Deals move too: a deal against a duplicate lead is a real deal, and deleting

@@ -7,6 +7,7 @@ use App\Modules\ConstructionQhse\Models\ItpActivity;
 use App\Modules\ConstructionQhse\Models\ItpActivityParty;
 use App\Modules\ConstructionQhse\Services\InspectionService;
 use App\Modules\ConstructionQhse\Services\ItpService;
+use App\Support\TenantDb;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -23,7 +24,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -245,7 +245,7 @@ class ActivitiesRelationManager extends RelationManager
             return [];
         }
 
-        return DB::table('contacts')->orderBy('name')->limit(500)->pluck('name', 'id')->all();
+        return TenantDb::table('contacts')->orderBy('name')->limit(500)->pluck('name', 'id')->all();
     }
 
     /** Service refusals are sentences somebody needs to read. */
