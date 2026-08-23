@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 0.1, 0.2, 0.5, 1.1, 1.2, 1.3, 1.4 and 1.5 landed — see [What landed](#what-landed); the rest outstanding
+**Status:** Phases 0.1, 0.2, 0.5, 1.1–1.6 landed — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -218,7 +218,7 @@ a page + hub entry + pane adapter, with **no new business logic**.
    the `matrix` decision from Phase 0.2 applies to both.
 5. **Documents Expiring** — *done, 2026-08-23, though not off `due()` — see [What landed](#what-landed).* `DocumentExpiryCheck::due()` as a table: employee, document kind, number,
    expiry, days remaining. Compliance-critical and currently only ever emailed.
-6. **Loans Outstanding** — `LoanService::generateSchedule()` aggregated across loans: principal
+6. **Loans Outstanding** — *done, 2026-08-23.* `LoanService::generateSchedule()` aggregated across loans: principal
    outstanding, interest to come, the next twelve months' instalments. Footed against the loan
    liability accounts.
 7. **Cash Commitments (90 days)** — `ScheduledTransactionService::due()/outstandingFor()`,
@@ -477,6 +477,43 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the loan book (Phase 1.6), and the first report that reconciles.**
+
+- **The schedule was rendered in exactly one place**, the relation manager inside a single loan, so a
+  company could read any one amortisation table and could not answer "what do we owe". The plan's words:
+  "there is no portfolio view."
+- **It states what the schedules say beside what the accounts say, and names the gap.** Phase 2 is the phase
+  of reports that reconcile and its rule is stated there — "post entries, run the report, assert the record
+  row equals the ledger balance … a row-count assertion proves nothing here". This is a Phase 1 item that
+  can already make that claim, because the schedule and the ledger are in the same database, so it makes it.
+  Two tests: one posts a drawdown and two instalments and asserts the two figures are *identical*; the other
+  posts a 50,000 repayment by hand and asserts the report notices and names it.
+- **That difference is the report's most valuable figure**, which is why the second tile is the ledger
+  balance rather than a note. Schedules and liability accounts drift for real reasons — an instalment paid
+  outside the application, a manual entry, a loan restructured without rebuilding its table — and the report
+  cannot know which side is right, so it states both. Agreement is also said out loud, because two
+  similar-looking numbers with no comment invite a reader to decide for themselves whether it matters.
+- **`GeneralLedgerService::balancesFor()` is new and batched.** `balanceAsOf()` is two queries for one
+  account — the shape that cost the general ledger 136 queries before Phase 1.1 rewrote it — and there is no
+  reason to reintroduce it one report at a time. The instalments are one query for the whole book too:
+  `scheduledOutstanding()`, `totalInterest()` and `nextDue()` are a query each and stay for the per-loan
+  screen, where the count is one.
+- **Registered through `ReportRenderers` rather than as another arm of `ReportPane`'s `match`**, which is how
+  Accounting's older eleven are drawn. The newer path gives the page, the date and the module gate for free
+  and keeps the pane from growing a method per report; `for()` asks `ReportRenderers` first, so both routes
+  reach one closure.
+- **Three faults in my own fixtures, each of which would have made a test pass while proving nothing:**
+  `recordInstalment()` posts only where a second approver is *not* required, and this environment requires
+  one — so the schedule advanced while the ledger stood still and the report was right to say they
+  disagreed; the record row was compared exactly against a column of individually-rounded cells, which
+  cannot tie to the paisa (the footer states the true total, because a footer agreeing with the screen and
+  disagreeing with the ledger is the wrong one to be right about); and the gating test ran as an
+  Administrator, who has `ReportView`, so it asserted that an open gate was shut.
+- Worth knowing and stated in the help: an **inactive** loan is off the report *and* its liability account
+  is out of the comparison, so a deactivated loan with a balance still in the accounts will not show as a
+  difference here.
+
 
 **2026-08-23 — Documents Expiring (Phase 1.5), built on a method that had to be written first.**
 

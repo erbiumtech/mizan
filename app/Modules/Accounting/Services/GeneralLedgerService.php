@@ -195,6 +195,46 @@ class GeneralLedgerService
     }
 
     /**
+     * The balance of specific accounts as at a date, in one grouped query.
+     *
+     * Public, batched, and in that account's own direction — added for the loans report
+     * (`docs/reports-expansion-plan.md` Phase 1.6), which has to foot a schedule against the liability
+     * accounts behind it and would otherwise ask per account. `balanceAsOf()` below answers for one
+     * account in two queries, which is the shape that cost the general ledger 136 queries before Phase 1.1
+     * rewrote it; there is no reason to reintroduce it one report at a time.
+     *
+     * As at *and including* the date, which is what a report footed on a date means by it.
+     *
+     * @param  array<int, int>  $accountIds
+     * @return array<int, float> account id => balance, in the account's normal direction
+     */
+    public function balancesFor(array $accountIds, string $asOf): array
+    {
+        if ($accountIds === []) {
+            return [];
+        }
+
+        $sums = JournalEntryLine::query()
+            ->whereIn('account_id', $accountIds)
+            ->whereHas('journalEntry', function ($q) use ($asOf) {
+                $q->where('is_posted', true)->whereDate('entry_date', '<=', $asOf);
+            })
+            ->groupBy('account_id')
+            ->selectRaw('account_id, SUM(debit_amount) as debits, SUM(credit_amount) as credits')
+            ->get();
+
+        $directions = Account::query()->whereKey($accountIds)->pluck('normal_balance', 'id');
+
+        return $sums
+            ->mapWithKeys(fn ($row): array => [
+                (int) $row->account_id => ($directions[$row->account_id] ?? 'credit') === 'debit'
+                    ? (float) $row->debits - (float) $row->credits
+                    : (float) $row->credits - (float) $row->debits,
+            ])
+            ->all();
+    }
+
+    /**
      * Every account's balance before a date, in one grouped query.
      *
      * @return array<int, float> account id => opening balance

@@ -206,3 +206,27 @@ because a deadline that has passed is a different problem from one approaching.
 
 The report can only be as complete as what has been entered: a document that
 should carry an expiry date and has none recorded appears nowhere.
+
+### Loans Outstanding
+
+Filed with the ledgers, and the one report in this application that checks itself
+against the accounts: it states what the loan schedules say is still owed beside
+what the liability accounts say, and tells you whether the two agree.
+
+That comparison is the reason to open it. The two sides of a loan are maintained
+separately — the schedule when an instalment is recorded, the account by whatever
+journal entries have been posted — so they drift, and each cause is worth knowing
+about: an instalment paid straight through the bank, a manual entry against the
+liability account, or a loan restructured without its schedule being rebuilt. The
+report cannot know which side is right, so it states both figures and the gap
+between them.
+
+Per loan it shows what is left, the interest still to come, the instalments
+falling due in the next twelve months — the figure a balance sheet note wants for
+the current portion of long-term debt — how far through the schedule the loan is,
+and the next payment date.
+
+Two things that are easy to misread. A loan with nothing recorded yet shows its
+**full principal**, not nought. And only **active** loans are listed, with their
+accounts excluded from the comparison too — so a deactivated loan whose balance is
+still sitting in the accounts will not show up here as a difference.

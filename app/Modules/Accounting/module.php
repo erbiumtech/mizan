@@ -55,6 +55,8 @@ return [
     ],
 
     'pages' => [
+        // The loan book (reports-expansion-plan.md Phase 1.6).
+        'App\\Filament\\Pages\\LoansOutstanding' => \App\Modules\Accounting\Filament\Pages\LoansOutstanding::class,
         'App\\Filament\\Pages\\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,
         'App\\Filament\\Pages\\FindTransactions' => \App\Modules\Accounting\Filament\Pages\FindTransactions::class,
         'App\\Filament\\Pages\\CashFlow' => \App\Modules\Accounting\Filament\Pages\CashFlow::class,
