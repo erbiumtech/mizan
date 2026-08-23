@@ -110,6 +110,11 @@ class ReportsHubTest extends TestCase
             'Statutory reporting',
             'Ledgers & books',
             'Bank files',
+            // CRM's five (reports-expansion-plan.md Phase 1.2). After the financial sections because a
+            // company opening the hub is usually there for the statements — and the section is declared
+            // empty in ReportCatalogue rather than created on first registration, so this order is a
+            // decision rather than a consequence of bootstrap/providers.php order.
+            'Sales & pipeline',
         ], array_keys(Reports::sections()));
 
         // Named rather than counted: a rename that dropped one would still count
@@ -122,6 +127,7 @@ class ReportsHubTest extends TestCase
             'FBR Invoice Reporting',
             'Account Register', 'Petty Cash Book',
             'Bank Payment File',
+            'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }

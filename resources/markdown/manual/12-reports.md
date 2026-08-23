@@ -96,3 +96,31 @@ the company, so check the payroll month is locked before generating them.
 **Bank Payment File** turns selected payments into a bank transfer file. Like the
 salary file it is an outbound artefact rather than a report — releasing payments
 into a file changes their state, so it is covered with payments rather than here.
+
+## Sales and pipeline
+
+Five reports off the CRM pipeline, and unlike everything above them they read no
+journal entries at all — so the posting rule at the top of this chapter does not
+apply to them. What limits these is what has been *recorded on the deal*: its
+stage, its value, its expected close date and whether anybody has planned a next
+action.
+
+| Report | Answers | Period it uses |
+|---|---|---|
+| Pipeline by Stage | What is open right now, by stage, weighted and plain | None — it is a snapshot |
+| Sales Forecast | What is expected to close this month | The month your date falls in, forward |
+| Win / Loss | Won against lost, by source, owner and reason | The financial year to your date |
+| Rotting Deals | Open deals that have stalled or have nothing planned | None — it is a snapshot |
+| Target Attainment | Each salesperson against their target | Each target's own period |
+
+Three things surprise people here, and all three are deliberate:
+
+- **A won deal is not in the forecast.** It is an invoice waiting to be raised, so
+  counting it as expected revenue would state the same money twice.
+- **Win / Loss starts on 1 July**, like every other year-to-date figure in this
+  application — not on 1 January.
+- **Amounts in another currency are converted at the rate stored on the deal**, not
+  today's rate. Where a total mixes currencies, the report names them.
+
+These five cover **every deal in the company**, not just your own. If somebody
+should not see the whole pipeline, they should not have the report permission.

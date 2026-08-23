@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 0.5 and Phase 1.1 landed 2026-08-16 — see [What landed](#what-landed); the rest outstanding
+**Status:** Phases 0.1, 0.5, 1.1 and 1.2 landed — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -145,8 +145,9 @@ is that gap, not a new persistence layer.
 
 **The fiscal year is 1 July – 30 June and periods must go through `ReportPeriod`.**
 `ReportPeriod::toDate()`/`previous()`/`months()`
-(`app/Modules/Accounting/Support/ReportPeriod.php`) exist because `Carbon::startOfYear()` reported six
-months of trading as twelve. Every new period report uses them; none calls `startOfYear()`.
+(`app/Support/Reporting/ReportPeriod.php` — it was in Accounting until Phase 1.2 moved it) exist because
+`Carbon::startOfYear()` reported six months of trading as twelve. Every new period report uses them; none
+calls `startOfYear()`.
 
 **The data behind the new reports, confirmed in the tenant schema:**
 
@@ -171,9 +172,11 @@ months of trading as twelve. Every new period report uses them; none calls `star
 
 Nothing here ships a report; it removes the friction from the thirty-odd that follow.
 
-1. **A new section for the hub.** `Reports::SECTIONS` has six sections and the new reports do not fit
-   them: "People & payroll", "Operations", "Sales & pipeline" are the three the list below wants.
-   Section order is the reading order in both the hub and the sidebar column, so decide it once.
+1. **A new section for the hub.** *Done, 2026-08-23 with Phase 1.2.* `Reports::SECTIONS` has six sections
+   and the new reports do not fit them: "People & payroll", "Operations", "Sales & pipeline" are the three
+   the list below wants. Section order is the reading order in both the hub and the sidebar column, so
+   decide it once — which is why all three are declared empty in `ReportCatalogue` rather than appearing
+   when a module happens to boot.
 2. **A `matrix` kind in `ReportPane`.** Three of the highest-value reports (payroll register,
    attendance register, plan-versus-actual) are an *employee × column* grid with a totals row and a
    totals column, which `table` can render but not total per column beyond one footer row. Either
@@ -183,7 +186,9 @@ Nothing here ships a report; it removes the friction from the thirty-odd that fo
    (`ASKS` currently offers account/budget/search/month). Add `period` — from/to through
    `ReportPeriod` — rather than letting each report invent its own date pair.
 4. **Extend `ReportPaneTest`'s coverage loop** to assert every new report's payload shape as they land;
-   it already loops the catalogue, so this is free once the reports are registered.
+   it already loops the catalogue, so this is free once the reports are registered. *Confirmed free,
+   2026-08-23: the five CRM reports arrived in that loop with no change to it. Its "not empty" floor was
+   raised from 17 to 23 to match, so a report that stops being registered fails it too.*
 5. **Make `FilamentReportPagesSmokeTest` enumerate the hub rather than a hand-written list.** It names
    eight page classes literally, so a new report page renders in nobody's test until somebody remembers
    to add it. `Reports::linkedPages()` is the list it should loop — one change, and every report added
@@ -198,7 +203,7 @@ a page + hub entry + pane adapter, with **no new business logic**.
    its entries in date order, opening → movement → closing. The one report an auditor asks for first,
    and the only reason it is missing is that nothing ever called the method. Drill-through to the
    account register already exists (`ReportPane::drillable()`).
-2. **CRM pipeline set** — five reports off `PipelineReports`: *Pipeline by Stage* (`byStage`),
+2. **CRM pipeline set** — *done, 2026-08-23.* Five reports off `PipelineReports`: *Pipeline by Stage* (`byStage`),
    *Sales Forecast* (`forecast`, weighted at the stored rate), *Win/Loss* (`winLoss`), *Rotting Deals*
    (`rotting`, a table of opportunities with days since last activity), *Target Attainment*
    (`attainment`). Five reports, one service, no new logic. `activity()` belongs in the same section
@@ -471,6 +476,65 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the CRM pipeline set (Phase 1.2), Phase 0.1's sections, and the two couplings that were in
+the way.**
+
+- **Five reports, one service, and no figure computed twice.** `PipelineReports` had carried `byStage`,
+  `forecast`, `winLoss`, `rotting` and `attainment` with tests since CRM shipped, called by nothing but
+  `SalesTargetResource`. `Crm\Support\CrmReports` is the adapter — it chooses each report's period, states
+  its figures and says what they mean, and computes none of them. The service gained two filters and no
+  arithmetic, for the reason four bullets down.
+- **Each report's period is derived from the one date the pane carries, and each derives a different one.**
+  *By stage* and *rotting* are snapshots and take no window. *Forecast* looks **forward** to the end of that
+  month, because a forecast of a period that has closed is a win/loss report. *Win/loss* looks **back**
+  across the fiscal year through `ReportPeriod` — 1 July, not 1 January, and the test puts a deal in the
+  month where the two answers differ. So Phase 0.3's `period` filter is still not needed, and still
+  outstanding.
+- **`ReportPeriod` moved to `app/Support/Reporting/`.** CRM using it from Accounting would have bought a
+  `crm -> accounting` edge for a date pair, and `crm` requires nothing by design (`crms-plan.md` §1). It
+  imports Core and Carbon only, and Support, Timesheets and Lifecycle would each have bought the same edge
+  for the same reason in 1.3–1.5. Same call `ReportShapes` got in packaging §8, one class along.
+- **`NoReportPane` refused every report, including the ones it could draw.** It is the pane a company with
+  no accounting module gets, and it answered `false` to `supportsReport()` unconditionally — so a CRM-only
+  company saw the five reports listed in the hub and could open them one page at a time and never in the
+  explorer. It now consults `ReportRenderers`, which is host-level, and still refuses everything of
+  Accounting's. Exactly the coupling `ReportPane::supports()` shed a fortnight ago, in the class nobody
+  looked at next.
+- **A report page is now four declarations.** `TaxSummary` and `GeneralLedger` are ~110 lines each, and
+  five more of those differing in a title and an icon was four copies too many:
+  `App\Support\Reporting\ModuleReportPage` holds the date, the key, the payload and the gate, and each of
+  the five declares a title, an icon, a sort and its own `HelpAction` literal — the last of those because
+  `HelpCoverageTest` reads each page's own source, and is right to.
+- **The page and the pane draw one payload through one set of partials.** The pane's tiles and table markup
+  are now `filament/partials/report-tiles` and `report-table`, included by the hub and by the shared page
+  view both. The payload equality is asserted per report, and so is the sharing of the markup — a page free
+  to render its own footer would pass the first assertion while showing a different report.
+- **`PipelineReports` gained two filters, and no arithmetic.** The forecast's stage rows were the whole
+  open pipeline sitting under a total for one month — a reader adding the Weighted column would have got a
+  different figure from the tile above it, and every other number on the page would then be in doubt. So
+  `byStage()` takes an optional closing window and `forecast()` an optional pipeline, and the report reads
+  one pipeline and one window through both halves. That is a filter on an existing aggregation rather than
+  a new figure, which is the line Phase 1's "no new business logic" is drawing; shipping rows that do not
+  add up to their own total would have been the plan's own "plausible number that is wrong". The report is
+  footed now, so the column and the tile are asserted equal rather than hoped equal.
+- **Three defects the tests found, all of them mine and all invisible to a passing render:** the rotting
+  list read `->name` on a model whose column is `title`, so every deal was listed as a blank; three tiles
+  omitted `accent` and took the page down with an undefined key; and the forecast named its currencies only
+  when it had collected two distinct codes, which is silent on the case that matters — one converted deal
+  among a page of local ones, where the local ones store no code at all.
+- **The help doc claimed row-level scoping that does not exist.** CRM uses `EmployeeAccess` to filter the
+  owner *picker* on the lead form and nowhere else, so these reports show every deal in the company. The
+  doc now says that, and says the consequence: somebody who should not see the whole pipeline should not
+  have `ReportView`.
+- **Phase 0.1 done:** *Sales & pipeline*, *People & payroll* and *Operations* are declared in
+  `ReportCatalogue`, empty, after the six financial sections. Empty ones are dropped, so a company without
+  CRM sees no heading rather than an empty one — and the order is a decision rather than a consequence of
+  `bootstrap/providers.php` order.
+
+Not done from Phase 0: the `matrix` kind and the `period` filter. Neither was needed for these five; each
+should still land with the first report that needs it. Phase 0.4 turned out to need nothing — the five
+arrived inside `ReportPaneTest`'s existing loop, as it predicted.
 
 **2026-08-16 — the General Ledger (Phase 1.1), and the smoke-test fix from Phase 0.5.**
 
