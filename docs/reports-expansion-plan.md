@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phases 2–8 outstanding — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -232,7 +232,7 @@ a standalone HR system cannot: the ledger is in the same database, so each repor
 against the accounts. Every one of them carries a record row that ties to a ledger balance — which is
 the assertion its test should make, not the row count.
 
-1. **Payroll Register** — employee × pay component for a month, with a total per component and per
+1. **Payroll Register** — *done, 2026-08-23.* Employee × pay component for a month, with a total per component and per
    employee, footed against the payroll journal for that run. The single most-asked-for payroll report;
    today only per-payslip views exist. Component definitions carry `account_id`, so the reconciliation
    is per column rather than in aggregate.
@@ -477,6 +477,45 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the payroll register (Phase 2.1), the first of the reports that reconcile.**
+
+- **It is built from `payslip_pay_components` alone, and that is only correct because of
+  `PayComponentRecorder`.** Half of pay in this application lives in payslip *columns* and half in component
+  rows — every shipped component is `is_column_backed` — and the recorder copies the columns into rows on
+  every save. So the component table is the complete record of what a payslip paid, which is what
+  `PayComponentSeeder`'s own comment says the rows are for: "a report … can ask what pay is made of instead
+  of carrying its own list, which is how the billing statement came to keep a hand-maintained column map
+  with an 'Other' bucket". This report keeps none.
+- **The tie is exact, not approximate.** The payroll entry credits *salaries payable* with each payslip's
+  net salary, so the register's net total must equal that credit across the month's posted payslips. Three
+  states are tested: everything posted and agreeing; a payslip unposted, which is named as the reason and
+  not called a discrepancy; and a payslip altered behind the model after its entry was posted, which is.
+- **The scoping needed its own test, and a mutation is what proved it.** Reading the account *balance*
+  instead of the credits from these payslips' entries left the first reconciliation test green — with one
+  month of fixtures the two readings are identical. Salaries payable carries every month's unpaid salaries
+  and every payment against them, so a balance would be neither independent of the register nor the same
+  figure. Two months of payslips now pin it, and the mutation fails.
+- **A component deactivated after it was paid keeps its column.** Reading only `active()` components would
+  take the amount out of the columns and leave it in the row total, so the register would stop adding up —
+  silently, and only in the months where somebody had tidied the component list.
+- **`Earnings` here includes expense reimbursement and the payslip's own `total_earnings` does not.** The
+  register's own arithmetic has to close — earnings less deductions equals net — and net salary *is*
+  `total_earnings + reimbursement - total_deductions`. So the column is every earning component, the
+  reimbursement is visible in its own column, and the help says so rather than leaving two documents
+  disagreeing about a word.
+- **A dash is not a nought.** The recorder deletes a component row whose amount rounds to nothing, so an
+  empty cell means the component was not part of that person's pay — where a nought would claim it was and
+  came to nil.
+- **Two corrections to my own work:** a private `post()` helper in the test is a *fatal* error, not a
+  shadowed method, because `TestCase::post()` is public — the same collision as `run()` on a console command
+  a fortnight ago; and I had written that two payslips for one person in a month was reachable when
+  `payslips` carries a unique key on (employee, month, fiscal year). The test now pins that key instead,
+  since it is what makes a row-per-payslip register readable as a row-per-person one.
+- `PayrollReports::fiscalYear()` now calls `ReportPeriod::yearFor()` rather than spelling the same query out
+  again. Two copies of the fiscal-year rule is how `PayrollMonth` came to have two implementations that
+  disagreed for every year not starting in July or January.
+
 
 **2026-08-23 — Cash Commitments (Phase 1.7). Phase 1 is complete.**
 

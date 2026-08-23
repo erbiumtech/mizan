@@ -251,3 +251,26 @@ Two things worth knowing. Opening this report **raises nothing**, unlike the ban
 payment file, which creates rows as a side effect of being opened. And a module
 you do not have simply contributes nothing: without invoicing there are no
 recurring invoices here and no arriving total, rather than an error.
+
+### Payroll Register
+
+The month of payroll as a grid: a row per payslip, a column per part of pay, and
+totals down every column and across every row. Before this, the only way to read a
+month was one payslip at a time.
+
+The two figures at the top are the point. **Net pay** is the register's own total;
+**Salaries payable** is what the ledger says, from this month's payslip entries.
+The line underneath says whether they agree, and when they do not it says which of
+two things is happening:
+
+- **Some payslips are not posted.** Ordinary, and not a problem — the register
+  counts every payslip and the ledger only has the posted ones.
+- **Everything is posted and they still differ.** Worth investigating: a payslip
+  changed after its entry was posted, or an entry edited by hand.
+
+Three things about the grid. The month comes from the date, because payslips are
+filed by month name rather than by date — the report prints the month it chose. A
+**dash is not a nought**: it means that component was not part of that person's pay
+at all. And **Earnings here includes expense reimbursement**, which a payslip's own
+"total earnings" excludes — so that Earnings less Deductions equals Net exactly,
+with the reimbursement visible in its own column.
