@@ -348,7 +348,9 @@
         "App\\Filament\\Pages\\SalesForecast": "App\\Modules\\Crm\\Filament\\Pages\\SalesForecast",
         "App\\Filament\\Pages\\WinLoss": "App\\Modules\\Crm\\Filament\\Pages\\WinLoss",
         "App\\Filament\\Pages\\RottingDeals": "App\\Modules\\Crm\\Filament\\Pages\\RottingDeals",
-        "App\\Filament\\Pages\\TargetAttainment": "App\\Modules\\Crm\\Filament\\Pages\\TargetAttainment"
+        "App\\Filament\\Pages\\TargetAttainment": "App\\Modules\\Crm\\Filament\\Pages\\TargetAttainment",
+        "App\\Filament\\Pages\\SlaPerformance": "App\\Modules\\Support\\Filament\\Pages\\SlaPerformance",
+        "App\\Filament\\Pages\\SlaBreaches": "App\\Modules\\Support\\Filament\\Pages\\SlaBreaches"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

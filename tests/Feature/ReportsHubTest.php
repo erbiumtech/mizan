@@ -115,6 +115,9 @@ class ReportsHubTest extends TestCase
             // empty in ReportCatalogue rather than created on first registration, so this order is a
             // decision rather than a consequence of bootstrap/providers.php order.
             'Sales & pipeline',
+            // Support's SLA pair (Phase 1.3). Phase 3 fills this section with attendance, quotations and
+            // campaigns; it is last because a company opening the hub is usually there for the statements.
+            'Operations',
         ], array_keys(Reports::sections()));
 
         // Named rather than counted: a rename that dropped one would still count
@@ -128,6 +131,7 @@ class ReportsHubTest extends TestCase
             'Account Register', 'Petty Cash Book',
             'Bank Payment File',
             'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
+            'SLA Performance', 'SLA Breaches',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }

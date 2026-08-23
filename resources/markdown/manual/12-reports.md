@@ -124,3 +124,33 @@ Three things surprise people here, and all three are deliberate:
 
 These five cover **every deal in the company**, not just your own. If somebody
 should not see the whole pipeline, they should not have the report permission.
+
+## Operations
+
+**SLA Performance** and **SLA Breaches** are the helpdesk's two, and the pair is
+worth understanding as a pair: the first says what proportion of a month's
+tickets met their commitments, the second names the open tickets that have missed
+one while there is still something to do about them. One is read at a month end,
+the other every morning.
+
+The rule to hold on to is that **these clocks are reported and never enforced**.
+Nothing in this application refuses an action, escalates a ticket or notifies
+anybody because a commitment was missed — a category's SLA is a number of minutes
+recorded against it, and these two reports are the only place that number has any
+effect at all.
+
+Three things about the figures:
+
+- **Tickets are counted by when they were opened**, not when they were resolved.
+  An SLA is the promise made when a ticket arrives, and counting by resolution
+  would drop every still-open ticket out of the figures — so the report would
+  improve as the backlog got worse.
+- **A ticket nobody has answered yet counts as missed** once its response time is
+  up. A breach that has not finished happening is the one still worth acting on.
+- **The by-assignee half is a diagnosis, not a ranking.** Commitments differ per
+  category, so somebody working the urgent queue is measured against a tighter
+  clock. What the split is good for is one category being missed by one person
+  and met by everybody else.
+
+The totals row adds up the category rows only — adding both halves would count
+every ticket twice.
