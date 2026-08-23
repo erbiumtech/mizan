@@ -9,6 +9,7 @@ use App\Modules\Accounting\Filament\Pages\AccountRegister;
 use App\Modules\Accounting\Filament\Pages\BalanceSheet;
 use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
 use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
+use App\Modules\Accounting\Filament\Pages\CashCommitments as CashCommitmentsPage;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
@@ -59,6 +60,7 @@ use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use App\Modules\Accounting\Services\FiscalYearClosingService;
+use App\Modules\Accounting\Support\CashCommitmentReports;
 use App\Modules\Accounting\Support\LoanReports;
 use App\Modules\Accounting\Support\OpeningBalanceCsvImporter;
 use App\Modules\Accounting\Support\ReportPane;
@@ -144,6 +146,24 @@ class AccountingServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'LoansOutstanding',
             fn (string $asOf): array => app(LoanReports::class)->outstanding($asOf),
+        );
+
+        /*
+         * The forward cash view — Phase 1.7.
+         *
+         * Its sources come from `App\Support\CashCommitments`, which Accounting writes two of and Invoicing
+         * the third. Registering them here rather than inside the report keeps the registry filled at boot,
+         * so the report never has to ask whether a module got there first.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            CashCommitmentsPage::class,
+            'What is committed to leave or arrive over the next ninety days, and whether it is raised.',
+        );
+        CashCommitmentReports::registerSources();
+        ReportRenderers::register(
+            'CashCommitments',
+            fn (string $asOf): array => app(CashCommitmentReports::class)->commitments($asOf),
         );
 
         // The records of this module that may carry custom fields. Registered by alias, which is what

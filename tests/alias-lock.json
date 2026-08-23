@@ -354,7 +354,8 @@
         "App\\Filament\\Pages\\TimesheetUtilisation": "App\\Modules\\Timesheets\\Filament\\Pages\\TimesheetUtilisation",
         "App\\Filament\\Pages\\PlanVersusActual": "App\\Modules\\Timesheets\\Filament\\Pages\\PlanVersusActual",
         "App\\Filament\\Pages\\DocumentsExpiring": "App\\Modules\\Lifecycle\\Filament\\Pages\\DocumentsExpiring",
-        "App\\Filament\\Pages\\LoansOutstanding": "App\\Modules\\Accounting\\Filament\\Pages\\LoansOutstanding"
+        "App\\Filament\\Pages\\LoansOutstanding": "App\\Modules\\Accounting\\Filament\\Pages\\LoansOutstanding",
+        "App\\Filament\\Pages\\CashCommitments": "App\\Modules\\Accounting\\Filament\\Pages\\CashCommitments"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

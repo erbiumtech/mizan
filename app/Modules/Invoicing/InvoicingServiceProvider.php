@@ -14,8 +14,10 @@ use App\Modules\Invoicing\Policies\ContactPolicy;
 use App\Modules\Invoicing\Policies\InvoiceLinePolicy;
 use App\Modules\Invoicing\Policies\InvoicePolicy;
 use App\Modules\Invoicing\Policies\TaxRatePolicy;
+use App\Modules\Invoicing\Services\RecurringInvoiceService;
 use App\Modules\Invoicing\Support\ContactCsvImporter;
 use App\Modules\Invoicing\Support\InvoicingReports;
+use App\Support\CashCommitments;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
@@ -24,6 +26,7 @@ use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -46,8 +49,60 @@ class InvoicingServiceProvider extends ServiceProvider
         TaxRate::class => TaxRatePolicy::class,
     ];
 
+    /**
+     * Recurring invoices, as forward cash commitments — `docs/reports-expansion-plan.md` Phase 1.7.
+     *
+     * The report lives in Accounting and this is Invoicing's data, so it is *registered* rather than
+     * imported: `docs/module-packaging-plan.md` §8 spent a phase removing `accounting -> invoicing`, and
+     * one column of one report is not a reason to buy the edge back. See `App\Support\CashCommitments`,
+     * which follows `PaymentGenerators` — the caller asks and each module answers for itself.
+     *
+     * **Money coming in**, which is why the report has two totals. Every other source registered against
+     * that registry is money leaving.
+     */
+    private function registerCashCommitments(): void
+    {
+        CashCommitments::register('recurring-invoice', function (string $from, string $to): array {
+            $service = app(RecurringInvoiceService::class);
+            $rows = [];
+
+            // Illuminate's Carbon, not Carbon's own: `due()` type-hints the Laravel subclass and an
+            // instance of the parent is not an instance of the child.
+            // A recurring invoice is a monthly agreement and `due()` answers for one month, so the window
+            // is walked a month at a time — at most four passes for a ninety-day horizon.
+            $cursor = Carbon::parse($from)->startOfMonth();
+            $end = Carbon::parse($to)->startOfMonth();
+
+            while ($cursor->lessThanOrEqualTo($end)) {
+                foreach ($service->due($cursor) as $agreement) {
+                    $date = $agreement->invoiceDateFor($cursor);
+
+                    if ($date->toDateString() < $from || $date->toDateString() > $to) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'date' => $date->toDateString(),
+                        'kind' => 'Recurring invoice',
+                        'description' => trim(($agreement->contact?->name ?? 'Unknown customer')
+                            .' · '.$agreement->description, ' ·'),
+                        'amount' => $agreement->total(),
+                        'direction' => 'in',
+                        'raised' => $service->alreadyRaised($agreement, $cursor),
+                    ];
+                }
+
+                $cursor = $cursor->addMonth();
+            }
+
+            return $rows;
+        });
+    }
+
     public function boot(): void
     {
+        $this->registerCashCommitments();
+
         // This module's reports in the Reports hub. Registered rather than listed in Core, which
         // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
         ReportCatalogue::register('Receivables & payables', AgedReceivables::class, 'What customers owe, bucketed by how late it is.');

@@ -230,3 +230,24 @@ Two things that are easy to misread. A loan with nothing recorded yet shows its
 **full principal**, not nought. And only **active** loans are listed, with their
 accounts excluded from the comparison too — so a deactivated loan whose balance is
 still sitting in the accounts will not show up here as a difference.
+
+### Cash Commitments
+
+The one forward-looking report in the hub: everything committed over the next
+ninety days from the date you give it — recurring journal entries, subscriptions,
+and recurring invoices — on a single timeline.
+
+**Raised** is the column to read first. *Yes* means the entry or invoice exists,
+so it is a payable or receivable somebody can chase. *Not yet* means nothing has
+been created and the decision is still open: the agreement can be ended, the
+amount changed, the schedule edited. A report that showed all of it as fact would
+be a forecast the ledger had to honour.
+
+Amounts carry no sign; **Direction** is its own column. The two totals at the top
+are money leaving and money arriving, and the figure on the record row is the net
+— a column mixing both directions has no meaningful sum.
+
+Two things worth knowing. Opening this report **raises nothing**, unlike the bank
+payment file, which creates rows as a side effect of being opened. And a module
+you do not have simply contributes nothing: without invoicing there are no
+recurring invoices here and no arriving total, rather than an error.
