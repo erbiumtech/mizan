@@ -55,7 +55,10 @@ return [
     ],
 
     'pages' => [
-        // The loan book (Phase 1.6) and the forward cash view (1.7).
+        // The loan book (Phase 1.6), the forward cash view (1.7), the asset register (2.5) and the
+        // bank reconciliation statement (2.6).
+        'App\\Filament\\Pages\\BankReconciliationStatement' => \App\Modules\Accounting\Filament\Pages\BankReconciliationStatement::class,
+        'App\\Filament\\Pages\\FixedAssetRegister' => \App\Modules\Accounting\Filament\Pages\FixedAssetRegister::class,
         'App\\Filament\\Pages\\CashCommitments' => \App\Modules\Accounting\Filament\Pages\CashCommitments::class,
         'App\\Filament\\Pages\\LoansOutstanding' => \App\Modules\Accounting\Filament\Pages\LoansOutstanding::class,
         'App\\Filament\\Pages\\AccountRegister' => \App\Modules\Accounting\Filament\Pages\AccountRegister::class,

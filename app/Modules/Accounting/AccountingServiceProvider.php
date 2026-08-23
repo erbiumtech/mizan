@@ -5,15 +5,18 @@ namespace App\Modules\Accounting;
 use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
 use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
+use App\Modules\Accounting\Console\Commands\RebuildAssetDepreciationCommand;
 use App\Modules\Accounting\Filament\Pages\AccountRegister;
 use App\Modules\Accounting\Filament\Pages\BalanceSheet;
 use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Accounting\Filament\Pages\BankReconciliationStatement;
 use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
 use App\Modules\Accounting\Filament\Pages\CashCommitments as CashCommitmentsPage;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
 use App\Modules\Accounting\Filament\Pages\FindTransactions;
+use App\Modules\Accounting\Filament\Pages\FixedAssetRegister;
 use App\Modules\Accounting\Filament\Pages\GeneralLedger;
 use App\Modules\Accounting\Filament\Pages\LoansOutstanding;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
@@ -60,7 +63,9 @@ use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use App\Modules\Accounting\Services\FiscalYearClosingService;
+use App\Modules\Accounting\Support\BankReconciliationReports;
 use App\Modules\Accounting\Support\CashCommitmentReports;
+use App\Modules\Accounting\Support\FixedAssetReports;
 use App\Modules\Accounting\Support\LoanReports;
 use App\Modules\Accounting\Support\OpeningBalanceCsvImporter;
 use App\Modules\Accounting\Support\ReportPane;
@@ -166,6 +171,45 @@ class AccountingServiceProvider extends ServiceProvider
             fn (string $asOf): array => app(CashCommitmentReports::class)->commitments($asOf),
         );
 
+        /*
+         * The asset register as a note to the accounts — Phase 2.5.
+         *
+         * Filed under *Ledgers & books* beside the loan book, which it is the mirror of: a register of things
+         * the company holds against a register of what it owes, each tied to the accounts behind it.
+         *
+         * The plan costed this one at no new business logic, on the basis that the twelve-month charge came
+         * from `DepreciationService`'s own method. It did not have one — every method it had posted entries —
+         * so `DepreciationService::schedule()` was written for it. That is the only logic this report added.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            FixedAssetRegister::class,
+            'Every asset: cost, depreciation to date, what it is worth, and the year ahead.',
+        );
+        ReportRenderers::register(
+            'FixedAssetRegister',
+            fn (string $asOf): array => app(FixedAssetReports::class)->register($asOf),
+        );
+
+        /*
+         * What the bank says against what the books say — Phase 2.6.
+         *
+         * The plan costed this as a report over completed statements. It cannot be: `complete()` requires the
+         * statement balance to equal the ledger balance exactly, and an unpresented cheque makes those differ
+         * by definition, so the statements with something to reconcile are precisely the ones that cannot be
+         * closed. The report is therefore about open statements, and it is where the figure `complete()`
+         * rejects is finally named.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            BankReconciliationStatement::class,
+            'The bank balance, the cheques it has not seen, and whether the books agree.',
+        );
+        ReportRenderers::register(
+            'BankReconciliationStatement',
+            fn (string $asOf): array => app(BankReconciliationReports::class)->statement($asOf),
+        );
+
         // The records of this module that may carry custom fields. Registered by alias, which is what
         // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
         CustomFieldSubjects::register(ModuleMap::alias(Beneficiary::class), 'Beneficiaries');
@@ -207,6 +251,7 @@ class AccountingServiceProvider extends ServiceProvider
 
         $this->commands([
             BackfillPaymentEntriesCommand::class,
+            RebuildAssetDepreciationCommand::class,
             RaiseScheduledTransactions::class,
             RaiseSubscriptionPayments::class,
         ]);
