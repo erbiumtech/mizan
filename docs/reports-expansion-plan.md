@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 0.1, 0.2, 0.5, 1.1–1.6 landed — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phases 2–8 outstanding — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -221,7 +221,7 @@ a page + hub entry + pane adapter, with **no new business logic**.
 6. **Loans Outstanding** — *done, 2026-08-23.* `LoanService::generateSchedule()` aggregated across loans: principal
    outstanding, interest to come, the next twelve months' instalments. Footed against the loan
    liability accounts.
-7. **Cash Commitments (90 days)** — `ScheduledTransactionService::due()/outstandingFor()`,
+7. **Cash Commitments (90 days)** — *done, 2026-08-23.* `ScheduledTransactionService::due()/outstandingFor()`,
    `SubscriptionBillingService::due()` and recurring invoices in one forward-looking table: what will
    hit the bank, when, and whether it is already raised. Nothing in the application answers this today.
 
@@ -477,6 +477,43 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — Cash Commitments (Phase 1.7). Phase 1 is complete.**
+
+- **The plan's note was "nothing in the application answers this today", and the reason was three runners.**
+  Scheduled entries, beneficiary subscriptions and recurring invoices each had something that *raised* them
+  and nothing that listed what was coming, so a company could see everything it had been billed for and
+  nothing it had committed to.
+- **`outstandingFor()` was the wrong method, for two separate reasons, and neither would have shown as an
+  error.** It answers a *posting run*: outstanding occurrences only, capped at `MAX_PER_RUN` so that nobody
+  has to review two hundred back-dated entries at once. A forward-looking report needs the occurrences that
+  have *not* come round yet — the outstanding ones are the things that already happened — and it must not
+  inherit a cap, or it is quietly short with nothing on screen to say so.
+  `ScheduledTransactionService::occurrencesBetween()` is new, uncapped, forward, and one query for the
+  raised dates of the whole book rather than one per schedule.
+- **The three sources are registered, not imported.** Recurring invoices are Invoicing's, the report is
+  Accounting's, and `docs/module-packaging-plan.md` §8 spent a phase removing `accounting -> invoicing` —
+  one column of one report is not a reason to buy it back. `App\Support\CashCommitments` follows
+  `PaymentGenerators`: the report asks, each module answers for itself. A company without invoicing gets a
+  shorter list and no *arriving* total rather than an error, and a later phase can register loan instalments
+  or a payroll month without the report learning anything new. Asserted by flushing the registry and
+  re-registering only Accounting's two.
+- **`Raised` is a column, not a filter**, because a commitment and a payable are read differently: one is
+  something to chase, the other a decision still open. Conflating them would have double-counted everything
+  the runner had already done.
+- **Directions are words and amounts carry no sign.** A single column with some figures negative gets added
+  up wrongly by hand every time, so *Out* and *In* are their own column, the two totals are the two
+  directions, and the record row states the **net** — a column mixing directions has no meaningful sum.
+- **Two type errors and two test faults worth recording.** `SubscriptionBillingService::due()` and
+  `RecurringInvoiceService::due()` both hint `Illuminate\Support\Carbon`, and an instance of `Carbon\Carbon`
+  is not an instance of its own subclass — which fails at the call rather than at the boundary, so it
+  reached a rendered page before a test caught it. And my own first version of the "no negative amounts"
+  test scanned the whole table for a hyphen and failed on the dates: the shape of assertion that passes for
+  the wrong reason as often as it fails for one.
+- Also reverted: `pint` run over a whole module directory reformatted three files nobody had touched
+  (stale imports). Pre-existing drift, not this phase's to fix, and not this phase's to hide in a commit
+  either.
+
 
 **2026-08-23 — the loan book (Phase 1.6), and the first report that reconciles.**
 
