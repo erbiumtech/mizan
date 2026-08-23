@@ -89,6 +89,7 @@ class AdminPanelProvider extends PanelProvider
         // Assembles the tree once per request for the rail and the column to share. `scoped`, not
         // `singleton` — see the class.
         $this->app->scoped(NavigationSnapshot::class);
+
     }
 
     public function panel(Panel $panel): Panel
@@ -213,6 +214,17 @@ class AdminPanelProvider extends PanelProvider
             // content, so the rail becomes a peer of both and no Filament view needed publishing.
             // What it contains is decided by App\Support\NavigationDomains; the sidebar beside it
             // is narrowed to the same domain by DomainNavigationManager, bound in register().
+            /*
+             * The right-click menu's off switch — `docs/table-context-menu-plan.md` §4.
+             *
+             * In the user menu because it has to be somewhere the menu itself is not: the context menu carries
+             * the same toggle, which is where somebody annoyed by it will look, but a menu that has just
+             * switched itself off cannot switch itself back on.
+             */
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_AFTER,
+                fn (): string => view('filament.partials.table-context-menu-toggle')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::LAYOUT_START,
                 fn (): string => view('filament.partials.domain-rail')->render(),

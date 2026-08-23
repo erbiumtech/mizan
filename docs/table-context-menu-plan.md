@@ -1,6 +1,8 @@
 # Right-Click Context Menu in Tables — Plan
 
-**Status:** Proposed
+**Status:** **The plan is complete. Phases 0-5, 2026-08-23.** Right-click works on every table with no
+per-table code, with bulk on a selection, keyboard and touch routes, an off switch, and sections mirroring
+the row's own `ActionGroup`s.
 **Created:** 2026-08-14
 **Inspiration:** [Filament Examples — Right-Click Menu in Table](https://filamentexamples.com/project/filament-right-click-menu-in-table),
 which demonstrates the MIT package `leek/filament-right-click` (`^4.0 || ^5.0`, latest 1.5.2,
@@ -208,19 +210,335 @@ Livewire tests cannot right-click, so the plan splits deliberately:
   action list per table; does it respect an action hidden by policy for one record; does it offer the link
   items. Write the answers here. Ship it if it passes; otherwise continue with §1 and keep the package's
   API shape as the reference.
+
+  > **Phase 0 answered 2026-08-23 — we build our own.** Answered by reading `leek/filament-right-click`
+  > v1.5.2 at source (cloned, not installed: three of the four questions are settled by its API and its
+  > README, so installing it into this application would have been a cost with no extra evidence behind
+  > it). The package is well made, actively released and MIT, and it **documents** the behaviour that rules
+  > it out here rather than hiding it — its README's first line calls it "a **static** right-click menu".
+  >
+  > | Question | Answer |
+  > |---|---|
+  > | Survives `wire:navigate`? | **Yes**, and it is the right shape. One `document`-level `contextmenu` listener behind a module-scope `listenersBound` flag, nothing per row or per table, and `document.addEventListener('livewire:navigated', closeMenu)`. This is §1.1 and §2 of this plan, arrived at independently — worth noting as corroboration. |
+  > | Requires a declared list per table? | **Yes.** `Table::macro('contextMenuActions', array $entries)` takes an explicit list and base64-encodes it into `data-filament-right-click-config` on the table element. It never reads `recordActions()`. |
+  > | Respects an action hidden for one record? | **No, in the menu.** `ContextMenuItem::toPayload()` serialises name, label, icon and colour only, and the payload is encoded once per *table* with no record bound — so every row shows the same items. |
+  > | Offers the link items? | **No.** No `_blank`, no clipboard, no `href` handling anywhere in its JS — and **no `shiftKey` check either**, so no native-menu escape hatch. |
+  >
+  > **The third answer is less alarming than it sounds, and the reason is worth recording because it also
+  > constrains our own build.** `InteractsWithActions::mountAction()` refuses a disabled action
+  > (`vendor/filament/actions/src/Concerns/InteractsWithActions.php:131`), and `isDisabled()` returns true
+  > when `isHidden()` is true (`CanBeDisabled.php:24`). So a hidden action **cannot be mounted** — the
+  > package's own README says exactly this and it checks out. The failure is a **dead menu item**, not an
+  > unauthorized action: the menu closes and nothing happens, silently, unless the action happens to
+  > declare `hasAuthorizationNotification()`. That is a real defect for a list screen — a user right-clicks
+  > *Delete*, the menu shuts, and nothing tells them why — but it is not the privilege escalation the Risks
+  > section fears.
+  >
+  > **Rejected on the second and fourth answers, not the third.** A declared list per table is 51 lists
+  > that drift from `recordActions()`, and the entire value of this feature is that no table is edited;
+  > absent link items and absent `Shift` is the complaint the first section of this document is written
+  > about. This plan's §1.3 — derive the menu from the row's already-rendered, already-reduced actions — is
+  > the only route that gets per-record correctness *and* zero per-table work, and it is available because
+  > Filament does that reduction for us (see the premise check below).
+  >
+  > Two things taken *from* the package as reference, per this phase's own instruction:
+  > its listener shape (above), and its vocabulary — `ContextMenuSection`, `ContextMenuSeparator`,
+  > `ContextMenuSubmenu`. We want the first two in Phase 5 and have already ruled out the third.
+  >
+  > **Every premise in this document was re-verified against `filament/filament` v5.7.3 on the same day**,
+  > because the plan was written on 2026-08-14 against cited line numbers and a stale premise would have
+  > invalidated the design rather than a detail of it. All of them hold, at the exact lines cited: the
+  > `$reduceVisibleRecordActions` reducer dropping `isHidden()` actions per record
+  > (`index.blade.php:149-169`), the per-record-key cache (`:1094-1095`, `:179`), `.fi-ta-record` with its
+  > `wire:key` (`:1222`), the `.fi-ta-actions` container (`:1342`), `isRecordSelected()` (`:1236`),
+  > `generate_href_html()` under `$recordUrl` (`:1273-1275`), the `mountTableAction` `<button>` fallback
+  > under `$recordAction` (`:1288-1298`), `extraRecordLinkAttributes()` with its `merge` flag
+  > (`HasRecordUrl.php:88`), `getRecordActions()` (`HasRecordActions.php:100`), and `mountAction(name,
+  > arguments, context)` (`Action.php:519`). The design stands as written.
 - **Phase 1 — One table, built.** The Alpine component, the asset registration of §2, the delegated
   listener, menu from `.fi-ta-actions`, link items, positioning and dismissal — proven on the invoices
   table, which has the richest action set in the application.
+
+  > **Phase 1 built 2026-08-23.** — `resources/js/table-context-menu.js`, the menu styles in
+  > `resources/css/filament/admin/theme.css`, `FilamentAsset::register()` in `AdminPanelProvider`,
+  > `TableContextMenuTest` (12 tests), and `php artisan table-context-menu:smoke` driving
+  > `scripts/table-context-menu-smoke.cjs` in headless Chrome.
+  >
+  > **Proven, in a browser, against the application's own rendered markup** — and the run is the reason
+  > this entry is long. Right-clicking the first invoice row offers *Open / Open in new tab / Copy link /
+  > Edit / **Issue***; the second offers *… / Edit / **Record Payment / Void / Credit***. Two rows, one
+  > table, one render, different menus. That is the design's whole thesis and it is now demonstrated end
+  > to end rather than argued.
+  >
+  > **Two corrections to §1.2, both found by running it and neither findable by reading the view.**
+  >
+  > 1. **The row is `.fi-ta-row`, not `.fi-ta-record`.** Filament has two row layouts: the ordinary table
+  >    layout renders `<tr class="fi-ta-row">` (`index.blade.php:2221`) and the content/collapsible layout
+  >    renders `.fi-ta-record` (`:1228`). Every table in this application uses the first, so the selector
+  >    §1.2 specifies matched **nothing** and the feature was silently inert. The premise check in Phase 0
+  >    verified `.fi-ta-record` *exists* — it does, in the other branch, a thousand lines away. The
+  >    selector now covers both.
+  > 2. **The row's URL is on the column cells, not on one row anchor.** In table layout each cell is its
+  >    own `<a class="fi-ta-col">` carrying the record URL (`:2344-2348`); `fi-ta-record-content` is the
+  >    content layout's single anchor. A selector for the latter alone would have shipped a menu with no
+  >    link items — the one part of this feature the opening section calls non-negotiable.
+  >
+  > **And a finding that makes Phase 2 cheap rather than hard.** ~~A third of the files declaring
+  > `recordActions()` also use `ActionGroup::make`~~ — **corrected in Phase 5: exactly one does.** That
+  > figure came from `grep -l "ActionGroup::make"` over files containing `recordActions`, which counts
+  > `Bulk`**`ActionGroup::make`** too, since one string contains the other and every table has one in its
+  > toolbar. Parsing the `recordActions([...])` block gives one table: Projects. The finding below still
+  > holds and still matters — `ActionGroup::toEmbeddedHtml()` writes its items
+  > **eagerly** into an `x-cloak` panel that is present in the DOM, already `isHidden()`-filtered for that
+  > record (`vendor/filament/actions/src/ActionGroup.php:494-560`). So grouped actions reach the menu with
+  > no dropdown opened and no second visibility decision. `extraRecordLinkAttributes()` also lands on the
+  > column anchors when the cell uses the record's URL (`:2347`), so Phase 2's `data-record-key` will
+  > arrive where the script looks for it.
+  >
+  > Three deliberate departures from the plan as written:
+  >
+  > - **Plain JS, not an Alpine component.** §1.1 requires one *delegated* listener and §3 requires no
+  >   per-table code; an Alpine component needs an element to hold `x-data`, which means touching 147
+  >   table files. Nothing here wants reactivity — the menu is built from the DOM on open and discarded on
+  >   close.
+  > - **`navigateOnce()` rather than "mark each container".** §2 proposed an idempotent per-container bind.
+  >   With a document-delegated listener there is nothing to re-bind when new tables arrive, so the script
+  >   is registered to execute once per real page load and the only navigation work left is closing the
+  >   menu. Simpler, and one fewer piece of state to get wrong.
+  > - **"Open" clicks the row's own anchor instead of copying its `href`.** Those anchors carry
+  >   `x-on:click` with `Alpine.navigate`; a fresh anchor of ours would look identical and do a full page
+  >   load. *Open in new tab* stays a real `<a target="_blank">`, because a new tab is a fresh document
+  >   and the browser's own modifiers must keep working on the item itself.
+  >
+  > **The browser proof is repeatable, and needs no server, session or database.**
+  > `table-context-menu:smoke` renders a real table through the one PHPUnit method that can
+  > (`Livewire::test()` throws *"Invalid Livewire snapshot structure"* outside PHPUnit), wraps it in a
+  > harness, and hands it to Chrome. It asserts: the menu opens and suppresses the native one; the link
+  > items are present and the new-tab item is a genuine anchor; Escape closes; **Shift yields the native
+  > menu**; right-clicking off a row yields the native menu; two rows differ; exactly one menu element
+  > exists however many times it opens; `livewire:navigated` closes it; and no page errors.
+  >
+  > **Three of this phase's own bugs were caught by tests that would otherwise have passed vacuously**,
+  > which is worth recording because the shape recurs. A guard globbing a directory that does not exist
+  > asserted nothing and PHPUnit called it *risky* — the only reason it was noticed. A "no per-row cost"
+  > test passed against a table with **no rows at all**, because the invoices table calls `deferLoading()`
+  > and the first render is empty; it now asserts a floor of rendered rows first. And the smoke script's
+  > own outside-the-row assertion was negated the wrong way and reported a pass as a failure. Each is now
+  > either floored or commented at the point of the mistake.
 - **Phase 2 — Every table.** `Table::configureUsing()` per §3, the `merge: true` care, and the sweep test.
   No table file is edited.
+
+  > **Phase 2 built 2026-08-23.** — `Table::configureUsing()` in `AppServiceProvider::boot()`, four tests
+  > in `TableContextMenuTest`, and two more assertions in the browser smoke run. **No table file was
+  > edited**, which was the whole point: one registration, 147 table classes, and the record key now
+  > reaches every row in both panels.
+  >
+  > **Both halves of the feature moved to `AppServiceProvider`, and that is a correction to §2's
+  > wording.** §2 said "registered through `FilamentAsset::register()` in the panel provider", and Phase 1
+  > did that — but `Table::configureUsing()` is a *global* Filament configuration, so registering it in
+  > `AdminPanelProvider` would put a global effect in a file that names one panel. `FilamentAsset` is
+  > global in the same way: the registry is a singleton and Filament renders its scripts in any panel's
+  > layout, so the asset was never panel-scoped in effect, only in appearance. Both now sit together in
+  > `AppServiceProvider::boot()`.
+  >
+  > That was worth checking rather than assuming, because going global only works if the styling does:
+  > `PlatformPanelProvider` uses **the same** `resources/css/filament/admin/theme.css`, so the platform
+  > panel gets a styled menu rather than an unstyled box.
+  >
+  > Three decisions:
+  >
+  > - **The sweep test is a source scan, not a Livewire walk over 147 resources**, and the trade is worth
+  >   stating. The key is applied by one global registration, so the only way a table can lose it is by
+  >   declaring `extraRecordLinkAttributes()` of its own — which a scan finds exactly and instantly.
+  >   Booting 147 Livewire components to observe a property that is structurally guaranteed would add
+  >   well over a minute to the suite and catch nothing the scan does not.
+  > - **The `merge: true` guard is inverted into a tripwire**, which is the useful version of what §5.2
+  >   asked for. §5.2 wanted a merge regression "the moment a table sets a link attribute of its own" and
+  >   noted that today none does, so it would be vacuous. So instead the test asserts that **none does**:
+  >   it passes today for a real reason, and the day a table declares link attributes it fails and names
+  >   the merge question to whoever wrote them. Given that three of Phase 1's own tests were caught
+  >   passing vacuously, writing the vacuous one anyway would have been the wrong lesson to take.
+  > - **The attribute and the `wire:key` are asserted to *agree*, not merely to exist** — in PHP and again
+  >   in the browser. The script prefers the attribute and parses `wire:key` when there is none, so if the
+  >   two ever disagreed the row identified would depend on which route ran, and the bug would surface
+  >   only on tables lacking the attribute. Agreement is what makes one fallback safe rather than a second
+  >   source of truth.
+  >
+  > **The fallback is not dead code, and there is now a test that says so.** The Activity Log list calls
+  > `recordUrl(null)` deliberately, so it renders no row anchor — and `extraRecordLinkAttributes()` only
+  > ever reaches an anchor (`index.blade.php:1276` and `:2347`). That table therefore has no
+  > `data-record-key` at all and is identified by `wire:key` alone. It is the one branch of the script
+  > that every table anybody looks at would leave unexercised, which is exactly the kind that rots.
+  >
+  > One latent trap closed while here: the closure hints `Model|array`, matching Filament's own
+  > `getExtraRecordLinkAttributes()` signature rather than the narrower `Model`. Nothing in this
+  > application is array-backed today — nothing calls `->records()` — but this closure runs for every
+  > table in every panel, so a narrow hint would be a TypeError thrown from a global provider and
+  > surfacing as a broken page nowhere near its cause.
+  >
+  > **And one live defect, caught by comparing the committed tree against itself.** `filament:assets`
+  > copies `resources/js/` into `public/js/app/`, that copy is tracked here alongside Filament's own, and
+  > it had gone stale: Phase 1 published once, then fixed the row selector twice, and the committed public
+  > copy was the version whose selector matched **nothing**. Every PHP test passed and the browser smoke
+  > run passed, because all of them read `resources/js/` — while the panel serves `public/js/`. The
+  > feature would have shipped inert.
+  >
+  > The test that should have caught it asserted the published file *existed*, which is a hair away from
+  > asserting nothing. It now asserts the two are **byte for byte identical**, with the remedy in the
+  > failure message. That is the fourth vacuous-adjacent assertion this feature has produced, and the
+  > pattern is consistent enough to name: **every test that checks a thing is present should also check
+  > that the thing is right**, because "present" is what passes when the work is half done.
 - **Phase 3 — Selection and bulk.** §1.4, including the clear-selection-on-outside-right-click rule and
   the count in the label.
+
+  > **Phase 3 built 2026-08-23.** — selection and bulk in `resources/js/table-context-menu.js`, five tests
+  > in `TableContextMenuTest`, an Alpine selection stub in the smoke harness, and eight browser
+  > assertions. Two rows selected on the invoices table now yields *Delete 2 selected / Issue 2 selected /
+  > Record Payment 2 selected / Void 2 selected*; right-clicking a third row abandons the selection and
+  > shows that row's own menu.
+  >
+  > Four decisions:
+  >
+  > - **A bulk action is identified by its mount context, not by a class.** Filament writes
+  >   `mountAction('delete', {}, {"table":true,"bulk":true})`, and the toolbar it shares also holds the
+  >   reorder trigger, the grouping selector, the column manager and any non-bulk toolbar action — none of
+  >   which carries that context. A class-based guess would need revisiting every time Filament restyled
+  >   one of them. The `\u0022` in the attribute is literal (Blade's `Js::from()`), not a browser escape,
+  >   so the script normalises before testing and a test asserts the marker is really in the rendered HTML.
+  > - **The count comes from `getSelectedRecordsCount()`, never from `selectedRecords.size`.** Filament
+  >   supports selecting every record across every page, and in that mode it tracks **de**selections
+  >   instead (`isTrackingDeselectedRecords`) — so counting the set ourselves would report a handful where
+  >   the user had selected four thousand, and the label would lie about what the action is about to touch.
+  > - **Bulk actions are already in the DOM before anything is selected.** The toolbar renders them
+  >   unconditionally and only the *container* is `x-show`n on the count (`index.blade.php:347`,
+  >   `:362-364`) — the same eager-render property that made a row's `ActionGroup` readable in Phase 1. No
+  >   dropdown is opened and no second visibility decision is made.
+  > - **Clearing the selection on an outside right-click is load-bearing, not tidiness.** A stale selection
+  >   means the checkboxes still say six while the menu said one, and the next bulk action reached for from
+  >   the *toolbar* operates on a selection the user thought they had abandoned.
+  >
+  > **The browser run found a bug no amount of reading would have: "Delete selected 2 selected".**
+  > Filament's own bulk labels already end in the word — `DeleteBulkAction` is *Delete selected*, and so
+  > are force-delete and restore — so appending the count naively stutters. Dropping that trailing word
+  > first gives §1.4's own example exactly: *Delete 2 selected*. The trade is stated in the code: a custom
+  > label genuinely ending in "selected" would read *"Mark as 2 selected"*, which nothing here has, and the
+  > alternative is every default Filament bulk action reading like a stutter.
+  >
+  > **The one compromise, named.** The smoke harness is a `file://` page with no Alpine, Livewire or
+  > server, so the selection state is a **stub** — what the browser proves is the script's *branching*
+  > (selection wins, outside clears, the count reaches the label), not Filament's selection tracking. The
+  > contract that stub stands in for is pinned separately and for real: a test reads Filament's shipped
+  > `dist/index.js` and fails if `isRecordSelected`, `getSelectedRecordsCount` or `deselectAllRecords` is
+  > renamed. Without that pairing a Filament upgrade could rename one and leave a stubbed test passing over
+  > a feature that had quietly stopped reading the selection.
+  >
+  > A browser assertion also pins that **the unselected case is byte-identical to Phase 1's** — a phase
+  > that adds a branch should be provably invisible when the branch is not taken.
+  >
+  > Phase 2's staleness guard earned itself immediately: editing the script for this phase failed
+  > `test_the_published_script_is_the_source` on the next run, exactly as intended.
 - **Phase 4 — Keyboard, touch, and the preference.** §4 plus the per-user off switch. The switch belongs
   with whatever holds user preferences at that point — if Phase 7 of `docs/reports-expansion-plan.md`
   (dashboard layouts) has landed, its per-user store is the obvious home rather than a second one.
+
+  > **Phase 4 built 2026-08-23.** — the `ContextMenu` key and `Shift+F10`, focus return, an `aria-label`
+  > naming the record, Home/End, touch long-press with its movement threshold, the off switch in the menu
+  > and in the user menu, seven tests, and fourteen more browser assertions.
+  >
+  > **The off switch is `localStorage`, and the plan's own instruction is why.** It wants the preference to
+  > live "with whatever holds user preferences at that point", naming Phase 7 of
+  > `docs/reports-expansion-plan.md` as the obvious home "rather than a second one". **That phase has not
+  > landed** — only its Phases 0.5 and 1.1 have, there is no `dashboard_layouts` table and no per-user
+  > store anywhere — so building one here would create exactly the second store the plan warns against,
+  > which Phase 7 would then have to reconcile with. `localStorage` is not that: it is client state for a
+  > client gesture, which is where this application already keeps the domain rail's open state, and
+  > per-device is arguably the better answer anyway — somebody who wants the menu off on a shop tablet may
+  > well want it on at a desk. Raw, not Alpine's `$persist`, because `$persist` JSON-encodes and the script
+  > reads with `getItem`; the rail partial documents that same seam.
+  >
+  > **And there is a route back**, which is the part easy to leave out. The menu carries the toggle because
+  > that is where somebody annoyed by it will look — but a menu that has just switched itself off cannot
+  > switch itself back on, so the user menu carries it too, through `USER_MENU_AFTER`. That partial uses
+  > Alpine rather than a script tag: §2's concern is body scripts stacking `addEventListener` on every
+  > `wire:navigate`, and `x-on:click` stacks nothing.
+  >
+  > **The browser run found a real flaw in my own cancel logic.** The first draft cancelled a pending
+  > long-press on the window `scroll` event — which reads as obvious care and is wrong: `closeMenu()`
+  > returns focus to the row, **focusing an element scrolls it into view**, and that scroll lands *after* a
+  > press which started in the meantime and cancels it. The test caught it by pressing Escape and then
+  > long-pressing, an order no one would think to check by hand. The finger's own events are the reliable
+  > signals and were already handled — `pointermove` past the slop, and `pointercancel` at the moment
+  > Chrome takes the gesture over for scrolling — so the scroll listener now only closes an open menu.
+  >
+  > Four smaller decisions:
+  >
+  > - **The keyboard and touch routes anchor to the row, not to a point.** §4 asks for touch to open
+  >   "centred rather than at the pointer", and the same is true of the `ContextMenu` key: a keyboard user
+  >   has no pointer, so a menu at the last mouse position could open off-screen entirely.
+  > - **Focus return is captured, not assumed.** The menu can be opened from a cell, a checkbox or an
+  >   action button, so `closeMenu()` restores whatever had focus — and only if it is still connected, since
+  >   a menu closed by `livewire:navigated` is closing over a row that has just been replaced.
+  > - **The `aria-label` borrows the row's first cell**, truncated. That is what a sighted user would call
+  >   the row too; without it a screen reader announces "menu" and then a list of verbs belonging to
+  >   whichever row the user happened to be on.
+  > - **Enter and Space need no code.** The items are real `<button>` and `<a>` elements, so a focused one
+  >   activates natively — which is the reason `buildItem` builds elements rather than divs with handlers.
+  >
+  > A note on the vocabulary §4 asks to share with the command palette: the labels here are Filament's own
+  > action labels, read from the row, so they already match whatever the palette shows for the same
+  > operations. Nothing to align, which is the benefit of deriving the menu rather than declaring it.
+  >
+  > **A third instance of one testing mistake, now worth stating as a rule.** An assertion that a string is
+  > *absent* from a file will fail on the comment explaining why it is absent — it happened with
+  > `window.open`, with a regex matched by another regex, and here with `$persist`. **Absence assertions
+  > must target the usage, not the word**: `window.open(`, `$persist(`. Alongside Phase 2's rule — every
+  > test that checks a thing is present should also check that it is right — that is two lessons this
+  > feature has produced about tests rather than about code.
 - **Phase 5 — Polish.** Grouped sections and separators mirroring `ActionGroup`s, colours for destructive
   items, and a "Copy" section (link, id, the row's primary label) which is the item people ask for once
   the menu exists.
+
+  > **Phase 5 built 2026-08-23 — the plan is complete.** — sections and group mirroring, the Copy section,
+  > six tests, six more browser assertions, and `table-context-menu:smoke` now driving **two** tables.
+  >
+  > A projects row now reads: *Open / Open in new tab* — *View / Edit* — **Open** *· Production /
+  > Qualification* — *Copy link / Copy ID 1 / Copy "PRJ-SMOKE-1"* — *Turn off right-click menus*. Five
+  > sections, four separators, one heading taken from the row's own group trigger.
+  >
+  > **The correction that shaped this phase: exactly one table in the application puts an `ActionGroup` in
+  > `recordActions()`.** Phase 1's entry above said a third of them did, and that was wrong —
+  > `grep -l "ActionGroup::make"` counts `Bulk`**`ActionGroup::make`** too, since one string contains the
+  > other and every table has one in its toolbar. Parsing the `recordActions([...])` block gives one:
+  > Projects' *Open* group of environment links. A test now pins that number, because §5's grouped sections
+  > have nowhere else to be proven — if that group disappears, the browser assertions would start passing by
+  > finding nothing.
+  >
+  > **Which is why the smoke command now runs both tables.** Invoices is the per-record and bulk case;
+  > Projects is the only grouped one. Running one and calling the feature tested would leave half of it
+  > unexercised — and the Projects group only renders when a project has `project_environments` rows, since
+  > the actions are built per configured URL rather than from columns, so the harness creates them.
+  >
+  > Four decisions:
+  >
+  > - **The group's name comes from the row's own trigger**, not from a heading we invent. And an
+  >   *unlabelled* group — the common icon-only "⋯" trigger — gets a separator and no heading, because a
+  >   heading reading *Actions* is noise.
+  > - **The name reaches a screen reader through a labelled separator**, and the visible heading is
+  >   `aria-hidden`. A heading element inside `role="menu"` is not a `menuitem` and has no valid role there;
+  >   `role="separator"` with `aria-label` is valid, is announced, and says the same thing once.
+  > - **Empty sections leave no separator.** A row with no URL has no link section, a table with no groups
+  >   has no group section, an insecure origin has no Copy section — each normal, and each would otherwise
+  >   leave a rule floating against nothing, which reads as a rendering fault rather than an absence.
+  > - **`Copy ID` earns its place** even though it looks the least useful of the three: it is what somebody
+  >   pastes into a support ticket or a SQL console, and reading it off the URL bar means opening the record
+  >   first.
+  >
+  > §5's third bullet — colours for destructive items — was delivered in Phase 1 and is now covered by a
+  > test rather than left implicit: the colour is read from the class Filament already put on the element,
+  > so a destructive action added later looks destructive without anybody maintaining a list.
+  >
+  > One more of my own errors, and it is the plainest yet: `private function run()` on a Laravel command
+  > collides with `Illuminate\Console\Command::run()`, which is public. Renamed to `smokeTable()`.
 
 ## Risks
 
