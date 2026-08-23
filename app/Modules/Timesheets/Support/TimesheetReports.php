@@ -2,8 +2,10 @@
 
 namespace App\Modules\Timesheets\Support;
 
+use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Services\TimesheetService;
 use App\Support\Reporting\ReportShapes;
+use App\Support\TenantDb;
 use Carbon\Carbon;
 
 /**
@@ -32,6 +34,136 @@ class TimesheetReports
 
     /** How many project columns the matrix will draw before it starts leaving some out. */
     private const PROJECT_COLUMNS = 12;
+
+    /**
+     * Hours worked, approved, and never invoiced — `docs/reports-expansion-plan.md` Phase 2.3.
+     *
+     * "A balance-sheet figure that is invisible today; also the report that shows revenue being lost to
+     * unbilled time." Both halves are the point. It is a **balance as at a date**, not a period: an hour
+     * booked in March and still unbilled in August is exactly the hour worth seeing, and a month-scoped view
+     * is the one shape that would hide it.
+     *
+     * **This is the second Phase 2 report with nothing to tie to**, after leave liability, and for the same
+     * reason: nothing in this application posts unbilled work in progress. There is no WIP account for
+     * timesheet hours — construction has its own, for construction jobs, and this is not that — so the
+     * report says *"not posted to any account"* rather than inventing a comparison. Phase 2's blanket rule
+     * that "every one of them carries a record row that ties to a ledger balance" holds for the reports whose
+     * figure the ledger already carries, and these two are the ones whose figure it does not.
+     *
+     * **Unpriced hours are named and never valued at a guess**, which is `BillableHours`' rule and matters
+     * more here rather than less. The hours appear in the hours total because they were worked; the money
+     * total states only what could actually be invoiced, and the note says how many hours are missing from
+     * it. A WIP balance carrying a made-up rate is a wrong figure on a balance sheet.
+     */
+    public function unbilledWip(string $asOf): array
+    {
+        $wip = app(TimesheetService::class)->unbilledWip($asOf);
+        $customers = $this->customerNames($wip['projects']);
+
+        $rows = array_map(function (array $row) use ($customers): array {
+            /** @var Project $project */
+            $project = $row['project'];
+
+            return [
+                (string) $project->name,
+                // Internal work is stated as such. A blank customer would read as missing data, when it is
+                // the reason the hours are not billable to anybody.
+                $project->contact_id === null
+                    ? 'Internal'
+                    : ($customers[$project->contact_id] ?? 'Customer #'.$project->contact_id),
+                number_format($row['hours'], 1),
+                // Hours that could not be priced, per project, so the reader can see *where* the gap is
+                // rather than only that there is one.
+                $row['unpriced_hours'] > 0 ? number_format($row['unpriced_hours'], 1) : '—',
+                $row['amount'] > 0 ? number_format($row['amount'], 0) : '—',
+            ];
+        }, $wip['projects']);
+
+        return $this->table(
+            'UnbilledWip',
+            'Unbilled WIP',
+            $this->subtitle('approved, billable, never invoiced as at '.$asOf),
+            ['Project', 'Customer', 'Hours', 'Unpriced hours', 'Value'],
+            'minmax(0, 1fr) 12rem 8rem 10rem 10rem',
+            [2, 3, 4],
+            $rows,
+            [
+                ['label' => 'UNBILLED VALUE', 'value' => $wip['amount'], 'accent' => true],
+                ['label' => 'HOURS', 'value' => $wip['hours'], 'accent' => false],
+            ],
+            $this->wipNote($wip),
+            $rows === [] ? null : [
+                'Total — '.count($rows).' projects',
+                '',
+                number_format($wip['hours'], 1),
+                $wip['unpriced_hours'] > 0 ? number_format($wip['unpriced_hours'], 1) : '—',
+                number_format($wip['amount'], 0),
+            ],
+            'Nothing is waiting to be billed.',
+        );
+    }
+
+    /**
+     * What the WIP figure means, and what is missing from it.
+     *
+     * The unpriced hours are said out loud because they are the difference between the value on screen and
+     * the value of the work — and the fix is a rate somebody has to set, which nothing else will prompt.
+     *
+     * @param  array<string, mixed>  $wip
+     */
+    private function wipNote(array $wip): string
+    {
+        if ($wip['projects'] === []) {
+            return 'NOTHING IS WAITING TO BE BILLED';
+        }
+
+        return mb_strtoupper(implode(' · ', array_filter([
+            count($wip['projects']).' projects',
+            $wip['unpriced_hours'] > 0
+                ? number_format($wip['unpriced_hours'], 1).' hours have no rate and are not in the value'
+                : null,
+            'not posted to any account',
+        ])));
+    }
+
+    /**
+     * Customer names for the projects on the report, or none where there is no invoicing.
+     *
+     * **Read through the query builder rather than by naming a model**, which is the discipline this
+     * codebase already applies where the alternative is a module edge bought for a label. `Project`
+     * deliberately has no `Contact` relation — its own comment says declaring one "would make Projects
+     * import Invoicing for nothing" — and Timesheets requires only `employees` and `projects`, so it must
+     * stay sellable to a company that invoices elsewhere.
+     *
+     * `TenantDb` rather than `DB`, because a bare `DB::table()` builds against the *landlord* connection and
+     * would look for `contacts` in the wrong database. The test suite cannot catch that — the two
+     * connections coincide under test — which is what `TenantConnectionGuardTest` exists for.
+     *
+     * @param  array<int, array<string, mixed>>  $projects
+     * @return array<int, string> contact id => name
+     */
+    private function customerNames(array $projects): array
+    {
+        if (! modules()->enabled('invoicing')) {
+            return [];
+        }
+
+        $ids = collect($projects)
+            ->map(fn (array $row): mixed => $row['project']->contact_id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return TenantDb::table('contacts')
+            ->whereIn('id', $ids)
+            ->pluck('name', 'id')
+            ->all();
+    }
 
     /**
      * Booked time per employee for the month, billable against not.

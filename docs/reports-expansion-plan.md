@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1, 2.2 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 started (2.1–2.3 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -240,7 +240,7 @@ the assertion its test should make, not the row count.
    accrual that belongs in the accounts and is currently in nobody's figures. `LeaveBalance::for()`
    gives the breakdown; `LeaveYear::windowFor()` gives the window, which differs per employee on an
    anniversary basis and is exactly the kind of thing a hand-built report gets wrong.
-3. **Unbilled WIP** — approved billable timesheet entries with no billing run, by project and
+3. **Unbilled WIP** — *done, 2026-08-23.* Approved billable timesheet entries with no billing run, by project and
    customer, at their rate. A balance-sheet figure that is invisible today; also the report that shows
    revenue being lost to unbilled time.
 4. **Stock on Hand & Valuation** — per product: quantity, average cost, value, reconciled to that
@@ -477,6 +477,43 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — unbilled WIP (Phase 2.3), and the risk list's cross-module gate turns out to already exist.**
+
+- **A balance, not a period, and that is the load-bearing choice.** `billableFor()` answers a billing run's
+  question — one project, one month — and building the report on it would have shown only the current month
+  while looking entirely correct. An hour booked in March and still unbilled in August is exactly the hour
+  worth seeing. `TimesheetService::unbilledWip()` is one grouped query for the whole balance; the test proves
+  a five-month-old hour is on it, and that ten projects do not cost ten queries.
+- **Unpriceable hours are named and left out of the value.** That is `BillableHours`' rule for invoices —
+  "named, never silently dropped and never billed at a guess" — and a balance-sheet figure has more to lose
+  from a guess, not less. So there are two hour figures: everything unbilled, and the part of it no rate
+  could be found for. The hours count as hours because they were worked; the money states only what could
+  actually be invoiced, and the note says how much is missing from it.
+- **The approval rule is read, not assumed.** `timesheets.require_approval_to_bill` decides whether
+  unapproved time can be billed, and a WIP figure including time that billing would refuse is a figure no
+  invoice could realise. Asserted in both settings.
+- **The third Phase 2 report with nothing to tie to.** Nothing posts unbilled work in progress for timesheet
+  hours — construction's WIP is a different figure about a different subject — so it says "not posted to any
+  account" like leave liability does. Phase 2's blanket rule now looks like it holds for the reports whose
+  figure the ledger already carries, and not for the ones whose figure it does not; two of the three built so
+  far are the second kind.
+- **The risk list's cross-module gate needs no code, and finding that out cost a wrong turn worth recording.**
+  The list asks that such a report "gate on *every* module it reads, not just the one it lives in", so this
+  page was built with an `$alsoRequires` list on `ModuleReportPage`. A failing test showed the list was
+  redundant: `Modules::enabledFor()` walks a module's declared requirements recursively — "a module is only
+  usable when everything it declares as a requirement is usable" — so a Timesheets report is already
+  unavailable when Projects is off. The machinery is gone. What remains is the one case the manifest does not
+  cover — a module a report reads and its owner does not *require* — and there gating is the wrong answer
+  anyway: such a module is optional to the owner, so the report should degrade rather than disappear. Unbilled
+  WIP shows a customer id instead of a name without Invoicing, and a company that invoices elsewhere still
+  gets its report.
+- **The customer name is read through the query builder, not a model.** `Project` deliberately has no
+  `Contact` relation — its own comment says declaring one "would make Projects import Invoicing for nothing" —
+  and through `TenantDb` rather than `DB`, because a bare `DB::table()` builds against the *landlord*
+  connection and would look for `contacts` in the wrong database. The suite cannot catch that on its own; the
+  two connections coincide under test.
+
 
 **2026-08-23 — leave liability (Phase 2.2), and the report that proves Phase 2's rule has an exception.**
 

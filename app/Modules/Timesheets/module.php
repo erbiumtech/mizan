@@ -38,6 +38,7 @@ return [
     'pages' => [
         'App\\Filament\\Pages\\TimesheetUtilisation' => \App\Modules\Timesheets\Filament\Pages\TimesheetUtilisation::class,
         'App\\Filament\\Pages\\PlanVersusActual' => \App\Modules\Timesheets\Filament\Pages\PlanVersusActual::class,
+        'App\\Filament\\Pages\\UnbilledWip' => \App\Modules\Timesheets\Filament\Pages\UnbilledWip::class,
     ],
 
     'permission_groups' => [

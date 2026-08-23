@@ -4,6 +4,7 @@ namespace App\Modules\Timesheets;
 
 use App\Modules\Timesheets\Filament\Pages\PlanVersusActual;
 use App\Modules\Timesheets\Filament\Pages\TimesheetUtilisation;
+use App\Modules\Timesheets\Filament\Pages\UnbilledWip;
 use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Timesheets\Policies\TimesheetEntryPolicy;
 use App\Modules\Timesheets\Services\BillableHours;
@@ -64,6 +65,20 @@ class TimesheetsServiceProvider extends ServiceProvider
             'What each person was allocated to, against the hours they actually booked.',
         );
 
+        /*
+         * Unbilled work in progress — Phase 2.3.
+         *
+         * Filed under *Operations* rather than *People & payroll* with the other two: this one is about money
+         * waiting to be invoiced, and the person who opens it is chasing revenue rather than reading about a
+         * team. It sits beside the SLA pair, which is the other "what is running" report.
+         */
+        ReportCatalogue::register(
+            'Operations',
+            UnbilledWip::class,
+            'Hours worked, approved, and never invoiced — the revenue still sitting in timesheets.',
+        );
+
+        ReportRenderers::register('UnbilledWip', fn (string $asOf): array => app(TimesheetReports::class)->unbilledWip($asOf));
         ReportRenderers::register('TimesheetUtilisation', fn (string $asOf): array => app(TimesheetReports::class)->utilisation($asOf));
         ReportRenderers::register('PlanVersusActual', fn (string $asOf): array => app(TimesheetReports::class)->planVersusActual($asOf));
     }

@@ -113,6 +113,114 @@ class TimesheetService
     }
 
     /**
+     * Every hour that could still be invoiced, as at a date — the work-in-progress balance.
+     *
+     * `docs/reports-expansion-plan.md` Phase 2.3: "a balance-sheet figure that is invisible today; also the
+     * report that shows revenue being lost to unbilled time."
+     *
+     * **A balance, not a period.** `billableFor()` above answers a billing run's question — one project, one
+     * month — and WIP is the other question entirely: everything approved and never billed, however old.
+     * An hour booked in March and still unbilled in August is precisely the hour worth knowing about, and a
+     * month-scoped view is the one shape guaranteed to hide it.
+     *
+     * **Priced by the same chain a billing run uses**, and unpriceable hours are *named* rather than valued
+     * at a guess. That is `BillableHours`' rule and it matters more here, not less: WIP is a balance-sheet
+     * figure, and a made-up rate makes it a wrong one. The hours still appear in the hours total — they were
+     * worked — while the money total states only what could actually be invoiced.
+     *
+     * **The approval rule is read, not assumed.** Whether unapproved time can be billed is
+     * `timesheets.require_approval_to_bill`, and a WIP figure that included time billing would refuse is a
+     * figure no invoice could ever realise.
+     *
+     * @return array{
+     *     projects: array<int, array{project: Project, hours: float, amount: float, unpriced_hours: float}>,
+     *     hours: float,
+     *     amount: float,
+     *     unpriced_hours: float,
+     *     unpriced: array<int, string>,
+     * }
+     */
+    public function unbilledWip(?string $asOf = null): array
+    {
+        $asOf = $asOf ? Carbon::parse($asOf)->toDateString() : now()->toDateString();
+
+        // One grouped query for the whole balance. `billableFor()` is per project and per month, which over
+        // a year of projects is the per-row shape this plan's risk list names.
+        $grouped = TimesheetEntry::query()
+            ->billable()
+            ->unbilled()
+            ->whereDate('date', '<=', $asOf)
+            ->when(setting('timesheets.require_approval_to_bill'), fn ($query) => $query->approved())
+            ->selectRaw('project_id, employee_id, sum(minutes) as minutes')
+            ->groupBy('project_id', 'employee_id')
+            ->get();
+
+        if ($grouped->isEmpty()) {
+            return ['projects' => [], 'hours' => 0.0, 'amount' => 0.0, 'unpriced_hours' => 0.0, 'unpriced' => []];
+        }
+
+        $projects = Project::query()->whereKey($grouped->pluck('project_id')->unique()->all())->get()->keyBy('id');
+        $employees = Employee::query()
+            ->whereKey($grouped->pluck('employee_id')->unique()->all())
+            ->with('user')
+            ->get()
+            ->keyBy('id');
+
+        $perProject = [];
+        $unpriced = [];
+
+        foreach ($grouped as $row) {
+            $project = $projects->get($row->project_id);
+            $employee = $employees->get($row->employee_id);
+
+            if ($project === null || $employee === null) {
+                continue;
+            }
+
+            $hours = round(((int) $row->minutes) / 60, 2);
+            $rate = $this->rateFor($employee, $project);
+
+            $perProject[$project->getKey()] ??= [
+                'project' => $project,
+                'hours' => 0.0,
+                'amount' => 0.0,
+                'unpriced_hours' => 0.0,
+            ];
+
+            $perProject[$project->getKey()]['hours'] += $hours;
+
+            if ($rate === null) {
+                $perProject[$project->getKey()]['unpriced_hours'] += $hours;
+
+                // Named the way a billing run names it, and for the same reason: hours missing from a
+                // figure have to be visible to whoever relies on the figure.
+                $unpriced[] = sprintf(
+                    '%s on %s: %s hours, no rate set on the project, the employee or the company default.',
+                    $employee->display_label,
+                    $project->name,
+                    $hours,
+                );
+
+                continue;
+            }
+
+            $perProject[$project->getKey()]['amount'] += round($hours * $rate, 2);
+        }
+
+        $rows = array_values($perProject);
+
+        usort($rows, fn (array $a, array $b): int => $b['amount'] <=> $a['amount']);
+
+        return [
+            'projects' => $rows,
+            'hours' => round(array_sum(array_column($rows, 'hours')), 2),
+            'amount' => round(array_sum(array_column($rows, 'amount')), 2),
+            'unpriced_hours' => round(array_sum(array_column($rows, 'unpriced_hours')), 2),
+            'unpriced' => $unpriced,
+        ];
+    }
+
+    /**
      * Mark entries as billed, so the same hour cannot reach a second invoice.
      *
      * `pluck('id')` rather than `modelKeys()`: this is typed on the Support collection
