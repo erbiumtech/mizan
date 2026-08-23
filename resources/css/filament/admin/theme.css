@@ -2306,3 +2306,20 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 
     @apply border-t border-gray-200 dark:border-white/10;
 }
+
+/*
+ * The preference item — "Turn off right-click menus".
+ *
+ * Quieter than the actions above it, because it is not one of them: it is a setting that happens to be
+ * reachable from here, which is the only place somebody annoyed by the menu will look for it. The user
+ * menu carries the same toggle, and has to — a menu that has just switched itself off cannot switch
+ * itself back on.
+ */
+.fi-ta-context-menu-item-muted {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+.fi-ta-context-menu-item-muted:hover,
+.fi-ta-context-menu-item-muted:focus-visible {
+    @apply bg-gray-50 text-gray-700 dark:bg-white/5 dark:text-gray-200;
+}

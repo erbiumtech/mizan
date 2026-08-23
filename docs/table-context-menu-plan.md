@@ -1,6 +1,6 @@
 # Right-Click Context Menu in Tables — Plan
 
-**Status:** Phases 0-1 done — built in-house, working on the invoices table. Phases 2-5 outstanding.
+**Status:** Phases 0-4 done — every table, bulk, keyboard, touch and an off switch. Phase 5 outstanding.
 **Created:** 2026-08-14
 **Inspiration:** [Filament Examples — Right-Click Menu in Table](https://filamentexamples.com/project/filament-right-click-menu-in-table),
 which demonstrates the MIT package `leek/filament-right-click` (`^4.0 || ^5.0`, latest 1.5.2,
@@ -321,11 +321,173 @@ Livewire tests cannot right-click, so the plan splits deliberately:
   > either floored or commented at the point of the mistake.
 - **Phase 2 — Every table.** `Table::configureUsing()` per §3, the `merge: true` care, and the sweep test.
   No table file is edited.
+
+  > **Phase 2 built 2026-08-23.** — `Table::configureUsing()` in `AppServiceProvider::boot()`, four tests
+  > in `TableContextMenuTest`, and two more assertions in the browser smoke run. **No table file was
+  > edited**, which was the whole point: one registration, 147 table classes, and the record key now
+  > reaches every row in both panels.
+  >
+  > **Both halves of the feature moved to `AppServiceProvider`, and that is a correction to §2's
+  > wording.** §2 said "registered through `FilamentAsset::register()` in the panel provider", and Phase 1
+  > did that — but `Table::configureUsing()` is a *global* Filament configuration, so registering it in
+  > `AdminPanelProvider` would put a global effect in a file that names one panel. `FilamentAsset` is
+  > global in the same way: the registry is a singleton and Filament renders its scripts in any panel's
+  > layout, so the asset was never panel-scoped in effect, only in appearance. Both now sit together in
+  > `AppServiceProvider::boot()`.
+  >
+  > That was worth checking rather than assuming, because going global only works if the styling does:
+  > `PlatformPanelProvider` uses **the same** `resources/css/filament/admin/theme.css`, so the platform
+  > panel gets a styled menu rather than an unstyled box.
+  >
+  > Three decisions:
+  >
+  > - **The sweep test is a source scan, not a Livewire walk over 147 resources**, and the trade is worth
+  >   stating. The key is applied by one global registration, so the only way a table can lose it is by
+  >   declaring `extraRecordLinkAttributes()` of its own — which a scan finds exactly and instantly.
+  >   Booting 147 Livewire components to observe a property that is structurally guaranteed would add
+  >   well over a minute to the suite and catch nothing the scan does not.
+  > - **The `merge: true` guard is inverted into a tripwire**, which is the useful version of what §5.2
+  >   asked for. §5.2 wanted a merge regression "the moment a table sets a link attribute of its own" and
+  >   noted that today none does, so it would be vacuous. So instead the test asserts that **none does**:
+  >   it passes today for a real reason, and the day a table declares link attributes it fails and names
+  >   the merge question to whoever wrote them. Given that three of Phase 1's own tests were caught
+  >   passing vacuously, writing the vacuous one anyway would have been the wrong lesson to take.
+  > - **The attribute and the `wire:key` are asserted to *agree*, not merely to exist** — in PHP and again
+  >   in the browser. The script prefers the attribute and parses `wire:key` when there is none, so if the
+  >   two ever disagreed the row identified would depend on which route ran, and the bug would surface
+  >   only on tables lacking the attribute. Agreement is what makes one fallback safe rather than a second
+  >   source of truth.
+  >
+  > **The fallback is not dead code, and there is now a test that says so.** The Activity Log list calls
+  > `recordUrl(null)` deliberately, so it renders no row anchor — and `extraRecordLinkAttributes()` only
+  > ever reaches an anchor (`index.blade.php:1276` and `:2347`). That table therefore has no
+  > `data-record-key` at all and is identified by `wire:key` alone. It is the one branch of the script
+  > that every table anybody looks at would leave unexercised, which is exactly the kind that rots.
+  >
+  > One latent trap closed while here: the closure hints `Model|array`, matching Filament's own
+  > `getExtraRecordLinkAttributes()` signature rather than the narrower `Model`. Nothing in this
+  > application is array-backed today — nothing calls `->records()` — but this closure runs for every
+  > table in every panel, so a narrow hint would be a TypeError thrown from a global provider and
+  > surfacing as a broken page nowhere near its cause.
+  >
+  > **And one live defect, caught by comparing the committed tree against itself.** `filament:assets`
+  > copies `resources/js/` into `public/js/app/`, that copy is tracked here alongside Filament's own, and
+  > it had gone stale: Phase 1 published once, then fixed the row selector twice, and the committed public
+  > copy was the version whose selector matched **nothing**. Every PHP test passed and the browser smoke
+  > run passed, because all of them read `resources/js/` — while the panel serves `public/js/`. The
+  > feature would have shipped inert.
+  >
+  > The test that should have caught it asserted the published file *existed*, which is a hair away from
+  > asserting nothing. It now asserts the two are **byte for byte identical**, with the remedy in the
+  > failure message. That is the fourth vacuous-adjacent assertion this feature has produced, and the
+  > pattern is consistent enough to name: **every test that checks a thing is present should also check
+  > that the thing is right**, because "present" is what passes when the work is half done.
 - **Phase 3 — Selection and bulk.** §1.4, including the clear-selection-on-outside-right-click rule and
   the count in the label.
+
+  > **Phase 3 built 2026-08-23.** — selection and bulk in `resources/js/table-context-menu.js`, five tests
+  > in `TableContextMenuTest`, an Alpine selection stub in the smoke harness, and eight browser
+  > assertions. Two rows selected on the invoices table now yields *Delete 2 selected / Issue 2 selected /
+  > Record Payment 2 selected / Void 2 selected*; right-clicking a third row abandons the selection and
+  > shows that row's own menu.
+  >
+  > Four decisions:
+  >
+  > - **A bulk action is identified by its mount context, not by a class.** Filament writes
+  >   `mountAction('delete', {}, {"table":true,"bulk":true})`, and the toolbar it shares also holds the
+  >   reorder trigger, the grouping selector, the column manager and any non-bulk toolbar action — none of
+  >   which carries that context. A class-based guess would need revisiting every time Filament restyled
+  >   one of them. The `\u0022` in the attribute is literal (Blade's `Js::from()`), not a browser escape,
+  >   so the script normalises before testing and a test asserts the marker is really in the rendered HTML.
+  > - **The count comes from `getSelectedRecordsCount()`, never from `selectedRecords.size`.** Filament
+  >   supports selecting every record across every page, and in that mode it tracks **de**selections
+  >   instead (`isTrackingDeselectedRecords`) — so counting the set ourselves would report a handful where
+  >   the user had selected four thousand, and the label would lie about what the action is about to touch.
+  > - **Bulk actions are already in the DOM before anything is selected.** The toolbar renders them
+  >   unconditionally and only the *container* is `x-show`n on the count (`index.blade.php:347`,
+  >   `:362-364`) — the same eager-render property that made a row's `ActionGroup` readable in Phase 1. No
+  >   dropdown is opened and no second visibility decision is made.
+  > - **Clearing the selection on an outside right-click is load-bearing, not tidiness.** A stale selection
+  >   means the checkboxes still say six while the menu said one, and the next bulk action reached for from
+  >   the *toolbar* operates on a selection the user thought they had abandoned.
+  >
+  > **The browser run found a bug no amount of reading would have: "Delete selected 2 selected".**
+  > Filament's own bulk labels already end in the word — `DeleteBulkAction` is *Delete selected*, and so
+  > are force-delete and restore — so appending the count naively stutters. Dropping that trailing word
+  > first gives §1.4's own example exactly: *Delete 2 selected*. The trade is stated in the code: a custom
+  > label genuinely ending in "selected" would read *"Mark as 2 selected"*, which nothing here has, and the
+  > alternative is every default Filament bulk action reading like a stutter.
+  >
+  > **The one compromise, named.** The smoke harness is a `file://` page with no Alpine, Livewire or
+  > server, so the selection state is a **stub** — what the browser proves is the script's *branching*
+  > (selection wins, outside clears, the count reaches the label), not Filament's selection tracking. The
+  > contract that stub stands in for is pinned separately and for real: a test reads Filament's shipped
+  > `dist/index.js` and fails if `isRecordSelected`, `getSelectedRecordsCount` or `deselectAllRecords` is
+  > renamed. Without that pairing a Filament upgrade could rename one and leave a stubbed test passing over
+  > a feature that had quietly stopped reading the selection.
+  >
+  > A browser assertion also pins that **the unselected case is byte-identical to Phase 1's** — a phase
+  > that adds a branch should be provably invisible when the branch is not taken.
+  >
+  > Phase 2's staleness guard earned itself immediately: editing the script for this phase failed
+  > `test_the_published_script_is_the_source` on the next run, exactly as intended.
 - **Phase 4 — Keyboard, touch, and the preference.** §4 plus the per-user off switch. The switch belongs
   with whatever holds user preferences at that point — if Phase 7 of `docs/reports-expansion-plan.md`
   (dashboard layouts) has landed, its per-user store is the obvious home rather than a second one.
+
+  > **Phase 4 built 2026-08-23.** — the `ContextMenu` key and `Shift+F10`, focus return, an `aria-label`
+  > naming the record, Home/End, touch long-press with its movement threshold, the off switch in the menu
+  > and in the user menu, seven tests, and fourteen more browser assertions.
+  >
+  > **The off switch is `localStorage`, and the plan's own instruction is why.** It wants the preference to
+  > live "with whatever holds user preferences at that point", naming Phase 7 of
+  > `docs/reports-expansion-plan.md` as the obvious home "rather than a second one". **That phase has not
+  > landed** — only its Phases 0.5 and 1.1 have, there is no `dashboard_layouts` table and no per-user
+  > store anywhere — so building one here would create exactly the second store the plan warns against,
+  > which Phase 7 would then have to reconcile with. `localStorage` is not that: it is client state for a
+  > client gesture, which is where this application already keeps the domain rail's open state, and
+  > per-device is arguably the better answer anyway — somebody who wants the menu off on a shop tablet may
+  > well want it on at a desk. Raw, not Alpine's `$persist`, because `$persist` JSON-encodes and the script
+  > reads with `getItem`; the rail partial documents that same seam.
+  >
+  > **And there is a route back**, which is the part easy to leave out. The menu carries the toggle because
+  > that is where somebody annoyed by it will look — but a menu that has just switched itself off cannot
+  > switch itself back on, so the user menu carries it too, through `USER_MENU_AFTER`. That partial uses
+  > Alpine rather than a script tag: §2's concern is body scripts stacking `addEventListener` on every
+  > `wire:navigate`, and `x-on:click` stacks nothing.
+  >
+  > **The browser run found a real flaw in my own cancel logic.** The first draft cancelled a pending
+  > long-press on the window `scroll` event — which reads as obvious care and is wrong: `closeMenu()`
+  > returns focus to the row, **focusing an element scrolls it into view**, and that scroll lands *after* a
+  > press which started in the meantime and cancels it. The test caught it by pressing Escape and then
+  > long-pressing, an order no one would think to check by hand. The finger's own events are the reliable
+  > signals and were already handled — `pointermove` past the slop, and `pointercancel` at the moment
+  > Chrome takes the gesture over for scrolling — so the scroll listener now only closes an open menu.
+  >
+  > Four smaller decisions:
+  >
+  > - **The keyboard and touch routes anchor to the row, not to a point.** §4 asks for touch to open
+  >   "centred rather than at the pointer", and the same is true of the `ContextMenu` key: a keyboard user
+  >   has no pointer, so a menu at the last mouse position could open off-screen entirely.
+  > - **Focus return is captured, not assumed.** The menu can be opened from a cell, a checkbox or an
+  >   action button, so `closeMenu()` restores whatever had focus — and only if it is still connected, since
+  >   a menu closed by `livewire:navigated` is closing over a row that has just been replaced.
+  > - **The `aria-label` borrows the row's first cell**, truncated. That is what a sighted user would call
+  >   the row too; without it a screen reader announces "menu" and then a list of verbs belonging to
+  >   whichever row the user happened to be on.
+  > - **Enter and Space need no code.** The items are real `<button>` and `<a>` elements, so a focused one
+  >   activates natively — which is the reason `buildItem` builds elements rather than divs with handlers.
+  >
+  > A note on the vocabulary §4 asks to share with the command palette: the labels here are Filament's own
+  > action labels, read from the row, so they already match whatever the palette shows for the same
+  > operations. Nothing to align, which is the benefit of deriving the menu rather than declaring it.
+  >
+  > **A third instance of one testing mistake, now worth stating as a rule.** An assertion that a string is
+  > *absent* from a file will fail on the comment explaining why it is absent — it happened with
+  > `window.open`, with a regex matched by another regex, and here with `$persist`. **Absence assertions
+  > must target the usage, not the word**: `window.open(`, `$persist(`. Alongside Phase 2's rule — every
+  > test that checks a thing is present should also check that it is right — that is two lessons this
+  > feature has produced about tests rather than about code.
 - **Phase 5 — Polish.** Grouped sections and separators mirroring `ActionGroup`s, colours for destructive
   items, and a "Copy" section (link, id, the row's primary label) which is the item people ask for once
   the menu exists.
