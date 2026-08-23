@@ -331,6 +331,7 @@
         "App\\Filament\\Pages\\FbrInvoiceReporting": "App\\Modules\\Invoicing\\Filament\\Pages\\FbrInvoiceReporting",
         "App\\Filament\\Pages\\FbrTaxFile": "App\\Modules\\Payroll\\Filament\\Pages\\FbrTaxFile",
         "App\\Filament\\Pages\\FindTransactions": "App\\Modules\\Accounting\\Filament\\Pages\\FindTransactions",
+        "App\\Filament\\Pages\\FixedAssetRegister": "App\\Modules\\Accounting\\Filament\\Pages\\FixedAssetRegister",
         "App\\Filament\\Pages\\GeneralLedger": "App\\Modules\\Accounting\\Filament\\Pages\\GeneralLedger",
         "App\\Filament\\Pages\\GnuCashImport": "App\\Modules\\Accounting\\Filament\\Pages\\GnuCashImport",
         "App\\Filament\\Pages\\Modules": "App\\Modules\\Core\\Filament\\Pages\\Modules",

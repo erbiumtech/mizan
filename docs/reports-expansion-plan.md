@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 half done (2.1–2.4 landed); the rest outstanding — see [What landed](#what-landed); the rest outstanding
+**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 five of eight done (2.1–2.5 landed); the rest outstanding — see [What landed](#what-landed)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -246,9 +246,13 @@ the assertion its test should make, not the row count.
 4. **Stock on Hand & Valuation** — *done, 2026-08-23.* Per product: quantity, average cost, value, reconciled to that
    product's `inventory_account_id`; plus below-`reorder_level` and no-movement-in-N-days as flags on
    the same rows rather than as separate reports.
-5. **Fixed Asset Register & Depreciation Schedule** — cost, accumulated depreciation, net book value
-   per asset, reconciled to the asset and accumulated-depreciation accounts, with the next twelve
-   months' charge from `DepreciationService`'s own method. A standard note to the accounts.
+5. **Fixed Asset Register & Depreciation Schedule** — *done, 2026-08-23, and it is the one report in
+   Phases 1 and 2 that needed new business logic — see [What landed](#what-landed).* Cost, accumulated
+   depreciation, net book value per asset, reconciled to the asset and accumulated-depreciation accounts,
+   with the next twelve months' charge from `DepreciationService::schedule()`. **The sentence above used to
+   say "from `DepreciationService`'s own method", and the service had no such method** — every method it had
+   posted journal entries, so the forecast had to be written before the report could be. A standard note to
+   the accounts.
 6. **Bank Reconciliation Statement** — statement balance → unpresented cheques and deposits → ledger
    balance, from `BankReconciliationService::ledgerBalance()` and `reconciled_at`. Asked for at every
    year end.
@@ -477,6 +481,61 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-23 — the asset register (Phase 2.5), and the method this plan said it already had.**
+
+- **This was not a "no new business logic" item, which is what Phase 2 promised.** The plan costed the
+  twelve-month charge as coming "from `DepreciationService`'s own method". The service had three methods: two
+  that post depreciation and one that writes an asset off. There was no read-only projection anywhere, so the
+  only way to learn what the next year's charge would be was to *book* the next year's charge —
+  `runForMonth()` twelve times, auto-approved and posted. `DepreciationService::schedule()` is the method the
+  plan assumed. It walks a replica of the asset forward through the model's own `monthlyDepreciation()` and
+  saves nothing.
+- **The test for it is the equivalence: project twelve months, then book twelve months, and assert the two
+  are the same list of figures.** Declining balance is why that test earns its keep — the charge is a
+  proportion of book value, so it falls every month, and a second implementation of the `2 / life` rate would
+  have been free to drift from the entries it predicts with nothing to notice. Same protection, same reason,
+  as the batched valuation in 2.4 and the general ledger in 1.1.
+- **The cached `accumulated_depreciation` column cannot answer an "as at" question**, and every report in
+  Phases 1 and 2 takes a date. A cache has no history: it holds today's total, and the migration says as
+  much. Comparing it against `balancesFor()`, which *is* as at the date, would have reported the gap between
+  two **dates** as a discrepancy — in the one report whose whole purpose is proving that two figures agree.
+  So depreciation here is summed from the posted entries against account 1500 instead. Credits less debits
+  against that account, not a memo match: the account is the definition of the figure, and
+  `DepreciationService`'s own `memo like 'Depreciation%'` test would drop an asset's whole history out of the
+  note the day somebody reworded a memo.
+- **Which makes the cache itself checkable, and that is the third thing the note says.** Not a reconciliation
+  — both figures are ours — but the register screen, the asset form and every future declining-balance charge
+  are computed from the cached one, so a drift means all three are wrong. This report is the only place the
+  two are ever put side by side.
+- **And `accounting:rebuild-asset-depreciation` ships with it, because a figure somebody is told is wrong and
+  cannot fix is half a feature.** It rewrites each asset's cached total from its posted entries, touching only
+  the ones that disagree, and derives the status from the corrected figure — an asset whose cache had it
+  written off as `fully_depreciated` goes back to `active` with life left in it, which is the half of the
+  repair nobody expects and the reason the command prints a status column before writing. The command and the
+  report both read `DepreciationService::bookedFor()`, so the thing that reports the drift and the thing that
+  repairs it cannot hold two opinions about what the ledger says.
+- **Both sides separately, because net book value is a subtraction.** Cost ties to each asset's own account,
+  depreciation to 1500. A reader told only that the net is out by a figure does not know which half to go and
+  look at: a misposted cost and a hand-booked depreciation entry read identically in the net and are found in
+  completely different places. The note also says which way round the difference falls, because those are two
+  different faults.
+- **The commonest cost-side difference is nobody's mistake, and it is worth stating plainly: nothing posts an
+  asset's cost when it is entered.** `FixedAsset` has an *optional* `journal_entry_id` and no code fills it
+  in, so a company that books purchases straight to the bank has every asset in this register and none of them
+  in an asset account. The note names that case as "the register carries cost the asset accounts do not"
+  rather than calling it a discrepancy.
+- **"As at" governs which assets exist, not only their figures.** `status` is the state *now*, so filtering on
+  it would have dropped assets out of last year's note the moment somebody disposed of one this year — and
+  last year's note would silently change. An asset belongs on the register when it was bought by the date and
+  not disposed of until after it.
+- **A month nobody ran is still to come.** Depreciation is booked by hand, from an action on the register, so
+  months get missed. The projection starts at the month of the report date, or after the last month actually
+  booked, whichever is later — so a missed charge stays in "still to come" instead of falling between a
+  depreciation total that never included it and a forecast that starts after it. The months are asserted at
+  the service level, because for a straight-line asset with life to spare the twelve-month *total* is
+  identical either way: a window that had slipped a month would not show up in a total at all.
+
 
 **2026-08-23 — the stocktake (Phase 2.4), and three wrong premises its own tests caught.**
 
