@@ -189,7 +189,7 @@ return new class extends Migration
             $table->string('media')->nullable()->comment('PDF, paper, A1 print');
             $table->timestamps();
 
-            $table->unique(['transmittal_id', 'document_revision_id']);
+            $table->unique(['transmittal_id', 'document_revision_id'], 'transmittal_items_revision_unique');
         });
 
         /*
