@@ -160,7 +160,16 @@ class InventoryService
         return $entry;
     }
 
-    protected function inventoryAccountId(Product $product): int
+    /**
+     * Where this product's stock is held in the accounts.
+     *
+     * **Public because a report has to reconcile against the account the posting actually used.** A product
+     * that names no inventory account is not held nowhere — it is held in the default, and the stocktake
+     * report (`docs/reports-expansion-plan.md` Phase 2.4) was built on the opposite assumption until its
+     * tests said otherwise. Two copies of this fallback would be two answers to "which account holds this",
+     * and the report would reconcile against one while the ledger held the other.
+     */
+    public function inventoryAccountId(Product $product): int
     {
         return $product->inventory_account_id ?? $this->accountId('1300');
     }
@@ -180,8 +189,23 @@ class InventoryService
         return $this->accountId('1100');
     }
 
+    /**
+     * An account id from its code, looked up once per request.
+     *
+     * **Memoised, and the stocktake report is what made it matter.** A code maps to an id for the life of a
+     * request, and this was a query every time — once per posting, which is unremarkable, and once per
+     * *product* when a report resolves where each one's stock is held. Ten products with no explicit account
+     * meant ten identical lookups; the report's query-count test is what noticed.
+     *
+     * Per instance rather than static, so a test that swaps the chart of accounts underneath gets a fresh
+     * service and a fresh answer rather than a cached id from another company's chart.
+     *
+     * @var array<string, int>
+     */
+    private array $accountIds = [];
+
     protected function accountId(string $code): int
     {
-        return Account::where('code', $code)->firstOrFail()->id;
+        return $this->accountIds[$code] ??= Account::where('code', $code)->firstOrFail()->id;
     }
 }
