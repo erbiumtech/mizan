@@ -16,6 +16,9 @@ use App\Support\WhatsApp\TwilioWhatsAppSender;
 use App\Support\WhatsApp\WhatsAppSender;
 use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
+use Filament\Support\Assets\Js;
+use Filament\Support\Facades\FilamentAsset;
+use Filament\Tables\Table;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -185,6 +188,77 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
         });
+        /*
+         * The table context menu — `docs/table-context-menu-plan.md` §2 and §3.
+         *
+         * **Both halves live here rather than in a panel provider, and that is a correction to §2's
+         * wording.** `Table::configureUsing()` is a global Filament configuration: it reaches every table
+         * in every panel, so registering it inside `AdminPanelProvider` would place a global effect in a
+         * file that names one panel. `FilamentAsset::register()` is global in the same way — the registry
+         * is a singleton and Filament renders its scripts in any panel's layout — so the asset was moved
+         * here alongside it, keeping one feature in one place.
+         *
+         * Both panels share `resources/css/filament/admin/theme.css` (see `PlatformPanelProvider`), so a
+         * global registration is a *styled* menu everywhere rather than an unstyled box on the platform
+         * panel. That was worth checking before making it global.
+         */
+        FilamentAsset::register(
+            [
+                /*
+                 * **A registered asset, not an inline render-hook partial.**
+                 *
+                 * `docs/page-load-performance-plan.md` records the audit: Livewire re-executes body
+                 * scripts on every `wire:navigate` unless they carry `data-navigate-once`, and the two
+                 * inline scripts this application has are idempotent by construction — they only ever
+                 * write an absent localStorage key or *open* a branch. A context menu is bigger than
+                 * either and would stack a document listener per navigation if written the same way.
+                 *
+                 * `navigateOnce()` is what stops that: the script executes on a real page load and never
+                 * again, so its document listeners bind exactly once. It needs no per-navigation
+                 * rebinding because the listener is *delegated* — it resolves the row at event time, so a
+                 * table that arrives with new markup is already covered. What it does need, and has, is
+                 * to close on `livewire:navigated`.
+                 *
+                 * Filament also tags the asset `data-navigate-track` in SPA mode, which is the reason to
+                 * prefer this over a Vite entry of our own: a deploy that changes the file forces a real
+                 * reload instead of running new markup against old JS.
+                 */
+                Js::make('table-context-menu', resource_path('js/table-context-menu.js'))
+                    ->navigateOnce(),
+            ],
+            package: 'app',
+        );
+
+        /*
+         * **Every table gains the menu without a single table file being edited** — §3.
+         *
+         * The menu itself needs no configuration: it reads the DOM. What this adds is the record key, so
+         * the script has a first-class way to identify the row it was opened on rather than parsing
+         * Filament's internal `wire:key`. That fallback stays — see the script — because a table with a
+         * `recordAction` instead of a `recordUrl` renders no anchor at all, and so receives no link
+         * attributes to carry this one.
+         *
+         * **`merge: true` matters even though no table sets its own link attributes today.** That is
+         * precisely why it is easy to leave off and expensive later: the first table that needed one
+         * would have it silently discarded here, and the symptom would appear in that table rather than
+         * in this file. `TableContextMenuTest` holds the other half of that — it fails the day a table
+         * declares link attributes, so whoever writes them is pointed at this question.
+         */
+        Table::configureUsing(function (Table $table): void {
+            /*
+             * `Model|array`, matching Filament's own `getExtraRecordLinkAttributes()` signature rather
+             * than the narrower `Model`. No table in this application is array-backed today — nothing
+             * calls `->records()` — but this closure runs for *every* table in *every* panel, so a
+             * narrow hint would be a TypeError at render time on the first one that is, thrown from a
+             * global provider and surfacing as a broken page nowhere near its cause. The parameter is
+             * named `$record` because that is the named injection Filament supplies for both shapes.
+             */
+            $table->extraRecordLinkAttributes(
+                fn (Model|array $record): array => ['data-record-key' => $table->getRecordKey($record)],
+                merge: true,
+            );
+        });
+
         Schema::defaultStringLength(191);
 
         // Store Livewire temp uploads on a fixed, non-tenant-scoped disk so the

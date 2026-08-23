@@ -17,10 +17,8 @@ use Filament\Navigation\NavigationManager;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
-use Filament\Support\Facades\FilamentAsset;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -92,35 +90,6 @@ class AdminPanelProvider extends PanelProvider
         // `singleton` — see the class.
         $this->app->scoped(NavigationSnapshot::class);
 
-        /*
-         * The table context menu — `docs/table-context-menu-plan.md` §2.
-         *
-         * **A registered Filament asset rather than an inline render-hook partial**, and the difference
-         * matters. `docs/page-load-performance-plan.md` records the audit: Livewire re-executes body
-         * scripts on every `wire:navigate` unless they carry `data-navigate-once`, and the two inline
-         * scripts this application has are idempotent by construction — they only ever write an absent
-         * localStorage key or *open* a branch. A context menu is bigger than either and would stack a
-         * document listener per navigation if written the same way.
-         *
-         * `navigateOnce()` is what stops that: the script executes on a real page load and never again,
-         * so the document-level listeners in §1.1 are bound exactly once per process. It needs no
-         * per-navigation rebinding because the listener is *delegated* — it resolves the row at event
-         * time, so a table that arrives with new markup is already covered. What it does need, and has,
-         * is to close on `livewire:navigated`.
-         *
-         * Filament also tags the asset `data-navigate-track` in SPA mode, which is the reason to prefer
-         * this route over a Vite entry of our own: a deploy that changes the file forces a real reload
-         * instead of running new markup against old JS.
-         *
-         * The first `FilamentAsset::register()` in `app/` — the pattern is established here.
-         */
-        FilamentAsset::register(
-            [
-                Js::make('table-context-menu', resource_path('js/table-context-menu.js'))
-                    ->navigateOnce(),
-            ],
-            package: 'app',
-        );
     }
 
     public function panel(Panel $panel): Panel
@@ -245,6 +214,17 @@ class AdminPanelProvider extends PanelProvider
             // content, so the rail becomes a peer of both and no Filament view needed publishing.
             // What it contains is decided by App\Support\NavigationDomains; the sidebar beside it
             // is narrowed to the same domain by DomainNavigationManager, bound in register().
+            /*
+             * The right-click menu's off switch — `docs/table-context-menu-plan.md` §4.
+             *
+             * In the user menu because it has to be somewhere the menu itself is not: the context menu carries
+             * the same toggle, which is where somebody annoyed by it will look, but a menu that has just
+             * switched itself off cannot switch itself back on.
+             */
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_AFTER,
+                fn (): string => view('filament.partials.table-context-menu-toggle')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::LAYOUT_START,
                 fn (): string => view('filament.partials.domain-rail')->render(),

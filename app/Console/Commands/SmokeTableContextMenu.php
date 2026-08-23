@@ -131,6 +131,7 @@ class SmokeTableContextMenu extends Command
     private function harness(string $markup): string
     {
         $script = File::get(resource_path('js/table-context-menu.js'));
+        $alpine = $this->alpineStub();
 
         return <<<HTML
         <!doctype html>
@@ -147,10 +148,43 @@ class SmokeTableContextMenu extends Command
         <body>
         {$markup}
         <script>
+        {$alpine}
+        </script>
+        <script>
         {$script}
         </script>
         </body>
         </html>
         HTML;
+    }
+
+    /**
+     * Just enough of Filament's `filamentTable` Alpine component to exercise §1.4's selection branch.
+     *
+     * **A stub, and it is the one compromise in this command.** The real component needs Alpine, Livewire
+     * and a server; this harness is a `file://` page by design, so the selection state is faked. What is
+     * being tested is therefore *the script's branching* — selection wins, outside clears, the count
+     * reaches the label — and not Filament's own selection tracking.
+     *
+     * The contract that stub stands in for is pinned separately and for real:
+     * `TableContextMenuTest::test_filaments_selection_api_still_carries_the_members_we_call` reads
+     * Filament's shipped bundle and fails if `isRecordSelected`, `getSelectedRecordsCount` or
+     * `deselectAllRecords` is renamed. Between the two, a rename breaks a test rather than the feature.
+     *
+     * `window.__selection` is the handle the browser script uses to arrange a selection.
+     */
+    private function alpineStub(): string
+    {
+        return <<<'JS'
+        window.__selection = new Set();
+
+        window.Alpine = {
+            $data: () => ({
+                isRecordSelected: (key) => window.__selection.has(String(key)),
+                getSelectedRecordsCount: () => window.__selection.size,
+                deselectAllRecords: () => window.__selection.clear(),
+            }),
+        };
+        JS;
     }
 }

@@ -41,6 +41,17 @@
     const ACTIONS = '.fi-ta-actions'
 
     /**
+     * The table root — the element carrying `x-data="filamentTable(...)"` (`index.blade.php:208-212`).
+     *
+     * Both the rows and the header toolbar live inside it, which is what makes the bulk lookup safe when a
+     * page holds several tables: a relation manager below a resource table, or two in one modal. Scoping
+     * to the row's own root rather than to the document is the difference between acting on the selection
+     * the user can see and acting on somebody else's.
+     */
+    const TABLE = '.fi-ta'
+    const TOOLBAR = '.fi-ta-header-toolbar'
+
+    /**
      * Filament's own dropdown trigger, which we must *not* treat as an action.
      *
      * An `ActionGroup` renders a `.fi-dropdown-trigger` whose job is "open the menu". Offering it inside
@@ -48,8 +59,70 @@
      */
     const DROPDOWN_TRIGGER = '.fi-dropdown-trigger'
 
+    /**
+     * The off switch — §4, and it is raw `localStorage` on purpose.
+     *
+     * `docs/table-context-menu-plan.md` Phase 4 wants the preference to live "with whatever holds user
+     * preferences at that point", and names Phase 7 of `docs/reports-expansion-plan.md` as the obvious
+     * home "rather than a second one". That phase has not landed and there is no per-user store, so
+     * building one here would create exactly the second store the plan warns against — and Phase 7 would
+     * then have to reconcile with it.
+     *
+     * `localStorage` is not that second store. It is client state for a *client gesture*, which is where
+     * this codebase already keeps the domain rail's open state, and per-device is arguably the better
+     * answer anyway: somebody who wants the menu off on a shop tablet may well want it on at a desk.
+     *
+     * **Raw, not Alpine's `$persist`.** `$persist` JSON-encodes, so a boolean written by Alpine reads back
+     * as the string `"false"` to anything using `getItem` directly — the rail partial already documents
+     * that seam. The script and the user-menu toggle both use this key and the literal `'off'`, so there
+     * is no encoding to disagree about.
+     */
+    const DISABLED_KEY = 'tableContextMenuDisabled'
+
+    /**
+     * Read at the moment of the gesture, never cached.
+     *
+     * So a toggle in another tab — or in the user menu on this page — takes effect on the next right-click
+     * rather than on the next full page load.
+     */
+    const isTurnedOff = () => {
+        try {
+            return localStorage.getItem(DISABLED_KEY) === 'off'
+        } catch {
+            // Private browsing and some embedded webviews throw on access. A menu that cannot read the
+            // preference should be on, because on is the state everything else here assumes.
+            return false
+        }
+    }
+
+    const turnOff = () => {
+        try {
+            localStorage.setItem(DISABLED_KEY, 'off')
+        } catch {
+            // Nothing to do: the item is a courtesy and the native menu is one Shift away regardless.
+        }
+    }
+
+    /** How long a touch has to rest before it counts as a long-press — §4. */
+    const LONG_PRESS_MS = 500
+
+    /**
+     * How far a touch may wander and still count.
+     *
+     * Not optional, and the plan says why: "a shop or warehouse tablet scrolls a long list constantly", so
+     * a long-press with no movement threshold opens a menu every time somebody tries to scroll. Ten pixels
+     * is enough to absorb the jitter of a finger resting without swallowing a deliberate flick.
+     */
+    const LONG_PRESS_SLOP = 10
+
     let menu = null
     let bound = false
+
+    /** What had focus when the menu opened, so Escape can give it back — §4. */
+    let returnFocusTo = null
+
+    /** The pending long-press, so a move or a lift can cancel it. */
+    let longPress = null
 
     // ---------------------------------------------------------------- resolving the row
 
@@ -159,6 +232,104 @@
      */
     const isDanger = (el) => /(^|\s|-)fi-color-danger(\s|$|-)/.test(el.className)
 
+    // ---------------------------------------------------------------- selection and bulk
+
+    /**
+     * Filament's own selection state, through Alpine — §1.4.
+     *
+     * `filamentTable` exposes `isRecordSelected(key)`, `getSelectedRecordsCount()` and
+     * `deselectAllRecords()`, and `Alpine.$data(row)` reaches them by walking up to that scope. Using
+     * Filament's own count rather than counting a `Set` ourselves matters: it also answers correctly in
+     * the *select-all-across-pages* mode, where Filament tracks **de**selections instead
+     * (`isTrackingDeselectedRecords`) and a naive `selectedRecords.size` would report a handful when the
+     * user has selected four thousand.
+     *
+     * Returns null when Alpine is not there, and the caller then treats the row as unselected. That is
+     * not a hypothetical branch: it is what the file:// harness the smoke test drives looks like, and it
+     * is the right degradation — a row menu is useful, and a bulk menu built on a selection we cannot
+     * read would act on the wrong records.
+     */
+    const selectionOf = (row) => {
+        const scope = window.Alpine?.$data?.(row)
+
+        if (!scope || typeof scope.isRecordSelected !== 'function') {
+            return null
+        }
+
+        return {
+            isSelected: (key) => scope.isRecordSelected(key),
+            count: () => Number(scope.getSelectedRecordsCount?.() ?? 0),
+            clear: () => scope.deselectAllRecords?.(),
+        }
+    }
+
+    /**
+     * An action's click expression, with Blade's escaping undone.
+     *
+     * Filament writes the handler through `Js::from()`, so the attribute reads
+     * `mountAction('delete', {}, JSON.parse('{\u0022table\u0022:true,\u0022bulk\u0022:true}'))` — the
+     * `\u0022` are literal characters in the HTML, not a browser escape, so `getAttribute` hands them
+     * back as-is. Normalising them to quotes is what lets one honest string test work on both shapes.
+     */
+    const handlerOf = (el) =>
+        (el.getAttribute('x-on:click') ?? el.getAttribute('wire:click') ?? '').replaceAll('\\u0022', '"')
+
+    /**
+     * Whether an element is a **bulk** action.
+     *
+     * Read from the mount context Filament put in the handler — `{"table":true,"bulk":true}` — rather than
+     * from a class or a position in the toolbar. The toolbar also holds the reorder trigger, the grouping
+     * selector, the column manager, the filters trigger and any non-bulk toolbar action, and none of those
+     * carries that context. A class-based guess would have to be revisited every time Filament restyled
+     * one of them.
+     */
+    const isBulkAction = (el) => /"bulk"\s*:\s*true/.test(handlerOf(el))
+
+    /**
+     * A bulk label with the count in it, reading like English.
+     *
+     * **Filament's own bulk labels already end in "selected"** — `DeleteBulkAction` is *Delete selected*,
+     * and so are the force-delete and restore ones. Appending naively produced *"Delete selected 2
+     * selected"*, which the first browser run showed and which no amount of reading the plan would have.
+     * Dropping that trailing word first gives §1.4's own example exactly: *Delete 2 selected*, and
+     * *Issue 2 selected* for a label that never had it.
+     *
+     * The trade, stated: a custom label genuinely ending in the word — *"Mark as selected"* — becomes
+     * *"Mark as 2 selected"*. Clumsy, and nothing in this application has one; the alternative is leaving
+     * every default Filament bulk action reading like a stutter.
+     */
+    const withCount = (label, count) =>
+        `${label.replace(/\s+selected$/i, '')} ${count} selected`.trim()
+
+    /**
+     * The bulk actions for the whole selection, labelled with its size — §1.4's "Delete 6 selected".
+     *
+     * They are already in the DOM: the toolbar renders them unconditionally and only the *container* is
+     * `x-show`n on the selection count (`index.blade.php:347`, `:362-364`), so this reads them without
+     * opening the group — the same eager-render property that makes a row's `ActionGroup` readable.
+     *
+     * The count is in every label rather than in a heading, because a menu item that says *Delete* when
+     * six things are selected is how somebody deletes five more than they meant to.
+     */
+    const bulkActionsIn = (row, count) => {
+        const toolbar = row.closest(TABLE)?.querySelector(TOOLBAR)
+
+        if (!toolbar) {
+            return []
+        }
+
+        return Array.from(toolbar.querySelectorAll('button, a'))
+            .filter((el) => isBulkAction(el))
+            .filter((el) => !el.disabled && el.getAttribute('aria-disabled') !== 'true')
+            .map((el) => ({
+                element: el,
+                label: withCount(labelOf(el), count),
+                icon: iconOf(el),
+                danger: isDanger(el),
+            }))
+            .filter((item) => item.label.trim() !== `${count} selected`)
+    }
+
     // ---------------------------------------------------------------- the link items
 
     /**
@@ -225,6 +396,25 @@
 
     // ---------------------------------------------------------------- the menu element
 
+    /**
+     * What to call this row out loud — §4's "a label naming the record".
+     *
+     * The first cell's text, which is what a person reading the screen would call the row too: an invoice
+     * number, a job code, a name. Truncated because a description column can run to a paragraph, and a
+     * menu announcing a paragraph before its first item is worse than one announcing nothing.
+     *
+     * Falls back to the plain label when there is no text to borrow — a table of icons, or a row whose
+     * first cell is a checkbox.
+     */
+    const labelForRow = (row) => {
+        const text = row.querySelector('.fi-ta-col, .fi-ta-record-content')
+            ?.textContent?.replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 80)
+
+        return text ? `Actions for ${text}` : 'Row actions'
+    }
+
     /** One element for the page, created on first use — never one per row. */
     const ensureMenu = () => {
         if (menu?.isConnected) {
@@ -240,10 +430,30 @@
         return menu
     }
 
+    /**
+     * Close, and give focus back to where it came from — §4.
+     *
+     * Returning focus is what makes the keyboard route usable rather than a trap: without it, Escape
+     * leaves focus on a hidden element and the next Tab starts from the top of the document. It is also
+     * why `returnFocusTo` is captured on open rather than assumed to be the row — the menu can be opened
+     * from a cell, a checkbox, or an action button, and the courteous thing is to go back to whichever.
+     */
     const closeMenu = () => {
-        if (menu) {
-            menu.hidden = true
-            menu.replaceChildren()
+        if (!menu || menu.hidden) {
+            return
+        }
+
+        menu.hidden = true
+        menu.replaceChildren()
+        menu.removeAttribute('aria-label')
+
+        const target = returnFocusTo
+        returnFocusTo = null
+
+        // Only if it is still on the page: a menu closed by `livewire:navigated` is closing over a row
+        // that has just been replaced, and focusing a detached node throws focus to the body silently.
+        if (target?.isConnected) {
+            target.focus()
         }
     }
 
@@ -277,6 +487,10 @@
             el.classList.add('fi-ta-context-menu-item-danger')
         }
 
+        if (item.muted) {
+            el.classList.add('fi-ta-context-menu-item-muted')
+        }
+
         if (item.icon) {
             el.appendChild(item.icon)
         }
@@ -298,6 +512,13 @@
                 // Let the anchor be an anchor. Closing first so the menu is not left over a page that
                 // is navigating away underneath it.
                 closeMenu()
+
+                return
+            }
+
+            if (item.onSelect) {
+                event.preventDefault()
+                item.onSelect()
 
                 return
             }
@@ -329,6 +550,27 @@
      * of the three. Flipped rather than allowed to overflow because the menu must never be the thing
      * that makes the page scroll.
      */
+    /**
+     * Where the menu goes, which depends on what opened it — §4.
+     *
+     * A right-click has a point and the menu belongs at it. A keyboard press and a long-press do not: the
+     * plan asks for touch to open "centred rather than at the pointer", and the same is true of the
+     * `ContextMenu` key — anchoring to a stale pointer position would put the menu wherever the mouse
+     * happened to be resting, which for a keyboard user could be off-screen entirely. Both anchor to the
+     * row instead, which is the thing the gesture was actually about.
+     */
+    const placeMenu = (row, at) => {
+        if (at) {
+            place(at.x, at.y)
+
+            return
+        }
+
+        const box = row.getBoundingClientRect()
+
+        place(box.left + Math.min(box.width / 2, 240), box.bottom - 4)
+    }
+
     const place = (x, y) => {
         // Measured while hidden but laid out, so the flip decision uses the real size.
         menu.style.visibility = 'hidden'
@@ -355,33 +597,112 @@
 
     // ---------------------------------------------------------------- opening
 
-    const openFor = (row, x, y) => {
-        const actions = actionsIn(row)
-        const links = linkItemsFor(row)
+    /**
+     * **Selection wins over the row** — §1.4.
+     *
+     * Right-clicking *inside* a selection acts on the selection; right-clicking *outside* one clears it
+     * and acts on the row under the cursor. That is what every file manager does, and doing anything else
+     * is how somebody deletes six records while looking at the one they right-clicked.
+     *
+     * The clearing is deliberate rather than incidental. Leaving a stale selection behind after showing a
+     * single-row menu means the checkboxes still say six while the menu said one, and the next bulk action
+     * the user reaches for — from the toolbar, not from here — operates on a selection they thought they
+     * had abandoned.
+     *
+     * @return {{items: array, bulk: boolean}}
+     */
+    const menuContentsFor = (row) => {
+        const selection = selectionOf(row)
+        const count = selection?.count() ?? 0
+
+        if (count > 0) {
+            if (selection.isSelected(recordKeyOf(row))) {
+                return { items: bulkActionsIn(row, count), bulk: true }
+            }
+
+            selection.clear()
+        }
+
+        return { items: [...linkItemsFor(row), null, ...actionsIn(row)], bulk: false }
+    }
+
+    /**
+     * Open the menu for a row.
+     *
+     * `at` is either a point (a right-click) or null (keyboard and touch), and the difference is §4's:
+     * a menu anchored to where the pointer last was is wrong for a gesture that had no pointer, so those
+     * open against the row itself.
+     */
+    const openFor = (row, at) => {
+        const { items, bulk } = menuContentsFor(row)
+
+        // `null` is the separator placeholder from the row branch; drop it if either side came back empty.
+        const content = items.filter((item, at) => item !== null || (items[at - 1] && items[at + 1]))
 
         // Nothing to offer. Fail open: the native menu is more useful than an empty box of ours.
-        if (actions.length === 0 && links.length === 0) {
+        //
+        // Reached in one real case worth naming — a selection whose bulk actions are all hidden by policy.
+        // Filament renders none of them, so there is nothing to show, and the honest answer is to let the
+        // browser have the gesture rather than open a menu with one item in it that says nothing.
+        if (content.filter(Boolean).length === 0) {
             return false
         }
 
         ensureMenu()
         menu.replaceChildren()
+        menu.classList.toggle('fi-ta-context-menu-bulk', bulk)
+        menu.setAttribute('aria-label', bulk ? 'Actions for the selected rows' : labelForRow(row))
 
-        links.forEach((item) => menu.appendChild(buildItem(item)))
+        content.forEach((item) => menu.appendChild(item === null ? separator() : buildItem(item)))
 
-        if (links.length && actions.length) {
-            menu.appendChild(separator())
-        }
+        /*
+         * The off switch, last and behind a rule — §4 and the Risks section.
+         *
+         * Here because this is where somebody is when the feature is annoying them, which is the only
+         * moment they will look for it. It is not menu-*only*: the user menu carries the same toggle, and
+         * has to, because a menu that has just switched itself off cannot switch itself back on.
+         */
+        menu.appendChild(separator())
+        menu.appendChild(buildItem({
+            label: 'Turn off right-click menus',
+            muted: true,
+            onSelect: () => {
+                turnOff()
+                closeMenu()
+            },
+        }))
 
-        actions.forEach((item) => menu.appendChild(buildItem(item)))
+        // Captured before focus moves into the menu, so Escape can put it back — see closeMenu().
+        returnFocusTo = document.activeElement
 
-        place(x, y)
+        placeMenu(row, at)
         menu.querySelector('.fi-ta-context-menu-item')?.focus()
 
         return true
     }
 
     // ---------------------------------------------------------------- the one listener
+
+    /**
+     * The row a gesture is about, or null to leave the gesture alone.
+     *
+     * One place for the three checks every opener shares — off switch, a row, an identifiable row — so the
+     * keyboard and touch routes cannot drift from the pointer one. **Failing open is the rule**: each
+     * `null` here means the browser keeps its own behaviour.
+     */
+    const rowFor = (target) => {
+        if (isTurnedOff()) {
+            return null
+        }
+
+        const row = target?.closest?.(ROW)
+
+        if (!row || !recordKeyOf(row) || !componentOf(row)) {
+            return null
+        }
+
+        return row
+    }
 
     const handleContextMenu = (event) => {
         /*
@@ -395,20 +716,95 @@
             return
         }
 
-        const row = event.target.closest?.(ROW)
+        const row = rowFor(event.target)
 
         if (!row) {
             return
         }
 
-        // Identify the row or get out of the way. Resolved before anything is built so that a table we
-        // cannot read leaves the gesture untouched rather than opening an empty menu.
-        if (!recordKeyOf(row) || !componentOf(row)) {
+        if (openFor(row, { x: event.clientX, y: event.clientY })) {
+            event.preventDefault()
+        }
+    }
+
+    /**
+     * The platform's own context-menu keys — §4.
+     *
+     * `ContextMenu` is the dedicated key; `Shift+F10` is the binding every desktop platform also honours
+     * and the one people who do not have that key use. Opening for the **focused** row rather than a
+     * hovered one is the whole point: this is the route for somebody who is not using a mouse.
+     *
+     * No conflict with the Shift escape hatch, which is on `contextmenu` events rather than keystrokes.
+     */
+    const handleContextMenuKey = (event) => {
+        const isContextMenuKey = event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)
+
+        if (!isContextMenuKey || menu?.hidden === false) {
             return
         }
 
-        if (openFor(row, event.clientX, event.clientY)) {
+        const row = rowFor(document.activeElement)
+
+        if (row && openFor(row, null)) {
             event.preventDefault()
+        }
+    }
+
+    // ---------------------------------------------------------------- touch
+
+    /**
+     * Long-press on a touch screen — §4.
+     *
+     * Only for `pointerType === 'touch'`: a mouse already has a right button and a pen has a barrel
+     * button, and putting a half-second delay in front of either would make both feel broken.
+     *
+     * **The movement threshold is not optional.** The plan is explicit that "a shop or warehouse tablet
+     * scrolls a long list constantly", so a long-press that ignored movement would open a menu every time
+     * somebody flicked the list — and it would open it *mid-scroll*, over whichever row had slid under the
+     * finger. Cancel on wander, on lift, on cancel, and on scroll.
+     */
+    const handlePointerDown = (event) => {
+        cancelLongPress()
+
+        if (event.pointerType !== 'touch' || event.isPrimary === false) {
+            return
+        }
+
+        const row = rowFor(event.target)
+
+        if (!row) {
+            return
+        }
+
+        longPress = {
+            row,
+            x: event.clientX,
+            y: event.clientY,
+            timer: window.setTimeout(() => {
+                longPress = null
+                openFor(row, null)
+            }, LONG_PRESS_MS),
+        }
+    }
+
+    const handlePointerMove = (event) => {
+        if (!longPress) {
+            return
+        }
+
+        const wandered =
+            Math.abs(event.clientX - longPress.x) > LONG_PRESS_SLOP ||
+            Math.abs(event.clientY - longPress.y) > LONG_PRESS_SLOP
+
+        if (wandered) {
+            cancelLongPress()
+        }
+    }
+
+    const cancelLongPress = () => {
+        if (longPress) {
+            window.clearTimeout(longPress.timer)
+            longPress = null
         }
     }
 
@@ -424,17 +820,36 @@
             return
         }
 
-        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+        const navigation = ['ArrowDown', 'ArrowUp', 'Home', 'End']
+
+        if (! navigation.includes(event.key)) {
             return
         }
 
-        // Arrow navigation now rather than in Phase 4, because a `role="menu"` that cannot be arrowed
-        // through is a worse lie than no role at all. Opening *by keyboard* is still Phase 4.
+        /*
+         * Arrow, Home and End through the items.
+         *
+         * Enter and Space need nothing: the items are real `<button>` and `<a>` elements, so the browser
+         * activates a focused one natively — which is also why `buildItem` builds elements rather than
+         * divs with click handlers.
+         */
         event.preventDefault()
 
         const items = Array.from(menu.querySelectorAll('.fi-ta-context-menu-item'))
 
         if (items.length === 0) {
+            return
+        }
+
+        if (event.key === 'Home') {
+            items[0].focus()
+
+            return
+        }
+
+        if (event.key === 'End') {
+            items[items.length - 1].focus()
+
             return
         }
 
@@ -451,6 +866,13 @@
 
         document.addEventListener('contextmenu', handleContextMenu)
         document.addEventListener('keydown', handleKeyDown)
+        document.addEventListener('keydown', handleContextMenuKey)
+
+        // Touch. `pointerup` and `pointercancel` cancel a pending press; scroll does too, below.
+        document.addEventListener('pointerdown', handlePointerDown)
+        document.addEventListener('pointermove', handlePointerMove)
+        document.addEventListener('pointerup', cancelLongPress)
+        document.addEventListener('pointercancel', cancelLongPress)
 
         // Any click elsewhere, including the one that chose an item — the item's own handler closes
         // first, so this is the "clicked outside" case.
@@ -460,7 +882,20 @@
             }
         })
 
-        // Scroll and resize move the row out from under a menu anchored to where the pointer was.
+        /*
+         * Scroll and resize move the row out from under a menu anchored to where the pointer was.
+         *
+         * **Deliberately does not cancel a pending long-press**, which the first draft did and which was
+         * wrong. A `scroll` event is not evidence about the finger: focusing an element scrolls it into
+         * view, so `closeMenu()` returning focus to a row emits one — and it lands *after* a press that
+         * started in the meantime, cancelling it. That is not hypothetical; it is how the browser test
+         * caught this, by pressing Escape and then long-pressing.
+         *
+         * The finger's own events are the reliable signal and are already handled: `pointermove` past the
+         * slop while the user is dragging, and `pointercancel` at the moment Chrome takes the gesture over
+         * for scrolling. Between them a real scroll always cancels the press, and a scroll nobody's finger
+         * caused no longer does.
+         */
         window.addEventListener('scroll', closeMenu, true)
         window.addEventListener('resize', closeMenu)
 
@@ -472,7 +907,10 @@
          * would mount an action against the old component. This is the bug this application would
          * produce in exactly one way, so it is closed in exactly one place.
          */
-        document.addEventListener('livewire:navigated', closeMenu)
+        document.addEventListener('livewire:navigated', () => {
+            cancelLongPress()
+            closeMenu()
+        })
 
         bound = true
     }
