@@ -2,6 +2,7 @@
 
 namespace App\Modules\Campaigns;
 
+use App\Modules\Campaigns\Filament\Pages\ConsentRegister;
 use App\Modules\Campaigns\Models\Campaign;
 use App\Modules\Campaigns\Models\CampaignSend;
 use App\Modules\Campaigns\Models\Consent;
@@ -10,6 +11,9 @@ use App\Modules\Campaigns\Policies\CampaignPolicy;
 use App\Modules\Campaigns\Policies\CampaignSendPolicy;
 use App\Modules\Campaigns\Policies\ConsentPolicy;
 use App\Modules\Campaigns\Policies\SegmentPolicy;
+use App\Modules\Campaigns\Support\ConsentReports;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,5 +32,31 @@ class CampaignsServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        $this->registerReports();
+    }
+
+    /**
+     * The consent register — `docs/reports-expansion-plan.md` Phase 3.10.
+     *
+     * Filed under *Sales & pipeline* rather than with the operational reports: the person who needs to know
+     * whether a permission can be defended is whoever is about to run the campaign.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without the campaigns module sees no entry rather than a
+     * report that fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'Sales & pipeline',
+            ConsentRegister::class,
+            'Who may be contacted on which channel, with the evidence behind each permission.',
+        );
+
+        ReportRenderers::register(
+            'ConsentRegister',
+            fn (string $asOf): array => app(ConsentReports::class)->consentRegister($asOf),
+        );
     }
 }

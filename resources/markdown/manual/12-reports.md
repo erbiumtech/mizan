@@ -641,3 +641,35 @@ finished onboarding it would sit near 100% permanently.
 
 An item due **on** the date you are reading is *Not yet due* — the day it is due is
 still a day it can be done.
+
+### Consent Register
+
+Under Sales and pipeline: who may be contacted on which channel, and the evidence
+behind each permission — state, source, date and recorder.
+
+**Compliance evidence, not marketing statistics.** There is deliberately no opt-in
+rate, no channel comparison and no trend. A percentage invites a target, and the moment
+consent has a target somebody starts managing the number instead of the record.
+
+The state is **derived, never stored**. There is no subscribed checkbox: every grant and
+every revocation is its own row, so somebody who opted in, out and in again has three
+rows and one current state. The **Changes** column counts that trail. The register shows
+the latest row per subject per channel, resolved exactly the way the sender resolves it
+when deciding whether to contact somebody — including the tie-break on record id when
+two rows share a timestamp, so what this report permits is what a campaign will do.
+
+Each channel is its own permission; agreeing to email is not agreeing to WhatsApp.
+
+It is a true **as-at**: the latest record on or before your date, so a later revocation
+does not rewrite the past. A subject whose only records come later is absent rather than
+shown as revoked — nothing was recorded then, and **no record means no permission**. An
+empty register is not "nothing to show", it means nobody may be contacted, and the
+report says so.
+
+The finding is a **grant with no source**: *they agreed* is worth nothing without *and
+here is how*, and on every other screen such a permission looks identical to a
+defensible one. Counted on grants only — removing somebody from a list needs no
+justification, and only a permission has to be defended.
+
+Rows are ordered by what needs doing: unevidenced grants, then grants with no recorder,
+then sound grants, then revocations.

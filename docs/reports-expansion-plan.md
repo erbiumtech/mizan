@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.9 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.10 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -291,7 +291,7 @@ for. Ordered by how often that has come up.
    asset recoveries, net.
 9. **Onboarding / Offboarding Progress** — *done, 2026-08-24, as a progress report rather than an overdue list, because two of its three findings are never late — see [What landed](#what-landed).* checklist items overdue by owner role, from
    `employee_checklist_items.due_on`.
-10. **Consent Register** — consent state per contact per channel with source and date. This is
+10. **Consent Register** — *done, 2026-08-24. The "not marketing statistics" clause was the specification — see [What landed](#what-landed).* consent state per contact per channel with source and date. This is
     compliance evidence, not marketing statistics, which is why it belongs with the reports.
 11. **Campaign Performance** — sends, failures and reasons per campaign.
 12. **Review Cycle Progress** — reviews and goals complete per cycle, one-to-ones held.
@@ -485,6 +485,41 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the consent register (Phase 3.10), where the plan's own aside was the specification.**
+
+- **"Compliance evidence, not marketing statistics" ruled out more than it ruled in.** No opt-in rate, no
+  channel comparison, no trend — and a test asserts there is no percentage anywhere on the report, note or
+  tiles. A percentage invites a target, and the moment consent has a target somebody manages the number
+  instead of the record.
+- **The state is derived from the latest row, and the register resolves the tie exactly as
+  `Consent::permits()` does** — most recent `recorded_at`, then highest `id`. That second key is not
+  decoration: a bulk import can stamp a whole file with one timestamp, and a report that broke the tie the
+  other way would state a permission the sender refuses to act on. The test asserts the register against
+  `permits()` rather than against a literal, so the two cannot drift.
+- **A true as-at, so "what did we have permission for on 30 June" has an answer.** The latest row *on or
+  before* the date, and the change count is as-at too. A subject whose only rows come later is absent rather
+  than shown as revoked — there was nothing on the register then, and `permits()` is explicit that no row
+  means no.
+- **An empty register says nobody may be contacted, not "nothing to show".** On a compliance report the
+  difference matters: one is an absence of data and the other is a fact somebody about to run a campaign
+  needs stated.
+- **The finding is a grant with no source**, in the migration's own words: "'they agreed' is worth nothing
+  without 'and here is how'". Counted on *grants only*, and the asymmetry is deliberate — removing somebody
+  from a list needs no justification, so a sourceless revocation is not a finding and counting it would bury
+  the grants that matter.
+- **The `recorded_by` null case cannot be created through `Consent::create()`** — `booted()` does
+  `recorded_by ??= auth()->id()`, so a test passing null gets the acting user stamped on it. Nulling the
+  column afterwards is not a workaround: a row with no recorder only ever arises from something written
+  outside a request, which is exactly what the report is reporting.
+- **The section label is `Sales & pipeline`, with an ampersand.** `ReportsHubTest` caught `Sales and
+  pipeline` immediately as a tenth section rather than a report filed in an existing one — the section
+  registry doing precisely what it is for.
+- **Campaigns had no report wiring at all before this**, so it gained `discoverPages`, a `pages` key in its
+  manifest and a `registerReports()`. Phase 3.11 lands in the same module and now has somewhere to go.
+- **Twenty-one mutations, all killed** on the first pass — including the four that would each have hollowed
+  out the register: the as-at filter dropped, the first row winning instead of the latest, the channel
+  falling out of the grouping key, and sourceless grants going uncounted.
 
 **2026-08-24 — onboarding and offboarding progress (Phase 3.9), built against the plan's own phrasing.**
 
