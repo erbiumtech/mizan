@@ -16,6 +16,16 @@
         see ComparativeStatement. Selecting one offers its own page rather than a wrong rendering.
 --}}
 <x-filament-panels::page>
+    {{--
+        The icon sprite: one `<symbol>` per section, defined once and referenced by every row.
+
+        Fifty-one rows each inlining their own heroicon came to 30.4 KB of a 366 KB page against a 360 KB
+        ceiling that `PanelPerformanceTest` says must not be raised — its comment predicted this and named
+        "the hub's card markup" as what should give way. Nine symbols and fifty-one `<use>` references is
+        about 6 KB. See App\Support\Reporting\ReportIcons.
+    --}}
+    {{ \App\Support\Reporting\ReportIcons::sprite() }}
+
     <div class="fi-explorer">
         {{-- ------------------------------------------------------------------ the list --}}
         {{--
@@ -157,7 +167,11 @@
                         @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])
                     >
                         <span class="fi-explorer-row-icon">
-                            <x-filament::icon :icon="$report['icon']" class="fi-explorer-row-icon-svg" />
+                            {{-- The section's icon, from the sprite above. A row's icon now says which
+                                 section the report is in rather than being the report's own: the fifty-one
+                                 distinct navigation icons distinguished nothing a reader was using, and
+                                 inlining them cost 30 KB the page's ceiling did not have. --}}
+                            {{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}
                         </span>
 
                         <span class="fi-explorer-row-text">

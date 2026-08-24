@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1–4 complete; Phase 5 started (5.1 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -325,7 +325,7 @@ report that disagree about a number is worse than either alone, because the pers
 tell which to believe — and this is a real risk here, not a hypothetical: the aggregates already exist
 and it would be quicker to re-derive each figure inline.
 
-1. **A dashboard page of our own**, replacing `Dashboard::class` in `AdminPanelProvider`, carrying a
+1. *done, 2026-08-24 — and it cost the reports hub's icon column, see [What landed](#what-landed).* **A dashboard page of our own**, replacing `Dashboard::class` in `AdminPanelProvider`, carrying a
    **period filter** (this month / this quarter / financial year to date / a custom range through
    `ReportPeriod`) in the URL, so a dashboard someone links to opens on the period they meant. Widgets
    read the page's filter; none of them keeps its own idea of "now". Where the retail plan lands, the
@@ -485,6 +485,57 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the dashboard page and its period filter (Phase 5.1), plus 5.9's widget enumeration.**
+
+- **The period reaches widgets through `getWidgetData()`**, which Filament spreads into every widget's mount
+  properties. So a widget declares `public ?string $periodFrom` and is *handed* the span rather than deriving
+  it — which is item 1's actual requirement, "none of them keeps its own idea of 'now'". Widgets get the
+  resolved **dates**, not the period name: twenty widgets each resolving "this quarter" is twenty chances to
+  resolve it differently, a centimetre apart on one screen.
+- **Filament's own filter form was not used, because the plan asks for the URL.** `HasFiltersForm` keeps
+  filter state in a schema, which is not linkable, and "a dashboard someone links to opens on the period they
+  meant" needs `#[Url]`.
+- **Every period ends today, and only its start moves.** A dashboard answers "how are we doing", and nobody
+  has revenue from the rest of the month — so "this quarter" is the quarter so far rather than a quarter two
+  thirds empty. A custom range is the exception, because naming both ends means both ends.
+- **A test found a real bug in the quarter arithmetic.** `FiscalYear` *enforces* a 30 June end and says why —
+  "a company joining part-way through gets a shorter year ending on the same date" — so a company that joined
+  in November runs 1 November to 30 June. Counting three-month blocks forward from *that* start gave it
+  quarters beginning in November, February and May, while its accounts and every report treat the quarters as
+  July–September and so on. Counting back from the fixed year end fixes it, then clamping to the year's start,
+  because that company has no October to report.
+- **`DashboardPeriod` is deliberately not `ReportComparison::currentRange()`**, which looks like it would do.
+  That answers "the three months up to this date", because a comparison must be the same length as the thing
+  compared; this answers "the quarter we are in". They agree only when today is a quarter end.
+- **Phase 0.3's `period` filter is now superseded rather than outstanding.** It was written as a pane filter;
+  the page that actually needed a period was the dashboard, and this is it.
+- **5.9's first half landed here** because every later widget commit depends on it:
+  `FilamentWidgetsSmokeTest` now enumerates `Filament::getWidgets()` instead of naming five. A hand-written
+  list covers the widgets somebody remembered, which is the set least likely to be broken — and Phase 5 adds
+  a widget group per module, so the list would have been wrong on its first commit. It carries a floor of
+  five, because an enumeration that silently found nothing would be the most reassuring test in the suite and
+  the least informative.
+
+**And the reports hub lost its per-report icons to keep a ceiling — the interesting part of this commit.**
+
+- `PanelPerformanceTest`'s size budget failed at **366 KB against 360**, from Phase 4's additions. Its own
+  comment predicted this and forbade the easy fix: "the remaining plan needs ~60 KB the ceiling does not have,
+  so the hub's card markup is what should give way next, not this number. Raising it again would be the
+  formality this comment warns about."
+- Measured rather than guessed: the 51 rows were **70.3 KB, of which 30.4 KB was inline heroicons** — 8% of
+  the whole page in icons nobody navigates by.
+- **A sprite only helps because the icons now repeat.** The reports' own navigation icons were all *distinct*,
+  so fifty-one `<symbol>`s would have saved nothing. Collapsing to one icon per section — nine — is what makes
+  `<use>` worth having, and it is a genuine change to what the screen shows: a row's icon says which section
+  the report is in rather than being the report's own. The report's navigation icon is untouched on its own
+  page and in the sidebar.
+- Result: **369 → 348.5 KB**, row icons 30.4 → 6.2 KB, rows 70.3 → 47.5 KB. Roughly 12 KB of headroom at
+  ~930 bytes a row, which is a dozen more reports rather than the two the old markup allowed.
+- The sprite defines **every** section's symbol, not the visible ones: the list is filtered by section and by
+  search and re-renders on both, and a sprite that shrank with the filter would leave a row pointing at a
+  symbol that had gone — rendering blank, which reads as a broken icon rather than a filtering bug. Four tests
+  pin it, including one that fails if the inline icons come back.
 
 **2026-08-24 — a saved view per report (Phase 4.5). Phase 4 is complete.**
 
