@@ -574,3 +574,36 @@ Somebody's last day still counts as employed, matching Headcount Movement, so a
 person is never on the payroll in one report and gone from another on the same date.
 
 The date is an as-at, so a laptop issued after it does not appear.
+
+### Final Settlements
+
+Under People and payroll: what each leaver's settlement was made of — encashment and
+gratuity owed to them, notice recovery, unrecovered advance, unreturned kit and other
+deductions owed back — and what it came to.
+
+It lists **leavers, not settlements**, and that is the point. Somebody who left and
+was never settled appears nowhere else in the application, because every other view
+of a settlement starts from one that exists. Those rows sort to the top and read
+*Not built*.
+
+**Nothing here posts.** A settlement is a proposal; approving one records that the
+figure was agreed and pays nothing. So there is no ledger balance to reconcile
+against — the Phase 2 rule does not apply — and the report's value is three
+disagreements instead:
+
+- **Not built** — a leaver nobody prepared a settlement for.
+- **Net differs** — the stored net is no longer the sum of its parts. It is written
+  on build and on approve but not on edit, and every component is editable. The Net
+  column always shows the sum of the parts, so the row adds up; the status cell is
+  where the disagreement is reported.
+- **Kit moved** — a *draft* quoting an unreturned-kit figure that no longer matches
+  what the employee holds. Drafts only: an approved settlement is frozen by
+  agreement, and flagging it as stale would be arguing with the agreement.
+
+**Net payable** and **Owed back** are kept apart rather than summed. A negative
+settlement is legitimate — an unrecovered advance and an unreturned laptop can leave
+somebody owing — and adding the two gives a figure that is neither.
+
+A dash in a component column means nought; a row of nothing but dashes is a *Not
+built* row. Notice recovery is never computed by anything, so a dash there means
+nobody decided one was due. The footer totals each component.
