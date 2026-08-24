@@ -147,17 +147,24 @@
                         @endforeach
 
                         {{--
-                            Only where a prior year is drawn. A trial balance proves this period adds up and
-                            a bank file is a file — a toggle that changed nothing on either would be a
-                            control that lies about what it does.
+                            Only where a comparison column is drawn. A trial balance proves this period adds
+                            up and a bank file is a file — a control that changed nothing on either would be
+                            a control that lies about what it does.
+
+                            A picker rather than a toggle since Phase 4.2, because there are now four
+                            answers. Worth knowing what it does to a profit and loss: choosing a month or a
+                            quarter narrows the *current* period to match, because a comparison shorter than
+                            the period compared is not a comparison. See ReportComparison.
                         --}}
                         @if ($statement['kind'] === 'statement')
-                            <button
-                                type="button"
-                                wire:click="$toggle('comparison')"
-                                @class(['fi-explorer-toggle', 'fi-active' => $this->comparison])
-                                aria-pressed="{{ $this->comparison ? 'true' : 'false' }}"
-                            >vs previous year</button>
+                            <label class="fi-explorer-date">
+                                <span class="fi-sr-only">Compare against</span>
+                                <select wire:model.live="compare" class="fi-explorer-date-input">
+                                    @foreach ($this->comparisonBases() as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                         @endif
 
                         <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>

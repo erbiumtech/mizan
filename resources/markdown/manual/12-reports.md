@@ -846,3 +846,39 @@ ends, so five things that appear in those columns survive untouched: an em dash 
 "does not apply", a bare hyphen, a date like `2027-02-20`, prose that happens to begin
 with a negative number, and a figure that rounds away to nothing — `-0.4` shows as `0`
 rather than as `(0)`, which reads as a puzzle, or `-0`, which reads as a bug.
+
+## Comparison periods
+
+The three statements carry a comparison picker: previous year, previous quarter,
+previous month, or none. Before this there was one toggle, offering the previous year or
+nothing.
+
+**The design point is that a basis shorter than the reporting period narrows the current
+period too.** A Profit & Loss is the financial year to date. Compared against "the
+previous month" by shifting its range back thirty days it would read 1 June–20 January
+against 1 July–20 February — two overlapping eight-month spans whose difference is almost
+entirely the same trading counted twice. So the basis chooses the length of *both*
+columns: *vs previous month* gives February against January. The subtitle states the
+period actually shown.
+
+The comparison covers the **whole** previous month or quarter even when the current one is
+part-way through. Twenty days against twenty days would be tidier and would answer a
+question nobody asks.
+
+**A Balance Sheet is exempt**, and that is not an inconsistency: it is an as-at rather
+than a period, so the current figure is the balance on the day whatever the basis and only
+the comparison date moves. That is why the two are separate calculations.
+
+Every subtraction is overflow-safe. Plain `subMonth()` from 31 March lands on 3 March,
+which would make a month-on-month comparison at any month end quietly wrong.
+
+**Budget is deliberately not a basis.** The plan lists it, and *Budget vs Actual* already
+is that report — per account, Planned against Actual with the variance, and its own budget
+picker. Putting it in the comparison slot would be a second implementation of an existing
+comparison, and a poorer one since a statement has nowhere to ask which budget. Two paths
+to one number is how they come to disagree.
+
+An unrecognised basis in a URL falls back to the previous year rather than to no
+comparison: the commonest way to arrive with a bad one is an old link, and answering that
+with a column silently removed is worse than answering it with the conventional one. The
+previous boolean `?comparison=` is still honoured, so saved links land where they did.
