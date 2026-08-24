@@ -60,6 +60,11 @@ return [
         'App\\Filament\\Pages\\TargetAttainment' => \App\Modules\Crm\Filament\Pages\TargetAttainment::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\ForecastAgainstTargetOverview' => \App\Modules\Crm\Filament\Widgets\ForecastAgainstTargetOverview::class,
+        'App\\Filament\\Widgets\\PipelineFunnelChart' => \App\Modules\Crm\Filament\Widgets\PipelineFunnelChart::class,
+    ],
+
     'permission_groups' => [
         'Lead',
         'LeadSource',

@@ -5,6 +5,8 @@ namespace App\Modules\Quotations\Services;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Quotations\Models\Quotation;
 use App\Support\TenantTransaction;
+// Illuminate's, per the house rule: a method hinting the Laravel subclass rejects an instance of the parent.
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -161,6 +163,37 @@ class QuotationService
     public function expireLapsed(?string $on = null): int
     {
         return Quotation::query()->expirable($on)->update(['status' => Quotation::STATUS_EXPIRED]);
+    }
+
+    /**
+     * Quotations still live but about to lapse — `docs/reports-expansion-plan.md` Phase 5.3.
+     *
+     * **Here rather than in the widget, because it is the mirror of `expireLapsed()`** — the same three
+     * conditions with the comparison the other way round. A widget querying `Quotation` directly would be a
+     * second definition of "live but lapsing", and the first time somebody added a status to the ladder the
+     * two would disagree about which quotes count.
+     *
+     * `STATUS_SENT` only, which is what makes it useful: a draft has not been offered to anybody, and an
+     * accepted or declined quote has had its answer. The one worth chasing is the one sitting with a customer
+     * whose validity is running out.
+     *
+     * Both ends inclusive. A quote lapsing *today* is the most urgent of the set and dropping it from a
+     * "expiring soon" list would be the one omission somebody would notice.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Quotation>
+     */
+    public function expiringWithin(int $days, ?string $from = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $from = Carbon::parse($from ?: now()->toDateString());
+
+        return Quotation::query()
+            ->where('status', Quotation::STATUS_SENT)
+            ->whereNotNull('valid_until')
+            ->whereDate('valid_until', '>=', $from->toDateString())
+            ->whereDate('valid_until', '<=', $from->copy()->addDays($days)->toDateString())
+            ->with(['contact', 'lead'])
+            ->orderBy('valid_until')
+            ->get();
     }
 
     /**
