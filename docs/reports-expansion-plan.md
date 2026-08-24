@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.10 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.11 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -293,7 +293,7 @@ for. Ordered by how often that has come up.
    `employee_checklist_items.due_on`.
 10. **Consent Register** — *done, 2026-08-24. The "not marketing statistics" clause was the specification — see [What landed](#what-landed).* consent state per contact per channel with source and date. This is
     compliance evidence, not marketing statistics, which is why it belongs with the reports.
-11. **Campaign Performance** — sends, failures and reasons per campaign.
+11. **Campaign Performance** — *done, 2026-08-24. The skip count is the report; one metric was deliberately not built — see [What landed](#what-landed).* sends, failures and reasons per campaign.
 12. **Review Cycle Progress** — reviews and goals complete per cycle, one-to-ones held.
 13. **Environment Health & Incidents** — checks failed and incidents per project over a period; the
     existing widgets are point-in-time and this is the history.
@@ -485,6 +485,44 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — campaign performance (Phase 3.11), and one metric deliberately not built.**
+
+- **The skip count is the report.** `CampaignSend`'s own docblock set the brief: `skipped_no_consent` "has to
+  be reported as a distinct figure rather than a silence — otherwise nobody can tell a campaign that reached
+  nobody from one that was never sent". Every other view of a campaign shows what went out; this shows what
+  did not.
+- **The two skip reasons are separated, because one is a fault and the other is a success.** A recipient who
+  never agreed is a list-building problem pointing at the consent register. A recipient who withdrew between
+  `prepare()` and `send()` is the guard working — `CampaignSender` calls that gap "exactly when a complaint
+  comes from", and the message did not go. Merging them would report a success as a fault, so the note words
+  each as what it means rather than as a count.
+- **The two reasons became constants on `CampaignSend`** so the report could tell them apart. They were
+  sentences typed at two call sites in `CampaignSender`, and matching a sentence is not a contract: a
+  reworded message would have silently emptied the split.
+- **A campaign marked sent with pending rows never finished.** `send()` leaves every pending row either sent
+  or skipped before marking the campaign sent, so a pending row on a sent campaign means the loop stopped part
+  way — and nothing else in the application notices, because the campaign's own status says it went out.
+  Pending rows on an in-flight or cancelled campaign are expected and are not flagged; both directions are
+  tested.
+- **A campaign with no `sent_at` is placed by `created_at`.** Without that fallback the unfinished and
+  in-flight runs would be precisely the ones the report could not see, since neither has a send date.
+- **The recipient-count-versus-segment metric was deliberately not built, and this is the most useful thing
+  in this entry.** A recipient with no address on the channel gets no row at all — `prepare()` passes over
+  them with a bare `continue`, on the stated grounds that "somebody with no WhatsApp number has not refused
+  anything" — so the send count really is lower than the audience and nothing records the difference. The
+  obvious fix is to re-run the segment and compare, and it would be wrong: `audienceFor()` evaluates its
+  filters *live*, so it returns today's audience rather than the one that existed at send time, and every
+  campaign whose segment has since gained a member would show a false shortfall. The gap is stated in the help
+  instead of guessed at in the report.
+- **A surviving mutation found a real trap: `failed_reason` carries skip reasons too.** `prepare()` writes the
+  consent message into it, so a top-failure column that did not filter on `STATUS_FAILED` would report "No
+  consent on record for this channel" as a *delivery failure*. Two tests now pin the guard in both
+  directions — a skip reason is not a failure, and a failure mentioning consent is not a skip.
+- **Twenty-seven mutations, twenty-six killed.** The survivor is a `whereIn` on the two known reasons, which
+  is a narrowing rather than a guard: the split is read by key, so an unrecognised reason sits in the array
+  unread. It stays because the table grows by one row per recipient per campaign, and the docblock says
+  plainly that removing it changes no output and no test pretends otherwise.
 
 **2026-08-24 — the consent register (Phase 3.10), where the plan's own aside was the specification.**
 

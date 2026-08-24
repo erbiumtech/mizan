@@ -673,3 +673,41 @@ justification, and only a permission has to be defended.
 
 Rows are ordered by what needs doing: unevidenced grants, then grants with no recorder,
 then sound grants, then revocations.
+
+### Campaign Performance
+
+Under Sales and pipeline: every campaign that went out — or tried to — in the financial
+year to date, with what it reached, what it did not, and why.
+
+**The skipped count is the reason it exists.** Every other view of a campaign shows what
+went out, so a campaign that skipped its whole audience and one that was never sent look
+identical everywhere else.
+
+The two kinds of skip are kept apart because they are different problems. **They had
+never agreed** is a list-building fault pointing at the Consent Register: the segment and
+the register disagree about who may be reached. **They withdrew before the send** is the
+guard *working* — consent is re-checked at send time precisely because somebody may
+unsubscribe in the gap after preparing, and that gap is when complaints come from. The
+message did not go. No action needed.
+
+Standing carries the other findings. **Sent · N never processed** means the campaign is
+marked sent but N recipients are still pending: the send loop stopped part way, and
+nothing else notices because the campaign's own status says it went out. **Sent · reached
+nobody** means it had recipients and none received anything. Pending rows on an *in
+flight* or *cancelled* campaign are expected and are not flagged.
+
+Delivery failures come from whichever channel sender the company configured, so their
+reasons are free text from outside the module. The column names the most common reason per
+campaign rather than inventing categories. The note names the most common across all
+campaigns, counted by how many campaigns hit it — one campaign to a bad list produces
+thousands of identical failures, and the reason worth knowing is the one that recurs.
+
+**What it cannot tell you:** a recipient with no address on the channel gets no row at
+all, so the recipient count can be lower than the segment's size and the difference is
+recorded nowhere. The report deliberately does not reconstruct that by re-running the
+segment — segments evaluate their filters live, so that would give today's audience and
+show a false shortfall on every campaign whose segment has since grown.
+
+Campaigns are placed by send date, or by creation date where they have not sent. Without
+that fallback the unfinished and in-flight runs would be the ones this report could not
+see. Recipients includes pending rows: they were prepared and addressed.
