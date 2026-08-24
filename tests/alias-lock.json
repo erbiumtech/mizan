@@ -357,6 +357,7 @@
         "App\\Filament\\Pages\\PlanVersusActual": "App\\Modules\\Timesheets\\Filament\\Pages\\PlanVersusActual",
         "App\\Filament\\Pages\\AssetsInHand": "App\\Modules\\Lifecycle\\Filament\\Pages\\AssetsInHand",
         "App\\Filament\\Pages\\DocumentsExpiring": "App\\Modules\\Lifecycle\\Filament\\Pages\\DocumentsExpiring",
+        "App\\Filament\\Pages\\FinalSettlementsReport": "App\\Modules\\Lifecycle\\Filament\\Pages\\FinalSettlementsReport",
         "App\\Filament\\Pages\\LoansOutstanding": "App\\Modules\\Accounting\\Filament\\Pages\\LoansOutstanding",
         "App\\Filament\\Pages\\CashCommitments": "App\\Modules\\Accounting\\Filament\\Pages\\CashCommitments",
         "App\\Filament\\Pages\\PayrollRegister": "App\\Modules\\Payroll\\Filament\\Pages\\PayrollRegister",

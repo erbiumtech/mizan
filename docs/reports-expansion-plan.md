@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.7 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.8 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -287,7 +287,7 @@ for. Ordered by how often that has come up.
    `employees.leaving_date`, with turnover percentage and average tenure.
 7. **Assets in Employees' Hands** — *done, 2026-08-24. Both ties are real; the value column *is* the settlement recovery — see [What landed](#what-landed).* `issued_assets` not returned, by employee, with value; ties to the
    asset register and to settlement recovery.
-8. **Final Settlements** — composition per leaver: notice recovery, encashment, gratuity, advance and
+8. **Final Settlements** — *done, 2026-08-24. Lists leavers rather than settlements, which is what makes an unbuilt one visible — see [What landed](#what-landed).* composition per leaver: notice recovery, encashment, gratuity, advance and
    asset recoveries, net.
 9. **Onboarding / Offboarding Progress** — checklist items overdue by owner role, from
    `employee_checklist_items.due_on`.
@@ -485,6 +485,41 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — final settlements (Phase 3.8), and a tolerance that was quietly wrong.**
+
+- **The report lists leavers, not settlements, and that single decision is most of its value.** Every other
+  view of a settlement in this application starts from a settlement that exists, so an employee who left and
+  was never settled is invisible everywhere. Those rows carry no figures and sort to the top.
+- **There is no ledger balance to tie to, and saying so is not a shortfall.** A settlement posts nothing —
+  approving one records that a figure was agreed. The Phase 2 rule therefore does not apply, and what the
+  report offers instead is three disagreements: the unbuilt settlement above, a stored net that is no longer
+  the sum of its parts, and a draft quoting kit that has since moved.
+- **`net_amount` is written on build and on approve, and not on edit** — while every component is editable on
+  the resource form. So typing a notice recovery into a draft leaves the stored net behind, and the figure of
+  record disagrees with the figures it is made of. The Net column shows the *computed* net so the row adds up,
+  and the status cell carries the disagreement; a row whose parts do not sum to its total reads as a bug in
+  the report rather than a defect in the record.
+- **The stale-kit check runs on drafts only, on purpose.** The builder refuses to rebuild an approved
+  settlement "or the agreed figure would move underneath it" — so flagging an approved one as stale would be
+  arguing with the agreement. The *net differs* check does apply to approved settlements, because a stored
+  figure that disagrees with its own components is a defect however it was agreed. Both directions have a test.
+- **`abs($a - $b) >= 0.01` is the wrong way to compare two money figures, and a surviving mutation is what
+  exposed it.** Removing the tolerance entirely broke nothing, which said the tolerance was doing no work — and
+  it turned out to be doing the wrong work: float subtraction of two `decimal:2` values under-shoots, so
+  1234.56 − 1234.55 is 0.009999999999990905 and a genuine one-paisa disagreement reads as *no difference*.
+  Four of five sampled paisa-apart pairs failed that way. The comparison now rounds the difference to two
+  places, which needs no tolerance at all. Worth carrying to any other report comparing money.
+- **Payable and owed-back are two tiles, never one.** A negative settlement is legitimate — the model says so
+  — and summing a positive with a negative gives a figure that is neither what the company owes nor what it is
+  owed. Both are somebody's job.
+- **One mutation survives and is honestly equivalent.** A bare `!== 0.0` in place of the rounded comparison
+  behaves identically on this schema, because every operand is a `decimal:2` column; no test can distinguish
+  them and none pretends to. The rounding stays as the form that is still right if a caller hands it an
+  unrounded sum.
+- **The page is `FinalSettlementsReport`, not `FinalSettlements`** — `FinalSettlementResource` already derives
+  the `final-settlements` slug, and two things claiming one URL surfaces as a missing route rather than a
+  clash. The same reason `ExpenseClaimsReport` carries the suffix, and the help slug is suffixed to match.
 
 **2026-08-24 — assets in employees' hands (Phase 3.7), where both of the plan's ties turned out to be real.**
 

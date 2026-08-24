@@ -5,6 +5,7 @@ namespace App\Modules\Lifecycle;
 use App\Modules\Lifecycle\Console\Commands\CheckDocumentExpiry;
 use App\Modules\Lifecycle\Filament\Pages\AssetsInHand;
 use App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring;
+use App\Modules\Lifecycle\Filament\Pages\FinalSettlementsReport;
 use App\Modules\Lifecycle\Filament\Pages\LeaveLiability;
 use App\Modules\Lifecycle\Models\ChecklistItem;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
@@ -21,6 +22,7 @@ use App\Modules\Lifecycle\Policies\EmployeeDocumentPolicy;
 use App\Modules\Lifecycle\Policies\FinalSettlementPolicy;
 use App\Modules\Lifecycle\Policies\IssuedAssetPolicy;
 use App\Modules\Lifecycle\Support\LifecycleReports;
+use App\Modules\Lifecycle\Support\SettlementReports;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
@@ -83,6 +85,12 @@ class LifecycleServiceProvider extends ServiceProvider
             'Laptops, phones and vehicles issued and not returned — and who has left holding one.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            FinalSettlementsReport::class,
+            'What each leaver was owed and what it was made of — including the ones nobody built.',
+        );
+
         ReportRenderers::register(
             'DocumentsExpiring',
             fn (string $asOf): array => app(LifecycleReports::class)->documentsExpiring($asOf),
@@ -94,6 +102,10 @@ class LifecycleServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'AssetsInHand',
             fn (string $asOf): array => app(LifecycleReports::class)->assetsInHand($asOf),
+        );
+        ReportRenderers::register(
+            'FinalSettlementsReport',
+            fn (string $asOf): array => app(SettlementReports::class)->settlements($asOf),
         );
     }
 }
