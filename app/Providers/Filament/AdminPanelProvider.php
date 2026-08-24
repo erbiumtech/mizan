@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Navigation\DomainNavigationManager;
 use App\Filament\Navigation\NavigationSnapshot;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
+use App\Modules\Core\Filament\Pages\Dashboard;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 use App\Support\NavigationTree;
@@ -14,7 +15,6 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationManager;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -206,6 +206,8 @@ class AdminPanelProvider extends PanelProvider
             // each group was one flat list. See NavigationTree.
             ->navigationGroups(NavigationTree::order())
             ->pages([
+                // Ours, not Filament's — reports-expansion-plan.md Phase 5.1. It carries the period filter
+                // every widget reads, so no widget keeps its own idea of "now".
                 Dashboard::class,
             ])
             ->widgets([])
