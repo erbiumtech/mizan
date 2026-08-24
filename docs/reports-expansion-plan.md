@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phase 4 all but 4.5 landed (4.1–4.4); 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1–4 complete; Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -309,7 +309,7 @@ report:
 2. **Comparison periods beyond the previous year** — *done, 2026-08-24, except budget, which `BudgetVsActual` already is — see [What landed](#what-landed).* previous month, previous quarter, budget.
 3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
 4. **Keyboard navigation of the report list** — *done, 2026-08-24. The search box is the type-ahead; the rows stay buttons — see [What landed](#what-landed).* arrow keys and type-ahead, once the list is 35+ rows.
-5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
+5. **A saved view per report** — *done, 2026-08-24. The date is deliberately not saved — see [What landed](#what-landed).* the filters somebody uses every month, kept. The URL already carries
    the whole state, so this is storage rather than plumbing.
 
 ## Phase 5 — The dashboard
@@ -485,6 +485,47 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — a saved view per report (Phase 4.5). Phase 4 is complete.**
+
+- **The date is not saved, and the plan's own sentence is the argument.** It asks for "the filters somebody
+  uses every month" — and the date is the one thing that *changes* every month. A view holding 30 June would
+  keep opening on 30 June and the person who saved it would not notice for a while, which is the worst kind
+  of wrong on a report. Applying a view leaves the date alone for the same reason, and both halves have a
+  test.
+- **The second half of that sentence gave the design.** "The URL already carries the whole state" is not just
+  a note about effort — it means the fixed-date case *already has a mechanism*, and a better one: "the balance
+  sheet at 30 June" is a link somebody sends. So the saved view should be the other thing entirely. A link
+  for a moment, a saved view for a habit; two mechanisms doing one job each rather than one doing both badly.
+- **Applying a view never clears a filter it does not carry.** The absence of a stored account is not an
+  instruction to blank an account somebody has since picked. The obvious loop — assign every key in `FILTERS`
+  — would have done exactly that, and its mutation is one of the ones that dies.
+- **The stored keys are an allow-list rather than "whatever the page had".** So `asOf` cannot get in, and a
+  future property on the hub does not silently join everybody's existing views — which is the realistic
+  version of this going wrong: somebody adds a property, saving starts storing it, and every saved view
+  begins applying something it never meant to.
+- **The comparison basis is normalised on save *and* on read**, because a stored row can outlive a basis. A
+  view saved when some basis briefly existed would otherwise hand the pane a string it has stopped
+  recognising.
+- **Only eight of the fifty-one reports offer it, and finding that out corrected the tests.** A saved view
+  holds a comparison basis or one of the four pickers, so the three statements and the five reports with an
+  `ASKS` entry have something to remember and the other forty-three have a date and nothing else. The first
+  draft of the tests used the aged receivables and passed every assertion about the model while the control
+  was correctly absent from the page — the model was fine and the test was fiction.
+- **Named `SavedReportView`, not `ReportView`.** `ReportView` is the permission every report is gated on, and
+  a model sharing that name would make `can('ReportView')` and `ReportView::find()` read like one subject.
+- **Per user, with no foreign key to `users`** — that table is on the landlord connection and a
+  cross-connection constraint is not a constraint. The scope to the signed-in id is what actually separates
+  people's views, so it lives in the model rather than being trusted to each caller; there are tests that
+  another person's view can be neither applied nor forgotten however the id arrives.
+- **Seventeen mutations, fifteen killed — and one survivor is the design working.** Making the page pass
+  `asOf` into a saved view changes nothing, because the model's allow-list drops it; adding `asOf` to that
+  list fails immediately. The mutation surviving is the proof that the allow-list is the guard and the page's
+  omission is only politeness, which is the right way round. The other survivor is the blank-key check in
+  `forReport()`, which saves a round trip the query would have answered emptily anyway.
+- **`state` is JSON rather than a column per filter**, because the *set* differs per report — a column each
+  would be five nullable columns of which any report uses at most one, and a new filter would be a migration
+  rather than a key.
 
 **2026-08-24 — keyboard navigation of the report list (Phase 4.4). The phase set 35 rows as the threshold;
 there are 51.**
