@@ -28,6 +28,21 @@ class CampaignSend extends Model
 
     public const STATUS_SKIPPED_NO_CONSENT = 'skipped_no_consent';
 
+    /**
+     * The two reasons a send is skipped, as constants rather than as prose written at the call site.
+     *
+     * They mean different things and the difference matters. The first is a segment built from people who
+     * never agreed — a list-building problem. The second is somebody who withdrew in the gap between
+     * preparing a campaign and sending it, which `CampaignSender::send()` calls out as "exactly when a
+     * complaint comes from"; catching it is the guard working, not a failure.
+     *
+     * Here because the column belongs to this model, and because the consent register report has to tell the
+     * two apart — matching on a sentence typed in a service is not a contract.
+     */
+    public const REASON_NO_CONSENT = 'No consent on record for this channel. Silence is not consent.';
+
+    public const REASON_CONSENT_WITHDRAWN = 'Consent was withdrawn before this was sent.';
+
     protected $fillable = [
         'campaign_id', 'contact_id', 'lead_id', 'channel', 'to',
         'status', 'sent_at', 'failed_reason',

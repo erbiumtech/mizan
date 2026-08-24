@@ -27,6 +27,13 @@ class ProjectsPlugin implements Plugin
             in: __DIR__.'/Filament/Widgets',
             for: __NAMESPACE__.'\Filament\Widgets',
         );
+
+        // The environment health report (reports-expansion-plan.md Phase 3.13). Hidden from the sidebar and
+        // reached from the Reports hub, but still registered or its URL does not exist.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void

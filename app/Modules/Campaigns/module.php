@@ -34,6 +34,7 @@ return [
     ],
 
     'pages' => [
+        'App\\Filament\\Pages\\CampaignPerformance' => \App\Modules\Campaigns\Filament\Pages\CampaignPerformance::class,
         'App\\Filament\\Pages\\ConsentRegister' => \App\Modules\Campaigns\Filament\Pages\ConsentRegister::class,
     ],
 

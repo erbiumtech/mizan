@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Support\Reporting\ExportsTheOpenReport;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportPaneRenderer;
 use BackedEnum;
@@ -31,6 +32,7 @@ use Livewire\Attributes\Url;
 class Reports extends Page
 {
     use BelongsToModule;
+    use ExportsTheOpenReport;
 
     protected string $view = 'filament.pages.reports';
 
@@ -430,10 +432,19 @@ class Reports extends Page
         return false;
     }
 
+    /**
+     * Help, and the two exports — Phase 4.1.
+     *
+     * The exports sit on the hub as well as on each report's own page because the two are views of one
+     * payload: `ReportPaneRenderer` feeds both, and there is a test per report asserting they agree. An
+     * export offered on one screen and not the other would be an arbitrary difference between two ways of
+     * looking at the same thing.
+     */
     protected function getHeaderActions(): array
     {
         return [
             HelpAction::make('reports', 'Reports: Help'),
+            ...$this->exportActions(),
         ];
     }
 

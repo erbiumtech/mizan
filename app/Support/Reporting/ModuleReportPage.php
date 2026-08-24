@@ -3,6 +3,7 @@
 namespace App\Support\Reporting;
 
 use App\Filament\Concerns\BelongsToModule;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Livewire\Attributes\Url;
 use RuntimeException;
@@ -33,6 +34,7 @@ use UnitEnum;
 abstract class ModuleReportPage extends Page
 {
     use BelongsToModule;
+    use ExportsTheOpenReport;
 
     protected string $view = 'filament.pages.module-report';
 
@@ -69,6 +71,36 @@ abstract class ModuleReportPage extends Page
     public function mount(): void
     {
         $this->asOf ??= now()->toDateString();
+    }
+
+    /**
+     * The header row, assembled here so no report can be built without its exports.
+     *
+     * **`final` on purpose.** Every one of these pages used to declare `getHeaderActions()` itself and
+     * return its help button, which meant Phase 4.1's two export actions would have had to be added to
+     * thirty-three files and remembered on the thirty-fourth. A report author now contributes to the row
+     * rather than replacing it, and the exports cannot be dropped by omission.
+     *
+     * @return array<int, Action>
+     */
+    final protected function getHeaderActions(): array
+    {
+        return [...$this->reportActions(), ...$this->exportActions()];
+    }
+
+    /**
+     * What this report adds to its own header — in practice, its help button.
+     *
+     * Overridden in the subclass rather than assembled here, and the help call has to stay a **literal** in
+     * the subclass's own source: `HelpCoverageTest` reads each page's file for `HelpAction::make('...')`, so
+     * a call inherited from this class would read as a page with no help. Which is the right answer, because
+     * the slug is per report and not per base class.
+     *
+     * @return array<int, Action>
+     */
+    protected function reportActions(): array
+    {
+        return [];
     }
 
     /**

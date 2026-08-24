@@ -113,7 +113,7 @@ class CampaignSender
                         : CampaignSend::STATUS_SKIPPED_NO_CONSENT,
                     'failed_reason' => $allowed
                         ? null
-                        : 'No consent on record for this channel. Silence is not consent.',
+                        : CampaignSend::REASON_NO_CONSENT,
                 ]
             );
 
@@ -149,7 +149,7 @@ class CampaignSender
             if (! $recipient || ! Consent::permits($recipient, $campaign->channel)) {
                 $send->update([
                     'status' => CampaignSend::STATUS_SKIPPED_NO_CONSENT,
-                    'failed_reason' => 'Consent was withdrawn before this was sent.',
+                    'failed_reason' => CampaignSend::REASON_CONSENT_WITHDRAWN,
                 ]);
 
                 $skipped++;

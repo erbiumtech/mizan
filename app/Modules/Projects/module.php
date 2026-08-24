@@ -34,6 +34,10 @@ return [
         'App\\Filament\\Widgets\\CertificateExpiryTable' => \App\Modules\Projects\Filament\Widgets\CertificateExpiryTable::class,
     ],
 
+    'pages' => [
+        'App\\Filament\\Pages\\EnvironmentHealth' => \App\Modules\Projects\Filament\Pages\EnvironmentHealth::class,
+    ],
+
     'permission_groups' => [
         'Project',
     ],
