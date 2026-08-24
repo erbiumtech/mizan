@@ -41,6 +41,7 @@ return [
     'pages' => [
         'App\\Filament\\Pages\\AssetsInHand' => \App\Modules\Lifecycle\Filament\Pages\AssetsInHand::class,
         'App\\Filament\\Pages\\FinalSettlementsReport' => \App\Modules\Lifecycle\Filament\Pages\FinalSettlementsReport::class,
+        'App\\Filament\\Pages\\ChecklistProgress' => \App\Modules\Lifecycle\Filament\Pages\ChecklistProgress::class,
         'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
         'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
     ],

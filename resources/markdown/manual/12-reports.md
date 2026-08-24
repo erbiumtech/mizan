@@ -607,3 +607,69 @@ somebody owing — and adding the two gives a figure that is neither.
 A dash in a component column means nought; a row of nothing but dashes is a *Not
 built* row. Notice recovery is never computed by anything, so a dash there means
 nobody decided one was due. The footer totals each component.
+
+### Onboarding / Offboarding Progress
+
+Under People and payroll: every onboarding and exit checklist item still outstanding,
+who it is for, whose job it is, when it was due and how late.
+
+**Deliberately a progress report, not an overdue list**, because the two worst cases
+are not late:
+
+- **No due date** — the due date is optional, so an item without one can never
+  *become* overdue. It sits outstanding forever and no report read for lateness will
+  ever mention it. It sorts above items that simply are not due yet, because it is a
+  finding rather than a future task.
+- **Nobody** in the Owner role column — the owner is a role, not a person, so
+  templates outlive whoever holds the job. An item with no role has not been asked of
+  anyone. The cell says *Nobody* rather than sitting blank, which would read as a
+  rendering fault.
+
+And one with a security edge: an **exit item still open for somebody who has already
+left**. Exit checklists are where access cards, accounts and keys get revoked, so this
+is a door still unlocked. Their name is marked `· LEFT`.
+
+"By owner role" is delivered in the note and the ordering rather than by grouping the
+rows: the note splits the overdue count by role biggest-queue-first, the worst-blocked
+role's items rise to the top, and every row still names one actionable task. Grouping
+under role headings would answer whose queue is longest and lose which task for whom.
+More than three roles and the note names the top three and says how many more — never
+a silent truncation.
+
+Progress counts only the checklists that still have outstanding work. Diluted by every
+finished onboarding it would sit near 100% permanently.
+
+An item due **on** the date you are reading is *Not yet due* — the day it is due is
+still a day it can be done.
+
+### Consent Register
+
+Under Sales and pipeline: who may be contacted on which channel, and the evidence
+behind each permission — state, source, date and recorder.
+
+**Compliance evidence, not marketing statistics.** There is deliberately no opt-in
+rate, no channel comparison and no trend. A percentage invites a target, and the moment
+consent has a target somebody starts managing the number instead of the record.
+
+The state is **derived, never stored**. There is no subscribed checkbox: every grant and
+every revocation is its own row, so somebody who opted in, out and in again has three
+rows and one current state. The **Changes** column counts that trail. The register shows
+the latest row per subject per channel, resolved exactly the way the sender resolves it
+when deciding whether to contact somebody — including the tie-break on record id when
+two rows share a timestamp, so what this report permits is what a campaign will do.
+
+Each channel is its own permission; agreeing to email is not agreeing to WhatsApp.
+
+It is a true **as-at**: the latest record on or before your date, so a later revocation
+does not rewrite the past. A subject whose only records come later is absent rather than
+shown as revoked — nothing was recorded then, and **no record means no permission**. An
+empty register is not "nothing to show", it means nobody may be contacted, and the
+report says so.
+
+The finding is a **grant with no source**: *they agreed* is worth nothing without *and
+here is how*, and on every other screen such a permission looks identical to a
+defensible one. Counted on grants only — removing somebody from a list needs no
+justification, and only a permission has to be defended.
+
+Rows are ordered by what needs doing: unevidenced grants, then grants with no recorder,
+then sound grants, then revocations.
