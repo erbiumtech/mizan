@@ -607,3 +607,37 @@ somebody owing — and adding the two gives a figure that is neither.
 A dash in a component column means nought; a row of nothing but dashes is a *Not
 built* row. Notice recovery is never computed by anything, so a dash there means
 nobody decided one was due. The footer totals each component.
+
+### Onboarding / Offboarding Progress
+
+Under People and payroll: every onboarding and exit checklist item still outstanding,
+who it is for, whose job it is, when it was due and how late.
+
+**Deliberately a progress report, not an overdue list**, because the two worst cases
+are not late:
+
+- **No due date** — the due date is optional, so an item without one can never
+  *become* overdue. It sits outstanding forever and no report read for lateness will
+  ever mention it. It sorts above items that simply are not due yet, because it is a
+  finding rather than a future task.
+- **Nobody** in the Owner role column — the owner is a role, not a person, so
+  templates outlive whoever holds the job. An item with no role has not been asked of
+  anyone. The cell says *Nobody* rather than sitting blank, which would read as a
+  rendering fault.
+
+And one with a security edge: an **exit item still open for somebody who has already
+left**. Exit checklists are where access cards, accounts and keys get revoked, so this
+is a door still unlocked. Their name is marked `· LEFT`.
+
+"By owner role" is delivered in the note and the ordering rather than by grouping the
+rows: the note splits the overdue count by role biggest-queue-first, the worst-blocked
+role's items rise to the top, and every row still names one actionable task. Grouping
+under role headings would answer whose queue is longest and lose which task for whom.
+More than three roles and the note names the top three and says how many more — never
+a silent truncation.
+
+Progress counts only the checklists that still have outstanding work. Diluted by every
+finished onboarding it would sit near 100% permanently.
+
+An item due **on** the date you are reading is *Not yet due* — the day it is due is
+still a day it can be done.
