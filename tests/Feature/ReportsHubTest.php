@@ -128,6 +128,7 @@ class ReportsHubTest extends TestCase
         // it lives in Settings now; NavigationGroupsTest holds that end of it.
         foreach ([
             'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance', 'Budget vs Actual',
+            'Fixed Asset Register', 'Bank Reconciliation Statement',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
             'FBR Invoice Reporting',
