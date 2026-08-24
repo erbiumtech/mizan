@@ -35,6 +35,9 @@ class ConstructionAccounts
         'contract_liabilities' => 'Advances received and certified value in excess of work done',
         'retention_receivable' => 'Retention held by the employer against us',
         'retention_payable' => 'Retention we hold from subcontractors',
+        // The mirror of `contract_liabilities`, which is an advance *received*. An advance paid down to a
+        // subcontractor is money out against work not yet done, so it is ours until his certificates recover it.
+        'subcontract_advance' => 'Advance paid to a subcontractor, recovered from their certificates',
         'materials_on_site' => 'Delivered and not yet built in',
         'goods_received_not_invoiced' => 'Received against an order with no supplier invoice yet',
         'accrued_subcontract_costs' => 'Subcontract work done and not yet certified',

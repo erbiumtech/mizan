@@ -62,6 +62,7 @@ return [
         'contract_liabilities' => '2630',
         'retention_receivable' => '1620',
         'retention_payable' => '2620',
+        'subcontract_advance' => '1630',
         'materials_on_site' => '1600',
         'goods_received_not_invoiced' => '2600',
         'accrued_subcontract_costs' => '2610',

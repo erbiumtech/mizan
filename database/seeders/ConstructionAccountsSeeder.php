@@ -36,6 +36,7 @@ class ConstructionAccountsSeeder extends Seeder
             ['code' => '1600', 'name' => 'Materials on Site', 'type' => 'asset', 'description' => 'Delivered to site and not yet built in; claimable where the contract allows it'],
             ['code' => '1610', 'name' => 'Contract Assets', 'type' => 'asset', 'description' => 'Work done and not yet certified — the uncertified half of work in progress'],
             ['code' => '1620', 'name' => 'Retention Receivable', 'type' => 'asset', 'description' => 'Retention held by the employer: earned, contractually owed, not yet payable'],
+            ['code' => '1630', 'name' => 'Subcontract Advances', 'type' => 'asset', 'description' => 'Advance paid down to a subcontractor, recovered from their certificates. The mirror of 2630, which is an advance received'],
         ],
         '2000' => [
             ['code' => '2600', 'name' => 'Goods Received Not Invoiced', 'type' => 'liability', 'description' => 'Received on site against a purchase order with no supplier invoice yet'],

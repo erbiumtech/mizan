@@ -77,9 +77,13 @@ class DatabaseSeeder extends Seeder
      * dying on the guard in Account::booted() when it tried to hang 4100 under a
      * 4000 that already had a salary posted to it.
      *
+     * Public so TenantBaselineCompletenessTest can pin the routing without
+     * provisioning a database: it reads the company's profile and type and
+     * touches nothing else.
+     *
      * @return list<class-string<Seeder>>
      */
-    protected function seedersFor(Company $company): array
+    public function seedersFor(Company $company): array
     {
         $baseline = CompanyProfiles::seeders($company->profile, $company->type);
 

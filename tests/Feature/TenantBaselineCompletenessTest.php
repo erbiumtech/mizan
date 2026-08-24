@@ -170,13 +170,111 @@ class TenantBaselineCompletenessTest extends TestCase
         }
     }
 
+    /**
+     * The chart a company has been posting to is not ours to rewrite.
+     *
+     * This is the regression for a real failure. Every baseline seeder was
+     * assumed safe to re-run because it was firstOrCreate *or updateOrCreate* —
+     * and updateOrCreate does not leave rows alone, it overwrites them. So each
+     * db:seed and each tenants:seed-baseline stamped this file's idea of the
+     * chart back over the company's: an account renamed to "Consulting Revenue"
+     * with journal entries against it silently became "Sales Revenue" again.
+     *
+     * Behavioural rather than a source grep on purpose. The grep below cannot
+     * see an overwrite, which is exactly how this survived: it looks for
+     * ->delete(), and updateOrCreate destroys data without ever calling it.
+     */
+    public function test_re_running_the_baseline_leaves_an_existing_chart_alone(): void
+    {
+        $this->provision(Company::TYPE_BUSINESS);
+
+        // Rename an account and post to it, the way a company that has been
+        // using the system for a while would have.
+        $account = Account::where('code', '4200')->firstOrFail();
+        $account->update(['name' => 'Consulting Revenue']);
+
+        $entry = \App\Modules\Accounting\Models\JournalEntry::create([
+            'entry_number' => 'JV-BASELINE-1',
+            'entry_date' => now()->toDateString(),
+        ]);
+
+        \App\Modules\Accounting\Models\JournalEntryLine::create([
+            'journal_entry_id' => $entry->id,
+            'account_id' => $account->id,
+            'credit_amount' => 1000,
+        ]);
+
+        // What tenants:seed-baseline re-runs over an existing company.
+        foreach (TenantBaselineSeeder::seeders() as $seeder) {
+            if ($seeder === SalarySlabSeeder::class) {
+                continue; // the one seeder that is destructive by design
+            }
+
+            (new $seeder)->run();
+        }
+
+        $this->assertSame(
+            'Consulting Revenue',
+            $account->fresh()->name,
+            'Re-running the baseline renamed an account that has journal entries against it.',
+        );
+    }
+
+    /**
+     * A personal account must never be seeded the business chart.
+     *
+     * db:seed used to run one hardcoded list over every company, so it seeded
+     * the business chart into a personal account — renaming 4000 Salary to
+     * "Income" and 1000 Cash in Hand to "Assets", then dying on the guard in
+     * Account::booted() when it tried to hang 4100 under a 4000 that already had
+     * a salary posted to it. CompanyProvisioner and tenants:seed-baseline both
+     * routed on the company's profile already; db:seed was the one that did not.
+     */
+    public function test_db_seed_routes_each_company_to_its_own_chart(): void
+    {
+        $seeder = new \Database\Seeders\DatabaseSeeder;
+
+        $personal = Company::factory()->make(['type' => Company::TYPE_PERSONAL, 'profile' => null]);
+        $business = Company::factory()->make(['type' => Company::TYPE_BUSINESS, 'profile' => null]);
+
+        $personalList = $seeder->seedersFor($personal);
+        $businessList = $seeder->seedersFor($business);
+
+        $this->assertContains(\Database\Seeders\PersonalChartOfAccountsSeeder::class, $personalList);
+        $this->assertNotContains(
+            \Database\Seeders\ChartOfAccountsSeeder::class,
+            $personalList,
+            'db:seed would seed the business chart into a personal account.',
+        );
+
+        $this->assertContains(\Database\Seeders\ChartOfAccountsSeeder::class, $businessList);
+        $this->assertNotContains(
+            \Database\Seeders\PersonalChartOfAccountsSeeder::class,
+            $businessList,
+        );
+
+        // The categories are keyed to their own chart's codes, so the pair has
+        // to travel together — see test_a_personal_accounts_categories_point_at_its_own_chart.
+        $this->assertContains(\Database\Seeders\PersonalTransactionTypeSeeder::class, $personalList);
+        $this->assertNotContains(\Database\Seeders\TransactionTypeSeeder::class, $personalList);
+
+        // And a personal account gets none of the business-only dummy data:
+        // pay components describe payroll it does not run, and the tax rates
+        // post to 2150 Sales Tax Payable, which its chart has no such account for.
+        $this->assertNotContains(\Database\Seeders\PayComponentSeeder::class, $personalList);
+        $this->assertNotContains(\Database\Seeders\TaxRateSeeder::class, $personalList);
+    }
+
     public function test_only_the_salary_slab_seeder_is_destructive_to_rerun(): void
     {
-        // tenants:seed-baseline promises it only adds. That promise rests on
-        // every baseline seeder being firstOrCreate/updateOrCreate, with
-        // SalarySlabSeeder the single known exception it filters out. A new
-        // seeder that deletes rows would break the promise silently, so the
-        // exception list is pinned here.
+        // tenants:seed-baseline promises it only adds, and SalarySlabSeeder is
+        // the single known exception it filters out. A new seeder that deletes
+        // rows would break the promise silently, so the exception list is pinned
+        // here.
+        //
+        // NOTE this grep catches only outright deletion. Overwriting a row is
+        // just as destructive and is invisible here — updateOrCreate over a live
+        // chart is what actually broke, and the test above is what covers it.
         $destructive = [];
 
         $all = array_unique(array_merge(TenantBaselineSeeder::seeders(), PersonalBaselineSeeder::seeders()));

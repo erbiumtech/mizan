@@ -143,6 +143,25 @@ class ConstructionCertificateInvoiceTest extends AccountingTestCase
         $this->assertTrue(ConstructionAccounts::isConfigured());
     }
 
+    /**
+     * The payable side's own accounts resolve too, including the one that had to be added for it.
+     *
+     * `subcontract_advance` is the mirror of `contract_liabilities`: 2630 is an advance *received* and is a
+     * liability, so an advance *paid* down to a subcontractor cannot share it — the two are opposite sides of the
+     * balance sheet and netting them would hide both.
+     */
+    public function test_the_payable_construction_accounts_resolve(): void
+    {
+        $this->assertSame('2620', ConstructionAccounts::code('retention_payable'));
+        $this->assertSame('1630', ConstructionAccounts::code('subcontract_advance'));
+        $this->assertSame('5650', ConstructionAccounts::code('job_cost_subcontract'));
+
+        // Seeded, so the defaults are reachable rather than merely configured.
+        $this->assertIsInt(ConstructionAccounts::id('retention_payable'));
+        $this->assertIsInt(ConstructionAccounts::id('subcontract_advance'));
+        $this->assertIsInt(ConstructionAccounts::id('job_cost_subcontract'));
+    }
+
     /** The five job-cost accounts are reached by cost type rather than by composing a key. */
     public function test_job_cost_accounts_are_resolved_by_cost_type(): void
     {
@@ -314,6 +333,130 @@ class ConstructionCertificateInvoiceTest extends AccountingTestCase
         $invoice = $this->handoff->raise($this->certificateSeven());
 
         $this->assertSame(Invoice::KIND_PURCHASE, $invoice->kind);
+    }
+
+    /**
+     * **The regression this pair of tests exists for.**
+     *
+     * This service branched `invoices.kind` on the side and then mapped every line to the *receivable* accounts
+     * regardless. On a purchase invoice the line account is debited, so a subcontractor's certificate debited
+     * `contract_revenue` — reducing income instead of recognising cost — and debited `retention_receivable`, an
+     * asset, for retention this company *owes*. The ledger balanced and both accounts were wrong, which is exactly
+     * why it survived: the only test on this path asserted `kind` and nothing else.
+     *
+     * Downward the money means the opposite thing at every line. The work is job cost; the retention is a
+     * liability; the advance recovered is an asset we paid down and are getting back through his certificates.
+     */
+    public function test_a_payable_certificate_maps_every_line_to_the_payable_accounts(): void
+    {
+        $this->contract->update(['side' => Contract::SIDE_PAYABLE]);
+
+        $invoice = $this->handoff->raise($this->certificateSeven());
+
+        $work = $this->lineOn($invoice, 'Work executed');
+        $this->assertEquals(30_700_000, $work->line_total, 'still gross, still the period movement');
+        $this->assertSame(
+            ConstructionAccounts::id('job_cost_subcontract'),
+            $work->account_id,
+            'a subcontractor\'s certified work is what the job cost, not a reduction of our turnover',
+        );
+
+        $retention = $this->lineOn($invoice, 'retention');
+        $this->assertEquals(-2_140_000, $retention->line_total);
+        $this->assertSame(
+            ConstructionAccounts::id('retention_payable'),
+            $retention->account_id,
+            'retention we hold from a subcontractor is money we owe him, not an asset somebody owes us',
+        );
+
+        $advance = $this->lineOn($invoice, 'advance payment recovery');
+        $this->assertEquals(-5_350_000, $advance->line_total);
+        $this->assertSame(
+            ConstructionAccounts::id('subcontract_advance'),
+            $advance->account_id,
+            'an advance paid down is ours until his certificates recover it — the mirror of contract_liabilities',
+        );
+
+        // A deduction that reduces what we owe him goes back against the job cost it was booked to.
+        $ncr = $this->lineOn($invoice, 'NCR-0012');
+        $this->assertEquals(-850_000, $ncr->line_total);
+        $this->assertSame(ConstructionAccounts::id('job_cost_subcontract'), $ncr->account_id);
+
+        $this->assertEquals(22_360_000, $invoice->total, 'the net payable is unchanged by any of this');
+    }
+
+    /**
+     * Stated as its own assertion because it is the shape of the bug rather than one line of it.
+     *
+     * Every receivable account is a *credit* the company is owed or has earned. None of them may appear on a
+     * certificate for money going out, whatever the deduction kinds happen to be.
+     */
+    public function test_the_payable_side_never_touches_a_receivable_account(): void
+    {
+        $this->contract->update(['side' => Contract::SIDE_PAYABLE]);
+
+        $invoice = $this->handoff->raise($this->certificateSeven());
+
+        $forbidden = [
+            'contract_revenue' => ConstructionAccounts::id('contract_revenue'),
+            'retention_receivable' => ConstructionAccounts::id('retention_receivable'),
+            'contract_liabilities' => ConstructionAccounts::id('contract_liabilities'),
+        ];
+
+        foreach ($forbidden as $key => $accountId) {
+            $this->assertSame(
+                0,
+                $invoice->lines->where('account_id', $accountId)->count(),
+                "a payable certificate put a line on {$key}, which belongs to the receivable side",
+            );
+        }
+    }
+
+    /** And the receivable side is untouched by the split — the worked example above still holds. */
+    public function test_the_receivable_side_still_maps_to_the_receivable_accounts(): void
+    {
+        $this->assertSame(Contract::SIDE_RECEIVABLE, $this->contract->side);
+
+        $invoice = $this->handoff->raise($this->certificateSeven());
+
+        $this->assertSame(
+            ConstructionAccounts::id('contract_revenue'),
+            $this->lineOn($invoice, 'Work executed')->account_id,
+        );
+        $this->assertSame(
+            ConstructionAccounts::id('retention_receivable'),
+            $this->lineOn($invoice, 'retention')->account_id,
+        );
+        $this->assertSame(
+            0,
+            $invoice->lines->where('account_id', ConstructionAccounts::id('retention_payable'))->count(),
+            'money coming in never credits the retention we hold from somebody else',
+        );
+    }
+
+    /**
+     * A deduction kind the map has not heard of lands on the work account **for its own side**.
+     *
+     * The old fallback was a fixed `contract_revenue`, which on a payable certificate is the same defect in
+     * miniature: a kind added later would silently debit income on a subcontractor's bill.
+     */
+    public function test_an_unmapped_deduction_kind_falls_back_to_its_own_sides_work_account(): void
+    {
+        $this->contract->update(['side' => Contract::SIDE_PAYABLE]);
+
+        $certificate = $this->certificateSeven();
+        $certificate->deductions()->create([
+            'kind' => CertificateDeduction::KIND_CONTRA_CHARGE,
+            'description' => 'Less contra charge for site welfare',
+            'amount' => -120_000,
+        ]);
+
+        $invoice = $this->handoff->raise($certificate->refresh());
+
+        $this->assertSame(
+            ConstructionAccounts::id('job_cost_subcontract'),
+            $this->lineOn($invoice, 'contra charge')->account_id,
+        );
     }
 
     public function test_a_second_conversion_is_refused(): void
