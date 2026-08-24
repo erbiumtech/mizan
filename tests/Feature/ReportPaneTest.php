@@ -99,11 +99,21 @@ class ReportPaneTest extends AccountingTestCase
             .'which looks deliberate and is not',
         );
 
-        // Guards the guard: an empty catalogue would satisfy the loop above. Raised from 17 with CRM's
-        // five (reports-expansion-plan.md Phase 1.2) again with Support's two (Phase 1.3) again with Timesheets' two (1.4) Lifecycle's one (1.5) the loan book (1.6) the forward cash view (1.7) the payroll register (2.1) leave liability (2.2) unbilled WIP (2.3) and the stocktake (2.4) — a floor
-        // that lags the catalogue only proves it is not empty, where one that matches it also catches a
-        // report that quietly stops being registered, which is the other half of the same failure.
-        $this->assertGreaterThanOrEqual(34, count(Reports::catalogue()));
+        /*
+         * Guards the guard: an empty catalogue would satisfy the loop above.
+         *
+         * **Kept level with the catalogue rather than below it.** A floor that lags only proves the
+         * catalogue is not empty; one that matches it also catches a report that quietly stops being
+         * registered, which is the other half of the same failure. So this number rises with every report
+         * added — it was 17 before `docs/reports-expansion-plan.md` began.
+         *
+         * It had drifted to 34 against a catalogue of 36, which is how a guard stops guarding: two reports
+         * could have been unregistered with nothing failing. Raise it in the same commit as the report,
+         * and do not record which phase each increment came from — that history belongs in the plan's own
+         * "what landed", and a comment that grows a clause per report becomes unreadable long before it
+         * becomes useful.
+         */
+        $this->assertGreaterThanOrEqual(36, count(Reports::catalogue()));
     }
 
     /**
