@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 six of eight done (2.1–2.6 landed); the rest outstanding — see [What landed](#what-landed)
+**Status:** Phase 1 complete; Phase 2 complete (2.1–2.8 landed); Phases 3–8 outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -260,10 +260,10 @@ the assertion its test should make, not the row count.
    completed statements, and it cannot be one:** `complete()` requires the statement balance to equal the
    ledger balance exactly, so a statement carrying an unpresented cheque can never be closed and a closed one
    has nothing to reconcile. The report is about the open ones.
-7. **Employee Advances Outstanding** — advances less recoveries per employee, with the instalment and
+7. **Employee Advances Outstanding** — *done, 2026-08-24.* Advances less recoveries per employee, with the instalment and
    the months remaining. A receivable from staff; feeds final settlement, so a wrong figure leaves the
    company out of pocket.
-8. **Expense Claims** — by status, employee and period; reimbursed through payroll versus pending,
+8. **Expense Claims** — *done, 2026-08-24.* By status, employee and period; reimbursed through payroll versus pending,
    where the pending total is an accrued liability.
 
 ## Phase 3 — Operational reports, per module
@@ -485,6 +485,45 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — advances outstanding and expense claims (Phases 2.7 and 2.8). Phase 2 is complete.**
+
+- **Advances: the register and the account will usually disagree, and the report's job is to say why.**
+  Nothing posts an advance when it is entered — the register records that money was lent, and the ledger
+  only learns of it if the payment out was booked against the advances account, while a payslip's recovery
+  *credits* that account. So the note names which way round the difference falls, because the two directions
+  mean opposite things: the account holding **less** is advances lent without a payment booked, and holding
+  **more** is either a payment that is not an advance or a recovery recorded in the register and not in the
+  ledger. Phase 2.5 found the same shape in asset cost; a register is not a posting.
+- **A row per advance, not per employee**, departing from the plan's wording deliberately. The instalment
+  and the months remaining belong to an advance: somebody with two on different instalments has two answers
+  to "when is this cleared", and averaging them would invent a third.
+- **The `advances -> accounting` coupling was bought properly**, which `ModuleBoundaryTest` demanded in
+  those words: the call site is guarded, so a company without accounting gets the register and no
+  comparison. Advances declares `payroll` and not `accounting` for the reason the Expenses entry beside it
+  already gives — "requiring it would make the module unsellable to a company that keeps its books
+  elsewhere".
+- **Claims: two rules that pull in opposite directions, and both are asserted.** The rows are the *financial*
+  year to date, through `ReportPeriod` — read in February, a calendar year would drop seven months. But the
+  liability is a *balance*: a claim approved last March is owed just as much as one approved yesterday, so
+  the headline counts claims from before the window. A report applying one rule to both figures would be
+  wrong in one of them.
+- **Claims cannot be reconciled, and the report says why rather than leaving an apparent omission.**
+  Reimbursements post to the account `expense_reimbursement` maps, and the shipped mapping points it at the
+  same code as `meal_recovery`. One account holding two unrelated flows cannot be attributed to either. The
+  test asserts both the sentence *and* the premise — that the two config keys are equal — so if they are ever
+  separated the test says the report can now reconcile instead of silently keeping the excuse.
+- **Three mistakes of mine worth recording, all caught the same day:**
+  - I **overwrote a committed help doc.** `expense-claims` is the ExpenseClaim *resource's* help — how to
+    submit, decide and get reimbursed — and I wrote a report over it. Restored from git; the report's slug is
+    `expense-claims-report`. Help slugs share one namespace with resources, so a new one has to be checked
+    for before it is written.
+  - The page was first called `ExpenseClaims`, which derives the slug `expense-claims` — already the
+    resource's URL. The page's route was never defined and the hub could not link to it, surfacing as
+    `Route [filament.admin.pages.expense-claims] not defined`. Renamed `ExpenseClaimsReport`.
+  - I sorted the claims rows **after** formatting them, comparing "9,000" against "12,000" as text. Sorting
+    now happens on the grouped collection, before anything becomes a cell.
+
 
 **2026-08-23 — the bank reconciliation (Phase 2.6), and a workflow that forbids the thing being reported.**
 
