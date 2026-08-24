@@ -13,7 +13,7 @@ use Spatie\Multitenancy\Commands\Concerns\TenantAware;
  * **Why a command rather than something automatic**, which is worth stating so the next person does not
  * assume it was laziness:
  *
- *  - **`$tenantSeeders` cannot do it.** Those run at `db:seed`, and construction is
+ *  - **`DatabaseSeeder::seedersFor()` cannot do it.** Those run at `db:seed`, and construction is
  *    `'licensed_by_default' => false` — so at the moment a company's database is seeded the module is off,
  *    and a guarded seeder there would correctly skip every company forever.
  *  - **A `CompanyModule::saved()` hook is the shape that would be automatic, and it is not safe as things
