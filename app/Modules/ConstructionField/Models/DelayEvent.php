@@ -81,7 +81,7 @@ class DelayEvent extends Model
     protected $table = 'construction_delay_events';
 
     protected $fillable = [
-        'job_id', 'contract_id', 'reference', 'title', 'description', 'cause_category',
+        'job_id', 'contract_id', 'activity_id', 'reference', 'title', 'description', 'cause_category',
         'occurred_on', 'notice_required_by', 'notice_days', 'notice_given_on', 'notice_document_id',
         'particulars_due_by', 'particulars_submitted_on',
         'claimed_days', 'awarded_days', 'cost_claimed', 'cost_awarded', 'status',
@@ -123,6 +123,17 @@ class DelayEvent extends Model
     }
 
     /** Events still waiting for a notice to be served — what the nightly run watches. */
+    /**
+     * The activity this event delayed — §13's "somewhere to hang a delay event", wired in Phase 9g.
+     *
+     * An event against a job is a complaint; an event against an activity with a baseline finish is an argument about a
+     * date, and it is what lets the programme report lateness the contract has not excused.
+     */
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(ProgrammeActivity::class, 'activity_id');
+    }
+
     public function scopeAwaitingNotice(Builder $query): Builder
     {
         return $query->whereIn('status', self::AWAITING_NOTICE)->whereNull('notice_given_on');

@@ -4,7 +4,7 @@ namespace App\Modules\Crm\Services;
 
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Invoicing\Models\Contact;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -70,7 +70,7 @@ class LeadConversion
             );
         }
 
-        return DB::transaction(function () use ($lead, $overrides): Contact {
+        return TenantTransaction::run(function () use ($lead, $overrides): Contact {
             $contact = Contact::create(array_merge([
                 // The company is the party the ledger bills; the person is a
                 // contact_person, which phase 2 adds. A lead with only a person

@@ -138,6 +138,9 @@ class PlantService
         return $this->ledger->record($log->job, $log->costCode, [
             'kind' => CostEntry::KIND_ACTUAL,
             'gl_treatment' => CostEntry::GL_PENDING,
+            // §4.1: named at the point of writing. The recovery account is what this machine's depreciation, fuel and
+            // repairs accumulate against, and charging the job without crediting it makes the fleet look free.
+            'gl_purpose' => 'plant_internal_hire',
             'amount' => $charge,
             'quantity' => $units > 0.0 ? $units : null,
             'unit_of_measure' => $log->plantItem?->meter_unit === PlantItem::METER_KILOMETRES ? 'km' : 'hr',

@@ -31,16 +31,34 @@ class PipelineReports
      * weighted figure for planning and the plain one for the conversation about what is
      * actually in play.
      *
+     * **The closing window is optional and is what makes this the forecast's rows too.** Given
+     * one, each stage counts only the deals expected to close inside it — the same aggregation,
+     * one filter narrower. Added for `Crm\Support\CrmReports::forecast()`
+     * (reports-expansion-plan.md Phase 1.2), whose stage rows would otherwise be the whole open
+     * pipeline sitting under a total for one month: a reader adding the column would get a
+     * different figure from the one above it, which is the plan's own "plausible number that is
+     * wrong".
+     *
      * @return array<int, array{stage: PipelineStage, count: int, value: float, weighted: float}>
      */
-    public function byStage(Pipeline $pipeline, ?int $ownerEmployeeId = null): array
-    {
+    public function byStage(
+        Pipeline $pipeline,
+        ?int $ownerEmployeeId = null,
+        ?string $closingFrom = null,
+        ?string $closingTo = null,
+    ): array {
         return $pipeline->stages
-            ->map(function (PipelineStage $stage) use ($ownerEmployeeId): array {
+            ->map(function (PipelineStage $stage) use ($ownerEmployeeId, $closingFrom, $closingTo): array {
                 $deals = Opportunity::query()
                     ->where('pipeline_stage_id', $stage->getKey())
                     ->open()
                     ->when($ownerEmployeeId, fn ($query) => $query->where('owner_employee_id', $ownerEmployeeId))
+                    // Both bounds or neither. A deal with no expected close date is not "closing
+                    // outside the window", it is unforecastable — and it belongs in the unwindowed
+                    // pipeline view, which is why that view does not apply this at all.
+                    ->when($closingFrom && $closingTo, fn ($query) => $query
+                        ->whereNotNull('expected_close_on')
+                        ->whereBetween('expected_close_on', [$closingFrom, $closingTo]))
                     ->get();
 
                 return [
@@ -59,10 +77,19 @@ class PipelineReports
      * Only OPEN deals. A won deal is not a forecast — it is an invoice waiting to be raised,
      * and counting it here would double it against whatever Invoicing already says.
      *
+     * A pipeline may be named, and the forecast report names one — otherwise its total covers every
+     * pipeline while the stage rows under it cover one, and the two disagree by however much is in the
+     * others. Left optional because the unfiltered answer is the right one for "what is coming in", which
+     * is what a company with one pipeline is asking.
+     *
      * @return array{weighted: float, plain: float, count: int, currencies: array<int, string>}
      */
-    public function forecast(?string $from = null, ?string $to = null, ?int $ownerEmployeeId = null): array
-    {
+    public function forecast(
+        ?string $from = null,
+        ?string $to = null,
+        ?int $ownerEmployeeId = null,
+        ?int $pipelineId = null,
+    ): array {
         $from = $from ?: now()->startOfMonth()->toDateString();
         $to = $to ?: now()->endOfMonth()->toDateString();
 
@@ -71,6 +98,7 @@ class PipelineReports
             ->whereNotNull('expected_close_on')
             ->whereBetween('expected_close_on', [$from, $to])
             ->when($ownerEmployeeId, fn ($query) => $query->where('owner_employee_id', $ownerEmployeeId))
+            ->when($pipelineId, fn ($query) => $query->where('pipeline_id', $pipelineId))
             ->get();
 
         return [

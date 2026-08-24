@@ -3,6 +3,8 @@
 namespace App\Modules\Lifecycle;
 
 use App\Modules\Lifecycle\Console\Commands\CheckDocumentExpiry;
+use App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring;
+use App\Modules\Lifecycle\Filament\Pages\LeaveLiability;
 use App\Modules\Lifecycle\Models\ChecklistItem;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use App\Modules\Lifecycle\Models\EmployeeChecklist;
@@ -17,6 +19,9 @@ use App\Modules\Lifecycle\Policies\EmployeeChecklistPolicy;
 use App\Modules\Lifecycle\Policies\EmployeeDocumentPolicy;
 use App\Modules\Lifecycle\Policies\FinalSettlementPolicy;
 use App\Modules\Lifecycle\Policies\IssuedAssetPolicy;
+use App\Modules\Lifecycle\Support\LifecycleReports;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -43,5 +48,41 @@ class LifecycleServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/routes/console.php');
 
         $this->commands([CheckDocumentExpiry::class]);
+
+        $this->registerReports();
+    }
+
+    /**
+     * The expiring-documents report — `docs/reports-expansion-plan.md` Phase 1.5.
+     *
+     * Filed under *People & payroll* beside the timesheet pair: it is a list of people's documents, and
+     * the person opening it is whoever is responsible for the paperwork.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without the lifecycle module sees no entry rather than a
+     * report that fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'People & payroll',
+            DocumentsExpiring::class,
+            'Visas, licences and contracts lapsing soon, and the ones that already have.',
+        );
+
+        ReportCatalogue::register(
+            'People & payroll',
+            LeaveLiability::class,
+            'What unused encashable leave would cost — the accrual that is in no account.',
+        );
+
+        ReportRenderers::register(
+            'DocumentsExpiring',
+            fn (string $asOf): array => app(LifecycleReports::class)->documentsExpiring($asOf),
+        );
+        ReportRenderers::register(
+            'LeaveLiability',
+            fn (string $asOf): array => app(LifecycleReports::class)->leaveLiability($asOf),
+        );
     }
 }

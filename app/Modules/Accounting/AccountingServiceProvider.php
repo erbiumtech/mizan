@@ -5,15 +5,20 @@ namespace App\Modules\Accounting;
 use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
 use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
+use App\Modules\Accounting\Console\Commands\RebuildAssetDepreciationCommand;
 use App\Modules\Accounting\Filament\Pages\AccountRegister;
 use App\Modules\Accounting\Filament\Pages\BalanceSheet;
 use App\Modules\Accounting\Filament\Pages\BankPaymentFile;
+use App\Modules\Accounting\Filament\Pages\BankReconciliationStatement;
 use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
+use App\Modules\Accounting\Filament\Pages\CashCommitments as CashCommitmentsPage;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
 use App\Modules\Accounting\Filament\Pages\FindTransactions;
+use App\Modules\Accounting\Filament\Pages\FixedAssetRegister;
 use App\Modules\Accounting\Filament\Pages\GeneralLedger;
+use App\Modules\Accounting\Filament\Pages\LoansOutstanding;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
@@ -58,6 +63,10 @@ use App\Modules\Accounting\Policies\ScheduledTransactionLinePolicy;
 use App\Modules\Accounting\Policies\ScheduledTransactionPolicy;
 use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use App\Modules\Accounting\Services\FiscalYearClosingService;
+use App\Modules\Accounting\Support\BankReconciliationReports;
+use App\Modules\Accounting\Support\CashCommitmentReports;
+use App\Modules\Accounting\Support\FixedAssetReports;
+use App\Modules\Accounting\Support\LoanReports;
 use App\Modules\Accounting\Support\OpeningBalanceCsvImporter;
 use App\Modules\Accounting\Support\ReportPane;
 use App\Modules\Core\Models\Bank;
@@ -69,6 +78,7 @@ use App\Support\JournalEntryOwners;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportPaneRenderer;
+use App\Support\Reporting\ReportRenderers;
 use App\Support\SettingsSections;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
@@ -125,6 +135,81 @@ class AccountingServiceProvider extends ServiceProvider
         ReportCatalogue::register('Ledgers & books', CurrencyRevaluation::class, 'Foreign balances at the rate on a date, and the difference posted.');
         ReportCatalogue::register('Bank files', BankPaymentFile::class, 'Selected payments as a bank transfer file.');
 
+        /*
+         * The loan book — reports-expansion-plan.md Phase 1.6.
+         *
+         * Registered with `ReportRenderers` rather than given an arm in `ReportPane`'s `match`, which is how
+         * the eleven above are drawn. The newer path gives the page, the date and the module gate for free
+         * and keeps the pane from growing a method per report; `ReportPane::for()` asks `ReportRenderers`
+         * first, so both routes reach one closure and the pane and the page cannot disagree.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            LoansOutstanding::class,
+            'Every loan: what is left, the interest still to come, and whether the accounts agree.',
+        );
+        ReportRenderers::register(
+            'LoansOutstanding',
+            fn (string $asOf): array => app(LoanReports::class)->outstanding($asOf),
+        );
+
+        /*
+         * The forward cash view — Phase 1.7.
+         *
+         * Its sources come from `App\Support\CashCommitments`, which Accounting writes two of and Invoicing
+         * the third. Registering them here rather than inside the report keeps the registry filled at boot,
+         * so the report never has to ask whether a module got there first.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            CashCommitmentsPage::class,
+            'What is committed to leave or arrive over the next ninety days, and whether it is raised.',
+        );
+        CashCommitmentReports::registerSources();
+        ReportRenderers::register(
+            'CashCommitments',
+            fn (string $asOf): array => app(CashCommitmentReports::class)->commitments($asOf),
+        );
+
+        /*
+         * The asset register as a note to the accounts — Phase 2.5.
+         *
+         * Filed under *Ledgers & books* beside the loan book, which it is the mirror of: a register of things
+         * the company holds against a register of what it owes, each tied to the accounts behind it.
+         *
+         * The plan costed this one at no new business logic, on the basis that the twelve-month charge came
+         * from `DepreciationService`'s own method. It did not have one — every method it had posted entries —
+         * so `DepreciationService::schedule()` was written for it. That is the only logic this report added.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            FixedAssetRegister::class,
+            'Every asset: cost, depreciation to date, what it is worth, and the year ahead.',
+        );
+        ReportRenderers::register(
+            'FixedAssetRegister',
+            fn (string $asOf): array => app(FixedAssetReports::class)->register($asOf),
+        );
+
+        /*
+         * What the bank says against what the books say — Phase 2.6.
+         *
+         * The plan costed this as a report over completed statements. It cannot be: `complete()` requires the
+         * statement balance to equal the ledger balance exactly, and an unpresented cheque makes those differ
+         * by definition, so the statements with something to reconcile are precisely the ones that cannot be
+         * closed. The report is therefore about open statements, and it is where the figure `complete()`
+         * rejects is finally named.
+         */
+        ReportCatalogue::register(
+            'Ledgers & books',
+            BankReconciliationStatement::class,
+            'The bank balance, the cheques it has not seen, and whether the books agree.',
+        );
+        ReportRenderers::register(
+            'BankReconciliationStatement',
+            fn (string $asOf): array => app(BankReconciliationReports::class)->statement($asOf),
+        );
+
         // The records of this module that may carry custom fields. Registered by alias, which is what
         // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
         CustomFieldSubjects::register(ModuleMap::alias(Beneficiary::class), 'Beneficiaries');
@@ -166,6 +251,7 @@ class AccountingServiceProvider extends ServiceProvider
 
         $this->commands([
             BackfillPaymentEntriesCommand::class,
+            RebuildAssetDepreciationCommand::class,
             RaiseScheduledTransactions::class,
             RaiseSubscriptionPayments::class,
         ]);

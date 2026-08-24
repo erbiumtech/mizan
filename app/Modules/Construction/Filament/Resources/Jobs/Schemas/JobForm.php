@@ -136,6 +136,51 @@ class JobForm
                             ->placeholder('No store — everything direct to the work face')
                             ->helperText('Only needed if this job keeps material in a store. Without one, a delivery marked for a store is refused rather than mis-costed.'),
 
+                        /*
+                         * **Where the job's safety exposure hours come from** — §17.6, and the answer must be one place.
+                         *
+                         * §17.6 names two failures and this field is the second: "double counting the same people from
+                         * the diary *and* from Timesheets, which halves every rate. The job names one source and the
+                         * report prints which one it used." A halved frequency rate is worse than a missing one, because
+                         * it is a number somebody can act on.
+                         *
+                         * Visible only where there is a choice to make: with neither module licensed there is no source
+                         * and the safety page's refusal is the honest answer. Left blank on purpose where nobody has
+                         * decided — a default would have quietly chosen for every job in the tenant, and "nobody has
+                         * chosen" is a state §17.6's report names rather than papering over.
+                         */
+                        Select::make('exposure_hours_source')
+                            ->label('Safety exposure hours from')
+                            ->visible(fn (): bool => modules()->enabled('construction_qhse')
+                                && (modules()->enabled('construction_field') || modules()->enabled('timesheets')))
+                            ->options(fn (): array => array_filter([
+                                'daily_log' => modules()->enabled('construction_field')
+                                    ? 'The site diary — approved manpower returns' : null,
+                                'timesheets' => modules()->enabled('timesheets')
+                                    ? 'Timesheets — hours booked to the job' : null,
+                            ]))
+                            ->placeholder('Not chosen — safety rates will not be computed')
+                            ->helperText('One source only. Counting both halves every safety frequency rate, and the indicator report prints which one it used.'),
+
+                        /*
+                         * **How this job's percent complete is measured** — §4.4, and the choice belongs to the job.
+                         *
+                         * §4.4: "cost-to-cost, surveyed, or milestone — chosen per job, because one company runs both."
+                         * Left blank on purpose where nobody has decided, and the WIP report names the job rather than
+                         * quietly choosing: cost-to-cost on a job running over reports *more* progress for spending more
+                         * money, so a default would pick the answer that flatters exactly the job that needs watching.
+                         */
+                        Select::make('percent_complete_method')
+                            ->label('Percent complete measured by')
+                            ->visible(fn (): bool => modules()->enabled('construction_costing'))
+                            ->options([
+                                'cost_to_cost' => 'Cost to cost — cost to date over forecast final cost',
+                                'surveyed' => 'Surveyed — measured progress against the budget',
+                                'milestone' => 'Milestone — certified milestone value',
+                            ])
+                            ->placeholder('Not chosen — no work-in-progress position will be computed')
+                            ->helperText('A percentage without its method is one nobody can defend. Cost-to-cost needs no surveyor and reports more progress the more a job overspends.'),
+
                         Select::make('certifier_contact_id')
                             ->label('Certifier')
                             ->visible(fn (): bool => modules()->enabled('invoicing'))

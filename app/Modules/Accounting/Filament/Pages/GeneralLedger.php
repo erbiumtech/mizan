@@ -5,7 +5,7 @@ namespace App\Modules\Accounting\Filament\Pages;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Services\GeneralLedgerService;
-use App\Modules\Accounting\Support\ReportPeriod;
+use App\Support\Reporting\ReportPeriod;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;

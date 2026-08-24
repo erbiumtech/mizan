@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationMan
 use App\Modules\ConstructionField\Models\DailyLog;
 use App\Modules\ConstructionField\Models\DailyLogDelivery;
 use App\Modules\ConstructionField\Services\DailyLogService;
+use App\Support\TenantDb;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -22,7 +23,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 /**
  * What arrived on site — §16.1.
@@ -135,7 +135,7 @@ class DeliveriesRelationManager extends RelationManager
             return [];
         }
 
-        $contracts = DB::table('construction_contracts')
+        $contracts = TenantDb::table('construction_contracts')
             ->where('job_id', $this->log()->job_id)
             ->pluck('id');
 
@@ -143,7 +143,7 @@ class DeliveriesRelationManager extends RelationManager
             return [];
         }
 
-        return DB::table('construction_contract_items')
+        return TenantDb::table('construction_contract_items')
             ->whereIn('contract_id', $contracts)
             ->where('is_active', true)
             ->orderBy('sort')->orderBy('item_no')
@@ -198,7 +198,7 @@ class DeliveriesRelationManager extends RelationManager
                     ->label('Priced receipt')
                     ->getStateUsing(fn (DailyLogDelivery $record): ?string => $record->goods_receipt_id === null
                         ? null
-                        : DB::table('construction_goods_receipts')->where('id', $record->goods_receipt_id)->value('number'))
+                        : TenantDb::table('construction_goods_receipts')->where('id', $record->goods_receipt_id)->value('number'))
                     // The empty state is the finding: a docket accounts have never seen is cost the job has incurred
                     // and the ledger has not recorded.
                     ->placeholder(fn (): string => modules()->enabled('construction_costing') ? 'not receipted' : '—')
@@ -266,8 +266,8 @@ class DeliveriesRelationManager extends RelationManager
      */
     private function goodsReceipts(): array
     {
-        return DB::table('construction_goods_receipts')
-            ->whereIn('id', DB::table('construction_goods_receipt_lines')
+        return TenantDb::table('construction_goods_receipts')
+            ->whereIn('id', TenantDb::table('construction_goods_receipt_lines')
                 ->where('job_id', $this->log()->job_id)
                 ->select('goods_receipt_id'))
             ->orderByDesc('received_on')
@@ -287,8 +287,8 @@ class DeliveriesRelationManager extends RelationManager
             return null;
         }
 
-        return DB::table('construction_goods_receipts')
-            ->whereIn('id', DB::table('construction_goods_receipt_lines')
+        return TenantDb::table('construction_goods_receipts')
+            ->whereIn('id', TenantDb::table('construction_goods_receipt_lines')
                 ->where('job_id', $this->log()->job_id)
                 ->select('goods_receipt_id'))
             ->where('delivery_note_reference', $delivery->docket_number)

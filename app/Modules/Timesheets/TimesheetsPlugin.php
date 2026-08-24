@@ -19,6 +19,14 @@ class TimesheetsPlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+
+        // The utilisation report and the plan-versus-actual matrix (reports-expansion-plan.md Phase 1.4).
+        // Hidden from the sidebar and reached from the Reports hub, but still registered or their URLs do
+        // not exist.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void

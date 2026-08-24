@@ -48,6 +48,18 @@ return [
         'App\\Filament\\Resources\\SalesTargets\\SalesTargetResource' => \App\Modules\Crm\Filament\Resources\SalesTargets\SalesTargetResource::class,
     ],
 
+    /**
+     * The five pipeline reports. Each is hidden from the sidebar and reached from the Reports hub, which is
+     * why they are pages rather than a resource: a report is a question, not a table of rows to edit.
+     */
+    'pages' => [
+        'App\\Filament\\Pages\\PipelineByStage' => \App\Modules\Crm\Filament\Pages\PipelineByStage::class,
+        'App\\Filament\\Pages\\SalesForecast' => \App\Modules\Crm\Filament\Pages\SalesForecast::class,
+        'App\\Filament\\Pages\\WinLoss' => \App\Modules\Crm\Filament\Pages\WinLoss::class,
+        'App\\Filament\\Pages\\RottingDeals' => \App\Modules\Crm\Filament\Pages\RottingDeals::class,
+        'App\\Filament\\Pages\\TargetAttainment' => \App\Modules\Crm\Filament\Pages\TargetAttainment::class,
+    ],
+
     'permission_groups' => [
         'Lead',
         'LeadSource',
@@ -98,5 +110,7 @@ return [
      */
     'navigation' => [
         'Sales' => 'sales',
+        // The five reports declare the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
     ],
 ];

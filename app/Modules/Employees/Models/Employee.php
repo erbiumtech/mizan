@@ -11,6 +11,8 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Str;
 
 class Employee extends Model
 {
@@ -93,6 +95,76 @@ class Employee extends Model
             self::where('manager_id', $employee->id)
                 ->update(['manager_id' => $employee->manager_id]);
         });
+    }
+
+    /** The default employee-code prefix. Companies that want another one pass their own. */
+    public const CODE_PREFIX = 'EMP-';
+
+    /**
+     * The next employee code **for this company**.
+     *
+     * `employees` is a tenant table, so counting here is already per-company; the
+     * mistake this replaces was deriving the code from the *user* id instead. Users
+     * live in the landlord database and are shared across companies, so `EMP-`.$user->id
+     * numbered every company off one global sequence: a company's first employee could
+     * be `EMP-47`, and no company's numbering started at one or ran consecutively.
+     *
+     * Taken from the highest code in use rather than from a row count, because a count
+     * goes *down* when somebody leaves and is deleted — the next hire would then be
+     * handed a code another row already holds, and `employee_id` is unique.
+     *
+     * The suffix is compared numerically in PHP rather than ordered in SQL: existing
+     * data mixes widths (`EMP-47` beside `EMP-0001`), and by string order `EMP-9` sorts
+     * above `EMP-10`. Anything that is not the prefix followed by digits is ignored, so
+     * a company's own hand-typed codes never affect the sequence.
+     */
+    public static function nextEmployeeId(string $prefix = self::CODE_PREFIX): string
+    {
+        $highest = static::query()
+            ->where('employee_id', 'like', $prefix.'%')
+            ->pluck('employee_id')
+            ->map(fn (?string $code): string => Str::after((string) $code, $prefix))
+            ->filter(fn (string $suffix): bool => $suffix !== '' && ctype_digit($suffix))
+            ->map(fn (string $suffix): int => (int) $suffix)
+            ->max() ?? 0;
+
+        return $prefix.str_pad((string) ($highest + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Insert under a freshly generated code, regenerating it if somebody else gets there first.
+     *
+     * Reading the highest code and inserting the next one is two steps, and two people hired
+     * at the same moment both read the same highest. `employee_id` is unique, so the second
+     * insert fails — and it fails on a create the user has no way to understand or retry,
+     * having done nothing wrong. The window is small and the fix is simply to look again:
+     * the sequence has moved on by the time we do.
+     *
+     * Retried on any unique violation because `employee_id` is the *only* unique index on
+     * `employees` — so a duplicate-key error from inserting one can only be the code. Neither
+     * MySQL nor SQLite reports the offending column in a form the other also gives (MySQL
+     * names the index, SQLite the columns), so there is no portable way to narrow it further,
+     * and narrowing on driver-specific text would be worse than the assumption. **Add a second
+     * unique column to this table and this comment stops being true.**
+     *
+     * @template TReturn
+     *
+     * @param  callable(string): TReturn  $callback
+     * @return TReturn
+     */
+    public static function withGeneratedCode(callable $callback, string $prefix = self::CODE_PREFIX, int $attempts = 5)
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return $callback(static::nextEmployeeId($prefix));
+            } catch (UniqueConstraintViolationException $e) {
+                // Rethrown rather than looped forever: if the code is still contended after
+                // this many tries the cause is not a race, and hiding it would be worse.
+                if ($attempt >= $attempts) {
+                    throw $e;
+                }
+            }
+        }
     }
 
     /**

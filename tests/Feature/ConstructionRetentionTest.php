@@ -43,6 +43,11 @@ class ConstructionRetentionTest extends AccountingTestCase
 
     private CertificationService $certification;
 
+    private Job $job;
+
+    /** Opened lazily by `punchItem()` — most tests here need no snag list at all. */
+    private ?\App\Modules\ConstructionField\Models\PunchList $punchList = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -50,7 +55,9 @@ class ConstructionRetentionTest extends AccountingTestCase
         $this->actingAs($this->makeUser('Administrator', 'retention@test.local'));
         $this->setCurrentTenant();
 
-        foreach (['construction', 'construction_contracts', 'invoicing'] as $module) {
+        // `construction_field` among them from Phase 9f: §11's AIA holdback reads §16.4's punch items, and the three
+        // answers it can give — unknown, nil, or a figure — are each asserted below.
+        foreach (['construction', 'construction_contracts', 'invoicing', 'construction_field'] as $module) {
             CompanyModule::updateOrCreate(
                 ['company_id' => $this->tenant->getKey(), 'module' => $module],
                 ['licensed' => true, 'enabled' => true],
@@ -58,10 +65,10 @@ class ConstructionRetentionTest extends AccountingTestCase
         }
         modules()->flush();
 
-        $job = Job::create(['code' => 'J-1', 'name' => 'Tower']);
+        $this->job = Job::create(['code' => 'J-1', 'name' => 'Tower']);
 
         $contracts = app(ContractService::class);
-        $this->contract = $contracts->create($job, [
+        $this->contract = $contracts->create($this->job, [
             'title' => 'Main works',
             'contract_sum' => 10_000_000,
             'retention_percent' => 10,
@@ -294,26 +301,124 @@ class ConstructionRetentionTest extends AccountingTestCase
     }
 
     /**
-     * **The exit condition of this sub-phase.** A zero holdback says so in words.
+     * **Without the field module the holdback is unknown, not nil** — §18.1's first exception.
      *
-     * §18.1: without the site operations module the open punch value is *unknown*, not nil, and a silent zero
-     * looks exactly like a job with nothing outstanding.
+     * A silent zero looks exactly like a job with nothing outstanding, and releasing the balance on a job with fifty
+     * open punch items is money that does not come back.
      */
-    public function test_the_aia_holdback_is_zero_with_the_reason_stated(): void
+    public function test_the_aia_holdback_says_it_is_unknown_without_the_field_module(): void
+    {
+        CompanyModule::query()
+            ->where('company_id', $this->tenant->getKey())
+            ->where('module', 'construction_field')
+            ->update(['licensed' => false, 'enabled' => false]);
+        modules()->flush();
+
+        $schedule = $this->aiaSchedule();
+
+        $this->assertSame(1_000_000.0, $schedule[0]['amount'], 'the whole balance, holdback zero');
+        $this->assertStringContainsString('unknown rather than nil', $schedule[0]['note']);
+        $this->assertStringContainsString('not licensed', $schedule[0]['note']);
+    }
+
+    /**
+     * **With the module and nothing flagged, nil is the true answer and says so differently.**
+     *
+     * The distinction Phase 9f exists to draw: "we cannot tell" and "there is nothing" are different sentences, and a
+     * module-licence guard used as a proxy for data existing conflates them. Phase 9a licensed `construction_field` for
+     * the notice clock three sub-phases before punch items existed, which is exactly how that mistake happens.
+     */
+    public function test_the_aia_holdback_is_nil_when_nothing_blocks_completion(): void
+    {
+        $schedule = $this->aiaSchedule();
+
+        $this->assertSame(1_000_000.0, $schedule[0]['amount']);
+        $this->assertStringContainsString('holdback nil', $schedule[0]['note']);
+        $this->assertStringContainsString('no open punch item', $schedule[0]['note']);
+        $this->assertStringNotContainsString('unknown', $schedule[0]['note']);
+    }
+
+    /**
+     * **The real figure: the cost of rectifying open items that stop the employer taking the building over.**
+     *
+     * §16.4's flag, read by §11's release. Not every open item — most snags are paint and sealant, and holding
+     * retention against all of them would make the figure meaningless within a week.
+     */
+    public function test_the_aia_holdback_is_the_cost_of_the_items_that_block_completion(): void
+    {
+        $this->punchItem(['affects_practical_completion' => true, 'cost_to_rectify' => 150_000]);
+        $this->punchItem(['affects_practical_completion' => true, 'cost_to_rectify' => 90_000]);
+        // Paint and sealant: open, priced, and not holding anything back.
+        $this->punchItem(['affects_practical_completion' => false, 'cost_to_rectify' => 400_000]);
+
+        $schedule = $this->aiaSchedule();
+
+        $this->assertSame(760_000.0, $schedule[0]['amount'], '1,000,000 less the 240,000 that blocks completion');
+        $this->assertStringContainsString('2 item(s) affecting practical completion', $schedule[0]['note']);
+        $this->assertStringContainsString('240,000.00 to rectify', $schedule[0]['note']);
+        $this->assertStringNotContainsString('no cost estimate', $schedule[0]['note']);
+    }
+
+    /**
+     * **A blocking item with no estimate makes the figure "at least", and the note says so.**
+     *
+     * §18.1 again: a holdback of 150,000 across three items where one has never been priced is not a holdback of
+     * 150,000, and the certifier is told rather than left to discover it.
+     */
+    public function test_an_unpriced_blocking_item_makes_the_holdback_at_least_rather_than_exactly(): void
+    {
+        $this->punchItem(['affects_practical_completion' => true, 'cost_to_rectify' => 150_000]);
+        $this->punchItem(['affects_practical_completion' => true, 'cost_to_rectify' => null]);
+
+        $schedule = $this->aiaSchedule();
+
+        $this->assertSame(850_000.0, $schedule[0]['amount']);
+        $this->assertStringContainsString('1 of them carry no cost estimate', $schedule[0]['note']);
+        $this->assertStringContainsString('at least this and not exactly this', $schedule[0]['note']);
+    }
+
+    /** A closed item stops holding anything back, which is what makes clearing a snag list release money. */
+    public function test_closing_a_blocking_item_releases_its_holdback(): void
+    {
+        $item = $this->punchItem(['affects_practical_completion' => true, 'cost_to_rectify' => 150_000]);
+
+        $this->assertSame(850_000.0, $this->aiaSchedule()[0]['amount']);
+
+        app(\App\Modules\ConstructionField\Services\PunchListService::class)->inspect($item, [
+            'result' => \App\Modules\ConstructionField\Models\PunchInspection::RESULT_PASSED,
+        ]);
+
+        $this->assertSame(1_000_000.0, $this->aiaSchedule()[0]['amount']);
+    }
+
+    /**
+     * @return array<int, array{stage: string, due_on: string|null, amount: float, note: string|null}>
+     */
+    private function aiaSchedule(): array
     {
         $this->contract->update([
             'retention_release_rule' => Contract::RELEASE_AIA_SUBSTANTIAL,
             'practical_completion_date' => now()->subDay()->toDateString(),
         ]);
-        $this->certifyTo(100);
 
-        $schedule = $this->retention->schedule($this->contract->refresh());
+        if ($this->retention->balance($this->contract) <= 0.0) {
+            $this->certifyTo(100);
+        }
 
-        $this->assertSame(1_000_000.0, $schedule[0]['amount'], 'the whole balance, holdback zero');
-        // Stated whatever is licensed: Phase 9a licensed `construction_field` for the notice clock while punch
-        // lists remain unbuilt, so a module-licence guard here would have silenced the reason and left a bare zero.
-        $this->assertStringContainsString('unknown rather than nil', $schedule[0]['note']);
-        $this->assertStringContainsString('not recorded yet', $schedule[0]['note']);
+        return $this->retention->schedule($this->contract->refresh());
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function punchItem(array $attributes): \App\Modules\ConstructionField\Models\PunchItem
+    {
+        $service = app(\App\Modules\ConstructionField\Services\PunchListService::class);
+
+        $list = $this->punchList ??= $service->openList($this->job, [
+            'name' => 'Pre-handover walk',
+            'kind' => \App\Modules\ConstructionField\Models\PunchList::KIND_PRE_HANDOVER,
+        ]);
+
+        return $service->addItem($list, array_merge(['description' => 'Sealant missing at head'], $attributes));
     }
 
     // ------------------------------------------------------------------ decisions

@@ -208,6 +208,9 @@ class GoodsReceiptService
                     $line->costCode,
                     [
                         'kind' => CostEntry::KIND_ACCRUAL,
+                        // §4.5's first accrual: goods received not invoiced. Named here so §11a's posting service
+                        // credits GRNI rather than reporting the entry as owing a credit nobody chose.
+                        'gl_purpose' => 'grni',
                         'amount' => (float) $line->amount,
                         'quantity' => $line->quantity,
                         'unit_of_measure' => $line->unit_of_measure,

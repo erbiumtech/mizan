@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Modules\Core\Models\Company;
 use App\Support\CompanyProfiles;
+use App\Support\TenantDb;
 use App\Support\TenantTransaction;
 use Database\Seeders\SalarySlabSeeder;
 use Illuminate\Console\Command;
@@ -136,7 +137,7 @@ class SeedTenantBaseline extends Command
      *
      * Explicitly named, because makeCurrent() points the tenant connection at
      * this company's database but leaves the default connection on the landlord.
-     * A bare DB::table('banks') therefore asks the landlord for a table it does
+     * A bare TenantDb::table('banks') therefore asks the landlord for a table it does
      * not have, throws, and lands in the -1 branch below — which reported every
      * company as "nothing missing" while two of them were plainly missing data.
      *

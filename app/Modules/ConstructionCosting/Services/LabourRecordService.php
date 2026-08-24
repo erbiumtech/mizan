@@ -160,6 +160,14 @@ class LabourRecordService
         return $this->ledger->record($record->job, $record->costCode, [
             'kind' => CostEntry::KIND_ACTUAL,
             'gl_treatment' => $this->treatmentFor($record),
+            /*
+             * The credit this labour owes, and it is null where the payslip already posted it.
+             *
+             * §4.1's table: an employee's time reaches the books through payroll, so job cost mirrors a GL cost that
+             * exists and owes nothing. Anybody paid outside the payroll has no GL document at all, so construction owes
+             * both sides and the credit is a liability — a gang paid next Friday is money the company owes today.
+             */
+            'gl_purpose' => $this->treatmentFor($record) === CostEntry::GL_PENDING ? 'site_labour' : null,
             'amount' => $amount,
             'quantity' => $hours,
             'unit_of_measure' => 'hr',
@@ -190,6 +198,8 @@ class LabourRecordService
             // Pending, not memo: §7.3 requires this to credit Labour Burden Absorbed, and §11 posts it. Charge it and
             // never absorb it and job cost exceeds GL cost by exactly this figure, growing every month.
             'gl_treatment' => CostEntry::GL_PENDING,
+            // Which credit it owes, named at the point of writing rather than inferred at the point of posting — §4.1.
+            'gl_purpose' => 'labour_burden',
             'amount' => $amount,
             'is_burden' => true,
             'incurred_on' => $record->worked_on->toDateString(),

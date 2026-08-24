@@ -4,10 +4,10 @@ namespace App\Modules\ConstructionField\Services;
 
 use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionField\Models\DelayEvent;
+use App\Support\TenantDb;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -86,7 +86,7 @@ class DelayEventService
             return $default;
         }
 
-        $days = DB::table('construction_contracts')
+        $days = TenantDb::table('construction_contracts')
             ->where('id', $contractId)
             ->value('delay_notice_days');
 
