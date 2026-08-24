@@ -27,6 +27,15 @@ return [
         'App\\Filament\\Resources\\Tickets\\TicketResource' => \App\Modules\Support\Filament\Resources\Tickets\TicketResource::class,
     ],
 
+    /**
+     * The SLA report and its exception list. Pages rather than a resource: a report is a question, not a
+     * table of rows to edit.
+     */
+    'pages' => [
+        'App\\Filament\\Pages\\SlaPerformance' => \App\Modules\Support\Filament\Pages\SlaPerformance::class,
+        'App\\Filament\\Pages\\SlaBreaches' => \App\Modules\Support\Filament\Pages\SlaBreaches::class,
+    ],
+
     'permission_groups' => [
         'Ticket',
     ],
@@ -49,5 +58,7 @@ return [
      */
     'navigation' => [
         'Support' => 'admin',
+        // The two reports declare the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
     ],
 ];

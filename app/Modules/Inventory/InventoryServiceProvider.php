@@ -2,18 +2,22 @@
 
 namespace App\Modules\Inventory;
 
+use App\Modules\Inventory\Filament\Pages\StockOnHand;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\StockLocation;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Policies\ProductPolicy;
 use App\Modules\Inventory\Policies\StockLocationPolicy;
 use App\Modules\Inventory\Policies\StockMovementPolicy;
+use App\Modules\Inventory\Support\InventoryReports;
 use App\Modules\Inventory\Support\ProductCsvImporter;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
 use App\Support\JournalEntryOwners;
 use App\Support\ModuleMap;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +39,8 @@ class InventoryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerReports();
+
         // The records of this module that may carry custom fields. Registered by alias, which is what
         // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
         CustomFieldSubjects::register(ModuleMap::alias(Product::class), 'Products');
@@ -66,5 +72,29 @@ class InventoryServiceProvider extends ServiceProvider
 
             return Stat::make('Products At / Below Reorder Level', $low);
         }, sort: 40);
+    }
+
+    /**
+     * The stocktake report — `docs/reports-expansion-plan.md` Phase 2.4.
+     *
+     * Filed under *Operations*: it is read by whoever counts the shelves rather than by whoever reads the
+     * accounts, even though it reconciles to them.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without inventory sees no entry rather than a report that
+     * fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'Operations',
+            StockOnHand::class,
+            'What is on the shelf, what it is worth, and whether the inventory accounts agree.',
+        );
+
+        ReportRenderers::register(
+            'StockOnHand',
+            fn (string $asOf): array => app(InventoryReports::class)->stockOnHand($asOf),
+        );
     }
 }

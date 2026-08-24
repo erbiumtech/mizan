@@ -67,6 +67,79 @@ class DocumentExpiryCheck
             ->values();
     }
 
+    /**
+     * Everything expiring inside a window, whether anybody has been warned about it or not.
+     *
+     * **The listing, as against `due()`'s notification query, and the distinction is the whole reason this
+     * method exists.** `due()` deliberately suppresses a document once its threshold has been warned at —
+     * which is right for a daily mail and wrong for a report. Built on `due()`, *Documents Expiring* would
+     * have shown fewer documents the more reliably the reminders went out, and been emptiest on the
+     * company that had been most diligent. Nobody reading it would have known.
+     *
+     * Expired documents are included and sort first. An expired visa is not a warning that stops being
+     * true — `due()` says so about its own smallest threshold, and a listing has even less excuse to drop
+     * one.
+     *
+     * The window defaults to the widest configured threshold, so the report covers exactly the population
+     * the reminders watch: a company that widens `lifecycle.document_expiry_thresholds` widens both at once
+     * rather than having a report that disagrees with its own mail.
+     *
+     * @return Collection<int, array{document: EmployeeDocument, days: int, bucket: string}>
+     */
+    public function expiring(string|Carbon|null $asOf = null, ?int $withinDays = null): Collection
+    {
+        $asOf = $asOf ? Carbon::parse($asOf) : now();
+        $thresholds = $this->thresholds();
+        $within = $withinDays ?? ($thresholds[0] ?? 60);
+
+        return EmployeeDocument::query()
+            ->expiring()
+            ->with('employee.user')
+            ->get()
+            ->map(function (EmployeeDocument $document) use ($asOf, $within, $thresholds): ?array {
+                $days = $document->daysUntilExpiry($asOf);
+
+                if ($days === null || $days > $within) {
+                    return null;
+                }
+
+                return [
+                    'document' => $document,
+                    'days' => $days,
+                    'bucket' => $this->bucket($days, $thresholds),
+                ];
+            })
+            ->filter()
+            // Soonest first, so the top of the list is the most urgent — and the already-expired, whose
+            // day count is negative, are above everything.
+            ->sortBy('days')
+            ->values();
+    }
+
+    /**
+     * Which band a document falls in, named in the words the thresholds are set in.
+     *
+     * The bands are the configured thresholds rather than a fixed set, so a company that warns at 90 days
+     * sees a 90-day band. Naming them off `config()` is what keeps the report and the reminders describing
+     * one thing.
+     *
+     * @param  array<int, int>  $thresholds  widest first
+     */
+    private function bucket(int $days, array $thresholds): string
+    {
+        if ($days < 0) {
+            return 'Expired';
+        }
+
+        foreach (array_reverse($thresholds) as $threshold) {
+            if ($days <= $threshold) {
+                return 'Within '.$threshold.' days';
+            }
+        }
+
+        return 'Later';
+    }
+
     /** Record that a threshold has been warned about, so the next run is silent. */
     public function markNotified(EmployeeDocument $document, int $threshold): void
     {

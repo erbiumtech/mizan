@@ -93,7 +93,7 @@ class Submittal extends Model
         'responsible_contact_id', 'responsible_label',
         'required_on_site_date', 'fabrication_lead_days', 'procurement_lead_days',
         'review_period_days', 'buffer_days',
-        'submitted_on', 'approved_on', 'status', 'revision', 'document_id',
+        'submitted_on', 'approved_on', 'status', 'revision', 'document_id', 'activity_id',
         'is_long_lead', 'notes', 'created_by',
     ];
 
@@ -145,6 +145,17 @@ class Submittal extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class, 'document_id');
+    }
+
+    /**
+     * The activity this approval gates — §16.3's `activity_id`, wired in Phase 9g.
+     *
+     * What makes the register a schedule control: an approval outstanding against an activity starting in three weeks
+     * is a different problem from one against an activity starting next year.
+     */
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(ProgrammeActivity::class, 'activity_id');
     }
 
     /** Every round, newest first — §16.3's row per round. */

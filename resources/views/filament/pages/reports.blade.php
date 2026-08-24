@@ -165,18 +165,13 @@
                 </header>
 
                 <div class="fi-explorer-pane-body">
-                    <div class="fi-explorer-tiles">
-                        @foreach ($statement['tiles'] as $tile)
-                            <div @class(['fi-explorer-tile', 'fi-accent' => $tile['accent']])>
-                                <span class="fi-explorer-tile-label">{{ $tile['label'] }}</span>
-                                <span class="fi-explorer-tile-value">{{ number_format($tile['value'], 0) }}</span>
-                            </div>
-                        @endforeach
-
-                        <div class="fi-explorer-tiles-note">
-                            <span @class(['fi-explorer-note', 'fi-warn' => ! $statement['balanced']])>{{ $statement['note'] }}</span>
-                        </div>
-                    </div>
+                    {{--
+                        The tiles, and the table below, are partials because a report's own full page draws
+                        the same two things off the same payload — reports-expansion-plan.md Phase 1.2. Two
+                        copies of this markup would drift, and the drift would be invisible until somebody
+                        compared the page against the pane.
+                    --}}
+                    @include('filament.partials.report-tiles', ['statement' => $statement])
 
                     @if ($statement['kind'] === 'statement')
                     <div class="fi-explorer-statement">
@@ -328,57 +323,7 @@
 
                     {{-- Columns and rows that are not accounts: the ageing, by invoice. --}}
                     @elseif ($statement['kind'] === 'table')
-                    @php($grid = 'grid-template-columns: '.$statement['grid'])
-                    <div class="fi-explorer-statement fi-explorer-table">
-                        <div class="fi-explorer-statement-head" style="{{ $grid }}">
-                            @foreach ($statement['columns'] as $i => $column)
-                                <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $column }}</span>
-                            @endforeach
-                        </div>
-
-                        <div class="fi-explorer-statement-body">
-                            @forelse ($statement['rows'] as $row)
-                                <div class="fi-explorer-line" style="{{ $grid }}">
-                                    @foreach ($row as $i => $cell)
-                                        <span @class([
-                                            'fi-num' => in_array($i, $statement['numeric'], true),
-                                            'fi-explorer-line-label' => $i === 0,
-                                        ])>{{ $cell }}</span>
-                                    @endforeach
-                                </div>
-                            @empty
-                                <p class="fi-explorer-empty">{{ $statement['empty'] }}</p>
-                            @endforelse
-
-                            {{--
-                                The record row across the bottom, one cell per column, on the same grid as
-                                the rows above it — so a figure sits directly under the column it totals.
-                                It used to be a single label with one value dropped in the last column,
-                                which put a tax total under "tax withheld" only by luck and a debit total
-                                nowhere at all.
-                            --}}
-                            @if (($statement['footer'] ?? null) && $statement['rows'] !== [])
-                                <div class="fi-explorer-total fi-explorer-closing" style="{{ $grid }}">
-                                    {{--
-                                        The label spans the blank cells that follow it, which is why the
-                                        pane computes a span (see ReportPane::table). Confined to the first
-                                        column it would be cut off on any report whose first column is
-                                        narrow — on a register that is the 7rem date, and "Closing — 40
-                                        transactions" arrived as "Closing…".
-                                    --}}
-                                    <span class="fi-explorer-line-label" style="grid-column: span {{ $statement['footer_span'] }}">
-                                        {{ $statement['footer'][0] }}
-                                    </span>
-
-                                    @foreach (array_slice($statement['footer'], $statement['footer_span'], null, true) as $i => $cell)
-                                        <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-
-                        <div class="fi-explorer-statement-foot">{{ $statement['note'] }}</div>
-                    </div>
+                    @include('filament.partials.report-table', ['statement' => $statement])
 
                     {{--
                         A file report. The pane says what the file would contain; releasing it stays on the

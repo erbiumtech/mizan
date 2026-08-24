@@ -5,7 +5,9 @@ namespace App\Modules\ConstructionField\Filament\Resources\Rfis\Schemas;
 use App\Modules\Construction\Models\Document;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\Location;
+use App\Modules\ConstructionField\Models\ProgrammeActivity;
 use App\Modules\ConstructionField\Models\Rfi;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -13,7 +15,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Asking the question — §16.2.
@@ -95,6 +96,20 @@ class RfiForm
                         TextInput::make('discipline')
                             ->maxLength(255)
                             ->helperText('Architectural, structural, mechanical — whatever this project calls them.'),
+
+                        /*
+                         * **Which programme activity this question blocks** — §16.2's `activity_id`, wired in Phase 9g.
+                         *
+                         * Left out of 9d on purpose: the programme did not exist, and a nullable integer nothing could
+                         * populate reads like an unfinished feature. It is what turns "seventeen RFIs outstanding" into
+                         * "seventeen RFIs outstanding, four of them against activities that should have started".
+                         */
+                        Select::make('activity_id')
+                            ->label('Blocks activity')
+                            ->options(fn (callable $get): array => static::activities($get('job_id')))
+                            ->searchable()
+                            ->columnSpanFull()
+                            ->helperText('From the programme. An RFI against a dated activity is assessable; one against nothing is a complaint.'),
                     ]),
 
                 Section::make('Who owes the answer, and by when')
@@ -194,7 +209,7 @@ class RfiForm
             return [];
         }
 
-        return DB::table('construction_contracts')
+        return TenantDb::table('construction_contracts')
             ->where('job_id', $jobId)
             ->orderBy('contract_number')
             ->get(['id', 'contract_number', 'title'])
@@ -218,6 +233,29 @@ class RfiForm
             ->mapWithKeys(fn (Document $document): array => [
                 $document->getKey() => "{$document->information_container_id} — {$document->title}",
             ])
+            ->all();
+    }
+
+    /**
+     * The job's programme activities.
+     *
+     * `ProgrammeActivity` is this module's own — §13 and §16 are both `construction_field` — so this is a real query rather than
+     * a query-builder read. The programme is not a separate purchase.
+     *
+     * @return array<int, string>
+     */
+    private static function activities(int|string|null $jobId): array
+    {
+        if ($jobId === null) {
+            return [];
+        }
+
+        return ProgrammeActivity::query()
+            ->where('job_id', $jobId)
+            ->orderBy('code')
+            ->limit(500)
+            ->get()
+            ->mapWithKeys(fn (ProgrammeActivity $activity): array => [$activity->getKey() => $activity->displayName()])
             ->all();
     }
 

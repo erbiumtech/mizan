@@ -6,7 +6,7 @@ use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Models\AttendanceRegularization;
 use App\Modules\Core\Models\User;
 use App\Support\Contracts\PeriodLock;
-use Illuminate\Support\Facades\DB;
+use App\Support\TenantTransaction;
 use InvalidArgumentException;
 
 /**
@@ -65,7 +65,7 @@ class RegularizationService
         // locked, or leave approved, in between.
         $this->assertRegularizable($request);
 
-        return DB::transaction(function () use ($request, $approver): AttendanceDay {
+        return TenantTransaction::run(function () use ($request, $approver): AttendanceDay {
             $day = $this->recorder->record(
                 employee: $request->employee,
                 date: $request->date,

@@ -19,6 +19,13 @@ class SupportPlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+
+        // The two SLA reports (reports-expansion-plan.md Phase 1.3). Hidden from the sidebar and reached
+        // from the Reports hub, but they still need registering or their URLs do not exist.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void

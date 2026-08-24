@@ -7,8 +7,8 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use App\Modules\Lifecycle\Models\EmployeeChecklist;
 use App\Modules\Lifecycle\Models\EmployeeChecklistItem;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Starting somebody on a checklist, and marking it off.
@@ -37,7 +37,7 @@ class ChecklistService
             default => $employee->date_of_joining ?? now(),
         });
 
-        return DB::transaction(function () use ($employee, $template, $anchor): EmployeeChecklist {
+        return TenantTransaction::run(function () use ($employee, $template, $anchor): EmployeeChecklist {
             $checklist = EmployeeChecklist::create([
                 'employee_id' => $employee->getKey(),
                 'checklist_template_id' => $template->getKey(),

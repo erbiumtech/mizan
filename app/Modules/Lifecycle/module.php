@@ -37,6 +37,12 @@ return [
         'App\\Filament\\Resources\\FinalSettlements\\FinalSettlementResource' => \App\Modules\Lifecycle\Filament\Resources\FinalSettlements\FinalSettlementResource::class,
     ],
 
+    /** The two reports. Pages, not resources: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
+        'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
+    ],
+
     'permission_groups' => [
         'Checklist',
         'EmployeeDocument',
@@ -91,5 +97,7 @@ return [
      */
     'navigation' => [
         'Employee' => 'people',
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
     ],
 ];

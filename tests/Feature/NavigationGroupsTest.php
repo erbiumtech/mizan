@@ -290,6 +290,14 @@ class NavigationGroupsTest extends TestCase
             'Hiring',
             'Invoicing & Inventory',
             'Performance',
+            // `Quality & Safety` is the fourth construction group, added with `construction_qhse` in Phase 10a, and the
+            // measurement is §18.2's again. Site already carries the diary, the delay register, RFIs, submittals, punch
+            // lists, the programme and its import — seven entries, already past the threshold `NavigationTree` keeps
+            // groups under — so folding ITPs, inspections, NCRs, incidents, permits and the induction register in would
+            // take it to thirteen. They are also a different person's screens on a different day: a quality engineer
+            // releasing a hold point and a foreman writing the diary are not the same visit to the application, and ISO
+            // 9001 and ISO 45001 certification is frequently the reason this module was bought at all.
+            'Quality & Safety',
             'Sales',
             'Settings',
             'Site',

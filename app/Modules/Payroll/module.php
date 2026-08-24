@@ -34,6 +34,8 @@ return [
     ],
 
     'pages' => [
+        // The month's register (reports-expansion-plan.md Phase 2.1).
+        'App\\Filament\\Pages\\PayrollRegister' => \App\Modules\Payroll\Filament\Pages\PayrollRegister::class,
         'App\\Filament\\Pages\\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
         'App\\Filament\\Pages\\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
         'App\\Filament\\Pages\\TaxSummary' => \App\Modules\Payroll\Filament\Pages\TaxSummary::class,

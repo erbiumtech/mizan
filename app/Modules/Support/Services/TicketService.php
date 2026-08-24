@@ -133,9 +133,52 @@ class TicketService
     /**
      * SLA performance over a window, per category.
      *
-     * @return array<int, array{category: string, tickets: int, met_response: int, met_resolution: int}>
+     * The commitment belongs to the category, so this is the grouping the SLA is actually *about*: a
+     * category is the only thing in this schema that carries an `sla_*_minutes` figure, and a rate
+     * measured against anything else is measured against a mixture of commitments.
+     *
+     * @return array<int, array{label: string, tickets: int, met_response: int, met_resolution: int, reopened: int, satisfaction: ?float}>
      */
     public function performance(?string $from = null, ?string $to = null): array
+    {
+        return $this->rate(
+            $this->inWindow($from, $to),
+            fn (Ticket $ticket): string => $ticket->category?->name ?? 'Uncategorised',
+        );
+    }
+
+    /**
+     * The same figures, per person.
+     *
+     * A second grouping rather than a second report, because the two are read against each other: a
+     * category missing its commitment is a resourcing question, and the same category missing it for one
+     * assignee and not the others is a different question entirely. Added for the SLA report
+     * (`docs/reports-expansion-plan.md` Phase 1.3), which shows both.
+     *
+     * **A rate per person is not a ranking.** The commitments differ per category, so somebody working
+     * the urgent queue is measured against a tighter clock than somebody working the general one — which
+     * is why the report states the category rows above these and says so.
+     *
+     * @return array<int, array{label: string, tickets: int, met_response: int, met_resolution: int, reopened: int, satisfaction: ?float}>
+     */
+    public function performanceByAssignee(?string $from = null, ?string $to = null): array
+    {
+        return $this->rate(
+            $this->inWindow($from, $to)->load('assignee.user'),
+            fn (Ticket $ticket): string => $ticket->assignee?->display_label ?? 'Unassigned',
+        );
+    }
+
+    /**
+     * The tickets opened inside a window.
+     *
+     * Opened, not resolved: an SLA is a promise made when a ticket arrives, so a ticket that arrived this
+     * month and is still open belongs to this month's figures. Grouping on resolution would quietly drop
+     * every ticket still in breach, which is the population the report exists to show.
+     *
+     * @return Collection<int, Ticket>
+     */
+    private function inWindow(?string $from, ?string $to): Collection
     {
         $from = $from ?: now()->startOfMonth()->toDateString();
         $to = $to ?: now()->endOfMonth()->toDateString();
@@ -143,14 +186,37 @@ class TicketService
         return Ticket::query()
             ->with('category')
             ->whereBetween('opened_at', [$from.' 00:00:00', $to.' 23:59:59'])
-            ->get()
-            ->groupBy(fn (Ticket $ticket): string => $ticket->category?->name ?? 'Uncategorised')
-            ->map(fn (Collection $group, string $category): array => [
-                'category' => $category,
-                'tickets' => $group->count(),
-                'met_response' => $group->reject(fn (Ticket $t): bool => $t->hasBreachedResponse())->count(),
-                'met_resolution' => $group->reject(fn (Ticket $t): bool => $t->hasBreachedResolution())->count(),
-            ])
+            ->get();
+    }
+
+    /**
+     * Met-versus-missed, reopenings and satisfaction, for whatever the callback groups on.
+     *
+     * `satisfaction` is null rather than nought where nobody rated anything — an average of no ratings is
+     * not a bad score, and a report that showed 0 would say a team was hated when it was simply not asked.
+     *
+     * @param  Collection<int, Ticket>  $tickets
+     * @param  callable(Ticket): string  $key
+     * @return array<int, array{label: string, tickets: int, met_response: int, met_resolution: int, reopened: int, satisfaction: ?float}>
+     */
+    private function rate(Collection $tickets, callable $key): array
+    {
+        return $tickets
+            ->groupBy($key)
+            ->map(function (Collection $group, string $label): array {
+                $rated = $group->whereNotNull('satisfaction_rating');
+
+                return [
+                    'label' => $label,
+                    'tickets' => $group->count(),
+                    'met_response' => $group->reject(fn (Ticket $t): bool => $t->hasBreachedResponse())->count(),
+                    'met_resolution' => $group->reject(fn (Ticket $t): bool => $t->hasBreachedResolution())->count(),
+                    // Reopenings, not reopened tickets: one ticket reopened three times is three failures
+                    // to resolve it, and counting it once would read as a single unlucky case.
+                    'reopened' => (int) $group->sum('reopened_count'),
+                    'satisfaction' => $rated->isEmpty() ? null : round((float) $rated->avg('satisfaction_rating'), 1),
+                ];
+            })
             ->sortByDesc('tickets')
             ->values()
             ->all();
