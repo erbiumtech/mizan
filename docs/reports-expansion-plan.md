@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.8 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -275,19 +275,19 @@ for. Ordered by how often that has come up.
    overtime totals per employee. `AttendanceMonth` already computes `paidDays()`, `lossOfPayDays()`
    and `overtimeHours()` per employee, so this is the company-wide aggregation of an existing figure —
    and the same figure payroll prorates on, which makes disagreement between the two visible.
-2. **Hiring Funnel & Time to Hire** — applications by stage per vacancy, offer acceptance rate, days
+2. **Hiring Funnel & Time to Hire** — *done, 2026-08-24.* Applications by stage per vacancy, offer acceptance rate, days
    from applied → offer → joining, and open-vacancy ageing.
-3. **Quotation Conversion** — issued → accepted → invoiced with win rate, plus quotes expiring inside
+3. **Quotation Conversion** — *done, 2026-08-24.* Issued → accepted → invoiced with win rate, plus quotes expiring inside
    14 days (`valid_until`) and superseded versions excluded from the rate.
-4. **Revenue by Customer / Project / Product** — one report with a dimension filter, gross and net of
+4. **Revenue by Customer / Project / Product** — *done, 2026-08-24, as three groupings rather than a filter — see [What landed](#what-landed).* One report with a dimension filter, gross and net of
    credit notes. `invoices.project_id` exists and nothing reports on it.
-5. **Credit Notes Issued** — a tax-sensitive list with commissioner approval status; only visible
+5. **Credit Notes Issued** — *done, 2026-08-24.* A tax-sensitive list with commissioner approval status; only visible
    per invoice today.
-6. **Headcount Movement & Turnover** — joiners and leavers per month from `employee_job_history` and
+6. **Headcount Movement & Turnover** — *done, 2026-08-24. The column is `left_on`, not `leaving_date`.* Joiners and leavers per month from `employee_job_history` and
    `employees.leaving_date`, with turnover percentage and average tenure.
-7. **Assets in Employees' Hands** — `issued_assets` not returned, by employee, with value; ties to the
+7. **Assets in Employees' Hands** — *done, 2026-08-24. Both ties are real; the value column *is* the settlement recovery — see [What landed](#what-landed).* `issued_assets` not returned, by employee, with value; ties to the
    asset register and to settlement recovery.
-8. **Final Settlements** — composition per leaver: notice recovery, encashment, gratuity, advance and
+8. **Final Settlements** — *done, 2026-08-24. Lists leavers rather than settlements, which is what makes an unbuilt one visible — see [What landed](#what-landed).* composition per leaver: notice recovery, encashment, gratuity, advance and
    asset recoveries, net.
 9. **Onboarding / Offboarding Progress** — checklist items overdue by owner role, from
    `employee_checklist_items.due_on`.
@@ -485,6 +485,207 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — final settlements (Phase 3.8), and a tolerance that was quietly wrong.**
+
+- **The report lists leavers, not settlements, and that single decision is most of its value.** Every other
+  view of a settlement in this application starts from a settlement that exists, so an employee who left and
+  was never settled is invisible everywhere. Those rows carry no figures and sort to the top.
+- **There is no ledger balance to tie to, and saying so is not a shortfall.** A settlement posts nothing —
+  approving one records that a figure was agreed. The Phase 2 rule therefore does not apply, and what the
+  report offers instead is three disagreements: the unbuilt settlement above, a stored net that is no longer
+  the sum of its parts, and a draft quoting kit that has since moved.
+- **`net_amount` is written on build and on approve, and not on edit** — while every component is editable on
+  the resource form. So typing a notice recovery into a draft leaves the stored net behind, and the figure of
+  record disagrees with the figures it is made of. The Net column shows the *computed* net so the row adds up,
+  and the status cell carries the disagreement; a row whose parts do not sum to its total reads as a bug in
+  the report rather than a defect in the record.
+- **The stale-kit check runs on drafts only, on purpose.** The builder refuses to rebuild an approved
+  settlement "or the agreed figure would move underneath it" — so flagging an approved one as stale would be
+  arguing with the agreement. The *net differs* check does apply to approved settlements, because a stored
+  figure that disagrees with its own components is a defect however it was agreed. Both directions have a test.
+- **`abs($a - $b) >= 0.01` is the wrong way to compare two money figures, and a surviving mutation is what
+  exposed it.** Removing the tolerance entirely broke nothing, which said the tolerance was doing no work — and
+  it turned out to be doing the wrong work: float subtraction of two `decimal:2` values under-shoots, so
+  1234.56 − 1234.55 is 0.009999999999990905 and a genuine one-paisa disagreement reads as *no difference*.
+  Four of five sampled paisa-apart pairs failed that way. The comparison now rounds the difference to two
+  places, which needs no tolerance at all. Worth carrying to any other report comparing money.
+- **Payable and owed-back are two tiles, never one.** A negative settlement is legitimate — the model says so
+  — and summing a positive with a negative gives a figure that is neither what the company owes nor what it is
+  owed. Both are somebody's job.
+- **One mutation survives and is honestly equivalent.** A bare `!== 0.0` in place of the rounded comparison
+  behaves identically on this schema, because every operand is a `decimal:2` column; no test can distinguish
+  them and none pretends to. The rounding stays as the form that is still right if a caller hands it an
+  unrounded sum.
+- **The page is `FinalSettlementsReport`, not `FinalSettlements`** — `FinalSettlementResource` already derives
+  the `final-settlements` slug, and two things claiming one URL surfaces as a missing route rather than a
+  clash. The same reason `ExpenseClaimsReport` carries the suffix, and the help slug is suffixed to match.
+
+**2026-08-24 — assets in employees' hands (Phase 3.7), where both of the plan's ties turned out to be real.**
+
+- **The value column is not *like* the settlement recovery, it is the same figure.** `unreturnedAssets()` sums
+  `value` over outstanding items for one employee; this report sums the same column over the same scope for
+  everybody. The test asserts the report's total against the builder's return rather than against a literal,
+  so if somebody changes what a settlement charges for, the test fails and the report is wrong. That is worth
+  more than a matching number: it makes the tie structural rather than coincidental.
+- **An item with no value recorded prints a dash, not a nought — and that is a finding, not formatting.**
+  Because the settlement sums the column, a null recovers *nothing*: the laptop is gone and the deduction is
+  zero. A nought in the cell would read as kit that is genuinely worthless rather than kit nobody priced, so
+  the report dashes it and the note counts them.
+- **The second tie surfaced something no screen in this application puts together: a fixed asset disposed on
+  the books while somebody is still holding it.** The accounts say the company no longer owns it; an
+  `issued_assets` row says who has it. Either it came back and was never marked returned, or it was written
+  off out of the building. Nothing else asks.
+- **The leaver boundary was wrong until a test name caught it.** The test was called *the last day of
+  employment is not yet a leaver* and asserted the opposite — and passed, because `hasLeft()` was `<=`.
+  `HeadcountReports::headcountAt()` counts an employee whose `left_on` is the date being read, so the two
+  reports disagreed about whether somebody was employed on their last day. Now strictly `<`, which is also the
+  right reading here: somebody in the building today can hand the laptop back today.
+- **Judged as at the date, never by `status`.** A register read for September must not mark somebody a leaver
+  who resigned in December. Reading "is inactive now" would have looked identical on today's data and been
+  wrong on every historical read — the same class of bug as an as-at report that filters on the current state.
+- **The asset register is guarded on `accounting`, and unreadable is its own answer.** A company can disable
+  the module and still hold `fixed_asset_id` values from before it did. The column then says *Not on register*
+  rather than *On the register*, because the latter would assert something nothing verified. The items are
+  still listed and still valued — a laptop is out whether or not the books can be read.
+- **A row per item, though the plan says "by employee".** A serial number, an issue date and a days-out figure
+  are properties of a thing, and somebody chasing a laptop needs to know which laptop. The holder is named on
+  every row and the ordering groups by holder — leavers first, then longest out, because that is the order the
+  rows need acting on.
+- **Fifteen mutations, all killed**, including the four that would each have quietly emptied a finding: the
+  as-at filter dropped, the leaver total never accumulating, the disposal never counted, and an unvalued item
+  printing 0.
+
+**2026-08-24 — headcount movement and turnover (Phase 3.6), and a date-versus-instant bug worth naming.**
+
+- **Comparing a `date` cast against an `endOfMonth()` made a leaver vanish on their last day.** `left_on` is
+  midnight; the month boundary is 23:59:59; `left_on >= boundary` is therefore false on the very day somebody
+  left. That dropped them from the closing headcount, which halved the turnover denominator and reported
+  **200% for a month in which one person of one left**. Two tests failed from the one cause. Every boundary
+  comparison in the report is now on date strings, because dates are what the question is about.
+- **Turnover is over the *average* of opening and closing headcount**, which is the convention and the only
+  denominator that behaves at both ends: against opening, a company that halved understates its rate; against
+  closing, it overstates it, or divides by nought in a month that ended empty.
+- **Turnover above 100% is a real answer and is not capped.** Somebody joining and leaving inside one month
+  gives 200% in a one-person company. That reads oddly and is correct — churn can exceed average headcount —
+  and capping it would hide exactly the months worth looking at.
+- **Two columns read different sources on purpose.** Joiners come from `date_of_joining`, because a month's
+  joiners is a fact about that month and somebody re-employed has joined again. Tenure is *continuous
+  service* from the first job-history row, which is the rule `FinalSettlementBuilder` already set — "somebody
+  re-employed after a break has two spans and only the current one counts" — so measuring from the original
+  joining date would credit the company for the gap. Both mutations fail named tests.
+- **The earliest history row, not the latest.** `keyBy` keeps the last of a duplicate key, so the query orders
+  descending to make it keep the first. Sorted the other way this would silently measure tenure from
+  somebody's most recent promotion, which is a plausible-looking figure and wrong; there is a test for it.
+- Somebody with no history and no joining date is left out of the tenure average rather than counted as
+  nought years, which would drag it down for a missing record rather than a short career.
+- **The plan cites `employees.leaving_date`; the column is `left_on`.** Recorded rather than silently
+  corrected, because the plan's data table is otherwise reliable and a reader checking against it would look
+  for a column that does not exist.
+
+
+**2026-08-24 — credit notes issued (Phase 3.5), which is a compliance report rather than a list.**
+
+- **The tax rule is the report.** A credit note may be issued against an invoice for `fbr.credit_note_days`
+  (180 by default), and beyond that it needs the Commissioner's approval under rule 22. Nothing in this
+  application refuses a late credit note — the window is *reported*, the way the SLA clocks are — so this list
+  is the only place a reversal made without cover is visible at all.
+- **The exposure is stated as money, not a count.** What matters is how much tax was reversed without cover,
+  not how many documents did the reversing: one large credit note is a bigger problem than five small ones.
+- **A credit note naming no invoice is not called compliant.** The window cannot be computed without the
+  invoice, and "within the window" would be a guess in the company's favour on a tax question — so it reads
+  *No invoice named*, is counted separately in the note, and is not added to the exposure either. Mutating it
+  to "within window" fails two tests.
+- **The window is read from the company's setting.** A company on a different regime has a different window,
+  and judging it by the default would report an exposure that is not one — the worse of the two errors on a
+  tax report. Hard-coding 180 fails a test by name.
+- **The credited invoice is looked up outside the report's own period.** A credit note raised late is the case
+  this report exists for, so the invoice it credits is usually older than the window being reported and often
+  older than the fiscal year. Read through the query builder for two columns, so an Eloquent relation cannot
+  quietly pull a whole invoice from outside the period a reader thinks they are looking at.
+- Filed under *Statutory reporting* rather than with the receivables, because the question it answers is the
+  tax one and that section already holds the FBR reports.
+
+
+**2026-08-24 — revenue by customer, project and product (Phase 3.4).**
+
+- **Three groupings in one table rather than a dimension filter**, which is a departure from the plan's
+  wording. A picker would have to be declared in `ReportPane::ASKS` — an Accounting constant — and putting an
+  Invoicing concept there is precisely the coupling Phase 1.2 removed from `supports()`. *Win/Loss* already
+  stacks three groupings behind a labelled first column, and reading them together is better than switching
+  between them anyway: a customer whose revenue is all on one project is a different risk from one spread
+  across four.
+- **The groupings must not be added together, and that is the report's most dangerous property.** A sale
+  appears once under its customer, once under its project and once per product line, so summing the rows
+  trebles the revenue. The record row totals the customer grouping alone, the note says so, and mutating that
+  condition away fails the test by name.
+- **A credit note is attributed to the invoice it credits.** The revenue was recognised against that
+  customer, project and products, so the reversal belongs in the same place. In practice a credit note carries
+  a customer and no project, so attributing it by its own columns would drop the reversal into *No project*
+  and leave the project holding revenue that had been given back. Mutating this fails four tests.
+- **`No project` and `Not a product` are rows, not gaps.** Invoicing unattributed to a project is the figure
+  that makes the project grouping smaller than the customer one, so the note states the amount; and a line
+  with no product — a service, a one-off — is common enough that dropping it would make the product grouping
+  quietly fail to add up.
+- **Issued, partially paid and paid only.** A draft is not revenue, a void one never was, and a purchase is
+  cost. Each has its own test, because each is a one-word change away from being counted.
+- Customer, project and product names are read through the query builder. `invoicing -> projects` is declared
+  so a model import would be legal, but the report needs one column of each table — and a company that has
+  switched the projects module off still has `project_id` values from before it did.
+
+
+**2026-08-24 — quotation conversion (Phase 3.3).**
+
+- **Superseded versions are excluded, and that is the report's reason for existing.** A quote revised three
+  times is one opportunity, not four. Counting each version would inflate what was issued by however often
+  the company negotiates and push the win rate *down* for doing the thing that wins work. Excluded in the
+  query rather than filtered later, so no figure can accidentally include one — and mutating that clause away
+  fails four tests.
+- **Two conversions, because they fail differently.** Issued → accepted is whether the work was won; accepted
+  → invoiced is whether anybody billed for it. The second is the one nothing else in the application
+  surfaces, and an accepted quote with no invoice against it is revenue the company has agreed and never
+  asked for. It gets its own column and comes first among the note's warnings, ahead of quotes about to lapse:
+  one is a failure to bill and the other is only a deadline.
+- **The win rate counts *decided* quotes**: accepted, declined, or run out of time. A quote still inside its
+  validity has not been lost — the same rule as the hiring funnel's acceptance rate — but an expired one has,
+  because it ran out without anybody saying yes.
+- **Expiry is computed, not read from the status.** The nightly sweep is what sets `expired`, so between a
+  quote lapsing and the sweep running the stored status still says `sent`. The model already computes it for
+  exactly this reason — "an expired quote must not be acceptable in the meantime" — and the report follows,
+  so a lapsed quote is a loss on the day it lapses rather than on the day a job notices.
+- **Expiring-soon is a column on the month whose quotes are running out**, which is 2.4's reason for putting
+  the stock flags on the product rows: the row is where the reader would have gone looking anyway. Drafts are
+  excluded, because nobody has been given them, and already-lapsed quotes are *expired* rather than expiring.
+- The period is the financial year to date through `ReportPeriod`. Read in February, a calendar year would
+  drop the first seven months of the company's quoting.
+
+
+**2026-08-24 — the hiring funnel (Phase 3.2).**
+
+- **Nothing in Phase 3 reconciles, and this is the first report to say so explicitly.** There is no account
+  behind a hiring funnel, so Phase 2's rule about record rows tying to balances does not apply. What replaces
+  it is a discipline about not overstating what the data supports, and four decisions carry it — each a way
+  the report could read as more confident than it is:
+  - **Acceptance is over offers *answered*, not issued.** An offer nobody has replied to is not a refusal, and
+    counting it as one makes a company that has just sent three offers look as though it lost them. One
+    accepted, one declined, one outstanding reads 50% and not 33%.
+  - **Time to offer is measured to `issued_at`.** A draft offer nobody has sent is not a milestone the
+    candidate has reached.
+  - **Time to join counts accepted offers only.** A declined offer has a joining date nobody will honour, and
+    averaging it in describes a notice period that never happened.
+  - **Ageing is only for vacancies still open.** A closed vacancy's age is a historical fact, and putting it
+    in the same column invites the two to be averaged into a sentence nobody meant.
+  Both of the first and third were mutation-checked: dividing by all offers, and counting declined joining
+  dates, each fail a named test.
+- **A withdrawal is not a rejection**, and is in no stage column. Somebody who withdrew left of their own
+  accord; counting them beside rejections would read as the company's decision. They stay in the applications
+  total, because they did apply, and the note says how many — which is what stops the stage columns looking
+  as though they have lost somebody.
+- **Wide, because a funnel is its stages.** Six stage columns plus four measures is past the pane's width, and
+  collapsing the stages into a total would remove the only thing that makes it a funnel.
+- The averages are means over however many offers a vacancy produced, which over two or three hires is a
+  rough guide rather than a statistic — so the application count sits on the same row, to be read with it.
+
 
 **2026-08-24 — the monthly attendance register (Phase 3.1), which needed a performance fix before it was
 possible at all.**

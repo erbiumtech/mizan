@@ -113,7 +113,7 @@ class ReportPaneTest extends AccountingTestCase
          * "what landed", and a comment that grows a clause per report becomes unreadable long before it
          * becomes useful.
          */
-        $this->assertGreaterThanOrEqual(39, count(Reports::catalogue()));
+        $this->assertGreaterThanOrEqual(46, count(Reports::catalogue()));
     }
 
     /**

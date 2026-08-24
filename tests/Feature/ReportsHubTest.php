@@ -130,14 +130,18 @@ class ReportsHubTest extends TestCase
             'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance', 'Budget vs Actual',
             'Fixed Asset Register', 'Bank Reconciliation Statement',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
+            'Revenue by Customer, Project and Product',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
+            'Credit Notes Issued',
             'FBR Invoice Reporting',
             'Account Register', 'Petty Cash Book', 'Loans Outstanding', 'Cash Commitments',
             'Bank Payment File',
             'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
+            'Quotation Conversion',
             'SLA Performance', 'SLA Breaches', 'Unbilled WIP', 'Stock on Hand',
             'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register', 'Leave Liability',
-            'Advances Outstanding', 'Expense Claims', 'Attendance Register',
+            'Advances Outstanding', 'Expense Claims', 'Attendance Register', 'Hiring Funnel',
+            'Headcount Movement', "Assets in Employees' Hands", 'Final Settlements',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }

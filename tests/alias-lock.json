@@ -355,7 +355,9 @@
         "App\\Filament\\Pages\\SlaBreaches": "App\\Modules\\Support\\Filament\\Pages\\SlaBreaches",
         "App\\Filament\\Pages\\TimesheetUtilisation": "App\\Modules\\Timesheets\\Filament\\Pages\\TimesheetUtilisation",
         "App\\Filament\\Pages\\PlanVersusActual": "App\\Modules\\Timesheets\\Filament\\Pages\\PlanVersusActual",
+        "App\\Filament\\Pages\\AssetsInHand": "App\\Modules\\Lifecycle\\Filament\\Pages\\AssetsInHand",
         "App\\Filament\\Pages\\DocumentsExpiring": "App\\Modules\\Lifecycle\\Filament\\Pages\\DocumentsExpiring",
+        "App\\Filament\\Pages\\FinalSettlementsReport": "App\\Modules\\Lifecycle\\Filament\\Pages\\FinalSettlementsReport",
         "App\\Filament\\Pages\\LoansOutstanding": "App\\Modules\\Accounting\\Filament\\Pages\\LoansOutstanding",
         "App\\Filament\\Pages\\CashCommitments": "App\\Modules\\Accounting\\Filament\\Pages\\CashCommitments",
         "App\\Filament\\Pages\\PayrollRegister": "App\\Modules\\Payroll\\Filament\\Pages\\PayrollRegister",
@@ -364,7 +366,12 @@
         "App\\Filament\\Pages\\StockOnHand": "App\\Modules\\Inventory\\Filament\\Pages\\StockOnHand",
         "App\\Filament\\Pages\\AdvancesOutstanding": "App\\Modules\\Advances\\Filament\\Pages\\AdvancesOutstanding",
         "App\\Filament\\Pages\\ExpenseClaimsReport": "App\\Modules\\Expenses\\Filament\\Pages\\ExpenseClaimsReport",
-        "App\\Filament\\Pages\\AttendanceRegister": "App\\Modules\\Attendance\\Filament\\Pages\\AttendanceRegister"
+        "App\\Filament\\Pages\\AttendanceRegister": "App\\Modules\\Attendance\\Filament\\Pages\\AttendanceRegister",
+        "App\\Filament\\Pages\\HiringFunnel": "App\\Modules\\Recruitment\\Filament\\Pages\\HiringFunnel",
+        "App\\Filament\\Pages\\QuotationConversion": "App\\Modules\\Quotations\\Filament\\Pages\\QuotationConversion",
+        "App\\Filament\\Pages\\RevenueByDimension": "App\\Modules\\Invoicing\\Filament\\Pages\\RevenueByDimension",
+        "App\\Filament\\Pages\\CreditNotesIssued": "App\\Modules\\Invoicing\\Filament\\Pages\\CreditNotesIssued",
+        "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

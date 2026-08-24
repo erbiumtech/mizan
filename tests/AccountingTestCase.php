@@ -5,7 +5,6 @@ namespace Tests;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
-use Database\Seeders\AccountSeeder;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Database\Seeders\FiscalYearSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -30,7 +29,6 @@ abstract class AccountingTestCase extends TestCase
             FiscalYearSeeder::class,
             SalarySlabSeeder::class,
             ChartOfAccountsSeeder::class,
-            AccountSeeder::class,
         ]);
 
         $this->fiscalYear = FiscalYear::where('name', '2026-2027')->firstOrFail();
