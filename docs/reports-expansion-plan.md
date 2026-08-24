@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1, 4.2 and 4.3 landed); 4.4, 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1, 2 and 3 complete; Phase 4 all but 4.5 landed (4.1–4.4); 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -308,7 +308,7 @@ report:
    sends, which is why that phase waits for this one rather than growing a second renderer.
 2. **Comparison periods beyond the previous year** — *done, 2026-08-24, except budget, which `BudgetVsActual` already is — see [What landed](#what-landed).* previous month, previous quarter, budget.
 3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
-4. **Keyboard navigation of the report list** — arrow keys and type-ahead, once the list is 35+ rows.
+4. **Keyboard navigation of the report list** — *done, 2026-08-24. The search box is the type-ahead; the rows stay buttons — see [What landed](#what-landed).* arrow keys and type-ahead, once the list is 35+ rows.
 5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
    the whole state, so this is storage rather than plumbing.
 
@@ -485,6 +485,39 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — keyboard navigation of the report list (Phase 4.4). The phase set 35 rows as the threshold;
+there are 51.**
+
+- **The rows stay native `<button>` elements, and refusing the ARIA listbox pattern was the main decision.**
+  `role="option"` plus `aria-activedescendant` is the textbook answer and it would have been a downgrade
+  here: it replaces button semantics a screen reader already announces correctly with a pattern that then has
+  to reimplement them, and Enter and Space work on these rows only because they have always been buttons.
+  Arrow keys move real DOM focus between real buttons instead. A test asserts `role="option"` is *absent*, so
+  a later change to it has to argue with something.
+- **The search box is the type-ahead.** The plan asks for both arrow keys and type-ahead, and a literal
+  reading would have meant a second string matcher — keystrokes jumping the selection without filtering —
+  giving two behaviours to one set of keys. The box is the better of the two: it filters, and it shows you
+  what you typed so you can correct it. So a printable key pressed anywhere in the list goes into it, which
+  delivers the phase's intent through one mechanism rather than two.
+- **The way in is the way out.** Down-arrow from the search box enters the list, up-arrow off the first row
+  returns to it. That is what makes "type to narrow, arrow down, Enter" a path rather than three unrelated
+  controls, and it is the only reason this is faster than the mouse at 51 rows.
+- **Modified keys are left alone** — Cmd+K is the command palette, and a type-ahead that swallowed it would
+  break a control that already exists.
+- **`focus-visible`, not `focus`.** Arrow keys move real focus, so the ring is the only thing telling
+  somebody where they are in a list this long — and a mouse click should not leave one behind.
+- **The behaviour is not automatically tested, and the tests say so rather than implying otherwise.** There
+  is no Dusk and no Playwright in this project, so nothing can press a key and see where focus went. What
+  the tests do is fail if a hook the Alpine component reads is removed, which is the realistic way this
+  breaks: the markup edited for an unrelated reason and the keyboard quietly stopping.
+- **One test passed for the wrong reason and was fixed.** Counting `data-report-row` across the page came to
+  52 against 51 rows, because the component's own selector string contains the bare attribute name. The
+  attribute now carries the report key so the count is unambiguous — and being off by one row is exactly the
+  error that count exists to catch.
+- **The rebuilt CSS is deliberately not in this commit.** `public/build` is tracked, and rebuilding re-hashed
+  `app-*.css` as well as the theme — an asset this change did not author. The stylesheet compiles; shipping
+  it needs `npm run build` committed by whoever owns the asset pipeline.
 
 **2026-08-24 — comparison periods (Phase 4.2), and one item of the plan deliberately not built.**
 

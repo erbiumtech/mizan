@@ -882,3 +882,28 @@ An unrecognised basis in a URL falls back to the previous year rather than to no
 comparison: the commonest way to arrive with a bad one is an old link, and answering that
 with a column silently removed is worse than answering it with the conventional one. The
 previous boolean `?comparison=` is still honoured, so saved links land where they did.
+
+## Keyboard navigation of the report list
+
+Arrow keys move through the visible reports, Enter or Space opens one, Home and End jump
+to the ends. Down-arrow from the search box steps into the list and up-arrow off the first
+row returns to it, which makes *type to narrow, arrow down, Enter* the path through 51
+reports. Escape clears the search box.
+
+**The rows stay native `<button>` elements.** The ARIA listbox pattern would mean
+`role="option"` and `aria-activedescendant`, which replaces the button semantics a screen
+reader already announces correctly with a pattern that has to reimplement them. Arrow keys
+move real DOM focus between real buttons instead, so Enter and Space work because they
+always did and nothing is faked. A `:focus-visible` ring marks where you are — the
+keyboard path is the one that needs it, and a mouse click should not leave a ring behind.
+
+**The search box is the type-ahead.** A printable key pressed anywhere in the list goes
+into it. A second string matcher — keystrokes jumping the selection without filtering —
+would give two behaviours to one set of keys, and the box is the better of the two: it
+filters, and it shows you what you typed so you can correct it. Modified keys are left
+alone, so Cmd+K still opens the command palette.
+
+There is **no automated test of the behaviour**: this project has no browser harness. The
+tests assert that the markup carries the hooks the component reads, which is the realistic
+way this breaks — the markup edited for an unrelated reason and the keyboard quietly
+stopping with nothing to say so.
