@@ -34,6 +34,10 @@ return [
         'App\\Filament\\Resources\\OneToOnes\\OneToOneResource' => \App\Modules\Performance\Filament\Resources\OneToOnes\OneToOneResource::class,
     ],
 
+    'pages' => [
+        'App\\Filament\\Pages\\ReviewCycleProgress' => \App\Modules\Performance\Filament\Pages\ReviewCycleProgress::class,
+    ],
+
     'permission_groups' => [
         'Review',
     ],
