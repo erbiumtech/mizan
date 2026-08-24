@@ -33,10 +33,11 @@
         @forelse ($statement['rows'] as $row)
             <div class="fi-explorer-line" style="{{ $grid }}">
                 @foreach ($row as $i => $cell)
+                    @php($isNumeric = in_array($i, $statement['numeric'], true))
                     <span @class([
-                        'fi-num' => in_array($i, $statement['numeric'], true),
+                        'fi-num' => $isNumeric,
                         'fi-explorer-line-label' => $i === 0,
-                    ])>{{ $cell }}</span>
+                    ])>{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell($cell) : $cell }}</span>
                 @endforeach
             </div>
         @empty
@@ -64,7 +65,8 @@
                 </span>
 
                 @foreach (array_slice($statement['footer'], $statement['footer_span'], null, true) as $i => $cell)
-                    <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                    @php($isNumeric = in_array($i, $statement['numeric'], true))
+                    <span @class(['fi-num' => $isNumeric])>{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell($cell) : $cell }}</span>
                 @endforeach
             </div>
         @endif

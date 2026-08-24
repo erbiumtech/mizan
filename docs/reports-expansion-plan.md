@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1 landed); 4.2–4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1 and 4.3 landed); 4.2, 4.4, 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -307,7 +307,7 @@ report:
    twenty times more likely. One implementation on the pane rather than per report — and the one Phase 8
    sends, which is why that phase waits for this one rather than growing a second renderer.
 2. **Comparison periods beyond the previous year** — previous month, previous quarter, budget.
-3. **Negatives in parentheses**, and a company-wide preference for it. Accountants read `(1,250)`.
+3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
 4. **Keyboard navigation of the report list** — arrow keys and type-ahead, once the list is 35+ rows.
 5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
    the whole state, so this is storage rather than plumbing.
@@ -485,6 +485,39 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — negatives in parentheses (Phase 4.3), and where a formatting rule has to live.**
+
+- **A preference, not a default.** `(1,250)` is how a balance sheet is read and `-1,250` is how everyone who
+  is not an accountant reads a figure, and this application prints both kinds of report to both kinds of
+  reader. Off unless a company turns it on, so nothing changes underneath anybody.
+- **Applied where a report is drawn, not where it is calculated — and that was the design decision.** All
+  fifty-one reports format their own cells with `number_format()` before the payload leaves the service, so a
+  preference honoured inside each of them would have been fifty-one places to forget and a sweep across
+  thirty files to land it. Instead the display layer re-reads what the payload already declares: the
+  `numeric` column list, which is the same thing Phase 4.1's exporter uses. One rule, five call sites, and
+  the reports know nothing about it.
+- **The CSV deliberately does not get it, and that is why the rewrite is in the views.** A spreadsheet reads
+  `(1,250)` as text. Applied to the payload — the obvious place — it would have reached the one output where
+  parentheses are actively harmful, the file somebody opens in order to do arithmetic. A test asserts the
+  payload still carries `-60,000` while the page shows `(60,000)`.
+- **Five things in numeric columns had to survive, and the pattern is anchored at both ends because of
+  them:** an em dash meaning "does not apply" (which nearly every report uses), a bare hyphen, a date like
+  `2027-02-20`, prose beginning with a negative number, and a status cell like `Draft · net differs`. An
+  unanchored pattern would have made a hash of every date column in the application, and a caught em dash
+  would have emptied half the cells on half the reports — looking like missing data rather than a formatting
+  bug. Each has its own test.
+- **A figure that rounds away to nothing is not negative.** `number_format(-0.4, 0)` is the string `-0`, so
+  deciding the sign before the rounding gives `(0)` — which reads as a puzzle — or `-0`, which reads as a
+  bug. Both are wrong about the same number, and `money()` and `cell()` apply the identical rule so the two
+  cannot disagree about it.
+- **No caching in the formatter, on purpose.** `setting()` goes through `TenantSettings`, which already holds
+  one array per tenant, so a lookup per cell is an array read. A static cache in a class called from a Blade
+  loop would be the classic tenant leak: the first company's preference applied to the second company's
+  report in the same worker.
+- **Fourteen mutations, all killed.** The setting section lives in Core rather than Accounting, because it
+  governs reports in every module and Core is the one module always licensed — a preference filed behind a
+  module a company has not bought is a preference it cannot reach.
 
 **2026-08-24 — exporting the open pane (Phase 4.1). Phase 8 now has something to send.**
 

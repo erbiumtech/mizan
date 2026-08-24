@@ -40,6 +40,19 @@ than containing one, and the file itself is the download button already on that 
 A report with no rows for the period has nothing to export either, so the buttons are
 hidden rather than producing an empty file.
 
+## Negatives in parentheses
+
+Company Settings → **Reports** has one switch: *Show negatives in parentheses*.
+Accountants read `(1,250)` rather than `-1,250`, and turning it on rewrites every
+negative figure on every report, on screen and in the PDF.
+
+**Off by default**, so nothing changes for anybody who has not asked. And it never
+applies to the **CSV** — a spreadsheet reads `(1,250)` as text, so the one file you
+open in order to do arithmetic keeps the minus sign whatever the setting says.
+
+Only figures are rewritten. A dash still means "does not apply", a date is still a
+date, and the sentence under each report keeps its wording.
+
 ## Roles and permissions
 
 There's no permission of its own: this page shows up for anyone who could
