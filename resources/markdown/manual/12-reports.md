@@ -521,3 +521,23 @@ The **Standing** column gives one of four answers:
 **Without approval** at the top is an amount rather than a count, because one large
 credit note matters more than five small ones. And the window follows your company's
 own setting, so if you have changed it from 180 days the report judges by yours.
+
+### Headcount Movement
+
+Under People and payroll: joiners, leavers, headcount, turnover and average tenure,
+month by month across the financial year to date.
+
+Two columns deliberately read different sources. **Joiners** come from the joining
+date, because a month's joiners is a fact about that month and somebody re-employed
+has joined again. **Average tenure** is continuous service from the first
+job-history record — the same rule a final settlement uses, because somebody
+re-employed after a break has two spans and only the current one counts. Measuring
+tenure from the original joining date would credit the company for the gap.
+
+**Turnover** is leavers over the *average* of opening and closing headcount. That is
+the conventional formula and the only one that behaves at both ends: against opening
+headcount a company that halved would understate its rate, and against closing it
+would overstate it — or divide by zero in a month that ended with nobody left.
+
+A dash in the turnover column means there was nobody to leave, which is not the same
+as nought per cent.

@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.5 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.6 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -283,7 +283,7 @@ for. Ordered by how often that has come up.
    credit notes. `invoices.project_id` exists and nothing reports on it.
 5. **Credit Notes Issued** — *done, 2026-08-24.* A tax-sensitive list with commissioner approval status; only visible
    per invoice today.
-6. **Headcount Movement & Turnover** — joiners and leavers per month from `employee_job_history` and
+6. **Headcount Movement & Turnover** — *done, 2026-08-24. The column is `left_on`, not `leaving_date`.* Joiners and leavers per month from `employee_job_history` and
    `employees.leaving_date`, with turnover percentage and average tenure.
 7. **Assets in Employees' Hands** — `issued_assets` not returned, by employee, with value; ties to the
    asset register and to settlement recovery.
@@ -485,6 +485,34 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — headcount movement and turnover (Phase 3.6), and a date-versus-instant bug worth naming.**
+
+- **Comparing a `date` cast against an `endOfMonth()` made a leaver vanish on their last day.** `left_on` is
+  midnight; the month boundary is 23:59:59; `left_on >= boundary` is therefore false on the very day somebody
+  left. That dropped them from the closing headcount, which halved the turnover denominator and reported
+  **200% for a month in which one person of one left**. Two tests failed from the one cause. Every boundary
+  comparison in the report is now on date strings, because dates are what the question is about.
+- **Turnover is over the *average* of opening and closing headcount**, which is the convention and the only
+  denominator that behaves at both ends: against opening, a company that halved understates its rate; against
+  closing, it overstates it, or divides by nought in a month that ended empty.
+- **Turnover above 100% is a real answer and is not capped.** Somebody joining and leaving inside one month
+  gives 200% in a one-person company. That reads oddly and is correct — churn can exceed average headcount —
+  and capping it would hide exactly the months worth looking at.
+- **Two columns read different sources on purpose.** Joiners come from `date_of_joining`, because a month's
+  joiners is a fact about that month and somebody re-employed has joined again. Tenure is *continuous
+  service* from the first job-history row, which is the rule `FinalSettlementBuilder` already set — "somebody
+  re-employed after a break has two spans and only the current one counts" — so measuring from the original
+  joining date would credit the company for the gap. Both mutations fail named tests.
+- **The earliest history row, not the latest.** `keyBy` keeps the last of a duplicate key, so the query orders
+  descending to make it keep the first. Sorted the other way this would silently measure tenure from
+  somebody's most recent promotion, which is a plausible-looking figure and wrong; there is a test for it.
+- Somebody with no history and no joining date is left out of the tenure average rather than counted as
+  nought years, which would drag it down for a missing record rather than a short career.
+- **The plan cites `employees.leaving_date`; the column is `left_on`.** Recorded rather than silently
+  corrected, because the plan's data table is otherwise reliable and a reader checking against it would look
+  for a column that does not exist.
+
 
 **2026-08-24 — credit notes issued (Phase 3.5), which is a compliance report rather than a list.**
 
