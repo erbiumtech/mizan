@@ -39,6 +39,7 @@ return [
 
     /** The two reports. Pages, not resources: a report is a question, not rows to edit. */
     'pages' => [
+        'App\\Filament\\Pages\\AssetsInHand' => \App\Modules\Lifecycle\Filament\Pages\AssetsInHand::class,
         'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
         'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
     ],

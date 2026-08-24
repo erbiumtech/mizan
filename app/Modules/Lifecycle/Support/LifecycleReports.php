@@ -2,9 +2,11 @@
 
 namespace App\Modules\Lifecycle\Support;
 
+use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveType;
 use App\Modules\Lifecycle\Models\EmployeeDocument;
+use App\Modules\Lifecycle\Models\IssuedAsset;
 use App\Modules\Lifecycle\Services\DocumentExpiryCheck;
 use App\Modules\Lifecycle\Services\FinalSettlementBuilder;
 use App\Support\Reporting\ReportShapes;
@@ -28,6 +30,9 @@ use Illuminate\Support\Collection;
  * that had been most diligent, and silent about why. `expiring()` is the listing: everything inside the
  * window, warned about or not.
  *
+ * **Assets in Employees' Hands** — Phase 3.7. What is out and not back, valued at exactly what a final
+ * settlement would recover for it, with the asset register consulted for anything capitalised.
+ *
  * **Leave Liability** — Phase 2.2, and it lives here rather than in Leave for one reason: the figure is
  * whatever a final settlement would pay out, and `FinalSettlementBuilder` is Lifecycle's. Putting the report
  * beside the calculation is what keeps the accrual and the settlement from being two numbers. It also needs
@@ -36,6 +41,234 @@ use Illuminate\Support\Collection;
 class LifecycleReports
 {
     use ReportShapes;
+
+    /**
+     * Company kit still in somebody's hands — `docs/reports-expansion-plan.md` Phase 3.7.
+     *
+     * "`issued_assets` not returned, by employee, with value; ties to the asset register and to settlement
+     * recovery."
+     *
+     * **Both ties are real and neither is a ledger balance.** The value column is exactly what
+     * `FinalSettlementBuilder::unreturnedAssets()` would charge a leaver — it sums the same column over the
+     * same scope — so the figure here is the recovery, not an estimate of it. And `fixed_asset_id` says
+     * whether the item is on the asset register, which is where the second tie lives: a *disposed* fixed asset
+     * that somebody still holds is kit written off while it was out of the building.
+     *
+     * **Three findings the columns exist for**, in the order they matter:
+     *
+     *  - **A holder who has left.** The most urgent row on the report: the company is not getting the item
+     *    back by asking nicely, and if the settlement is already approved the recovery has been missed.
+     *  - **No value recorded.** `unreturnedAssets()` sums `value`, so a null recovers *nothing*. The item is
+     *    still gone and the settlement will charge nought for it.
+     *  - **Disposed on the register.** The books say the company no longer owns it; somebody has it.
+     *
+     * A row per item rather than per employee, though the plan says "by employee". A serial number, an issue
+     * date and a days-out figure are properties of a thing, and somebody chasing a laptop needs to know which
+     * laptop. The holder is named on every row and the rows are grouped by holder in the ordering.
+     */
+    public function assetsInHand(string $asOf): array
+    {
+        $date = Carbon::parse($asOf);
+
+        /** @var Collection<int, IssuedAsset> $issued */
+        $issued = IssuedAsset::query()
+            ->outstanding()
+            ->whereDate('issued_on', '<=', $date->toDateString())
+            ->with('employee.user')
+            ->get();
+
+        if ($issued->isEmpty()) {
+            return $this->emptyAssetsInHand($asOf);
+        }
+
+        $registerState = $this->fixedAssetState($issued);
+
+        $rows = [];
+        $value = 0.0;
+        $withLeavers = 0.0;
+        $unvalued = 0;
+        $disposed = 0;
+        $leaverItems = 0;
+
+        // Leavers first, then longest out. Somebody who has gone is the row to act on, and a report ordered
+        // by issue date would bury them among the laptops that are simply in use.
+        $ordered = $issued->sortBy(fn (IssuedAsset $item): string => sprintf(
+            '%d-%011d',
+            $this->hasLeft($item, $date) ? 0 : 1,
+            99_999_999_999 - (int) $item->issued_on->diffInDays($date),
+        ));
+
+        foreach ($ordered as $item) {
+            $left = $this->hasLeft($item, $date);
+            $itemValue = $item->value === null ? null : (float) $item->value;
+            $state = $this->registerStanding($item, $registerState);
+
+            $rows[] = [
+                (string) ($item->employee?->display_label ?? 'Employee #'.$item->employee_id)
+                    .($left ? ' · LEFT' : ''),
+                (string) str($item->asset_kind)->replace('_', ' ')->title().' · '.$item->description,
+                (string) ($item->serial_no ?: '—'),
+                (string) $item->issued_on->toDateString(),
+                number_format((int) $item->issued_on->diffInDays($date)),
+                // A dash, not a nought: settlement recovers nothing for an unvalued item, and printing 0
+                // would read as an item that is genuinely worthless rather than one nobody priced.
+                $itemValue === null ? '—' : number_format($itemValue, 0),
+                $state,
+            ];
+
+            $value += $itemValue ?? 0.0;
+            $unvalued += $itemValue === null ? 1 : 0;
+            $disposed += $state === 'Disposed' ? 1 : 0;
+
+            if ($left) {
+                $withLeavers += $itemValue ?? 0.0;
+                $leaverItems++;
+            }
+        }
+
+        return $this->table(
+            'AssetsInHand',
+            'Assets in Employees\' Hands',
+            $this->subtitle('issued and not returned as at '.$asOf),
+            ['Holder', 'Item', 'Serial', 'Issued', 'Days out', 'Value', 'Register'],
+            'minmax(0, 1fr) minmax(10rem, 16rem) 10rem 8rem 8rem 9rem 11rem',
+            [4, 5],
+            $rows,
+            [
+                ['label' => 'VALUE OUT', 'value' => round($value, 2), 'accent' => true],
+                // What is out with people who have gone, which is the part that is not coming back on its own.
+                ['label' => 'HELD BY LEAVERS', 'value' => round($withLeavers, 2), 'accent' => false],
+            ],
+            $this->assetsNote($rows, $leaverItems, $unvalued, $disposed),
+            $rows === [] ? null : [
+                'Total — '.count($rows).' items',
+                '',
+                '',
+                '',
+                '',
+                number_format($value, 0),
+                '',
+            ],
+            'Nothing is out with anybody.',
+        );
+    }
+
+    /**
+     * Whether the holder had left by the date being read.
+     *
+     * By the date rather than "is inactive now", so a register read for last quarter does not mark somebody
+     * as a leaver who was still employed then — and reading `status` instead would do exactly that.
+     *
+     * **Strictly before, so somebody's last day is not yet a leaver.** `HeadcountReports::headcountAt()`
+     * counts an employee whose `left_on` is the date being read, and this has to agree with it or the same
+     * person is on the payroll in one report and gone in another on the same day. It is also the right
+     * reading for this report on its own terms: somebody who is in the building today can hand the laptop
+     * back today, so there is nothing to chase yet.
+     *
+     * Compared as date strings for the reason `headcountAt()` gives at length: `left_on` is a date cast and
+     * whatever is handed in here need not be, and one time component is all it takes to be wrong at a
+     * boundary.
+     */
+    private function hasLeft(IssuedAsset $item, Carbon $asOf): bool
+    {
+        $leftOn = $item->employee?->left_on;
+
+        return $leftOn !== null && $leftOn->toDateString() < $asOf->toDateString();
+    }
+
+    /**
+     * What the asset register says about this item.
+     *
+     * Three answers, and the third is a finding. *Not capitalised* is ordinary — the migration says so: "a
+     * phone that was never capitalised has a description and no link". *Disposed* is not: the books say the
+     * company no longer owns a thing somebody is still holding.
+     *
+     * @param  array<int, string>  $registerState
+     */
+    private function registerStanding(IssuedAsset $item, array $registerState): string
+    {
+        if ($item->fixed_asset_id === null) {
+            return 'Not capitalised';
+        }
+
+        return match ($registerState[$item->fixed_asset_id] ?? null) {
+            FixedAsset::STATUS_DISPOSED => 'Disposed',
+            null => 'Not on register',
+            default => 'On the register',
+        };
+    }
+
+    /**
+     * The status of every fixed asset these items point at, in one query.
+     *
+     * Guarded on `accounting`: `lifecycle` declares it, but a company can have the module disabled and still
+     * hold `fixed_asset_id` values from before it was — in which case the register cannot be consulted and
+     * the report says *Not on register* rather than guessing.
+     *
+     * @param  Collection<int, IssuedAsset>  $issued
+     * @return array<int, string>
+     */
+    private function fixedAssetState(Collection $issued): array
+    {
+        $ids = $issued->pluck('fixed_asset_id')->filter()->unique()->values()->all();
+
+        if ($ids === [] || ! modules()->enabled('accounting')) {
+            return [];
+        }
+
+        return FixedAsset::query()->whereKey($ids)->pluck('status', 'id')->all();
+    }
+
+    /**
+     * What is out, and the three things to do about it.
+     *
+     * Leavers first because that is the row somebody has to chase today; unvalued second because it is the
+     * one that silently costs the company money at settlement; disposed last because it is a bookkeeping
+     * problem rather than a missing laptop.
+     *
+     * @param  array<int, array<int, string>>  $rows
+     */
+    private function assetsNote(array $rows, int $leaverItems, int $unvalued, int $disposed): string
+    {
+        if ($rows === []) {
+            return 'NOTHING IS OUT WITH ANYBODY';
+        }
+
+        return mb_strtoupper(implode(' · ', array_filter([
+            count($rows).' items out',
+            $leaverItems > 0
+                ? $leaverItems.($leaverItems === 1 ? ' is' : ' are').' with somebody who has left'
+                : null,
+            $unvalued > 0
+                ? $unvalued.' with no value recorded, so a settlement recovers nothing for '
+                    .($unvalued === 1 ? 'it' : 'them')
+                : null,
+            $disposed > 0
+                ? $disposed.' disposed on the asset register while still out'
+                : null,
+        ])));
+    }
+
+    /** @return array<string, mixed> */
+    private function emptyAssetsInHand(string $asOf): array
+    {
+        return $this->table(
+            'AssetsInHand',
+            'Assets in Employees\' Hands',
+            $this->subtitle('issued and not returned as at '.$asOf),
+            ['Holder', 'Item', 'Serial', 'Issued', 'Days out', 'Value', 'Register'],
+            'minmax(0, 1fr) minmax(10rem, 16rem) 10rem 8rem 8rem 9rem 11rem',
+            [4, 5],
+            [],
+            [
+                ['label' => 'VALUE OUT', 'value' => 0.0, 'accent' => true],
+                ['label' => 'HELD BY LEAVERS', 'value' => 0.0, 'accent' => false],
+            ],
+            'NOTHING IS OUT WITH ANYBODY',
+            null,
+            'Nothing is out with anybody.',
+        );
+    }
 
     /**
      * What unused encashable leave would cost if everybody left today — Phase 2.2.

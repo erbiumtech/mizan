@@ -141,7 +141,7 @@ class ReportsHubTest extends TestCase
             'SLA Performance', 'SLA Breaches', 'Unbilled WIP', 'Stock on Hand',
             'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register', 'Leave Liability',
             'Advances Outstanding', 'Expense Claims', 'Attendance Register', 'Hiring Funnel',
-            'Headcount Movement',
+            'Headcount Movement', "Assets in Employees' Hands",
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }
