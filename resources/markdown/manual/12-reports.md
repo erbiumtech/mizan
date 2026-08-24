@@ -423,3 +423,187 @@ reproduce. Usually that means attendance was edited after the payslip was genera
 
 The grid scrolls sideways, and on a wide report the header and totals rows do not
 follow you down the page.
+
+### Hiring Funnel
+
+Under Operations: every vacancy with its applications by stage, how many offers were
+taken, how long hiring took, and how long the vacancy has been open.
+
+Four figures worth reading carefully, because each is deliberately narrower than it
+might appear:
+
+- **Offers taken** is accepted over offers *answered*, not issued. An offer nobody
+  has replied to yet is not a refusal.
+- **To offer** counts to the offer being *sent*. A draft nobody has issued is not a
+  milestone the candidate has reached.
+- **To join** counts *accepted* offers only — a declined offer's joining date never
+  happened.
+- **Open for** is blank once a vacancy is filled or closed. Ageing is a question
+  about something still open.
+
+A **withdrawal is not a rejection** and appears in no stage column: that person left
+of their own accord. They are still in the applications total, and the note says how
+many withdrew.
+
+Both time figures are averages over however many offers a vacancy produced, so read
+them against the application count on the same row.
+
+### Quotation Conversion
+
+Under Sales and pipeline: quotations for the financial year to date by the month
+they went out — issued, accepted, declined, expired, invoiced, the win rate, and how
+many are about to lapse.
+
+**Superseded versions are excluded from every figure.** A quote revised three times
+is one opportunity, and counting each version would inflate what you issued by
+however much you negotiate — pushing your win rate down for doing the thing that
+wins work.
+
+**Two conversions are worth reading separately.** Issued → accepted is whether the
+work was won. Accepted → invoiced is whether anybody billed for it, and that is the
+one nothing else here will tell you: an accepted quote with no invoice is revenue
+you have agreed and never asked for. The note counts them.
+
+The **win rate** is accepted over quotes that have been *decided* — accepted,
+declined or expired. A quote still inside its validity is not counted as a loss;
+one that ran out is.
+
+**Expiring** counts quotes still answerable that run out within 14 days. A quote
+past its validity is *expired* rather than expiring, and it counts as expired from
+the day it lapses rather than from the day the nightly sweep notices.
+
+### Revenue by Customer, Project and Product
+
+Under Receivables and payables: what was invoiced in the financial year to date,
+three ways over — by customer, by project, by product — gross, credited back, and
+net. The project grouping is the one that existed nowhere before: invoices have
+carried a project all along and nothing reported on it.
+
+**Do not add the three groupings together.** They are the same money viewed three
+ways: one sale appears under its customer, its project and each of its products.
+The record row totals the **customer** grouping alone, and that is the figure to
+quote.
+
+**Credit notes follow the invoice they credit.** The revenue was recognised against
+that customer and project, so the reversal belongs there — not against whatever was
+typed on the credit note, which usually carries a customer and no project.
+
+Three rows that look like gaps and are not: **No customer**, **No project** and
+**Not a product**. The middle one is the figure that makes the project grouping
+smaller than the customer grouping, so the note states it. The last is any line
+typed straight onto an invoice — a service or a one-off — and dropping those would
+make the product grouping quietly fail to add up.
+
+Only **issued, partially paid and paid** invoices count. A draft is not revenue, a
+void one never was, and purchases are cost.
+
+### Credit Notes Issued
+
+Under Statutory reporting, and it is a compliance report rather than a list.
+
+A credit note may be issued against an invoice for a limited number of days — **180
+by default** — and beyond that it needs the Commissioner's approval under rule 22.
+**Nothing in this application refuses a late credit note**; the rule is reported and
+not enforced, the same as the SLA clocks. So this is the only place a reversal made
+without cover is visible.
+
+The **Standing** column gives one of four answers:
+
+- *Within 180 days* — nothing to do.
+- *Approved · reference* — outside the window, with an approval somebody should be
+  able to produce.
+- *No approval recorded* — outside the window with nothing against it. This is the
+  exposure.
+- *No invoice named* — the window cannot be computed, so the report declines to call
+  it compliant. A credit note can legitimately be standalone, but saying "within the
+  window" would be a guess in your favour on a tax question.
+
+**Without approval** at the top is an amount rather than a count, because one large
+credit note matters more than five small ones. And the window follows your company's
+own setting, so if you have changed it from 180 days the report judges by yours.
+
+### Headcount Movement
+
+Under People and payroll: joiners, leavers, headcount, turnover and average tenure,
+month by month across the financial year to date.
+
+Two columns deliberately read different sources. **Joiners** come from the joining
+date, because a month's joiners is a fact about that month and somebody re-employed
+has joined again. **Average tenure** is continuous service from the first
+job-history record — the same rule a final settlement uses, because somebody
+re-employed after a break has two spans and only the current one counts. Measuring
+tenure from the original joining date would credit the company for the gap.
+
+**Turnover** is leavers over the *average* of opening and closing headcount. That is
+the conventional formula and the only one that behaves at both ends: against opening
+headcount a company that halved would understate its rate, and against closing it
+would overstate it — or divide by zero in a month that ended with nobody left.
+
+A dash in the turnover column means there was nobody to leave, which is not the same
+as nought per cent.
+
+### Assets in Employees' Hands
+
+Under People and payroll: every laptop, phone, SIM, vehicle and access card issued
+and not returned, who has it, since when, and what it is worth. Previously visible
+one employee at a time on their own record, so nothing asked the company-wide
+question.
+
+**Value out is the recovery, not an estimate of it.** It is the same figure a final
+settlement charges for unreturned kit, summed over the same items — not a second
+calculation that happens to agree. Which is why an item with no value recorded shows
+a **dash rather than a nought**: settlement recovers nothing for something nobody
+priced, and a nought would read as kit that is genuinely worthless.
+
+Three findings, each stated in the note when present:
+
+- **A holder who has left** — marked `· LEFT`, sorted to the top, and totalled
+  apart as *Held by leavers*. The urgent row: if the settlement is already paid, the
+  recovery has been missed.
+- **No value recorded** — the item will be recovered at nothing.
+- **Disposed on the register while still out** — the accounts say the company no
+  longer owns a thing somebody is holding.
+
+The **Register** column reaches the fixed-asset register for anything capitalised.
+*Not capitalised* is ordinary — a phone bought out of petty cash has a description
+and no link. *Not on register* means the link cannot be followed, either because
+Accounting is switched off or the asset row is gone; the report says so rather than
+asserting the item is on the books.
+
+Somebody's last day still counts as employed, matching Headcount Movement, so a
+person is never on the payroll in one report and gone from another on the same date.
+
+The date is an as-at, so a laptop issued after it does not appear.
+
+### Final Settlements
+
+Under People and payroll: what each leaver's settlement was made of — encashment and
+gratuity owed to them, notice recovery, unrecovered advance, unreturned kit and other
+deductions owed back — and what it came to.
+
+It lists **leavers, not settlements**, and that is the point. Somebody who left and
+was never settled appears nowhere else in the application, because every other view
+of a settlement starts from one that exists. Those rows sort to the top and read
+*Not built*.
+
+**Nothing here posts.** A settlement is a proposal; approving one records that the
+figure was agreed and pays nothing. So there is no ledger balance to reconcile
+against — the Phase 2 rule does not apply — and the report's value is three
+disagreements instead:
+
+- **Not built** — a leaver nobody prepared a settlement for.
+- **Net differs** — the stored net is no longer the sum of its parts. It is written
+  on build and on approve but not on edit, and every component is editable. The Net
+  column always shows the sum of the parts, so the row adds up; the status cell is
+  where the disagreement is reported.
+- **Kit moved** — a *draft* quoting an unreturned-kit figure that no longer matches
+  what the employee holds. Drafts only: an approved settlement is frozen by
+  agreement, and flagging it as stale would be arguing with the agreement.
+
+**Net payable** and **Owed back** are kept apart rather than summed. A negative
+settlement is legitimate — an unrecovered advance and an unreturned laptop can leave
+somebody owing — and adding the two gives a figure that is neither.
+
+A dash in a component column means nought; a row of nothing but dashes is a *Not
+built* row. Notice recovery is never computed by anything, so a dash there means
+nobody decided one was due. The footer totals each component.

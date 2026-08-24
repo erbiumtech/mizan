@@ -74,16 +74,19 @@ class ConstructionAccountsSeeder extends Seeder
             $parent = Account::query()->where('code', $parentCode)->first();
 
             if (! $parent) {
-                // Warned rather than thrown, following `AccountSeeder`: a seeder that takes the whole
-                // provisioning run down because one group header is missing is harder to recover from than one
-                // that says which seeder to run first.
+                // Warned rather than thrown: a seeder that takes the whole provisioning run down because one
+                // group header is missing is harder to recover from than one that says which seeder to run
+                // first.
                 $this->command?->warn("Group account {$parentCode} missing; run ChartOfAccountsSeeder first.");
 
                 continue;
             }
 
             foreach ($accounts as $data) {
-                Account::updateOrCreate(
+                // firstOrCreate for the reason `ChartOfAccountsSeeder` gives at length: on every run but the
+                // first these codes are a live chart with costs posted against them, and re-asserting a name
+                // or a parent over that is not this seeder's business.
+                Account::firstOrCreate(
                     ['code' => $data['code']],
                     $data + ['parent_id' => $parent->id],
                 );

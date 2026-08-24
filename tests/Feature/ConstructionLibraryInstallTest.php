@@ -15,7 +15,7 @@ use Tests\Concerns\InteractsWithTenant;
  * `CostLedger::record()` requires a leaf cost code, and nothing seeded one — so the module shipped in a state
  * where every costing action refused until somebody hand-built a tree through the UI. This is the guarantee
  * that closes it, and the command is deliberately the vehicle: construction is
- * `'licensed_by_default' => false`, so `$tenantSeeders` runs before the module is ever on and a guarded
+ * `'licensed_by_default' => false`, so `db:seed` runs before the module is ever on and a guarded
  * seeder there would skip every company forever.
  *
  * These exercise `LibraryInstaller` rather than the command. The command is `TenantAware`, which switches

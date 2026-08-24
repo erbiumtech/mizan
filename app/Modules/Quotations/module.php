@@ -50,7 +50,14 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    /** The conversion report (Phase 3.3). A page: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\QuotationConversion' => \App\Modules\Quotations\Filament\Pages\QuotationConversion::class,
+    ],
+
     'navigation' => [
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
         'Sales' => 'sales',
     ],
 ];
