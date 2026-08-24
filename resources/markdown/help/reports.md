@@ -40,6 +40,20 @@ than containing one, and the file itself is the download button already on that 
 A report with no rows for the period has nothing to export either, so the buttons are
 hidden rather than producing an empty file.
 
+## Keyboard
+
+With 51 reports, the list is quicker from the keyboard:
+
+- **↑ ↓** move through the visible reports.
+- **Enter** or **Space** opens the highlighted one.
+- **Home** / **End** jump to the first and last.
+- **Typing anything** goes into the search box, wherever you are in the list — so *type
+  a few letters, arrow down, Enter* is the fast path.
+- **↓ from the search box** steps into the list; **↑ off the first row** goes back to it.
+- **Escape** in the search box clears it.
+
+Section chips and the report itself are reachable by **Tab**, as normal.
+
 ## Comparing against another period
 
 The three statements — Balance Sheet, Profit & Loss, Cash Flow — carry a **comparison

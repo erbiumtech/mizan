@@ -319,4 +319,71 @@ class ReportsHubTest extends TestCase
         // that found nothing.
         $this->assertGreaterThanOrEqual(10, $examined, 'the panel reported no pages hidden from the sidebar');
     }
+
+    // ──────────────────────── keyboard navigation of the list (Phase 4.4) ──
+
+    /**
+     * The list carries the hooks arrow-key navigation needs.
+     *
+     * **This asserts the wiring, not the behaviour.** There is no browser harness in this project — no Dusk,
+     * no Playwright — so nothing here can press a key and see where focus went. What it can do is fail if
+     * somebody removes an attribute the Alpine component reads, which is the realistic way this breaks: the
+     * markup is edited for an unrelated reason and the keyboard quietly stops working with no test to say so.
+     */
+    public function test_the_list_carries_the_keyboard_navigation_hooks(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $html = Livewire::test(Reports::class)->assertSuccessful()->html();
+
+        // Every row is reachable by the component, and the search box is what type-ahead types into.
+        $this->assertStringContainsString('data-report-row', $html);
+        $this->assertStringContainsString('data-report-search', $html);
+
+        // The four movement keys and the type-ahead redirect.
+        foreach (['keydown.down', 'keydown.up', 'keydown.home', 'keydown.end'] as $binding) {
+            $this->assertStringContainsString($binding, $html, "the list does not handle {$binding}");
+        }
+
+        $this->assertStringContainsString('typeAhead($event)', $html);
+    }
+
+    /**
+     * There is a `data-report-row` on every visible row, not just the first.
+     *
+     * The hook is inside the loop, and a hook outside it would give a keyboard that moves between one row.
+     */
+    public function test_every_visible_row_carries_the_hook(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $page = Livewire::test(Reports::class)->assertSuccessful();
+
+        // `data-report-row="` and not `data-report-row`: the Alpine component's own selector string
+        // contains the bare name, which made this off by one and passing for the wrong reason would have
+        // been a matter of a single row.
+        $this->assertSame(
+            count($page->instance()->visibleReports()),
+            substr_count($page->html(), 'data-report-row="'),
+        );
+    }
+
+    /**
+     * The rows stay buttons.
+     *
+     * Deliberately not an ARIA listbox: `role="option"` would replace the button semantics a screen reader
+     * already announces correctly with a pattern that has to reimplement them, and Enter and Space work on
+     * these rows because they have always been buttons. A later change to `role="option"` should have to
+     * argue with this test.
+     */
+    public function test_the_rows_are_buttons_rather_than_listbox_options(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $html = Livewire::test(Reports::class)->assertSuccessful()->html();
+
+        $this->assertStringNotContainsString('role="option"', $html);
+        $this->assertStringNotContainsString('aria-activedescendant', $html);
+        $this->assertStringContainsString('data-report-row', $html);
+    }
 }

@@ -18,7 +18,94 @@
 <x-filament-panels::page>
     <div class="fi-explorer">
         {{-- ------------------------------------------------------------------ the list --}}
-        <aside class="fi-explorer-list">
+        {{--
+            Keyboard navigation of the list — reports-expansion-plan.md Phase 4.4, which set 35 rows as the
+            point at which it earns its keep. There are 51.
+
+            **The rows stay native `<button>`s.** The ARIA listbox pattern would mean `role="option"` and
+            `aria-activedescendant`, which replaces the button semantics a screen reader already announces
+            correctly with a pattern that has to reimplement them. Arrow keys move real DOM focus between
+            real buttons instead, so Enter and Space keep working because they always did, and nothing is
+            faked.
+
+            **The search box is the type-ahead.** A second string matcher — keystrokes jumping the selection
+            without filtering — would give two behaviours to one set of keys, and the box is the better of
+            the two: it filters, and it shows you what you typed so you can correct it. So a printable key
+            pressed anywhere in the list goes to the box. Down-arrow out of the box enters the list and
+            up-arrow off the first row returns to it, which makes "type to narrow, arrow down, Enter" the
+            path through 51 reports.
+        --}}
+        <aside
+            class="fi-explorer-list"
+            x-data="{
+                rows() {
+                    return Array.from($el.querySelectorAll('[data-report-row]'));
+                },
+                search() {
+                    return $el.querySelector('[data-report-search]');
+                },
+                move(step) {
+                    const rows = this.rows();
+
+                    if (! rows.length) {
+                        return;
+                    }
+
+                    const at = rows.indexOf(document.activeElement);
+
+                    // Not in the list yet — a down-arrow from the search box enters at the top, an up-arrow
+                    // from outside enters at the bottom.
+                    if (at < 0) {
+                        (step > 0 ? rows[0] : rows[rows.length - 1]).focus();
+
+                        return;
+                    }
+
+                    // Off the top goes back to the search box rather than sticking, so the way in is also
+                    // the way out.
+                    if (at === 0 && step < 0) {
+                        this.search()?.focus();
+
+                        return;
+                    }
+
+                    rows[Math.min(at + step, rows.length - 1)].focus();
+                },
+                edge(step) {
+                    const rows = this.rows();
+
+                    if (rows.length) {
+                        (step < 0 ? rows[0] : rows[rows.length - 1]).focus();
+                    }
+                },
+                typeAhead(event) {
+                    const box = this.search();
+
+                    // Modified keys belong to the browser and to the command palette, which is Cmd+K.
+                    if (! box || event.target === box || event.ctrlKey || event.metaKey || event.altKey) {
+                        return;
+                    }
+
+                    // One printable character. `event.key` is a word for every key that is not one.
+                    if (event.key.length !== 1) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    box.focus();
+                    box.value += event.key;
+
+                    // Livewire is bound on `input`, so the property only follows a value set in script if
+                    // the event is raised by hand.
+                    box.dispatchEvent(new Event('input'));
+                },
+            }"
+            @keydown.down.prevent="move(1)"
+            @keydown.up.prevent="move(-1)"
+            @keydown.home.prevent="edge(-1)"
+            @keydown.end.prevent="edge(1)"
+            @keydown="typeAhead($event)"
+        >
             <div class="fi-explorer-list-header">
                 <div class="fi-explorer-list-title">
                     <span>Reports</span>
@@ -33,6 +120,10 @@
                         placeholder="Search reports"
                         aria-label="Search reports"
                         class="fi-explorer-search-input"
+                        data-report-search
+                        {{-- Escape empties the box rather than blurring it, which is what every search
+                             field in a list does and what somebody who mistyped expects. --}}
+                        @keydown.escape.prevent="$el.value = ''; $el.dispatchEvent(new Event('input'))"
                     >
                 </label>
 
@@ -60,6 +151,9 @@
                         type="button"
                         wire:click="select('{{ $report['key'] }}')"
                         wire:key="row-{{ $report['key'] }}"
+                        {{-- Carries the key so the attribute is greppable per row rather than a bare flag
+                             indistinguishable from the selector string in the component above. --}}
+                        data-report-row="{{ $report['key'] }}"
                         @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])
                     >
                         <span class="fi-explorer-row-icon">
