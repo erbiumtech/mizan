@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phases 4–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1 landed); 4.2–4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -303,7 +303,7 @@ for. Ordered by how often that has come up.
 Deferred from the 4c work and worth doing once the catalogue is larger, because each one pays off per
 report:
 
-1. **Export the open pane** — PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
+1. **Export the open pane** — *done, 2026-08-24. One grid from three shapes; the CSV deliberately undoes the display formatting — see [What landed](#what-landed).* PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
    twenty times more likely. One implementation on the pane rather than per report — and the one Phase 8
    sends, which is why that phase waits for this one rather than growing a second renderer.
 2. **Comparison periods beyond the previous year** — previous month, previous quarter, budget.
@@ -485,6 +485,49 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — exporting the open pane (Phase 4.1). Phase 8 now has something to send.**
+
+- **One implementation meant one normalisation.** The pane draws four kinds and three of them are shaped
+  differently: a `table` is columns and rows, a `ledger` is columns and sections each with their own total,
+  a `statement` is label-and-amount rows with an optional prior year. `ReportExport` flattens all three to
+  one grid, and the CSV writer and the PDF template each exist once. Per-kind exporters would have been three
+  writers and three templates, and Phase 8 would have had to pick one.
+- **The interesting work was undoing the presentation, not the plumbing.** The pane exists to make figures
+  readable — `275,000` with a separator, an em dash where a value does not apply — and both are *wrong* in a
+  spreadsheet: one arrives as text in most importers, the other stops a column summing. So the CSV strips
+  separators from the columns the report declares numeric and empties those dashes. It is the one place in
+  this application where the display layer is deliberately reversed, and the PDF keeps the formatting because
+  a PDF is for reading.
+- **Only the numeric columns, and the dash is why.** In a numeric column a dash is a figure that does not
+  apply and an empty cell says so properly. In a *text* column it is the pane's own wording — the serial
+  number a device does not have — and unformatting every column alike would delete a value somebody chose to
+  show. A surviving mutation is what made the distinction explicit.
+- **CSV formula injection is a real risk here and is now handled.** Report cells carry text somebody typed: a
+  project name, a checklist item, a campaign's delivery failure reason. A spreadsheet executes a cell
+  beginning `=`, `+`, `-` or `@`, so that is an attack on whoever opens the export rather than on this
+  application. Escaped with a leading apostrophe — **and numbers exempted**, which is the whole difficulty: a
+  negative figure begins with `-`, and a careless escape would turn every loss on every report into a string.
+- **A byte-order mark, which is not decoration.** Excel on Windows reads a CSV without one as the local
+  codepage, and these reports are full of em dashes and middots — every one would arrive as mojibake in the
+  spreadsheet most likely to open the file.
+- **`ModuleReportPage::getHeaderActions()` is now `final`, and the subclass hook is `reportActions()`.** All
+  thirty-three report pages declared `getHeaderActions()` themselves and returned their help button, so two
+  new actions would have meant editing thirty-three files and remembering on the thirty-fourth. The base page
+  now assembles the row and a report contributes to it. The help call still has to be a **literal in the
+  subclass's own file** — `HelpCoverageTest` reads each page's source — which the rename preserves.
+- **Both doors, because they are one payload.** The hub's pane and each report's own page render the same
+  statement and there is a test per report asserting it, so an export on one and not the other would be an
+  arbitrary difference between two views of one thing. A test asserts the two produce byte-identical CSV.
+- **One mutation survives and is documented rather than papered over.** `UNEXPORTABLE_KINDS` cannot be the
+  operative refusal for a `file` report: that payload carries no columns and no rows at all, so the
+  empty-rows check would refuse it anyway and no test can tell the two reasons apart. It stays as the thing
+  that would still refuse one if somebody later taught `grid()` to flatten a file. Twenty-six mutations,
+  twenty-five killed.
+- **The PDF reuses `reports.layout`**, which already carries the table styling every accounting report PDF
+  uses and already pulls in the Dompdf override partial. Tiles are laid out as a table row rather than with
+  flexbox for the same reason: Dompdf does not lay out flex, and a PDF that only renders under headless
+  Chrome breaks on every machine without Node.
 
 **2026-08-24 — environment health and incidents (Phase 3.13). Phase 3 is complete: thirteen reports, and the
 hub holds 51.**

@@ -25,7 +25,7 @@ class SlaPerformance extends ModuleReportPage
 
     protected static ?int $navigationSort = 30;
 
-    protected function getHeaderActions(): array
+    protected function reportActions(): array
     {
         // Literal, in this file. HelpCoverageTest reads each page's own source — a call inherited from the
         // shared parent is a page with no help as far as it can tell, and the slug is per report anyway.

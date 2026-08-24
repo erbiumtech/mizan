@@ -786,3 +786,35 @@ would not be alerted under current settings" rather than as a certainty about th
 Both windows end at the date being read, so an open outage is measured to that date and
 not to the clock. An incident counts if it overlaps the period. Rows group by project,
 production first.
+
+## Exporting a report
+
+Every report the hub can draw carries **Export CSV** and **Export PDF**, both on the
+hub's pane and on the report's own page. One implementation serves all of them: the
+three shapes the pane draws — a table, a ledger with sections, a statement with a prior
+year — are flattened to one grid, and the CSV writer and the PDF template each read only
+that.
+
+**The CSV deliberately undoes the screen's formatting.** Thousands separators come off
+the columns the report has declared numeric and a dash becomes an empty cell. This is
+the one place in the application where the display layer is reversed on purpose: a
+column somebody exported in order to sum it has to arrive as numbers, and `275,000`
+reaches most spreadsheets as text. Percentages keep their `%` and stay text, because
+dropping the symbol would turn a proportion into a count.
+
+**The PDF keeps the formatting**, because a PDF is for reading, and prints landscape for
+anything the pane itself marks as too wide to fit.
+
+**Text cells are escaped against formula injection.** A spreadsheet treats a cell
+beginning `=`, `+`, `-` or `@` as a formula to execute, and report cells carry text
+somebody typed — a project name, a checklist item, a delivery failure reason. Those are
+prefixed with an apostrophe. Numbers are not, which is the whole difficulty: a negative
+figure begins with `-`, and escaping it would turn every loss on every report into a
+string.
+
+The CSV carries a byte-order mark, so Excel on Windows reads it as UTF-8 rather than as
+the local codepage — without it every em dash in these reports arrives as mojibake.
+
+The three **bank file** reports cannot be exported: their screen describes a download
+rather than containing one, so a CSV of that screen would be a CSV about a file. Nor can
+a report with no rows — the buttons hide rather than producing an empty file.
