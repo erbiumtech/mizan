@@ -711,3 +711,41 @@ show a false shortfall on every campaign whose segment has since grown.
 Campaigns are placed by send date, or by creation date where they have not sent. Without
 that fallback the unfinished and in-flight runs would be the ones this report could not
 see. Recipients includes pending rows: they were prepared and addressed.
+
+### Review Cycle Progress
+
+Under People and payroll: one row per review cycle — reviews written, reviews
+acknowledged, goals set, goals decided, and one-to-ones held inside the cycle's own
+dates. It answers whether each cycle **finished**, not whether it was started.
+
+**Complete means acknowledged.** A review climbs five rungs — pending, self submitted,
+manager submitted, shared, acknowledged — and only the last is a review that finished.
+Counting *shared* would report a cycle as done while half the company had not opened
+their review.
+
+**Closed · N never shared** is the sharpest thing here. Somebody wrote a review of a
+person, the cycle was closed, and the person never saw it. A review is a draft about
+somebody until a manager shares it — deliberately, so drafting can be honest — and on
+every other screen a review at *manager submitted* looks like completed work. Sharing is
+judged on the timestamp rather than the status label, because the timestamp is what
+decides whether the person can read their own review.
+
+**Closed · N goals undecided** is the same failure in the other column. **Missed** is a
+settled state: recording a miss is a decision. Leaving a goal open is not a kindness, it
+is nobody having decided, so nothing can be learned from it.
+
+**No one-to-ones** means the cycle has reviews but no recorded conversations behind
+them. Only raised where reviews exist — a cycle nobody has written in yet has nothing to
+have talked about.
+
+Both closure findings appear **only once a cycle is closed**. An unshared review in an
+open or calibrating cycle is work in progress; the identical row in a closed cycle is
+work abandoned. The fact has not changed, what it means has.
+
+A cycle is included if it **overlaps** the financial year to date rather than fitting
+inside it. One-to-ones are counted inside the cycle's own dates, so two overlapping
+cycles each count the same conversation — it happened during both. A goal belonging to no
+cycle is charged to none, since standing objectives would otherwise make whichever cycle
+is open answerable for goals nobody set in it.
+
+Counts only — no ratings, no names, no review content.

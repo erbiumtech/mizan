@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.11 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.12 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -294,7 +294,7 @@ for. Ordered by how often that has come up.
 10. **Consent Register** — *done, 2026-08-24. The "not marketing statistics" clause was the specification — see [What landed](#what-landed).* consent state per contact per channel with source and date. This is
     compliance evidence, not marketing statistics, which is why it belongs with the reports.
 11. **Campaign Performance** — *done, 2026-08-24. The skip count is the report; one metric was deliberately not built — see [What landed](#what-landed).* sends, failures and reasons per campaign.
-12. **Review Cycle Progress** — reviews and goals complete per cycle, one-to-ones held.
+12. **Review Cycle Progress** — *done, 2026-08-24. "Complete" turned out to be the whole question — see [What landed](#what-landed).* reviews and goals complete per cycle, one-to-ones held.
 13. **Environment Health & Incidents** — checks failed and incidents per project over a period; the
     existing widgets are point-in-time and this is the history.
 
@@ -485,6 +485,44 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — review cycle progress (Phase 3.12), where one word in the plan carried the design.**
+
+- **"Complete" was the whole question, and `Review` had already answered it.** Five rungs — pending, self
+  submitted, manager submitted, shared, acknowledged — and only the last is a review that finished. Counting
+  *shared* would report a cycle as done while half the company had not opened their review.
+- **A closed cycle holding unshared reviews is the sharpest finding on the report.** Somebody wrote a review
+  of a person, the cycle was closed, and the person never saw it. `Review::isVisibleToEmployee()` is
+  `shared_at !== null` and its docblock explains why — "submitted is not shared", because a review is a draft
+  about somebody until a manager decides to share it, so that drafting can be honest. Which means a review
+  sitting at *manager submitted* looks like completed work on every other screen in the application.
+- **Sharing is judged on the timestamp, not the status.** A status is a label somebody set; the timestamp is
+  what decides whether the person can read their own review, and a status of *shared* with no timestamp is not
+  shared. The test asserts the report against `isVisibleToEmployee()` rather than against a literal.
+- **The same fact means opposite things at the two ends of a cycle.** An unshared review in an open or
+  calibrating cycle is work in progress; the identical row in a closed cycle is work abandoned. Both closure
+  findings are therefore raised only once a cycle is closed, and both directions are tested.
+- **`missed` is a settled goal state, and that had to be honoured.** Recording a goal as missed is a decision;
+  leaving it open past the end of its cycle is not a kindness but nobody having decided, which means nothing
+  can be learned from it. Counting only achieved goals would have rewarded the silence.
+- **One-to-ones are counted inside each cycle's own dates**, because `one_to_ones` has no cycle column — the
+  only thing tying a conversation to a cycle is the date falling inside it. Two overlapping cycles each count
+  the same conversation, which is right: it happened during both.
+- **A goal with no cycle is charged to no cycle.** `review_cycle_id` is nullable for standing objectives, and
+  attributing those to whichever cycle happens to be open would make a cycle answerable for goals nobody set
+  in it.
+- **Four tests failed on first run and the report was right every time.** Each fixture had reviews and no
+  one-to-ones, so the *no one-to-ones* suffix fired correctly and my expected strings had forgotten it. Fixed
+  by adding a conversation to those fixtures rather than by baking a second finding into the expected
+  string — a test about unshared reviews should be about unshared reviews.
+- **Twenty-six mutations, twenty-five killed.** The real gap was the meeting bound: the period test only had a
+  conversation *after* the cycle, so removing the lower bound changed nothing. It now has one on each side of
+  both ends. The survivor is the `whereIn` on cycle keys, a narrowing rather than a guard — the grouped result
+  is read by cycle key, so a goal from another cycle would be fetched and never looked up. Documented as such,
+  the same treatment Phase 3.11's `whereIn` got.
+- **Performance had no report wiring**, so it gained `discoverPages`, a `pages` manifest key and a
+  `registerReports()`. The page is `ReviewCycleProgress` because `ReviewCycleResource` already derives the
+  `review-cycles` slug — the third time that collision has been caught before it became a missing route.
 
 **2026-08-24 — campaign performance (Phase 3.11), and one metric deliberately not built.**
 
