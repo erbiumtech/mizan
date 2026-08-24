@@ -130,6 +130,7 @@ class ReportsHubTest extends TestCase
             'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance', 'Budget vs Actual',
             'Fixed Asset Register', 'Bank Reconciliation Statement',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
+            'Revenue by Customer, Project and Product',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
             'FBR Invoice Reporting',
             'Account Register', 'Petty Cash Book', 'Loans Outstanding', 'Cash Commitments',

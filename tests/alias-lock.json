@@ -366,7 +366,8 @@
         "App\\Filament\\Pages\\ExpenseClaimsReport": "App\\Modules\\Expenses\\Filament\\Pages\\ExpenseClaimsReport",
         "App\\Filament\\Pages\\AttendanceRegister": "App\\Modules\\Attendance\\Filament\\Pages\\AttendanceRegister",
         "App\\Filament\\Pages\\HiringFunnel": "App\\Modules\\Recruitment\\Filament\\Pages\\HiringFunnel",
-        "App\\Filament\\Pages\\QuotationConversion": "App\\Modules\\Quotations\\Filament\\Pages\\QuotationConversion"
+        "App\\Filament\\Pages\\QuotationConversion": "App\\Modules\\Quotations\\Filament\\Pages\\QuotationConversion",
+        "App\\Filament\\Pages\\RevenueByDimension": "App\\Modules\\Invoicing\\Filament\\Pages\\RevenueByDimension"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

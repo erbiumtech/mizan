@@ -35,6 +35,8 @@ return [
     ],
 
     'pages' => [
+        // Revenue by dimension (reports-expansion-plan.md Phase 3.4).
+        'App\\Filament\\Pages\\RevenueByDimension' => \App\Modules\Invoicing\Filament\Pages\RevenueByDimension::class,
         'App\\Filament\\Pages\\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
         'App\\Filament\\Pages\\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
         'App\\Filament\\Pages\\FbrInvoiceReporting' => \App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting::class,
