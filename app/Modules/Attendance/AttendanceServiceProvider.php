@@ -3,6 +3,7 @@
 namespace App\Modules\Attendance;
 
 use App\Modules\Attendance\Console\Commands\AccrueCompensatoryOff;
+use App\Modules\Attendance\Filament\Pages\AttendanceRegister;
 use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Models\AttendanceRegularization;
 use App\Modules\Attendance\Models\EmployeeWorkPattern;
@@ -14,6 +15,9 @@ use App\Modules\Attendance\Policies\EmployeeWorkPatternPolicy;
 use App\Modules\Attendance\Policies\WorkPatternDayPolicy;
 use App\Modules\Attendance\Policies\WorkPatternPolicy;
 use App\Modules\Attendance\Services\WorkPatternResolver;
+use App\Modules\Attendance\Support\AttendanceReports;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,6 +57,8 @@ class AttendanceServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerReports();
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
@@ -60,5 +66,29 @@ class AttendanceServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/routes/console.php');
 
         $this->commands([AccrueCompensatoryOff::class]);
+    }
+
+    /**
+     * The monthly attendance register — `docs/reports-expansion-plan.md` Phase 3.1.
+     *
+     * Filed under *People & payroll*, beside the payroll register it is meant to be read against: the two
+     * answer "what was worked" and "what was paid for" about the same month.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without attendance sees no entry rather than a report that
+     * fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'People & payroll',
+            AttendanceRegister::class,
+            'A month of attendance per person, with paid days, loss of pay, late minutes and overtime.',
+        );
+
+        ReportRenderers::register(
+            'AttendanceRegister',
+            fn (string $asOf): array => app(AttendanceReports::class)->register($asOf),
+        );
     }
 }
