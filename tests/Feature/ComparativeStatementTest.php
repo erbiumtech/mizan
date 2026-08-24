@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Support\ComparativeStatement;
+use App\Support\Reporting\ReportComparison;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
 
@@ -50,9 +51,11 @@ class ComparativeStatementTest extends AccountingTestCase
         return $entries->post($entry);
     }
 
-    private function statement(string $asOf = '2026-06-30', bool $comparison = true): array
-    {
-        return app(ComparativeStatement::class)->balanceSheet($asOf, $comparison);
+    private function statement(
+        string $asOf = '2026-06-30',
+        string $basis = ReportComparison::PREVIOUS_YEAR,
+    ): array {
+        return app(ComparativeStatement::class)->balanceSheet($asOf, $basis);
     }
 
     /** @return array<string, array<string, mixed>> label => row */
@@ -96,7 +99,7 @@ class ComparativeStatementTest extends AccountingTestCase
     {
         $this->postEntry('2026-03-31', [['1100', 'debit_amount', 100000], ['3100', 'credit_amount', 100000]]);
 
-        $statement = $this->statement('2026-06-30', comparison: false);
+        $statement = $this->statement('2026-06-30', basis: ReportComparison::NONE);
 
         $this->assertNull($statement['previous_label']);
         $this->assertNull($this->rowsOf($statement, 'ASSETS')['Cash / Bank']['previous']);
@@ -239,21 +242,106 @@ class ComparativeStatementTest extends AccountingTestCase
         $this->assertStringContainsString('1 Jul 2025', $statement['subtitle']);
     }
 
-    /** The profit and loss reads the same way, over a range rather than to a date. */
+    /**
+     * The profit and loss compares the same range a year earlier.
+     *
+     * **Takes the as-at date and a basis, not a range** — the signature changed in Phase 4.2. A month or a
+     * quarter basis has to narrow the *current* period as well as shift the comparison, and a range handed
+     * in from outside could not be narrowed without the caller knowing that rule too. One place knows it.
+     */
     public function test_the_profit_and_loss_compares_the_same_range_a_year_earlier(): void
     {
+        // Both inside their respective fiscal years, which run 1 July to 30 June.
         $this->postEntry('2025-03-31', [['1100', 'debit_amount', 200000], ['4100', 'credit_amount', 200000]]);
         $this->postEntry('2026-03-31', [['1100', 'debit_amount', 300000], ['4100', 'credit_amount', 300000]]);
 
-        $statement = app(ComparativeStatement::class)->profitAndLoss('2026-01-01', '2026-06-30');
+        $statement = app(ComparativeStatement::class)->profitAndLoss('2026-06-30');
 
         $this->assertSame(['INCOME', 'EXPENSES'], array_column($statement['sections'], 'label'));
 
         $income = collect($statement['sections'])->firstWhere('label', 'INCOME')['total'];
 
         $this->assertSame(300000.0, $income['current']);
-        $this->assertSame(200000.0, $income['previous'], 'the same months of the prior year');
+        $this->assertSame(200000.0, $income['previous'], 'the same range of the prior year');
         $this->assertSame(50.0, $income['change']);
         $this->assertSame('Net profit', $statement['closing']['label']);
+    }
+
+    // ──────────────────────────────── Phase 4.2: the narrower bases ──
+
+    /**
+     * A month basis narrows the current period to that month, which is the point of the phase.
+     *
+     * Left as the year to date, February would be compared against a year-to-date shifted back one month —
+     * two overlapping eight-month spans whose difference is mostly the same trading counted twice. The
+     * figure would look plausible and mean nothing.
+     */
+    public function test_a_month_basis_narrows_the_current_period_to_that_month(): void
+    {
+        // January and February of the 2025-2026 fiscal year.
+        $this->postEntry('2026-01-15', [['1100', 'debit_amount', 400000], ['4100', 'credit_amount', 400000]]);
+        $this->postEntry('2026-02-10', [['1100', 'debit_amount', 100000], ['4100', 'credit_amount', 100000]]);
+
+        $statement = app(ComparativeStatement::class)
+            ->profitAndLoss('2026-02-20', ReportComparison::PREVIOUS_MONTH);
+
+        $income = collect($statement['sections'])->firstWhere('label', 'INCOME')['total'];
+
+        $this->assertSame(100000.0, $income['current'], 'February alone, not the year to date');
+        $this->assertSame(400000.0, $income['previous'], 'the whole of January');
+        $this->assertStringContainsString('1 Feb 2026', $statement['subtitle']);
+    }
+
+    /** A quarter basis takes three months, and compares the three before them. */
+    public function test_a_quarter_basis_takes_three_months(): void
+    {
+        // The quarter to 20 February 2026 is December, January and February.
+        $this->postEntry('2025-12-05', [['1100', 'debit_amount', 50000], ['4100', 'credit_amount', 50000]]);
+        $this->postEntry('2026-02-10', [['1100', 'debit_amount', 70000], ['4100', 'credit_amount', 70000]]);
+        // September, in the quarter before it.
+        $this->postEntry('2025-09-15', [['1100', 'debit_amount', 30000], ['4100', 'credit_amount', 30000]]);
+
+        $statement = app(ComparativeStatement::class)
+            ->profitAndLoss('2026-02-20', ReportComparison::PREVIOUS_QUARTER);
+
+        $income = collect($statement['sections'])->firstWhere('label', 'INCOME')['total'];
+
+        $this->assertSame(120000.0, $income['current'], 'December and February');
+        $this->assertSame(30000.0, $income['previous'], 'September, in the preceding quarter');
+        $this->assertStringContainsString('1 Dec 2025', $statement['subtitle']);
+    }
+
+    /**
+     * A balance sheet needs no narrowing, because it is an as-at rather than a period.
+     *
+     * The current figure is the balance on the day whatever the basis, so every basis only has to answer
+     * which earlier date — and each has a sensible answer. This is why `shift()` and `currentRange()` are
+     * two methods rather than one.
+     */
+    public function test_a_balance_sheet_compares_an_earlier_date_without_narrowing(): void
+    {
+        $this->postEntry('2026-01-15', [['1100', 'debit_amount', 400000], ['3100', 'credit_amount', 400000]]);
+        $this->postEntry('2026-02-10', [['1100', 'debit_amount', 100000], ['3100', 'credit_amount', 100000]]);
+
+        $statement = $this->statement('2026-02-20', ReportComparison::PREVIOUS_MONTH);
+
+        $cash = $this->rowsOf($statement, 'ASSETS')['Cash / Bank'];
+
+        $this->assertSame(500000.0, $cash['current'], 'the balance on the day, not February alone');
+        $this->assertSame(400000.0, $cash['previous'], 'the balance a month earlier');
+        $this->assertSame('20 Jan 2026', $statement['previous_label']);
+    }
+
+    /** The comparison label names the basis's own end date rather than always a year back. */
+    public function test_the_previous_label_follows_the_basis(): void
+    {
+        $this->assertSame(
+            '20 Nov 2025',
+            $this->statement('2026-02-20', ReportComparison::PREVIOUS_QUARTER)['previous_label'],
+        );
+        $this->assertSame(
+            '20 Feb 2025',
+            $this->statement('2026-02-20', ReportComparison::PREVIOUS_YEAR)['previous_label'],
+        );
     }
 }

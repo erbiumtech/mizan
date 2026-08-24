@@ -4,7 +4,7 @@ namespace App\Modules\Accounting\Support;
 
 use App\Modules\Accounting\Services\FinancialReportService;
 use App\Modules\Core\Models\Company;
-use App\Support\Reporting\ReportPeriod;
+use App\Support\Reporting\ReportComparison;
 use Carbon\Carbon;
 
 /**
@@ -42,27 +42,32 @@ class ComparativeStatement
     /**
      * @return array<string, mixed>|null null when the report is one this cannot render
      */
-    public function for(string $key, string $asOf, bool $comparison = true): ?array
+    public function for(string $key, string $asOf, string $basis = ReportComparison::PREVIOUS_YEAR): ?array
     {
         return match ($key) {
-            'BalanceSheet' => $this->balanceSheet($asOf, $comparison),
-            // The financial year to date — *not* the calendar year. These years run 1 July to 30 June, so
-            // starting at 1 January would report six months of trading as twelve. See ReportPeriod.
-            'ProfitAndLoss' => $this->profitAndLoss(
-                ReportPeriod::toDate($asOf)['from'],
-                $asOf,
-                $comparison,
-            ),
+            'BalanceSheet' => $this->balanceSheet($asOf, $basis),
+            // The period comes from the basis rather than being fixed at the financial year to date — Phase
+            // 4.2. Year and none still give the year to date, which is what this has always shown; month and
+            // quarter narrow it, because a comparison shorter than the period compared is not a comparison.
+            // See ReportComparison.
+            'ProfitAndLoss' => $this->profitAndLoss($asOf, $basis),
             default => null,
         };
     }
 
     /** @return array<string, mixed> */
-    public function balanceSheet(string $asOf, bool $comparison = true): array
+    /**
+     * The balance sheet, and the same balance at an earlier date.
+     *
+     * An as-at rather than a period, so the basis only has to answer one question — which earlier date —
+     * and every basis has a sensible answer to it. This is the statement where a month-on-month comparison
+     * is unproblematic: the current figure is the balance today either way.
+     */
+    public function balanceSheet(string $asOf, string $basis = ReportComparison::PREVIOUS_YEAR): array
     {
         $current = $this->reports->balanceSheet($asOf);
-        $previousDate = Carbon::parse($asOf)->subYear()->toDateString();
-        $previous = $comparison ? $this->reports->balanceSheet($previousDate) : null;
+        $previousDate = ReportComparison::shift($basis, $asOf);
+        $previous = $previousDate === null ? null : $this->reports->balanceSheet($previousDate);
 
         $sections = [
             $this->section('ASSETS', 'Total assets', $current['assets'], $previous['assets'] ?? null),
@@ -80,7 +85,7 @@ class ComparativeStatement
             'title' => 'Balance Sheet',
             'subtitle' => $this->subtitle('as of '.$this->date($asOf).' · accrual basis'),
             'current_label' => $this->date($asOf),
-            'previous_label' => $comparison ? $this->date($previousDate) : null,
+            'previous_label' => $previousDate === null ? null : $this->date($previousDate),
             'sections' => $sections,
             'tiles' => [
                 ['label' => 'TOTAL ASSETS', 'value' => $current['assets']['total'], 'accent' => false],
@@ -100,20 +105,30 @@ class ComparativeStatement
         ];
     }
 
-    /** @return array<string, mixed> */
-    public function profitAndLoss(string $from, string $to, bool $comparison = true): array
+    /**
+     * The profit and loss over the basis's period, and the same length of period before it.
+     *
+     * **Takes the as-at date and the basis rather than a range**, which is the change Phase 4.2 needed: the
+     * caller used to pass the financial year to date and a boolean, and a month or quarter basis has to
+     * narrow the current period as well as shift the comparison. A range passed in from outside could not be
+     * narrowed without the caller knowing the rule, and then two places would know it.
+     *
+     * @return array<string, mixed>
+     */
+    public function profitAndLoss(string $asOf, string $basis = ReportComparison::PREVIOUS_YEAR): array
     {
+        ['from' => $from, 'to' => $to] = ReportComparison::currentRange($basis, $asOf);
         $current = $this->reports->profitAndLoss($from, $to);
 
-        ['from' => $previousFrom, 'to' => $previousTo] = ReportPeriod::previous($from, $to);
-        $previous = $comparison ? $this->reports->profitAndLoss($previousFrom, $previousTo) : null;
+        $prior = ReportComparison::previousRange($basis, $asOf);
+        $previous = $prior === null ? null : $this->reports->profitAndLoss($prior['from'], $prior['to']);
 
         return [
             'key' => 'ProfitAndLoss',
             'title' => 'Profit & Loss',
             'subtitle' => $this->subtitle($this->date($from).' to '.$this->date($to).' · accrual basis'),
             'current_label' => $this->date($to),
-            'previous_label' => $comparison ? $this->date($previousTo) : null,
+            'previous_label' => $prior === null ? null : $this->date($prior['to']),
             'sections' => [
                 $this->section('INCOME', 'Total income', $current['income'], $previous['income'] ?? null),
                 $this->section('EXPENSES', 'Total expenses', $current['expenses'], $previous['expenses'] ?? null),

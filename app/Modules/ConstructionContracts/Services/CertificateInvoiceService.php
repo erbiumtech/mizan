@@ -39,25 +39,59 @@ use RuntimeException;
 class CertificateInvoiceService
 {
     /**
-     * Which account each kind of deduction lands on.
+     * What the work executed itself lands on, per side.
      *
-     * The map is the point of `invoice_lines.account_id`, which its own migration describes as the posting override
-     * for non-product lines. Retention to an **asset**; advance recovery against the **liability** the advance
-     * created; anything that is a reduction in the value of the work — an NCR deduction, damages — back against
-     * contract revenue, because that is what it is.
+     * Money coming in is revenue. Money going out is **job cost** — the subcontractor's certified work is what the
+     * house cost, not a reduction of our turnover.
      *
      * @var array<string, string>
      */
+    private const WORK_ACCOUNT = [
+        Contract::SIDE_RECEIVABLE => 'contract_revenue',
+        Contract::SIDE_PAYABLE => 'job_cost_subcontract',
+    ];
+
+    /**
+     * Which account each kind of deduction lands on, **per side of the deal**.
+     *
+     * The map is the point of `invoice_lines.account_id`, which its own migration describes as the posting override
+     * for non-product lines.
+     *
+     * The two sides are not one document seen from two chairs, and reading them as one was a real defect: this
+     * service already branches `invoices.kind` on the side, then mapped every line to the receivable set regardless.
+     * On a purchase invoice the line account is *debited*, so a subcontractor's certificate debited `contract_revenue`
+     * and `retention_receivable` — income reduced instead of cost recognised, and an asset moved for retention this
+     * company *owes*. The ledger balanced and both accounts were wrong, which is why nothing caught it.
+     *
+     * Downward, then: retention we hold is a **liability**; an advance we paid is an **asset** being recovered; and
+     * anything that reduces what we owe the subcontractor goes back against the job cost it was booked to.
+     *
+     * @var array<string, array<string, string>>
+     */
     private const ACCOUNT_FOR = [
-        CertificateDeduction::KIND_RETENTION => 'retention_receivable',
-        CertificateDeduction::KIND_RETENTION_RELEASE => 'retention_receivable',
-        CertificateDeduction::KIND_ADVANCE_RECOVERY => 'contract_liabilities',
-        CertificateDeduction::KIND_NCR => 'contract_revenue',
-        CertificateDeduction::KIND_LIQUIDATED_DAMAGES => 'contract_revenue',
-        CertificateDeduction::KIND_UNFIXED_MATERIALS => 'materials_on_site',
-        CertificateDeduction::KIND_BACK_CHARGE => 'contract_revenue',
-        CertificateDeduction::KIND_CONTRA_CHARGE => 'contract_revenue',
-        CertificateDeduction::KIND_OTHER => 'contract_revenue',
+        Contract::SIDE_RECEIVABLE => [
+            CertificateDeduction::KIND_RETENTION => 'retention_receivable',
+            CertificateDeduction::KIND_RETENTION_RELEASE => 'retention_receivable',
+            CertificateDeduction::KIND_ADVANCE_RECOVERY => 'contract_liabilities',
+            CertificateDeduction::KIND_NCR => 'contract_revenue',
+            CertificateDeduction::KIND_LIQUIDATED_DAMAGES => 'contract_revenue',
+            CertificateDeduction::KIND_UNFIXED_MATERIALS => 'materials_on_site',
+            CertificateDeduction::KIND_BACK_CHARGE => 'contract_revenue',
+            CertificateDeduction::KIND_CONTRA_CHARGE => 'contract_revenue',
+            CertificateDeduction::KIND_OTHER => 'contract_revenue',
+        ],
+        Contract::SIDE_PAYABLE => [
+            CertificateDeduction::KIND_RETENTION => 'retention_payable',
+            CertificateDeduction::KIND_RETENTION_RELEASE => 'retention_payable',
+            CertificateDeduction::KIND_ADVANCE_RECOVERY => 'subcontract_advance',
+            CertificateDeduction::KIND_NCR => 'job_cost_subcontract',
+            CertificateDeduction::KIND_LIQUIDATED_DAMAGES => 'job_cost_subcontract',
+            // Materials on site are materials on site whichever way the money runs.
+            CertificateDeduction::KIND_UNFIXED_MATERIALS => 'materials_on_site',
+            CertificateDeduction::KIND_BACK_CHARGE => 'job_cost_subcontract',
+            CertificateDeduction::KIND_CONTRA_CHARGE => 'job_cost_subcontract',
+            CertificateDeduction::KIND_OTHER => 'job_cost_subcontract',
+        ],
     ];
 
     /**
@@ -178,7 +212,7 @@ class CertificateInvoiceService
             'quantity' => 1,
             'unit_price' => $certificate->grossThisPeriod(),
             'line_total' => $certificate->grossThisPeriod(),
-            'account_id' => ConstructionAccounts::id('contract_revenue'),
+            'account_id' => $this->accountFor(null, $contract->side),
         ]];
 
         foreach ($certificate->deductions as $deduction) {
@@ -199,12 +233,30 @@ class CertificateInvoiceService
                 'quantity' => 1,
                 'unit_price' => $amount,
                 'line_total' => $amount,
-                'account_id' => ConstructionAccounts::id(
-                    self::ACCOUNT_FOR[$deduction->kind] ?? 'contract_revenue',
-                ),
+                'account_id' => $this->accountFor($deduction->kind, $contract->side),
             ];
         }
 
         return $lines;
+    }
+
+    /**
+     * The account a line lands on: the deduction's kind on this side, or the work account for a null kind.
+     *
+     * An unmapped kind falls back to the work account for that side rather than to a fixed one, so a deduction kind
+     * added later lands against whatever the work itself was booked to instead of silently crediting a receivable's
+     * revenue on a payable certificate. An unrecognised side is read as receivable, which is `ContractService`'s own
+     * default and keeps a bad enum value out of the ledger rather than throwing at the point of invoicing.
+     */
+    private function accountFor(?string $kind, string $side): int
+    {
+        $side = array_key_exists($side, self::WORK_ACCOUNT) ? $side : Contract::SIDE_RECEIVABLE;
+        $work = self::WORK_ACCOUNT[$side];
+
+        if ($kind === null) {
+            return ConstructionAccounts::id($work);
+        }
+
+        return ConstructionAccounts::id(self::ACCOUNT_FOR[$side][$kind] ?? $work);
     }
 }

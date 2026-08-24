@@ -40,6 +40,57 @@ than containing one, and the file itself is the download button already on that 
 A report with no rows for the period has nothing to export either, so the buttons are
 hidden rather than producing an empty file.
 
+## Keyboard
+
+With 51 reports, the list is quicker from the keyboard:
+
+- **↑ ↓** move through the visible reports.
+- **Enter** or **Space** opens the highlighted one.
+- **Home** / **End** jump to the first and last.
+- **Typing anything** goes into the search box, wherever you are in the list — so *type
+  a few letters, arrow down, Enter* is the fast path.
+- **↓ from the search box** steps into the list; **↑ off the first row** goes back to it.
+- **Escape** in the search box clears it.
+
+Section chips and the report itself are reachable by **Tab**, as normal.
+
+## Comparing against another period
+
+The three statements — Balance Sheet, Profit & Loss, Cash Flow — carry a **comparison
+picker**: previous year, previous quarter, previous month, or none.
+
+**On a Profit & Loss or a Cash Flow, choosing a month or a quarter narrows what you are
+looking at.** Pick *vs previous month* on the P&L and you get February against January,
+not the year to date against a year to date shifted back thirty days. That second thing
+would be two overlapping eight-month spans whose difference is mostly the same trading
+counted twice — a figure that looks plausible and means nothing. The subtitle always
+states the period actually being shown.
+
+The comparison is against the **whole** previous month or quarter, even when the current
+one is only part-way through. What a month is worth is what the month came to.
+
+**A Balance Sheet is different, and simpler**: it is a balance on a date rather than a
+period, so the current column never changes and only the comparison date moves.
+
+**There is no "vs budget"**, on purpose. *Budget vs Actual* is already that report, per
+account, with Planned, Actual and the variance and its own budget picker — and two
+places computing one comparison is how they come to disagree.
+
+Old links still work: a saved `?comparison=0` still means no comparison.
+
+## Negatives in parentheses
+
+Company Settings → **Reports** has one switch: *Show negatives in parentheses*.
+Accountants read `(1,250)` rather than `-1,250`, and turning it on rewrites every
+negative figure on every report, on screen and in the PDF.
+
+**Off by default**, so nothing changes for anybody who has not asked. And it never
+applies to the **CSV** — a spreadsheet reads `(1,250)` as text, so the one file you
+open in order to do arithmetic keeps the minus sign whatever the setting says.
+
+Only figures are rewritten. A dash still means "does not apply", a date is still a
+date, and the sentence under each report keeps its wording.
+
 ## Roles and permissions
 
 There's no permission of its own: this page shows up for anyone who could

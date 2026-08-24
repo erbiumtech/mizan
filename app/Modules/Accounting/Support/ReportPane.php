@@ -14,6 +14,7 @@ use App\Modules\Accounting\Services\GeneralLedgerService;
 use App\Modules\Accounting\Services\PettyCashService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\Reporting\ReportComparison;
 use App\Support\Reporting\ReportPaneRenderer;
 use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportRenderers;
@@ -145,17 +146,19 @@ class ReportPane implements ReportPaneRenderer
      *                                       an account id, a budget id, a search term, a month
      * @return array<string, mixed>|null null when the report needs input before it can be drawn
      */
-    public function for(string $key, string $asOf, bool $comparison = true, array $asked = []): ?array
+    public function for(string $key, string $asOf, bool|string $comparison = true, array $asked = []): ?array
     {
         // A report the owning module renders itself — Payroll's three, Invoicing's three. Asked first,
         // so a module can also override one of Accounting's if it ever needs to. See
         // App\Support\Reporting\ReportRenderers.
         if (ReportRenderers::has($key)) {
-            return ReportRenderers::render($key, $asOf, $comparison, $asked);
+            // The basis, normalised once here so every path below — and every module renderer — sees a
+            // `ReportComparison` string rather than each deciding what a bare `true` meant.
+            return ReportRenderers::render($key, $asOf, $this->basis($comparison), $asked);
         }
 
         return match ($key) {
-            'BalanceSheet', 'ProfitAndLoss', 'CashFlow' => $this->statement($key, $asOf, $comparison),
+            'BalanceSheet', 'ProfitAndLoss', 'CashFlow' => $this->statement($key, $asOf, $this->basis($comparison)),
             'TrialBalance' => $this->trialBalance($asOf),
             'GeneralLedger' => $this->generalLedger($asOf),
             'ContractorPayments' => $this->contractorPayments($asOf),
@@ -201,13 +204,26 @@ class ReportPane implements ReportPaneRenderer
     // ------------------------------------------------------------------ statements
 
     /** @return array<string, mixed>|null */
-    private function statement(string $key, string $asOf, bool $comparison): ?array
+    /**
+     * The comparison basis, whatever form the caller expressed it in — Phase 4.2.
+     *
+     * A bool is the pane's old contract and links carrying it still exist, so it is translated rather than
+     * refused: `true` is the previous year and `false` is no comparison, which is exactly what they meant.
+     */
+    private function basis(bool|string $comparison): string
+    {
+        return is_bool($comparison)
+            ? ReportComparison::fromLegacyFlag($comparison)
+            : ReportComparison::normalise($comparison);
+    }
+
+    private function statement(string $key, string $asOf, string $basis): ?array
     {
         if ($key === 'CashFlow') {
-            return $this->cashFlow($asOf, $comparison);
+            return $this->cashFlow($asOf, $basis);
         }
 
-        $statement = $this->statements->for($key, $asOf, $comparison);
+        $statement = $this->statements->for($key, $asOf, $basis);
 
         return $statement === null
             ? null
@@ -223,14 +239,16 @@ class ReportPane implements ReportPaneRenderer
      *
      * @return array<string, mixed>
      */
-    private function cashFlow(string $asOf, bool $comparison): array
+    private function cashFlow(string $asOf, string $basis): array
     {
-        // The financial year to date, not the calendar year — see ReportPeriod.
-        $from = ReportPeriod::toDate($asOf)['from'];
-        $current = $this->reports->cashFlow($from, $asOf);
+        // The basis decides the length of *both* columns, not just the second one — see ReportComparison.
+        // A year-to-date cash flow beside a shifted year-to-date differing by one month is two overlapping
+        // spans whose difference is mostly the same movements counted twice.
+        ['from' => $from, 'to' => $to] = ReportComparison::currentRange($basis, $asOf);
+        $current = $this->reports->cashFlow($from, $to);
 
-        ['from' => $priorFrom, 'to' => $priorTo] = ReportPeriod::previous($from, $asOf);
-        $previous = $comparison ? $this->reports->cashFlow($priorFrom, $priorTo) : null;
+        $prior = ReportComparison::previousRange($basis, $asOf);
+        $previous = $prior === null ? null : $this->reports->cashFlow($prior['from'], $prior['to']);
 
         $sections = [];
 
@@ -244,9 +262,9 @@ class ReportPane implements ReportPaneRenderer
             'kind' => 'statement',
             'key' => 'CashFlow',
             'title' => 'Cash Flow',
-            'subtitle' => $this->subtitle(Carbon::parse($from)->format('j M Y').' to '.Carbon::parse($asOf)->format('j M Y')),
-            'current_label' => Carbon::parse($asOf)->format('j M Y'),
-            'previous_label' => $comparison ? Carbon::parse($asOf)->subYear()->format('j M Y') : null,
+            'subtitle' => $this->subtitle(Carbon::parse($from)->format('j M Y').' to '.Carbon::parse($to)->format('j M Y')),
+            'current_label' => Carbon::parse($to)->format('j M Y'),
+            'previous_label' => $prior === null ? null : Carbon::parse($prior['to'])->format('j M Y'),
             'sections' => $sections,
             'tiles' => [
                 ['label' => 'NET MOVEMENT', 'value' => $net, 'accent' => true],

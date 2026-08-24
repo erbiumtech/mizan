@@ -89,6 +89,7 @@ class CompanySettings extends Page
         // the base currency is a row in the currencies table. See App\Support\Contracts\SettingsSection.
         $this->form->fill([
             'petty_cash_float_amount' => setting('petty_cash.float_amount'),
+            'reports_negatives_in_parentheses' => (bool) setting('reports.negatives_in_parentheses', false),
             'accounting_require_second_approver' => (bool) setting('accounting.require_second_approver'),
             'ipayments' => static::editableIpayments(),
             'projects_status_page_enabled' => (bool) setting('projects.status_page.enabled', false),
@@ -143,6 +144,7 @@ class CompanySettings extends Page
     protected function sections(): array
     {
         $sections = [
+            15 => [$this->reportsSection()],
             20 => [$this->pettyCashSection()],
             30 => [$this->approvalsSection()],
             40 => [$this->leaveSection()],
@@ -163,6 +165,27 @@ class CompanySettings extends Page
         ksort($sections);
 
         return array_merge(...array_values($sections));
+    }
+
+    /**
+     * How reports write their figures — `docs/reports-expansion-plan.md` Phase 4.3.
+     *
+     * In Core rather than in Accounting because it governs all fifty-one reports across every module, and
+     * because Core is the one module always licensed — a preference filed behind a module a company has not
+     * bought would be a preference it could not reach.
+     */
+    protected function reportsSection(): Section
+    {
+        return Section::make('Reports')
+            ->description('How figures are written on every report, on screen and in the PDF.')
+            ->schema([
+                Toggle::make('reports_negatives_in_parentheses')
+                    ->label('Show negatives in parentheses')
+                    ->helperText(
+                        'Accountants read (1,250) rather than -1,250. Off by default, and it never applies '
+                        .'to the CSV export — a spreadsheet reads parentheses as text.'
+                    ),
+            ]);
     }
 
     protected function pettyCashSection(): Section
@@ -390,6 +413,7 @@ class CompanySettings extends Page
 
         $settings = app(TenantSettings::class);
         $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);
+        $settings->set('reports.negatives_in_parentheses', (bool) ($state['reports_negatives_in_parentheses'] ?? false));
         $settings->set('accounting.require_second_approver', (bool) $state['accounting_require_second_approver']);
         // Scalars only: the nested own_bank matching rules are not editable here,
         // and TenantSettings merges them back from config.
