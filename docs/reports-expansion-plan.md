@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5 started (5.1, 5.5 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–4 complete; Phase 5 started (5.1, 5.3, 5.5 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -333,7 +333,7 @@ and it would be quicker to re-derive each figure inline.
 2. **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
    late / on leave today; leave requests awaiting a decision; documents expiring in 30 days (the same
    `DocumentExpiryCheck::due()` as Phase 1.5).
-3. **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
+3. *done, 2026-08-24 — and the funnel is the one widget the period must not filter, see [What landed](#what-landed).* **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
    attainment; quotations expiring inside 14 days. All three off `PipelineReports` and
    `QuotationService`.
 4. **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
@@ -485,6 +485,39 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the sales widgets (Phase 5.3), including the one widget the period filter must not touch.**
+
+- **The funnel is unwindowed on purpose, and it is the only widget on the dashboard that ignores the
+  period.** `PipelineReports::byStage()` accepts a closing window and the forecast report passes one, but the
+  service's own comment says why a funnel must not: "a deal with no expected close date is not 'closing
+  outside the window', it is unforecastable — and it belongs in the unwindowed pipeline view". Filtering a
+  funnel by the dashboard's period would silently drop every deal nobody has dated, which are the ones most in
+  need of attention. A test proves it by putting one dated deal outside the period and one undated deal in the
+  same stage and asserting both are counted.
+- **Three widgets, three readings of one filter, and now four across the dashboard.** A *window* for the
+  forecast, an *as-at* for target attainment, an *origin* for the expiring quotations, and *ignored* for the
+  funnel. Each one is a property of the question, not a preference — and the money group added a fifth
+  reading, the twelve-month series that uses the period only as its endpoint.
+- **Attainment takes an as-at while the forecast beside it takes a window, and the asymmetry is deliberate.**
+  `attainment()` finds the targets *covering* one date, because a target is a period of its own — somebody's
+  quarter — so "which targets are live" is a question about a moment. Handing it a range would mean choosing
+  an end arbitrarily.
+- **Attainment is reported as a count, not an average.** One salesperson at 200% with three at 40% averages
+  to 80% and describes nobody. And targets with no number on them are excluded from the denominator, because
+  `attainment_pct` is null there and counting them would report a company as behind on targets nobody set.
+- **`QuotationService::expiringWithin()` was added rather than querying `Quotation` in the widget**, which is
+  the rule applied to a query that did not exist yet. It is the mirror of `expireLapsed()` — the same three
+  conditions with the comparison reversed — so a widget with its own query would have been a second definition
+  of "live but lapsing", and the first status added to the ladder would have made them disagree. Both ends are
+  inclusive: a quote lapsing *today* is the most urgent of the set, and the widget says "lapses today" rather
+  than "in 0 days".
+- **A fixture that made a test pass for the wrong reason.** `weightedAmount()` reads the *deal's*
+  `probability_pct`, not its stage's — the stage's is the default a user is offered. A fixture leaving it null
+  weighted every deal at nought, which every structural assertion tolerated until one asserted an amount.
+  It is now explicit in the helper, with the reason.
+- **CRM and Quotations had no widget discovery at all**, so both plugins gained `discoverWidgets` and both
+  manifests a `widgets` table — the same shape the report pages needed in Phase 3.
 
 **2026-08-24 — the money widgets (Phase 5.5), and three different right answers to one filter.**
 
