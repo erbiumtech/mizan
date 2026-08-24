@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Health\BackupConfigurationCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
 use App\Support\EmployeeAccess;
@@ -364,6 +365,12 @@ class AppServiceProvider extends ServiceProvider
             Health::checks([
                 DebugModeCheck::new(),
                 EnvironmentCheck::new(),
+
+                // Whether the backup can report its own failure, and whether the archive is encrypted.
+                // `BackupsCheck` above watches that archives exist; this watches what they are worth.
+                // Production-only for the same reason as the two above it: a developer's dump never
+                // leaves the machine, so encrypting it is not a finding worth a permanent amber.
+                BackupConfigurationCheck::new()->name('Backup configuration'),
             ]);
         }
     }
