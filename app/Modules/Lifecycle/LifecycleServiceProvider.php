@@ -4,6 +4,7 @@ namespace App\Modules\Lifecycle;
 
 use App\Modules\Lifecycle\Console\Commands\CheckDocumentExpiry;
 use App\Modules\Lifecycle\Filament\Pages\AssetsInHand;
+use App\Modules\Lifecycle\Filament\Pages\ChecklistProgress;
 use App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring;
 use App\Modules\Lifecycle\Filament\Pages\FinalSettlementsReport;
 use App\Modules\Lifecycle\Filament\Pages\LeaveLiability;
@@ -21,6 +22,7 @@ use App\Modules\Lifecycle\Policies\EmployeeChecklistPolicy;
 use App\Modules\Lifecycle\Policies\EmployeeDocumentPolicy;
 use App\Modules\Lifecycle\Policies\FinalSettlementPolicy;
 use App\Modules\Lifecycle\Policies\IssuedAssetPolicy;
+use App\Modules\Lifecycle\Support\ChecklistReports;
 use App\Modules\Lifecycle\Support\LifecycleReports;
 use App\Modules\Lifecycle\Support\SettlementReports;
 use App\Support\Reporting\ReportCatalogue;
@@ -91,6 +93,12 @@ class LifecycleServiceProvider extends ServiceProvider
             'What each leaver was owed and what it was made of — including the ones nobody built.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            ChecklistProgress::class,
+            'Onboarding and exit tasks still outstanding, and whose queue they are sitting in.',
+        );
+
         ReportRenderers::register(
             'DocumentsExpiring',
             fn (string $asOf): array => app(LifecycleReports::class)->documentsExpiring($asOf),
@@ -106,6 +114,10 @@ class LifecycleServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'FinalSettlementsReport',
             fn (string $asOf): array => app(SettlementReports::class)->settlements($asOf),
+        );
+        ReportRenderers::register(
+            'ChecklistProgress',
+            fn (string $asOf): array => app(ChecklistReports::class)->checklistProgress($asOf),
         );
     }
 }
