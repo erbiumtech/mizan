@@ -5,6 +5,7 @@ namespace App\Modules\Invoicing;
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
+use App\Modules\Invoicing\Filament\Pages\CreditNotesIssued;
 use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
 use App\Modules\Invoicing\Filament\Pages\RevenueByDimension;
 use App\Modules\Invoicing\Models\Contact;
@@ -17,6 +18,7 @@ use App\Modules\Invoicing\Policies\InvoicePolicy;
 use App\Modules\Invoicing\Policies\TaxRatePolicy;
 use App\Modules\Invoicing\Services\RecurringInvoiceService;
 use App\Modules\Invoicing\Support\ContactCsvImporter;
+use App\Modules\Invoicing\Support\CreditNoteReports;
 use App\Modules\Invoicing\Support\InvoicingReports;
 use App\Modules\Invoicing\Support\RevenueReports;
 use App\Support\CashCommitments;
@@ -124,6 +126,23 @@ class InvoicingServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'RevenueByDimension',
             fn (string $asOf): array => app(RevenueReports::class)->byDimension($asOf),
+        );
+
+        /*
+         * Credit notes issued — Phase 3.5.
+         *
+         * Filed under *Statutory reporting* rather than with the receivables: the report exists for the tax
+         * question — whether a reversal was inside its window or covered by a Commissioner's approval — and
+         * that section is where the FBR reports already live.
+         */
+        ReportCatalogue::register(
+            'Statutory reporting',
+            CreditNotesIssued::class,
+            'Every credit note, what it reversed, and whether it was inside its window or approved.',
+        );
+        ReportRenderers::register(
+            'CreditNotesIssued',
+            fn (string $asOf): array => app(CreditNoteReports::class)->creditNotes($asOf),
         );
 
         // The records of this module that may carry custom fields. Registered by alias, which is what
