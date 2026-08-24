@@ -50,7 +50,7 @@ class DatabaseSeeder extends Seeder
         // CompanySeeder::class,
         // ConstructionAccountsSeeder::class,
         // ConstructionCostCodeSeeder::class,
-        // ConstructionDemoSeeder::class,
+        ConstructionDemoSeeder::class,
         // ContactSeeder::class,
         CurrencySeeder::class,
         // EmployeeSeeder::class,
