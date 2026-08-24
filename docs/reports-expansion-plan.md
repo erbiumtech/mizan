@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.10 landed); the rest outstanding
+**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1 landed); 4.2–4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -293,9 +293,9 @@ for. Ordered by how often that has come up.
    `employee_checklist_items.due_on`.
 10. **Consent Register** — *done, 2026-08-24. The "not marketing statistics" clause was the specification — see [What landed](#what-landed).* consent state per contact per channel with source and date. This is
     compliance evidence, not marketing statistics, which is why it belongs with the reports.
-11. **Campaign Performance** — sends, failures and reasons per campaign.
-12. **Review Cycle Progress** — reviews and goals complete per cycle, one-to-ones held.
-13. **Environment Health & Incidents** — checks failed and incidents per project over a period; the
+11. **Campaign Performance** — *done, 2026-08-24. The skip count is the report; one metric was deliberately not built — see [What landed](#what-landed).* sends, failures and reasons per campaign.
+12. **Review Cycle Progress** — *done, 2026-08-24. "Complete" turned out to be the whole question — see [What landed](#what-landed).* reviews and goals complete per cycle, one-to-ones held.
+13. **Environment Health & Incidents** — *done, 2026-08-24, and the history is thirty days long — see [What landed](#what-landed).* checks failed and incidents per project over a period; the
     existing widgets are point-in-time and this is the history.
 
 ## Phase 4 — What the pane still lacks
@@ -303,7 +303,7 @@ for. Ordered by how often that has come up.
 Deferred from the 4c work and worth doing once the catalogue is larger, because each one pays off per
 report:
 
-1. **Export the open pane** — PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
+1. **Export the open pane** — *done, 2026-08-24. One grid from three shapes; the CSV deliberately undoes the display formatting — see [What landed](#what-landed).* PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
    twenty times more likely. One implementation on the pane rather than per report — and the one Phase 8
    sends, which is why that phase waits for this one rather than growing a second renderer.
 2. **Comparison periods beyond the previous year** — previous month, previous quarter, budget.
@@ -485,6 +485,164 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — exporting the open pane (Phase 4.1). Phase 8 now has something to send.**
+
+- **One implementation meant one normalisation.** The pane draws four kinds and three of them are shaped
+  differently: a `table` is columns and rows, a `ledger` is columns and sections each with their own total,
+  a `statement` is label-and-amount rows with an optional prior year. `ReportExport` flattens all three to
+  one grid, and the CSV writer and the PDF template each exist once. Per-kind exporters would have been three
+  writers and three templates, and Phase 8 would have had to pick one.
+- **The interesting work was undoing the presentation, not the plumbing.** The pane exists to make figures
+  readable — `275,000` with a separator, an em dash where a value does not apply — and both are *wrong* in a
+  spreadsheet: one arrives as text in most importers, the other stops a column summing. So the CSV strips
+  separators from the columns the report declares numeric and empties those dashes. It is the one place in
+  this application where the display layer is deliberately reversed, and the PDF keeps the formatting because
+  a PDF is for reading.
+- **Only the numeric columns, and the dash is why.** In a numeric column a dash is a figure that does not
+  apply and an empty cell says so properly. In a *text* column it is the pane's own wording — the serial
+  number a device does not have — and unformatting every column alike would delete a value somebody chose to
+  show. A surviving mutation is what made the distinction explicit.
+- **CSV formula injection is a real risk here and is now handled.** Report cells carry text somebody typed: a
+  project name, a checklist item, a campaign's delivery failure reason. A spreadsheet executes a cell
+  beginning `=`, `+`, `-` or `@`, so that is an attack on whoever opens the export rather than on this
+  application. Escaped with a leading apostrophe — **and numbers exempted**, which is the whole difficulty: a
+  negative figure begins with `-`, and a careless escape would turn every loss on every report into a string.
+- **A byte-order mark, which is not decoration.** Excel on Windows reads a CSV without one as the local
+  codepage, and these reports are full of em dashes and middots — every one would arrive as mojibake in the
+  spreadsheet most likely to open the file.
+- **`ModuleReportPage::getHeaderActions()` is now `final`, and the subclass hook is `reportActions()`.** All
+  thirty-three report pages declared `getHeaderActions()` themselves and returned their help button, so two
+  new actions would have meant editing thirty-three files and remembering on the thirty-fourth. The base page
+  now assembles the row and a report contributes to it. The help call still has to be a **literal in the
+  subclass's own file** — `HelpCoverageTest` reads each page's source — which the rename preserves.
+- **Both doors, because they are one payload.** The hub's pane and each report's own page render the same
+  statement and there is a test per report asserting it, so an export on one and not the other would be an
+  arbitrary difference between two views of one thing. A test asserts the two produce byte-identical CSV.
+- **One mutation survives and is documented rather than papered over.** `UNEXPORTABLE_KINDS` cannot be the
+  operative refusal for a `file` report: that payload carries no columns and no rows at all, so the
+  empty-rows check would refuse it anyway and no test can tell the two reasons apart. It stays as the thing
+  that would still refuse one if somebody later taught `grid()` to flatten a file. Twenty-six mutations,
+  twenty-five killed.
+- **The PDF reuses `reports.layout`**, which already carries the table styling every accounting report PDF
+  uses and already pulls in the Dompdf override partial. Tiles are laid out as a table row rather than with
+  flexbox for the same reason: Dompdf does not lay out flex, and a PDF that only renders under headless
+  Chrome breaks on every machine without Node.
+
+**2026-08-24 — environment health and incidents (Phase 3.13). Phase 3 is complete: thirteen reports, and the
+hub holds 51.**
+
+- **The plan called this "the history", and the history is thirty days long.** `ProjectEnvironmentCheck` is
+  `Prunable` at `projects.health.retention_days` — thirty by default — so the checks behind an uptime figure
+  are *deleted* past that horizon. Taking "over a period" at face value and offering a financial-year uptime
+  column would have computed it from whatever survived pruning and presented one month as though it were
+  eight. The check window is clamped to the horizon, the subtitle states both spans, and the note says the
+  horizon out loud on every read.
+- **Incidents are not pruned, so the two halves of the report cover different windows on purpose.** The
+  alternative — quietly shortening the incident history to match the checks — would throw away the only long
+  record there is. Stating two windows is less tidy and more honest, and both are tested.
+- **Only *confirmed* incidents count as outages.** `ProjectEnvironmentIncident` doubles as the
+  flap-suppression state: a row opens on the first failure and is confirmed once the threshold is crossed.
+  `EnvironmentHealthOverview` already reads `open()->confirmed()`, so the report agrees with the widget rather
+  than inventing a second definition. The unconfirmed rows are reported as suppressed blips — visible, not
+  counted.
+- **`uptimePercent()`'s rule was honoured rather than its code reused.** "Never render 0% for not checked yet"
+  is exactly right, and an unchecked environment is the opposite of a down one. But the method counts
+  backwards from `now()` and this report answers as at a date, so the rule was reimplemented over the report's
+  own window and the reason is in the docblock. *Never checked* became its own standing and its own finding:
+  monitored, has a URL, nothing has ever run against it.
+- **"Nobody was told" is the finding neither existing widget can show.** An outage that ran while alerts were
+  off or the environment was muted. Both widgets are point-in-time and a mute has usually expired by the time
+  anybody looks. **Its limitation is stated rather than smoothed over**: nothing records whether an alert
+  actually went out, so this reads the environment's *current* settings against a past event, and the help
+  says to read it as "these would not be alerted under today's settings".
+- **Twenty-nine mutations, all killed** — but two survived the first pass, both upper bounds. No fixture had a
+  check or an incident dated *after* the as-at date, so an as-at report that included the future passed
+  cleanly. Both now have tests. The same class of gap as Phase 3.12's missing lower bound on meetings: **the
+  bound nobody thinks to test is the one on the side the fixtures never reach.**
+- **Pint reformatted three committed files it had nothing to do with** — pre-existing import-order violations
+  in `ProjectPolicy`, `MyProjectsOverview` and `EnvironmentIncidentManager`, none of them mine. Reverted, so
+  the commit stays scoped. Worth knowing that running Pint on a whole module directory picks up other
+  people's debt.
+- **Projects had no report wiring**, so it gained `discoverPages`, a `pages` manifest key and a
+  `registerReports()`. Filed under *Operations* beside the SLA reports: whoever reads an SLA breach wants to
+  know how long production was down.
+
+**2026-08-24 — review cycle progress (Phase 3.12), where one word in the plan carried the design.**
+
+- **"Complete" was the whole question, and `Review` had already answered it.** Five rungs — pending, self
+  submitted, manager submitted, shared, acknowledged — and only the last is a review that finished. Counting
+  *shared* would report a cycle as done while half the company had not opened their review.
+- **A closed cycle holding unshared reviews is the sharpest finding on the report.** Somebody wrote a review
+  of a person, the cycle was closed, and the person never saw it. `Review::isVisibleToEmployee()` is
+  `shared_at !== null` and its docblock explains why — "submitted is not shared", because a review is a draft
+  about somebody until a manager decides to share it, so that drafting can be honest. Which means a review
+  sitting at *manager submitted* looks like completed work on every other screen in the application.
+- **Sharing is judged on the timestamp, not the status.** A status is a label somebody set; the timestamp is
+  what decides whether the person can read their own review, and a status of *shared* with no timestamp is not
+  shared. The test asserts the report against `isVisibleToEmployee()` rather than against a literal.
+- **The same fact means opposite things at the two ends of a cycle.** An unshared review in an open or
+  calibrating cycle is work in progress; the identical row in a closed cycle is work abandoned. Both closure
+  findings are therefore raised only once a cycle is closed, and both directions are tested.
+- **`missed` is a settled goal state, and that had to be honoured.** Recording a goal as missed is a decision;
+  leaving it open past the end of its cycle is not a kindness but nobody having decided, which means nothing
+  can be learned from it. Counting only achieved goals would have rewarded the silence.
+- **One-to-ones are counted inside each cycle's own dates**, because `one_to_ones` has no cycle column — the
+  only thing tying a conversation to a cycle is the date falling inside it. Two overlapping cycles each count
+  the same conversation, which is right: it happened during both.
+- **A goal with no cycle is charged to no cycle.** `review_cycle_id` is nullable for standing objectives, and
+  attributing those to whichever cycle happens to be open would make a cycle answerable for goals nobody set
+  in it.
+- **Four tests failed on first run and the report was right every time.** Each fixture had reviews and no
+  one-to-ones, so the *no one-to-ones* suffix fired correctly and my expected strings had forgotten it. Fixed
+  by adding a conversation to those fixtures rather than by baking a second finding into the expected
+  string — a test about unshared reviews should be about unshared reviews.
+- **Twenty-six mutations, twenty-five killed.** The real gap was the meeting bound: the period test only had a
+  conversation *after* the cycle, so removing the lower bound changed nothing. It now has one on each side of
+  both ends. The survivor is the `whereIn` on cycle keys, a narrowing rather than a guard — the grouped result
+  is read by cycle key, so a goal from another cycle would be fetched and never looked up. Documented as such,
+  the same treatment Phase 3.11's `whereIn` got.
+- **Performance had no report wiring**, so it gained `discoverPages`, a `pages` manifest key and a
+  `registerReports()`. The page is `ReviewCycleProgress` because `ReviewCycleResource` already derives the
+  `review-cycles` slug — the third time that collision has been caught before it became a missing route.
+
+**2026-08-24 — campaign performance (Phase 3.11), and one metric deliberately not built.**
+
+- **The skip count is the report.** `CampaignSend`'s own docblock set the brief: `skipped_no_consent` "has to
+  be reported as a distinct figure rather than a silence — otherwise nobody can tell a campaign that reached
+  nobody from one that was never sent". Every other view of a campaign shows what went out; this shows what
+  did not.
+- **The two skip reasons are separated, because one is a fault and the other is a success.** A recipient who
+  never agreed is a list-building problem pointing at the consent register. A recipient who withdrew between
+  `prepare()` and `send()` is the guard working — `CampaignSender` calls that gap "exactly when a complaint
+  comes from", and the message did not go. Merging them would report a success as a fault, so the note words
+  each as what it means rather than as a count.
+- **The two reasons became constants on `CampaignSend`** so the report could tell them apart. They were
+  sentences typed at two call sites in `CampaignSender`, and matching a sentence is not a contract: a
+  reworded message would have silently emptied the split.
+- **A campaign marked sent with pending rows never finished.** `send()` leaves every pending row either sent
+  or skipped before marking the campaign sent, so a pending row on a sent campaign means the loop stopped part
+  way — and nothing else in the application notices, because the campaign's own status says it went out.
+  Pending rows on an in-flight or cancelled campaign are expected and are not flagged; both directions are
+  tested.
+- **A campaign with no `sent_at` is placed by `created_at`.** Without that fallback the unfinished and
+  in-flight runs would be precisely the ones the report could not see, since neither has a send date.
+- **The recipient-count-versus-segment metric was deliberately not built, and this is the most useful thing
+  in this entry.** A recipient with no address on the channel gets no row at all — `prepare()` passes over
+  them with a bare `continue`, on the stated grounds that "somebody with no WhatsApp number has not refused
+  anything" — so the send count really is lower than the audience and nothing records the difference. The
+  obvious fix is to re-run the segment and compare, and it would be wrong: `audienceFor()` evaluates its
+  filters *live*, so it returns today's audience rather than the one that existed at send time, and every
+  campaign whose segment has since gained a member would show a false shortfall. The gap is stated in the help
+  instead of guessed at in the report.
+- **A surviving mutation found a real trap: `failed_reason` carries skip reasons too.** `prepare()` writes the
+  consent message into it, so a top-failure column that did not filter on `STATUS_FAILED` would report "No
+  consent on record for this channel" as a *delivery failure*. Two tests now pin the guard in both
+  directions — a skip reason is not a failure, and a failure mentioning consent is not a skip.
+- **Twenty-seven mutations, twenty-six killed.** The survivor is a `whereIn` on the two known reasons, which
+  is a narrowing rather than a guard: the split is read by key, so an unrecognised reason sits in the array
+  unread. It stays because the table grows by one row per recipient per campaign, and the docblock says
+  plainly that removing it changes no output and no test pretends otherwise.
 
 **2026-08-24 — the consent register (Phase 3.10), where the plan's own aside was the specification.**
 

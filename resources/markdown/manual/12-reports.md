@@ -673,3 +673,148 @@ justification, and only a permission has to be defended.
 
 Rows are ordered by what needs doing: unevidenced grants, then grants with no recorder,
 then sound grants, then revocations.
+
+### Campaign Performance
+
+Under Sales and pipeline: every campaign that went out — or tried to — in the financial
+year to date, with what it reached, what it did not, and why.
+
+**The skipped count is the reason it exists.** Every other view of a campaign shows what
+went out, so a campaign that skipped its whole audience and one that was never sent look
+identical everywhere else.
+
+The two kinds of skip are kept apart because they are different problems. **They had
+never agreed** is a list-building fault pointing at the Consent Register: the segment and
+the register disagree about who may be reached. **They withdrew before the send** is the
+guard *working* — consent is re-checked at send time precisely because somebody may
+unsubscribe in the gap after preparing, and that gap is when complaints come from. The
+message did not go. No action needed.
+
+Standing carries the other findings. **Sent · N never processed** means the campaign is
+marked sent but N recipients are still pending: the send loop stopped part way, and
+nothing else notices because the campaign's own status says it went out. **Sent · reached
+nobody** means it had recipients and none received anything. Pending rows on an *in
+flight* or *cancelled* campaign are expected and are not flagged.
+
+Delivery failures come from whichever channel sender the company configured, so their
+reasons are free text from outside the module. The column names the most common reason per
+campaign rather than inventing categories. The note names the most common across all
+campaigns, counted by how many campaigns hit it — one campaign to a bad list produces
+thousands of identical failures, and the reason worth knowing is the one that recurs.
+
+**What it cannot tell you:** a recipient with no address on the channel gets no row at
+all, so the recipient count can be lower than the segment's size and the difference is
+recorded nowhere. The report deliberately does not reconstruct that by re-running the
+segment — segments evaluate their filters live, so that would give today's audience and
+show a false shortfall on every campaign whose segment has since grown.
+
+Campaigns are placed by send date, or by creation date where they have not sent. Without
+that fallback the unfinished and in-flight runs would be the ones this report could not
+see. Recipients includes pending rows: they were prepared and addressed.
+
+### Review Cycle Progress
+
+Under People and payroll: one row per review cycle — reviews written, reviews
+acknowledged, goals set, goals decided, and one-to-ones held inside the cycle's own
+dates. It answers whether each cycle **finished**, not whether it was started.
+
+**Complete means acknowledged.** A review climbs five rungs — pending, self submitted,
+manager submitted, shared, acknowledged — and only the last is a review that finished.
+Counting *shared* would report a cycle as done while half the company had not opened
+their review.
+
+**Closed · N never shared** is the sharpest thing here. Somebody wrote a review of a
+person, the cycle was closed, and the person never saw it. A review is a draft about
+somebody until a manager shares it — deliberately, so drafting can be honest — and on
+every other screen a review at *manager submitted* looks like completed work. Sharing is
+judged on the timestamp rather than the status label, because the timestamp is what
+decides whether the person can read their own review.
+
+**Closed · N goals undecided** is the same failure in the other column. **Missed** is a
+settled state: recording a miss is a decision. Leaving a goal open is not a kindness, it
+is nobody having decided, so nothing can be learned from it.
+
+**No one-to-ones** means the cycle has reviews but no recorded conversations behind
+them. Only raised where reviews exist — a cycle nobody has written in yet has nothing to
+have talked about.
+
+Both closure findings appear **only once a cycle is closed**. An unshared review in an
+open or calibrating cycle is work in progress; the identical row in a closed cycle is
+work abandoned. The fact has not changed, what it means has.
+
+A cycle is included if it **overlaps** the financial year to date rather than fitting
+inside it. One-to-ones are counted inside the cycle's own dates, so two overlapping
+cycles each count the same conversation — it happened during both. A goal belonging to no
+cycle is charged to none, since standing objectives would otherwise make whichever cycle
+is open answerable for goals nobody set in it.
+
+Counts only — no ratings, no names, no review content.
+
+### Environment Health & Incidents
+
+Under Operations: one row per environment on every project — checks run, checks failed,
+uptime, outages and total downtime. The dashboard's health widgets show you *now*; this
+shows what happened.
+
+**The history is thirty days long, and that is the most important thing about this
+report.** Health-check results are pruned (`PROJECT_HEALTH_RETENTION_DAYS`, thirty by
+default), so last September's uptime cannot be computed — the checks are deleted. The
+Checks, Failed and Uptime columns therefore cover the retention window only, and both
+the subtitle and the note say so. A report offering a year's uptime would compute it
+from whatever escaped pruning and present one month as though it were eight.
+
+**Incidents are not pruned**, so those columns really do cover the whole period. The two
+halves span different windows deliberately; shortening the incident history to match
+would throw away the only long record there is.
+
+**Only confirmed incidents are outages.** An incident row opens on the first failed
+check and is confirmed once the failure threshold is crossed — deliberate flap
+suppression. Unconfirmed rows appear in the note as suppressed blips: visible, but not
+counted, because counting them would turn every transient failure into an outage.
+
+**Uptime is a dash, never nought, where nothing was checked.** An unchecked environment
+is the opposite of a down one — nothing is known about it — and nought would report the
+worst possible health for an absence of information. *Never checked* is its own finding:
+monitored, has a URL, nothing has ever run against it.
+
+**Nobody was told** is the finding neither widget can show: an outage that ran while
+alerts were off or the environment was muted. Both widgets are point-in-time and a mute
+has usually expired by the time anybody looks. It is judged on today's alert settings,
+because nothing records whether an alert actually went out — read it as "these outages
+would not be alerted under current settings" rather than as a certainty about the past.
+
+Both windows end at the date being read, so an open outage is measured to that date and
+not to the clock. An incident counts if it overlaps the period. Rows group by project,
+production first.
+
+## Exporting a report
+
+Every report the hub can draw carries **Export CSV** and **Export PDF**, both on the
+hub's pane and on the report's own page. One implementation serves all of them: the
+three shapes the pane draws — a table, a ledger with sections, a statement with a prior
+year — are flattened to one grid, and the CSV writer and the PDF template each read only
+that.
+
+**The CSV deliberately undoes the screen's formatting.** Thousands separators come off
+the columns the report has declared numeric and a dash becomes an empty cell. This is
+the one place in the application where the display layer is reversed on purpose: a
+column somebody exported in order to sum it has to arrive as numbers, and `275,000`
+reaches most spreadsheets as text. Percentages keep their `%` and stay text, because
+dropping the symbol would turn a proportion into a count.
+
+**The PDF keeps the formatting**, because a PDF is for reading, and prints landscape for
+anything the pane itself marks as too wide to fit.
+
+**Text cells are escaped against formula injection.** A spreadsheet treats a cell
+beginning `=`, `+`, `-` or `@` as a formula to execute, and report cells carry text
+somebody typed — a project name, a checklist item, a delivery failure reason. Those are
+prefixed with an apostrophe. Numbers are not, which is the whole difficulty: a negative
+figure begins with `-`, and escaping it would turn every loss on every report into a
+string.
+
+The CSV carries a byte-order mark, so Excel on Windows reads it as UTF-8 rather than as
+the local codepage — without it every em dash in these reports arrives as mojibake.
+
+The three **bank file** reports cannot be exported: their screen describes a download
+rather than containing one, so a CSV of that screen would be a CSV about a file. Nor can
+a report with no rows — the buttons hide rather than producing an empty file.
