@@ -3,6 +3,7 @@
 namespace App\Modules\Lifecycle;
 
 use App\Modules\Lifecycle\Console\Commands\CheckDocumentExpiry;
+use App\Modules\Lifecycle\Filament\Pages\AssetsInHand;
 use App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring;
 use App\Modules\Lifecycle\Filament\Pages\LeaveLiability;
 use App\Modules\Lifecycle\Models\ChecklistItem;
@@ -76,6 +77,12 @@ class LifecycleServiceProvider extends ServiceProvider
             'What unused encashable leave would cost — the accrual that is in no account.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            AssetsInHand::class,
+            'Laptops, phones and vehicles issued and not returned — and who has left holding one.',
+        );
+
         ReportRenderers::register(
             'DocumentsExpiring',
             fn (string $asOf): array => app(LifecycleReports::class)->documentsExpiring($asOf),
@@ -83,6 +90,10 @@ class LifecycleServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'LeaveLiability',
             fn (string $asOf): array => app(LifecycleReports::class)->leaveLiability($asOf),
+        );
+        ReportRenderers::register(
+            'AssetsInHand',
+            fn (string $asOf): array => app(LifecycleReports::class)->assetsInHand($asOf),
         );
     }
 }

@@ -541,3 +541,36 @@ would overstate it — or divide by zero in a month that ended with nobody left.
 
 A dash in the turnover column means there was nobody to leave, which is not the same
 as nought per cent.
+
+### Assets in Employees' Hands
+
+Under People and payroll: every laptop, phone, SIM, vehicle and access card issued
+and not returned, who has it, since when, and what it is worth. Previously visible
+one employee at a time on their own record, so nothing asked the company-wide
+question.
+
+**Value out is the recovery, not an estimate of it.** It is the same figure a final
+settlement charges for unreturned kit, summed over the same items — not a second
+calculation that happens to agree. Which is why an item with no value recorded shows
+a **dash rather than a nought**: settlement recovers nothing for something nobody
+priced, and a nought would read as kit that is genuinely worthless.
+
+Three findings, each stated in the note when present:
+
+- **A holder who has left** — marked `· LEFT`, sorted to the top, and totalled
+  apart as *Held by leavers*. The urgent row: if the settlement is already paid, the
+  recovery has been missed.
+- **No value recorded** — the item will be recovered at nothing.
+- **Disposed on the register while still out** — the accounts say the company no
+  longer owns a thing somebody is holding.
+
+The **Register** column reaches the fixed-asset register for anything capitalised.
+*Not capitalised* is ordinary — a phone bought out of petty cash has a description
+and no link. *Not on register* means the link cannot be followed, either because
+Accounting is switched off or the asset row is gone; the report says so rather than
+asserting the item is on the books.
+
+Somebody's last day still counts as employed, matching Headcount Movement, so a
+person is never on the payroll in one report and gone from another on the same date.
+
+The date is an as-at, so a laptop issued after it does not appear.

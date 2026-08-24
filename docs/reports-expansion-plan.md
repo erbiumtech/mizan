@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.6 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.7 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -285,7 +285,7 @@ for. Ordered by how often that has come up.
    per invoice today.
 6. **Headcount Movement & Turnover** — *done, 2026-08-24. The column is `left_on`, not `leaving_date`.* Joiners and leavers per month from `employee_job_history` and
    `employees.leaving_date`, with turnover percentage and average tenure.
-7. **Assets in Employees' Hands** — `issued_assets` not returned, by employee, with value; ties to the
+7. **Assets in Employees' Hands** — *done, 2026-08-24. Both ties are real; the value column *is* the settlement recovery — see [What landed](#what-landed).* `issued_assets` not returned, by employee, with value; ties to the
    asset register and to settlement recovery.
 8. **Final Settlements** — composition per leaver: notice recovery, encashment, gratuity, advance and
    asset recoveries, net.
@@ -485,6 +485,41 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — assets in employees' hands (Phase 3.7), where both of the plan's ties turned out to be real.**
+
+- **The value column is not *like* the settlement recovery, it is the same figure.** `unreturnedAssets()` sums
+  `value` over outstanding items for one employee; this report sums the same column over the same scope for
+  everybody. The test asserts the report's total against the builder's return rather than against a literal,
+  so if somebody changes what a settlement charges for, the test fails and the report is wrong. That is worth
+  more than a matching number: it makes the tie structural rather than coincidental.
+- **An item with no value recorded prints a dash, not a nought — and that is a finding, not formatting.**
+  Because the settlement sums the column, a null recovers *nothing*: the laptop is gone and the deduction is
+  zero. A nought in the cell would read as kit that is genuinely worthless rather than kit nobody priced, so
+  the report dashes it and the note counts them.
+- **The second tie surfaced something no screen in this application puts together: a fixed asset disposed on
+  the books while somebody is still holding it.** The accounts say the company no longer owns it; an
+  `issued_assets` row says who has it. Either it came back and was never marked returned, or it was written
+  off out of the building. Nothing else asks.
+- **The leaver boundary was wrong until a test name caught it.** The test was called *the last day of
+  employment is not yet a leaver* and asserted the opposite — and passed, because `hasLeft()` was `<=`.
+  `HeadcountReports::headcountAt()` counts an employee whose `left_on` is the date being read, so the two
+  reports disagreed about whether somebody was employed on their last day. Now strictly `<`, which is also the
+  right reading here: somebody in the building today can hand the laptop back today.
+- **Judged as at the date, never by `status`.** A register read for September must not mark somebody a leaver
+  who resigned in December. Reading "is inactive now" would have looked identical on today's data and been
+  wrong on every historical read — the same class of bug as an as-at report that filters on the current state.
+- **The asset register is guarded on `accounting`, and unreadable is its own answer.** A company can disable
+  the module and still hold `fixed_asset_id` values from before it did. The column then says *Not on register*
+  rather than *On the register*, because the latter would assert something nothing verified. The items are
+  still listed and still valued — a laptop is out whether or not the books can be read.
+- **A row per item, though the plan says "by employee".** A serial number, an issue date and a days-out figure
+  are properties of a thing, and somebody chasing a laptop needs to know which laptop. The holder is named on
+  every row and the ordering groups by holder — leavers first, then longest out, because that is the order the
+  rows need acting on.
+- **Fifteen mutations, all killed**, including the four that would each have quietly emptied a finding: the
+  as-at filter dropped, the leaver total never accumulating, the disposal never counted, and an unvalued item
+  printing 0.
 
 **2026-08-24 — headcount movement and turnover (Phase 3.6), and a date-versus-instant bug worth naming.**
 
