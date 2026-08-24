@@ -64,7 +64,14 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    /** The outstanding-advances report (Phase 2.7). A page: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\AdvancesOutstanding' => \App\Modules\Advances\Filament\Pages\AdvancesOutstanding::class,
+    ],
+
     'navigation' => [
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
         'Employee' => 'people',
     ],
 ];
