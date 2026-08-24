@@ -818,3 +818,31 @@ the local codepage — without it every em dash in these reports arrives as moji
 The three **bank file** reports cannot be exported: their screen describes a download
 rather than containing one, so a CSV of that screen would be a CSV about a file. Nor can
 a report with no rows — the buttons hide rather than producing an empty file.
+
+## Negatives in parentheses
+
+Company Settings → Reports carries one preference: *Show negatives in parentheses*.
+Accountants read `(1,250)`, and with it on every negative figure on every report is
+written that way, on screen and in the PDF.
+
+**A preference and not a default.** `(1,250)` is how a balance sheet is read and
+`-1,250` is how everyone else reads a figure, and this application prints both kinds of
+report to both kinds of reader. Off unless a company turns it on.
+
+**Applied where a report is drawn, not where it is calculated.** All fifty-one reports
+format their own cells before the payload leaves the service, so honouring the
+preference inside each of them would have been fifty-one places to forget. Instead the
+display layer re-reads what the payload already declares — the same `numeric` column
+list the exporter uses — and rewrites only those cells. The reports themselves know
+nothing about it.
+
+**The CSV deliberately does not get it.** A spreadsheet reads `(1,250)` as text, so the
+export keeps the payload's minus sign. That is the reason the rewrite lives in the views
+rather than in the payload every output shares: applied to the payload it would reach
+the one file where parentheses are actively harmful.
+
+Only cells in declared-numeric columns are touched, and the pattern is anchored at both
+ends, so five things that appear in those columns survive untouched: an em dash meaning
+"does not apply", a bare hyphen, a date like `2027-02-20`, prose that happens to begin
+with a negative number, and a figure that rounds away to nothing — `-0.4` shows as `0`
+rather than as `(0)`, which reads as a puzzle, or `-0`, which reads as a bug.

@@ -216,16 +216,16 @@
                                                 {{ $row['label'] }}
                                             </span>
                                         @endif
-                                        <span class="fi-num">{{ $row['current'] === null ? '' : number_format($row['current'], 0) }}</span>
-                                        <span class="fi-num">{{ $row['previous'] === null ? '' : number_format($row['previous'], 0) }}</span>
+                                        <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($row['current']) }}</span>
+                                        <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($row['previous']) }}</span>
                                         <span class="fi-num fi-explorer-change">{{ $row['change'] === null ? '—' : sprintf('%+.1f%%', $row['change']) }}</span>
                                     </div>
                                 @endforeach
 
                                 <div class="fi-explorer-total">
                                     <span>{{ $section['total']['label'] }}</span>
-                                    <span class="fi-num">{{ number_format($section['total']['current'], 0) }}</span>
-                                    <span class="fi-num">{{ $section['total']['previous'] === null ? '' : number_format($section['total']['previous'], 0) }}</span>
+                                    <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($section['total']['current']) }}</span>
+                                    <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($section['total']['previous']) }}</span>
                                     <span class="fi-num fi-explorer-change">{{ $section['total']['change'] === null ? '—' : sprintf('%+.1f%%', $section['total']['change']) }}</span>
                                 </div>
                             @empty
@@ -237,8 +237,8 @@
                             {{-- The closing identity: what the sections above have to add up to. --}}
                             <div class="fi-explorer-total fi-explorer-closing">
                                 <span>{{ $statement['closing']['label'] }}</span>
-                                <span class="fi-num">{{ number_format($statement['closing']['current'], 0) }}</span>
-                                <span class="fi-num">{{ $statement['closing']['previous'] === null ? '' : number_format($statement['closing']['previous'], 0) }}</span>
+                                <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($statement['closing']['current']) }}</span>
+                                <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($statement['closing']['previous']) }}</span>
                                 <span class="fi-num"></span>
                             </div>
                         </div>
@@ -301,14 +301,16 @@
                                         @endif
 
                                         @foreach (array_slice($row['cells'], 1, null, true) as $i => $cell)
-                                            <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                                            @php($isNumeric = in_array($i, $statement['numeric'], true))
+                                            <span @class(['fi-num' => $isNumeric])>{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell($cell) : $cell }}</span>
                                         @endforeach
                                     </div>
                                 @endforeach
 
                                 <div class="fi-explorer-total" style="{{ $grid }}">
                                     @foreach ($section['total']['cells'] as $i => $cell)
-                                        <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                                        @php($isNumeric = in_array($i, $statement['numeric'], true))
+                                        <span @class(['fi-num' => $isNumeric])>{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell($cell) : $cell }}</span>
                                     @endforeach
                                 </div>
                             @empty

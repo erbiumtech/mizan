@@ -13,7 +13,8 @@
     @foreach ($statement['tiles'] as $tile)
         <div @class(['fi-explorer-tile', 'fi-accent' => $tile['accent']])>
             <span class="fi-explorer-tile-label">{{ $tile['label'] }}</span>
-            <span class="fi-explorer-tile-value">{{ number_format($tile['value'], 0) }}</span>
+            {{-- Through ReportFigures so a company that reads (1,250) sees it here too — Phase 4.3. --}}
+            <span class="fi-explorer-tile-value">{{ \App\Support\Reporting\ReportFigures::money($tile['value']) }}</span>
         </div>
     @endforeach
 

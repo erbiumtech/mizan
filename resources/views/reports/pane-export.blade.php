@@ -49,7 +49,7 @@
                     <td class="{{ ($tile['accent'] ?? false) ? 'tile-accent' : '' }}">
                         <div class="tile-label">{{ $tile['label'] }}</div>
                         <div class="tile-value">
-                            {{ is_numeric($tile['value'] ?? null) ? number_format((float) $tile['value'], 0) : $tile['value'] }}
+                            {{ is_numeric($tile['value'] ?? null) ? \App\Support\Reporting\ReportFigures::money($tile['value']) : $tile['value'] }}
                         </div>
                     </td>
                 @endforeach
@@ -72,7 +72,8 @@
                      single-column report would have every row read as a heading. --}}
                 <tr class="{{ in_array($loop->index, $grid['sections'], true) ? 'grid-section' : '' }}">
                     @foreach($grid['columns'] as $index => $column)
-                        <td class="{{ in_array($index, $grid['numeric'], true) ? 'num' : '' }}">{{ $row[$index] ?? '' }}</td>
+                        @php($isNumeric = in_array($index, $grid['numeric'], true))
+                        <td class="{{ $isNumeric ? 'num' : '' }}">{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell((string) ($row[$index] ?? '')) : ($row[$index] ?? '') }}</td>
                     @endforeach
                 </tr>
             @empty
@@ -86,7 +87,8 @@
             <tfoot>
                 <tr class="grand">
                     @foreach($grid['columns'] as $index => $column)
-                        <td class="{{ in_array($index, $grid['numeric'], true) ? 'num' : '' }}">{{ $grid['footer'][$index] ?? '' }}</td>
+                        @php($isNumeric = in_array($index, $grid['numeric'], true))
+                        <td class="{{ $isNumeric ? 'num' : '' }}">{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell((string) ($grid['footer'][$index] ?? '')) : ($grid['footer'][$index] ?? '') }}</td>
                     @endforeach
                 </tr>
             </tfoot>
