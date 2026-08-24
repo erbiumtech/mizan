@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5 started (5.1 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–4 complete; Phase 5 started (5.1, 5.5 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -339,7 +339,7 @@ and it would be quicker to re-derive each figure inline.
 4. **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
    utilisation this month; unbilled WIP value. Off `TicketService::performance()`/`breaches()` and
    `TimesheetService::utilisationFor()`.
-5. **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
+5. *done, 2026-08-24 — three widgets, three different readings of the page's period, see [What landed](#what-landed).* **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
    debtors with days overdue; cash committed in the next 90 days (Phase 1.7's own figures).
 6. **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
    valuation the report states, from the same service.
@@ -485,6 +485,46 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the money widgets (Phase 5.5), and three different right answers to one filter.**
+
+- **Every figure comes from the service behind its own report**, which is Phase 5's rule and the reason it is
+  written into the section header. `RevenueAndExpensesChart` calls
+  `FinancialReportService::profitAndLoss()` — the Profit & Loss report's service; `LargestDebtorsList` calls
+  `InvoiceService::outstandingReceivables()` — the Aged Receivables report's; `CashCommittedOverview` reads
+  `App\Support\CashCommitments`, Phase 1.7's registry. Each test asserts the widget against its service
+  rather than against a literal, so the pair cannot drift.
+- **The plan warned that re-deriving inline would be quicker, and it was.** Summing `total - paid` over
+  invoices for the debtor list is three lines against an aggregation over a service's return. The rule is
+  what stopped it, and the aggregation is why the top debtor here is by construction the figure the ageing
+  report shows for that contact.
+- **All three read the dashboard's period differently, and each difference is a decision rather than an
+  inconsistency:**
+  - the **chart** lets the period choose where the twelve-month series *ends*. Honouring a one-month period by
+    drawing one bar would destroy the widget rather than filter it — twelve months is the shape it exists to
+    show. Its final column is capped at the period's end, so early in a month it is the month *so far* rather
+    than a whole month padded with a future nobody has traded in.
+  - the **debtors list** treats it as an as-at, because ageing is a balance and not a span. Read for last
+    quarter it says who owed then.
+  - the **commitments** widget treats it as the *origin* of a forward ninety days, because that window looks
+    ahead. Read at a year end it answers "what is committed for the ninety days after June", which is the
+    question somebody asks there.
+- **A debtor is a contact, not an invoice**, and days overdue is the *worst* of their invoices rather than an
+  average. A customer with one invoice ninety days late and nine current ones is a ninety-day problem;
+  averaging reports them as nine days late, which is the number that gets them left alone. A contact whose
+  credit notes cancel their invoices is not a debtor at all, and would otherwise take one of the five places
+  from somebody who is.
+- **Out and in are kept apart, with the net stated.** A commitment registry carries both directions — a
+  recurring sales invoice is money coming in — and adding them gives a figure that is neither what the company
+  owes nor what it expects. The net is on the widget because that is what somebody opens it for, rather than
+  arithmetic left across two stats a centimetre apart.
+- **The sort order is banded, ten apart**: money 10–19, sales 20–29, service 30–39, people 40–49, inventory
+  50–59. So a group can gain a widget without renumbering its neighbours. The nine widgets that predate this
+  phase still sit on 0–8 and therefore render above; placing them in the bands is Phase 5.7's own job and is
+  noted rather than half-done here.
+- **`RevenueAndExpensesChart` is twelve `profitAndLoss()` calls and is the widget Phase 5.8's cache exists
+  for.** It is stated in the class rather than left to be discovered: until 5.8 lands it is the most expensive
+  thing on the page, and it is `$isLazy` so the dashboard renders without waiting for it.
 
 **2026-08-24 — the dashboard page and its period filter (Phase 5.1), plus 5.9's widget enumeration.**
 

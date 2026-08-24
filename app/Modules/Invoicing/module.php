@@ -44,6 +44,7 @@ return [
     ],
 
     'widgets' => [
+        'App\\Filament\\Widgets\\LargestDebtorsList' => \App\Modules\Invoicing\Filament\Widgets\LargestDebtorsList::class,
         'App\\Filament\\Widgets\\ReceivablesPayablesOverview' => \App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview::class,
     ],
 

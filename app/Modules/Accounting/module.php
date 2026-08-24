@@ -79,6 +79,8 @@ return [
     'widgets' => [
         'App\\Filament\\Widgets\\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
         'App\\Filament\\Widgets\\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
+        'App\\Filament\\Widgets\\CashCommittedOverview' => \App\Modules\Accounting\Filament\Widgets\CashCommittedOverview::class,
+        'App\\Filament\\Widgets\\RevenueAndExpensesChart' => \App\Modules\Accounting\Filament\Widgets\RevenueAndExpensesChart::class,
     ],
 
     'permission_groups' => [
