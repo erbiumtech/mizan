@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1 landed); 4.2–4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1, 2 and 3 complete; Phase 4 all but 4.5 landed (4.1–4.4); 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -306,9 +306,9 @@ report:
 1. **Export the open pane** — *done, 2026-08-24. One grid from three shapes; the CSV deliberately undoes the display formatting — see [What landed](#what-landed).* PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
    twenty times more likely. One implementation on the pane rather than per report — and the one Phase 8
    sends, which is why that phase waits for this one rather than growing a second renderer.
-2. **Comparison periods beyond the previous year** — previous month, previous quarter, budget.
-3. **Negatives in parentheses**, and a company-wide preference for it. Accountants read `(1,250)`.
-4. **Keyboard navigation of the report list** — arrow keys and type-ahead, once the list is 35+ rows.
+2. **Comparison periods beyond the previous year** — *done, 2026-08-24, except budget, which `BudgetVsActual` already is — see [What landed](#what-landed).* previous month, previous quarter, budget.
+3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
+4. **Keyboard navigation of the report list** — *done, 2026-08-24. The search box is the type-ahead; the rows stay buttons — see [What landed](#what-landed).* arrow keys and type-ahead, once the list is 35+ rows.
 5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
    the whole state, so this is storage rather than plumbing.
 
@@ -485,6 +485,114 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — keyboard navigation of the report list (Phase 4.4). The phase set 35 rows as the threshold;
+there are 51.**
+
+- **The rows stay native `<button>` elements, and refusing the ARIA listbox pattern was the main decision.**
+  `role="option"` plus `aria-activedescendant` is the textbook answer and it would have been a downgrade
+  here: it replaces button semantics a screen reader already announces correctly with a pattern that then has
+  to reimplement them, and Enter and Space work on these rows only because they have always been buttons.
+  Arrow keys move real DOM focus between real buttons instead. A test asserts `role="option"` is *absent*, so
+  a later change to it has to argue with something.
+- **The search box is the type-ahead.** The plan asks for both arrow keys and type-ahead, and a literal
+  reading would have meant a second string matcher — keystrokes jumping the selection without filtering —
+  giving two behaviours to one set of keys. The box is the better of the two: it filters, and it shows you
+  what you typed so you can correct it. So a printable key pressed anywhere in the list goes into it, which
+  delivers the phase's intent through one mechanism rather than two.
+- **The way in is the way out.** Down-arrow from the search box enters the list, up-arrow off the first row
+  returns to it. That is what makes "type to narrow, arrow down, Enter" a path rather than three unrelated
+  controls, and it is the only reason this is faster than the mouse at 51 rows.
+- **Modified keys are left alone** — Cmd+K is the command palette, and a type-ahead that swallowed it would
+  break a control that already exists.
+- **`focus-visible`, not `focus`.** Arrow keys move real focus, so the ring is the only thing telling
+  somebody where they are in a list this long — and a mouse click should not leave one behind.
+- **The behaviour is not automatically tested, and the tests say so rather than implying otherwise.** There
+  is no Dusk and no Playwright in this project, so nothing can press a key and see where focus went. What
+  the tests do is fail if a hook the Alpine component reads is removed, which is the realistic way this
+  breaks: the markup edited for an unrelated reason and the keyboard quietly stopping.
+- **One test passed for the wrong reason and was fixed.** Counting `data-report-row` across the page came to
+  52 against 51 rows, because the component's own selector string contains the bare attribute name. The
+  attribute now carries the report key so the count is unambiguous — and being off by one row is exactly the
+  error that count exists to catch.
+- **The rebuilt CSS is deliberately not in this commit.** `public/build` is tracked, and rebuilding re-hashed
+  `app-*.css` as well as the theme — an asset this change did not author. The stylesheet compiles; shipping
+  it needs `npm run build` committed by whoever owns the asset pipeline.
+
+**2026-08-24 — comparison periods (Phase 4.2), and one item of the plan deliberately not built.**
+
+- **A comparison basis shorter than the reporting period is a category error, not a shorter comparison — and
+  that one observation shaped the whole class.** A profit and loss is the financial year to date. Shifting
+  its range back thirty days for a "previous month" comparison puts 1 June–20 January beside 1 July–20
+  February: two overlapping eight-month spans whose difference is almost entirely the same trading counted
+  twice. The figure would look entirely plausible. So a month or quarter basis narrows the **current** period
+  to match, and `currentRange()` exists for no other reason.
+- **A balance sheet is exempt, and that is not an inconsistency.** It is an as-at rather than a period, so
+  the current figure is the balance on the day whatever the basis and only the comparison date moves. Hence
+  two methods — `shift()` for as-at statements and `currentRange()`/`previousRange()` for period ones —
+  rather than one that would have had to lie to one of them.
+- **The comparison covers the whole previous month or quarter, not the same number of days.** Twenty days
+  against twenty days would be tidier and would answer a question nobody asks: what a month is worth is what
+  the month came to.
+- **Budget is not a basis, and this is the decision worth recording.** The plan lists it. `BudgetVsActual`
+  already *is* that report — per account, Planned against Actual with the variance, and its own budget
+  picker — so putting budget in the comparison slot would be a second implementation of an existing
+  comparison, and a poorer one, since the statement kind has nowhere to ask which budget. This plan's own
+  Phase 5 states the principle for widgets and it holds here: two paths to one number is how they come to
+  disagree, and the reader who spots it cannot tell which to believe. A test asserts budget is *not* offered,
+  so the decision is recorded where somebody would otherwise re-make it.
+- **`ComparativeStatement::profitAndLoss()` now takes an as-at date and a basis rather than a range.** It had
+  to: a month basis narrows the current period, and a range handed in from outside could not be narrowed
+  without the caller knowing the rule — at which point two places would know it. One existing test asserted
+  the old range-taking contract and was rewritten rather than adapted.
+- **Every subtraction is `subMonthsNoOverflow`.** Plain `subMonth()` from 31 March lands on 3 March, which
+  would make a month-on-month comparison at any month end quietly wrong. A mutation survived the first pass
+  here for a good reason worth remembering: the test used 31 March, and three months back from March is
+  December, which *has* a 31st — so that date cannot tell the two subtractions apart. 31 May can.
+- **Links people kept still work.** The hub carried a boolean `?comparison=` and a saved `?comparison=0` must
+  still mean no comparison; `mount()` translates it, an explicit `?compare=` wins, and the basis is
+  re-normalised on every read because Livewire writes the property straight from the wire when the picker
+  changes. An unrecognised basis becomes the previous year rather than none: arriving with a bad one usually
+  means an old link, and answering that with a column silently removed is the worse of the two answers.
+- **Eighteen mutations, sixteen killed.** The two survivors are the `startOfMonth()` snap and the overflow
+  guard on the range's *start*, which are defensive: the only two bases reaching `shiftRange()` are handed a
+  `from` that is already the first of a month. The guard on the *end* is load-bearing and its mutation dies.
+  Documented in place rather than left to look like coverage.
+- **`label()` and `isOff()` were written and then deleted.** Both were unused once the picker read `BASES`
+  directly, and a public method with no caller is an invitation to drift.
+
+**2026-08-24 — negatives in parentheses (Phase 4.3), and where a formatting rule has to live.**
+
+- **A preference, not a default.** `(1,250)` is how a balance sheet is read and `-1,250` is how everyone who
+  is not an accountant reads a figure, and this application prints both kinds of report to both kinds of
+  reader. Off unless a company turns it on, so nothing changes underneath anybody.
+- **Applied where a report is drawn, not where it is calculated — and that was the design decision.** All
+  fifty-one reports format their own cells with `number_format()` before the payload leaves the service, so a
+  preference honoured inside each of them would have been fifty-one places to forget and a sweep across
+  thirty files to land it. Instead the display layer re-reads what the payload already declares: the
+  `numeric` column list, which is the same thing Phase 4.1's exporter uses. One rule, five call sites, and
+  the reports know nothing about it.
+- **The CSV deliberately does not get it, and that is why the rewrite is in the views.** A spreadsheet reads
+  `(1,250)` as text. Applied to the payload — the obvious place — it would have reached the one output where
+  parentheses are actively harmful, the file somebody opens in order to do arithmetic. A test asserts the
+  payload still carries `-60,000` while the page shows `(60,000)`.
+- **Five things in numeric columns had to survive, and the pattern is anchored at both ends because of
+  them:** an em dash meaning "does not apply" (which nearly every report uses), a bare hyphen, a date like
+  `2027-02-20`, prose beginning with a negative number, and a status cell like `Draft · net differs`. An
+  unanchored pattern would have made a hash of every date column in the application, and a caught em dash
+  would have emptied half the cells on half the reports — looking like missing data rather than a formatting
+  bug. Each has its own test.
+- **A figure that rounds away to nothing is not negative.** `number_format(-0.4, 0)` is the string `-0`, so
+  deciding the sign before the rounding gives `(0)` — which reads as a puzzle — or `-0`, which reads as a
+  bug. Both are wrong about the same number, and `money()` and `cell()` apply the identical rule so the two
+  cannot disagree about it.
+- **No caching in the formatter, on purpose.** `setting()` goes through `TenantSettings`, which already holds
+  one array per tenant, so a lookup per cell is an array read. A static cache in a class called from a Blade
+  loop would be the classic tenant leak: the first company's preference applied to the second company's
+  report in the same worker.
+- **Fourteen mutations, all killed.** The setting section lives in Core rather than Accounting, because it
+  governs reports in every module and Core is the one module always licensed — a preference filed behind a
+  module a company has not bought is a preference it cannot reach.
 
 **2026-08-24 — exporting the open pane (Phase 4.1). Phase 8 now has something to send.**
 

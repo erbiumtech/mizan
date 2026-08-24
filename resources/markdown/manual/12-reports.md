@@ -818,3 +818,92 @@ the local codepage — without it every em dash in these reports arrives as moji
 The three **bank file** reports cannot be exported: their screen describes a download
 rather than containing one, so a CSV of that screen would be a CSV about a file. Nor can
 a report with no rows — the buttons hide rather than producing an empty file.
+
+## Negatives in parentheses
+
+Company Settings → Reports carries one preference: *Show negatives in parentheses*.
+Accountants read `(1,250)`, and with it on every negative figure on every report is
+written that way, on screen and in the PDF.
+
+**A preference and not a default.** `(1,250)` is how a balance sheet is read and
+`-1,250` is how everyone else reads a figure, and this application prints both kinds of
+report to both kinds of reader. Off unless a company turns it on.
+
+**Applied where a report is drawn, not where it is calculated.** All fifty-one reports
+format their own cells before the payload leaves the service, so honouring the
+preference inside each of them would have been fifty-one places to forget. Instead the
+display layer re-reads what the payload already declares — the same `numeric` column
+list the exporter uses — and rewrites only those cells. The reports themselves know
+nothing about it.
+
+**The CSV deliberately does not get it.** A spreadsheet reads `(1,250)` as text, so the
+export keeps the payload's minus sign. That is the reason the rewrite lives in the views
+rather than in the payload every output shares: applied to the payload it would reach
+the one file where parentheses are actively harmful.
+
+Only cells in declared-numeric columns are touched, and the pattern is anchored at both
+ends, so five things that appear in those columns survive untouched: an em dash meaning
+"does not apply", a bare hyphen, a date like `2027-02-20`, prose that happens to begin
+with a negative number, and a figure that rounds away to nothing — `-0.4` shows as `0`
+rather than as `(0)`, which reads as a puzzle, or `-0`, which reads as a bug.
+
+## Comparison periods
+
+The three statements carry a comparison picker: previous year, previous quarter,
+previous month, or none. Before this there was one toggle, offering the previous year or
+nothing.
+
+**The design point is that a basis shorter than the reporting period narrows the current
+period too.** A Profit & Loss is the financial year to date. Compared against "the
+previous month" by shifting its range back thirty days it would read 1 June–20 January
+against 1 July–20 February — two overlapping eight-month spans whose difference is almost
+entirely the same trading counted twice. So the basis chooses the length of *both*
+columns: *vs previous month* gives February against January. The subtitle states the
+period actually shown.
+
+The comparison covers the **whole** previous month or quarter even when the current one is
+part-way through. Twenty days against twenty days would be tidier and would answer a
+question nobody asks.
+
+**A Balance Sheet is exempt**, and that is not an inconsistency: it is an as-at rather
+than a period, so the current figure is the balance on the day whatever the basis and only
+the comparison date moves. That is why the two are separate calculations.
+
+Every subtraction is overflow-safe. Plain `subMonth()` from 31 March lands on 3 March,
+which would make a month-on-month comparison at any month end quietly wrong.
+
+**Budget is deliberately not a basis.** The plan lists it, and *Budget vs Actual* already
+is that report — per account, Planned against Actual with the variance, and its own budget
+picker. Putting it in the comparison slot would be a second implementation of an existing
+comparison, and a poorer one since a statement has nowhere to ask which budget. Two paths
+to one number is how they come to disagree.
+
+An unrecognised basis in a URL falls back to the previous year rather than to no
+comparison: the commonest way to arrive with a bad one is an old link, and answering that
+with a column silently removed is worse than answering it with the conventional one. The
+previous boolean `?comparison=` is still honoured, so saved links land where they did.
+
+## Keyboard navigation of the report list
+
+Arrow keys move through the visible reports, Enter or Space opens one, Home and End jump
+to the ends. Down-arrow from the search box steps into the list and up-arrow off the first
+row returns to it, which makes *type to narrow, arrow down, Enter* the path through 51
+reports. Escape clears the search box.
+
+**The rows stay native `<button>` elements.** The ARIA listbox pattern would mean
+`role="option"` and `aria-activedescendant`, which replaces the button semantics a screen
+reader already announces correctly with a pattern that has to reimplement them. Arrow keys
+move real DOM focus between real buttons instead, so Enter and Space work because they
+always did and nothing is faked. A `:focus-visible` ring marks where you are — the
+keyboard path is the one that needs it, and a mouse click should not leave a ring behind.
+
+**The search box is the type-ahead.** A printable key pressed anywhere in the list goes
+into it. A second string matcher — keystrokes jumping the selection without filtering —
+would give two behaviours to one set of keys, and the box is the better of the two: it
+filters, and it shows you what you typed so you can correct it. Modified keys are left
+alone, so Cmd+K still opens the command palette.
+
+There is **no automated test of the behaviour**: this project has no browser harness. The
+tests assert that the markup carries the hooks the component reads, which is the realistic
+way this breaks — the markup edited for an unrelated reason and the keyboard quietly
+stopping with nothing to say so.
