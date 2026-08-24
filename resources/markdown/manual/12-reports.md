@@ -423,3 +423,27 @@ reproduce. Usually that means attendance was edited after the payslip was genera
 
 The grid scrolls sideways, and on a wide report the header and totals rows do not
 follow you down the page.
+
+### Hiring Funnel
+
+Under Operations: every vacancy with its applications by stage, how many offers were
+taken, how long hiring took, and how long the vacancy has been open.
+
+Four figures worth reading carefully, because each is deliberately narrower than it
+might appear:
+
+- **Offers taken** is accepted over offers *answered*, not issued. An offer nobody
+  has replied to yet is not a refusal.
+- **To offer** counts to the offer being *sent*. A draft nobody has issued is not a
+  milestone the candidate has reached.
+- **To join** counts *accepted* offers only — a declined offer's joining date never
+  happened.
+- **Open for** is blank once a vacancy is filled or closed. Ageing is a question
+  about something still open.
+
+A **withdrawal is not a rejection** and appears in no stage column: that person left
+of their own accord. They are still in the applications total, and the note says how
+many withdrew.
+
+Both time figures are averages over however many offers a vacancy produced, so read
+them against the application count on the same row.

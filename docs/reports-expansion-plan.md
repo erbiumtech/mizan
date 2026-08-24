@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1, 3.2 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -275,7 +275,7 @@ for. Ordered by how often that has come up.
    overtime totals per employee. `AttendanceMonth` already computes `paidDays()`, `lossOfPayDays()`
    and `overtimeHours()` per employee, so this is the company-wide aggregation of an existing figure —
    and the same figure payroll prorates on, which makes disagreement between the two visible.
-2. **Hiring Funnel & Time to Hire** — applications by stage per vacancy, offer acceptance rate, days
+2. **Hiring Funnel & Time to Hire** — *done, 2026-08-24.* Applications by stage per vacancy, offer acceptance rate, days
    from applied → offer → joining, and open-vacancy ageing.
 3. **Quotation Conversion** — issued → accepted → invoiced with win rate, plus quotes expiring inside
    14 days (`valid_until`) and superseded versions excluded from the rate.
@@ -485,6 +485,33 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the hiring funnel (Phase 3.2).**
+
+- **Nothing in Phase 3 reconciles, and this is the first report to say so explicitly.** There is no account
+  behind a hiring funnel, so Phase 2's rule about record rows tying to balances does not apply. What replaces
+  it is a discipline about not overstating what the data supports, and four decisions carry it — each a way
+  the report could read as more confident than it is:
+  - **Acceptance is over offers *answered*, not issued.** An offer nobody has replied to is not a refusal, and
+    counting it as one makes a company that has just sent three offers look as though it lost them. One
+    accepted, one declined, one outstanding reads 50% and not 33%.
+  - **Time to offer is measured to `issued_at`.** A draft offer nobody has sent is not a milestone the
+    candidate has reached.
+  - **Time to join counts accepted offers only.** A declined offer has a joining date nobody will honour, and
+    averaging it in describes a notice period that never happened.
+  - **Ageing is only for vacancies still open.** A closed vacancy's age is a historical fact, and putting it
+    in the same column invites the two to be averaged into a sentence nobody meant.
+  Both of the first and third were mutation-checked: dividing by all offers, and counting declined joining
+  dates, each fail a named test.
+- **A withdrawal is not a rejection**, and is in no stage column. Somebody who withdrew left of their own
+  accord; counting them beside rejections would read as the company's decision. They stay in the applications
+  total, because they did apply, and the note says how many — which is what stops the stage columns looking
+  as though they have lost somebody.
+- **Wide, because a funnel is its stages.** Six stage columns plus four measures is past the pane's width, and
+  collapsing the stages into a total would remove the only thing that makes it a funnel.
+- The averages are means over however many offers a vacancy produced, which over two or three hires is a
+  rough guide rather than a statistic — so the application count sits on the same row, to be read with it.
+
 
 **2026-08-24 — the monthly attendance register (Phase 3.1), which needed a performance fix before it was
 possible at all.**
