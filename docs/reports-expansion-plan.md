@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.3 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.4 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -279,7 +279,7 @@ for. Ordered by how often that has come up.
    from applied → offer → joining, and open-vacancy ageing.
 3. **Quotation Conversion** — *done, 2026-08-24.* Issued → accepted → invoiced with win rate, plus quotes expiring inside
    14 days (`valid_until`) and superseded versions excluded from the rate.
-4. **Revenue by Customer / Project / Product** — one report with a dimension filter, gross and net of
+4. **Revenue by Customer / Project / Product** — *done, 2026-08-24, as three groupings rather than a filter — see [What landed](#what-landed).* One report with a dimension filter, gross and net of
    credit notes. `invoices.project_id` exists and nothing reports on it.
 5. **Credit Notes Issued** — a tax-sensitive list with commissioner approval status; only visible
    per invoice today.
@@ -485,6 +485,33 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — revenue by customer, project and product (Phase 3.4).**
+
+- **Three groupings in one table rather than a dimension filter**, which is a departure from the plan's
+  wording. A picker would have to be declared in `ReportPane::ASKS` — an Accounting constant — and putting an
+  Invoicing concept there is precisely the coupling Phase 1.2 removed from `supports()`. *Win/Loss* already
+  stacks three groupings behind a labelled first column, and reading them together is better than switching
+  between them anyway: a customer whose revenue is all on one project is a different risk from one spread
+  across four.
+- **The groupings must not be added together, and that is the report's most dangerous property.** A sale
+  appears once under its customer, once under its project and once per product line, so summing the rows
+  trebles the revenue. The record row totals the customer grouping alone, the note says so, and mutating that
+  condition away fails the test by name.
+- **A credit note is attributed to the invoice it credits.** The revenue was recognised against that
+  customer, project and products, so the reversal belongs in the same place. In practice a credit note carries
+  a customer and no project, so attributing it by its own columns would drop the reversal into *No project*
+  and leave the project holding revenue that had been given back. Mutating this fails four tests.
+- **`No project` and `Not a product` are rows, not gaps.** Invoicing unattributed to a project is the figure
+  that makes the project grouping smaller than the customer one, so the note states the amount; and a line
+  with no product — a service, a one-off — is common enough that dropping it would make the product grouping
+  quietly fail to add up.
+- **Issued, partially paid and paid only.** A draft is not revenue, a void one never was, and a purchase is
+  cost. Each has its own test, because each is a one-word change away from being counted.
+- Customer, project and product names are read through the query builder. `invoicing -> projects` is declared
+  so a model import would be legal, but the report needs one column of each table — and a company that has
+  switched the projects module off still has `project_id` values from before it did.
+
 
 **2026-08-24 — quotation conversion (Phase 3.3).**
 

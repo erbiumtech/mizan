@@ -471,3 +471,28 @@ one that ran out is.
 **Expiring** counts quotes still answerable that run out within 14 days. A quote
 past its validity is *expired* rather than expiring, and it counts as expired from
 the day it lapses rather than from the day the nightly sweep notices.
+
+### Revenue by Customer, Project and Product
+
+Under Receivables and payables: what was invoiced in the financial year to date,
+three ways over — by customer, by project, by product — gross, credited back, and
+net. The project grouping is the one that existed nowhere before: invoices have
+carried a project all along and nothing reported on it.
+
+**Do not add the three groupings together.** They are the same money viewed three
+ways: one sale appears under its customer, its project and each of its products.
+The record row totals the **customer** grouping alone, and that is the figure to
+quote.
+
+**Credit notes follow the invoice they credit.** The revenue was recognised against
+that customer and project, so the reversal belongs there — not against whatever was
+typed on the credit note, which usually carries a customer and no project.
+
+Three rows that look like gaps and are not: **No customer**, **No project** and
+**Not a product**. The middle one is the figure that makes the project grouping
+smaller than the customer grouping, so the note states it. The last is any line
+typed straight onto an invoice — a service or a one-off — and dropping those would
+make the product grouping quietly fail to add up.
+
+Only **issued, partially paid and paid** invoices count. A draft is not revenue, a
+void one never was, and purchases are cost.

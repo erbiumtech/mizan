@@ -6,6 +6,7 @@ use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
+use App\Modules\Invoicing\Filament\Pages\RevenueByDimension;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
@@ -17,6 +18,7 @@ use App\Modules\Invoicing\Policies\TaxRatePolicy;
 use App\Modules\Invoicing\Services\RecurringInvoiceService;
 use App\Modules\Invoicing\Support\ContactCsvImporter;
 use App\Modules\Invoicing\Support\InvoicingReports;
+use App\Modules\Invoicing\Support\RevenueReports;
 use App\Support\CashCommitments;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
@@ -108,6 +110,21 @@ class InvoicingServiceProvider extends ServiceProvider
         ReportCatalogue::register('Receivables & payables', AgedReceivables::class, 'What customers owe, bucketed by how late it is.');
         ReportCatalogue::register('Receivables & payables', AgedPayables::class, 'What the company owes suppliers, bucketed by how late it is.');
         ReportCatalogue::register('Statutory reporting', FbrInvoiceReporting::class, 'Invoices FBR has not accepted, and issued invoices it never received.');
+
+        /*
+         * Revenue by customer, project and product — reports-expansion-plan.md Phase 3.4.
+         *
+         * Filed with the ageing reports: it is read by whoever is chasing or analysing what has been billed.
+         */
+        ReportCatalogue::register(
+            'Receivables & payables',
+            RevenueByDimension::class,
+            'What was invoiced, to whom, on what project and for which product — net of credit notes.',
+        );
+        ReportRenderers::register(
+            'RevenueByDimension',
+            fn (string $asOf): array => app(RevenueReports::class)->byDimension($asOf),
+        );
 
         // The records of this module that may carry custom fields. Registered by alias, which is what
         // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.
