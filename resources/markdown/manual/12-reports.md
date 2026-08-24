@@ -362,3 +362,41 @@ level and untouched for months is the case worth acting on:
 
 A product with nothing on hand shows a dash for average cost rather than a nought,
 which would claim the stock was free.
+
+### Advances Outstanding
+
+Under People and payroll: every advance still being recovered — what was lent, what
+has come back, what is left, the instalment and how many months it has to run. It
+is a receivable from staff, and it feeds final settlement, so a wrong figure here
+leaves the company out of pocket when somebody leaves.
+
+**The register and the advances account will usually not agree**, and that is not a
+fault. Nothing posts an advance when it is entered: recording one here says money
+was lent, and the ledger only learns of it if the payment out was also booked
+against the advances account — while a payslip's recovery credits that account. The
+report says which way round the difference falls, because the directions mean
+opposite things. The account holding *less* is advances lent without a payment
+booked. Holding *more* is either a payment that was not an advance, or an advance
+settled without its recovery being recorded.
+
+One row per advance rather than per person, because two advances on different
+instalments have two different answers to "when is this cleared".
+
+### Expense Claims
+
+Also under People and payroll, and not to be confused with the Expense Claims
+screen itself — this is the report about them.
+
+**Owed to staff** is the figure to look at: everything approved and not yet paid,
+which is a liability nothing in this application posts. A claim reaches the ledger
+only when a payslip reimburses it, and by then it is an expense rather than
+something owed.
+
+Two periods are at work, deliberately. The rows are the **financial year to date**
+— 1 July to your date, not 1 January. But the amount owed is a **balance**: a claim
+approved last March is owed just as much as one approved yesterday, so it counts
+whenever it was claimed.
+
+The reimbursed total is **not** checked against an account, and the report says why:
+reimbursements post to the same account code as meal recovery, and one account
+holding two unrelated flows cannot be attributed to either.

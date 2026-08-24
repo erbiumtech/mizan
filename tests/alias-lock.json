@@ -361,7 +361,9 @@
         "App\\Filament\\Pages\\PayrollRegister": "App\\Modules\\Payroll\\Filament\\Pages\\PayrollRegister",
         "App\\Filament\\Pages\\LeaveLiability": "App\\Modules\\Lifecycle\\Filament\\Pages\\LeaveLiability",
         "App\\Filament\\Pages\\UnbilledWip": "App\\Modules\\Timesheets\\Filament\\Pages\\UnbilledWip",
-        "App\\Filament\\Pages\\StockOnHand": "App\\Modules\\Inventory\\Filament\\Pages\\StockOnHand"
+        "App\\Filament\\Pages\\StockOnHand": "App\\Modules\\Inventory\\Filament\\Pages\\StockOnHand",
+        "App\\Filament\\Pages\\AdvancesOutstanding": "App\\Modules\\Advances\\Filament\\Pages\\AdvancesOutstanding",
+        "App\\Filament\\Pages\\ExpenseClaimsReport": "App\\Modules\\Expenses\\Filament\\Pages\\ExpenseClaimsReport"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

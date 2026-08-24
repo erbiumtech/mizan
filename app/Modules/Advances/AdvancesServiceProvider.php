@@ -2,10 +2,14 @@
 
 namespace App\Modules\Advances;
 
+use App\Modules\Advances\Filament\Pages\AdvancesOutstanding;
 use App\Modules\Advances\Models\Advance;
 use App\Modules\Advances\Policies\AdvancePolicy;
 use App\Modules\Advances\Services\AdvanceService;
+use App\Modules\Advances\Support\AdvanceReports;
 use App\Support\Contracts\AdvanceLedger;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,8 +36,34 @@ class AdvancesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerReports();
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+    }
+
+    /**
+     * The outstanding-advances report — `docs/reports-expansion-plan.md` Phase 2.7.
+     *
+     * Filed under *People & payroll*: it is a figure about staff, read by whoever runs payroll, even though
+     * it is a receivable the accounts carry.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without advances sees no entry rather than a report that
+     * fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'People & payroll',
+            AdvancesOutstanding::class,
+            'What staff owe the company, the instalment recovering it, and whether the accounts agree.',
+        );
+
+        ReportRenderers::register(
+            'AdvancesOutstanding',
+            fn (string $asOf): array => app(AdvanceReports::class)->outstanding($asOf),
+        );
     }
 }
