@@ -400,3 +400,26 @@ whenever it was claimed.
 The reimbursed total is **not** checked against an account, and the report says why:
 reimbursements post to the same account code as meal recovery, and one account
 holding two unrelated flows cannot be attributed to either.
+
+### Attendance Register
+
+Under People and payroll: one month of attendance for everybody, a letter per person
+per day, with paid days, loss of pay, late minutes and overtime alongside.
+
+**P** present, **A** absent, **L** leave, **H** holiday, **O** weekly off, **½**
+half day, **W** from home, and **·** for a day nobody marked. The legend is
+repeated under the grid.
+
+That last one matters more than it looks. A day nobody marked is **counted as
+worked** — a day nobody recorded is not a day anybody missed, and the alternative
+docks somebody's pay for a clerk's omission. So a month full of dots reads as a good
+month when it is really an unfilled one, and the note counts them. Check that figure
+before trusting anything else on the screen.
+
+**It also tells you when payroll disagreed.** A payslip records the paid days it
+prorated on; this register computes the same figure from the same calendar, so if
+they differ, pay has already been calculated on something this report does not
+reproduce. Usually that means attendance was edited after the payslip was generated.
+
+The grid scrolls sideways, and on a wide report the header and totals rows do not
+follow you down the page.
