@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Support\Reporting\ExportsTheOpenReport;
 use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportComparison;
 use App\Support\Reporting\ReportPaneRenderer;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -107,9 +108,25 @@ class Reports extends Page
     #[Url]
     public ?string $asOf = null;
 
-    /** Whether the prior year's column is shown. A preference, so it travels too. */
+    /**
+     * Whether the prior year's column is shown. A preference, so it travels too.
+     *
+     * **Superseded by `$compare` in Phase 4.2 and kept because links carry it.** A URL somebody saved says
+     * `?comparison=0`, and answering that with the comparison back on would be a small betrayal of a
+     * bookmark. `mount()` translates it once and nothing else reads it.
+     */
     #[Url]
     public bool $comparison = true;
+
+    /**
+     * What the statement is compared against — `App\Support\Reporting\ReportComparison`.
+     *
+     * A basis rather than a boolean, because Phase 4.2 adds the previous month and the previous quarter to
+     * the previous year. Nullable so that `mount()` can tell "not specified" from "specified as none", which
+     * is what lets the legacy flag still mean something.
+     */
+    #[Url]
+    public ?string $compare = null;
 
     /**
      * What the three reports that need more than a date are looking at.
@@ -140,6 +157,12 @@ class Reports extends Page
     {
         $this->asOf ??= now()->toDateString();
 
+        // The basis, from whichever of the two the link carried. An explicit `?compare=` wins; a bare
+        // `?comparison=` is translated; neither means the previous year, as it always did.
+        $this->compare = $this->compare === null
+            ? ReportComparison::fromLegacyFlag($this->comparison)
+            : ReportComparison::normalise($this->compare);
+
         // The key came off the query string, so it gets the same treatment as one that came off a click:
         // anything not in this role's catalogue is refused. Without this, `?selected=` would be a way to
         // have the pane render a link to a report the role cannot open — see select().
@@ -169,7 +192,7 @@ class Reports extends Page
         return app(ReportPaneRenderer::class)->for(
             $report['key'],
             $this->asOf ?: now()->toDateString(),
-            $this->comparison,
+            $this->comparisonBasis(),
             [
                 'account' => $this->account,
                 'budget' => $this->budget,
@@ -177,6 +200,28 @@ class Reports extends Page
                 'month' => $this->month,
             ],
         );
+    }
+
+    /**
+     * The basis in force, safe against anything the query string says.
+     *
+     * Normalised on every read rather than only in `mount()`, because Livewire writes `$compare` straight
+     * from the wire when the picker changes — and a value that never went through `mount()` would otherwise
+     * reach the statement unchecked.
+     */
+    public function comparisonBasis(): string
+    {
+        return ReportComparison::normalise($this->compare);
+    }
+
+    /**
+     * The bases the picker offers.
+     *
+     * @return array<string, string>
+     */
+    public function comparisonBases(): array
+    {
+        return ReportComparison::BASES;
     }
 
     /**

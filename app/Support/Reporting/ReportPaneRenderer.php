@@ -38,7 +38,11 @@ interface ReportPaneRenderer
      * @param  array<string, mixed>  $asked
      * @return array<string, mixed>|null
      */
-    public function for(string $key, string $asOf, bool $comparison = true, array $asked = []): ?array;
+    /**
+     * `$comparison` is a `ReportComparison` basis. A bool is still accepted and still means what it always
+     * did — `true` the previous year, `false` none — so every link somebody kept still lands where it did.
+     */
+    public function for(string $key, string $asOf, bool|string $comparison = true, array $asked = []): ?array;
 
     /**
      * The options behind one of a report's pickers.

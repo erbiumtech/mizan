@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1 and 4.3 landed); 4.2, 4.4, 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1, 2 and 3 complete; Phase 4 started (4.1, 4.2 and 4.3 landed); 4.4, 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -306,7 +306,7 @@ report:
 1. **Export the open pane** — *done, 2026-08-24. One grid from three shapes; the CSV deliberately undoes the display formatting — see [What landed](#what-landed).* PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
    twenty times more likely. One implementation on the pane rather than per report — and the one Phase 8
    sends, which is why that phase waits for this one rather than growing a second renderer.
-2. **Comparison periods beyond the previous year** — previous month, previous quarter, budget.
+2. **Comparison periods beyond the previous year** — *done, 2026-08-24, except budget, which `BudgetVsActual` already is — see [What landed](#what-landed).* previous month, previous quarter, budget.
 3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
 4. **Keyboard navigation of the report list** — arrow keys and type-ahead, once the list is 35+ rows.
 5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
@@ -485,6 +485,48 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — comparison periods (Phase 4.2), and one item of the plan deliberately not built.**
+
+- **A comparison basis shorter than the reporting period is a category error, not a shorter comparison — and
+  that one observation shaped the whole class.** A profit and loss is the financial year to date. Shifting
+  its range back thirty days for a "previous month" comparison puts 1 June–20 January beside 1 July–20
+  February: two overlapping eight-month spans whose difference is almost entirely the same trading counted
+  twice. The figure would look entirely plausible. So a month or quarter basis narrows the **current** period
+  to match, and `currentRange()` exists for no other reason.
+- **A balance sheet is exempt, and that is not an inconsistency.** It is an as-at rather than a period, so
+  the current figure is the balance on the day whatever the basis and only the comparison date moves. Hence
+  two methods — `shift()` for as-at statements and `currentRange()`/`previousRange()` for period ones —
+  rather than one that would have had to lie to one of them.
+- **The comparison covers the whole previous month or quarter, not the same number of days.** Twenty days
+  against twenty days would be tidier and would answer a question nobody asks: what a month is worth is what
+  the month came to.
+- **Budget is not a basis, and this is the decision worth recording.** The plan lists it. `BudgetVsActual`
+  already *is* that report — per account, Planned against Actual with the variance, and its own budget
+  picker — so putting budget in the comparison slot would be a second implementation of an existing
+  comparison, and a poorer one, since the statement kind has nowhere to ask which budget. This plan's own
+  Phase 5 states the principle for widgets and it holds here: two paths to one number is how they come to
+  disagree, and the reader who spots it cannot tell which to believe. A test asserts budget is *not* offered,
+  so the decision is recorded where somebody would otherwise re-make it.
+- **`ComparativeStatement::profitAndLoss()` now takes an as-at date and a basis rather than a range.** It had
+  to: a month basis narrows the current period, and a range handed in from outside could not be narrowed
+  without the caller knowing the rule — at which point two places would know it. One existing test asserted
+  the old range-taking contract and was rewritten rather than adapted.
+- **Every subtraction is `subMonthsNoOverflow`.** Plain `subMonth()` from 31 March lands on 3 March, which
+  would make a month-on-month comparison at any month end quietly wrong. A mutation survived the first pass
+  here for a good reason worth remembering: the test used 31 March, and three months back from March is
+  December, which *has* a 31st — so that date cannot tell the two subtractions apart. 31 May can.
+- **Links people kept still work.** The hub carried a boolean `?comparison=` and a saved `?comparison=0` must
+  still mean no comparison; `mount()` translates it, an explicit `?compare=` wins, and the basis is
+  re-normalised on every read because Livewire writes the property straight from the wire when the picker
+  changes. An unrecognised basis becomes the previous year rather than none: arriving with a bad one usually
+  means an old link, and answering that with a column silently removed is the worse of the two answers.
+- **Eighteen mutations, sixteen killed.** The two survivors are the `startOfMonth()` snap and the overflow
+  guard on the range's *start*, which are defensive: the only two bases reaching `shiftRange()` are handed a
+  `from` that is already the first of a month. The guard on the *end* is load-bearing and its mutation dies.
+  Documented in place rather than left to look like coverage.
+- **`label()` and `isOff()` were written and then deleted.** Both were unused once the picker read `BASES`
+  directly, and a public method with no caller is an invitation to drift.
 
 **2026-08-24 — negatives in parentheses (Phase 4.3), and where a formatting rule has to live.**
 
