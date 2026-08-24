@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete; Phase 2 complete (2.1–2.8 landed); Phases 3–8 outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -271,7 +271,7 @@ the assertion its test should make, not the row count.
 Lower value each than Phase 2 but cheap, and each is the report the people who use that module ask
 for. Ordered by how often that has come up.
 
-1. **Monthly Attendance Register** — employee × day grid with present/leave/absent, and LOP, late and
+1. **Monthly Attendance Register** — *done, 2026-08-24.* Employee × day grid with present/leave/absent, and LOP, late and
    overtime totals per employee. `AttendanceMonth` already computes `paidDays()`, `lossOfPayDays()`
    and `overtimeHours()` per employee, so this is the company-wide aggregation of an existing figure —
    and the same figure payroll prorates on, which makes disagreement between the two visible.
@@ -485,6 +485,35 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the monthly attendance register (Phase 3.1), which needed a performance fix before it was
+possible at all.**
+
+- **`WorkPatternResolver` cached patterns per employee *per day*.** `AttendanceCalendar::summarise()` walks a
+  month a day at a time, so one employee's month cost 31 queries; a company-wide register over forty people
+  would have been upwards of twelve hundred. The rows do not change between two days of one month — the
+  *answer* does — so an employee's assignments are now loaded once and the date resolved against them in
+  memory. `first()` over the descending list reproduces the old query's "latest wins if the ranges overlap"
+  rule exactly, which matters because overlap is not prevented in the schema.
+- **Caching the assignments alone left 57 queries for one employee's month**, and the register's own
+  query-count test is what caught it: most companies have no dated assignment, so the *default* pattern was
+  the branch taken thirty-one times a month at two queries each. Memoised with `false` as the sentinel,
+  because null is a real answer — a company with no pattern at all — and the two have to be distinguishable
+  or the miss is re-queried every time. The register went from **326 queries to under 20** for five employees
+  over a month. Payroll benefits identically; payslip generation calls `summarise()` per employee.
+- **The comparison is the report's stated value and it is a payslip, not a ledger balance.** A payslip stores
+  the `paid_days` it prorated on, so the register either reproduces it or has found that pay was calculated
+  on a figure this calendar does not produce. The note counts the disagreements and says nothing about the
+  rows that agree — thirty-one columns are already competing for space and a column of ticks earns none.
+- **Read through the query builder, because naming `Payslip` here would close a cycle.** `payroll` requires
+  `attendance`, and the tangled-module budget is nought. Three columns of one table, guarded on the module,
+  matched on month name *and* fiscal year — a payslip has no date, and the name alone matches the same month
+  of every year the company has traded.
+- **`·` is not a blank cell.** An unmarked day is counted as *worked* by `paidDays()` — "a day nobody
+  recorded is not a day anybody missed" — so a month full of dots reads as a good month and is really an
+  unfilled one. The note counts them first, before the payroll comparison, because it is the figure that
+  makes everything else on the screen untrustworthy.
+
 
 **2026-08-24 — advances outstanding and expense claims (Phases 2.7 and 2.8). Phase 2 is complete.**
 

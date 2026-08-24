@@ -363,7 +363,8 @@
         "App\\Filament\\Pages\\UnbilledWip": "App\\Modules\\Timesheets\\Filament\\Pages\\UnbilledWip",
         "App\\Filament\\Pages\\StockOnHand": "App\\Modules\\Inventory\\Filament\\Pages\\StockOnHand",
         "App\\Filament\\Pages\\AdvancesOutstanding": "App\\Modules\\Advances\\Filament\\Pages\\AdvancesOutstanding",
-        "App\\Filament\\Pages\\ExpenseClaimsReport": "App\\Modules\\Expenses\\Filament\\Pages\\ExpenseClaimsReport"
+        "App\\Filament\\Pages\\ExpenseClaimsReport": "App\\Modules\\Expenses\\Filament\\Pages\\ExpenseClaimsReport",
+        "App\\Filament\\Pages\\AttendanceRegister": "App\\Modules\\Attendance\\Filament\\Pages\\AttendanceRegister"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",
