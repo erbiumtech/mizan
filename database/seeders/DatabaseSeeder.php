@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Support\CompanyProfiles;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -38,32 +39,56 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Domain seeders that write to the current tenant's database.
+     * Dummy data seeded on top of a company's baseline, for a development
+     * install that wants something on the screens.
+     *
+     * Business tenants only, and each entry says why: pay components describe
+     * payroll, the demo bank accounts are earmarked by business transaction type
+     * (salary, rent), and the tax rates post to 2150 Sales Tax Payable. A
+     * personal account has no payroll, no such transaction types and no such
+     * account, so it gets its baseline and nothing else.
      *
      * @var list<class-string<Seeder>>
      */
-    protected array $tenantSeeders = [
-        FiscalYearSeeder::class,
-        SalarySlabSeeder::class,
-        PayComponentSeeder::class,
-        BankSeeder::class,
+    protected array $businessDemoSeeders = [
         // EmployeeSeeder::class,
         // EmployeeSettingSeeder::class,
-        CurrencySeeder::class,
-        ChartOfAccountsSeeder::class,
-                    TransactionTypeSeeder::class,
+        PayComponentSeeder::class,
         CompanyBankAccountSeeder::class,
-                    // BeneficiarySeeder::class,
-        AccountSeeder::class,
-                    // JournalEntrySeeder::class,
-                    // PayslipSeeder::class,
-                    // FixedAssetSeeder::class,
-                    // PettyCashSeeder::class,
-                    // InventorySeeder::class,
+        // BeneficiarySeeder::class,
+        // JournalEntrySeeder::class,
+        // PayslipSeeder::class,
+        // FixedAssetSeeder::class,
+        // PettyCashSeeder::class,
+        // InventorySeeder::class,
         // ContactSeeder::class,
         TaxRateSeeder::class,
-                    // InvoiceSeeder::class,
+        // InvoiceSeeder::class,
     ];
+
+    /**
+     * What to seed into one company's database.
+     *
+     * The baseline comes from the company's own profile, exactly as
+     * CompanyProvisioner and tenants:seed-baseline already take it. This used to
+     * be one hardcoded list applied to every company, which meant `db:seed` ran
+     * the *business* chart of accounts over a *personal* account — renaming its
+     * 4000 Salary to "Income", 1000 Cash in Hand to "Assets" and so on, and then
+     * dying on the guard in Account::booted() when it tried to hang 4100 under a
+     * 4000 that already had a salary posted to it.
+     *
+     * @return list<class-string<Seeder>>
+     */
+    protected function seedersFor(Company $company): array
+    {
+        $baseline = CompanyProfiles::seeders($company->profile, $company->type);
+
+        if ($company->isPersonal()) {
+            return array_values($baseline);
+        }
+
+        return array_values(array_unique([...$baseline, ...$this->businessDemoSeeders]));
+    }
 
     public function run(): void
     {
@@ -129,7 +154,7 @@ class DatabaseSeeder extends Seeder
 
             Schema::connection($tenantConnection)->disableForeignKeyConstraints();
 
-            $this->call($this->tenantSeeders);
+            $this->call($this->seedersFor($company));
 
             Schema::connection($tenantConnection)->enableForeignKeyConstraints();
 
