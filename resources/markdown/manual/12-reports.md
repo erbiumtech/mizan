@@ -447,3 +447,27 @@ many withdrew.
 
 Both time figures are averages over however many offers a vacancy produced, so read
 them against the application count on the same row.
+
+### Quotation Conversion
+
+Under Sales and pipeline: quotations for the financial year to date by the month
+they went out — issued, accepted, declined, expired, invoiced, the win rate, and how
+many are about to lapse.
+
+**Superseded versions are excluded from every figure.** A quote revised three times
+is one opportunity, and counting each version would inflate what you issued by
+however much you negotiate — pushing your win rate down for doing the thing that
+wins work.
+
+**Two conversions are worth reading separately.** Issued → accepted is whether the
+work was won. Accepted → invoiced is whether anybody billed for it, and that is the
+one nothing else here will tell you: an accepted quote with no invoice is revenue
+you have agreed and never asked for. The note counts them.
+
+The **win rate** is accepted over quotes that have been *decided* — accepted,
+declined or expired. A quote still inside its validity is not counted as a loss;
+one that ran out is.
+
+**Expiring** counts quotes still answerable that run out within 14 days. A quote
+past its validity is *expired* rather than expiring, and it counts as expired from
+the day it lapses rather than from the day the nightly sweep notices.

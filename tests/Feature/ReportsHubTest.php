@@ -135,6 +135,7 @@ class ReportsHubTest extends TestCase
             'Account Register', 'Petty Cash Book', 'Loans Outstanding', 'Cash Commitments',
             'Bank Payment File',
             'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
+            'Quotation Conversion',
             'SLA Performance', 'SLA Breaches', 'Unbilled WIP', 'Stock on Hand',
             'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register', 'Leave Liability',
             'Advances Outstanding', 'Expense Claims', 'Attendance Register', 'Hiring Funnel',

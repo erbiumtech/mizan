@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1, 3.2 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.3 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -277,7 +277,7 @@ for. Ordered by how often that has come up.
    and the same figure payroll prorates on, which makes disagreement between the two visible.
 2. **Hiring Funnel & Time to Hire** — *done, 2026-08-24.* Applications by stage per vacancy, offer acceptance rate, days
    from applied → offer → joining, and open-vacancy ageing.
-3. **Quotation Conversion** — issued → accepted → invoiced with win rate, plus quotes expiring inside
+3. **Quotation Conversion** — *done, 2026-08-24.* Issued → accepted → invoiced with win rate, plus quotes expiring inside
    14 days (`valid_until`) and superseded versions excluded from the rate.
 4. **Revenue by Customer / Project / Product** — one report with a dimension filter, gross and net of
    credit notes. `invoices.project_id` exists and nothing reports on it.
@@ -485,6 +485,32 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — quotation conversion (Phase 3.3).**
+
+- **Superseded versions are excluded, and that is the report's reason for existing.** A quote revised three
+  times is one opportunity, not four. Counting each version would inflate what was issued by however often
+  the company negotiates and push the win rate *down* for doing the thing that wins work. Excluded in the
+  query rather than filtered later, so no figure can accidentally include one — and mutating that clause away
+  fails four tests.
+- **Two conversions, because they fail differently.** Issued → accepted is whether the work was won; accepted
+  → invoiced is whether anybody billed for it. The second is the one nothing else in the application
+  surfaces, and an accepted quote with no invoice against it is revenue the company has agreed and never
+  asked for. It gets its own column and comes first among the note's warnings, ahead of quotes about to lapse:
+  one is a failure to bill and the other is only a deadline.
+- **The win rate counts *decided* quotes**: accepted, declined, or run out of time. A quote still inside its
+  validity has not been lost — the same rule as the hiring funnel's acceptance rate — but an expired one has,
+  because it ran out without anybody saying yes.
+- **Expiry is computed, not read from the status.** The nightly sweep is what sets `expired`, so between a
+  quote lapsing and the sweep running the stored status still says `sent`. The model already computes it for
+  exactly this reason — "an expired quote must not be acceptable in the meantime" — and the report follows,
+  so a lapsed quote is a loss on the day it lapses rather than on the day a job notices.
+- **Expiring-soon is a column on the month whose quotes are running out**, which is 2.4's reason for putting
+  the stock flags on the product rows: the row is where the reader would have gone looking anyway. Drafts are
+  excluded, because nobody has been given them, and already-lapsed quotes are *expired* rather than expiring.
+- The period is the financial year to date through `ReportPeriod`. Read in February, a calendar year would
+  drop the first seven months of the company's quoting.
+
 
 **2026-08-24 — the hiring funnel (Phase 3.2).**
 
