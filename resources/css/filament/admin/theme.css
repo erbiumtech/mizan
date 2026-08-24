@@ -662,6 +662,54 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
 }
 
 /*
+ * The largest-debtors widget — reports-expansion-plan.md Phase 5.5. A name, what they owe, and how late.
+ */
+.fi-debtor-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name amount" "meta amount";
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.4375rem 0;
+    border-bottom: 1px solid var(--color-gray-100);
+
+    &:last-child {
+        border-bottom: 0;
+    }
+
+    &:where(.dark, .dark *) {
+        border-bottom-color: var(--color-gray-800);
+    }
+}
+
+.fi-debtor-name {
+    grid-area: name;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-debtor-meta {
+    grid-area: meta;
+    font-size: 0.6875rem;
+    color: var(--color-gray-500);
+}
+
+.fi-debtor-amount {
+    grid-area: amount;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.fi-debtor-empty {
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+}
+
+/*
  * Saved views — reports-expansion-plan.md Phase 4.5. A row of chips under the pane's controls: each one a
  * name somebody gave a set of filters, with a cross to forget it.
  */

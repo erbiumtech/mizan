@@ -379,6 +379,9 @@
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },
     "widgets": {
+        "App\\Filament\\Widgets\\LargestDebtorsList": "App\\Modules\\Invoicing\\Filament\\Widgets\\LargestDebtorsList",
+        "App\\Filament\\Widgets\\RevenueAndExpensesChart": "App\\Modules\\Accounting\\Filament\\Widgets\\RevenueAndExpensesChart",
+        "App\\Filament\\Widgets\\CashCommittedOverview": "App\\Modules\\Accounting\\Filament\\Widgets\\CashCommittedOverview",
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",
         "App\\Filament\\Widgets\\AccountBalancesOverview": "App\\Modules\\Accounting\\Filament\\Widgets\\AccountBalancesOverview",
         "App\\Filament\\Widgets\\CashFlowChart": "App\\Modules\\Accounting\\Filament\\Widgets\\CashFlowChart",
