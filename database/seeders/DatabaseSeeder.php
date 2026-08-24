@@ -43,13 +43,14 @@ class DatabaseSeeder extends Seeder
      * @var list<class-string<Seeder>>
      */
     protected array $tenantSeeders = [
-        AccountSeeder::class,
         BankSeeder::class,
         // BeneficiarySeeder::class,
         ChartOfAccountsSeeder::class,
         CompanyBankAccountSeeder::class,
         // CompanySeeder::class,
         // ConstructionAccountsSeeder::class,
+        // ConstructionCostCodeSeeder::class,
+        // ConstructionDemoSeeder::class,
         // ContactSeeder::class,
         CurrencySeeder::class,
         // EmployeeSeeder::class,
