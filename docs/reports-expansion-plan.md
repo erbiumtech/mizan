@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.12 landed); the rest outstanding
+**Status:** Phases 1, 2 and 3 complete; Phases 4–8 outstanding, plus the Phase 0 `period` filter (0.3)
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -295,7 +295,7 @@ for. Ordered by how often that has come up.
     compliance evidence, not marketing statistics, which is why it belongs with the reports.
 11. **Campaign Performance** — *done, 2026-08-24. The skip count is the report; one metric was deliberately not built — see [What landed](#what-landed).* sends, failures and reasons per campaign.
 12. **Review Cycle Progress** — *done, 2026-08-24. "Complete" turned out to be the whole question — see [What landed](#what-landed).* reviews and goals complete per cycle, one-to-ones held.
-13. **Environment Health & Incidents** — checks failed and incidents per project over a period; the
+13. **Environment Health & Incidents** — *done, 2026-08-24, and the history is thirty days long — see [What landed](#what-landed).* checks failed and incidents per project over a period; the
     existing widgets are point-in-time and this is the history.
 
 ## Phase 4 — What the pane still lacks
@@ -485,6 +485,45 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — environment health and incidents (Phase 3.13). Phase 3 is complete: thirteen reports, and the
+hub holds 51.**
+
+- **The plan called this "the history", and the history is thirty days long.** `ProjectEnvironmentCheck` is
+  `Prunable` at `projects.health.retention_days` — thirty by default — so the checks behind an uptime figure
+  are *deleted* past that horizon. Taking "over a period" at face value and offering a financial-year uptime
+  column would have computed it from whatever survived pruning and presented one month as though it were
+  eight. The check window is clamped to the horizon, the subtitle states both spans, and the note says the
+  horizon out loud on every read.
+- **Incidents are not pruned, so the two halves of the report cover different windows on purpose.** The
+  alternative — quietly shortening the incident history to match the checks — would throw away the only long
+  record there is. Stating two windows is less tidy and more honest, and both are tested.
+- **Only *confirmed* incidents count as outages.** `ProjectEnvironmentIncident` doubles as the
+  flap-suppression state: a row opens on the first failure and is confirmed once the threshold is crossed.
+  `EnvironmentHealthOverview` already reads `open()->confirmed()`, so the report agrees with the widget rather
+  than inventing a second definition. The unconfirmed rows are reported as suppressed blips — visible, not
+  counted.
+- **`uptimePercent()`'s rule was honoured rather than its code reused.** "Never render 0% for not checked yet"
+  is exactly right, and an unchecked environment is the opposite of a down one. But the method counts
+  backwards from `now()` and this report answers as at a date, so the rule was reimplemented over the report's
+  own window and the reason is in the docblock. *Never checked* became its own standing and its own finding:
+  monitored, has a URL, nothing has ever run against it.
+- **"Nobody was told" is the finding neither existing widget can show.** An outage that ran while alerts were
+  off or the environment was muted. Both widgets are point-in-time and a mute has usually expired by the time
+  anybody looks. **Its limitation is stated rather than smoothed over**: nothing records whether an alert
+  actually went out, so this reads the environment's *current* settings against a past event, and the help
+  says to read it as "these would not be alerted under today's settings".
+- **Twenty-nine mutations, all killed** — but two survived the first pass, both upper bounds. No fixture had a
+  check or an incident dated *after* the as-at date, so an as-at report that included the future passed
+  cleanly. Both now have tests. The same class of gap as Phase 3.12's missing lower bound on meetings: **the
+  bound nobody thinks to test is the one on the side the fixtures never reach.**
+- **Pint reformatted three committed files it had nothing to do with** — pre-existing import-order violations
+  in `ProjectPolicy`, `MyProjectsOverview` and `EnvironmentIncidentManager`, none of them mine. Reverted, so
+  the commit stays scoped. Worth knowing that running Pint on a whole module directory picks up other
+  people's debt.
+- **Projects had no report wiring**, so it gained `discoverPages`, a `pages` manifest key and a
+  `registerReports()`. Filed under *Operations* beside the SLA reports: whoever reads an SLA breach wants to
+  know how long production was down.
 
 **2026-08-24 — review cycle progress (Phase 3.12), where one word in the plan carried the design.**
 

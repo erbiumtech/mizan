@@ -749,3 +749,40 @@ cycle is charged to none, since standing objectives would otherwise make whichev
 is open answerable for goals nobody set in it.
 
 Counts only — no ratings, no names, no review content.
+
+### Environment Health & Incidents
+
+Under Operations: one row per environment on every project — checks run, checks failed,
+uptime, outages and total downtime. The dashboard's health widgets show you *now*; this
+shows what happened.
+
+**The history is thirty days long, and that is the most important thing about this
+report.** Health-check results are pruned (`PROJECT_HEALTH_RETENTION_DAYS`, thirty by
+default), so last September's uptime cannot be computed — the checks are deleted. The
+Checks, Failed and Uptime columns therefore cover the retention window only, and both
+the subtitle and the note say so. A report offering a year's uptime would compute it
+from whatever escaped pruning and present one month as though it were eight.
+
+**Incidents are not pruned**, so those columns really do cover the whole period. The two
+halves span different windows deliberately; shortening the incident history to match
+would throw away the only long record there is.
+
+**Only confirmed incidents are outages.** An incident row opens on the first failed
+check and is confirmed once the failure threshold is crossed — deliberate flap
+suppression. Unconfirmed rows appear in the note as suppressed blips: visible, but not
+counted, because counting them would turn every transient failure into an outage.
+
+**Uptime is a dash, never nought, where nothing was checked.** An unchecked environment
+is the opposite of a down one — nothing is known about it — and nought would report the
+worst possible health for an absence of information. *Never checked* is its own finding:
+monitored, has a URL, nothing has ever run against it.
+
+**Nobody was told** is the finding neither widget can show: an outage that ran while
+alerts were off or the environment was muted. Both widgets are point-in-time and a mute
+has usually expired by the time anybody looks. It is judged on today's alert settings,
+because nothing records whether an alert actually went out — read it as "these outages
+would not be alerted under current settings" rather than as a certainty about the past.
+
+Both windows end at the date being read, so an open outage is measured to that date and
+not to the clock. An incident counts if it overlaps the period. Rows group by project,
+production first.

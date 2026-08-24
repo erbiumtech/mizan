@@ -6,9 +6,13 @@ use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Console\Commands\CheckEnvironmentCertificates;
 use App\Modules\Projects\Console\Commands\CheckEnvironmentsHealth;
+use App\Modules\Projects\Filament\Pages\EnvironmentHealth;
 use App\Modules\Projects\Filament\RelationManagers\EmployeeProjectsRelationManager;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Policies\ProjectPolicy;
+use App\Modules\Projects\Support\EnvironmentReports;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -44,6 +48,32 @@ class ProjectsServiceProvider extends ServiceProvider
         // so a moved command has to be registered here or it disappears
         // from artisan — and from the scheduler, silently.
         $this->commands([CheckEnvironmentCertificates::class, CheckEnvironmentsHealth::class]);
+
+        $this->registerReports();
+    }
+
+    /**
+     * The environment health report — `docs/reports-expansion-plan.md` Phase 3.13.
+     *
+     * Filed under *Operations* with the other service-delivery reports: whoever reads an SLA breach is the
+     * person who wants to know how long production was down.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without the projects module sees no entry rather than a
+     * report that fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'Operations',
+            EnvironmentHealth::class,
+            'Uptime, failed checks and outages per environment — the history behind the health widgets.',
+        );
+
+        ReportRenderers::register(
+            'EnvironmentHealth',
+            fn (string $asOf): array => app(EnvironmentReports::class)->environmentHealth($asOf),
+        );
     }
 
     /**
