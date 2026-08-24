@@ -496,3 +496,28 @@ make the product grouping quietly fail to add up.
 
 Only **issued, partially paid and paid** invoices count. A draft is not revenue, a
 void one never was, and purchases are cost.
+
+### Credit Notes Issued
+
+Under Statutory reporting, and it is a compliance report rather than a list.
+
+A credit note may be issued against an invoice for a limited number of days — **180
+by default** — and beyond that it needs the Commissioner's approval under rule 22.
+**Nothing in this application refuses a late credit note**; the rule is reported and
+not enforced, the same as the SLA clocks. So this is the only place a reversal made
+without cover is visible.
+
+The **Standing** column gives one of four answers:
+
+- *Within 180 days* — nothing to do.
+- *Approved · reference* — outside the window, with an approval somebody should be
+  able to produce.
+- *No approval recorded* — outside the window with nothing against it. This is the
+  exposure.
+- *No invoice named* — the window cannot be computed, so the report declines to call
+  it compliant. A credit note can legitimately be standalone, but saying "within the
+  window" would be a guess in your favour on a tax question.
+
+**Without approval** at the top is an amount rather than a count, because one large
+credit note matters more than five small ones. And the window follows your company's
+own setting, so if you have changed it from 180 days the report judges by yours.

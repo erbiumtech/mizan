@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.4 landed); the rest outstanding
+**Status:** Phases 1 and 2 complete; Phase 3 started (3.1–3.5 landed); the rest outstanding
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -281,7 +281,7 @@ for. Ordered by how often that has come up.
    14 days (`valid_until`) and superseded versions excluded from the rate.
 4. **Revenue by Customer / Project / Product** — *done, 2026-08-24, as three groupings rather than a filter — see [What landed](#what-landed).* One report with a dimension filter, gross and net of
    credit notes. `invoices.project_id` exists and nothing reports on it.
-5. **Credit Notes Issued** — a tax-sensitive list with commissioner approval status; only visible
+5. **Credit Notes Issued** — *done, 2026-08-24.* A tax-sensitive list with commissioner approval status; only visible
    per invoice today.
 6. **Headcount Movement & Turnover** — joiners and leavers per month from `employee_job_history` and
    `employees.leaving_date`, with turnover percentage and average tenure.
@@ -485,6 +485,29 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — credit notes issued (Phase 3.5), which is a compliance report rather than a list.**
+
+- **The tax rule is the report.** A credit note may be issued against an invoice for `fbr.credit_note_days`
+  (180 by default), and beyond that it needs the Commissioner's approval under rule 22. Nothing in this
+  application refuses a late credit note — the window is *reported*, the way the SLA clocks are — so this list
+  is the only place a reversal made without cover is visible at all.
+- **The exposure is stated as money, not a count.** What matters is how much tax was reversed without cover,
+  not how many documents did the reversing: one large credit note is a bigger problem than five small ones.
+- **A credit note naming no invoice is not called compliant.** The window cannot be computed without the
+  invoice, and "within the window" would be a guess in the company's favour on a tax question — so it reads
+  *No invoice named*, is counted separately in the note, and is not added to the exposure either. Mutating it
+  to "within window" fails two tests.
+- **The window is read from the company's setting.** A company on a different regime has a different window,
+  and judging it by the default would report an exposure that is not one — the worse of the two errors on a
+  tax report. Hard-coding 180 fails a test by name.
+- **The credited invoice is looked up outside the report's own period.** A credit note raised late is the case
+  this report exists for, so the invoice it credits is usually older than the window being reported and often
+  older than the fiscal year. Read through the query builder for two columns, so an Eloquent relation cannot
+  quietly pull a whole invoice from outside the period a reader thinks they are looking at.
+- Filed under *Statutory reporting* rather than with the receivables, because the question it answers is the
+  tax one and that section already holds the FBR reports.
+
 
 **2026-08-24 — revenue by customer, project and product (Phase 3.4).**
 
