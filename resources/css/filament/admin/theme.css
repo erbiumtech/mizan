@@ -661,6 +661,73 @@ body:not(:has(.fi-main-ctn-sidebar-open)) {
     gap: 0.125rem;
 }
 
+/*
+ * Saved views — reports-expansion-plan.md Phase 4.5. A row of chips under the pane's controls: each one a
+ * name somebody gave a set of filters, with a cross to forget it.
+ */
+.fi-explorer-views {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+}
+
+.fi-explorer-view {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 9999px;
+    overflow: hidden;
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+    }
+}
+
+.fi-explorer-view-apply,
+.fi-explorer-view-forget {
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.6875rem;
+    cursor: pointer;
+    color: var(--color-gray-600);
+
+    &:hover {
+        background-color: var(--color-gray-100);
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-300);
+    }
+
+    &:where(.dark, .dark *):hover {
+        background-color: var(--color-gray-800);
+    }
+}
+
+/* Separated so the cross is not a stray click away from applying the view. */
+.fi-explorer-view-forget {
+    border-inline-start: 1px solid var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        border-inline-start-color: var(--color-gray-700);
+    }
+}
+
+.fi-explorer-view-input {
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.6875rem;
+    border: 1px dashed var(--color-gray-300);
+    border-radius: 9999px;
+    background: transparent;
+    color: inherit;
+    min-width: 11rem;
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+    }
+}
+
 .fi-explorer-row {
     display: flex;
     align-items: center;

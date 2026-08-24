@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Modules\Core\Models\SavedReportView;
 use App\Support\Reporting\ExportsTheOpenReport;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportComparison;
@@ -200,6 +201,81 @@ class Reports extends Page
                 'month' => $this->month,
             ],
         );
+    }
+
+    // ------------------------------------------------- saved views (Phase 4.5)
+
+    /**
+     * The name being typed into the save box. Not in the URL: a half-typed name is not a place to return to.
+     */
+    public string $viewName = '';
+
+    /**
+     * The signed-in user's saved views for the open report.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, SavedReportView>
+     */
+    public function savedViews(): \Illuminate\Database\Eloquent\Collection
+    {
+        return SavedReportView::forReport($this->selected);
+    }
+
+    /**
+     * Keep the current filters under a name.
+     *
+     * **The date is not among them**, which is Phase 4.5's own point: the plan asks for "the filters somebody
+     * uses every month", and the date is the one thing that changes every month. `SavedReportView::FILTERS`
+     * is the allow-list and `asOf` is deliberately absent from it.
+     */
+    public function saveView(): void
+    {
+        $name = trim($this->viewName);
+
+        if ($name === '' || blank($this->selected)) {
+            return;
+        }
+
+        SavedReportView::put($this->selected, $name, [
+            'compare' => $this->comparisonBasis(),
+            'account' => $this->account,
+            'budget' => $this->budget,
+            'find' => $this->find,
+            'month' => $this->month,
+        ]);
+
+        $this->viewName = '';
+    }
+
+    /**
+     * Put a saved view's filters back on the page.
+     *
+     * Read through the model's own scope rather than by id alone, so a id belonging to somebody else — or to
+     * another report — finds nothing. `$id` arrives from the browser like every other parameter here.
+     *
+     * The date is left exactly as it is, because a saved view has no opinion about it. Opening last month's
+     * filters should show them against today unless the person changes the date themselves.
+     */
+    public function applyView(int|string $id): void
+    {
+        $view = SavedReportView::query()->mine()->whereKey($id)->where('report_key', $this->selected)->first();
+
+        if ($view === null) {
+            return;
+        }
+
+        $filters = $view->filters();
+
+        // Only what the view carries. A view that stored no account must not blank an account the person has
+        // since picked — the absence of a filter is not an instruction to clear one.
+        foreach ($filters as $key => $value) {
+            $this->{$key} = $value;
+        }
+    }
+
+    /** Forget a saved view. Scoped the same way, and for the same reason. */
+    public function forgetView(int|string $id): void
+    {
+        SavedReportView::query()->mine()->whereKey($id)->where('report_key', $this->selected)->delete();
     }
 
     /**
