@@ -85,6 +85,8 @@ class ModuleManifest
             'resources' => [],
             'pages' => [],
             'widgets' => [],
+            // Reportable subjects for the report builder — reports-expansion-plan.md Phase 6, item 1.
+            'datasets' => [],
             'permission_groups' => [],
             'permissions' => [],
             'role_grants' => [],
@@ -121,7 +123,7 @@ class ModuleManifest
                 'plugin' => $manifest['plugin'] ?? null,
             ], fn ($value) => $value !== null);
 
-            foreach (['models', 'resources', 'pages', 'widgets', 'permission_groups'] as $table) {
+            foreach (['models', 'resources', 'pages', 'widgets', 'datasets', 'permission_groups'] as $table) {
                 if (($manifest[$table] ?? []) !== []) {
                     $merged[$table][$key] = $manifest[$table];
                 }
@@ -232,7 +234,7 @@ class ModuleManifest
             }
         }
 
-        foreach (['models', 'resources', 'pages', 'widgets'] as $table) {
+        foreach (['models', 'resources', 'pages', 'widgets', 'datasets'] as $table) {
             $owners = [];
 
             foreach ($merged[$table] as $module => $entries) {

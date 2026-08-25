@@ -5,6 +5,11 @@ namespace App\Providers;
 use App\Health\BackupConfigurationCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
+use App\Modules\Accounting\Services\CommandInterpreter;
+use App\Modules\Accounting\Support\RegisterCommandResolver;
+use App\Modules\Expenses\Support\ExpenseClaimCommandResolver;
+use App\Support\Ai\Claude;
+use App\Support\Ai\StructuredModel;
 use App\Support\EmployeeAccess;
 use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
@@ -49,6 +54,39 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
         $this->app->singleton(Modules::class);
+
+        /*
+         * The model behind the command bot — docs/ai-command-bot-plan.md §4.
+         *
+         * Bound to the contract rather than the class so the whole feature below it
+         * — resolution, the sign rules, the confirmation, the booking — is testable
+         * without a key or a network call. `FakeStructuredModel` is what the suite
+         * swaps in; the one genuinely non-deterministic step is the only thing it
+         * stands in for.
+         *
+         * Not `singleton`: `Claude` holds a client keyed to config that a test may
+         * change between cases, and a memoised instance would outlive the change.
+         */
+        $this->app->bind(StructuredModel::class, Claude::class);
+
+        /*
+         * The command bot's resolvers — docs/ai-command-bot-plan.md §7.
+         *
+         * Registered here rather than discovered, so the set is readable in one place and its order is
+         * the routing order. Each resolver gates itself on its own module and permission
+         * (`CommandResolver::isAvailable()`), so listing one costs a licence-check, not a leak: a module
+         * this tenant has not bought contributes nothing to the prompt.
+         *
+         * The default resolver must be last-resort, not first-listed — `route()` reads `isDefault()`
+         * rather than position, so adding a resolver above or below the cash one changes nothing.
+         */
+        $this->app->bind(CommandInterpreter::class, fn ($app) => new CommandInterpreter(
+            $app->make(StructuredModel::class),
+            [
+                $app->make(ExpenseClaimCommandResolver::class),
+                $app->make(RegisterCommandResolver::class),
+            ],
+        ));
 
         // The sidebar's badge counts, memoised for the length of one request.
         //

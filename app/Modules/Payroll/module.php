@@ -45,6 +45,13 @@ return [
         'App\\Filament\\Widgets\\PayrollByEmployeeChart' => \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
     ],
 
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\PayslipDataset' => \App\Modules\Payroll\Reporting\PayslipDataset::class,
+        'App\\Reporting\\PayslipComponentDataset' => \App\Modules\Payroll\Reporting\PayslipComponentDataset::class,
+    ],
+
     'permission_groups' => [
         'Payslip',
         'SalarySlab',

@@ -26,6 +26,23 @@ class TransactionTypeSeeder extends Seeder
             ['code' => 'cleaning', 'name' => 'Cleaning', 'account_code' => '5860', 'description' => 'Cleaning & janitorial'],
             ['code' => 'petty-cash-replenishment', 'name' => 'Petty Cash Replenishment', 'account_code' => '1150', 'description' => 'Restores the petty cash imprest'],
             ['code' => 'miscellaneous', 'name' => 'Miscellaneous', 'account_code' => '5900', 'description' => 'Everything else'],
+
+            /*
+             * Money coming in.
+             *
+             * These were missing, and the absence was invisible for as long as this list was only ever
+             * read by the payment screens — a payment is money going out by definition, so nothing ever
+             * asked for a receipt's category. Anything category-driven that works in both directions
+             * finds the gap immediately: half the register has nothing to be filed against.
+             *
+             * The two exchange accounts (4400, 4450) are deliberately not here. They are posted by
+             * CurrencyRevaluationService when a foreign balance is retranslated, and a hand-picked
+             * "exchange gain" category would invite somebody to book one by hand alongside the automatic
+             * entry — which is how an account comes to be counted twice.
+             */
+            ['code' => 'service-revenue', 'name' => 'Service Revenue', 'account_code' => '4100', 'description' => 'Fees billed for work done'],
+            ['code' => 'sales-revenue', 'name' => 'Sales Revenue', 'account_code' => '4200', 'description' => 'Product sales'],
+            ['code' => 'other-income', 'name' => 'Other Income', 'account_code' => '4300', 'description' => 'Receipts with no more specific category'],
         ];
 
         foreach ($types as $type) {

@@ -30,6 +30,12 @@ return [
         'App\\Filament\\Widgets\\HeadcountOverview' => \App\Modules\Employees\Filament\Widgets\HeadcountOverview::class,
     ],
 
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\EmployeeDataset' => \App\Modules\Employees\Reporting\EmployeeDataset::class,
+    ],
+
     'permission_groups' => [
         'Employee',
         'EmployeeSetting',

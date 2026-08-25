@@ -257,6 +257,20 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => Blade::render('@livewire(\App\Filament\Livewire\CommandPalette::class)'),
             )
+            /*
+             * ⌘J command bar — docs/ai-command-bot-plan.md §8.
+             *
+             * Its own component rather than a fifth palette provider: the palette navigates on Enter, and
+             * here Enter must never be the last thing that happens before money moves. Same hook, same
+             * ubiquity, different second beat.
+             *
+             * The component renders nothing when the model is not configured, so an install without a key
+             * gets a hotkey that does nothing rather than a box that fails when typed into.
+             */
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => Blade::render('@livewire(\App\Filament\Livewire\CommandBar::class)'),
+            )
             // One search box, not two. Filament's global search field is turned
             // off above and this trigger takes its place in the topbar, opening
             // the ⌘K palette instead — which searches the same records (via each

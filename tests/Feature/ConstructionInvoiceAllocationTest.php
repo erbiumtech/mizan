@@ -431,6 +431,45 @@ class ConstructionInvoiceAllocationTest extends AccountingTestCase
     }
 
     /**
+     * **Two invoices, two allocations — because one of each proves nothing here.**
+     *
+     * The test above renders the same screen and cannot catch a missing eager load, and the reason is not that it
+     * forgot to look: `Builder::hydrate()` only stamps `preventsLazyLoading` onto the models it builds when the query
+     * returned *more than one row*. A queue holding a single invoice is a queue where every lazy read is legal, so the
+     * supplier name in the section heading and the order number in the allocations table were both one query per row
+     * in front of a guard that had been switched off by the size of the fixture.
+     *
+     * So the fixture is the assertion. Two invoices to arm the guard over the queue itself, and two allocations on one
+     * of them to arm it over `allocationsOn()` — which reaches two relations deeper, through the commitment line to
+     * the order it belongs to. Part-allocated deliberately: fully allocated, the invoice leaves the queue and takes
+     * the allocations table with it.
+     */
+    public function test_the_queue_screen_eager_loads_what_it_renders(): void
+    {
+        $order = $this->issuedOrder();
+        $orderLine = $this->orderLine($order);
+
+        // 5,000,000 of 10,000,000 allocated, on two rows: one against the order, one without.
+        $invoice = $this->bill(10_000_000);
+        $this->allocations->allocate($invoice, $this->job, $this->material, 4_000_000, [
+            'commitment_line_id' => $orderLine->getKey(),
+        ]);
+        $this->allocations->allocate($invoice, $this->annexe, $this->labour, 1_000_000);
+
+        // A second, untouched invoice: this is what arms the guard over the queue query.
+        $this->bill(3_000_000);
+
+        Livewire::test(InvoiceAllocationQueue::class)
+            ->assertSuccessful()
+            // The heading's supplier name — `$invoice->contact`, and nothing else on the page shows it.
+            ->assertSee('Steel Supplier Ltd')
+            // The allocations table, reached through `commitmentLine.commitment`, and its unordered row.
+            ->assertSee($order->number)
+            ->assertSee('Unordered')
+            ->assertSee('5,000,000.00');
+    }
+
+    /**
      * **Empty is a result, not a blank page.**
      *
      * §4.2 asks for the unallocated section to be rendered even when empty, and the same reasoning applies to the

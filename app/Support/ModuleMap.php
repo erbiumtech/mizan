@@ -98,7 +98,7 @@ final class ModuleMap
      */
     public static function alias(string $class): string
     {
-        foreach ([self::table('models'), self::table('resources'), self::table('pages'), self::table('widgets')] as $table) {
+        foreach ([self::table('models'), self::table('resources'), self::table('pages'), self::table('widgets'), self::table('datasets')] as $table) {
             foreach ($table as $classes) {
                 $alias = array_search($class, $classes, true);
 
@@ -140,6 +140,9 @@ final class ModuleMap
             \Filament\Resources\Resource::class,
             \Filament\Pages\Page::class,
             \Filament\Widgets\Widget::class,
+            // A dataset's key is stored in every report definition built over it — Phase 6, item 3 — so it
+            // owes a stable alias for exactly the reason a model does.
+            \App\Support\Reporting\Dataset::class,
         ] as $base) {
             if (is_subclass_of($class, $base)) {
                 return true;
@@ -164,7 +167,7 @@ final class ModuleMap
             return array_key_exists($module, config('modules', [])) ? $module : null;
         }
 
-        foreach ([self::table('resources'), self::table('pages'), self::table('widgets')] as $table) {
+        foreach ([self::table('resources'), self::table('pages'), self::table('widgets'), self::table('datasets')] as $table) {
             foreach ($table as $module => $classes) {
                 if (in_array($class, $classes, true)) {
                     return $module;
@@ -197,6 +200,19 @@ final class ModuleMap
     public static function widgets(?string $module = null): array
     {
         return self::flatten(self::table('widgets'), $module);
+    }
+
+    /**
+     * Reportable subjects — reports-expansion-plan.md Phase 6, item 1.
+     *
+     * Declared per module like everything else here, so a dataset over payslips
+     * belongs to Payroll rather than to a central list every module has to edit.
+     *
+     * @return array<int, class-string<\App\Support\Reporting\Dataset>>
+     */
+    public static function datasets(?string $module = null): array
+    {
+        return self::flatten(self::table('datasets'), $module);
     }
 
     /** @return array<int, class-string> */
