@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5's five widget groups all landed (5.1–5.6, plus the 5.9 enumeration); 5.7, 5.8 and the 5.9 query ceiling, then Phases 6–8, outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–4 complete; Phase 5 all but 5.8 landed (5.1–5.7, plus 5.9's enumeration and its dashboard query ceiling, which already existed); 5.8 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -343,7 +343,7 @@ and it would be quicker to re-derive each figure inline.
    debtors with days overdue; cash committed in the next 90 days (Phase 1.7's own figures).
 6. *done, 2026-08-25 — Phase 2.4 exists, so this is that valuation; the sharp end was the reorder rule, see [What landed](#what-landed).* **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
    valuation the report states, from the same service.
-7. **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
+7. *done, 2026-08-25 — and it found two things nothing was watching, see [What landed](#what-landed).* **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
    permission; `$isLazy = true` without exception, so the dashboard renders and the panels fill in;
    `$sort` set deliberately so the order is money → sales → service → people rather than discovery
    order — that order becomes the company default a user may depart from in Phase 7 — and no polling.
@@ -485,6 +485,44 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — the rules every widget obeys (Phase 5.7). Enforcing them found two faults nothing was
+watching.**
+
+- **Every widget in this panel was polling every five seconds.** `CanPoll::$pollingInterval` is `'5s'` in
+  Filament, so a dashboard of twenty-three widgets re-ran every aggregate twelve times a minute per open tab,
+  unasked. The item says "and no polling" in four words at the end of a sentence; it turns out to have been the
+  most expensive of its four requirements. All twenty-three now set `$pollingInterval = null`.
+- **`OperationsOverview` — the company's headline figures — was registered nowhere.** Core discovered
+  resources and pages but never widgets, so the one widget assembled from every module's contributions had
+  been absent from the dashboard. **How it hid is the interesting part**: the old `FilamentWidgetsSmokeTest`
+  *named* it in a hand-written list of five and rendered it directly, so it passed while the panel had never
+  heard of the class — exactly the failure Phase 5.9 describes. And enumerating the panel instead, which 5.9
+  asks for and which landed in 5.1, **could not have caught it either**: an enumeration only sees what is
+  registered. The guard that finds it compares the widget *files* against the registered set, and is now in
+  `DashboardWidgetRulesTest`.
+- **Two widgets were not lazy** — `CashFlowChart` and `PayrollByEmployeeChart`, both predating this phase.
+  "Without exception" is the item's wording and now the test's.
+- **Sorts are `DashboardWidgets` constants, not twenty-three magic numbers.** A widget writing
+  `DashboardWidgets::MONEY + 3` says which band it is in and leaves the arithmetic visible. Deliberately *not*
+  a central list naming every widget in order: that is `docs/module-packaging-plan.md` §8's Group A, host code
+  holding a list of what each module owns, editable only from outside the module. Each widget states its own
+  position; the constants only say what positions mean. The nine that predated Phase 5 sat on 0–8 in discovery
+  order and are now placed in bands, with a one-line reason on each about *why* it sits where it does.
+- **A test rather than twenty-three careful edits.** Fixing the widgets is a commit; keeping them fixed is
+  `DashboardWidgetRulesTest` — which checks the trait, laziness, polling, band membership, no duplicate sorts,
+  the band order, and both halves of the gate (module off → hidden; no permissions → hidden) across every
+  registered widget at once. The next widget somebody adds fails there if it forgets any of it.
+- **Registering the missing widget put the dashboard one query over its budget, and the query was fixed rather
+  than budgeted for** — which is what `PanelPerformanceTest`'s own comment demands of query counts, as against
+  page size. `OperationsOverview::canView()` resolves every contributed stat to decide whether to show any,
+  then `getStats()` resolves them again; the widget's docblock has always said so. `DashboardStats::resolve()`
+  now memoises per request, **keyed on the company**, because `docs/page-load-performance-plan.md` names
+  caching without the tenant in the key as a cross-tenant leak. Cleared by `register()` as well as `flush()`,
+  since a contribution arriving after a resolve would otherwise never appear.
+- **One self-inflicted mistake worth recording**: my own cleanup of Pint's unrelated reformatting reverted the
+  `CorePlugin` fix along with it, because the filter spared only `Filament/Widgets/` paths. The test caught it
+  immediately, which is the argument for writing the guard before the fix rather than after.
 
 **2026-08-25 — the inventory widget (Phase 5.6). All five of Phase 5's widget groups are now in.**
 

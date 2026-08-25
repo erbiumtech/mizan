@@ -7,6 +7,7 @@ use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Services\InvoiceService;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
 
@@ -31,10 +32,19 @@ class ReceivablesPayablesOverview extends Widget
 
     protected static bool $isLazy = true;
 
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
+
     protected int|string|array $columnSpan = 'full';
 
     // Ahead of the stat rows: this is the panel with something to act on.
-    protected static ?int $sort = 0;
+    /** What is owed either way, beside the debtors it summarises. */
+    protected static ?int $sort = DashboardWidgets::MONEY + 3;
 
     public static function canView(): bool
     {

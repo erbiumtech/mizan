@@ -6,6 +6,7 @@ use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -20,7 +21,16 @@ class EnvironmentIncidentsTable extends TableWidget
 
     protected static bool $isLazy = true;
 
-    protected static ?int $sort = 6;
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
+
+    /** The open incidents behind the figure above it. */
+    protected static ?int $sort = DashboardWidgets::SERVICE + 5;
 
     protected int|string|array $columnSpan = 'full';
 

@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Accounting\Services\FinancialReportService;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
@@ -42,16 +43,17 @@ class RevenueAndExpensesChart extends ChartWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    /**
-     * Money first — Phase 5.7 asks for money → sales → service → people rather than discovery order.
-     *
-     * Banded ten apart so a group can gain a widget without renumbering its neighbours: money 10–19, sales
-     * 20–29, service 30–39, people 40–49, inventory 50–59. The nine widgets that predate this phase still sit
-     * on 0–8 and therefore above; placing them in the bands is Phase 5.7's own job.
-     */
-    protected static ?int $sort = 10;
+    protected static ?int $sort = DashboardWidgets::MONEY;
 
     protected static bool $isLazy = true;
+
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
 
     public function getHeading(): ?string
     {
