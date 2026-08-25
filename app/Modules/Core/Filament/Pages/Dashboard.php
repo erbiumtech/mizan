@@ -145,6 +145,18 @@ class Dashboard extends BaseDashboard
     public function content(Schema $schema): Schema
     {
         return $schema->components([
+            /*
+             * The command box, above everything — docs/ai-command-bot-plan.md §8.3.
+             *
+             * Hidden while arranging for the same reason the widgets are: the arranger is a mode, and a
+             * box that books transactions has no business being live in it.
+             *
+             * It renders nothing when the bot is unavailable, so this costs an unlicensed or unconfigured
+             * tenant one `@if` rather than an empty card at the top of their dashboard.
+             */
+            View::make('filament.pages.command-input')
+                ->visible(fn (): bool => ! $this->arranging),
+
             View::make('filament.pages.dashboard-arranger')
                 ->viewData(fn (): array => [
                     'rows' => $this->arrangerRows(),

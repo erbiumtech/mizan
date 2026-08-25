@@ -1016,30 +1016,52 @@ class AiCommandBotTest extends AccountingTestCase
     }
 
     /** And a button, because a shortcut is not discoverable and this one has no menu entry to discover. */
-    public function test_the_topbar_offers_a_way_in(): void
+    public function test_the_floating_bubble_is_a_way_in(): void
     {
         $this->assertTrue(CommandBar::available());
 
-        $trigger = view('filament.partials.command-bar-trigger')->render();
+        $html = Livewire::test(CommandBar::class)->html();
 
-        $this->assertStringContainsString('open-command-bar', $trigger);
-        $this->assertStringContainsString('Type a transaction', $trigger);
+        $this->assertStringContainsString('cb-fab', $html);
+        $this->assertStringContainsString('Type a transaction', $html);
+        $this->assertStringContainsString('openBar()', $html);
     }
 
     /**
-     * Switched off, both halves disappear together.
+     * The dashboard box hands over rather than interpreting.
      *
-     * The trigger and the dialog ask the same predicate rather than each deciding for itself, because the
-     * two ways they can disagree are the two failure modes this section exists for: a button that opens
-     * nothing, and a dialog with no button.
+     * The assertion that matters is the **absence**: it dispatches an event and nothing else. A second
+     * surface that resolved its own commands would be a second place for §2's sign rules to live, and the
+     * point of §2.1 is that there is exactly one. It also must not book on Enter — §6's gate is not
+     * something an on-ramp gets to skip.
      */
-    public function test_switching_the_feature_off_removes_the_button_and_the_bar(): void
+    public function test_the_dashboard_box_hands_over_to_the_bar(): void
+    {
+        $html = view('filament.pages.command-input')->render();
+
+        $this->assertStringContainsString('open-command-bar', $html, 'it opens the one bar');
+        $this->assertStringContainsString('detail: { text:', $html, 'carrying what was typed');
+        $this->assertStringNotContainsString('wire:', $html, 'it is not a Livewire component of its own');
+    }
+
+    /**
+     * Switched off, every way in disappears with it.
+     *
+     * All three surfaces ask the same predicate rather than each deciding for itself, because the ways
+     * they can disagree are the failure modes this section exists for: a control that opens nothing, and
+     * a dialog with no control.
+     */
+    public function test_switching_the_feature_off_removes_every_way_in(): void
     {
         config(['ai.enabled' => false]);
 
         $this->assertFalse(CommandBar::available());
-        $this->assertStringNotContainsString('open-command-bar', view('filament.partials.command-bar-trigger')->render());
-        $this->assertStringNotContainsString('cb-dialog"', Livewire::test(CommandBar::class)->html(), 'the dialog goes with it');
+
+        $html = Livewire::test(CommandBar::class)->html();
+
+        $this->assertStringNotContainsString('cb-dialog"', $html, 'the dialog goes');
+        $this->assertStringNotContainsString('cb-fab"', $html, 'and so does the bubble');
+        $this->assertStringNotContainsString('open-command-bar', view('filament.pages.command-input')->render());
     }
 
     // ------------------------------------------------------------------ Phase 2: Urdu
