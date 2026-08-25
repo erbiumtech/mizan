@@ -41,6 +41,11 @@ return [
         'App\\Filament\\Pages\\UnbilledWip' => \App\Modules\Timesheets\Filament\Pages\UnbilledWip::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\BillableShareOverview' => \App\Modules\Timesheets\Filament\Widgets\BillableShareOverview::class,
+        'App\\Filament\\Widgets\\UnbilledWipOverview' => \App\Modules\Timesheets\Filament\Widgets\UnbilledWipOverview::class,
+    ],
+
     'permission_groups' => [
         'Timesheet',
     ],
