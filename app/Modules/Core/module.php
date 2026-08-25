@@ -19,6 +19,9 @@ return [
         'App\\Models\\User' => \App\Modules\Core\Models\User::class,
         'App\\Models\\Company' => \App\Modules\Core\Models\Company::class,
         'App\\Models\\TableView' => \App\Modules\Core\Models\TableView::class,
+        // A person's saved filters for one report — Core for the same reason the Reports hub is: the hub
+        // belongs to no module and every module puts reports in it.
+        'App\\Models\\SavedReportView' => \App\Modules\Core\Models\SavedReportView::class,
         'App\\Models\\CustomField' => \App\Modules\Core\Models\CustomField::class,
         'App\\Models\\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
         'App\\Models\\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
@@ -52,6 +55,9 @@ return [
     ],
 
     'pages' => [
+        // The dashboard. Core for the reason the Reports hub is: it belongs to no module and every module
+        // contributes widgets to it, so each widget's own canView() is the only thing deciding what appears.
+        'App\\Filament\\Pages\\Dashboard' => \App\Modules\Core\Filament\Pages\Dashboard::class,
         'App\\Filament\\Pages\\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
         'App\\Filament\\Pages\\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
         'App\\Filament\\Pages\\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
