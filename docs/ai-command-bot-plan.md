@@ -335,6 +335,26 @@ neither was** — every server-side test passed throughout. The lesson worth kee
 returns the right state" and "a person can reach that state" are different claims, and only the first one
 was ever being tested.
 
+### §8.3 Three surfaces, one bot
+
+Where it can be opened from, and why more than one:
+
+| Surface | Where | What it is |
+| --- | --- | --- |
+| **Floating bubble** | bottom-right, every page | The primary control. The chat-widget convention does the explaining — a round button in that corner is understood to open something you type into. |
+| **Dashboard box** | top of the dashboard | An on-ramp. A button answers "you can do this here"; only an empty box with a worked example in it answers "and here is what to type". |
+| **⌘/** | anywhere | The shortcut, for people who already know the words. |
+
+**The bubble replaced the topbar button rather than joining it.** Both were on every page, and two
+controls opening one dialog made neither obvious.
+
+**The dashboard box is not a second bot.** It collects a sentence, dispatches `open-command-bar` with it,
+and stops. The bar interprets, writes the one audit row and holds the confirmation gate. A box that
+resolved its own commands would be a second place for §2's sign rules to live, and the point of §2.1 is
+that there is exactly one. In particular Enter there *opens the proposal*; it does not book. §6's gate is
+not something an on-ramp gets to skip, and a dashboard box that posted on Enter would be the one place in
+the feature where Enter moved money.
+
 The button and the dialog both ask `CommandBar::available()` rather than each deciding for itself, because
 the two ways they can disagree are the two failure modes: a button that opens nothing, and a dialog with
 no button. That predicate now also reads `ai.enabled`, which nothing had read until this point — with the
