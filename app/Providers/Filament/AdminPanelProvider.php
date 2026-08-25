@@ -283,17 +283,13 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.partials.command-palette-trigger')->render(),
             )
             /*
-             * The ⌘J command bar's trigger, beside the search box.
+             * No topbar trigger for the command bar — it has a floating bubble instead.
              *
-             * The bar shipped reachable only by its hotkey, and ⌘J is a reserved browser shortcut — Chrome
-             * and Firefox open Downloads with it from the native menu, so the keystroke never reaches the
-             * page and no amount of preventDefault() takes it back. The feature was unreachable, silently.
-             * The button is the way in; the hotkey is the shortcut.
+             * There was one here briefly, put in because the bar shipped reachable only by ⌘J and ⌘J is a
+             * reserved browser shortcut (Chrome and Firefox open Downloads from the native menu, so the
+             * keystroke never reaches the page). The bubble in CommandBar's own view replaced it: both are
+             * on every page, and two buttons opening one dialog made neither obvious.
              */
-            ->renderHook(
-                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
-                fn (): string => view('filament.partials.command-bar-trigger')->render(),
-            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
