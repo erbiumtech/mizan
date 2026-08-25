@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Livewire\CommandBar;
 use App\Modules\Accounting\Models\CommandUtterance;
+use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Models\TransactionTypeAlias;
@@ -828,6 +829,117 @@ class AiCommandBotTest extends AccountingTestCase
         Livewire::test(CommandBar::class)
             ->assertSee("locale: 'en-PK'", escape: false)
             ->assertSee('اردو');
+    }
+
+    // ------------------------------------------------------------------ answering the question
+
+    /**
+     * **A question the user can answer.** Asking without offering was the fourth "nothing happened".
+     *
+     * "income 500000 in" resolves everything but the category — no chart names a category "income", they
+     * name kinds of receipt — so the bar asked "What should this be filed under?" and stopped. There was
+     * no way to answer it: the only route forward was to retype the whole command using a word the alias
+     * table happened to know, which from the outside is indistinguishable from being ignored.
+     */
+    public function test_an_unmatched_category_offers_the_tenants_own_list(): void
+    {
+        $interpretation = $this->interpret('income 500000 in', ['transaction_type_code' => null]);
+
+        $this->assertFalse($interpretation->isComplete());
+        $this->assertSame(
+            ['transaction_type_code' => 'What should this be filed under?'],
+            $interpretation->unresolved,
+            'the missing slot is named, not just described',
+        );
+
+        $choices = app(CommandInterpreter::class)->resolverFor($interpretation->resolverKey)
+            ->choices('transaction_type_code');
+
+        $this->assertArrayHasKey('rent', $choices);
+        $this->assertStringContainsString('5700', $choices['rent'], 'the account code disambiguates same-named categories');
+    }
+
+    /** Picking one re-resolves the command and completes it, without retyping anything. */
+    public function test_picking_a_category_completes_the_command(): void
+    {
+        $this->model->queue($this->reply(['transaction_type_code' => null, 'direction' => 'in']));
+
+        Livewire::test(CommandBar::class)
+            ->set('utterance', 'income 25000 in')
+            ->call('interpret')
+            ->assertSet('preview.complete', false)
+            ->set('answers.transaction_type_code', 'rent')
+            ->assertSet('preview.complete', true)
+            ->assertSee('Money in')
+            ->assertSee('Confirm');
+    }
+
+    /**
+     * And the picked value is booked — not merely displayed.
+     *
+     * The answer goes back through `resolve()` rather than patching the proposal, so it is re-fetched
+     * inside the tenant and validated exactly like a parsed one. This asserts the result reaches the
+     * ledger, which is the only claim that matters.
+     */
+    public function test_a_picked_category_reaches_the_ledger(): void
+    {
+        $this->model->queue($this->reply(['transaction_type_code' => null, 'direction' => 'out', 'amount' => '9000']));
+
+        Livewire::test(CommandBar::class)
+            ->set('utterance', 'something 9000 out')
+            ->call('interpret')
+            ->set('answers.transaction_type_code', 'utilities')
+            ->call('confirm');
+
+        $entry = JournalEntry::latest('id')->firstOrFail();
+        $utilities = TransactionType::byCode('utilities')->account;
+
+        $this->assertSame(
+            9000.0,
+            (float) JournalEntryLine::where('journal_entry_id', $entry->id)
+                ->where('account_id', $utilities->id)
+                ->value('debit_amount'),
+            'the chosen category is what got debited',
+        );
+    }
+
+    /**
+     * A value the resolver never offered is refused.
+     *
+     * A `<select>` is a browser control and its options are whatever the browser says they are, so the
+     * value arriving here is user input rather than a menu choice however it was rendered — the same
+     * reason §8 re-fetches ids that came back from the model.
+     */
+    public function test_a_category_that_was_not_offered_is_ignored(): void
+    {
+        $this->model->queue($this->reply(['transaction_type_code' => null]));
+
+        Livewire::test(CommandBar::class)
+            ->set('utterance', 'something 9000 out')
+            ->call('interpret')
+            ->set('answers.transaction_type_code', 'not-a-real-code')
+            ->assertSet('preview.complete', false);
+    }
+
+    /** Direction gets a list too — the same dead end, and a worse consequence if it is retyped wrong. */
+    public function test_a_missing_direction_offers_in_or_out(): void
+    {
+        $interpretation = $this->interpret('rent 25000', ['direction' => null]);
+
+        $this->assertArrayHasKey('direction', $interpretation->unresolved);
+
+        $choices = app(CommandInterpreter::class)->resolverFor($interpretation->resolverKey)->choices('direction');
+
+        $this->assertSame(['in' => 'Money in — received', 'out' => 'Money out — paid'], $choices);
+    }
+
+    /** "How much?" is not a menu, so it stays a plain question with no list beside it. */
+    public function test_a_slot_with_no_closed_list_is_still_just_a_question(): void
+    {
+        $interpretation = $this->interpret('rent out', ['amount' => null]);
+
+        $this->assertContains('How much?', $interpretation->questions);
+        $this->assertArrayNotHasKey('amount', $interpretation->unresolved);
     }
 
     // ------------------------------------------------------------------ §8: getting to it at all

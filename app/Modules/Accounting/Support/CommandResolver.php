@@ -66,6 +66,21 @@ interface CommandResolver
      */
     public function schemaProperties(): array;
 
+    /**
+     * The values a person may pick for a slot the parser could not fill, as `value => label`.
+     *
+     * **This is what makes a question worth asking.** The design has always preferred asking over
+     * guessing, and that half was right — but the ask was a dead end: "What should this be filed under?"
+     * appeared with nothing to answer it, so the only way forward was to retype the whole command using a
+     * word the alias table happened to know. From the outside that is indistinguishable from the command
+     * being ignored, which is exactly how it was reported.
+     *
+     * Returns `[]` for a slot this resolver cannot offer a closed list for — an amount is not a menu.
+     *
+     * @return array<int|string, string>
+     */
+    public function choices(string $slot): array;
+
     /** Turn the model's reply into a proposal — or into questions. Books nothing. */
     public function resolve(CommandUtterance $row, array $parsed): CommandInterpretation;
 
