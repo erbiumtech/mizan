@@ -309,7 +309,17 @@ class ModuleManifest
             }
         }
 
-        return false;
+        /*
+         * And this file itself, because a *code* change can add a table the cache does not have.
+         *
+         * Found in Phase 6.1 of docs/reports-expansion-plan.md, which added a `datasets` table here and to
+         * nine manifests. Editing the manifests marks the cache stale, so it rebuilt — but every rebuild that
+         * followed a change to *this* class alone did not, and the symptom was `ModuleMap::datasets()`
+         * returning nothing in one process and eleven in another. Which reads as a broken registry rather
+         * than a stale file, and the docblock below already says why that direction of failure is the bad
+         * one: a table that is missing looks like a module that owns nothing.
+         */
+        return filemtime(__FILE__) > $built;
     }
 
     /**
