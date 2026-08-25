@@ -111,8 +111,12 @@ class DashboardPeriod
      *
      * Falls back to calendar quarters where no fiscal year covers the date — a real state for a company
      * mid-setup, and answering with the convention beats guessing.
+     *
+     * **Public since Phase 6.3, and only for that reason.** `RelativePeriod` needs this quarter's start and
+     * the one before it, and the paragraphs above are what a second implementation would have to get right
+     * again. One arithmetic, two callers.
      */
-    private static function fiscalQuarterStart(Carbon $date): string
+    public static function fiscalQuarterStart(Carbon $date): string
     {
         $year = ReportPeriod::yearFor($date);
 
