@@ -36,6 +36,10 @@ return [
         'App\\Filament\\Pages\\SlaBreaches' => \App\Modules\Support\Filament\Pages\SlaBreaches::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\SlaComplianceOverview' => \App\Modules\Support\Filament\Widgets\SlaComplianceOverview::class,
+    ],
+
     'permission_groups' => [
         'Ticket',
     ],

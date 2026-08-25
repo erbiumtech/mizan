@@ -379,6 +379,9 @@
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },
     "widgets": {
+        "App\\Filament\\Widgets\\UnbilledWipOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\UnbilledWipOverview",
+        "App\\Filament\\Widgets\\SlaComplianceOverview": "App\\Modules\\Support\\Filament\\Widgets\\SlaComplianceOverview",
+        "App\\Filament\\Widgets\\BillableShareOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\BillableShareOverview",
         "App\\Filament\\Widgets\\QuotationsExpiringList": "App\\Modules\\Quotations\\Filament\\Widgets\\QuotationsExpiringList",
         "App\\Filament\\Widgets\\PipelineFunnelChart": "App\\Modules\\Crm\\Filament\\Widgets\\PipelineFunnelChart",
         "App\\Filament\\Widgets\\ForecastAgainstTargetOverview": "App\\Modules\\Crm\\Filament\\Widgets\\ForecastAgainstTargetOverview",

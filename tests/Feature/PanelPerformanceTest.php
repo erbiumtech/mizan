@@ -225,11 +225,33 @@ class PanelPerformanceTest extends TestCase
      * reports rather than one — Phase 2 has three left and Phase 3 eleven. **At that rate the remaining plan needs
      * ~60 KB the ceiling does not have, so the hub's card markup is what should give way next, not this number.**
      * Raising it again without looking at the card would be the formality this comment warns about.
+     *
+     * **The hub's card markup did give way, on 2026-08-24, rather than the number.** Phase 4 put the page at
+     * 366 KB against 360; the 51 rows were 70.3 KB of which 30.4 KB was inline heroicons — 8% of the page in
+     * icons nobody navigates by. Nine `<symbol>`s and fifty-one `<use>`s took that to 6.2 KB and the page to
+     * 348.5 KB. Which is what this comment asked for, and the ceiling did not move.
+     *
+     * **The dashboard ceiling moved on 2026-08-25 — 300 to 350 — and this is the sanctioned case, not the
+     * formality.** `docs/reports-expansion-plan.md` Phase 5 replaces the dashboard with one carrying five
+     * groups of widgets; eight of them landed and put the page at 304.7 KB. That is markup a new screen
+     * legitimately adds, which is the distinction this comment draws — and unlike the hub there is nothing
+     * per-item to reduce: a widget's cost *is* its Livewire component, and the only way to render fewer bytes
+     * is to render fewer widgets, which is to not build the phase.
+     *
+     * Measured 2026-08-25: 304.7 KB with 17 widgets registered, of which the Livewire snapshots are 23.7 KB —
+     * about 1.1 KB per component, ~1.4 KB all-in per widget. Phase 5's remaining groups (people, inventory)
+     * are roughly six more, so ~313 KB, and 350 leaves headroom for about twenty-six widgets beyond the plan.
+     * That is deliberately more than the plan needs, for the reason above: bumping by a kilobyte a group turns
+     * a ratchet into a formality.
+     *
+     * What is *not* in that figure and is worth knowing: 88.6 KB of the dashboard is inline SVG, most of it
+     * the domain rail's flyouts, which this comment has accepted as a measured cost since it was written. If
+     * a future phase needs the ceiling back, the rail is where the bytes are — not the widgets.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {
         $pages = [
-            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 300],
+            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 350],
             'employees' => [EmployeeResource::getUrl('index'), 400],
             'reports' => [Reports::getUrl(), 360],
         ];
