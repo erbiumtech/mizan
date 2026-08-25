@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Support\Reporting\DashboardPeriod;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -111,6 +112,8 @@ class Dashboard extends BaseDashboard
                 ->icon('heroicon-m-calendar-days')
                 ->button()
                 ->color('gray'),
+
+            HelpAction::make('dashboard', 'Dashboard: Help'),
         ];
     }
 
