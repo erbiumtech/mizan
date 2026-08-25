@@ -4,6 +4,7 @@ namespace App\Modules\Invoicing\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Invoicing\Services\InvoiceService;
+use App\Support\Reporting\DashboardCache;
 use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\Widget;
 
@@ -71,6 +72,22 @@ class LargestDebtorsList extends Widget
      * @return array<int, array{contact: string, outstanding: float, days: int, invoices: int}>
      */
     public function debtors(): array
+    {
+        // Cached for five minutes — Phase 5.8. `outstandingReceivables()` loads every open invoice with its
+        // contact to bucket it, which is the cost, and the Aged Receivables report keeps reading it uncached.
+        return DashboardCache::remember(
+            'largest-debtors',
+            ['as_of' => $this->asOf()],
+            fn (): array => $this->rank(),
+        );
+    }
+
+    /**
+     * The ranking, computed.
+     *
+     * @return array<int, array{contact: string, outstanding: float, days: int, invoices: int}>
+     */
+    public function rank(): array
     {
         $report = app(InvoiceService::class)->outstandingReceivables($this->asOf());
 

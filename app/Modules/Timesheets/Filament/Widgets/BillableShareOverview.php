@@ -4,6 +4,7 @@ namespace App\Modules\Timesheets\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Timesheets\Services\TimesheetService;
+use App\Support\Reporting\DashboardCache;
 use App\Support\Reporting\DashboardWidgets;
 use App\Support\Reporting\ReportFigures;
 use Filament\Widgets\StatsOverviewWidget;
@@ -65,21 +66,11 @@ class BillableShareOverview extends StatsOverviewWidget
      */
     protected function getStats(): array
     {
-        $service = app(TimesheetService::class);
-
-        $billable = 0.0;
-        $booked = 0.0;
-        $people = [];
-
-        foreach ($this->months() as $month) {
-            foreach ($service->utilisation((int) $month->year, (int) $month->month) as $row) {
-                $billable += (float) $row['billable_hours'];
-                $booked += (float) $row['booked_hours'];
-                // Counted across the whole span rather than per month, so somebody who booked in January and
-                // not February is one person who recorded time and not two halves of one.
-                $people[$row['employee']] = true;
-            }
-        }
+        ['billable' => $billable, 'booked' => $booked, 'people' => $people] = DashboardCache::remember(
+            'billable-share',
+            ['from' => $this->periodFrom, 'to' => $this->periodTo],
+            fn (): array => $this->totals(),
+        );
 
         $share = $booked > 0 ? round($billable / $booked * 100, 1) : null;
 
@@ -98,9 +89,38 @@ class BillableShareOverview extends StatsOverviewWidget
             Stat::make('Hours booked', ReportFigures::money($booked, 1))
                 // No capacity figure beside it, on purpose — see the class docblock. Headcount is what the
                 // data supports: how many people recorded anything at all.
-                ->description(count($people) === 1 ? 'by one person' : 'by '.count($people).' people')
+                ->description($people === 1 ? 'by one person' : 'by '.$people.' people')
                 ->color('gray'),
         ];
+    }
+
+    /**
+     * The hours, summed across every month the period touches.
+     *
+     * Separated from `getStats()` so `DashboardCache` wraps the queries and not the presentation — a cached
+     * `Stat` object would be a cached colour and a cached sentence, which is a lot of nothing to store.
+     *
+     * @return array{billable: float, booked: float, people: int}
+     */
+    public function totals(): array
+    {
+        $service = app(TimesheetService::class);
+
+        $billable = 0.0;
+        $booked = 0.0;
+        $people = [];
+
+        foreach ($this->months() as $month) {
+            foreach ($service->utilisation((int) $month->year, (int) $month->month) as $row) {
+                $billable += (float) $row['billable_hours'];
+                $booked += (float) $row['booked_hours'];
+                // Counted across the whole span rather than per month, so somebody who booked in January and
+                // not February is one person who recorded time and not two halves of one.
+                $people[$row['employee']] = true;
+            }
+        }
+
+        return ['billable' => round($billable, 2), 'booked' => round($booked, 2), 'people' => count($people)];
     }
 
     /**

@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Modules\Core\Models\Company;
 use Closure;
+use Filament\Facades\Filament;
 
 /**
  * Headline stats each module contributes to the dashboard's overview widget.
@@ -42,7 +42,9 @@ class DashboardStats
      *
      * **Keyed on the company, which is not optional.** `docs/page-load-performance-plan.md` names the failure:
      * caching across requests without the tenant in the key is a cross-tenant leak. A test iterating two
-     * companies would otherwise see the first one's figures under the second one's name.
+     * companies would otherwise see the first one's figures under the second one's name — which is precisely
+     * what the first version of this did, because it keyed on `Company::current()` and that is null whenever
+     * only Filament's tenant is set.
      *
      * Cleared by `register()` as well as `flush()`, because a contribution arriving after a resolve would
      * otherwise never appear.
@@ -76,7 +78,11 @@ class DashboardStats
      */
     public static function resolve(): array
     {
-        $tenant = Company::current()?->getKey() ?? 'none';
+        // `Filament::getTenant()`, not `Company::current()`: this application has two notions of a current
+        // company and they do not agree under test — `InteractsWithTenant` sets Filament's and leaves
+        // spatie's null, so keying on the latter would put every company under one "none". `NavigationBadge`
+        // reads Filament's for the same reason.
+        $tenant = Filament::getTenant()?->getKey() ?? 'none';
 
         if (array_key_exists($tenant, self::$resolved)) {
             return self::$resolved[$tenant];
