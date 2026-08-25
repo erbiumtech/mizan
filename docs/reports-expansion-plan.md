@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the dataset registry, items 1–2) is in; items 3–7 outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the registry, items 1–2) and 6.2 (definitions and permissions, items 3 and 6) are in; items 4, 5 and 7 outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -378,7 +378,7 @@ every built-in report, with the same record row and the same export.
    filters the resources use (`EmployeeAccess`, and `StoreAccess` if retail lands), so the builder can
    never be the way around scoping. The test that matters: a non-privileged user building a report over
    payslips sees their own rows and their downline's, and nobody else's.
-3. **Definitions stored like saved views**, deliberately: `report_definitions` with `company_id`,
+3. *done, 2026-08-25 — four of the listed columns were deliberately not built, and the period is relative; see [What landed](#what-landed).* **Definitions stored like saved views**, deliberately: `report_definitions` with `company_id`,
    `user_id`, `name`, `description`, `dataset`, a `state` json (columns, filters, group by, aggregates,
    sort, period), `is_public`, `is_global`, `is_default`, `icon`, `color` — the same shape as
    `table_views`, including normalising the dataset key through `ModuleMap::alias()` so a class that
@@ -393,7 +393,7 @@ every built-in report, with the same record row and the same export.
    thousand rows in PHP; and a refusal — "this report asks for too much, narrow the period" — in place
    of a timeout. A builder is the one feature in this plan whose cost the *user* chooses, so the
    ceiling has to be the application's.
-6. **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
+6. *done, 2026-08-25 — and payslips turn out to be the one subject the reader gate does not protect, see [What landed](#what-landed).* **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
    `is_global` needs an administrator permission of its own. A company-wide custom report over payslips
    is a payroll leak, and it is one careless toggle away.
 7. **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
@@ -485,6 +485,67 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — saved report definitions and the builder's permissions (Phase 6.2: items 3 and 6).**
+
+- **The shape item 3 asked for, minus four of its columns, and each omission is a decision.** No `company_id`:
+  `table_views` needs one because it lives on the *landlord* connection and a global scope is the only thing
+  separating companies there, while this is on the tenant connection where the company *is* the database —
+  the third time this phase-set has made that call, after 4.5 and 7. No `is_default`: on a table view it means
+  "the view this resource's table opens with", and a report is opened by name from a list, so there is nothing
+  for a default to be. No `icon` or `color`, and that one is a measurement: Phase 4 took the hub from 366 KB to
+  348.5 KB by replacing 51 inline heroicons with nine `<symbol>`s, *because icons repeat per section* — a
+  per-definition icon reintroduces exactly the shape that saving deleted, on the one page `PanelPerformanceTest`
+  says must not grow.
+- **And no `is_global`, because `table_views` has never used it.** The plan names that table as the working
+  example; in it `is_global` is in `$fillable`, in the visibility scope, in the policy and in the factory as
+  `false`, and *nothing in the application ever sets it true*. What is actually used is `is_public` — "make
+  this available to everyone in this company" — so there is one sharing flag here, which is also the one thing
+  item 6 needs a permission for. Copying the shape faithfully would have copied a column nobody has ever set.
+- **The period is relative and there is no way to store two dates**, which is Phase 4.5's lesson applied one
+  level up and made structural. A saved view kept the date out because "a view holding 30 June would open on
+  30 June for ever and nobody would notice for a while"; a *definition* is worse, because Phase 8 will send it
+  — "the aged receivables every Monday" has to resolve its own dates each Monday. So `RelativePeriod` offers
+  six spans, all bounded, and a state holding `['from' => …, 'to' => …]` normalises to the financial year to
+  date. There is deliberately no "all time": half of item 5's cost guard arrives free when the list of choices
+  cannot express an unbounded query.
+- **Quarters and years are financial, by calling the arithmetic rather than repeating it.**
+  `DashboardPeriod::fiscalQuarterStart()` became public for this — its reasoning (count back from the year
+  *end*, then clamp to the start, because a company that joined in November still has July–September quarters)
+  took a test to get right in Phase 5.1, and a second copy would be a second answer waiting to disagree. "Last
+  quarter" is then found by stepping back a day from this quarter's start and asking which quarter *that* day
+  is in, rather than by subtracting three months — which looks equivalent and is not: on a short first year it
+  would answer a month before the company existed. A mutation survived until the test for that existed.
+- **The state is sanitised against the dataset, on write and on read.** Every key is a *declared* key of its
+  subject: a column the dataset offers, a filter it offers, an aggregate that column allows, a group-by the
+  database can actually group on, one of two sort directions. Read as well as write, because a row outlives
+  the code that wrote it — a definition naming a column since removed loses that column and keeps the rest,
+  which is what lets a dataset evolve without breaking every report over it.
+- **Item 6's sharp end is `dataset()`, not `is_public`.** The plan warns that "a company-wide custom report over
+  payslips is a payroll leak, and it is one careless toggle away". Reading a definition resolves its subject
+  through the *reader's* module licence and the *reader's* permission, so a shared report over a subject
+  somebody cannot open resolves to nothing for them — no columns, no query, no rows. The toggle cannot reveal
+  what the reader could not already open, which is a stronger guarantee than being careful with the toggle.
+- **And payslips, the example the plan names, turn out to be the one subject that gate does not protect.**
+  Every seeded role that can read a report at all holds `PayslipView` — an employee sees their own payslip, an
+  accountant runs payroll — so a shared payslip report passes the reader gate for all of them. What makes it
+  safe is entirely Phase 6.1's item 2: `EmployeeAccess` on the dataset's base query, so each reader gets their
+  own rows and their downline's. The two halves are not overlapping defences; for most subjects the permission
+  refuses, and for the one the plan was worried about it is the row scoping and nothing else. There is a test
+  named for that, so a role that stops holding `PayslipView` turns it back into the ordinary case.
+- **Two permissions, one of them granted to nobody below Administrator.** `ReportBuild` sits with `ReportView`
+  in Accounting's `Report` group — not in Core, because `ModuleAuthorization` resolves a bare permission's
+  module *through its group*, so splitting the group would make "which module gates this check" depend on which
+  manifest declared which name. Accountant upward gets `ReportBuild`: anybody trusted to read the ledger is
+  trusted to ask it a question. `ReportShare` is Administrator's alone, and what it protects is worth being
+  precise about — not the figures, which the reader gate already handles, but the company's own list of
+  reports: an unshared definition is somebody's working note, and a hub filling up with forty of them is a hub
+  nobody reads.
+- **Sharing without the permission is refused rather than silently unshared.** Somebody who ticks the box
+  should be told, and returning null is the only way the caller can tell them.
+- 28 tests, 76 assertions; 12 mutations tried and all 12 killed — two of them only after the tests that catch
+  them were written, and both of those were tests that had been passing for the wrong reason.
+- Items 4, 5 and 7 remain: rendering through `ReportPane`, the cost guards, and the builder screen.
 
 **2026-08-25 — the dataset registry (Phase 6.1: items 1 and 2).**
 

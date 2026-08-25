@@ -346,13 +346,30 @@ class RoleGrantsTest extends AccountingTestCase
      * Nominating accounts is one screenful of decisions taken once at implementation by whoever owns the chart, which is
      * §18.2's test for when a name is *not* worth having.
      *
+     * Phase 6 of the reports plan, the report builder — **two names, and only one of them is granted to
+     * anybody.** **Employee gains nothing; Accountant +1** (`ReportBuild`), inherited upward to Manager and
+     * CEO. `ReportShare` is granted to no role and therefore moves no count.
+     *
+     * `ReportBuild` sits with `ReportView` because composing a report is the same job as reading one, done
+     * with a different shape: anybody trusted to read the ledger is trusted to ask it a question. An Employee
+     * is not — the reports they see are their own payslip and their own leave, and neither is a question they
+     * compose.
+     *
+     * `ReportShare` is the one this phase argued about and it is Administrator's alone. It makes a definition
+     * visible to the whole company, and item 6 names the failure exactly: "a company-wide custom report over
+     * payslips is a payroll leak, and it is one careless toggle away". Worth being precise about what the
+     * grant is protecting, because it is *not* the figures — reading a shared definition resolves its subject
+     * through the reader's own module and permission gates, so a shared payslip report shows a person nothing
+     * they could not already open. What it protects is the company's own list of reports: an unshared
+     * definition is somebody's working note, and a hub filling up with forty of them is a hub nobody reads.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
         'Employee' => 69,
-        'Accountant' => 149,
-        'Manager' => 191,
-        'CEO' => 211,
+        'Accountant' => 150,
+        'Manager' => 192,
+        'CEO' => 212,
     ];
 
     protected function setUp(): void
