@@ -22,6 +22,8 @@ return [
         // A person's saved filters for one report — Core for the same reason the Reports hub is: the hub
         // belongs to no module and every module puts reports in it.
         'App\\Models\\SavedReportView' => \App\Modules\Core\Models\SavedReportView::class,
+        // How one person, or the company, has arranged the dashboard — Phase 7 of the reports plan.
+        'App\\Models\\DashboardLayout' => \App\Modules\Core\Models\DashboardLayout::class,
         'App\\Models\\CustomField' => \App\Modules\Core\Models\CustomField::class,
         'App\\Models\\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
         'App\\Models\\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,

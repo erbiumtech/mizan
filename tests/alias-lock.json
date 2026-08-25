@@ -53,6 +53,7 @@
         "App\\Models\\DailyLogManpower": "App\\Modules\\ConstructionField\\Models\\DailyLogManpower",
         "App\\Models\\DailyLogPhoto": "App\\Modules\\ConstructionField\\Models\\DailyLogPhoto",
         "App\\Models\\DailyLogPlant": "App\\Modules\\ConstructionField\\Models\\DailyLogPlant",
+        "App\\Models\\DashboardLayout": "App\\Modules\\Core\\Models\\DashboardLayout",
         "App\\Models\\DelayEvent": "App\\Modules\\ConstructionField\\Models\\DelayEvent",
         "App\\Models\\Document": "App\\Modules\\Construction\\Models\\Document",
         "App\\Models\\DocumentRevision": "App\\Modules\\Construction\\Models\\DocumentRevision",
