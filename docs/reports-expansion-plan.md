@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5 started (5.1, 5.3, 5.4, 5.5 and the 5.9 widget enumeration landed); 5.2, 5.6, 5.7, 5.8 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–4 complete; Phase 5 started (5.1–5.5 and the 5.9 widget enumeration landed); 5.6, 5.7, 5.8 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -330,7 +330,7 @@ and it would be quicker to re-derive each figure inline.
    `ReportPeriod`) in the URL, so a dashboard someone links to opens on the period they meant. Widgets
    read the page's filter; none of them keeps its own idea of "now". Where the retail plan lands, the
    store scope is the second filter on the same page (`docs/retail-stores-pos-plan.md` §7).
-2. **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
+2. *done, 2026-08-25 — and a fixture found a real bug in one of the widgets, see [What landed](#what-landed).* **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
    late / on leave today; leave requests awaiting a decision; documents expiring in 30 days (the same
    `DocumentExpiryCheck::due()` as Phase 1.5).
 3. *done, 2026-08-24 — and the funnel is the one widget the period must not filter, see [What landed](#what-landed).* **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
@@ -485,6 +485,43 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — the people widgets (Phase 5.2). Four figures across four modules, and a fixture that found a
+real bug rather than a fixture bug.**
+
+- **`LeaveRequest`'s column is `from_date`, and the widget said `start_date`.** An absent Eloquent attribute
+  reads as null rather than erroring, so the "leave already started while nobody answered" figure was
+  *silently always nought* — the sharpest row in the queue, permanently empty. Every structural assertion
+  passed; it took a fixture insert failing on a NOT NULL to expose it. That is the third time this session a
+  wrong column name has been invisible until something asserted a value, and the first time the widget rather
+  than the test was wrong.
+- **Two service methods were added rather than querying in the widgets**, each in the class that owns the
+  concept. `HeadcountReports::summary()` sits beside the Headcount Movement report's own loop and reuses its
+  `headcountAt()`, which matters more here than anywhere in Phase 5: that helper compares date *strings*
+  because `left_on` is a date cast and a boundary is an instant, and getting it wrong once already reported
+  200% turnover for a month in which one person of one left. A widget with its own `whereNull` would have
+  reproduced the bug instead of inheriting the fix.
+- **`AttendanceRegister::daySummary()` is one grouped query, not the register's grid.** `forMonth()` needs a
+  row per employee per day; a dashboard wants four numbers about one day, and running the grid to get them is
+  the per-row shape this plan's own risk list names.
+- **Unmarked attendance days are on the dashboard, because they are the finding.** A day nobody recorded is
+  not a day nobody worked — the register's note leads with them for that reason — and "12 present" for a
+  company of thirty with eighteen absent from every figure reads as an attendance problem rather than a
+  recording one. Half days and home working count as present: one is a shorter day, the other a different
+  desk, and neither is an absence. Lateness is counted from the days somebody attended, so a late arrival is
+  present *and* late rather than a status of its own.
+- **Leave uses the model's `pending()` scope and no new service method**, and that is deliberate: the scope
+  *is* the shared definition of "awaiting a decision", so a widget writing `where('status', 'pending')` would
+  be a second copy that a fourth status would break. The oldest wait is named beside the count, because a
+  queue of five is a different problem from one request sitting for a month and a count cannot tell them apart.
+- **Documents already expired are counted apart from documents expiring.** Both come back from
+  `DocumentExpiryCheck::due()` — including the part a fresh query would get wrong, that an expired document
+  keeps being reported because "an expired visa is not a warning that stops being true" — and folding them
+  together would put a lapsed work permit in the same figure as one with three weeks left.
+- **Two more widgets ignore the period, and say so on the stat.** The leave queue and the expiring documents
+  are facts about now; filtering them by the dashboard's span would hide the oldest requests and the nearest
+  expiries, which are exactly what they exist to surface. Three widgets now ignore the filter and each says
+  so, because two thirds of the dashboard *does* move with it and a reader would otherwise assume they all do.
 
 **2026-08-25 — the service widgets (Phase 5.4). Two of this item's three instructions were followed in spirit
 rather than to the letter, and both departures are the interesting part.**

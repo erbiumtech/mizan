@@ -20,6 +20,12 @@ class LifecyclePlugin implements Plugin
             for: __NAMESPACE__.'\Filament\Resources',
         );
 
+        // The documents-expiring stats (Phase 5.2). Registered unconditionally; each widget's own canView() gates on the module and a permission.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
+
         // The expiring-documents report (reports-expansion-plan.md Phase 1.5). Hidden from the sidebar and
         // reached from the Reports hub, but still registered or its URL does not exist.
         $panel->discoverPages(

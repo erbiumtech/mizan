@@ -46,6 +46,10 @@ return [
         'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\DocumentsExpiringOverview' => \App\Modules\Lifecycle\Filament\Widgets\DocumentsExpiringOverview::class,
+    ],
+
     'permission_groups' => [
         'Checklist',
         'EmployeeDocument',

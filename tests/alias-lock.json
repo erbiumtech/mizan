@@ -379,6 +379,10 @@
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },
     "widgets": {
+        "App\\Filament\\Widgets\\LeaveAwaitingDecisionOverview": "App\\Modules\\Leave\\Filament\\Widgets\\LeaveAwaitingDecisionOverview",
+        "App\\Filament\\Widgets\\HeadcountOverview": "App\\Modules\\Employees\\Filament\\Widgets\\HeadcountOverview",
+        "App\\Filament\\Widgets\\DocumentsExpiringOverview": "App\\Modules\\Lifecycle\\Filament\\Widgets\\DocumentsExpiringOverview",
+        "App\\Filament\\Widgets\\AttendanceTodayOverview": "App\\Modules\\Attendance\\Filament\\Widgets\\AttendanceTodayOverview",
         "App\\Filament\\Widgets\\UnbilledWipOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\UnbilledWipOverview",
         "App\\Filament\\Widgets\\SlaComplianceOverview": "App\\Modules\\Support\\Filament\\Widgets\\SlaComplianceOverview",
         "App\\Filament\\Widgets\\BillableShareOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\BillableShareOverview",
