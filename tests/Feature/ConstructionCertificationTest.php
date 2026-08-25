@@ -107,6 +107,31 @@ class ConstructionCertificationTest extends AccountingTestCase
         return $this->certification->prepare($this->contract, $claim->period_end->toDateString(), $claim);
     }
 
+    /**
+     * The retention row says what rate it took — and says it correctly.
+     *
+     * A regression, and the bug is worth naming because it printed on a document a subcontractor signs.
+     * The description was built with `rtrim(rtrim((string) $percent, '0'), '.')`, which strips *characters*
+     * rather than a decimal fraction: given `10` there is no decimal point to stop it, so it removed the
+     * trailing zero and the certificate read **"Retention @ 1%"** against a contract holding ten per cent.
+     *
+     * It survived because it is invisible from the wrong side. `ConstructionCertificatePrintTest` asserts
+     * the label — but hand-writes the deduction row rather than generating it, so it was checking a string
+     * it had written itself. Nothing exercised `writeAutomaticDeductions()` on a whole-ten rate until now.
+     *
+     * The figures are unaffected either way; only the words were wrong. That is precisely why it lasted.
+     */
+    public function test_the_retention_row_names_the_rate_it_took(): void
+    {
+        $certificate = $this->certificate($this->claim('2026-08-31', [50, 0]));
+
+        $retention = $certificate->deductions->firstWhere('kind', CertificateDeduction::KIND_RETENTION);
+
+        $this->assertNotNull($retention, 'a 10% contract must produce a retention row');
+        $this->assertSame('Retention @ 10%', $retention->description);
+        $this->assertStringNotContainsString('@ 1%', $retention->description, 'ten per cent must not print as one');
+    }
+
     // ------------------------------------------------------------------ claims
 
     public function test_a_claim_is_numbered_and_seeded_with_every_schedule_line(): void
