@@ -317,6 +317,24 @@ Two changes, and the second is the one that matters:
    primary affordance; the hotkey is the shortcut. The palette next door already had one, and the reason
    generalises: a shortcut is not discoverable, and this one has no menu entry to be discovered from.
 
+### §8.2 And then it closed itself — the second half of the same symptom
+
+Opening it revealed a second bug wearing the same face. `showModal()` opens a `<dialog>` by setting an
+`open` **attribute**; interpreting is a Livewire round trip; Livewire morphs the response over the live
+DOM; the server HTML has no `open` on it. So the morph removed the attribute the browser had set and the
+dialog shut on Enter — the proposal rendered correctly, into a box that was no longer on screen.
+
+Fixed with `wire:ignore.self` on the dialog, which maps to Alpine morph's `childrenOnly()`: the element's
+own attributes are left alone while everything inside still updates. Plain `wire:ignore` — what the ⌘K
+palette uses — would freeze the proposal, and the proposal is the one thing here that must change. The
+palette gets away with it because it renders results from an Alpine array rather than from the server.
+
+Neither of these was catchable by the suite as built: one lived in a keystroke the browser intercepts, the
+other in a DOM morph PHPUnit does not perform. **Both looked like backend failures from the outside and
+neither was** — every server-side test passed throughout. The lesson worth keeping is that "the component
+returns the right state" and "a person can reach that state" are different claims, and only the first one
+was ever being tested.
+
 The button and the dialog both ask `CommandBar::available()` rather than each deciding for itself, because
 the two ways they can disagree are the two failure modes: a button that opens nothing, and a dialog with
 no button. That predicate now also reads `ai.enabled`, which nothing had read until this point — with the
