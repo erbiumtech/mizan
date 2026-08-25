@@ -13,7 +13,27 @@
 <div
     x-data="{
         open: false,
-        openBar() { this.open = true; this.$nextTick(() => this.$refs.dialog.showModal()); this.$nextTick(() => this.$refs.input?.focus()) },
+
+        /*
+           Opens, and optionally arrives with the command already typed.
+
+           The prefill is what lets other surfaces be on-ramps rather than second implementations: the
+           dashboard input collects a sentence and hands it here, so there is still exactly one component
+           that interprets, one audit row per command, and one confirmation gate. A second box that did
+           its own interpreting would be a second place for the sign rules to drift.
+        */
+        openBar(text = null) {
+            this.open = true;
+            this.$nextTick(() => this.$refs.dialog.showModal());
+
+            if (text) {
+                // set() before interpret(), and awaited: the action would otherwise race the property
+                // update and interpret whatever was in the box before.
+                $wire.set('utterance', text).then(() => $wire.interpret());
+            }
+
+            this.$nextTick(() => this.$refs.input?.focus());
+        },
         close() { this.stopDictation(); this.open = false; this.$refs.dialog?.close(); $wire.cancel() },
 
         /* ---- voice (§5) ---------------------------------------------------
@@ -93,10 +113,35 @@
         longer the way in — the topbar button is.
     --}}
     @keydown.window="if (($event.metaKey || $event.ctrlKey) && ($event.key === '/' || $event.key === 'j')) { $event.preventDefault(); openBar() }"
-    @open-command-bar.window="openBar()"
+    {{-- `detail.text` is how the dashboard input hands over a sentence it collected. --}}
+    @open-command-bar.window="openBar($event.detail?.text)"
     @command-booked.window="close()"
 >
     @if ($this->isAvailable())
+        {{--
+            The floating bubble, bottom right — the shape people already know from chat widgets.
+
+            It supersedes the topbar button rather than joining it. Both were "on every page", and two
+            buttons opening one dialog is clutter that makes neither obvious. This one wins because the
+            convention does the explaining: a round button in that corner is understood to open something
+            you type into, which is what this is.
+
+            Hidden while the dialog is open — the dialog is modal, so a bubble behind the backdrop would be
+            a control nobody can press, sitting there looking pressable.
+        --}}
+        <button
+            type="button"
+            class="cb-fab"
+            x-show="! open"
+            @click="openBar()"
+            title="Type a transaction (⌘/)"
+            aria-label="Type a transaction"
+        >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+        </button>
+
         {{--
             `wire:ignore.self` is load bearing, and without it this dialog SHUTS THE MOMENT YOU PRESS ENTER.
 
@@ -119,6 +164,9 @@
             x-ref="dialog"
             wire:ignore.self
             class="cb-dialog"
+            {{-- A native close (the browser's own ESC handling) bypasses close(), so `open` is synced here
+                 too — otherwise the bubble stays hidden behind a dialog that is no longer there. --}}
+            @close="open = false"
             @keydown.esc.prevent="close()"
             @click="if ($event.target === $refs.dialog) close()"
         >
@@ -271,6 +319,38 @@
     @endif
 
     <style>
+        [x-cloak] { display: none !important; }
+
+        /* The bubble. `env(safe-area-inset-*)` keeps it clear of the home indicator on iOS. */
+        .cb-fab {
+            position: fixed;
+            z-index: 30;
+            right: calc(1.25rem + env(safe-area-inset-right, 0px));
+            bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: var(--primary-600, #d97706);
+            color: #fff;
+            box-shadow: 0 10px 25px -5px rgba(2, 6, 23, .35), 0 0 0 1px rgba(2, 6, 23, .05);
+            cursor: pointer;
+            transition: transform .12s ease, background .12s ease;
+        }
+        .cb-fab:hover { background: var(--primary-700, #b45309); transform: translateY(-1px); }
+        .cb-fab:focus-visible { outline: 2px solid var(--primary-600, #d97706); outline-offset: 2px; }
+        .cb-fab svg { width: 24px; height: 24px; }
+
+        /* Out of the way of a phone's bottom nav, where a 52px circle is a lot of screen. */
+        @media (max-width: 640px) {
+            .cb-fab { width: 46px; height: 46px; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+            .cb-fab svg { width: 21px; height: 21px; }
+        }
+
         .cb-dialog {
             position: fixed;
             inset: 12vh 0 auto 0;
