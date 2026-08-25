@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5 started (5.1–5.5 and the 5.9 widget enumeration landed); 5.6, 5.7, 5.8 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–4 complete; Phase 5's five widget groups all landed (5.1–5.6, plus the 5.9 enumeration); 5.7, 5.8 and the 5.9 query ceiling, then Phases 6–8, outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -341,7 +341,7 @@ and it would be quicker to re-derive each figure inline.
    `TimesheetService::utilisationFor()`.
 5. *done, 2026-08-24 — three widgets, three different readings of the page's period, see [What landed](#what-landed).* **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
    debtors with days overdue; cash committed in the next 90 days (Phase 1.7's own figures).
-6. **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
+6. *done, 2026-08-25 — Phase 2.4 exists, so this is that valuation; the sharp end was the reorder rule, see [What landed](#what-landed).* **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
    valuation the report states, from the same service.
 7. **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
    permission; `$isLazy = true` without exception, so the dashboard renders and the panels fill in;
@@ -485,6 +485,35 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — the inventory widget (Phase 5.6). All five of Phase 5's widget groups are now in.**
+
+- **The item's condition is met: Phase 2.4 exists, so this is that valuation.**
+  `InventoryReports::summary()` reads `InventoryValuationService::valuationForAll()` — the same call behind
+  the Stock on Hand report.
+- **The sharp end was not the valuation but the reorder rule, and it was already a bug once.** A reorder level
+  of nought means there is *no* level rather than a level of nought: the column defaults to `0`, so treating it
+  as a threshold flagged every product that had merely been sold out, since `0 <= 0`. Phase 2.4's own tests
+  caught that in the report. A widget re-deriving the flag would have reproduced it — so the rule is now
+  `InventoryReports::reorderLevelFor()` and `isBelowReorder()`, extracted, with the report's inline copy
+  replaced by a call to them. The report's eighteen tests still pass on the extraction, which is the point of
+  doing it that way round.
+- **Two loops, one set of rules, and a test that pins their agreement.** `summary()` walks products
+  separately from `stockOnHand()` rather than sharing one pass: sharing would mean the report walking its
+  products twice per render, or the dashboard depending on the shape of a table's rows. What is shared is every
+  *rule* — the reorder threshold, staleness, the valuation itself — and a test asserts the widget's stock value
+  equals the report's own tile rather than a literal.
+- **Stale stock sits beside the reorder count**, because they are opposite problems that a total hides: one is
+  stock about to run out, the other stock nobody has touched in ninety days, and a stock value made mostly of
+  the second is a very different figure from one made mostly of the first. A product that has never moved
+  counts as stale, which is the report's reading and its reason — treating "no history" as fresh would hide
+  every product somebody set up and forgot.
+- **A product with a level and no movements at all is counted.** It has no row in `stock_movements`, so a
+  summary built from the valuation alone would never see it — and it is exactly what a reorder flag is for.
+- **The fixture had to go through `InventoryService`.** `stock_movements.type` is NOT NULL and a purchase also
+  posts to the ledger, so the hand-built row I reached for first was both invalid and unrepresentative of
+  anything the application does. Fourth fixture correction of this session, and the same lesson each time: the
+  model's own API knows things a plausible insert does not.
 
 **2026-08-25 — the people widgets (Phase 5.2). Four figures across four modules, and a fixture that found a
 real bug rather than a fixture bug.**

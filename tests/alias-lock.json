@@ -379,6 +379,7 @@
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },
     "widgets": {
+        "App\\Filament\\Widgets\\StockOnHandOverview": "App\\Modules\\Inventory\\Filament\\Widgets\\StockOnHandOverview",
         "App\\Filament\\Widgets\\LeaveAwaitingDecisionOverview": "App\\Modules\\Leave\\Filament\\Widgets\\LeaveAwaitingDecisionOverview",
         "App\\Filament\\Widgets\\HeadcountOverview": "App\\Modules\\Employees\\Filament\\Widgets\\HeadcountOverview",
         "App\\Filament\\Widgets\\DocumentsExpiringOverview": "App\\Modules\\Lifecycle\\Filament\\Widgets\\DocumentsExpiringOverview",
