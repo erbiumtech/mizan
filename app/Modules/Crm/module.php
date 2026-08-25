@@ -65,6 +65,12 @@ return [
         'App\\Filament\\Widgets\\PipelineFunnelChart' => \App\Modules\Crm\Filament\Widgets\PipelineFunnelChart::class,
     ],
 
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\OpportunityDataset' => \App\Modules\Crm\Reporting\OpportunityDataset::class,
+    ],
+
     'permission_groups' => [
         'Lead',
         'LeadSource',

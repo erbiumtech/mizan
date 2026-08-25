@@ -4,6 +4,7 @@ namespace App\Modules\Quotations\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Quotations\Services\QuotationService;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
 
@@ -36,10 +37,17 @@ class QuotationsExpiringList extends Widget
 
     public ?string $periodTo = null;
 
-    /** Sales band — see RevenueAndExpensesChart for the scheme. */
-    protected static ?int $sort = 22;
+    protected static ?int $sort = DashboardWidgets::SALES + 2;
 
     protected static bool $isLazy = true;
+
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
 
     public static function canView(): bool
     {

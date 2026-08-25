@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\Schemas;
 
+use App\Support\Num;
 use App\Modules\Construction\Models\CostCode;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\WbsNode;
@@ -173,7 +174,7 @@ class LabourRecordForm
         return number_format($rate->costRatePerHour, 2).' per hour × '
             .round(($normal + $overtime) / 60, 2).' hours = '.number_format($labour, 2)
             .($burden > 0 ? ', plus burden of '.number_format($burden, 2)
-                .' at '.rtrim(rtrim((string) $rate->burdenPercent, '0'), '.').'%' : ', with no burden set')
+                .' at '.Num::percent($rate->burdenPercent) : ', with no burden set')
             .'. Total '.number_format($labour + $burden, 2).'.';
     }
 }

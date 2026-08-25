@@ -35,6 +35,16 @@ return [
         'App\\Filament\\Pages\\StockOnHand' => \App\Modules\Inventory\Filament\Pages\StockOnHand::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\StockOnHandOverview' => \App\Modules\Inventory\Filament\Widgets\StockOnHandOverview::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\StockMovementDataset' => \App\Modules\Inventory\Reporting\StockMovementDataset::class,
+    ],
+
     'permission_groups' => [
         'Inventory',
     ],

@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Accounting\Models\Account;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -17,7 +18,16 @@ class AccountBalancesOverview extends StatsOverviewWidget
 
     protected static bool $isLazy = true;
 
-    protected static ?int $sort = 2;
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
+
+    /** The ledger behind the three figures above it. */
+    protected static ?int $sort = DashboardWidgets::MONEY + 4;
 
     public static function canView(): bool
     {

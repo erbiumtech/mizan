@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5 started (5.1, 5.3, 5.5 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–5 and 7 complete. Phases 6 and 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -330,24 +330,24 @@ and it would be quicker to re-derive each figure inline.
    `ReportPeriod`) in the URL, so a dashboard someone links to opens on the period they meant. Widgets
    read the page's filter; none of them keeps its own idea of "now". Where the retail plan lands, the
    store scope is the second filter on the same page (`docs/retail-stores-pos-plan.md` §7).
-2. **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
+2. *done, 2026-08-25 — and a fixture found a real bug in one of the widgets, see [What landed](#what-landed).* **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
    late / on leave today; leave requests awaiting a decision; documents expiring in 30 days (the same
    `DocumentExpiryCheck::due()` as Phase 1.5).
 3. *done, 2026-08-24 — and the funnel is the one widget the period must not filter, see [What landed](#what-landed).* **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
    attainment; quotations expiring inside 14 days. All three off `PipelineReports` and
    `QuotationService`.
-4. **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
+4. *done, 2026-08-25 — two of this item's three instructions were followed in spirit and not to the letter, see [What landed](#what-landed).* **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
    utilisation this month; unbilled WIP value. Off `TicketService::performance()`/`breaches()` and
    `TimesheetService::utilisationFor()`.
 5. *done, 2026-08-24 — three widgets, three different readings of the page's period, see [What landed](#what-landed).* **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
    debtors with days overdue; cash committed in the next 90 days (Phase 1.7's own figures).
-6. **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
+6. *done, 2026-08-25 — Phase 2.4 exists, so this is that valuation; the sharp end was the reorder rule, see [What landed](#what-landed).* **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
    valuation the report states, from the same service.
-7. **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
+7. *done, 2026-08-25 — and it found two things nothing was watching, see [What landed](#what-landed).* **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
    permission; `$isLazy = true` without exception, so the dashboard renders and the panels fill in;
    `$sort` set deliberately so the order is money → sales → service → people rather than discovery
    order — that order becomes the company default a user may depart from in Phase 7 — and no polling.
-8. **A cache for the expensive ones**, with the tenant in the key. `docs/page-load-performance-plan.md`
+8. *done, 2026-08-25 — the cache lives in the widget and never in the service, and the tenant is not the one you would reach for, see [What landed](#what-landed).* **A cache for the expensive ones**, with the tenant in the key. `docs/page-load-performance-plan.md`
    is explicit about the failure mode here — caching across requests without the tenant in the key is a
    cross-tenant leak — and a five-minute TTL on a twelve-month revenue series is the difference between
    a dashboard and a report that runs fifteen times a day per user.
@@ -408,32 +408,32 @@ neither wants to scroll past the other's charts every morning.
 
 The design decision that makes this survivable is the first item, and everything else follows from it.
 
-1. **A layout is a partial override, never a list of widgets.** Store an *order* map and a *hidden* set,
+1. *done, 2026-08-25 — and the test for it needs no new widget, see [What landed](#what-landed).* **A layout is a partial override, never a list of widgets.** Store an *order* map and a *hidden* set,
    then resolve: take the widgets this user may see, apply the order to the ones named, append anything
    the layout does not mention. A stored array of "the widgets I have" means every widget added after a
    user saved their layout is invisible to them forever, and that is precisely how layout features come
    to be hated — the person who arranged their dashboard is the person who never sees a new chart.
-2. **A company default plus a personal override.** An administrator sets the arrangement everyone starts
+2. *done, 2026-08-25.* **A company default plus a personal override.** An administrator sets the arrangement everyone starts
    from; a user may depart from it and reset back to it. This keeps what was valuable about one shared
    dashboard — a company where nobody can be told "look at the third chart" has lost something — while
    letting people who use one module all day put it first.
-3. **Stored in the `table_views` shape**, because that shape has already been argued out:
+3. *done, 2026-08-25 — minus the `company_id`, and that difference is argued in [What landed](#what-landed).* **Stored in the `table_views` shape**, because that shape has already been argued out:
    `dashboard_layouts` with `company_id`, `user_id` (null = the company default), a `state` json (order,
    hidden, spans) and timestamps, company-scoped by a global scope. Widgets are keyed on
    `ModuleMap::alias()`, not on the class name, for exactly the reason `TableView::setResourceAttribute()`
    does it (`app/Modules/Core/Models/TableView.php:20-27`) — a widget that moves between directories must
    not orphan every saved layout.
-4. **A layout can never reveal a widget `canView()` refuses.** Resolve the visible set *first*, then
+4. *done, 2026-08-25 — structurally rather than by a check, and the permission half is tested too, see [What landed](#what-landed).* **A layout can never reveal a widget `canView()` refuses.** Resolve the visible set *first*, then
    order it. Said explicitly because the tempting implementation — read the layout, instantiate what it
    names — is a module-gating bypass that would survive the module being switched off. Unknown keys are
    dropped on read, and a hidden widget that the user has lost access to is simply gone.
-5. **Widths, not resizing:** one of half / two-thirds / full per widget, mapped to `$columnSpan`. Three
+5. *done, 2026-08-25 — two thirds is why the grid is now six columns, see [What landed](#what-landed).* **Widths, not resizing:** one of half / two-thirds / full per widget, mapped to `$columnSpan`. Three
    choices need no grid engine and answer the actual complaint, which is that a stats row does not
    deserve the same space as a twelve-month chart.
-6. **The interaction is Filament's own.** `x-sortable` with a drag handle on each widget header,
+6. *done, 2026-08-25 — Filament's own interaction, but its column manager rather than a handle per widget header; the reason is in [What landed](#what-landed).* **The interaction is Filament's own.** `x-sortable` with a drag handle on each widget header,
    persisting on `onEnd` through a Livewire call — SortableJS is already bundled in `filament/support`, so
    this adds no dependency and behaves like the reorderable tables people already use here.
-7. **Guards.** A test that registers a *new* widget and asserts it appears for a user who has a saved
+7. *done, 2026-08-25 — 35 tests, plus two guards the item does not name, see [What landed](#what-landed).* **Guards.** A test that registers a *new* widget and asserts it appears for a user who has a saved
    layout (item 1's regression, and the one that matters); a test that a widget whose module is disabled
    stays absent even when a layout names it; and a reset that restores the company default. An admin
    action to push the default to everybody is worth having and must ask first — it discards arrangements
@@ -485,6 +485,287 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — per-user dashboard layouts (Phase 7). Phase 7 is complete.**
+
+- **A layout is a partial override, never a list of widgets** (item 1), and the test for it needs no new
+  widget. To a stored layout, a widget added last week and a widget it simply never mentioned are the same
+  thing — the state has no way to tell them apart — so a layout naming two of three widgets *is* the case the
+  item describes. Registering a real widget to prove it would have tested the panel rather than the resolver.
+- **Item 4 is structural rather than a check, which is a stronger guarantee than the item asks for.** Every
+  resolution starts from the list the *panel* handed over and only ever consults the layout as a lookup on it,
+  so there is no code path in which a stored key could summon a widget. Filtering afterwards can be forgotten;
+  this cannot be reached. `DashboardArrangement::classFor()` is the one place an alias becomes a class again,
+  and it is used to ask how wide a widget is by default, never to render one.
+- **The permission half of item 4 is tested as well as the module half**, and it is the one that matters more:
+  a module gate leaks a *feature*, a permission gate leaks *figures*. Written without naming a widget or a
+  permission — whatever an Administrator can see and an Employee cannot is the case under test — so it keeps
+  testing the right thing as roles change, and it fails loudly if that set is ever empty.
+- **`company_id` was deliberately not built** (item 3). `table_views` carries one because it lives on the
+  *landlord* connection — it has a foreign key to `users`, who live there — so a global scope is the only thing
+  separating one company's rows from another's. `dashboard_layouts` is on the tenant connection, where the
+  company *is* the database, exactly as Phase 4.5's `saved_report_views` already argued. A `company_id` here
+  would be a column that could only ever hold one value plus a scope that could only ever be true.
+- **The unique index does not enforce one company default, and SQL is why.** Both MySQL and SQLite treat NULLs
+  as distinct in a unique index, so two `user_id IS NULL` rows would both be allowed. What enforces it is
+  `updateOrCreate`, because Eloquent turns a null there into `whereNull`. The index still earns its place — the
+  per-user case is every row but one — and there is a test, precisely because the index *looks* like it is
+  doing the work.
+- **The grid is now six columns wide, because two cannot express two thirds** (item 5). Six is the smallest
+  grid giving all three widths as whole columns (3, 4, 6) and the change is invisible to everything already
+  built: every widget declares either `$columnSpan = 1` — half of the old two-column grid, three of this one —
+  or `'full'`, which is a keyword rather than a number and means the same in any grid. The default is read off
+  each widget's own property by reflection rather than assumed, which is what made that claim checkable.
+- **A width equal to the widget's own is stored as nothing at all**, which is item 1's "partial override"
+  applied to widths as well as order: somebody who never widened a chart follows that chart's own default if it
+  ever changes, rather than being pinned to whatever it was the day they arranged their dashboard.
+- **The width arrives as a public property, and the trait that carries it is composed into
+  `WidgetBelongsToModule`.** Filament hands a widget its configuration as Livewire mount properties, and
+  Livewire only assigns public ones — `$columnSpan` is protected, so it cannot be the one. Composing into the
+  trait every widget already uses means a widget cannot be added without the ability to be widened, where a
+  second trait would have been a second thing to remember with no second decision behind it. Its fallback to
+  the widget's own span is load-bearing rather than defensive: a widget on a resource page is in a two-column
+  grid and would be a sixth of a page wide if it were handed a dashboard width.
+- **Item 6 is Filament's own interaction, but its column manager rather than a drag handle per widget
+  header**, and the deviation is worth stating. Two things stand in the way of dragging the live widgets. A
+  handle has to live in each widget's header and *a stats overview has no header* — three of the widget kinds
+  on this dashboard render markup this application does not own, so a handle would mean overriding Filament's
+  widget views rather than using them. And every drop is a Livewire round trip, so leaving twenty-odd widgets
+  rendered would remount each one and re-run the aggregates behind it every time somebody moved a card. What
+  landed is the shape Filament already uses for exactly this job — a list of names with a control and a handle
+  each, same directives, same handle icon. Arranging shows the arrangement; the figures come back when you
+  press Done.
+- **Two memos, cleared on every write, and they fail differently.** Livewire mutates and re-renders inside one
+  request, so a memo that outlived a write would draw the arrangement as it was before the drop — Phase 5.8's
+  mistake in a different costume. One test proves the *rendering* is rebuilt and another that two changes in one
+  pass *compose* rather than overwrite; the second exists because the first left the state memo's mutation
+  alive, and hiding a widget then dragging a card would have silently undone the hide.
+- **Arranging while a module is off does not erase that module's widgets.** The arranger lists what somebody
+  can see, so a drop sends back a list with the off-module widget missing, and taking that as the whole truth
+  would quietly delete it. It keeps a place at the end instead — the same treatment a widget added since the
+  layout was saved gets. Sanitising drops aliases that name *nothing*, never aliases that are inconvenient this
+  week.
+- **One query, and the budget moved by one.** `PanelPerformanceTest`'s dashboard ceiling went 32 → 33 cold and
+  the warm budget did not move at all (it measures 6 against 8). This is the sanctioned kind: the page cannot
+  render an arrangement without reading it, so there is no version of this feature with no query in it — unlike
+  the counts this file has *fixed* rather than budgeted for, each of which ran a query a correct implementation
+  did not need. What was available to reduce is reduced: one statement fetches the personal row and the company
+  default together rather than asking twice, and the page memoises it so resolving, listing and rendering share
+  a single read. Caching it was rejected — `DashboardCache`'s TTL is five minutes, so somebody would drag a card
+  and watch it spring back. A stale figure is a trade this application makes; a stale arrangement is a bug
+  report.
+- **The dashboard renders 332 KB against its 350 KB ceiling** with 24 widgets registered, up from the 304.7 KB
+  measured at 17 in Phase 5.7. The arranger costs nothing on the ordinary page: it is not rendered unless
+  somebody opens it.
+- **Two things found while starting this phase, both committed separately.** `SavedReportView` (Phase 4.5) was
+  never added to Core's manifest and neither was the `Dashboard` page (Phase 5.1), so
+  `ModuleCoverageTest::test_every_model_is_in_the_morph_map` and its Filament-class twin had been red since
+  those commits. Registering the page pulled in what registering a page is supposed to pull in — a Help topic,
+  which the dashboard had never had.
+- **A Filament trap worth knowing, from the tests.** A page's header actions are built when the component
+  boots, so `->set('arranging', true)` on a mounted page does not rebuild them and the action added by that
+  mode is not there to find. Mounting with the property set does. In a browser every property change is its own
+  request and the question never arises.
+- 35 tests, 88 assertions; 17 mutations tried and all 17 killed — two of them only after the tests that catch
+  them were added, which is the point of trying.
+
+**2026-08-25 — the dashboard's cache (Phase 5.8). Phase 5 is complete.**
+
+- **The cache lives in the widget and never in the service, and that rule is what keeps the whole phase
+  coherent.** Phase 5's premise is that a widget and its report read one service. Put the cache in the service
+  and the *report* reads a five-minute-old figure too — and a report whose entire claim is that its rows add up
+  to its total cannot be quietly behind the ledger it reconciles against. So the services stay exact and only
+  the dashboard is allowed to be behind. There is a test that reads the service and the widget after the same
+  write and asserts they *disagree*, which is the clearest way to state a deliberate staleness.
+- **The tenant is not the one you would reach for.** This application has two notions of a current company:
+  spatie's `Company::current()`, made current by its middleware in a real request, and Filament's
+  `Filament::getTenant()`, set by the panel. **They do not agree under test** — `InteractsWithTenant` sets
+  Filament's and leaves spatie's null — so the first version of this cache keyed on `Company::current()` and
+  silently never cached at all. Four tests failed identically and the cause was one line.
+- **The same defect was in Phase 5.7's `DashboardStats` memo**, added a commit earlier and keyed the same wrong
+  way: every company resolved under one `'none'`, so a test iterating two companies would have served the
+  first one's figures under the second one's name. Found by fixing this and looking. `NavigationBadge` has read
+  `Filament::getTenant()` all along, for exactly this reason.
+- **The period is in the key, which is a second leak and easier to miss than the first.** Without it, switching
+  the dashboard from this month to the financial year would show the month's figures under the year's heading
+  for five minutes — a caching bug wearing a reporting bug's clothes. A test reads two periods in one pass to
+  prove it.
+- **The user is in the key too**, because several widgets are scoped to what that person may see and one to
+  their own work. A shared key there is a data leak rather than a wrong number.
+- **In the key itself, not left to the store's prefix.** spatie's `PrefixCacheTask` prefixes per company while
+  a tenant is current, but that is a property of the *store*, and the array store this suite runs on ignores
+  prefixes entirely — so a guard that relied on it would pass in production and leak in the tests, which is
+  backwards from what a test should tell you.
+- **Four widgets are cached and the rest deliberately are not.** The revenue chart (twelve `profitAndLoss()`
+  calls — the widget the item names), billable share (three queries a month, up to twelve months), largest
+  debtors (the ageing service loads every open invoice), and stock on hand (a walk over every active product).
+  The others are one grouped query each, and the leave queue and the SLA breach count are worth *more* fresh
+  than fast — a queue that is five minutes stale is a queue somebody has already actioned.
+- **No invalidation on write, deliberately.** A five-minute TTL is the trade the plan asks for; hooking every
+  posting path to clear a dashboard figure would be a great deal of coupling to save one stale number. A
+  `forget()` exists for the day somebody has to demonstrate a change taking effect.
+
+**Phase 5 in summary.** A dashboard page with a linkable period; five widget groups, fourteen new widgets, all
+fed by the services behind their own reports; every widget lazy, gated on module and permission, sorted into a
+deliberate band, and no longer polling every five seconds; the expensive four cached per tenant, per user and
+per period. Along the way it found that every widget in the panel had been polling unasked, that the headline
+stats widget was registered nowhere, that two widgets were never lazy, and that the two current-company
+mechanisms disagree under test.
+
+**2026-08-25 — the rules every widget obeys (Phase 5.7). Enforcing them found two faults nothing was
+watching.**
+
+- **Every widget in this panel was polling every five seconds.** `CanPoll::$pollingInterval` is `'5s'` in
+  Filament, so a dashboard of twenty-three widgets re-ran every aggregate twelve times a minute per open tab,
+  unasked. The item says "and no polling" in four words at the end of a sentence; it turns out to have been the
+  most expensive of its four requirements. All twenty-three now set `$pollingInterval = null`.
+- **`OperationsOverview` — the company's headline figures — was registered nowhere.** Core discovered
+  resources and pages but never widgets, so the one widget assembled from every module's contributions had
+  been absent from the dashboard. **How it hid is the interesting part**: the old `FilamentWidgetsSmokeTest`
+  *named* it in a hand-written list of five and rendered it directly, so it passed while the panel had never
+  heard of the class — exactly the failure Phase 5.9 describes. And enumerating the panel instead, which 5.9
+  asks for and which landed in 5.1, **could not have caught it either**: an enumeration only sees what is
+  registered. The guard that finds it compares the widget *files* against the registered set, and is now in
+  `DashboardWidgetRulesTest`.
+- **Two widgets were not lazy** — `CashFlowChart` and `PayrollByEmployeeChart`, both predating this phase.
+  "Without exception" is the item's wording and now the test's.
+- **Sorts are `DashboardWidgets` constants, not twenty-three magic numbers.** A widget writing
+  `DashboardWidgets::MONEY + 3` says which band it is in and leaves the arithmetic visible. Deliberately *not*
+  a central list naming every widget in order: that is `docs/module-packaging-plan.md` §8's Group A, host code
+  holding a list of what each module owns, editable only from outside the module. Each widget states its own
+  position; the constants only say what positions mean. The nine that predated Phase 5 sat on 0–8 in discovery
+  order and are now placed in bands, with a one-line reason on each about *why* it sits where it does.
+- **A test rather than twenty-three careful edits.** Fixing the widgets is a commit; keeping them fixed is
+  `DashboardWidgetRulesTest` — which checks the trait, laziness, polling, band membership, no duplicate sorts,
+  the band order, and both halves of the gate (module off → hidden; no permissions → hidden) across every
+  registered widget at once. The next widget somebody adds fails there if it forgets any of it.
+- **Registering the missing widget put the dashboard one query over its budget, and the query was fixed rather
+  than budgeted for** — which is what `PanelPerformanceTest`'s own comment demands of query counts, as against
+  page size. `OperationsOverview::canView()` resolves every contributed stat to decide whether to show any,
+  then `getStats()` resolves them again; the widget's docblock has always said so. `DashboardStats::resolve()`
+  now memoises per request, **keyed on the company**, because `docs/page-load-performance-plan.md` names
+  caching without the tenant in the key as a cross-tenant leak. Cleared by `register()` as well as `flush()`,
+  since a contribution arriving after a resolve would otherwise never appear.
+- **One self-inflicted mistake worth recording**: my own cleanup of Pint's unrelated reformatting reverted the
+  `CorePlugin` fix along with it, because the filter spared only `Filament/Widgets/` paths. The test caught it
+  immediately, which is the argument for writing the guard before the fix rather than after.
+
+**2026-08-25 — the inventory widget (Phase 5.6). All five of Phase 5's widget groups are now in.**
+
+- **The item's condition is met: Phase 2.4 exists, so this is that valuation.**
+  `InventoryReports::summary()` reads `InventoryValuationService::valuationForAll()` — the same call behind
+  the Stock on Hand report.
+- **The sharp end was not the valuation but the reorder rule, and it was already a bug once.** A reorder level
+  of nought means there is *no* level rather than a level of nought: the column defaults to `0`, so treating it
+  as a threshold flagged every product that had merely been sold out, since `0 <= 0`. Phase 2.4's own tests
+  caught that in the report. A widget re-deriving the flag would have reproduced it — so the rule is now
+  `InventoryReports::reorderLevelFor()` and `isBelowReorder()`, extracted, with the report's inline copy
+  replaced by a call to them. The report's eighteen tests still pass on the extraction, which is the point of
+  doing it that way round.
+- **Two loops, one set of rules, and a test that pins their agreement.** `summary()` walks products
+  separately from `stockOnHand()` rather than sharing one pass: sharing would mean the report walking its
+  products twice per render, or the dashboard depending on the shape of a table's rows. What is shared is every
+  *rule* — the reorder threshold, staleness, the valuation itself — and a test asserts the widget's stock value
+  equals the report's own tile rather than a literal.
+- **Stale stock sits beside the reorder count**, because they are opposite problems that a total hides: one is
+  stock about to run out, the other stock nobody has touched in ninety days, and a stock value made mostly of
+  the second is a very different figure from one made mostly of the first. A product that has never moved
+  counts as stale, which is the report's reading and its reason — treating "no history" as fresh would hide
+  every product somebody set up and forgot.
+- **A product with a level and no movements at all is counted.** It has no row in `stock_movements`, so a
+  summary built from the valuation alone would never see it — and it is exactly what a reorder flag is for.
+- **The fixture had to go through `InventoryService`.** `stock_movements.type` is NOT NULL and a purchase also
+  posts to the ledger, so the hand-built row I reached for first was both invalid and unrepresentative of
+  anything the application does. Fourth fixture correction of this session, and the same lesson each time: the
+  model's own API knows things a plausible insert does not.
+
+**2026-08-25 — the people widgets (Phase 5.2). Four figures across four modules, and a fixture that found a
+real bug rather than a fixture bug.**
+
+- **`LeaveRequest`'s column is `from_date`, and the widget said `start_date`.** An absent Eloquent attribute
+  reads as null rather than erroring, so the "leave already started while nobody answered" figure was
+  *silently always nought* — the sharpest row in the queue, permanently empty. Every structural assertion
+  passed; it took a fixture insert failing on a NOT NULL to expose it. That is the third time this session a
+  wrong column name has been invisible until something asserted a value, and the first time the widget rather
+  than the test was wrong.
+- **Two service methods were added rather than querying in the widgets**, each in the class that owns the
+  concept. `HeadcountReports::summary()` sits beside the Headcount Movement report's own loop and reuses its
+  `headcountAt()`, which matters more here than anywhere in Phase 5: that helper compares date *strings*
+  because `left_on` is a date cast and a boundary is an instant, and getting it wrong once already reported
+  200% turnover for a month in which one person of one left. A widget with its own `whereNull` would have
+  reproduced the bug instead of inheriting the fix.
+- **`AttendanceRegister::daySummary()` is one grouped query, not the register's grid.** `forMonth()` needs a
+  row per employee per day; a dashboard wants four numbers about one day, and running the grid to get them is
+  the per-row shape this plan's own risk list names.
+- **Unmarked attendance days are on the dashboard, because they are the finding.** A day nobody recorded is
+  not a day nobody worked — the register's note leads with them for that reason — and "12 present" for a
+  company of thirty with eighteen absent from every figure reads as an attendance problem rather than a
+  recording one. Half days and home working count as present: one is a shorter day, the other a different
+  desk, and neither is an absence. Lateness is counted from the days somebody attended, so a late arrival is
+  present *and* late rather than a status of its own.
+- **Leave uses the model's `pending()` scope and no new service method**, and that is deliberate: the scope
+  *is* the shared definition of "awaiting a decision", so a widget writing `where('status', 'pending')` would
+  be a second copy that a fourth status would break. The oldest wait is named beside the count, because a
+  queue of five is a different problem from one request sitting for a month and a count cannot tell them apart.
+- **Documents already expired are counted apart from documents expiring.** Both come back from
+  `DocumentExpiryCheck::due()` — including the part a fresh query would get wrong, that an expired document
+  keeps being reported because "an expired visa is not a warning that stops being true" — and folding them
+  together would put a lapsed work permit in the same figure as one with three weeks left.
+- **Two more widgets ignore the period, and say so on the stat.** The leave queue and the expiring documents
+  are facts about now; filtering them by the dashboard's span would hide the oldest requests and the nearest
+  expiries, which are exactly what they exist to surface. Three widgets now ignore the filter and each says
+  so, because two thirds of the dashboard *does* move with it and a reader would otherwise assume they all do.
+
+**2026-08-25 — the service widgets (Phase 5.4). Two of this item's three instructions were followed in spirit
+rather than to the letter, and both departures are the interesting part.**
+
+- **The item names `TimesheetService::utilisationFor()`; this uses `utilisation()`.** The named method answers
+  for *one* employee and reaches `AttendanceCalendar::summarise()`, which walks every day of the month doing a
+  holiday and a shift-pattern lookup per day. The service's own docblock says what looping it over a company
+  costs: "hundreds of queries for one screen — the exact fault `docs/page-load-performance-plan.md` was
+  written about, and the risk `docs/reports-expansion-plan.md` names for these reports by name". The
+  company-wide `utilisation()` is three queries a month whatever the headcount, and is what the Timesheet
+  Utilisation report already uses. Following the plan literally here would have built the thing the plan
+  elsewhere warns about.
+- **The item asks for "billable utilisation"; this reports billable *share*.** `TimesheetService` refuses to
+  state capacity and gives the reason: `expected_hours` is null in every branch because a rule making
+  timesheets and attendance reconcile "would make people book the difference somewhere to make the screen
+  agree, which produces worse data than the gap it closed". A dashboard percentage against an invented
+  denominator would have undone that decision quietly, on the one screen where a figure reads as fact.
+  Billable share needs no assumption about what somebody's month should have held, and there is a test that
+  the widget says nothing about capacity at all.
+- **`utilisation()` answers per month, so the widget sums every month the period touches.** A quarter is three
+  calls, a financial year to date at most twelve — bounded and small. Showing one month under a label reading
+  "this quarter" would have been the easy version and the wrong one. Headcount is counted across the whole
+  span, so somebody who booked in January and not February is one person rather than two halves.
+- **The SLA widget's two halves read the period differently, and the plan's own wording is why.** Compliance
+  is "this month" — a rate over a window. Breaches are "outstanding **now**", and `breaches()` takes no
+  arguments at all, because a breach outstanding in March and since resolved is not something to act on today.
+  So one stat moves with the filter and one does not, and the widget says so on the stat rather than leaving a
+  reader to assume they match.
+- **Resolution, not response, is the headline.** `performance()` reports both, and a company that answers
+  within the hour and fixes nothing has met its response commitment and failed its customer.
+- **Two of my fixtures passed for the wrong reason, from one cause.** `Ticket`'s category key is `category_id`
+  and I wrote `ticket_category_id`, which mass assignment dropped silently — so the tickets were
+  *uncategorised*, had no SLA, and therefore counted as compliant. One test asserted 100% and got it; another
+  looked for a breach and found none. The compliance test now creates a ticket that genuinely blows its
+  commitment and asserts the category came out right, so a null category cannot satisfy it. Separately,
+  `timesheets.require_approval_to_bill` defaults to **true**, so unapproved time is correctly excluded from
+  WIP — my entries had no `approved_at` and every WIP figure was nought.
+
+**And the dashboard's size ceiling moved, 300 to 350 — the sanctioned case rather than the formality.**
+
+- `PanelPerformanceTest`'s comment draws the distinction itself: "raise a ceiling for markup a new screen
+  legitimately adds; never raise one to make a page that got heavier for no reason pass." Phase 5 replaces the
+  dashboard with five groups of widgets; eight of them put it at 304.7 KB against 300.
+- **Unlike the reports hub, there is nothing per-item to reduce.** The hub's fix was real — 30.4 KB of inline
+  icons became 6.2 KB of sprite references — but a widget's cost *is* its Livewire component, and the only way
+  to render fewer bytes is to render fewer widgets.
+- Measured: 304.7 KB, 17 widgets registered, 23.7 KB of Livewire snapshots — about 1.4 KB all-in per widget.
+  Phase 5's remaining groups are roughly six more, so ~313 KB; 350 leaves room for about twenty-six widgets
+  beyond the plan, which is deliberately more than it needs so this stays a ratchet.
+- Recorded in the test for whoever needs the bytes back: **88.6 KB of the dashboard is inline SVG**, most of it
+  the domain rail's flyouts. That is where the fat is, not the widgets.
 
 **2026-08-24 — the sales widgets (Phase 5.3), including the one widget the period filter must not touch.**
 

@@ -53,6 +53,7 @@
         "App\\Models\\DailyLogManpower": "App\\Modules\\ConstructionField\\Models\\DailyLogManpower",
         "App\\Models\\DailyLogPhoto": "App\\Modules\\ConstructionField\\Models\\DailyLogPhoto",
         "App\\Models\\DailyLogPlant": "App\\Modules\\ConstructionField\\Models\\DailyLogPlant",
+        "App\\Models\\DashboardLayout": "App\\Modules\\Core\\Models\\DashboardLayout",
         "App\\Models\\DelayEvent": "App\\Modules\\ConstructionField\\Models\\DelayEvent",
         "App\\Models\\Document": "App\\Modules\\Construction\\Models\\Document",
         "App\\Models\\DocumentRevision": "App\\Modules\\Construction\\Models\\DocumentRevision",
@@ -160,6 +161,7 @@
         "App\\Models\\ReviewCycle": "App\\Modules\\Performance\\Models\\ReviewCycle",
         "App\\Models\\Rfi": "App\\Modules\\ConstructionField\\Models\\Rfi",
         "App\\Models\\SalarySlab": "App\\Modules\\Payroll\\Models\\SalarySlab",
+        "App\\Models\\SavedReportView": "App\\Modules\\Core\\Models\\SavedReportView",
         "App\\Models\\SalesTarget": "App\\Modules\\Crm\\Models\\SalesTarget",
         "App\\Models\\ScheduledTransaction": "App\\Modules\\Accounting\\Models\\ScheduledTransaction",
         "App\\Models\\ScheduledTransactionLine": "App\\Modules\\Accounting\\Models\\ScheduledTransactionLine",
@@ -193,7 +195,9 @@
         "App\\Models\\WorkPattern": "App\\Modules\\Attendance\\Models\\WorkPattern",
         "App\\Models\\WorkPatternDay": "App\\Modules\\Attendance\\Models\\WorkPatternDay",
         "App\\Models\\WipSnapshot": "App\\Modules\\ConstructionCosting\\Models\\WipSnapshot",
-        "App\\Models\\Worker": "App\\Modules\\ConstructionCosting\\Models\\Worker"
+        "App\\Models\\Worker": "App\\Modules\\ConstructionCosting\\Models\\Worker",
+        "App\\Models\\CommandUtterance": "App\\Modules\\Accounting\\Models\\CommandUtterance",
+        "App\\Models\\TransactionTypeAlias": "App\\Modules\\Accounting\\Models\\TransactionTypeAlias"
     },
     "resources": {
         "App\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource": "App\\Modules\\Core\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource",
@@ -329,6 +333,7 @@
         "App\\Filament\\Pages\\CsvImport": "App\\Modules\\Core\\Filament\\Pages\\CsvImport",
         "App\\Filament\\Pages\\CurrencyRevaluation": "App\\Modules\\Accounting\\Filament\\Pages\\CurrencyRevaluation",
         "App\\Filament\\Pages\\ConstructionCosting\\WipReport": "App\\Modules\\ConstructionCosting\\Filament\\Pages\\WipReport",
+        "App\\Filament\\Pages\\Dashboard": "App\\Modules\\Core\\Filament\\Pages\\Dashboard",
         "App\\Filament\\Pages\\FbrInvoiceReporting": "App\\Modules\\Invoicing\\Filament\\Pages\\FbrInvoiceReporting",
         "App\\Filament\\Pages\\FbrTaxFile": "App\\Modules\\Payroll\\Filament\\Pages\\FbrTaxFile",
         "App\\Filament\\Pages\\FindTransactions": "App\\Modules\\Accounting\\Filament\\Pages\\FindTransactions",
@@ -379,6 +384,14 @@
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },
     "widgets": {
+        "App\\Filament\\Widgets\\StockOnHandOverview": "App\\Modules\\Inventory\\Filament\\Widgets\\StockOnHandOverview",
+        "App\\Filament\\Widgets\\LeaveAwaitingDecisionOverview": "App\\Modules\\Leave\\Filament\\Widgets\\LeaveAwaitingDecisionOverview",
+        "App\\Filament\\Widgets\\HeadcountOverview": "App\\Modules\\Employees\\Filament\\Widgets\\HeadcountOverview",
+        "App\\Filament\\Widgets\\DocumentsExpiringOverview": "App\\Modules\\Lifecycle\\Filament\\Widgets\\DocumentsExpiringOverview",
+        "App\\Filament\\Widgets\\AttendanceTodayOverview": "App\\Modules\\Attendance\\Filament\\Widgets\\AttendanceTodayOverview",
+        "App\\Filament\\Widgets\\UnbilledWipOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\UnbilledWipOverview",
+        "App\\Filament\\Widgets\\SlaComplianceOverview": "App\\Modules\\Support\\Filament\\Widgets\\SlaComplianceOverview",
+        "App\\Filament\\Widgets\\BillableShareOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\BillableShareOverview",
         "App\\Filament\\Widgets\\QuotationsExpiringList": "App\\Modules\\Quotations\\Filament\\Widgets\\QuotationsExpiringList",
         "App\\Filament\\Widgets\\PipelineFunnelChart": "App\\Modules\\Crm\\Filament\\Widgets\\PipelineFunnelChart",
         "App\\Filament\\Widgets\\ForecastAgainstTargetOverview": "App\\Modules\\Crm\\Filament\\Widgets\\ForecastAgainstTargetOverview",
@@ -395,5 +408,18 @@
         "App\\Filament\\Widgets\\OperationsOverview": "App\\Modules\\Core\\Filament\\Widgets\\OperationsOverview",
         "App\\Filament\\Widgets\\PayrollByEmployeeChart": "App\\Modules\\Payroll\\Filament\\Widgets\\PayrollByEmployeeChart",
         "App\\Filament\\Widgets\\ReceivablesPayablesOverview": "App\\Modules\\Invoicing\\Filament\\Widgets\\ReceivablesPayablesOverview"
+    },
+    "datasets": {
+        "App\\Reporting\\EmployeeDataset": "App\\Modules\\Employees\\Reporting\\EmployeeDataset",
+        "App\\Reporting\\InvoiceDataset": "App\\Modules\\Invoicing\\Reporting\\InvoiceDataset",
+        "App\\Reporting\\InvoiceLineDataset": "App\\Modules\\Invoicing\\Reporting\\InvoiceLineDataset",
+        "App\\Reporting\\JournalLineDataset": "App\\Modules\\Accounting\\Reporting\\JournalLineDataset",
+        "App\\Reporting\\LeaveDayDataset": "App\\Modules\\Leave\\Reporting\\LeaveDayDataset",
+        "App\\Reporting\\OpportunityDataset": "App\\Modules\\Crm\\Reporting\\OpportunityDataset",
+        "App\\Reporting\\PayslipComponentDataset": "App\\Modules\\Payroll\\Reporting\\PayslipComponentDataset",
+        "App\\Reporting\\PayslipDataset": "App\\Modules\\Payroll\\Reporting\\PayslipDataset",
+        "App\\Reporting\\StockMovementDataset": "App\\Modules\\Inventory\\Reporting\\StockMovementDataset",
+        "App\\Reporting\\TicketDataset": "App\\Modules\\Support\\Reporting\\TicketDataset",
+        "App\\Reporting\\TimesheetEntryDataset": "App\\Modules\\Timesheets\\Reporting\\TimesheetEntryDataset"
     }
 }
