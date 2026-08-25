@@ -70,9 +70,32 @@ class PanelPerformanceTest extends TestCase
      * than silent. That is the same discipline as this increase, not the opposite of it: **the rule decides what exists
      * and the budget accommodates what the rule allows.** What must never happen is the reverse — trimming a justified
      * count to fit, or raising the ceiling for one that was never justified.
+     *
+     * **The dashboard's cold budget moved 32 to 33 on 2026-08-25 for Phase 7's layout read**, which is the
+     * sanctioned kind rather than the kind this file has fixed instead of budgeted for. **The warm budget did not
+     * move**: the same query runs on a warm request and it measures 6 against a budget of 8, so it lands inside
+     * headroom that already existed — and a ceiling raised for a query that already fits is the formality this file
+     * keeps warning about.
+     *
+     * The distinction is worth being precise about, because the two look identical in a diff. What was *fixed* here
+     * before was waste: a badge that read a whole table to count it, a badge that eager-loaded a relation it did not
+     * use, and — in Phase 5.7 — `DashboardStats::resolve()` running twice to produce one figure. Each of those ran a
+     * query a correct implementation does not need. A per-user dashboard layout is not in that class: the page cannot
+     * render an arrangement without reading it, so there is no version of this feature with no query in it.
+     *
+     * What *was* available to reduce, and is reduced: it is **one** query rather than two or twenty. One statement
+     * fetches the personal row and the company default together — `where user_id is null or user_id = ?` — rather
+     * than asking for mine and then asking for the default when I have none; and the page memoises the answer, so
+     * resolving the widgets, listing them for the arranger and rendering them share a single read. The exact count
+     * matters, which is why it is measured rather than estimated: 33 cold and 6 warm, with `dashboard_layouts`
+     * appearing exactly once in each statement list.
+     *
+     * Caching it would have saved that one query and was rejected: `DashboardCache`'s TTL is five minutes, so
+     * somebody would drag a card and watch it spring back. A stale *figure* is a trade this application makes
+     * deliberately; a stale *arrangement* is a bug report.
      */
     private const BUDGET = [
-        'dashboard' => ['cold' => 32, 'warm' => 8],
+        'dashboard' => ['cold' => 33, 'warm' => 8],
         'employees' => ['cold' => 30, 'warm' => 10],
         'reports' => ['cold' => 29, 'warm' => 6],
     ];
