@@ -42,6 +42,17 @@ class CommandInterpretation
         public readonly ?Carbon $date = null,
         public readonly ?string $description = null,
         public readonly array $questions = [],
+        /**
+         * Outstanding slots that can be answered from a list, as `slot => the question`.
+         *
+         * A subset of `questions`, carrying the one extra fact the confirmation needs to be useful: *which
+         * slot* is missing, so it can offer that slot's values instead of only stating the problem.
+         * "How much?" is absent by design — an amount is not a menu, and a question with no list stays a
+         * question.
+         *
+         * @var array<string, string>
+         */
+        public readonly array $unresolved = [],
         public readonly array $flags = [],
         public readonly float $confidence = 0.0,
     ) {}

@@ -48,6 +48,54 @@ class CommandBar extends Component
     public bool $busy = false;
 
     /**
+     * What the user picked for a slot the parser could not fill, as slot => value.
+     *
+     * @var array<string, string>
+     */
+    public array $answers = [];
+
+    /**
+     * Answering a question re-resolves the command through the resolver that asked it.
+     *
+     * Re-running `resolve()` rather than patching the proposal in place is what keeps the answer honest:
+     * the picked value goes back through the same tenant lookup, the same validation and the same
+     * effect-line rules as a parsed one, so a chosen category cannot reach the ledger by a route a parsed
+     * one could not.
+     */
+    public function updatedAnswers(mixed $value, string $slot): void
+    {
+        $row = $this->row();
+
+        if ($row === null || $value === '' || $value === null) {
+            return;
+        }
+
+        $resolver = app(CommandInterpreter::class)->resolverFor($row->resolver);
+
+        if ($resolver === null) {
+            return;
+        }
+
+        /*
+         * Only ever a value this resolver offered.
+         *
+         * A <select> is a browser control and its options are whatever the browser says they are — the
+         * value arriving here is user input, not a menu choice, however it was rendered. Checking it
+         * against `choices()` is the same re-fetch-inside-the-tenant rule §8 applies to model replies,
+         * for the same reason.
+         */
+        if (! array_key_exists($value, $resolver->choices($slot))) {
+            return;
+        }
+
+        $parsed = $row->parsed ?? [];
+        $parsed[$slot] = $value;
+        $row->update(['parsed' => $parsed]);
+
+        $this->preview = $this->present($resolver->resolve($row->refresh(), $parsed));
+    }
+
+    /**
      * Off unless switched on and configured, so the trigger opens nothing rather than something broken.
      *
      * **Static as well as instance** because two things have to agree on the answer: this component, which
@@ -94,12 +142,12 @@ class CommandBar extends Component
         $this->speechLocale = $locale;
 
         // A new dictation replaces any proposal on screen: the old preview belongs to different words.
-        $this->reset('preview', 'utteranceId');
+        $this->reset('preview', 'utteranceId', 'answers');
     }
 
     public function interpret(): void
     {
-        $this->reset('preview', 'utteranceId');
+        $this->reset('preview', 'utteranceId', 'answers');
 
         if (trim($this->utterance) === '') {
             return;
@@ -151,7 +199,7 @@ class CommandBar extends Component
             ->body($interpretation->effectLine().' · '.$entry->entry_number)
             ->send();
 
-        $this->reset('utterance', 'transcript', 'speechLocale', 'preview', 'utteranceId');
+        $this->reset('utterance', 'transcript', 'speechLocale', 'preview', 'utteranceId', 'answers');
         $this->dispatch('command-booked');
     }
 
@@ -161,7 +209,7 @@ class CommandBar extends Component
             app(CommandBooker::class)->cancel($interpretation, 'dismissed from the command bar');
         }
 
-        $this->reset('utterance', 'transcript', 'speechLocale', 'preview', 'utteranceId');
+        $this->reset('utterance', 'transcript', 'speechLocale', 'preview', 'utteranceId', 'answers');
     }
 
     /**
@@ -173,14 +221,7 @@ class CommandBar extends Component
      */
     private function current(): ?CommandInterpretation
     {
-        if ($this->utteranceId === null) {
-            return null;
-        }
-
-        $row = CommandUtterance::query()
-            ->whereKey($this->utteranceId)
-            ->where('user_id', auth()->id())
-            ->first();
+        $row = $this->row();
 
         if (! $row) {
             return null;
@@ -191,19 +232,78 @@ class CommandBar extends Component
         return app(CommandInterpreter::class)->resolverFor($row->resolver)?->rehydrate($row);
     }
 
+    /**
+     * The audit row this component is working on, re-read and re-scoped on every use.
+     *
+     * Scoped to the signed-in user as well as the tenant, because the id travels in component state and a
+     * component property is something the browser can change. Without this, a swapped id would let one
+     * user answer — or confirm — another's pending command.
+     */
+    private function row(): ?CommandUtterance
+    {
+        if ($this->utteranceId === null) {
+            return null;
+        }
+
+        return CommandUtterance::query()
+            ->whereKey($this->utteranceId)
+            ->where('user_id', auth()->id())
+            ->first();
+    }
+
     /** @return array<string, mixed> */
     private function present(CommandInterpretation $interpretation): array
     {
+        $pickers = $this->pickers($interpretation);
+
         return [
             'effect' => $interpretation->effectLine(),
             'detail' => $interpretation->detailLine(),
             'description' => $interpretation->description,
-            'questions' => $interpretation->questions,
+            // Only the questions with nothing to answer them. A slot that got a picker states its question
+            // as the picker's label, and printing it twice reads as two separate problems.
+            'questions' => array_values(array_diff(
+                $interpretation->questions,
+                array_column($pickers, 'question'),
+            )),
+            'pickers' => $pickers,
             'flags' => $interpretation->flags,
             'complete' => $interpretation->isComplete(),
             'explicit' => $interpretation->needsExplicitConfirmation(),
             'error' => null,
         ];
+    }
+
+    /**
+     * A list to answer each outstanding question with, where the resolver can offer one.
+     *
+     * The component asks by slot name and renders whatever comes back — it never learns that a cash
+     * command has a direction or that a claim has an employee. That is the same seam §7 draws for the
+     * prompt and the schema, extended to the one place the user has to make up for what the parser could
+     * not read.
+     *
+     * @return array<int, array{slot: string, question: string, options: array<int|string, string>}>
+     */
+    private function pickers(CommandInterpretation $interpretation): array
+    {
+        $resolver = app(CommandInterpreter::class)->resolverFor($interpretation->resolverKey);
+
+        if ($resolver === null) {
+            return [];
+        }
+
+        $pickers = [];
+
+        foreach ($interpretation->unresolved as $slot => $question) {
+            $options = $resolver->choices($slot);
+
+            // A slot with no closed list stays a plain question — there is no menu for "How much?".
+            if ($options !== []) {
+                $pickers[] = ['slot' => $slot, 'question' => $question, 'options' => $options];
+            }
+        }
+
+        return $pickers;
     }
 
     public function render()

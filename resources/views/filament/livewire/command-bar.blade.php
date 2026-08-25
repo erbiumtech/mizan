@@ -209,6 +209,32 @@
                             <p class="cb-memo">“{{ $preview['description'] }}”</p>
                         @endif
 
+                        {{--
+                            A question with a list beside it, rather than a question on its own.
+
+                            The bar always preferred asking over guessing, and that half was right — but
+                            the ask was a dead end. "What should this be filed under?" appeared with no
+                            way to answer it, so the only route forward was to retype the whole command
+                            using a word the alias table happened to know. From the outside that is
+                            indistinguishable from the command being ignored, and it is how it was
+                            reported: "income 500000 in — nothing happened."
+
+                            Picking re-resolves through the resolver that asked, so a chosen value goes
+                            through the same tenant lookup and the same rules as a parsed one.
+                        --}}
+                        @foreach ($preview['pickers'] ?? [] as $picker)
+                            <label class="cb-pick">
+                                <span class="cb-question">{{ $picker['question'] }}</span>
+
+                                <select wire:model.live="answers.{{ $picker['slot'] }}" class="cb-select">
+                                    <option value="">Choose…</option>
+                                    @foreach ($picker['options'] as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endforeach
+
                         @foreach ($preview['questions'] as $question)
                             <p class="cb-question">{{ $question }}</p>
                         @endforeach
@@ -285,6 +311,8 @@
         .cb-detail { font-size: .8125rem; color: #6b7280; margin: 0 0 .25rem; }
         .cb-memo { font-size: .8125rem; color: #9ca3af; font-style: italic; margin: 0 0 .5rem; }
         .cb-question { font-size: .8125rem; color: #b45309; margin: .25rem 0; }
+        .cb-pick { display: block; margin: .5rem 0; }
+        .cb-select { width: 100%; margin-top: .25rem; padding: .4rem .5rem; border: 1px solid #e5e7eb; border-radius: 8px; background: transparent; color: inherit; font-size: .875rem; }
         .cb-flag { font-size: .8125rem; color: #b45309; margin: .5rem 0 0; }
         .cb-error { font-size: .8125rem; color: #b91c1c; margin: 0; }
 
@@ -321,6 +349,8 @@
         .dark .cb-listening { color: #a1a1aa; }
         .dark .cb-detail { color: #a1a1aa; }
         .dark .cb-question, .dark .cb-flag { color: #fbbf24; }
+        .dark .cb-select { border-color: #3f3f46; }
+        .dark .cb-select option { background: #18181b; }
         .dark .cb-cancel { border-color: #27272a; color: #a1a1aa; }
         .dark .cb-footer kbd { background: #27272a; color: #a1a1aa; }
     </style>
