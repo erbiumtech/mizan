@@ -851,6 +851,58 @@ class AiCommandBotTest extends AccountingTestCase
         $this->assertStringNotContainsString('keydown.window.meta.j.prevent', $html, '⌘J cannot be the way in');
     }
 
+    /**
+     * **The second half of "nothing happened": the dialog closed itself on Enter.**
+     *
+     * `showModal()` opens a `<dialog>` by setting an `open` attribute. Interpreting is a Livewire round
+     * trip, Livewire morphs the response over the live DOM, and the server HTML carries no `open` — so the
+     * morph removed the one the browser had set and the box vanished. The proposal was rendered perfectly,
+     * into something no longer on screen.
+     *
+     * `.self` maps to Alpine morph's `childrenOnly()`: the element's own attributes are left alone and the
+     * children still update. Plain `wire:ignore` would freeze the proposal, which is the one thing here
+     * that has to change — so the modifier is asserted, not just the directive.
+     *
+     * PHPUnit does not morph anything, so presence of the attribute is the whole of what can be checked
+     * here. It is still worth checking: the failure it guards against is invisible and looks like a
+     * backend bug.
+     */
+    public function test_the_dialog_survives_a_livewire_round_trip(): void
+    {
+        $html = Livewire::test(CommandBar::class)->html();
+
+        $this->assertMatchesRegularExpression(
+            '/<dialog\b[^>]*\bwire:ignore\.self\b/',
+            $html,
+            'without wire:ignore.self the morph strips `open` and the dialog shuts on Enter',
+        );
+    }
+
+    /**
+     * **The third "nothing happened": Confirm rendered, in white, on white.**
+     *
+     * `rgb(var(--primary-600, 217 119 6))` is a Filament 3 idiom. Filament 5 defines its palette as
+     * complete colour values (`oklch(...)`), so the wrapper produces `rgb(oklch(...))` — invalid, and the
+     * browser drops the entire declaration. The button lost its background and kept `color: #fff`.
+     *
+     * The declared fallback did not help, which is the subtle part: `var(--x, fallback)` uses the fallback
+     * only when the variable is **undefined**. It was defined and the wrong shape, so nothing caught it.
+     *
+     * Asserted as an absence across the whole rendered output rather than on one selector, because the
+     * same idiom had been copied into three other views and each one failed in the same silent way.
+     */
+    public function test_the_confirm_button_has_a_colour_the_browser_accepts(): void
+    {
+        $html = Livewire::test(CommandBar::class)->html();
+
+        $this->assertStringContainsString('background: var(--primary-600', $html, 'the variable is used bare');
+        $this->assertDoesNotMatchRegularExpression(
+            '/rgba?\(\s*var\(--primary/',
+            $html,
+            'wrapping a Filament 5 colour variable in rgb() voids the declaration silently',
+        );
+    }
+
     /** And a button, because a shortcut is not discoverable and this one has no menu entry to discover. */
     public function test_the_topbar_offers_a_way_in(): void
     {
