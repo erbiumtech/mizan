@@ -5,6 +5,7 @@ namespace App\Modules\Crm\Filament\Widgets;
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Crm\Models\Pipeline;
 use App\Modules\Crm\Services\PipelineReports;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\ChartWidget;
 
 /**
@@ -42,10 +43,17 @@ class PipelineFunnelChart extends ChartWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    /** Sales band — see RevenueAndExpensesChart for the scheme. */
-    protected static ?int $sort = 20;
+    protected static ?int $sort = DashboardWidgets::SALES;
 
     protected static bool $isLazy = true;
+
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
 
     public function getHeading(): ?string
     {

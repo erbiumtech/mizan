@@ -4,6 +4,7 @@ namespace App\Modules\Timesheets\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Timesheets\Services\TimesheetService;
+use App\Support\Reporting\DashboardWidgets;
 use App\Support\Reporting\ReportFigures;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -38,10 +39,17 @@ class BillableShareOverview extends StatsOverviewWidget
 
     public ?string $periodTo = null;
 
-    /** Service band — see RevenueAndExpensesChart for the scheme. */
-    protected static ?int $sort = 31;
+    protected static ?int $sort = DashboardWidgets::SERVICE + 1;
 
     protected static bool $isLazy = true;
+
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
 
     public static function canView(): bool
     {
