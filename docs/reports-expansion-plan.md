@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–4 complete; Phase 5 all but 5.8 landed (5.1–5.7, plus 5.9's enumeration and its dashboard query ceiling, which already existed); 5.8 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–5 complete. Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -347,7 +347,7 @@ and it would be quicker to re-derive each figure inline.
    permission; `$isLazy = true` without exception, so the dashboard renders and the panels fill in;
    `$sort` set deliberately so the order is money → sales → service → people rather than discovery
    order — that order becomes the company default a user may depart from in Phase 7 — and no polling.
-8. **A cache for the expensive ones**, with the tenant in the key. `docs/page-load-performance-plan.md`
+8. *done, 2026-08-25 — the cache lives in the widget and never in the service, and the tenant is not the one you would reach for, see [What landed](#what-landed).* **A cache for the expensive ones**, with the tenant in the key. `docs/page-load-performance-plan.md`
    is explicit about the failure mode here — caching across requests without the tenant in the key is a
    cross-tenant leak — and a five-minute TTL on a twelve-month revenue series is the difference between
    a dashboard and a report that runs fifteen times a day per user.
@@ -485,6 +485,49 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — the dashboard's cache (Phase 5.8). Phase 5 is complete.**
+
+- **The cache lives in the widget and never in the service, and that rule is what keeps the whole phase
+  coherent.** Phase 5's premise is that a widget and its report read one service. Put the cache in the service
+  and the *report* reads a five-minute-old figure too — and a report whose entire claim is that its rows add up
+  to its total cannot be quietly behind the ledger it reconciles against. So the services stay exact and only
+  the dashboard is allowed to be behind. There is a test that reads the service and the widget after the same
+  write and asserts they *disagree*, which is the clearest way to state a deliberate staleness.
+- **The tenant is not the one you would reach for.** This application has two notions of a current company:
+  spatie's `Company::current()`, made current by its middleware in a real request, and Filament's
+  `Filament::getTenant()`, set by the panel. **They do not agree under test** — `InteractsWithTenant` sets
+  Filament's and leaves spatie's null — so the first version of this cache keyed on `Company::current()` and
+  silently never cached at all. Four tests failed identically and the cause was one line.
+- **The same defect was in Phase 5.7's `DashboardStats` memo**, added a commit earlier and keyed the same wrong
+  way: every company resolved under one `'none'`, so a test iterating two companies would have served the
+  first one's figures under the second one's name. Found by fixing this and looking. `NavigationBadge` has read
+  `Filament::getTenant()` all along, for exactly this reason.
+- **The period is in the key, which is a second leak and easier to miss than the first.** Without it, switching
+  the dashboard from this month to the financial year would show the month's figures under the year's heading
+  for five minutes — a caching bug wearing a reporting bug's clothes. A test reads two periods in one pass to
+  prove it.
+- **The user is in the key too**, because several widgets are scoped to what that person may see and one to
+  their own work. A shared key there is a data leak rather than a wrong number.
+- **In the key itself, not left to the store's prefix.** spatie's `PrefixCacheTask` prefixes per company while
+  a tenant is current, but that is a property of the *store*, and the array store this suite runs on ignores
+  prefixes entirely — so a guard that relied on it would pass in production and leak in the tests, which is
+  backwards from what a test should tell you.
+- **Four widgets are cached and the rest deliberately are not.** The revenue chart (twelve `profitAndLoss()`
+  calls — the widget the item names), billable share (three queries a month, up to twelve months), largest
+  debtors (the ageing service loads every open invoice), and stock on hand (a walk over every active product).
+  The others are one grouped query each, and the leave queue and the SLA breach count are worth *more* fresh
+  than fast — a queue that is five minutes stale is a queue somebody has already actioned.
+- **No invalidation on write, deliberately.** A five-minute TTL is the trade the plan asks for; hooking every
+  posting path to clear a dashboard figure would be a great deal of coupling to save one stale number. A
+  `forget()` exists for the day somebody has to demonstrate a change taking effect.
+
+**Phase 5 in summary.** A dashboard page with a linkable period; five widget groups, fourteen new widgets, all
+fed by the services behind their own reports; every widget lazy, gated on module and permission, sorted into a
+deliberate band, and no longer polling every five seconds; the expensive four cached per tenant, per user and
+per period. Along the way it found that every widget in the panel had been polling unasked, that the headline
+stats widget was registered nowhere, that two widgets were never lazy, and that the two current-company
+mechanisms disagree under test.
 
 **2026-08-25 — the rules every widget obeys (Phase 5.7). Enforcing them found two faults nothing was
 watching.**

@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Accounting\Services\FinancialReportService;
+use App\Support\Reporting\DashboardCache;
 use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
@@ -22,9 +23,11 @@ use Illuminate\Support\Carbon;
  * them is the month the period ends in — which is a real use of the filter, because reading the dashboard as
  * at last June gives the twelve months to last June.
  *
- * **Twelve calls to `profitAndLoss()` is twelve months of aggregates**, and this is the widget Phase 5.8's
- * cache exists for. It is `$isLazy` so the dashboard renders without waiting for it, and until 5.8 lands it
- * is the most expensive thing on the page — stated here rather than discovered.
+ * **Twelve calls to `profitAndLoss()` is twelve months of aggregates, and this is the widget Phase 5.8's
+ * cache was written for.** It is `$isLazy` so the dashboard renders without waiting, and the series is now
+ * behind `DashboardCache` for five minutes — keyed on the company, the user and the date the series ends on.
+ * The service itself is untouched, so the Profit & Loss report stays exact: only the dashboard is allowed to
+ * be behind.
  */
 class RevenueAndExpensesChart extends ChartWidget
 {
@@ -90,6 +93,26 @@ class RevenueAndExpensesChart extends ChartWidget
      * @return array<string, mixed>
      */
     protected function getData(): array
+    {
+        // Cached for five minutes — Phase 5.8, and this is the widget the item names. Twelve months of
+        // aggregates is the most expensive thing on the dashboard, and `getData()` is called again by
+        // `getDescription()`'s sibling render on every poll-free refresh.
+        return DashboardCache::remember(
+            'revenue-and-expenses',
+            ['ends' => $this->endsOn()],
+            fn (): array => $this->series(),
+        );
+    }
+
+    /**
+     * The twelve months, computed.
+     *
+     * Separated from `getData()` so the cache wraps one named thing rather than a closure over the whole
+     * method — and so a test can reach the uncached figures.
+     *
+     * @return array<string, mixed>
+     */
+    public function series(): array
     {
         $reports = app(FinancialReportService::class);
         $revenue = [];

@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Inventory\Support\InventoryReports;
+use App\Support\Reporting\DashboardCache;
 use App\Support\Reporting\DashboardWidgets;
 use App\Support\Reporting\ReportFigures;
 use Filament\Widgets\StatsOverviewWidget;
@@ -66,7 +67,14 @@ class StockOnHandOverview extends StatsOverviewWidget
      */
     protected function getStats(): array
     {
-        $summary = app(InventoryReports::class)->summary($this->periodTo);
+        // Cached for five minutes — Phase 5.8. `summary()` walks every active product against the
+        // valuation; the Stock on Hand report calls the same method uncached, because a report that
+        // reconciles to the ledger cannot be five minutes behind it.
+        $summary = DashboardCache::remember(
+            'stock-on-hand',
+            ['as_of' => $this->periodTo],
+            fn (): array => app(InventoryReports::class)->summary($this->periodTo),
+        );
 
         return [
             Stat::make('Stock value', ReportFigures::money($summary['value']))
