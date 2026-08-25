@@ -37,6 +37,10 @@ return [
         'App\\Filament\\Resources\\LeaveEntitlements\\LeaveEntitlementResource' => \App\Modules\Leave\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\LeaveAwaitingDecisionOverview' => \App\Modules\Leave\Filament\Widgets\LeaveAwaitingDecisionOverview::class,
+    ],
+
     'permission_groups' => [
         'LeaveRequest',
         'LeaveType',

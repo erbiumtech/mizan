@@ -26,6 +26,10 @@ return [
         'App\\Filament\\Resources\\EmployeeSettings\\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\HeadcountOverview' => \App\Modules\Employees\Filament\Widgets\HeadcountOverview::class,
+    ],
+
     'permission_groups' => [
         'Employee',
         'EmployeeSetting',

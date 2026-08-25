@@ -35,6 +35,10 @@ return [
         'App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource' => \App\Modules\Attendance\Filament\Resources\WorkPatterns\WorkPatternResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\AttendanceTodayOverview' => \App\Modules\Attendance\Filament\Widgets\AttendanceTodayOverview::class,
+    ],
+
     'permission_groups' => [
         'Attendance',
         'AttendanceRegularization',

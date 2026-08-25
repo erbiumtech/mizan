@@ -123,6 +123,42 @@ class HeadcountReports
     }
 
     /**
+     * Headcount, joiners and leavers over one span — `docs/reports-expansion-plan.md` Phase 5.2.
+     *
+     * **Here rather than in the widget, so the dashboard and the Headcount Movement report cannot disagree
+     * about who counts as employed.** That is not a hypothetical: `headcountAt()` compares date *strings*
+     * because `left_on` is a date cast and a boundary is an instant, and getting that wrong once already
+     * reported 200% turnover for a month in which one person of one left. A widget with its own `whereNull`
+     * would reproduce the bug rather than inherit the fix.
+     *
+     * Joiners counted by joining date and leavers by `left_on`, as the report counts them — and the report's
+     * own docblock explains why those are different columns: "a month's joiners is a fact about that month,
+     * and re-employment is a joining".
+     *
+     * @return array{headcount: int, joiners: int, leavers: int, opening: int}
+     */
+    public function summary(string $from, string $to): array
+    {
+        $employees = Employee::query()->get(['id', 'date_of_joining', 'left_on']);
+
+        $first = Carbon::parse($from)->toDateString();
+        $last = Carbon::parse($to)->toDateString();
+
+        return [
+            'headcount' => $this->headcountAt($employees, Carbon::parse($last)),
+            // The day before the span starts, which is what makes the net change add up: opening plus
+            // joiners less leavers is the closing figure.
+            'opening' => $this->headcountAt($employees, Carbon::parse($first)->subDay()),
+            'joiners' => $employees->filter(fn (Employee $employee): bool => $employee->date_of_joining !== null
+                && $employee->date_of_joining->toDateString() >= $first
+                && $employee->date_of_joining->toDateString() <= $last)->count(),
+            'leavers' => $employees->filter(fn (Employee $employee): bool => $employee->left_on !== null
+                && $employee->left_on->toDateString() >= $first
+                && $employee->left_on->toDateString() <= $last)->count(),
+        ];
+    }
+
+    /**
      * Turnover: leavers as a proportion of the *average* headcount.
      *
      * The average of opening and closing rather than either one, which is the conventional formula and the
