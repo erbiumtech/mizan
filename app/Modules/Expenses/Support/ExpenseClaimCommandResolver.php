@@ -139,9 +139,30 @@ class ExpenseClaimCommandResolver implements CommandResolver
         ];
     }
 
+    /**
+     * Category and employee — this resolver's two closed slots.
+     *
+     * No direction, because a claim has none. That the contract asks for slots by name rather than for a
+     * fixed set is what lets the two resolvers disagree about which slots exist at all.
+     */
+    public function choices(string $slot): array
+    {
+        return match ($slot) {
+            'transaction_type_code' => $this->categories()
+                ->mapWithKeys(fn (TransactionType $t): array => [$t->code => $t->name])
+                ->all(),
+            'employee_id' => $this->employees()
+                ->mapWithKeys(fn (Employee $e): array => [$e->id => $e->full_name ?? $e->name])
+                ->all(),
+            default => [],
+        };
+    }
+
     public function resolve(CommandUtterance $row, array $parsed): CommandInterpretation
     {
         $questions = [];
+        // Slot => question for the two answerable from a list. "How much?" stays a plain question.
+        $unresolved = [];
 
         $employee = ($parsed['employee_id'] ?? null) !== null
             // Re-fetched inside the tenant: an id from a model reply is a string from outside the system.
@@ -149,7 +170,7 @@ class ExpenseClaimCommandResolver implements CommandResolver
             : null;
 
         if ($employee === null) {
-            $questions[] = 'Who is claiming this?';
+            $questions[] = $unresolved['employee_id'] = 'Who is claiming this?';
         }
 
         $amount = null;
@@ -169,7 +190,7 @@ class ExpenseClaimCommandResolver implements CommandResolver
             : null;
 
         if ($category === null) {
-            $questions[] = 'What was it spent on?';
+            $questions[] = $unresolved['transaction_type_code'] = 'What was it spent on?';
         }
 
         $date = CommandGrammar::date($parsed['date'] ?? null);
@@ -189,7 +210,7 @@ class ExpenseClaimCommandResolver implements CommandResolver
         return $this->interpretation(
             $row->refresh(), $employee, $amount, $category, $date,
             $parsed['description'] ?? $category?->name,
-            $questions, $flags, (float) ($parsed['confidence'] ?? 0),
+            $questions, $flags, (float) ($parsed['confidence'] ?? 0), $unresolved,
         );
     }
 
@@ -253,6 +274,7 @@ class ExpenseClaimCommandResolver implements CommandResolver
         array $questions,
         array $flags,
         float $confidence,
+        array $unresolved = [],
     ): CommandInterpretation {
         $effect = null;
 
@@ -273,6 +295,7 @@ class ExpenseClaimCommandResolver implements CommandResolver
             date: $date,
             description: $description,
             questions: $questions,
+            unresolved: $unresolved,
             flags: $flags,
             confidence: $confidence,
         );

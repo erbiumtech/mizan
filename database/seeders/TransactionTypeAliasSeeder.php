@@ -48,6 +48,27 @@ class TransactionTypeAliasSeeder extends Seeder
         'rental-income' => ['kiraya aaya' => 'ur-Latn', 'rent received' => 'en'],
         'service-revenue' => ['fee received' => 'en', 'consulting' => 'en'],
         'sales-revenue' => ['sale' => 'en', 'bikri' => 'ur-Latn', 'فروخت' => 'ur'],
+
+        /*
+         * The bare word for money coming in.
+         *
+         * "income 500000 in" resolved to nothing, because every receipt category was named for a *kind*
+         * of receipt — service revenue, sales revenue — and nobody types the kind. This is not the
+         * catch-all the parser refuses to fall back to: `other-income` is defined in
+         * TransactionTypeSeeder as "receipts with no more specific category", so an unqualified word
+         * mapping to it is the honest match rather than a guess. Naming a kind still wins, because the
+         * longest alias is matched first.
+         *
+         * **Direction words are deliberately absent from this list.** "received" reads like an obvious
+         * alias for a receipt category and would be a bad one: it is also a direction word, it is longer
+         * than most category names, and longest-match-first means "salary 50000 received" would file
+         * against other-income instead of salary. A word that already carries one meaning to the parser
+         * must not be taught a second.
+         */
+        'other-income' => [
+            'income' => 'en',
+            'aamdani' => 'ur-Latn', 'amdani' => 'ur-Latn', 'آمدنی' => 'ur',
+        ],
     ];
 
     public function run(): void
