@@ -156,9 +156,9 @@
         .cp-group { position: sticky; top: 0; background: #ffffff; padding: .5rem .5rem .25rem; font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #9ca3af; }
 
         .cp-item { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .5rem .625rem; border: 0; background: transparent; border-radius: 8px; text-align: left; cursor: pointer; color: inherit; }
-        .cp-item-active { background: rgba(var(--primary-500, 245 158 11), .12); }
-        .cp-item-active .cp-item-label { color: rgb(var(--primary-700, 180 83 9)); }
-        .cp-item-active .cp-item-icon, .cp-item-active .cp-item-icon-wrap { color: rgb(var(--primary-600, 217 119 6)); }
+        .cp-item-active { background: color-mix(in oklab, var(--primary-500, #f59e0b) 12%, transparent); }
+        .cp-item-active .cp-item-label { color: var(--primary-700, #b45309); }
+        .cp-item-active .cp-item-icon, .cp-item-active .cp-item-icon-wrap { color: var(--primary-600, #d97706); }
         .cp-item-icon, .cp-item-icon-wrap { width: 18px; height: 18px; color: #6b7280; flex: none; display: inline-flex; }
         .cp-item-icon-wrap svg { width: 18px; height: 18px; }
         .cp-item-label { font-size: .875rem; font-weight: 500; }
@@ -170,9 +170,9 @@
         .dark .cp-dialog { background: #18181b; color: #f4f4f5; box-shadow: 0 25px 50px -12px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06); }
         .dark .cp-search { border-color: #27272a; }
         .dark .cp-group { background: #18181b; color: #71717a; }
-        .dark .cp-item-active { background: rgba(var(--primary-400, 251 191 36), .14); }
-        .dark .cp-item-active .cp-item-label { color: rgb(var(--primary-300, 252 211 77)); }
-        .dark .cp-item-active .cp-item-icon, .dark .cp-item-active .cp-item-icon-wrap { color: rgb(var(--primary-400, 251 191 36)); }
+        .dark .cp-item-active { background: color-mix(in oklab, var(--primary-400, #fbbf24) 14%, transparent); }
+        .dark .cp-item-active .cp-item-label { color: var(--primary-300, #fcd34d); }
+        .dark .cp-item-active .cp-item-icon, .dark .cp-item-active .cp-item-icon-wrap { color: var(--primary-400, #fbbf24); }
         .dark .cp-item-subtitle, .dark .cp-item-icon, .dark .cp-item-icon-wrap { color: #a1a1aa; }
         .dark .cp-footer { border-color: #27272a; }
         .dark .cp-footer kbd { background: #27272a; color: #a1a1aa; }

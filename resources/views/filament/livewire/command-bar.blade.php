@@ -97,8 +97,27 @@
     @command-booked.window="close()"
 >
     @if ($this->isAvailable())
+        {{--
+            `wire:ignore.self` is load bearing, and without it this dialog SHUTS THE MOMENT YOU PRESS ENTER.
+
+            `showModal()` opens a <dialog> by setting an `open` ATTRIBUTE on the element. Interpreting is a
+            Livewire round trip, and Livewire morphs the response over the live DOM — the server HTML has
+            no `open` on it, so the morph dutifully removes the one the browser put there and the dialog
+            closes. The proposal was rendered correctly into a box that was no longer on screen, which
+            looks from the outside exactly like nothing happening.
+
+            `.self` rather than plain `wire:ignore`: it maps to Alpine morph's `childrenOnly()`, so the
+            element's own attributes are left alone while everything inside it still updates. Plain
+            `wire:ignore` would also freeze the proposal — which is the only thing here that must change.
+            The ⌘K palette next door gets away with plain `wire:ignore` because it renders its results from
+            an Alpine array rather than from the server; this one cannot.
+
+            Untestable from PHPUnit, which does not morph anything. The guard is that the attribute is
+            asserted present — see AiCommandBotTest.
+        --}}
         <dialog
             x-ref="dialog"
+            wire:ignore.self
             class="cb-dialog"
             @keydown.esc.prevent="close()"
             @click="if ($event.target === $refs.dialog) close()"
@@ -270,7 +289,24 @@
         .cb-error { font-size: .8125rem; color: #b91c1c; margin: 0; }
 
         .cb-actions { display: flex; gap: .5rem; margin-top: .875rem; }
-        .cb-confirm { flex: 1; padding: .5rem .75rem; border: 0; border-radius: 8px; background: rgb(var(--primary-600, 217 119 6)); color: #fff; font-size: .875rem; font-weight: 600; cursor: pointer; }
+        {{--
+            The palette variable is used BARE. Wrapping it in rgb() is what made this button invisible.
+
+            Filament 5 defines its colours as complete values — `--primary-600: oklch(0.566 0.121
+            147.083)` — not as the bare `R G B` channel triplets Filament 3 used. Wrapping one produces
+            `rgb(oklch(...))`, which is invalid, so the browser drops the whole declaration. The button
+            kept `color: #fff` and lost its background: white text on a white dialog. Rendered, clickable,
+            and completely invisible — a worse failure than not rendering at all.
+
+            The fallback did not save it either, and that is the part worth remembering: `rgb(var(--x, 217
+            119 6))` reaches its fallback only when the variable is *undefined*. This one was defined and
+            wrong-shaped, so the fallback never ran.
+
+            A Blade comment rather than a CSS one so it does not ship on every panel page — and so the
+            regression test can assert the broken idiom appears nowhere in the output.
+        --}}
+        .cb-confirm { flex: 1; padding: .5rem .75rem; border: 0; border-radius: 8px; background: var(--primary-600, #d97706); color: #fff; font-size: .875rem; font-weight: 600; cursor: pointer; }
+        .cb-confirm:hover { background: var(--primary-700, #b45309); }
         .cb-cancel { padding: .5rem .75rem; border: 1px solid #e5e7eb; border-radius: 8px; background: transparent; color: #6b7280; font-size: .875rem; cursor: pointer; }
 
         .cb-footer { display: flex; justify-content: space-between; align-items: center; padding: .5rem 1rem; border-top: 1px solid #e5e7eb; font-size: .75rem; color: #9ca3af; }
