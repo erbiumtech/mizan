@@ -24,6 +24,12 @@ class CrmPlugin implements Plugin
             for: __NAMESPACE__.'\Filament\Resources',
         );
 
+        // The pipeline funnel and the forecast-against-target stats (Phase 5.3). Registered unconditionally; each widget's own canView() gates on the module and a permission.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
+
         // The five pipeline reports (reports-expansion-plan.md Phase 1.2). Hidden from the sidebar and
         // reached from the Reports hub, but they still have to be registered with the panel or their URLs
         // do not exist and the hub links nowhere.

@@ -149,7 +149,10 @@ return [
      * by label: the Dashboard and the manual belong to Home while the Reports hub is its own domain.
      */
     'navigation_items' => [
-        \Filament\Pages\Dashboard::class => 'home',
+        // Ours since reports-expansion-plan.md Phase 5.1, which replaced Filament's in the panel. Keyed on
+        // the class, so the mapping has to follow the swap or the dashboard falls out of the Home domain and
+        // into Filament's unlabelled group.
+        \App\Modules\Core\Filament\Pages\Dashboard::class => 'home',
         \App\Modules\Core\Filament\Pages\UserManual::class => 'home',
         \App\Modules\Core\Filament\Pages\Reports::class => 'reports',
     ],

@@ -16,6 +16,16 @@
         see ComparativeStatement. Selecting one offers its own page rather than a wrong rendering.
 --}}
 <x-filament-panels::page>
+    {{--
+        The icon sprite: one `<symbol>` per section, defined once and referenced by every row.
+
+        Fifty-one rows each inlining their own heroicon came to 30.4 KB of a 366 KB page against a 360 KB
+        ceiling that `PanelPerformanceTest` says must not be raised — its comment predicted this and named
+        "the hub's card markup" as what should give way. Nine symbols and fifty-one `<use>` references is
+        about 6 KB. See App\Support\Reporting\ReportIcons.
+    --}}
+    {{ \App\Support\Reporting\ReportIcons::sprite() }}
+
     <div class="fi-explorer">
         {{-- ------------------------------------------------------------------ the list --}}
         {{--
@@ -157,7 +167,11 @@
                         @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])
                     >
                         <span class="fi-explorer-row-icon">
-                            <x-filament::icon :icon="$report['icon']" class="fi-explorer-row-icon-svg" />
+                            {{-- The section's icon, from the sprite above. A row's icon now says which
+                                 section the report is in rather than being the report's own: the fifty-one
+                                 distinct navigation icons distinguished nothing a reader was using, and
+                                 inlining them cost 30 KB the page's ceiling did not have. --}}
+                            {{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}
                         </span>
 
                         <span class="fi-explorer-row-text">
@@ -263,6 +277,57 @@
 
                         <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
                     </div>
+
+                    {{--
+                        Saved views — reports-expansion-plan.md Phase 4.5.
+
+                        **The date is not in a saved view**, which is the phase's own point: what somebody
+                        uses every month is the filters, and the date is the thing that changes every month.
+                        For a fixed date the URL already carries the whole state — 4c's premise — so "the
+                        balance sheet at 30 June" is a link. A link for a moment, a saved view for a habit.
+
+                        Only where the report has something to save: a report with no filters and no
+                        comparison would offer to keep an empty set.
+                    --}}
+                    @if ($this->filters() !== [] || $statement['kind'] === 'statement')
+                        <div class="fi-explorer-views">
+                            @foreach ($this->savedViews() as $view)
+                                <span class="fi-explorer-view">
+                                    <button
+                                        type="button"
+                                        wire:click="applyView({{ $view->getKey() }})"
+                                        class="fi-explorer-view-apply"
+                                        title="Apply these filters"
+                                    >{{ $view->name }}</button>
+
+                                    <button
+                                        type="button"
+                                        wire:click="forgetView({{ $view->getKey() }})"
+                                        class="fi-explorer-view-forget"
+                                        aria-label="Forget the view “{{ $view->name }}”"
+                                        title="Forget this view"
+                                    >&times;</button>
+                                </span>
+                            @endforeach
+
+                            <label class="fi-explorer-view-save">
+                                <span class="fi-sr-only">Name for these filters</span>
+                                <input
+                                    type="text"
+                                    wire:model="viewName"
+                                    @keydown.enter.prevent="$wire.saveView()"
+                                    placeholder="Save these filters as…"
+                                    class="fi-explorer-view-input"
+                                >
+                            </label>
+
+                            @if (filled($this->viewName))
+                                <button type="button" wire:click="saveView" class="fi-explorer-chip fi-active">
+                                    Save
+                                </button>
+                            @endif
+                        </div>
+                    @endif
                 </header>
 
                 <div class="fi-explorer-pane-body">

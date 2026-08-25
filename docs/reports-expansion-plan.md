@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1, 2 and 3 complete; Phase 4 all but 4.5 landed (4.1–4.4); 4.5 and Phases 5–8 outstanding, plus the Phase 0 `period` filter (0.3)
+**Status:** Phases 1–4 complete; Phase 5 started (5.1, 5.3, 5.5 and the 5.9 widget enumeration landed); the rest of 5 and Phases 6–8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -309,7 +309,7 @@ report:
 2. **Comparison periods beyond the previous year** — *done, 2026-08-24, except budget, which `BudgetVsActual` already is — see [What landed](#what-landed).* previous month, previous quarter, budget.
 3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
 4. **Keyboard navigation of the report list** — *done, 2026-08-24. The search box is the type-ahead; the rows stay buttons — see [What landed](#what-landed).* arrow keys and type-ahead, once the list is 35+ rows.
-5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
+5. **A saved view per report** — *done, 2026-08-24. The date is deliberately not saved — see [What landed](#what-landed).* the filters somebody uses every month, kept. The URL already carries
    the whole state, so this is storage rather than plumbing.
 
 ## Phase 5 — The dashboard
@@ -325,7 +325,7 @@ report that disagree about a number is worse than either alone, because the pers
 tell which to believe — and this is a real risk here, not a hypothetical: the aggregates already exist
 and it would be quicker to re-derive each figure inline.
 
-1. **A dashboard page of our own**, replacing `Dashboard::class` in `AdminPanelProvider`, carrying a
+1. *done, 2026-08-24 — and it cost the reports hub's icon column, see [What landed](#what-landed).* **A dashboard page of our own**, replacing `Dashboard::class` in `AdminPanelProvider`, carrying a
    **period filter** (this month / this quarter / financial year to date / a custom range through
    `ReportPeriod`) in the URL, so a dashboard someone links to opens on the period they meant. Widgets
    read the page's filter; none of them keeps its own idea of "now". Where the retail plan lands, the
@@ -333,13 +333,13 @@ and it would be quicker to re-derive each figure inline.
 2. **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
    late / on leave today; leave requests awaiting a decision; documents expiring in 30 days (the same
    `DocumentExpiryCheck::due()` as Phase 1.5).
-3. **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
+3. *done, 2026-08-24 — and the funnel is the one widget the period must not filter, see [What landed](#what-landed).* **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
    attainment; quotations expiring inside 14 days. All three off `PipelineReports` and
    `QuotationService`.
 4. **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
    utilisation this month; unbilled WIP value. Off `TicketService::performance()`/`breaches()` and
    `TimesheetService::utilisationFor()`.
-5. **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
+5. *done, 2026-08-24 — three widgets, three different readings of the page's period, see [What landed](#what-landed).* **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
    debtors with days overdue; cash committed in the next 90 days (Phase 1.7's own figures).
 6. **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
    valuation the report states, from the same service.
@@ -485,6 +485,171 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-24 — the sales widgets (Phase 5.3), including the one widget the period filter must not touch.**
+
+- **The funnel is unwindowed on purpose, and it is the only widget on the dashboard that ignores the
+  period.** `PipelineReports::byStage()` accepts a closing window and the forecast report passes one, but the
+  service's own comment says why a funnel must not: "a deal with no expected close date is not 'closing
+  outside the window', it is unforecastable — and it belongs in the unwindowed pipeline view". Filtering a
+  funnel by the dashboard's period would silently drop every deal nobody has dated, which are the ones most in
+  need of attention. A test proves it by putting one dated deal outside the period and one undated deal in the
+  same stage and asserting both are counted.
+- **Three widgets, three readings of one filter, and now four across the dashboard.** A *window* for the
+  forecast, an *as-at* for target attainment, an *origin* for the expiring quotations, and *ignored* for the
+  funnel. Each one is a property of the question, not a preference — and the money group added a fifth
+  reading, the twelve-month series that uses the period only as its endpoint.
+- **Attainment takes an as-at while the forecast beside it takes a window, and the asymmetry is deliberate.**
+  `attainment()` finds the targets *covering* one date, because a target is a period of its own — somebody's
+  quarter — so "which targets are live" is a question about a moment. Handing it a range would mean choosing
+  an end arbitrarily.
+- **Attainment is reported as a count, not an average.** One salesperson at 200% with three at 40% averages
+  to 80% and describes nobody. And targets with no number on them are excluded from the denominator, because
+  `attainment_pct` is null there and counting them would report a company as behind on targets nobody set.
+- **`QuotationService::expiringWithin()` was added rather than querying `Quotation` in the widget**, which is
+  the rule applied to a query that did not exist yet. It is the mirror of `expireLapsed()` — the same three
+  conditions with the comparison reversed — so a widget with its own query would have been a second definition
+  of "live but lapsing", and the first status added to the ladder would have made them disagree. Both ends are
+  inclusive: a quote lapsing *today* is the most urgent of the set, and the widget says "lapses today" rather
+  than "in 0 days".
+- **A fixture that made a test pass for the wrong reason.** `weightedAmount()` reads the *deal's*
+  `probability_pct`, not its stage's — the stage's is the default a user is offered. A fixture leaving it null
+  weighted every deal at nought, which every structural assertion tolerated until one asserted an amount.
+  It is now explicit in the helper, with the reason.
+- **CRM and Quotations had no widget discovery at all**, so both plugins gained `discoverWidgets` and both
+  manifests a `widgets` table — the same shape the report pages needed in Phase 3.
+
+**2026-08-24 — the money widgets (Phase 5.5), and three different right answers to one filter.**
+
+- **Every figure comes from the service behind its own report**, which is Phase 5's rule and the reason it is
+  written into the section header. `RevenueAndExpensesChart` calls
+  `FinancialReportService::profitAndLoss()` — the Profit & Loss report's service; `LargestDebtorsList` calls
+  `InvoiceService::outstandingReceivables()` — the Aged Receivables report's; `CashCommittedOverview` reads
+  `App\Support\CashCommitments`, Phase 1.7's registry. Each test asserts the widget against its service
+  rather than against a literal, so the pair cannot drift.
+- **The plan warned that re-deriving inline would be quicker, and it was.** Summing `total - paid` over
+  invoices for the debtor list is three lines against an aggregation over a service's return. The rule is
+  what stopped it, and the aggregation is why the top debtor here is by construction the figure the ageing
+  report shows for that contact.
+- **All three read the dashboard's period differently, and each difference is a decision rather than an
+  inconsistency:**
+  - the **chart** lets the period choose where the twelve-month series *ends*. Honouring a one-month period by
+    drawing one bar would destroy the widget rather than filter it — twelve months is the shape it exists to
+    show. Its final column is capped at the period's end, so early in a month it is the month *so far* rather
+    than a whole month padded with a future nobody has traded in.
+  - the **debtors list** treats it as an as-at, because ageing is a balance and not a span. Read for last
+    quarter it says who owed then.
+  - the **commitments** widget treats it as the *origin* of a forward ninety days, because that window looks
+    ahead. Read at a year end it answers "what is committed for the ninety days after June", which is the
+    question somebody asks there.
+- **A debtor is a contact, not an invoice**, and days overdue is the *worst* of their invoices rather than an
+  average. A customer with one invoice ninety days late and nine current ones is a ninety-day problem;
+  averaging reports them as nine days late, which is the number that gets them left alone. A contact whose
+  credit notes cancel their invoices is not a debtor at all, and would otherwise take one of the five places
+  from somebody who is.
+- **Out and in are kept apart, with the net stated.** A commitment registry carries both directions — a
+  recurring sales invoice is money coming in — and adding them gives a figure that is neither what the company
+  owes nor what it expects. The net is on the widget because that is what somebody opens it for, rather than
+  arithmetic left across two stats a centimetre apart.
+- **The sort order is banded, ten apart**: money 10–19, sales 20–29, service 30–39, people 40–49, inventory
+  50–59. So a group can gain a widget without renumbering its neighbours. The nine widgets that predate this
+  phase still sit on 0–8 and therefore render above; placing them in the bands is Phase 5.7's own job and is
+  noted rather than half-done here.
+- **`RevenueAndExpensesChart` is twelve `profitAndLoss()` calls and is the widget Phase 5.8's cache exists
+  for.** It is stated in the class rather than left to be discovered: until 5.8 lands it is the most expensive
+  thing on the page, and it is `$isLazy` so the dashboard renders without waiting for it.
+
+**2026-08-24 — the dashboard page and its period filter (Phase 5.1), plus 5.9's widget enumeration.**
+
+- **The period reaches widgets through `getWidgetData()`**, which Filament spreads into every widget's mount
+  properties. So a widget declares `public ?string $periodFrom` and is *handed* the span rather than deriving
+  it — which is item 1's actual requirement, "none of them keeps its own idea of 'now'". Widgets get the
+  resolved **dates**, not the period name: twenty widgets each resolving "this quarter" is twenty chances to
+  resolve it differently, a centimetre apart on one screen.
+- **Filament's own filter form was not used, because the plan asks for the URL.** `HasFiltersForm` keeps
+  filter state in a schema, which is not linkable, and "a dashboard someone links to opens on the period they
+  meant" needs `#[Url]`.
+- **Every period ends today, and only its start moves.** A dashboard answers "how are we doing", and nobody
+  has revenue from the rest of the month — so "this quarter" is the quarter so far rather than a quarter two
+  thirds empty. A custom range is the exception, because naming both ends means both ends.
+- **A test found a real bug in the quarter arithmetic.** `FiscalYear` *enforces* a 30 June end and says why —
+  "a company joining part-way through gets a shorter year ending on the same date" — so a company that joined
+  in November runs 1 November to 30 June. Counting three-month blocks forward from *that* start gave it
+  quarters beginning in November, February and May, while its accounts and every report treat the quarters as
+  July–September and so on. Counting back from the fixed year end fixes it, then clamping to the year's start,
+  because that company has no October to report.
+- **`DashboardPeriod` is deliberately not `ReportComparison::currentRange()`**, which looks like it would do.
+  That answers "the three months up to this date", because a comparison must be the same length as the thing
+  compared; this answers "the quarter we are in". They agree only when today is a quarter end.
+- **Phase 0.3's `period` filter is now superseded rather than outstanding.** It was written as a pane filter;
+  the page that actually needed a period was the dashboard, and this is it.
+- **5.9's first half landed here** because every later widget commit depends on it:
+  `FilamentWidgetsSmokeTest` now enumerates `Filament::getWidgets()` instead of naming five. A hand-written
+  list covers the widgets somebody remembered, which is the set least likely to be broken — and Phase 5 adds
+  a widget group per module, so the list would have been wrong on its first commit. It carries a floor of
+  five, because an enumeration that silently found nothing would be the most reassuring test in the suite and
+  the least informative.
+
+**And the reports hub lost its per-report icons to keep a ceiling — the interesting part of this commit.**
+
+- `PanelPerformanceTest`'s size budget failed at **366 KB against 360**, from Phase 4's additions. Its own
+  comment predicted this and forbade the easy fix: "the remaining plan needs ~60 KB the ceiling does not have,
+  so the hub's card markup is what should give way next, not this number. Raising it again would be the
+  formality this comment warns about."
+- Measured rather than guessed: the 51 rows were **70.3 KB, of which 30.4 KB was inline heroicons** — 8% of
+  the whole page in icons nobody navigates by.
+- **A sprite only helps because the icons now repeat.** The reports' own navigation icons were all *distinct*,
+  so fifty-one `<symbol>`s would have saved nothing. Collapsing to one icon per section — nine — is what makes
+  `<use>` worth having, and it is a genuine change to what the screen shows: a row's icon says which section
+  the report is in rather than being the report's own. The report's navigation icon is untouched on its own
+  page and in the sidebar.
+- Result: **369 → 348.5 KB**, row icons 30.4 → 6.2 KB, rows 70.3 → 47.5 KB. Roughly 12 KB of headroom at
+  ~930 bytes a row, which is a dozen more reports rather than the two the old markup allowed.
+- The sprite defines **every** section's symbol, not the visible ones: the list is filtered by section and by
+  search and re-renders on both, and a sprite that shrank with the filter would leave a row pointing at a
+  symbol that had gone — rendering blank, which reads as a broken icon rather than a filtering bug. Four tests
+  pin it, including one that fails if the inline icons come back.
+
+**2026-08-24 — a saved view per report (Phase 4.5). Phase 4 is complete.**
+
+- **The date is not saved, and the plan's own sentence is the argument.** It asks for "the filters somebody
+  uses every month" — and the date is the one thing that *changes* every month. A view holding 30 June would
+  keep opening on 30 June and the person who saved it would not notice for a while, which is the worst kind
+  of wrong on a report. Applying a view leaves the date alone for the same reason, and both halves have a
+  test.
+- **The second half of that sentence gave the design.** "The URL already carries the whole state" is not just
+  a note about effort — it means the fixed-date case *already has a mechanism*, and a better one: "the balance
+  sheet at 30 June" is a link somebody sends. So the saved view should be the other thing entirely. A link
+  for a moment, a saved view for a habit; two mechanisms doing one job each rather than one doing both badly.
+- **Applying a view never clears a filter it does not carry.** The absence of a stored account is not an
+  instruction to blank an account somebody has since picked. The obvious loop — assign every key in `FILTERS`
+  — would have done exactly that, and its mutation is one of the ones that dies.
+- **The stored keys are an allow-list rather than "whatever the page had".** So `asOf` cannot get in, and a
+  future property on the hub does not silently join everybody's existing views — which is the realistic
+  version of this going wrong: somebody adds a property, saving starts storing it, and every saved view
+  begins applying something it never meant to.
+- **The comparison basis is normalised on save *and* on read**, because a stored row can outlive a basis. A
+  view saved when some basis briefly existed would otherwise hand the pane a string it has stopped
+  recognising.
+- **Only eight of the fifty-one reports offer it, and finding that out corrected the tests.** A saved view
+  holds a comparison basis or one of the four pickers, so the three statements and the five reports with an
+  `ASKS` entry have something to remember and the other forty-three have a date and nothing else. The first
+  draft of the tests used the aged receivables and passed every assertion about the model while the control
+  was correctly absent from the page — the model was fine and the test was fiction.
+- **Named `SavedReportView`, not `ReportView`.** `ReportView` is the permission every report is gated on, and
+  a model sharing that name would make `can('ReportView')` and `ReportView::find()` read like one subject.
+- **Per user, with no foreign key to `users`** — that table is on the landlord connection and a
+  cross-connection constraint is not a constraint. The scope to the signed-in id is what actually separates
+  people's views, so it lives in the model rather than being trusted to each caller; there are tests that
+  another person's view can be neither applied nor forgotten however the id arrives.
+- **Seventeen mutations, fifteen killed — and one survivor is the design working.** Making the page pass
+  `asOf` into a saved view changes nothing, because the model's allow-list drops it; adding `asOf` to that
+  list fails immediately. The mutation surviving is the proof that the allow-list is the guard and the page's
+  omission is only politeness, which is the right way round. The other survivor is the blank-key check in
+  `forReport()`, which saves a round trip the query would have answered emptily anyway.
+- **`state` is JSON rather than a column per filter**, because the *set* differs per report — a column each
+  would be five nullable columns of which any report uses at most one, and a new filter would be a migration
+  rather than a key.
 
 **2026-08-24 — keyboard navigation of the report list (Phase 4.4). The phase set 35 rows as the threshold;
 there are 51.**
