@@ -158,6 +158,7 @@
         "App\\Models\\RequisitionLine": "App\\Modules\\ConstructionCosting\\Models\\RequisitionLine",
         "App\\Models\\RetentionMovement": "App\\Modules\\ConstructionContracts\\Models\\RetentionMovement",
         "App\\Models\\Review": "App\\Modules\\Performance\\Models\\Review",
+        "App\\Models\\ReportDefinition": "App\\Modules\\Core\\Models\\ReportDefinition",
         "App\\Models\\ReviewCycle": "App\\Modules\\Performance\\Models\\ReviewCycle",
         "App\\Models\\Rfi": "App\\Modules\\ConstructionField\\Models\\Rfi",
         "App\\Models\\SalarySlab": "App\\Modules\\Payroll\\Models\\SalarySlab",

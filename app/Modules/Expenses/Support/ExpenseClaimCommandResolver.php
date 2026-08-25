@@ -107,8 +107,12 @@ class ExpenseClaimCommandResolver implements CommandResolver
             'required' => ['employee_id', 'amount', 'transaction_type_code'],
             'properties' => [
                 'employee_id' => [
-                    'type' => ['integer', 'null'],
-                    'enum' => [...$this->employees()->pluck('id')->all(), null],
+                    // anyOf rather than a type array: structured outputs refuses `type: [...]` next to an
+                    // enum. See CommandGrammar::schemaProperties() for the error it produces.
+                    'anyOf' => [
+                        ['type' => 'integer', 'enum' => $this->employees()->pluck('id')->all()],
+                        ['type' => 'null'],
+                    ],
                     'description' => 'The id of the employee who spent the money, from the list in the '
                         .'system prompt. null when no name was given or two names are equally likely.',
                 ],
@@ -117,8 +121,10 @@ class ExpenseClaimCommandResolver implements CommandResolver
                     'description' => 'The amount exactly as written or said, unparsed.',
                 ],
                 'transaction_type_code' => [
-                    'type' => ['string', 'null'],
-                    'enum' => [...$this->categories()->pluck('code')->all(), null],
+                    'anyOf' => [
+                        ['type' => 'string', 'enum' => $this->categories()->pluck('code')->all()],
+                        ['type' => 'null'],
+                    ],
                     'description' => 'What it was spent on. null when nothing clearly matches.',
                 ],
                 'date' => [

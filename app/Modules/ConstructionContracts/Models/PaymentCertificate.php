@@ -46,7 +46,7 @@ class PaymentCertificate extends Model
         'period_start', 'period_end', 'issued_on', 'due_on', 'status',
         'contract_sum_original', 'variations_net_to_date',
         'gross_work_to_date', 'gross_materials_to_date', 'gross_value_to_date',
-        'retention_to_date', 'previously_certified', 'current_due',
+        'retention_to_date', 'previously_certified', 'previous_gross_value_to_date', 'current_due',
         'certified_by', 'notes', 'void_reason', 'invoice_id',
         // The compliance override (§12): certified knowing the cover was not in place, and who decided that.
         'compliance_override_at', 'compliance_override_by', 'compliance_override_reason',
@@ -70,6 +70,7 @@ class PaymentCertificate extends Model
         'gross_value_to_date' => 0,
         'retention_to_date' => 0,
         'previously_certified' => 0,
+        'previous_gross_value_to_date' => 0,
         'current_due' => 0,
     ];
 
@@ -124,7 +125,26 @@ class PaymentCertificate extends Model
      */
     public function grossThisPeriod(): float
     {
-        return round((float) $this->gross_value_to_date - (float) $this->previously_certified, 2);
+        /*
+         * The work done THIS period, and the subtrahend is gross rather than net on purpose.
+         *
+         * Netting against `previously_certified` — the cash already paid — would fold the earlier
+         * retention into this period's "work", which is how the certificate came to over-certify by
+         * exactly the prior retention. Gross against gross leaves a figure that means what its name says,
+         * and is what the invoice's job-cost line must carry for the ledger to add up over the contract.
+         */
+        return round((float) $this->gross_value_to_date - (float) $this->previous_gross_value_to_date, 2);
+    }
+
+    /** The last live certificate before this one, or null when this is the first. */
+    public function previousLive(): ?self
+    {
+        return static::query()
+            ->where('contract_id', $this->contract_id)
+            ->live()
+            ->where('sequence', '<', $this->sequence)
+            ->orderByDesc('sequence')
+            ->first();
     }
 
     /** The net of every deduction row. Negative reduces the payment — one convention (§10.3). */
