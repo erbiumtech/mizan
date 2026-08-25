@@ -49,6 +49,10 @@ class AiCommandBotTest extends AccountingTestCase
         // The categories a command resolves against — `rent` → 5700, `utilities` → 5750, and so on.
         $this->seed(TransactionTypeSeeder::class);
 
+        // The feature flag, which nothing read until the bar turned out to be unreachable and the check for
+        // "is this switched on at all" went in beside the check for "can it reach a parser".
+        config(['ai.enabled' => true]);
+
         $this->model = new FakeStructuredModel;
         $this->app->instance(StructuredModel::class, $this->model);
     }
@@ -824,6 +828,54 @@ class AiCommandBotTest extends AccountingTestCase
         Livewire::test(CommandBar::class)
             ->assertSee("locale: 'en-PK'", escape: false)
             ->assertSee('اردو');
+    }
+
+    // ------------------------------------------------------------------ §8: getting to it at all
+
+    /**
+     * **The regression that made the whole feature look broken.** ⌘J does not reach the page.
+     *
+     * It is a reserved browser shortcut on both platforms — Chrome and Firefox open Downloads with it,
+     * dispatched from the native menu bar before the document sees the keystroke — so `.prevent` runs too
+     * late to take it back. The bar shipped with that as its *only* affordance, which made it unreachable
+     * and unreachable silently: no dialog, no error, nothing in the log.
+     *
+     * Asserted on the markup because that is where the bug lived. The component was correct throughout;
+     * every test below this line already passed while the feature could not be opened by anybody.
+     */
+    public function test_the_hotkey_is_not_one_the_browser_owns(): void
+    {
+        $html = Livewire::test(CommandBar::class)->html();
+
+        $this->assertStringContainsString("\$event.key === '/'", $html, '⌘/ must open the bar');
+        $this->assertStringNotContainsString('keydown.window.meta.j.prevent', $html, '⌘J cannot be the way in');
+    }
+
+    /** And a button, because a shortcut is not discoverable and this one has no menu entry to discover. */
+    public function test_the_topbar_offers_a_way_in(): void
+    {
+        $this->assertTrue(CommandBar::available());
+
+        $trigger = view('filament.partials.command-bar-trigger')->render();
+
+        $this->assertStringContainsString('open-command-bar', $trigger);
+        $this->assertStringContainsString('Type a transaction', $trigger);
+    }
+
+    /**
+     * Switched off, both halves disappear together.
+     *
+     * The trigger and the dialog ask the same predicate rather than each deciding for itself, because the
+     * two ways they can disagree are the two failure modes this section exists for: a button that opens
+     * nothing, and a dialog with no button.
+     */
+    public function test_switching_the_feature_off_removes_the_button_and_the_bar(): void
+    {
+        config(['ai.enabled' => false]);
+
+        $this->assertFalse(CommandBar::available());
+        $this->assertStringNotContainsString('open-command-bar', view('filament.partials.command-bar-trigger')->render());
+        $this->assertStringNotContainsString('cb-dialog"', Livewire::test(CommandBar::class)->html(), 'the dialog goes with it');
     }
 
     // ------------------------------------------------------------------ Phase 2: Urdu
