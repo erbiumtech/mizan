@@ -73,17 +73,41 @@ class RegisterCommandResolver implements CommandResolver
         return CommandGrammar::schemaProperties($this->categories()->pluck('code')->all());
     }
 
+    /**
+     * Both of this resolver's closed slots, so either question can be answered in place.
+     *
+     * Direction is here as well as category because it has the same dead end and a worse consequence: a
+     * command with no directional word is one keystroke away from being booked backwards, and retyping it
+     * is exactly when somebody reaches for whichever word comes to mind.
+     */
+    public function choices(string $slot): array
+    {
+        return match ($slot) {
+            'transaction_type_code' => $this->categories()
+                ->mapWithKeys(fn (TransactionType $t): array => [$t->code => $t->name.' ('.$t->account?->code.')'])
+                ->all(),
+            'direction' => [
+                CommandGrammar::DIRECTION_IN => 'Money in — received',
+                CommandGrammar::DIRECTION_OUT => 'Money out — paid',
+            ],
+            default => [],
+        };
+    }
+
     public function resolve(CommandUtterance $row, array $parsed): CommandInterpretation
     {
         $categories = $this->categories();
         $questions = [];
+        // Slot => question, for the two that can be answered from a list. Kept beside `$questions` rather
+        // than replacing it: a question with no list — "How much?" — still has to be asked.
+        $unresolved = [];
 
         $direction = in_array($parsed['direction'] ?? null, [CommandGrammar::DIRECTION_IN, CommandGrammar::DIRECTION_OUT], true)
             ? $parsed['direction']
             : null;
 
         if ($direction === null) {
-            $questions[] = 'Was this money in or money out?';
+            $questions[] = $unresolved['direction'] = 'Was this money in or money out?';
         }
 
         $amount = null;
@@ -104,7 +128,7 @@ class RegisterCommandResolver implements CommandResolver
             : null;
 
         if ($category === null) {
-            $questions[] = 'What should this be filed under?';
+            $questions[] = $unresolved['transaction_type_code'] = 'What should this be filed under?';
         }
 
         $registerAccount = $this->defaultRegisterAccount();
@@ -132,6 +156,7 @@ class RegisterCommandResolver implements CommandResolver
             $parsed['description'] ?? $category?->name,
             $questions, $flags,
             (float) ($parsed['confidence'] ?? 0),
+            $unresolved,
         );
     }
 
@@ -202,6 +227,7 @@ class RegisterCommandResolver implements CommandResolver
         array $questions,
         array $flags,
         float $confidence,
+        array $unresolved = [],
     ): CommandInterpretation {
         $effect = null;
 
@@ -215,7 +241,7 @@ class RegisterCommandResolver implements CommandResolver
         // built from direction and amount alone, and a proposal that reads complete without somewhere to
         // book it would fail at commit instead of asking.
         if ($category === null && $questions === []) {
-            $questions[] = 'What should this be filed under?';
+            $questions[] = $unresolved['transaction_type_code'] = 'What should this be filed under?';
         }
 
         return new CommandInterpretation(
@@ -229,6 +255,7 @@ class RegisterCommandResolver implements CommandResolver
             date: $date,
             description: $description,
             questions: $questions,
+            unresolved: $unresolved,
             flags: $flags,
             confidence: $confidence,
         );
