@@ -28,6 +28,10 @@ return [
         'App\\Filament\\Resources\\Quotations\\QuotationResource' => \App\Modules\Quotations\Filament\Resources\Quotations\QuotationResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\QuotationsExpiringList' => \App\Modules\Quotations\Filament\Widgets\QuotationsExpiringList::class,
+    ],
+
     'permission_groups' => [
         'Quotation',
     ],

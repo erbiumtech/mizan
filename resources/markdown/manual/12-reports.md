@@ -907,3 +907,40 @@ There is **no automated test of the behaviour**: this project has no browser har
 tests assert that the markup carries the hooks the component reads, which is the realistic
 way this breaks — the markup edited for an unrelated reason and the keyboard quietly
 stopping with nothing to say so.
+
+## Saved views
+
+A named set of filters per report, per person. Type a name into *Save these filters as…*
+and it becomes a chip; clicking the chip puts those filters back, the × forgets it, and
+saving over a name replaces that view rather than growing a second one called the same
+thing.
+
+**The date is deliberately not part of a saved view.** The plan asks for "the filters
+somebody uses every month" and the date is the one thing that changes every month: a view
+holding 30 June would keep opening on 30 June, and the person who saved it would not
+notice for a while — the worst kind of wrong on a report. Applying a view leaves the date
+exactly as it is, for the same reason.
+
+For a fixed date the mechanism already exists and is better: **the URL carries the whole
+state**, which is the reports explorer's own premise. A link for a moment, a saved view
+for a habit — two mechanisms doing one job each.
+
+**Applying a view never clears a filter it does not carry.** The absence of a stored
+account is not an instruction to blank an account you have since picked, so only the keys
+the view holds are written back.
+
+The stored keys are an **allow-list** — the comparison basis and the four pickers — so
+`asOf` cannot get in and a future property on the page does not silently join everybody's
+existing views. The comparison basis is re-checked both on save and on read, because a
+stored row can outlive a basis the pane has stopped recognising.
+
+Views are **per user**, with no company-wide sharing: they are somebody's own working
+filters, not a company policy. There is no foreign key to `users` — that table is on the
+landlord connection and a cross-connection constraint is not one — so the scope to the
+signed-in id is what keeps one person's views out of another's, applied in the model
+rather than trusted to each caller.
+
+**They only appear where there is something to save**: the three statements, which have a
+comparison basis, and the five reports with a picker. The other forty-three carry a date
+and nothing else, and a control offering to remember nothing is a control that does
+nothing.

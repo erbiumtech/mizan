@@ -40,6 +40,28 @@ than containing one, and the file itself is the download button already on that 
 A report with no rows for the period has nothing to export either, so the buttons are
 hidden rather than producing an empty file.
 
+## Saved views
+
+Set the filters you use every month, type a name in **Save these filters as…** and press
+Enter. The name appears as a chip you can click to put those filters back, with a × to
+forget it. Saving over a name replaces it, so adjusting last month's view and pressing
+save again is an edit rather than a duplicate.
+
+**A saved view does not remember the date, and that is deliberate.** What you use every
+month is the *filters*; the date is the thing that changes every month. A view holding
+30 June would keep opening on 30 June and you would not notice for a while.
+
+For a fixed date there is a better tool and it is already there: **the URL carries the
+whole state**, so "the balance sheet at 30 June" is a link you can send or bookmark. A
+link for a moment, a saved view for a habit.
+
+Saved views are **yours** — nobody else sees them — and belong to one report each.
+
+They only appear on reports that have something to save: the three statements (which have
+a comparison basis) and the five with a picker — Account Register, Find Transactions,
+Budget vs Actual, Tax Summary and Petty Cash Book. The other forty-three have a date and
+nothing else, and offering to remember nothing would be a button that does nothing.
+
 ## Keyboard
 
 With 51 reports, the list is quicker from the keyboard:
