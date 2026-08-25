@@ -16,6 +16,15 @@ use RuntimeException;
  */
 trait WidgetBelongsToModule
 {
+    /**
+     * A widget's width on the dashboard — reports-expansion-plan.md Phase 7, item 5.
+     *
+     * Composed here rather than added to each widget because every widget already uses this trait and
+     * DashboardWidgetRulesTest requires it of every new one, so a widget cannot be added without the
+     * ability to be widened. See HasDashboardSpan for why the width has to be a public property.
+     */
+    use HasDashboardSpan;
+
     public static function module(): string
     {
         $module = ModuleMap::moduleFor(static::class);

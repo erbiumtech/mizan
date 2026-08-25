@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionField\Notifications;
 
+use App\Support\Num;
 use App\Modules\ConstructionField\Models\DelayEvent;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -121,7 +122,7 @@ class DelayNoticeDue extends Notification implements ShouldQueue
         $parts = [];
 
         if ($days !== null) {
-            $parts[] = rtrim(rtrim((string) $days, '0'), '.').' day(s) of extension';
+            $parts[] = Num::trim($days).' day(s) of extension';
         }
 
         if ($cost !== null) {

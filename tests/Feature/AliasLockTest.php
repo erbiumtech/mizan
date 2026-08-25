@@ -158,7 +158,7 @@ class AliasLockTest extends TestCase
     {
         $current = [];
 
-        foreach (['models', 'resources', 'pages', 'widgets'] as $kind) {
+        foreach (['models', 'resources', 'pages', 'widgets', 'datasets'] as $kind) {
             foreach (ModuleMap::$kind() as $class) {
                 $current[$kind][ModuleMap::alias($class)] = $class;
             }

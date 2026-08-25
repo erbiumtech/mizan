@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionContracts\Services;
 
+use App\Support\Num;
 use App\Modules\ConstructionContracts\Models\CertificateDeduction;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\ContractItem;
@@ -321,7 +322,7 @@ class CertificationService
         if ($retentionMovement != 0.0) {
             $certificate->deductions()->create([
                 'kind' => CertificateDeduction::KIND_RETENTION,
-                'description' => 'Retention @ '.rtrim(rtrim((string) $contract->retention_percent, '0'), '.').'%',
+                'description' => 'Retention @ '.Num::percent($contract->retention_percent),
                 // Negative reduces the payment — the one convention (§10.3).
                 'amount' => -1 * $retentionMovement,
                 'is_automatic' => true,
@@ -332,7 +333,7 @@ class CertificationService
             $certificate->deductions()->create([
                 'kind' => CertificateDeduction::KIND_ADVANCE_RECOVERY,
                 'description' => 'Advance payment recovery @ '
-                    .rtrim(rtrim((string) $contract->advance_recovery_rate_pct, '0'), '.').'%',
+                    .Num::percent($contract->advance_recovery_rate_pct),
                 'amount' => -1 * $advance,
                 'is_automatic' => true,
             ]);

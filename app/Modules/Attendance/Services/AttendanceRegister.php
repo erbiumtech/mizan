@@ -108,6 +108,52 @@ class AttendanceRegister
     }
 
     /**
+     * Who is present, late and on leave on one day — `docs/reports-expansion-plan.md` Phase 5.2.
+     *
+     * **A single grouped query, not the register's per-employee walk.** `forMonth()` above builds a grid and
+     * needs a row per employee per day; a dashboard wants four numbers about one day, and running the grid to
+     * get them would be the per-row shape this plan's own risk list names.
+     *
+     * **`not_marked` is counted and reported, because it is the finding.** A day nobody recorded is not a day
+     * nobody worked — the register's own note leads with unmarked days for that reason — and a dashboard
+     * showing "12 present" for a company of thirty, with the other eighteen absent from every figure, would
+     * read as an attendance problem rather than a recording one.
+     *
+     * Half days and work from home count as present: one is a shorter day and the other a different desk, and
+     * neither is an absence.
+     *
+     * @return array{present: int, late: int, on_leave: int, unmarked: int, marked: int}
+     */
+    public function daySummary(?string $on = null): array
+    {
+        $date = Carbon::parse($on ?? now()->toDateString())->toDateString();
+
+        $rows = AttendanceDay::query()
+            ->whereDate('date', $date)
+            ->selectRaw('status, count(*) as days, sum(case when late_minutes > 0 then 1 else 0 end) as late')
+            ->groupBy('status')
+            ->get();
+
+        $count = fn (string ...$statuses): int => (int) $rows
+            ->whereIn('status', $statuses)
+            ->sum('days');
+
+        return [
+            'present' => $count(
+                AttendanceDay::STATUS_PRESENT,
+                AttendanceDay::STATUS_HALF_DAY,
+                AttendanceDay::STATUS_WORK_FROM_HOME,
+            ),
+            // Lateness is a property of a day somebody attended, so it is counted from the same rows rather
+            // than as a status of its own — a late arrival is present *and* late.
+            'late' => (int) $rows->sum('late'),
+            'on_leave' => $count(AttendanceDay::STATUS_ON_LEAVE),
+            'unmarked' => $count(AttendanceDay::STATUS_NOT_MARKED),
+            'marked' => (int) $rows->sum('days'),
+        ];
+    }
+
+    /**
      * What each payslip says it prorated on, for this month.
      *
      * **Read as three columns of a table rather than through `Payslip`.** `payroll` requires `attendance`, so

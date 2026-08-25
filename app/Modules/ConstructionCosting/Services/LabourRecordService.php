@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Services;
 
+use App\Support\Num;
 use App\Modules\Construction\Models\CostCode;
 use App\Modules\Construction\Models\Job;
 use App\Modules\ConstructionCosting\Models\CostEntry;
@@ -206,7 +207,7 @@ class LabourRecordService
             'wbs_node_id' => $record->wbs_node_id,
             'worker_id' => $record->worker_id,
             'employee_id' => $record->worker?->employee_id,
-            'description' => 'Burden @ '.rtrim(rtrim((string) $record->burden_percent, '0'), '.').'% on '
+            'description' => 'Burden @ '.Num::percent($record->burden_percent).' on '
                 .$record->displayName(),
             'source_type' => $record::class,
             'source_id' => $record->getKey(),

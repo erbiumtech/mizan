@@ -48,6 +48,13 @@ return [
         'App\\Filament\\Widgets\\ReceivablesPayablesOverview' => \App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview::class,
     ],
 
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\InvoiceDataset' => \App\Modules\Invoicing\Reporting\InvoiceDataset::class,
+        'App\\Reporting\\InvoiceLineDataset' => \App\Modules\Invoicing\Reporting\InvoiceLineDataset::class,
+    ],
+
     'permission_groups' => [
         'Invoicing',
     ],

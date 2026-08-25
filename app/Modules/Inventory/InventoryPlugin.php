@@ -23,6 +23,13 @@ class InventoryPlugin implements Plugin
             for: __NAMESPACE__.'\Filament\Resources',
         );
 
+        // The stock-on-hand stats (Phase 5.6). Registered unconditionally; the widget's own canView() gates
+        // on the module and a permission.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
+
         // The stocktake report (reports-expansion-plan.md Phase 2.4). Hidden from the sidebar and reached
         // from the Reports hub, but still registered or its URL does not exist.
         $panel->discoverPages(
