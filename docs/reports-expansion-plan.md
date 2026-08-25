@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–5 and 7 complete. Phases 6 and 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the registry, items 1–2) and 6.2 (definitions and permissions, items 3 and 6) are in; items 4, 5 and 7 outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -367,18 +367,18 @@ What it is: a screen where somebody assembles a report from a **declared** datas
 filters, a grouping, what to total — saves it under a name, shares it, and reads it in the same pane as
 every built-in report, with the same record row and the same export.
 
-1. **The dataset registry** (`App\Support\Reporting\Dataset`), one declaration per reportable subject:
+1. *done, 2026-08-25 — eleven subjects, and the boundary is a declaration rather than a validator; see [What landed](#what-landed).* **The dataset registry** (`App\Support\Reporting\Dataset`), one declaration per reportable subject:
    journal lines, invoices and their lines, payslips and their components, employees, stock movements,
    timesheet entries, tickets, opportunities, leave days. Each declares its label, its **module**, the
    **permission** it needs, its base query *through the Eloquent model* so every global scope and
    tenancy applies, and then the columns (label, type, whether it groups, whether it aggregates, how it
    resolves) and the filters it offers. **The registry is the boundary**: no raw SQL, no table it has
    not named, no relation it has not declared.
-2. **Row-level access is inherited, not re-implemented.** The base query goes through the same access
+2. *done, 2026-08-25 — and the payroll leak turns out to need both halves, see [What landed](#what-landed).* **Row-level access is inherited, not re-implemented.** The base query goes through the same access
    filters the resources use (`EmployeeAccess`, and `StoreAccess` if retail lands), so the builder can
    never be the way around scoping. The test that matters: a non-privileged user building a report over
    payslips sees their own rows and their downline's, and nobody else's.
-3. **Definitions stored like saved views**, deliberately: `report_definitions` with `company_id`,
+3. *done, 2026-08-25 — four of the listed columns were deliberately not built, and the period is relative; see [What landed](#what-landed).* **Definitions stored like saved views**, deliberately: `report_definitions` with `company_id`,
    `user_id`, `name`, `description`, `dataset`, a `state` json (columns, filters, group by, aggregates,
    sort, period), `is_public`, `is_global`, `is_default`, `icon`, `color` — the same shape as
    `table_views`, including normalising the dataset key through `ModuleMap::alias()` so a class that
@@ -393,7 +393,7 @@ every built-in report, with the same record row and the same export.
    thousand rows in PHP; and a refusal — "this report asks for too much, narrow the period" — in place
    of a timeout. A builder is the one feature in this plan whose cost the *user* chooses, so the
    ceiling has to be the application's.
-6. **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
+6. *done, 2026-08-25 — and payslips turn out to be the one subject the reader gate does not protect, see [What landed](#what-landed).* **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
    `is_global` needs an administrator permission of its own. A company-wide custom report over payslips
    is a payroll leak, and it is one careless toggle away.
 7. **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
@@ -485,6 +485,142 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-25 — saved report definitions and the builder's permissions (Phase 6.2: items 3 and 6).**
+
+- **The shape item 3 asked for, minus four of its columns, and each omission is a decision.** No `company_id`:
+  `table_views` needs one because it lives on the *landlord* connection and a global scope is the only thing
+  separating companies there, while this is on the tenant connection where the company *is* the database —
+  the third time this phase-set has made that call, after 4.5 and 7. No `is_default`: on a table view it means
+  "the view this resource's table opens with", and a report is opened by name from a list, so there is nothing
+  for a default to be. No `icon` or `color`, and that one is a measurement: Phase 4 took the hub from 366 KB to
+  348.5 KB by replacing 51 inline heroicons with nine `<symbol>`s, *because icons repeat per section* — a
+  per-definition icon reintroduces exactly the shape that saving deleted, on the one page `PanelPerformanceTest`
+  says must not grow.
+- **And no `is_global`, because `table_views` has never used it.** The plan names that table as the working
+  example; in it `is_global` is in `$fillable`, in the visibility scope, in the policy and in the factory as
+  `false`, and *nothing in the application ever sets it true*. What is actually used is `is_public` — "make
+  this available to everyone in this company" — so there is one sharing flag here, which is also the one thing
+  item 6 needs a permission for. Copying the shape faithfully would have copied a column nobody has ever set.
+- **The period is relative and there is no way to store two dates**, which is Phase 4.5's lesson applied one
+  level up and made structural. A saved view kept the date out because "a view holding 30 June would open on
+  30 June for ever and nobody would notice for a while"; a *definition* is worse, because Phase 8 will send it
+  — "the aged receivables every Monday" has to resolve its own dates each Monday. So `RelativePeriod` offers
+  six spans, all bounded, and a state holding `['from' => …, 'to' => …]` normalises to the financial year to
+  date. There is deliberately no "all time": half of item 5's cost guard arrives free when the list of choices
+  cannot express an unbounded query.
+- **Quarters and years are financial, by calling the arithmetic rather than repeating it.**
+  `DashboardPeriod::fiscalQuarterStart()` became public for this — its reasoning (count back from the year
+  *end*, then clamp to the start, because a company that joined in November still has July–September quarters)
+  took a test to get right in Phase 5.1, and a second copy would be a second answer waiting to disagree. "Last
+  quarter" is then found by stepping back a day from this quarter's start and asking which quarter *that* day
+  is in, rather than by subtracting three months — which looks equivalent and is not: on a short first year it
+  would answer a month before the company existed. A mutation survived until the test for that existed.
+- **The state is sanitised against the dataset, on write and on read.** Every key is a *declared* key of its
+  subject: a column the dataset offers, a filter it offers, an aggregate that column allows, a group-by the
+  database can actually group on, one of two sort directions. Read as well as write, because a row outlives
+  the code that wrote it — a definition naming a column since removed loses that column and keeps the rest,
+  which is what lets a dataset evolve without breaking every report over it.
+- **Item 6's sharp end is `dataset()`, not `is_public`.** The plan warns that "a company-wide custom report over
+  payslips is a payroll leak, and it is one careless toggle away". Reading a definition resolves its subject
+  through the *reader's* module licence and the *reader's* permission, so a shared report over a subject
+  somebody cannot open resolves to nothing for them — no columns, no query, no rows. The toggle cannot reveal
+  what the reader could not already open, which is a stronger guarantee than being careful with the toggle.
+- **And payslips, the example the plan names, turn out to be the one subject that gate does not protect.**
+  Every seeded role that can read a report at all holds `PayslipView` — an employee sees their own payslip, an
+  accountant runs payroll — so a shared payslip report passes the reader gate for all of them. What makes it
+  safe is entirely Phase 6.1's item 2: `EmployeeAccess` on the dataset's base query, so each reader gets their
+  own rows and their downline's. The two halves are not overlapping defences; for most subjects the permission
+  refuses, and for the one the plan was worried about it is the row scoping and nothing else. There is a test
+  named for that, so a role that stops holding `PayslipView` turns it back into the ordinary case.
+- **Two permissions, one of them granted to nobody below Administrator.** `ReportBuild` sits with `ReportView`
+  in Accounting's `Report` group — not in Core, because `ModuleAuthorization` resolves a bare permission's
+  module *through its group*, so splitting the group would make "which module gates this check" depend on which
+  manifest declared which name. Accountant upward gets `ReportBuild`: anybody trusted to read the ledger is
+  trusted to ask it a question. `ReportShare` is Administrator's alone, and what it protects is worth being
+  precise about — not the figures, which the reader gate already handles, but the company's own list of
+  reports: an unshared definition is somebody's working note, and a hub filling up with forty of them is a hub
+  nobody reads.
+- **Sharing without the permission is refused rather than silently unshared.** Somebody who ticks the box
+  should be told, and returning null is the only way the caller can tell them.
+- 28 tests, 76 assertions; 12 mutations tried and all 12 killed — two of them only after the tests that catch
+  them were written, and both of those were tests that had been passing for the wrong reason.
+- Items 4, 5 and 7 remain: rendering through `ReportPane`, the cost guards, and the builder screen.
+
+**2026-08-25 — the dataset registry (Phase 6.1: items 1 and 2).**
+
+- **Eleven subjects, declared by the module that owns each**, exactly as models, resources, pages and widgets
+  are: `ModuleManifest` gained a `datasets` table and each `module.php` names its own. A central list would
+  have been a file every module has to edit, which is what `docs/module-packaging-plan.md` §5 was written to
+  remove — and declaring per module means a dataset arrives with a module already attached, which is what
+  `isAvailable()` gates on.
+- **The boundary is a declaration, not a validator, and that is the design.** Nothing accepts a column name
+  from a request: a definition names a column *key*, the dataset turns that key into the one column it
+  declared, and an unrecognised key resolves to nothing. A validator has to be right every time; a registry
+  has to be wrong on purpose. Three tests hold the line — every declared column exists on the table, every
+  declared relation exists on the model, and an unknown key (including a real database column that is not a
+  declared key) resolves to null.
+- **A column resolves in one of three ways and the difference decides what SQL may do with it.** A real column
+  sorts, groups and aggregates; a related column displays and groups only where the declaration also names the
+  *local* key to group on, because `GROUP BY contacts.name` needs a join this builder does not write while
+  `GROUP BY contact_id` needs nothing and gives the same buckets; a derived column displays and nothing else.
+  That last one is enforced in `DatasetColumn::derived()` rather than checked later, which is what keeps item
+  5's "aggregation in SQL" true by construction.
+- **Which makes several obvious reports deliberately unbuildable, and each refusal is item 7 working.**
+  Outstanding by customer, weighted forecast totals and average tenure are all sums of derived columns, so the
+  builder lists the rows and the coded report states the total. Journal lines cannot group by month, because
+  the date is on the entry and grouping through a relation needs a join — the general ledger is that report.
+  Leave days cannot group by employee, for the same reason and with the same answer.
+- **The four filter kinds are extracted from the thirty coded reports rather than guessed**, which is what the
+  plan asked for by putting this phase last: a date range (every report has one), a select (`ReportPane::ASKS`
+  has three and Phases 2–3 added a dozen more of the same shape), a search (`FindTransactions`), and a flag.
+  Nothing else earned a place — a between-two-numbers filter looks obvious and no coded report needed one.
+- **Two subjects have no period, and finding out why was the useful part of the extraction.** Item 5 offers "a
+  mandatory period filter **or** an explicit row cap", and employees take the second branch because an employee
+  is a *state* — a mandatory period over `date_of_joining` would answer "who joined this quarter" to somebody
+  who asked for a headcount. Payslips take it for a sharper reason: **`payslips.month` holds a month name**
+  ('January'), not a date, so `'January' >= '2026-07-01'` is a comparison the database will answer and nobody
+  can predict. What stands in for a period there is the fiscal year, which is a real foreign key.
+- **A period may be reached through a declared relation, because journal lines have no date.**
+  `journal_entry_lines` has never carried one — the date is on the entry, since an entry is one event with two
+  or more sides and a date per side would be the same fact stored twice with nothing keeping the copies equal.
+  So the period is a `whereHas`, which costs a subquery, and a dataset with its own date names that one.
+- **Row-level access is inherited** (item 2): `EmployeeAccess`, the same service and the same column the
+  resources use, applied to the base query so no column choice, filter or aggregate can reach a row it
+  excludes. Payslip components and leave days reach it through a `whereHas` on their parent, because those
+  tables have no `employee_id` of their own — which is precisely where a leak would have hidden, in a table
+  that looks like an implementation detail. A test asserts every dataset holding employee rows overrides
+  `access()`, written against the files rather than a list of three, because the failure it prevents is the
+  *next* dataset.
+- **Item 6's "payroll leak" needs both halves, and the test proves it rather than assuming it.** The Employee
+  role *does* hold `PayslipView` — everybody sees their own payslip — so the permission gate lets an employee
+  build over payslips, and what keeps that from being a leak is the row scoping: they get one row, their own.
+  Take either half away and the subject is dangerous. What the permission gate refuses them is what their role
+  has no business reading at all: invoices, journal lines, other people's records, the pipeline.
+- **Every dataset's permission is checked against the seeder**, which nothing else in the suite would catch:
+  `can()` on an unknown permission returns *false* (spatie catches `PermissionDoesNotExist`), so a typo makes a
+  subject invisible to everybody and reads as a licensing question. `ModuleCoverageTest` mines literal
+  `can('X')` calls and these are strings behind a method.
+- **A mutation showed the module gate could not fail**, and the fix was a better test rather than a deleted
+  check. `ModuleAuthorization` denies any permission belonging to a disabled module — returning false, so it
+  short-circuits — which means switching payroll off makes `can('PayslipView')` false too and the subject
+  vanishes whether `isAvailable()` looks at the module or not. The check still earns its place for the one
+  shape none of the eleven happens to have: a dataset in one module gated on *another* module's permission. So
+  the test now uses a purpose-built dataset of exactly that shape, and the mutation dies.
+- **`ModuleManifest`'s cache watched the manifests and not its own code**, which cost a debugging session here
+  and is now fixed. Adding the `datasets` table changed this class *and* nine `module.php` files; editing the
+  manifests marked the cache stale, but any process whose cache predated only the code change served a merged
+  array with no `datasets` key at all. The symptom was `ModuleMap::datasets()` returning eleven in one process
+  and nothing in another — which reads as a broken registry rather than a stale file, and that is the direction
+  of failure this application already treats as the dangerous one. `ModuleManifestCacheTest` is deterministic
+  about it: the fixture manifest is touched into the year 2000, so nothing but the rule under test can make a
+  later cache stale.
+- 24 tests, 194 assertions for the registry and 5 more for the cache rule; 11 mutations tried and all 11
+  killed, one of them only after the test that catches it was rewritten.
+- **Where the code is, which the history does not make obvious:** a parallel session's two commits
+  (`0d87b6c`, `7c299eb`, both titled "command bar") staged the whole working tree and took every file of this
+  item with them. Nothing is lost and nothing is mixed *within* a file, but `git log` attributes the registry
+  to a commit about something else. Items 3 to 7 remain.
 
 **2026-08-25 — per-user dashboard layouts (Phase 7). Phase 7 is complete.**
 

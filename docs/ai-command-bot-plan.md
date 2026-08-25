@@ -301,6 +301,28 @@ URL. A command bot proposes an action and waits for confirmation, which is a sec
 palette has no concept of. So: same surface, same keystroke, but a distinct `CommandBar` component rather
 than a fifth `PaletteProvider`, sharing the palette's tenant/permission plumbing and its render hook.
 
+### §8.1 How it is opened — corrected after shipping
+
+The bar first shipped reachable **only** by ⌘J, and ⌘J does not reach the page. It is a reserved browser
+shortcut on both platforms — Chrome and Firefox open Downloads with it, dispatched from the native menu
+bar before the document sees the keystroke — so `.prevent` runs too late to take it back. The feature was
+unreachable, and unreachable *silently*: no dialog, no error, nothing in the log. Every test passed the
+whole time, because the component was never the broken part.
+
+Two changes, and the second is the one that matters:
+
+1. The hotkey is **⌘/** (ctrl+/ elsewhere), which no browser claims. ⌘J is still honoured for anyone whose
+   muscle memory has it and whose browser leaves it free, but it is no longer the way in.
+2. A **button in the topbar**, beside the ⌘K search trigger, dispatching `open-command-bar`. This is the
+   primary affordance; the hotkey is the shortcut. The palette next door already had one, and the reason
+   generalises: a shortcut is not discoverable, and this one has no menu entry to be discovered from.
+
+The button and the dialog both ask `CommandBar::available()` rather than each deciding for itself, because
+the two ways they can disagree are the two failure modes: a button that opens nothing, and a dialog with
+no button. That predicate now also reads `ai.enabled`, which nothing had read until this point — with the
+`local` driver `isConfigured()` is unconditionally true, so the feature flag had quietly stopped being a
+flag.
+
 Tenancy is not negotiable and is easy to get wrong here: the model call happens outside the request's
 normal Eloquent flow, so the resolved `TransactionType` and `Account` must be re-fetched **inside** the
 current tenant before `bookRow()` is called. An id that arrived from a model response is a string from

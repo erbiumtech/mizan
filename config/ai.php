@@ -10,10 +10,25 @@
  */
 
 return [
-    // Nothing reaches the model unless this is on AND a key is present.
+    // Nothing reaches the parser unless this is on.
     'enabled' => (bool) env('AI_COMMANDS_ENABLED', false),
 
-    'driver' => env('AI_DRIVER', 'claude'),
+    /*
+     * How a command is turned into fields — `local` or `claude`.
+     *
+     * **`local` is the default, and it is not a degraded mode.** For the commands this feature was asked
+     * for — "rent 25000 out", three or four tokens with one job each — a word list and a number parser are
+     * deterministic, free, instant, work offline, and are inspectable when they get something wrong. For
+     * something that posts money, "the same words always produce the same entry" is worth more than
+     * flexibility.
+     *
+     * Switch to `claude` when commands start looking like sentences rather than commands: "I paid the
+     * landlord twenty-five thousand yesterday for the new office" needs to know that "the landlord" implies
+     * rent, and no word list will.
+     *
+     * `local` needs no key. `claude` needs ANTHROPIC_API_KEY.
+     */
+    'driver' => env('AI_DRIVER', 'local'),
 
     'claude' => [
         'api_key' => env('ANTHROPIC_API_KEY'),

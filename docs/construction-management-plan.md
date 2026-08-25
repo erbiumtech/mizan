@@ -1024,6 +1024,25 @@ Certificate 7 header, all frozen snapshots: `contract_sum_original` 500,000,000,
 retention −2,140,000, advance recovery −5,350,000, an NCR deduction under clause 14.6 −850,000, and
 previously certified −184,900,000, leaving `current_due` 22,360,000.
 
+**Every deduction row is a movement, and the previously-certified row is the previous GROSS.** That sentence
+was missing, and its absence was a real defect rather than a documentation gap. The rows above are *this
+period's* retention and *this period's* advance recovery, so the figure they net against must be one that
+has never had retention taken out of it. Netting a movement against the previous **net cash** — which has
+already had its own retention removed — hands that retention back, and nothing puts it back again. The
+contract then over-certifies by exactly the prior retention from the second live certificate onward, while
+`retention_to_date` and the retention register both go on saying the right thing: two of the company's own
+records disagreeing, neither wrong on its own terms.
+
+The figures above were the movement ones all along. 215,600,000 − 2,140,000 − 5,350,000 − 850,000 −
+22,360,000 = 184,900,000, so the 184,900,000 in that row is the previous **gross** — only the label said
+otherwise. It is stored as `previous_gross_value_to_date`, **beside** `previously_certified` rather than
+instead of it, because the printed G702 line 7 wants the net figure and the arithmetic wants the gross. Two
+questions, two columns, each named for its own answer.
+
+The identity that holds this together, and the one to assert rather than reason about: over any run of live
+certificates, **Σ `current_due` = gross certified − retention held**. Each certificate can look defensible
+on its own and still break it.
+
 The AIA form reads off the same columns:
 
 | G703 column | Source |
@@ -1044,7 +1063,7 @@ The AIA form reads off the same columns:
 | 4 Total completed and stored to date | `certificate.gross_value_to_date` (= Σ column G) |
 | 5a / 5b Retainage on work / on stored material | deduction rows, split by basis |
 | 5 Total retainage | `certificate.retention_to_date` |
-| 7 Less previous certificates | `certificate.previously_certified` |
+| 7 Less previous certificates | `certificate.previously_certified` — net; the arithmetic nets against `previous_gross_value_to_date` |
 | 8 Current payment due | `certificate.current_due` |
 
 The FIDIC certificate needed five header figures and a deductions child table. The AIA certificate needs

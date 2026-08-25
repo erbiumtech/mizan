@@ -9,6 +9,7 @@ use App\Modules\Accounting\Services\CommandInterpreter;
 use App\Modules\Accounting\Support\RegisterCommandResolver;
 use App\Modules\Expenses\Support\ExpenseClaimCommandResolver;
 use App\Support\Ai\Claude;
+use App\Support\Ai\LocalPatternModel;
 use App\Support\Ai\StructuredModel;
 use App\Support\EmployeeAccess;
 use App\Support\ModuleAuthorization;
@@ -67,7 +68,13 @@ class AppServiceProvider extends ServiceProvider
          * Not `singleton`: `Claude` holds a client keyed to config that a test may
          * change between cases, and a memoised instance would outlive the change.
          */
-        $this->app->bind(StructuredModel::class, Claude::class);
+        $this->app->bind(StructuredModel::class, fn (): StructuredModel => match (config('ai.driver')) {
+            'claude' => new Claude,
+            // `local` and anything unrecognised. Falling back to the driver that needs no key and cannot
+            // fail on the network is the safe direction: a typo'd driver name gives a working command bar
+            // rather than one that throws on the first keystroke.
+            default => new LocalPatternModel,
+        });
 
         /*
          * The command bot's resolvers — docs/ai-command-bot-plan.md §7.

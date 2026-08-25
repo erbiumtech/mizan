@@ -83,8 +83,13 @@ class CommandGrammar
             'required' => ['direction', 'amount', 'transaction_type_code'],
             'properties' => [
                 'direction' => [
-                    'type' => ['string', 'null'],
-                    'enum' => [self::DIRECTION_IN, self::DIRECTION_OUT, null],
+                    // anyOf, not `type: ['string','null']` — structured outputs rejects a type ARRAY
+                    // combined with an enum: "Enum value 'in' does not match declared type
+                    // '['string','null']'". A nullable enum has to be spelled as a union of two schemas.
+                    'anyOf' => [
+                        ['type' => 'string', 'enum' => [self::DIRECTION_IN, self::DIRECTION_OUT]],
+                        ['type' => 'null'],
+                    ],
                     'description' => 'Direction of money from the account holder\'s own point of view. '
                         .'"in" when money was received; "out" when money was paid. Never a ledger side.',
                 ],
@@ -94,8 +99,10 @@ class CommandGrammar
                         .'"1.5 lakh". Do not convert it to a number; the application does that.',
                 ],
                 'transaction_type_code' => [
-                    'type' => ['string', 'null'],
-                    'enum' => [...$categoryCodes, null],
+                    'anyOf' => [
+                        ['type' => 'string', 'enum' => $categoryCodes],
+                        ['type' => 'null'],
+                    ],
                     'description' => 'The category code this belongs to, chosen from the list in the system '
                         .'prompt. null when no category clearly matches — do not guess, and never pick a '
                         .'catch-all such as "other" merely because nothing else fits.',

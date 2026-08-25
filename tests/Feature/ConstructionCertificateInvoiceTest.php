@@ -112,6 +112,10 @@ class ConstructionCertificateInvoiceTest extends AccountingTestCase
             'gross_value_to_date' => 215_600_000,
             'retention_to_date' => 21_560_000,
             'previously_certified' => 184_900_000,
+            // The gross the movement rows net against. §8.4's own arithmetic implies this figure:
+            // 215,600,000 − 2,140,000 − 5,350,000 − 850,000 − 22,360,000 = 184,900,000. The plan's
+            // numbers were written for movement rows all along; only the label said otherwise.
+            'previous_gross_value_to_date' => 184_900_000,
             'current_due' => 22_360_000,
         ]);
 
