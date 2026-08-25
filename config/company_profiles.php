@@ -41,6 +41,7 @@ use Database\Seeders\PersonalTransactionTypeSeeder;
 use Database\Seeders\SalarySlabSeeder;
 use Database\Seeders\StatutoryComponentSeeder;
 use Database\Seeders\TaxScheduleSeeder;
+use Database\Seeders\TransactionTypeAliasSeeder;
 use Database\Seeders\TransactionTypeSeeder;
 
 // Order matters and is not alphabetical: the chart must exist before the
@@ -53,6 +54,7 @@ $business = [
     ChartOfAccountsSeeder::class,
     CurrencySeeder::class,
     TransactionTypeSeeder::class,
+    TransactionTypeAliasSeeder::class,
     SalarySlabSeeder::class,
     // Phase 9. The statutory pay COMPONENTS, not any amount: creating them says this
     // company may deduct EOBI, and deducts nothing. After the chart, because each posts
@@ -93,6 +95,7 @@ $personal = [
     PersonalChartOfAccountsSeeder::class,
     BankSeeder::class,
     PersonalTransactionTypeSeeder::class,
+    TransactionTypeAliasSeeder::class,
     TaxScheduleSeeder::class,
 ];
 

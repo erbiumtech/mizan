@@ -20,6 +20,12 @@ class TransactionType extends Model
         return $this->belongsTo(Account::class);
     }
 
+    /** The other words this category goes by — see docs/ai-command-bot-plan.md §3.2. */
+    public function aliases()
+    {
+        return $this->hasMany(TransactionTypeAlias::class);
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class);

@@ -36,6 +36,21 @@ class PersonalTransactionTypeSeeder extends Seeder
         ['Household & Maintenance', 'household', '5700'],
         ['Family & Gifts', 'family', '5800'],
         ['Other', 'other', '5900'],
+
+        /*
+         * What comes in. The personal chart has had these accounts since it shipped; the categories that
+         * reach them did not exist, so a household could record every rupee it spent and none of what it
+         * earned through anything category-driven.
+         *
+         * `salary` is free in a personal account — wages a household *pays* are `domestic-staff`, so the
+         * word is unambiguous here in a way it would not be in the business list, where `salary` is the
+         * payroll expense.
+         */
+        ['Salary', 'salary', '4000'],
+        ['Business Income', 'business-income', '4100'],
+        ['Rental Income', 'rental-income', '4200'],
+        ['Profit on Investments', 'investment-profit', '4300'],
+        ['Other Income', 'other-income', '4900'],
     ];
 
     public function run(): void

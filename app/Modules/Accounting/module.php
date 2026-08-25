@@ -34,6 +34,11 @@ return [
         'App\\Models\\LoanInstalment' => \App\Modules\Accounting\Models\LoanInstalment::class,
         'App\\Models\\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
         'App\\Models\\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
+
+        // The AI command bot — docs/ai-command-bot-plan.md. Here rather than in a module of its own
+        // because what it produces is a register row: it is a second way into Accounting, not a domain.
+        'App\\Models\\CommandUtterance' => \App\Modules\Accounting\Models\CommandUtterance::class,
+        'App\\Models\\TransactionTypeAlias' => \App\Modules\Accounting\Models\TransactionTypeAlias::class,
     ],
 
     'resources' => [
@@ -81,6 +86,12 @@ return [
         'App\\Filament\\Widgets\\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
         'App\\Filament\\Widgets\\CashCommittedOverview' => \App\Modules\Accounting\Filament\Widgets\CashCommittedOverview::class,
         'App\\Filament\\Widgets\\RevenueAndExpensesChart' => \App\Modules\Accounting\Filament\Widgets\RevenueAndExpensesChart::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\JournalLineDataset' => \App\Modules\Accounting\Reporting\JournalLineDataset::class,
     ],
 
     'permission_groups' => [
