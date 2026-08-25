@@ -47,11 +47,24 @@ class CommandBar extends Component
 
     public bool $busy = false;
 
-    /** Off unless configured, so the hotkey opens nothing rather than something broken. */
+    /**
+     * Off unless switched on and configured, so the trigger opens nothing rather than something broken.
+     *
+     * **Static as well as instance** because two things have to agree on the answer: this component, which
+     * decides whether the dialog exists, and the topbar trigger, which decides whether a button that opens
+     * it exists. When they disagreed the result was the defect this method was extracted for — a button
+     * with no dialog, or a dialog with no way in.
+     */
+    public static function available(): bool
+    {
+        return (bool) config('ai.enabled')
+            && app(StructuredModel::class)->isConfigured()
+            && auth()->user()?->can('create', \App\Modules\Accounting\Models\JournalEntry::class) !== false;
+    }
+
     public function isAvailable(): bool
     {
-        return app(StructuredModel::class)->isConfigured()
-            && auth()->user()?->can('create', \App\Modules\Accounting\Models\JournalEntry::class) !== false;
+        return static::available();
     }
 
     /** Whether the mic is offered at all. Feature detection in the browser decides the rest. */

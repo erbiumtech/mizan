@@ -80,8 +80,19 @@
 
         stopDictation() { try { this.recogniser?.stop() } catch (e) {} this.listening = false },
     }"
-    @keydown.window.meta.j.prevent="openBar()"
-    @keydown.window.ctrl.j.prevent="openBar()"
+    {{--
+        ⌘/ (ctrl+/ elsewhere), NOT ⌘J.
+
+        ⌘J is a reserved browser shortcut on both platforms — Chrome and Firefox open Downloads with it,
+        dispatched from the native menu bar before the keystroke reaches the document. `.prevent` runs too
+        late to matter, so the bar never opened and there was nothing on screen or in the log to say why.
+
+        Written as a guard rather than Alpine's key modifiers because "/" has no modifier name: `.slash`
+        is not one of them, and `@keydown.window.meta./` is not a legal attribute. ⌘J is still honoured
+        for anyone whose muscle memory has it and whose browser leaves it free (Safari does), but it is no
+        longer the way in — the topbar button is.
+    --}}
+    @keydown.window="if (($event.metaKey || $event.ctrlKey) && ($event.key === '/' || $event.key === 'j')) { $event.preventDefault(); openBar() }"
     @open-command-bar.window="openBar()"
     @command-booked.window="close()"
 >
@@ -209,7 +220,7 @@
 
             <div class="cb-footer">
                 <span>Nothing is recorded until you confirm.</span>
-                <span><kbd>esc</kbd> close</span>
+                <span><kbd>⌘</kbd><kbd>/</kbd> open · <kbd>esc</kbd> close</span>
             </div>
         </dialog>
     @endif
