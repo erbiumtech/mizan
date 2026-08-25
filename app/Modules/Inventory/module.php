@@ -35,6 +35,10 @@ return [
         'App\\Filament\\Pages\\StockOnHand' => \App\Modules\Inventory\Filament\Pages\StockOnHand::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\StockOnHandOverview' => \App\Modules\Inventory\Filament\Widgets\StockOnHandOverview::class,
+    ],
+
     'permission_groups' => [
         'Inventory',
     ],
