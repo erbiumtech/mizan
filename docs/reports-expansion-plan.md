@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–7 complete. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Complete. Phases 1–8 are in; what remains of this document is the record of how. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -448,43 +448,125 @@ run, the SLA summary on the first of the month.
 Cheap by this point, and only by this point: Phase 4 renders the export, Phase 6 stores the definition,
 and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryService` + `sent_at`).
 
-1. **What a schedule is.** `report_schedules`: the report — a coded report's key *or* a Phase 6 definition
+1. *done, 2026-08-26 — one column for both kinds of report, see [What landed](#what-landed).* **What a schedule is.** `report_schedules`: the report — a coded report's key *or* a Phase 6 definition
    — its filter state as json (the same state the URL carries, so "the schedule" and "the link" are the
    same thing), a period rule (`this month`, `last month`, `financial year to date`), a format
    (PDF / CSV / both), a cron expression with a timezone, recipients, `is_active`, and the owner.
-2. **The security model, which is the whole of this phase.** An emailed report leaves the application's
+2. *done, 2026-08-26 — and a tenancy scope nearly turned a leaver into an external recipient, see [What landed](#what-landed).* **The security model, which is the whole of this phase.** An emailed report leaves the application's
    authorization behind: nobody has to log in to read it, and nothing in the app records who saw it. So —
    **the render runs as the schedule's owner**, whose access decides what the rows are; **the recipient
    list is re-authorised at send time, not at schedule time**, because a person whose role changed or who
    left the company is the ordinary case and the schedule would otherwise keep posting to them for years;
    **external recipients need their own permission** and are recorded on every delivery. A schedule whose
    owner loses access to the report is suspended, not silently rendered with fewer rows.
-3. **Periods go through `ReportPeriod`.** "Monthly on the 1st" for a company whose year starts 1 July is
+3. *done, 2026-08-26 — through `RelativePeriod`, which is `ReportPeriod` with a rule in front of it, see [What landed](#what-landed).* **Periods go through `ReportPeriod`.** "Monthly on the 1st" for a company whose year starts 1 July is
    exactly the case that made `ReportPeriod` necessary, and the resolved period is also the idempotency
    key in item 4 — so getting it wrong is not a cosmetic error but a double send.
-4. **One delivery per period, whatever the queue does.** `report_deliveries` with
+4. *done, 2026-08-26 — the row is written before the work, see [What landed](#what-landed).* **One delivery per period, whatever the queue does.** `report_deliveries` with
    `unique(schedule_id, period_key)`, plus status, rendered_at, sent_at, recipient list and error. This is
    the `payslips.sent_at` / `SubscriptionBillingService::alreadyBilled()` pattern, and it is not optional:
    a queued render that exceeds its timeout is retried by design, and without this the retry emails the
    report a second time.
-5. **The schedule entry is one line, per module.** A `reports:deliver` command in the reports module's
+5. *done, 2026-08-26 — in Core, and `SkipsDisabledModules` deliberately not used, see [What landed](#what-landed).* **The schedule entry is one line, per module.** A `reports:deliver` command in the reports module's
    own `routes/console.php`, `TenantAware`, `SkipsDisabledModules`, running every fifteen minutes and
    dispatching only the schedules whose cron says they are due — the `CheckEnvironmentsHealth` shape, so
    a thousand schedules still need one entry. It needs cron and a worker, and the file should say so.
-6. **Rendering is Phase 4's export in a job**, with the PDF engine's existing per-engine template
+6. *done, 2026-08-26.* **Rendering is Phase 4's export in a job**, with the PDF engine's existing per-engine template
    overrides. The queue timeouts are already ordered correctly in `config/queue.php`; a report large
    enough to exceed them is a report to cap, not a timeout to raise.
-7. **The email**, through `EmailTemplate` where the company has one, with the file attached exactly as
+7. *done, 2026-08-26 — the files travel with the notification rather than being re-rendered per recipient, see [What landed](#what-landed).* **The email**, through `EmailTemplate` where the company has one, with the file attached exactly as
    `PayslipIssued` does it — **and a link to the live report in the body**, so a recipient who wants to
    drill in lands in the application and is authorised there. A size cap, with the attachment replaced by
    a link when it is exceeded: a 40 MB PDF does not fail in this application, it fails at somebody's mail
    server, hours later, silently.
-8. **A delivery log people can read** — a report of the reports: what went out, to whom, when, and what
+8. *done, 2026-08-26 — a report in the hub rather than a resource, see [What landed](#what-landed). **Phase 8 is complete.*** **A delivery log people can read** — a report of the reports: what went out, to whom, when, and what
    failed. Retries are bounded and the owner is notified after repeated failure, because a scheduled
    report that quietly stopped arriving is worse than one that was never set up: everybody assumes the
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-26 — scheduled and emailed reports (Phase 8: items 1–8). Phase 8 is complete, and so is this plan.**
+
+- **Cheap by this point, and only by this point — which the diff bears out.** There is no renderer here: item 6
+  is `ReportExport` and `PdfDocument` on the same `reports.pane-export` template the download button uses, item
+  1's stored state is the state the URL carries, and a built report arrives through `BuiltReport` exactly as it
+  does in the pane. What Phase 8 adds is two tables, a service, a job, a command, two notifications and a
+  report — and none of them knows how to draw a report.
+- **One column for both kinds of report.** `report_schedules.report_key` holds `AgedReceivables` or
+  `custom-7`, because both are already keys the hub routes on and `ReportRenderers` already resolves. Two
+  columns with a check constraint between them would have been the same fact stored twice, and the form's
+  report picker is the hub's own catalogue — which also means somebody cannot schedule a report they could not
+  open.
+- **Item 2 is the whole phase, and the sharpest thing found while building it was a *tenancy scope*.**
+  Recipients are stored as addresses so that the list can be re-authorised at send time; resolving an address
+  to a user went through `User::query()->where('email', …)`, and `users` carries Filament's tenancy scope — so
+  a person **removed from the company came back as "no account here", which is the definition of an external
+  recipient**, and an owner holding `ReportSendExternal` would have had the report sent to them anyway. The fix
+  is `acrossCompanies()` and then asking whether they are still a member; the test that caught it is the one
+  asserting a leaver is refused, and it failed by sending *two* emails rather than by sending none. `owner()`
+  has the same fix for a different reason: "no account at all" and "no longer a member" are two suspensions
+  with two different fixes, and a scoped lookup cannot tell them apart.
+- **The render runs as the owner, and the acting user is put back.** `Auth::setUser($owner)` around the
+  payload, because every gate in this application — module licensing, `ReportView`, `EmployeeAccess` — reads
+  `auth()->user()`, and a console command has none. The `finally` that restores the previous user is not
+  tidiness: one command run delivers many schedules, and the first owner leaking into the second's render is
+  precisely the leak this item exists to prevent. There is a test asserting the restore.
+- **Two dates for two kinds of report, and the difference is not an inconsistency.** A coded report is "as at
+  a date", so the schedule's period sets that date to the span's *end* — last month's aged receivables are the
+  receivables at last month's end. A built report carries its own relative period, so the schedule's rule
+  *overrides* it and resolves against the run date: resolving a relative period against a date that is itself
+  the end of a relative period would answer the month before the one somebody asked for. `BuiltReport::for()`
+  gained an optional period for that, normalised through `RelativePeriod` so an override cannot express a span
+  the builder could not.
+- **The idempotency key is the resolved span, not the rule** — item 3 meeting item 4. `last_month:2027-01-01..2027-01-31`
+  is one key however many times the queue retries; `this_month:…..2027-02-19` is a new key tomorrow, so a
+  daily month-to-date report sends daily. One rule, both behaviours, and no flag deciding which.
+- **The delivery row is written before the work.** `claim()` inserts a pending row and lets the unique index
+  refuse a second one, so the window between the mail leaving and the record landing — where a duplicate send
+  lives — does not exist. A row already `sent` or deliberately `skipped` means this period is answered; a
+  `failed` or `pending` one is handed back, because that is a retry of the same send rather than a new one.
+- **"Nothing was sent" is a status, not a failure.** Every recipient refused at send time is `skipped` with
+  the reason recorded: the render worked, the report was right, and there was nobody left to send it to.
+  Marking it failed would put a red row in the log for something no retry can fix.
+- **The notification carries the rendered files, which is the opposite of `PayslipIssued`** — and the plan
+  names that class as the pattern, so the deviation is worth stating. A payslip notification carries an id and
+  renders at send time because a payslip is a document about a row that may have changed. A scheduled report is
+  the other case: the render *is* the moment the report was true, one delivery has already been recorded for
+  this period, and re-rendering per recipient would run a heavy report once per person and risk five people
+  receiving five different numbers. For the same reason it is deliberately not `ShouldQueue`: the job that
+  produced the files is already queued, and queueing the notification would put megabytes of base64 into the
+  payload, paid for again on every retry.
+- **The size cap replaces the attachment rather than trimming it**, because half a report is not a smaller
+  report. Eight megabytes, and the email says so and links to the live report — item 7's "a 40 MB PDF does not
+  fail in this application, it fails at somebody's mail server, hours later, silently".
+- **The command is in Core, and `SkipsDisabledModules` is deliberately not used.** Item 5 asks for "the reports
+  module's own `routes/console.php`", and there is no reports module: the hub belongs to no module and every
+  module puts reports in it. Which answers the licence guard too — Core is always on, so the trait would guard
+  a condition that cannot occur, and a report belonging to a module a company has switched off is refused one
+  layer down, where `renderAs()` runs as an owner whose module gating decides whether it resolves at all. A
+  schedule over an unavailable report is *suspended*, which is louder than skipped and is the state item 2
+  asks for.
+- **Bounded retries live in two places that must agree.** `DeliverScheduledReport::$tries` and
+  `ReportDelivery::MAX_ATTEMPTS` are the same constant, because the row's attempt count is what decides when
+  the owner is told: a queue configured to retry more would report a give-up that had not happened, and one
+  configured to retry less would never reach it. The owner is notified from the job's `failed()` hook — once,
+  after the attempts are spent, because three emails about one failure is how a warning becomes a filter rule.
+- **The log is a report, not a resource** (item 8). Everything it needed already existed: `ReportShapes` for
+  the payload, the hub for the door, Phase 4's export for the copy somebody forwards, `ReportView` for the
+  gate. It shows "3 of 5" for recipients, because a delivery reaching fewer people than the schedule names is
+  *correct* behaviour that somebody still needs to see, and it reports itself as unbalanced when any delivery
+  failed — which makes the pane draw its note in warning colour.
+- **Permissions are four plus one.** `ReportScheduleView/Create/Update/Delete` in Accounting's `Report` group,
+  for the reason Phase 6.2 gives about a group having one owner, with update and delete additionally scoped to
+  the *owner* by the policy — a schedule renders with its owner's access, so editing somebody else's recipient
+  list is sending their rows to a list they never agreed to. `ReportSendExternal` is the one that is not a CRUD
+  verb and is Administrator's alone. Reading the delivery log needs only `ReportView`: reading what the
+  application sent is not the same act as choosing what it sends.
+- 19 tests, 75 assertions. Two pre-existing failures were confirmed as *not* this work and left alone:
+  `PanelPerformanceTest`'s page-size ceiling for the reports hub (365–368 KB against 360, and 366 on a clean
+  `master`) and `ModuleBoundaryTest`'s violation in `app/Support/Ai/LocalPatternModel.php` — both arrived with
+  the command-bar commits.
 
 **2026-08-26 — the builder screen (Phase 6.4: item 7). Phase 6 is complete.**
 
