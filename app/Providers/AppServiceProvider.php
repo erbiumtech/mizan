@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Health\BackupConfigurationCheck;
+use App\Health\DiskSpaceCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
 use App\Modules\Accounting\Services\CommandInterpreter;
@@ -42,7 +43,6 @@ use Spatie\Health\Checks\Checks\EnvironmentCheck;
 use Spatie\Health\Checks\Checks\HorizonCheck;
 use Spatie\Health\Checks\Checks\RedisCheck;
 use Spatie\Health\Checks\Checks\ScheduleCheck;
-use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
 use Spatie\Health\Facades\Health;
 
 class AppServiceProvider extends ServiceProvider
@@ -368,7 +368,12 @@ class AppServiceProvider extends ServiceProvider
 
             // Backups, uploads and PDF temp files all land on the same volume, and the failure
             // mode of a full disk is a backup that half-writes.
-            UsedDiskSpaceCheck::new()
+            //
+            // Ours rather than the package's: `UsedDiskSpaceCheck` shells out to `df` and parses
+            // the output, which on a production host with no usable `df` crashed on every
+            // scheduled run and reported a regex error instead of a disk reading. See the class.
+            DiskSpaceCheck::new()
+                ->name('Disk space')
                 ->warnWhenUsedSpaceIsAbovePercentage(70)
                 ->failWhenUsedSpaceIsAbovePercentage(85),
 
