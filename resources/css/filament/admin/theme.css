@@ -2621,3 +2621,137 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 .fi-arranger-empty {
     @apply py-6 text-center text-sm text-gray-500 dark:text-gray-400;
 }
+
+/*
+ * The report builder — docs/reports-expansion-plan.md Phase 6, item 7.
+ *
+ * A form at the top of the explorer pane, with the report it is assembling drawn underneath it by the pane's
+ * own two partials. Shaped as fields and chips rather than as a Filament form schema on purpose: every
+ * control here is a choice from a list the dataset registry produced, and the fields have to sit inside the
+ * pane beside a live report rather than in a card of their own.
+ *
+ * `.fi-explorer-toggle`, `.fi-explorer-open` and `.fi-explorer-view` are reused for the column chips, the
+ * buttons and the chosen-column pills. One button style in this application, and it already exists.
+ */
+.fi-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding-bottom: 0.875rem;
+    border-bottom: 1px solid var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-800);
+    }
+}
+
+.fi-builder-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.fi-builder-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fi-builder-save {
+    border-color: color-mix(in oklab, var(--color-primary-600) 45%, transparent);
+    background-color: var(--color-primary-50);
+    font-weight: 600;
+    color: var(--color-primary-700);
+
+    &:where(.dark, .dark *) {
+        background-color: color-mix(in oklab, var(--color-primary-400) 12%, transparent);
+        color: var(--color-primary-300);
+    }
+}
+
+/* Two columns on a wide pane, one on a narrow one. A report has few fields; a grid engine is not needed. */
+.fi-builder-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.625rem;
+}
+
+.fi-builder-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.fi-builder-wide {
+    grid-column: 1 / -1;
+}
+
+.fi-builder-label {
+    @apply text-xs font-medium text-gray-500 dark:text-gray-400;
+}
+
+.fi-builder-input {
+    height: 2.25rem;
+    padding-inline: 0.625rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+    background-color: var(--color-white);
+    font-size: 0.75rem;
+    color: var(--color-gray-700);
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-gray-700);
+        background-color: var(--color-gray-900);
+        color: var(--color-gray-200);
+    }
+}
+
+.fi-builder-static {
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+
+    @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+.fi-builder-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fi-builder-chips,
+.fi-builder-chosen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.fi-builder-chosen-label {
+    padding-inline: 0.375rem;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+
+    @apply text-gray-700 dark:text-gray-200;
+}
+
+/*
+ * The refusals, and they are the point rather than decoration: one subject per report, a grouped report
+ * shows the group and its totals. Both are boundaries the builder cannot cross, so they are stated where
+ * somebody would otherwise go looking for the way across.
+ */
+.fi-builder-note {
+    @apply text-xs leading-relaxed text-gray-500 dark:text-gray-400;
+}
+
+.fi-builder-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    @apply text-xs text-gray-600 dark:text-gray-300;
+}

@@ -113,7 +113,50 @@ open in order to do arithmetic keeps the minus sign whatever the setting says.
 Only figures are rewritten. A dash still means "does not apply", a date is still a
 date, and the sentence under each report keeps its wording.
 
+## Building a report of your own
+
+**New report** in the header opens a form at the top of the pane, and what you assemble
+is drawn underneath it as you go — that preview *is* the report, by the same renderer
+that draws every built-in one, so there is nothing to check afterwards.
+
+You choose:
+
+- **a subject** — invoices, payslips, journal lines, employees, tickets, and so on. The
+  list is what this company has licensed and what your role may open;
+- **columns**, in the order you pick them. The ↑ and ↓ on each chosen column move it;
+- **a period**, as a *relative* span: "last month", "this quarter", "financial year to
+  date". Never two fixed dates — a report filed for a habit has to resolve its own dates
+  each time it is read, and a fixed range would answer last quarter's question for ever.
+  A few subjects have no date to bound (an employee is a state, not an event) and say so;
+- **filters** the subject offers, and a **group by** with **totals per group**.
+
+A saved report appears in the hub under **Custom**, beside the coded ones, and exports to
+CSV and PDF like anything else here.
+
+**One subject per report.** A question that needs two joined — invoices *and* payslips,
+tickets *and* timesheets — is a coded report: ask for it, and it arrives with tests and a
+total that reconciles. The builder refuses rather than guessing at a join.
+
+**At most 1,000 rows.** Past that the report says so and draws nothing, rather than
+showing you the first thousand with a total underneath that belongs to all of them.
+Narrow the period, or add a filter.
+
+Some columns can be listed but not totalled — an invoice's *outstanding* is worked out
+per row rather than stored, so the database cannot add it up. The rows are there; for the
+total, the coded ageing reports are the answer.
+
 ## Roles and permissions
 
-There's no permission of its own: this page shows up for anyone who could
+There's no permission of its own for the hub: this page shows up for anyone who could
 open at least one report behind it, and disappears entirely if none apply.
+
+Building has two:
+
+- **`ReportBuild`** — create and edit your own reports. Accountant and upward.
+- **`ReportShare`** — tick *Share with everybody in this company*. Administrator only.
+  What it protects is the company's own list of reports rather than the figures: a shared
+  report resolves its subject through the *reader's* licence and permissions, so it can
+  never show somebody rows they could not already open.
+
+You edit and delete your own reports. A report somebody shared with you opens like any
+other and is theirs to change — build your own if you want it slightly different.

@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the registry, items 1–2), 6.2 (definitions and permissions, items 3 and 6) and 6.3 (rendering and the cost guards, items 4 and 5) are in; item 7, the builder screen, is outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–7 complete. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -396,7 +396,7 @@ every built-in report, with the same record row and the same export.
 6. *done, 2026-08-25 — and payslips turn out to be the one subject the reader gate does not protect, see [What landed](#what-landed).* **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
    `is_global` needs an administrator permission of its own. A company-wide custom report over payslips
    is a payroll leak, and it is one careless toggle away.
-7. **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
+7. *done, 2026-08-26 — a mode of the hub rather than a screen of its own, and the refusal is on it; see [What landed](#what-landed). **Phase 6 is complete.*** **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
    question that needs two subjects joined is a coded report. The builder's answer to it is a clear
    refusal, not a join it cannot secure.
 
@@ -485,6 +485,57 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-26 — the builder screen (Phase 6.4: item 7). Phase 6 is complete.**
+
+- **It is a mode of the Reports hub, not a screen of its own**, which is Phase 7's arranger decision applied
+  to the other half of this plan and for the same two reasons. Item 4 had already decided a built report has
+  no page — it lives in the pane so that it inherits the pane — so a builder anywhere else would have had to
+  reproduce the pane in order to show what it was building. And a mode costs nothing when nobody is using it:
+  `$building` is false, the form is not rendered, and no dataset is asked for its columns. A page would also
+  have owed a manifest entry, a navigation home in a domain whose sidebar is deliberately a list of report
+  categories, and a help topic of its own — three files arguing about where a builder belongs, to reach the
+  same screen.
+- **The preview is the report.** `statement()` returns the draft as an unsaved `ReportDefinition` handed to
+  the same `BuiltReport` that draws a saved one, so what is under the form is not a preview of the report but
+  the report — including its record row, its ceiling and its refusals. Two payload builders would have been
+  two answers to "what does this report say", and the one on screen while building is the one people would
+  trust.
+- **Columns are buttons rather than a checkbox group, because the order is the report's shape.** A checkbox
+  group bound to an array hands back the order the boxes were *drawn* in, so every report would have come out
+  in the dataset's declaration order and nobody could have said why. `toggleColumn()` appends, and the chosen
+  columns carry ‹ › to reorder.
+- **Item 7's refusal is on the screen, not only in this document.** "A report is over one subject. A question
+  that needs two joined — invoices *and* payslips — is a coded report rather than a built one: ask for it, and
+  it arrives with tests and a total that reconciles." Said where somebody would otherwise go looking for the
+  join, because a refusal nobody reads is a refusal that comes back as a missing feature. Two smaller ones are
+  stated the same way: a grouped report shows the group and its totals and drops the rest, and a subject with
+  no date says "every row" instead of offering a period picker that would do nothing.
+- **Save is a rename when it is a rename.** `put()` gained `$replacing`: without it, editing a report and
+  changing its name would upsert on the *new* name and leave the old row behind, so Save would have duplicated
+  every report anybody renamed. Scoped to the owner, and a rename onto a name that person already uses is
+  refused with a sentence rather than leaving two reports called the same thing.
+- **Mine to edit, theirs to keep.** A shared report belongs to whoever made it — editing it would change what
+  every reader of it sees — so the Edit button is only drawn for the owner and `editReport()`/`deleteReport()`
+  refuse anything else. "I want it slightly different" is answered by the New report button, which is right
+  there.
+- **The form is not the boundary; the registry is.** Every control offers what a dataset declared: the
+  subject picker lists subjects this reader may open, the column buttons that subject's columns, the aggregate
+  picker the aggregates that column allows. There is no field through which a column name, a table or a
+  relation reaches a query. A test writes `contact_id` — a real database column and not a declared key —
+  straight at the property the way a crafted request would, and asserts it does not survive the save.
+- **`ReportBuild` hides the button as well as refusing the save**, because a mode that opens and then refuses
+  is a worse answer than a button that was never there. The test for it needed a purpose-built role: no
+  seeded role has the shape "may read reports, may not build", since `ReportBuild` goes to Accountant and
+  upward and the roles below it cannot open the hub at all — which would have tested the wrong refusal. A
+  company that grants `ReportView` to a Sales role and nothing else is the real case, so the test creates
+  exactly that.
+- 18 tests, 66 assertions. Phase 6 is complete: the registry, the definitions, the permissions, the
+  rendering, the cost guards and the screen.
+- **Still not ours, still red:** `PanelPerformanceTest`'s page-size ceiling for the reports hub. It measures
+  365–368 KB run to run against 360, and 366 on a clean `master` — the breach arrived with the command-bar
+  work, and this item's own contribution (a header action) is inside the run-to-run spread. Raising a ceiling
+  to cover somebody else's markup is the formality that file warns about.
 
 **2026-08-26 — a built report is drawn in the pane, with a ceiling (Phase 6.3: items 4 and 5).**
 
