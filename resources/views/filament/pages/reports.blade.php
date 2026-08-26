@@ -275,7 +275,15 @@
                             </label>
                         @endif
 
-                        <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        {{--
+                            Only for a report that has a page of its own — reports-expansion-plan.md Phase 6,
+                            item 4. A built report is drawn here and nowhere else, so its "own page" is this
+                            page with `?selected=` set, and a link back to the screen you are reading is an
+                            affordance that does nothing.
+                        --}}
+                        @if ($report['own_page'] ?? true)
+                            <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        @endif
                     </div>
 
                     {{--

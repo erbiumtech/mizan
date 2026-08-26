@@ -5,6 +5,7 @@ namespace App\Modules\Core\Models;
 use App\Models\TenantModel as Model;
 use App\Support\ModuleMap;
 use App\Support\Reporting\Dataset;
+use App\Support\Reporting\DatasetFilter;
 use App\Support\Reporting\DatasetRegistry;
 use App\Support\Reporting\RelativePeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,6 +56,16 @@ class ReportDefinition extends Model
     public const ASCENDING = 'asc';
 
     public const DESCENDING = 'desc';
+
+    /**
+     * What a built report's key looks like in the hub and in the URL — item 4.
+     *
+     * Every other key in the catalogue is a page's class basename, which is why this one carries a prefix
+     * that cannot be mistaken for one: the hub routes on the key, and `ReportRenderers` matches this prefix
+     * to decide that a key names a row rather than a class. The id rather than the name, because the key
+     * travels in a link somebody keeps and a report gets renamed.
+     */
+    public const KEY_PREFIX = 'custom-';
 
     /** The permission to build one at all. `ReportView` still governs reading — see item 6. */
     public const BUILD = 'ReportBuild';
@@ -133,11 +144,112 @@ class ReportDefinition extends Model
      */
     public static function readable(?int $userId = null): EloquentCollection
     {
-        return static::query()
-            ->visibleTo($userId)
-            ->get()
+        return static::visible($userId)
             ->filter(fn (self $definition): bool => $definition->dataset() !== null)
             ->values();
+    }
+
+    /**
+     * The rows this person may see, read once per request.
+     *
+     * **The read is memoised and the availability filter above is not**, which is the whole of the decision
+     * here. The hub asks for this list once per place it is displayed — the section chips, the counts, the
+     * rows, the sidebar column and `select()`'s own check are five readers of one answer, and Phase 5.7
+     * already paid for the version of that fault where a figure is recomputed per rendering of it. But which
+     * *subjects* are available is a question about modules and permissions, which are cheap to ask again and
+     * can change inside one request: a memo that held the answer would keep listing a report over a module
+     * somebody had just switched off, in the request that switched it off.
+     *
+     * In the container rather than a static, for the reason `PayslipForm` gives: a static outlives the
+     * request, and the next request may be another company's.
+     *
+     * @return EloquentCollection<int, self>
+     */
+    private static function visible(?int $userId): EloquentCollection
+    {
+        $bucket = static::memoKey($userId);
+
+        if (app()->bound($bucket)) {
+            return app($bucket);
+        }
+
+        $definitions = static::query()->visibleTo($userId)->get();
+
+        app()->instance($bucket, $definitions);
+
+        return $definitions;
+    }
+
+    /**
+     * One readable definition by its report key, or none.
+     *
+     * Through `readable()` rather than by id, so the two answers cannot differ: a key the hub would not
+     * list is a key the pane must not draw, and a key naming somebody else's unshared report, a deleted
+     * row, or a subject this reader may not open all land in the same place — null.
+     */
+    public static function forKey(?string $key): ?self
+    {
+        $id = static::idFromKey($key);
+
+        return $id === null
+            ? null
+            : static::readable()->firstWhere(fn (self $definition): bool => $definition->getKey() === $id);
+    }
+
+    /** The id a report key names, or none for anything that is not one of ours. */
+    public static function idFromKey(?string $key): ?int
+    {
+        return preg_match('/^'.preg_quote(self::KEY_PREFIX, '/').'([1-9]\d*)$/', (string) $key, $matches) === 1
+            ? (int) $matches[1]
+            : null;
+    }
+
+    /** What the hub, the pane and the URL all call this report. */
+    public function reportKey(): string
+    {
+        return self::KEY_PREFIX.$this->getKey();
+    }
+
+    /**
+     * Drop the memoised list.
+     *
+     * Called when a definition is written, because one request may both save a definition and re-render the
+     * hub — which is every Livewire round trip the builder's save button makes, and every test of it.
+     */
+    public static function forgetReadable(?int $userId = null): void
+    {
+        foreach (array_unique([$userId, auth()->id()], SORT_REGULAR) as $id) {
+            app()->forgetInstance(static::memoKey($id));
+        }
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $definition): void {
+            static::forgetReadable($definition->user_id);
+        });
+
+        static::deleted(function (self $definition): void {
+            static::forgetReadable($definition->user_id);
+        });
+    }
+
+    /**
+     * The memo's key: this tenant, this reader.
+     *
+     * The tenant is in it for the reason `docs/page-load-performance-plan.md` gives about every cache in this
+     * application — a key without it is a cross-tenant leak the moment two companies are served by one
+     * process. The reader is in it because the list is *their* readable set: `visibleTo()` filters on the
+     * user and `dataset()` on their permissions, so one memo for two people would answer the second with the
+     * first's reports.
+     */
+    private static function memoKey(?int $userId): string
+    {
+        return implode(':', [
+            'reports.readable-definitions',
+            Company::current()?->getKey() ?? 'none',
+            $userId ?? auth()->id() ?? 'guest',
+        ]);
     }
 
     /**
@@ -222,13 +334,15 @@ class ReportDefinition extends Model
             }
         }
 
-        // Filters the dataset offers, with a value. A blank value is the absence of a filter rather than a
-        // filter for blank — `SavedReportView::filtered()` takes the same position.
+        // Filters the dataset offers, with a value its own kind can hold. A blank value is the absence of a
+        // filter rather than a filter for blank — `SavedReportView::filtered()` takes the same position.
         $filters = [];
 
         foreach ((array) ($state['filters'] ?? []) as $key => $value) {
-            if (is_string($key) && $class::filter($key) !== null && $value !== null && $value !== '') {
-                $filters[$key] = $value;
+            $filter = is_string($key) ? $class::filter($key) : null;
+
+            if ($filter !== null && $value !== null && $value !== '' && static::filterValue($filter, $value) !== null) {
+                $filters[$key] = static::filterValue($filter, $value);
             }
         }
 
@@ -254,6 +368,29 @@ class ReportDefinition extends Model
             'sort' => static::sort($state['sort'] ?? null, $class),
             'period' => RelativePeriod::normalise(is_string($state['period'] ?? null) ? $state['period'] : null),
         ];
+    }
+
+    /**
+     * A filter's value, as its own kind may hold it — or null for one that may not.
+     *
+     * **A second date range is relative too, and that is the point of this method.** Item 3's period is
+     * stored as `last_month` rather than as two dates, for a reason Phase 4.5 had already learned and
+     * Phase 8 will depend on; a *filter* holding `['from' => '2027-04-01', …]` would reintroduce exactly
+     * that — an invoice report filed on the quarter that happened to be open when somebody saved it. So a
+     * date-range filter stores a `RelativePeriod` key like everything else about a period here, and there
+     * is no way to write an absolute date into a definition at all.
+     *
+     * **Everything else must be a scalar**, because it reaches a `where` binding. An array there is not a
+     * filter but a shape Eloquent will interpret — `where('status', ['a', 'b'])` is not "either" and not an
+     * error either — and the state arrives as json from a form, which is where an array comes from.
+     */
+    private static function filterValue(DatasetFilter $filter, mixed $value): string|int|float|bool|null
+    {
+        if ($filter->kind === DatasetFilter::DATE_RANGE) {
+            return is_string($value) && array_key_exists($value, RelativePeriod::PERIODS) ? $value : null;
+        }
+
+        return is_scalar($value) ? $value : null;
     }
 
     /**
