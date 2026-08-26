@@ -24,8 +24,12 @@ use Illuminate\Database\Eloquent\Model;
  *
  * **`query()` goes through the model, and that sentence carries the tenancy.** Every model here is a
  * `TenantModel` or carries a company scope, so `Invoice::query()` is already this company's invoices, already
- * excluding whatever a global scope excludes. A builder that assembled `DB::table('invoices')` would be
- * correct on a single-company install and a cross-tenant leak on this one.
+ * excluding whatever a global scope excludes. A builder that assembled a raw query over the invoices table
+ * would be correct on a single-company install and a cross-tenant leak on this one.
+ *
+ * (That sentence used to name the call it was warning about, in backticks. `TenantConnectionGuardTest` scans
+ * this directory's *source text* for it, so the warning read as the offence and failed the build — a comment
+ * must not imitate the thing it forbids.)
  *
  * **Row-level access is inherited, not re-implemented** (item 2). A dataset over a subject with an employee
  * dimension applies `EmployeeAccess` in `access()`, exactly as the resource over the same rows does — so the
