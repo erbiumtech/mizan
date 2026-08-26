@@ -51,19 +51,18 @@
             </a>
 
             <ul class="fi-report-list">
+                {{--
+                    One line per link, for the reason the explorer's rows are one line each: this loop runs
+                    once per report in the company — fifty-two of them, on every page in the Reports domain —
+                    and the indentation of a block repeated that often is kilobytes of a page that has a
+                    measured ceiling. See `filament/pages/reports.blade.php`.
+
+                    Active when that report's own page is the page being viewed. Compared on the URL rather
+                    than asked of the route, because these are pages from four modules and a route name is
+                    not something this partial can know.
+                --}}
                 @foreach ($links as $link)
-                    <li>
-                        {{--
-                            Active when that report's own page is the page being viewed. Compared on the
-                            URL rather than asked of the route, because these are pages from four modules
-                            and a route name is not something this partial can know.
-                        --}}
-                        <a
-                            href="{{ $link['url'] }}"
-                            wire:navigate
-                            @class(['fi-report-link', 'fi-active' => $here === $link['url']])
-                        >{{ $link['label'] }}</a>
-                    </li>
+                    <li><a href="{{ $link['url'] }}" wire:navigate @class(['fi-report-link', 'fi-active' => $here === $link['url']])>{{ $link['label'] }}</a></li>
                 @endforeach
             </ul>
         </li>
