@@ -205,7 +205,12 @@ class InvoiceAllocationQueue extends Page
     public function allocationsOn(Invoice $invoice): array
     {
         return InvoiceAllocation::query()
-            ->with(['job', 'costCode'])
+            /*
+             * `commitmentLine.commitment` too, because the table prints the order number against every
+             * allocation — "Unordered" where there is none. Two hops, so both are named: loading the line
+             * without its commitment moves the N+1 one level down rather than removing it.
+             */
+            ->with(['job', 'costCode', 'commitmentLine.commitment'])
             ->where('invoice_id', $invoice->getKey())
             ->orderBy('id')
             ->get()
