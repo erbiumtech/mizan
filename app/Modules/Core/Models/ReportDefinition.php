@@ -260,9 +260,15 @@ class ReportDefinition extends Model
      * told, and the caller is the only layer that can tell them. So this returns null for that case, and item
      * 7's form checks the permission before offering the toggle at all.
      *
+     * **`$replacing` is what makes a rename a rename** — Phase 6, item 7. Without it, editing a report and
+     * changing its name would upsert on the new name and leave the old row behind, so the builder's Save
+     * button would quietly duplicate every report anybody renamed. Only the owner's own row can be replaced,
+     * and a rename onto a name they already use is refused rather than left as two reports called the same
+     * thing — the caller is the only layer that can say so.
+     *
      * @param  array<string, mixed>  $state
      */
-    public static function put(string $name, string $dataset, array $state, ?string $description = null, bool $isPublic = false): ?self
+    public static function put(string $name, string $dataset, array $state, ?string $description = null, bool $isPublic = false, ?self $replacing = null): ?self
     {
         $userId = auth()->id();
 
@@ -281,14 +287,34 @@ class ReportDefinition extends Model
             return null;
         }
 
+        $name = trim($name);
+
+        $attributes = [
+            'dataset' => $dataset,
+            'description' => $description,
+            'is_public' => $isPublic,
+            'state' => static::sanitise($state, $class),
+        ];
+
+        if ($replacing !== null && (int) $replacing->user_id === (int) $userId) {
+            $taken = static::query()
+                ->where('user_id', $userId)
+                ->where('name', $name)
+                ->whereKeyNot($replacing->getKey())
+                ->exists();
+
+            if ($taken) {
+                return null;
+            }
+
+            $replacing->fill([...$attributes, 'name' => $name])->save();
+
+            return $replacing;
+        }
+
         return static::query()->updateOrCreate(
-            ['user_id' => $userId, 'name' => trim($name)],
-            [
-                'dataset' => $dataset,
-                'description' => $description,
-                'is_public' => $isPublic,
-                'state' => static::sanitise($state, $class),
-            ],
+            ['user_id' => $userId, 'name' => $name],
+            $attributes,
         );
     }
 

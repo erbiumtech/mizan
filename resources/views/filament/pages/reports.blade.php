@@ -192,7 +192,31 @@
         @php($report = $this->selectedReport())
 
         <section class="fi-explorer-pane">
-            @if ($statement)
+            {{--
+                Assembling a report — reports-expansion-plan.md Phase 6, item 7.
+
+                First in the chain because while somebody is building there is no *selected* report to draw:
+                `statement()` returns the draft, and the two partials below it are the pane's own, so what is
+                on screen while building is the report itself rather than a preview of it. The form is not
+                rendered otherwise, which is what makes the mode cost nothing on the ordinary page.
+            --}}
+            @if ($this->building)
+                @include('filament.partials.report-builder')
+
+                @if ($statement)
+                    {{-- The report's own title and period, as the pane states them for every other report:
+                         what is under the form is the report, so it says what it is. --}}
+                    <div class="fi-explorer-pane-heading">
+                        <h2 class="fi-explorer-pane-title">{{ $statement['title'] }}</h2>
+                        <p class="fi-explorer-pane-subtitle">{{ $statement['subtitle'] }}</p>
+                    </div>
+
+                    <div class="fi-explorer-pane-body">
+                        @include('filament.partials.report-tiles', ['statement' => $statement])
+                        @include('filament.partials.report-table', ['statement' => $statement])
+                    </div>
+                @endif
+            @elseif ($statement)
                 <header class="fi-explorer-pane-header">
                     <div class="fi-explorer-pane-heading">
                         <h2 class="fi-explorer-pane-title">{{ $statement['title'] }}</h2>
@@ -283,6 +307,17 @@
                         --}}
                         @if ($report['own_page'] ?? true)
                             <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        @endif
+
+                        {{--
+                            Editing one of my own — Phase 6, item 7.
+
+                            Mine only: a shared report belongs to whoever made it, and somebody else editing
+                            it would change what every reader of it sees. Building a new one is the answer to
+                            "I want it slightly different", and the header's own button is right there.
+                        --}}
+                        @if ($this->editableReport())
+                            <button type="button" wire:click="editReport('{{ $report['key'] }}')" class="fi-explorer-open">Edit report</button>
                         @endif
                     </div>
 
