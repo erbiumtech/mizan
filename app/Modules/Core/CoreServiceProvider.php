@@ -9,6 +9,7 @@ use App\Modules\Core\Models\CustomField;
 use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\Holiday;
+use App\Modules\Core\Models\ReportDefinition;
 use App\Modules\Core\Models\TableView;
 use App\Modules\Core\Models\User;
 use App\Modules\Core\Policies\ActivityLogPolicy;
@@ -23,6 +24,8 @@ use App\Modules\Core\Policies\RolePolicy;
 use App\Modules\Core\Policies\TableViewPolicy;
 use App\Modules\Core\Policies\UserPolicy;
 use App\Modules\Core\Services\HolidayCalendar;
+use App\Support\Reporting\BuiltReport;
+use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
@@ -74,5 +77,26 @@ class CoreServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        $this->registerBuiltReports();
+    }
+
+    /**
+     * Reports somebody assembled — `docs/reports-expansion-plan.md` Phase 6, item 4.
+     *
+     * A *family* rather than a renderer per report, because these keys are rows of `report_definitions` and
+     * there is nothing to enumerate when a provider boots. Registered by Core because Core owns
+     * `ReportDefinition`, exactly as each module registers the reports it owns — and Core is the module that
+     * is always on, which is what makes a custom report available to a company that has bought nothing else.
+     *
+     * The pane, `NoReportPane` and every report page already ask `ReportRenderers`, so this one line is what
+     * puts a built report on all three.
+     */
+    private function registerBuiltReports(): void
+    {
+        ReportRenderers::registerFamily(
+            ReportDefinition::KEY_PREFIX,
+            fn (string $key, string $asOf): ?array => app(BuiltReport::class)->forKey($key, $asOf),
+        );
     }
 }

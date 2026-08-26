@@ -4,8 +4,10 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Modules\Core\Models\ReportDefinition;
 use App\Modules\Core\Models\SavedReportView;
 use App\Support\Reporting\ExportsTheOpenReport;
+use App\Support\Reporting\RelativePeriod;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportComparison;
 use App\Support\Reporting\ReportPaneRenderer;
@@ -618,6 +620,8 @@ class Reports extends Page
                     'description' => $description,
                     'url' => $page::getUrl(),
                     'icon' => $page::getNavigationIcon(),
+                    // Every coded report has a screen of its own, where its actions live.
+                    'own_page' => true,
                 ];
             }
 
@@ -626,6 +630,55 @@ class Reports extends Page
             }
         }
 
+        $custom = static::customReports();
+
+        if ($custom !== []) {
+            $sections[ReportCatalogue::CUSTOM] = $custom;
+        }
+
         return $sections;
+    }
+
+    /**
+     * The reports somebody assembled, as rows of the hub — `docs/reports-expansion-plan.md` Phase 6, item 4.
+     *
+     * **Rows rather than pages, which is the one way this section differs from the other nine.** A coded
+     * report is a class with a `canAccess()`, so the loop above can ask it; a definition is a row, and what
+     * stands in for `canAccess()` is `ReportDefinition::readable()` — visible to this reader *and* over a
+     * subject their licence and permissions let them open. Nothing else here needs to know the difference.
+     *
+     * **The URL is the hub itself with the report selected**, and that is not a shortcut. A built report has
+     * no page of its own: item 4 puts it in the pane precisely so it inherits the pane's filters, record row,
+     * export and URL state, so "the report's own screen" *is* this screen with `?selected=` set — which is
+     * also the link Phase 8 will put in an email.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function customReports(): array
+    {
+        $rows = [];
+
+        foreach (ReportDefinition::readable() as $definition) {
+            $dataset = $definition->dataset();
+
+            $rows[] = [
+                'key' => $definition->reportKey(),
+                'label' => (string) $definition->name,
+                // A definition need not carry a description, and a blank one reads as a broken row rather
+                // than as an omission — so the subject and the span stand in, which is what somebody would
+                // have written anyway.
+                'description' => filled($definition->description)
+                    ? (string) $definition->description
+                    : trim(($dataset === null ? '' : $dataset::label().' · ')
+                        .RelativePeriod::label($definition->settings()['period']), ' ·'),
+                'url' => static::getUrl(['selected' => $definition->reportKey()]),
+                // The row's icon comes from its section, as every row's has since Phase 4 replaced fifty-one
+                // inline heroicons with nine symbols. See ReportIcons.
+                'icon' => null,
+                'own_page' => false,
+            ];
+        }
+
+        return $rows;
     }
 }

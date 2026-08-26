@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the registry, items 1–2) and 6.2 (definitions and permissions, items 3 and 6) are in; items 4, 5 and 7 outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the registry, items 1–2), 6.2 (definitions and permissions, items 3 and 6) and 6.3 (rendering and the cost guards, items 4 and 5) are in; item 7, the builder screen, is outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -384,11 +384,11 @@ every built-in report, with the same record row and the same export.
    `table_views`, including normalising the dataset key through `ModuleMap::alias()` so a class that
    moves does not break saved reports. `HasSavedViews` is the working example of every one of those
    decisions.
-4. **Rendered through `ReportPane`.** A built report is a `table` (or the `matrix` of Phase 0.2) with a
+4. *done, 2026-08-26 — and the routing hook is a key prefix rather than a page, see [What landed](#what-landed).* **Rendered through `ReportPane`.** A built report is a `table` (or the `matrix` of Phase 0.2) with a
    `footer`, so it inherits the sticky header, the record row, the URL state and Phase 4's export
    without knowing they exist. It appears in the hub in a **Custom** section beside the coded reports,
    which is also the answer to "where do I find the one I made".
-5. **Cost guards, stated rather than discovered.** A mandatory period filter or an explicit row cap;
+5. *done, 2026-08-26 — the refusal is what makes the record row honest, see [What landed](#what-landed).* **Cost guards, stated rather than discovered.** A mandatory period filter or an explicit row cap;
    `LIMIT` enforced on the rendered query; aggregation pushed into SQL rather than grouping a hundred
    thousand rows in PHP; and a refusal — "this report asks for too much, narrow the period" — in place
    of a timeout. A builder is the one feature in this plan whose cost the *user* chooses, so the
@@ -485,6 +485,85 @@ and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryServi
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-26 — a built report is drawn in the pane, with a ceiling (Phase 6.3: items 4 and 5).**
+
+- **Item 4 is a claim about inheritance, and the whole of it is that `BuiltReport` returns a `table`.** The
+  pane draws it, `NoReportPane` draws it, Phase 4.1's CSV and PDF write it, Phase 4.3's parentheses apply to
+  its figures, and the URL carries which report and at what date — none of which knows a custom report exists.
+  There is no view, no page class and no second export in this item.
+- **The routing hook is a key *prefix*, which is the one piece of new machinery.** Every other report's key is
+  a page's class basename, known when a provider boots; a built report's key is `custom-7` and names a row. So
+  `ReportRenderers` gained `registerFamily()` — a prefix and a closure that is handed the key — and Core
+  registers one line. That put built reports on the pane, on `NoReportPane` and in the export at once, where
+  teaching each of those three what a definition is would have been three places to keep in step. The family
+  match is deliberately syntactic and does *not* check that the row exists: it is asked once per report while
+  the hub's list is drawn, and a database read per row is the fault `docs/page-load-performance-plan.md` is
+  about. `render()` answers null for a key that names nothing, which is what the pane already does for a
+  report it cannot draw.
+- **A built report has no page of its own, and that is item 4 read literally rather than a shortcut.** The
+  point of putting it in the pane is that it inherits the pane; so "the report's own screen" *is* the hub with
+  `?selected=custom-7`, which is also the link Phase 8 will put in an email. The "Open in full page" affordance
+  is therefore suppressed for these rows — a link back to the screen you are reading is an affordance that does
+  nothing — and the hub row's URL is that self-link, which is what makes the sidebar column work unchanged.
+- **The date the pane already carries is what a relative period resolves against**, which is what makes a
+  built report as linkable as a coded one. `?asOf=2027-03-15` with `last_month` is February 2027. Phase 6.2
+  stored the period relative so Phase 8 could send it; the same decision turns out to be what lets 4c's "the
+  URL is the whole state" hold for a report whose state is in a row.
+- **A stored *filter* may be a period too, and it is relative for the same reason.** An invoice dataset offers
+  a due-date range as well as its period, and a filter holding `['from' => '2027-04-01', …]` would have
+  reintroduced exactly what 6.2 kept out — "due in April", filed in April, for ever. So a date-range filter
+  stores a `RelativePeriod` key, and `ReportDefinition::sanitise()` now checks a filter's value against its
+  *kind* rather than only for presence. Everything else must be a scalar, because it reaches a `where` binding
+  and an array there is not "either of these" but a shape Eloquent will interpret.
+- **The period is `>= from` and `< the morning after`, not `whereBetween`.** Half the date columns in these
+  datasets are datetimes, and `between '2026-07-01' and '2026-07-31'` silently drops everything that happened
+  *during* the 31st. The form used here is right for both kinds and still uses the index, which `whereDate()`
+  on either would not. A test asserts the last day of the span is in.
+- **Item 5's ceiling refuses rather than truncating, and that decides two other things.** A thousand rows, and
+  a report that wants more comes back with its columns, no rows, and "narrow the period, or add a filter". The
+  first consequence is that the record row is honest by construction: a footer under the first thousand of nine
+  thousand rows is a total belonging to no visible set of figures, so refusing means the total of the rendered
+  rows *is* the total of the query — which is also why summing it in PHP is not a violation of "aggregation in
+  SQL". The second is that the ceiling is detected by asking for one row more than it, rather than by a
+  `count()` that would be a second query over the same rows.
+- **What cannot be totalled is still not totalled.** Only a real column of the dataset's own table reaches the
+  footer. Phase 6.1 made "outstanding by customer" unbuildable on purpose — it is a sum of a derived column,
+  and the coded ageing report is the answer — so adding it up here in PHP is precisely how that refusal would
+  have been undone by the next phase. The blank cell under it is the assertion.
+- **A grouped footer adds up sums and counts and leaves an average alone.** A total of averages is a number and
+  nothing else, which is the danger: nobody reading a record row checks whether the column above it was
+  addable.
+- **Grouping prints the related name and buckets on the foreign key**, which is 6.1's design made visible —
+  `GROUP BY contacts.name` needs a join this builder does not write, `GROUP BY contact_id` needs nothing, and
+  one statement fetches the names for the column. A bucket with nothing in it is called "None": every grouped
+  report has one, and an empty first cell reads as a rendering fault rather than as an answer.
+- **The one raw SQL fragment in the feature is `sum("total") as report_aggregate_0`**, and what makes it safe
+  is that neither half comes from a request: the column is the dataset's own declaration wrapped by the
+  connection's grammar, and the function is one of five words. There is no Eloquent form of "select sum(x) as y
+  group by z" that avoids it, and pulling the rows back to add them up in PHP is the thing item 5 forbids.
+- **A subject with no period says "every row" rather than implying one it did not apply.** Employees and
+  payslips take item 5's row-cap branch — `payslips.month` holds a month *name* — and the note and subtitle say
+  so, because "last month" over a headcount would read as this month's joiners.
+- **A definition with no columns says so.** A report that asks for nothing and a report that matched nothing
+  are different answers, and telling somebody "nothing matches this period" about the first sends them looking
+  for data that is already there.
+- **`report_definitions` is read once per request and every budget in `PanelPerformanceTest` moved by one.**
+  The surprise was *where*: `domain-rail.blade.php` renders the Reports flyout — the categories and their
+  counts — on every page in the panel, so a section's count is part of every page's shell. Reading the
+  definitions only in the reports domain would make the flyout say nine categories on the dashboard and ten on
+  a reports page, a count that changes as you navigate; leaving custom reports out of the counts would make
+  "All reports" disagree with the list the hub draws. So it is one memoised statement, and the *availability*
+  filter over it is deliberately not memoised — which subjects a reader may open can change inside the request
+  that changes it, and an existing test in `ReportDefinitionTest` proved that by failing when the first version
+  cached both halves.
+- 26 tests, 120 assertions. Items 4, 5 and — from 6.1 — the whole of the query builder are covered; item 7, the
+  builder screen, is what remains of Phase 6.
+- **Not fixed here, and not ours:** `PanelPerformanceTest`'s *page size* ceiling for the reports hub is already
+  breached on `master` — 366 KB against 360 — by the command-bar work that landed alongside Phase 6.1. This
+  item adds about a kilobyte (one more `<symbol>` in the hub's sprite, for the Custom section's icon) to a page
+  that is over its ceiling for a different reason. Raising that number to cover somebody else's markup is the
+  formality that file warns about, so it is left red and stated here instead.
 
 **2026-08-25 — saved report definitions and the builder's permissions (Phase 6.2: items 3 and 6).**
 

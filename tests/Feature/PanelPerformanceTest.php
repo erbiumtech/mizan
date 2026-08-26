@@ -94,10 +94,29 @@ class PanelPerformanceTest extends TestCase
      * somebody would drag a card and watch it spring back. A stale *figure* is a trade this application makes
      * deliberately; a stale *arrangement* is a bug report.
      */
+    /*
+     * **Every budget moved by one on 2026-08-26 for Phase 6.4's custom reports, and the reason it hits all three
+     * pages is worth stating rather than absorbing.** A report somebody assembled is a row of
+     * `report_definitions`, so the hub cannot list one without reading them — the same "cannot render it without
+     * reading it" as Phase 7's layout. What makes this land on the *dashboard* and on the *employees* index as
+     * well is `filament/partials/domain-rail.blade.php`: the rail's Reports flyout renders the categories and
+     * their counts on every page in the panel, so the count of a section is part of every page's shell.
+     *
+     * Two alternatives were considered and both were worse than one query. Reading the definitions only in the
+     * reports domain would make the flyout say nine categories on the dashboard and ten on a reports page, which
+     * is a count that changes as you navigate — a bug report. Leaving custom reports out of the counts entirely
+     * would mean the flyout's "All reports" number disagrees with the list the hub draws.
+     *
+     * What is available to reduce is reduced: the read is memoised per request in
+     * `ReportDefinition::visible()`, so the section chips, the counts, the rows, the column and `select()`'s own
+     * check share one statement — `report_definitions` appears exactly once in each statement list. The
+     * availability filter over it is deliberately *not* memoised, because which subjects a reader may open can
+     * change inside the request that changes it.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 33, 'warm' => 8],
-        'employees' => ['cold' => 30, 'warm' => 10],
-        'reports' => ['cold' => 29, 'warm' => 6],
+        'dashboard' => ['cold' => 34, 'warm' => 9],
+        'employees' => ['cold' => 31, 'warm' => 11],
+        'reports' => ['cold' => 30, 'warm' => 7],
     ];
 
     private Company $company;
