@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Modules\Core\Filament\Resources\ReportSchedules\ReportScheduleResource;
 use App\Modules\Core\Models\ReportDefinition;
 use App\Modules\Core\Models\SavedReportView;
 use App\Support\Reporting\BuiltReport;
@@ -947,8 +948,71 @@ class Reports extends Page
         return [
             HelpAction::make('reports', 'Reports: Help'),
             ...$this->buildActions(),
+            ...$this->scheduleActions(),
             ...$this->exportActions(),
         ];
+    }
+
+    /**
+     * Send this report on a timetable — `docs/reports-expansion-plan.md` Phase 8, item 1.
+     *
+     * **It carries the filters, which is what that item means by "the schedule and the link are the same
+     * thing".** A schedule stores the state the URL carries, so the honest way to make one is from the report
+     * somebody is already looking at: the account they picked, the month they filed, the comparison they set.
+     * A schedule form that started blank would quietly send the *default* register of the *default* account,
+     * which is a wrong report rather than a missing feature.
+     *
+     * A link to the create screen rather than a save here: recipients, a timetable and a timezone are the
+     * rest of a schedule, and this page has nowhere to ask for them.
+     *
+     * @return array<int, Action>
+     */
+    private function scheduleActions(): array
+    {
+        $report = $this->selectedReport();
+
+        if ($this->building || $report === null || ! auth()->user()?->can('ReportScheduleCreate')) {
+            return [];
+        }
+
+        return [
+            Action::make('scheduleReport')
+                ->label('Schedule')
+                ->icon('heroicon-m-paper-airplane')
+                ->color('gray')
+                ->url(fn (): string => ReportScheduleResource::getUrl('create', [
+                    'report_key' => $report['key'],
+                    'state' => $this->scheduleState(),
+                ])),
+        ];
+    }
+
+    /**
+     * The open report's filters, in the shape a schedule stores them.
+     *
+     * `SavedReportView::FILTERS` is the allow-list, because it is the same set for the same reason — Phase
+     * 4.5 decided what a report's state is and there should not be a second answer. The date is not among
+     * them, and must not be: a schedule resolves its own period each time it runs.
+     *
+     * @return array<string, mixed>
+     */
+    private function scheduleState(): array
+    {
+        $state = [
+            'compare' => $this->comparisonBasis(),
+            'account' => $this->account,
+            'budget' => $this->budget,
+            'find' => $this->find,
+            'month' => $this->month,
+        ];
+
+        return array_filter(
+            $state,
+            fn (mixed $value, string $key): bool => in_array($key, SavedReportView::FILTERS, true)
+                && $value !== null
+                && $value !== '',
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     /**

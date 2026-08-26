@@ -2,6 +2,8 @@
 
 namespace App\Modules\Core;
 
+use App\Modules\Core\Console\Commands\DeliverScheduledReports;
+use App\Modules\Core\Filament\Pages\ReportDeliveries;
 use App\Modules\Core\Models\ActivityLog;
 use App\Modules\Core\Models\Comment;
 use App\Modules\Core\Models\Company;
@@ -10,6 +12,7 @@ use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\Holiday;
 use App\Modules\Core\Models\ReportDefinition;
+use App\Modules\Core\Models\ReportSchedule;
 use App\Modules\Core\Models\TableView;
 use App\Modules\Core\Models\User;
 use App\Modules\Core\Policies\ActivityLogPolicy;
@@ -20,11 +23,14 @@ use App\Modules\Core\Policies\EmailTemplatePolicy;
 use App\Modules\Core\Policies\FiscalYearPolicy;
 use App\Modules\Core\Policies\HolidayPolicy;
 use App\Modules\Core\Policies\PermissionPolicy;
+use App\Modules\Core\Policies\ReportSchedulePolicy;
 use App\Modules\Core\Policies\RolePolicy;
 use App\Modules\Core\Policies\TableViewPolicy;
 use App\Modules\Core\Policies\UserPolicy;
 use App\Modules\Core\Services\HolidayCalendar;
 use App\Support\Reporting\BuiltReport;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportDeliveryLog;
 use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -51,6 +57,7 @@ class CoreServiceProvider extends ServiceProvider
         CustomField::class => CustomFieldPolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
         Holiday::class => HolidayPolicy::class,
+        ReportSchedule::class => ReportSchedulePolicy::class,
         TableView::class => TableViewPolicy::class,
         EmailTemplate::class => EmailTemplatePolicy::class,
         User::class => UserPolicy::class,
@@ -79,6 +86,14 @@ class CoreServiceProvider extends ServiceProvider
         }
 
         $this->registerBuiltReports();
+        $this->registerDeliveryLog();
+
+        // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the
+        // timetable, and a command nobody can invoke by hand is a command nobody can test or re-run after a
+        // failed night.
+        $this->commands([DeliverScheduledReports::class]);
+
+        $this->loadRoutesFrom(__DIR__.'/routes/console.php');
     }
 
     /**
@@ -97,6 +112,28 @@ class CoreServiceProvider extends ServiceProvider
         ReportRenderers::registerFamily(
             ReportDefinition::KEY_PREFIX,
             fn (string $key, string $asOf): ?array => app(BuiltReport::class)->forKey($key, $asOf),
+        );
+    }
+
+    /**
+     * The delivery log — `docs/reports-expansion-plan.md` Phase 8, item 8.
+     *
+     * A report like any other: registered into the hub, rendered by the module that owns it, drawn in the pane
+     * and exported by Phase 4. Filed under *Operations* rather than with the financial statements, because
+     * what it answers is "did the application do what it was told" and the person asking that is not reading
+     * about money.
+     */
+    private function registerDeliveryLog(): void
+    {
+        ReportCatalogue::register(
+            'Operations',
+            ReportDeliveries::class,
+            'Every scheduled report that went out, who it reached, and what failed.',
+        );
+
+        ReportRenderers::register(
+            'ReportDeliveries',
+            fn (string $asOf): array => app(ReportDeliveryLog::class)->for($asOf),
         );
     }
 }
