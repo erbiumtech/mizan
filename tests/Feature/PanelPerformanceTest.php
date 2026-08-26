@@ -289,6 +289,18 @@ class PanelPerformanceTest extends TestCase
      * What is *not* in that figure and is worth knowing: 88.6 KB of the dashboard is inline SVG, most of it
      * the domain rail's flyouts, which this comment has accepted as a measured cost since it was written. If
      * a future phase needs the ceiling back, the rail is where the bytes are — not the widgets.
+     *
+     * **The card gave way a second time, on 2026-08-26, and the thing that gave was whitespace.** The plan
+     * finished at fifty-two reports and the hub reached 370.8 KB against 360 — the arithmetic this comment
+     * predicted, arriving on schedule. Measured before touching anything: an explorer row was **947 bytes**,
+     * of which some 450 was the indentation of a block laid out over twenty-four lines, and the sidebar
+     * column's link was 316 bytes for a single anchor. Fifty-two of each, twice over on the same page.
+     *
+     * Writing those two loop bodies as one line each — with everything the attributes used to say moved into
+     * a comment above the loop, where it reads better anyway — took the row to **481 bytes**, the link to
+     * **125**, and the page to **335.9 KB**. Thirty-five kilobytes, no behaviour changed, and the ceiling
+     * did not move. Which is the same answer as 2026-08-24's: what a page repeats fifty times is where its
+     * bytes are, and formatting the browser discards is the cheapest kilobyte in the building.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {

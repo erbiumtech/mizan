@@ -155,32 +155,30 @@
                 </div>
             </div>
 
+            {{--
+                One row per report, and it is deliberately written as one line.
+
+                **Because the indentation is 45% of it.** Measured: a row laid out over twenty-four
+                indented lines is 947 bytes, of which some 450 is whitespace the browser discards — and
+                there are fifty-two of them, so the formatting of this one block was ~23 KB of a page
+                `PanelPerformanceTest` holds to 360 KB. That test's own note predicted this moment and
+                said which way it should go: "the hub's card markup is what should give way next, not this
+                number". This is that.
+
+                What the row carries, since the attributes can no longer be read down a column:
+
+                  - `wire:click` selects the report and `wire:key` keeps Livewire's diffing stable;
+                  - `data-report-row` carries the key so the attribute is greppable per row rather than a
+                    bare flag indistinguishable from the selector string in the Alpine component above —
+                    it is what the keyboard navigation reads;
+                  - the icon comes from the sprite at the top of the page and is the *section's*, not the
+                    report's. Fifty-one distinct navigation icons distinguished nothing a reader was using
+                    and cost 30 KB inline, which is the same arithmetic as this comment;
+                  - the second line is the section, or "SHOWING NOW" for the open report.
+            --}}
             <div class="fi-explorer-list-body">
                 @forelse ($this->visibleReports() as $report)
-                    <button
-                        type="button"
-                        wire:click="select('{{ $report['key'] }}')"
-                        wire:key="row-{{ $report['key'] }}"
-                        {{-- Carries the key so the attribute is greppable per row rather than a bare flag
-                             indistinguishable from the selector string in the component above. --}}
-                        data-report-row="{{ $report['key'] }}"
-                        @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])
-                    >
-                        <span class="fi-explorer-row-icon">
-                            {{-- The section's icon, from the sprite above. A row's icon now says which
-                                 section the report is in rather than being the report's own: the fifty-one
-                                 distinct navigation icons distinguished nothing a reader was using, and
-                                 inlining them cost 30 KB the page's ceiling did not have. --}}
-                            {{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}
-                        </span>
-
-                        <span class="fi-explorer-row-text">
-                            <span class="fi-explorer-row-name">{{ $report['label'] }}</span>
-                            <span class="fi-explorer-row-meta">
-                                {{ $this->selected === $report['key'] ? 'SHOWING NOW' : $report['section'] }}
-                            </span>
-                        </span>
-                    </button>
+                    <button type="button" wire:click="select('{{ $report['key'] }}')" wire:key="row-{{ $report['key'] }}" data-report-row="{{ $report['key'] }}" @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])><span class="fi-explorer-row-icon">{{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}</span><span class="fi-explorer-row-text"><span class="fi-explorer-row-name">{{ $report['label'] }}</span><span class="fi-explorer-row-meta">{{ $this->selected === $report['key'] ? 'SHOWING NOW' : $report['section'] }}</span></span></button>
                 @empty
                     <p class="fi-explorer-empty">Nothing matches “{{ $this->query }}”.</p>
                 @endforelse
