@@ -6,6 +6,7 @@ use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -19,7 +20,16 @@ class EnvironmentHealthOverview extends StatsOverviewWidget
 
     protected static bool $isLazy = true;
 
-    protected static ?int $sort = 5;
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
+
+    /** Up or down now; the history is the Environment Health report. */
+    protected static ?int $sort = DashboardWidgets::SERVICE + 4;
 
     public static function canView(): bool
     {

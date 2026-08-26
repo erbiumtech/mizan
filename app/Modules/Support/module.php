@@ -36,6 +36,16 @@ return [
         'App\\Filament\\Pages\\SlaBreaches' => \App\Modules\Support\Filament\Pages\SlaBreaches::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\SlaComplianceOverview' => \App\Modules\Support\Filament\Widgets\SlaComplianceOverview::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\TicketDataset' => \App\Modules\Support\Reporting\TicketDataset::class,
+    ],
+
     'permission_groups' => [
         'Ticket',
     ],

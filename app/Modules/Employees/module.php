@@ -26,6 +26,16 @@ return [
         'App\\Filament\\Resources\\EmployeeSettings\\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\HeadcountOverview' => \App\Modules\Employees\Filament\Widgets\HeadcountOverview::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\EmployeeDataset' => \App\Modules\Employees\Reporting\EmployeeDataset::class,
+    ],
+
     'permission_groups' => [
         'Employee',
         'EmployeeSetting',
@@ -68,7 +78,14 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    /** The headcount report (Phase 3.6). A page: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\HeadcountMovement' => \App\Modules\Employees\Filament\Pages\HeadcountMovement::class,
+    ],
+
     'navigation' => [
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
         'Employee' => 'people',
     ],
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Recruitment;
 
+use App\Modules\Recruitment\Filament\Pages\HiringFunnel;
 use App\Modules\Recruitment\Models\Applicant;
 use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Interview;
@@ -12,6 +13,9 @@ use App\Modules\Recruitment\Policies\ApplicationPolicy;
 use App\Modules\Recruitment\Policies\InterviewPolicy;
 use App\Modules\Recruitment\Policies\OfferPolicy;
 use App\Modules\Recruitment\Policies\VacancyPolicy;
+use App\Modules\Recruitment\Support\RecruitmentReports;
+use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,10 +32,36 @@ class RecruitmentServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerReports();
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
 
         $this->loadRoutesFrom(__DIR__.'/routes/console.php');
+    }
+
+    /**
+     * The hiring funnel — `docs/reports-expansion-plan.md` Phase 3.2.
+     *
+     * Filed under *Operations*: it is read by whoever is running the hiring, and the section already holds
+     * the other "what is in flight" reports.
+     *
+     * Registered unconditionally. The page gates itself on `moduleIsAvailable()` and `Reports::sections()`
+     * filters through `canAccess()`, so a company without recruitment sees no entry rather than a report that
+     * fails when opened.
+     */
+    private function registerReports(): void
+    {
+        ReportCatalogue::register(
+            'Operations',
+            HiringFunnel::class,
+            'Applications by stage per vacancy, offers taken, time to hire and how long each has been open.',
+        );
+
+        ReportRenderers::register(
+            'HiringFunnel',
+            fn (string $asOf): array => app(RecruitmentReports::class)->funnel($asOf),
+        );
     }
 }

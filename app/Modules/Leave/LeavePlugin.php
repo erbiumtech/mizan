@@ -25,6 +25,12 @@ class LeavePlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+
+        // The leave-awaiting-decision stats (Phase 5.2). Registered unconditionally; each widget's own canView() gates on the module and a permission.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
     }
 
     public function boot(Panel $panel): void

@@ -70,11 +70,53 @@ class PanelPerformanceTest extends TestCase
      * than silent. That is the same discipline as this increase, not the opposite of it: **the rule decides what exists
      * and the budget accommodates what the rule allows.** What must never happen is the reverse — trimming a justified
      * count to fit, or raising the ceiling for one that was never justified.
+     *
+     * **The dashboard's cold budget moved 32 to 33 on 2026-08-25 for Phase 7's layout read**, which is the
+     * sanctioned kind rather than the kind this file has fixed instead of budgeted for. **The warm budget did not
+     * move**: the same query runs on a warm request and it measures 6 against a budget of 8, so it lands inside
+     * headroom that already existed — and a ceiling raised for a query that already fits is the formality this file
+     * keeps warning about.
+     *
+     * The distinction is worth being precise about, because the two look identical in a diff. What was *fixed* here
+     * before was waste: a badge that read a whole table to count it, a badge that eager-loaded a relation it did not
+     * use, and — in Phase 5.7 — `DashboardStats::resolve()` running twice to produce one figure. Each of those ran a
+     * query a correct implementation does not need. A per-user dashboard layout is not in that class: the page cannot
+     * render an arrangement without reading it, so there is no version of this feature with no query in it.
+     *
+     * What *was* available to reduce, and is reduced: it is **one** query rather than two or twenty. One statement
+     * fetches the personal row and the company default together — `where user_id is null or user_id = ?` — rather
+     * than asking for mine and then asking for the default when I have none; and the page memoises the answer, so
+     * resolving the widgets, listing them for the arranger and rendering them share a single read. The exact count
+     * matters, which is why it is measured rather than estimated: 33 cold and 6 warm, with `dashboard_layouts`
+     * appearing exactly once in each statement list.
+     *
+     * Caching it would have saved that one query and was rejected: `DashboardCache`'s TTL is five minutes, so
+     * somebody would drag a card and watch it spring back. A stale *figure* is a trade this application makes
+     * deliberately; a stale *arrangement* is a bug report.
+     */
+    /*
+     * **Every budget moved by one on 2026-08-26 for Phase 6.4's custom reports, and the reason it hits all three
+     * pages is worth stating rather than absorbing.** A report somebody assembled is a row of
+     * `report_definitions`, so the hub cannot list one without reading them — the same "cannot render it without
+     * reading it" as Phase 7's layout. What makes this land on the *dashboard* and on the *employees* index as
+     * well is `filament/partials/domain-rail.blade.php`: the rail's Reports flyout renders the categories and
+     * their counts on every page in the panel, so the count of a section is part of every page's shell.
+     *
+     * Two alternatives were considered and both were worse than one query. Reading the definitions only in the
+     * reports domain would make the flyout say nine categories on the dashboard and ten on a reports page, which
+     * is a count that changes as you navigate — a bug report. Leaving custom reports out of the counts entirely
+     * would mean the flyout's "All reports" number disagrees with the list the hub draws.
+     *
+     * What is available to reduce is reduced: the read is memoised per request in
+     * `ReportDefinition::visible()`, so the section chips, the counts, the rows, the column and `select()`'s own
+     * check share one statement — `report_definitions` appears exactly once in each statement list. The
+     * availability filter over it is deliberately *not* memoised, because which subjects a reader may open can
+     * change inside the request that changes it.
      */
     private const BUDGET = [
-        'dashboard' => ['cold' => 32, 'warm' => 8],
-        'employees' => ['cold' => 30, 'warm' => 10],
-        'reports' => ['cold' => 29, 'warm' => 6],
+        'dashboard' => ['cold' => 34, 'warm' => 9],
+        'employees' => ['cold' => 31, 'warm' => 11],
+        'reports' => ['cold' => 30, 'warm' => 7],
     ];
 
     private Company $company;
@@ -225,11 +267,33 @@ class PanelPerformanceTest extends TestCase
      * reports rather than one — Phase 2 has three left and Phase 3 eleven. **At that rate the remaining plan needs
      * ~60 KB the ceiling does not have, so the hub's card markup is what should give way next, not this number.**
      * Raising it again without looking at the card would be the formality this comment warns about.
+     *
+     * **The hub's card markup did give way, on 2026-08-24, rather than the number.** Phase 4 put the page at
+     * 366 KB against 360; the 51 rows were 70.3 KB of which 30.4 KB was inline heroicons — 8% of the page in
+     * icons nobody navigates by. Nine `<symbol>`s and fifty-one `<use>`s took that to 6.2 KB and the page to
+     * 348.5 KB. Which is what this comment asked for, and the ceiling did not move.
+     *
+     * **The dashboard ceiling moved on 2026-08-25 — 300 to 350 — and this is the sanctioned case, not the
+     * formality.** `docs/reports-expansion-plan.md` Phase 5 replaces the dashboard with one carrying five
+     * groups of widgets; eight of them landed and put the page at 304.7 KB. That is markup a new screen
+     * legitimately adds, which is the distinction this comment draws — and unlike the hub there is nothing
+     * per-item to reduce: a widget's cost *is* its Livewire component, and the only way to render fewer bytes
+     * is to render fewer widgets, which is to not build the phase.
+     *
+     * Measured 2026-08-25: 304.7 KB with 17 widgets registered, of which the Livewire snapshots are 23.7 KB —
+     * about 1.1 KB per component, ~1.4 KB all-in per widget. Phase 5's remaining groups (people, inventory)
+     * are roughly six more, so ~313 KB, and 350 leaves headroom for about twenty-six widgets beyond the plan.
+     * That is deliberately more than the plan needs, for the reason above: bumping by a kilobyte a group turns
+     * a ratchet into a formality.
+     *
+     * What is *not* in that figure and is worth knowing: 88.6 KB of the dashboard is inline SVG, most of it
+     * the domain rail's flyouts, which this comment has accepted as a measured cost since it was written. If
+     * a future phase needs the ceiling back, the rail is where the bytes are — not the widgets.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {
         $pages = [
-            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 300],
+            'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 350],
             'employees' => [EmployeeResource::getUrl('index'), 400],
             'reports' => [Reports::getUrl(), 360],
         ];

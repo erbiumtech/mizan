@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Filament\Widgets;
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
@@ -19,7 +20,18 @@ class CashFlowChart extends ChartWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?int $sort = 3;
+    /** Daily movement, last of the money band because it is the most detailed. */
+    protected static bool $isLazy = true;
+
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
+
+    protected static ?int $sort = DashboardWidgets::MONEY + 5;
 
     public ?string $filter = '14';
 

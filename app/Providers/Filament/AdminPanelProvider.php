@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Navigation\DomainNavigationManager;
 use App\Filament\Navigation\NavigationSnapshot;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
+use App\Modules\Core\Filament\Pages\Dashboard;
 use App\Modules\Core\Models\Company;
 use App\Support\Modules;
 use App\Support\NavigationTree;
@@ -14,7 +15,6 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationManager;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -206,6 +206,8 @@ class AdminPanelProvider extends PanelProvider
             // each group was one flat list. See NavigationTree.
             ->navigationGroups(NavigationTree::order())
             ->pages([
+                // Ours, not Filament's — reports-expansion-plan.md Phase 5.1. It carries the period filter
+                // every widget reads, so no widget keeps its own idea of "now".
                 Dashboard::class,
             ])
             ->widgets([])
@@ -255,6 +257,20 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => Blade::render('@livewire(\App\Filament\Livewire\CommandPalette::class)'),
             )
+            /*
+             * ⌘J command bar — docs/ai-command-bot-plan.md §8.
+             *
+             * Its own component rather than a fifth palette provider: the palette navigates on Enter, and
+             * here Enter must never be the last thing that happens before money moves. Same hook, same
+             * ubiquity, different second beat.
+             *
+             * The component renders nothing when the model is not configured, so an install without a key
+             * gets a hotkey that does nothing rather than a box that fails when typed into.
+             */
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => Blade::render('@livewire(\App\Filament\Livewire\CommandBar::class)'),
+            )
             // One search box, not two. Filament's global search field is turned
             // off above and this trigger takes its place in the topbar, opening
             // the ⌘K palette instead — which searches the same records (via each
@@ -266,6 +282,14 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn (): string => view('filament.partials.command-palette-trigger')->render(),
             )
+            /*
+             * No topbar trigger for the command bar — it has a floating bubble instead.
+             *
+             * There was one here briefly, put in because the bar shipped reachable only by ⌘J and ⌘J is a
+             * reserved browser shortcut (Chrome and Firefox open Downloads from the native menu, so the
+             * keystroke never reaches the page). The bubble in CommandBar's own view replaced it: both are
+             * on every page, and two buttons opening one dialog made neither obvious.
+             */
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

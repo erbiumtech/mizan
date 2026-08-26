@@ -80,8 +80,8 @@ class InventoryReports
              * threshold flagged every product that had been sold out, since `0 <= 0`. That is the opposite
              * of useful: a product with no reorder level is one nobody wants to be told about.
              */
-            $reorder = (float) $product->reorder_level > 0 ? (float) $product->reorder_level : null;
-            $isBelow = $reorder !== null && $figures['on_hand'] <= $reorder;
+            $reorder = self::reorderLevelFor($product);
+            $isBelow = self::isBelowReorder($product, $figures['on_hand']);
             $isStale = $this->isStale($figures['last_movement'], $date);
 
             $rows[] = [
@@ -133,6 +133,72 @@ class InventoryReports
             ],
             'No active product.',
         );
+    }
+
+    /**
+     * The product's reorder level, or null where it has none.
+     *
+     * **Extracted so the dashboard cannot get this wrong differently — `docs/reports-expansion-plan.md`
+     * Phase 5.6.** A reorder level of nought means there is *no* level, not a level of nought: the column
+     * defaults to `0`, so `null` never occurs, and treating nought as a real threshold flagged every product
+     * that had merely been sold out, since `0 <= 0`. That was a real bug in this report, caught by its own
+     * tests, and a widget re-deriving the flag would have reproduced it.
+     */
+    public static function reorderLevelFor(Product $product): ?float
+    {
+        return (float) $product->reorder_level > 0 ? (float) $product->reorder_level : null;
+    }
+
+    /** Whether this product is at or below a level somebody actually set. */
+    public static function isBelowReorder(Product $product, float $onHand): bool
+    {
+        $level = self::reorderLevelFor($product);
+
+        return $level !== null && $onHand <= $level;
+    }
+
+    /**
+     * The three figures the dashboard shows — `docs/reports-expansion-plan.md` Phase 5.6.
+     *
+     * "Stock value, count below reorder level, and — once Phase 2.4 exists — the same valuation the report
+     * states, from the same service."
+     *
+     * **The same `valuationForAll()` the report reads and the same two rules**, so the dashboard's stock value
+     * is the report's stock value by construction. The loop is a second loop rather than the report's own,
+     * which is a deliberate trade: sharing one would mean the report walking its products twice per render, or
+     * this returning the report's rows and the dashboard depending on a table's shape. What is shared is every
+     * *rule* they apply — the reorder threshold, staleness, and the valuation itself — and a test asserts the
+     * two agree about the total.
+     *
+     * @return array{value: float, below_reorder: int, stale: int, products: int}
+     */
+    public function summary(?string $asOf = null): array
+    {
+        $asOf = Carbon::parse($asOf ?? now()->toDateString());
+        $valuation = app(InventoryValuationService::class)->valuationForAll($asOf->toDateString());
+
+        // Every active product, not only those with movements — a product with nothing on hand and a reorder
+        // level is exactly what the flag is for, and it has no row in `stock_movements` at all.
+        $products = Product::query()->where('is_active', true)->get(['id', 'reorder_level']);
+
+        $value = 0.0;
+        $belowReorder = 0;
+        $stale = 0;
+
+        foreach ($products as $product) {
+            $figures = $valuation[$product->getKey()] ?? ['on_hand' => 0.0, 'value' => 0.0, 'last_movement' => null];
+
+            $value += (float) $figures['value'];
+            $belowReorder += self::isBelowReorder($product, (float) $figures['on_hand']) ? 1 : 0;
+            $stale += $this->isStale($figures['last_movement'], $asOf) ? 1 : 0;
+        }
+
+        return [
+            'value' => round($value, 2),
+            'below_reorder' => $belowReorder,
+            'stale' => $stale,
+            'products' => $products->count(),
+        ];
     }
 
     /**

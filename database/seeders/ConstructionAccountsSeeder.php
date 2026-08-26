@@ -36,6 +36,7 @@ class ConstructionAccountsSeeder extends Seeder
             ['code' => '1600', 'name' => 'Materials on Site', 'type' => 'asset', 'description' => 'Delivered to site and not yet built in; claimable where the contract allows it'],
             ['code' => '1610', 'name' => 'Contract Assets', 'type' => 'asset', 'description' => 'Work done and not yet certified — the uncertified half of work in progress'],
             ['code' => '1620', 'name' => 'Retention Receivable', 'type' => 'asset', 'description' => 'Retention held by the employer: earned, contractually owed, not yet payable'],
+            ['code' => '1630', 'name' => 'Subcontract Advances', 'type' => 'asset', 'description' => 'Advance paid down to a subcontractor, recovered from their certificates. The mirror of 2630, which is an advance received'],
         ],
         '2000' => [
             ['code' => '2600', 'name' => 'Goods Received Not Invoiced', 'type' => 'liability', 'description' => 'Received on site against a purchase order with no supplier invoice yet'],
@@ -74,16 +75,19 @@ class ConstructionAccountsSeeder extends Seeder
             $parent = Account::query()->where('code', $parentCode)->first();
 
             if (! $parent) {
-                // Warned rather than thrown, following `AccountSeeder`: a seeder that takes the whole
-                // provisioning run down because one group header is missing is harder to recover from than one
-                // that says which seeder to run first.
+                // Warned rather than thrown: a seeder that takes the whole provisioning run down because one
+                // group header is missing is harder to recover from than one that says which seeder to run
+                // first.
                 $this->command?->warn("Group account {$parentCode} missing; run ChartOfAccountsSeeder first.");
 
                 continue;
             }
 
             foreach ($accounts as $data) {
-                Account::updateOrCreate(
+                // firstOrCreate for the reason `ChartOfAccountsSeeder` gives at length: on every run but the
+                // first these codes are a live chart with costs posted against them, and re-asserting a name
+                // or a parent over that is not this seeder's business.
+                Account::firstOrCreate(
                     ['code' => $data['code']],
                     $data + ['parent_id' => $parent->id],
                 );

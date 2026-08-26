@@ -20,6 +20,12 @@ class SupportPlugin implements Plugin
             for: __NAMESPACE__.'\Filament\Resources',
         );
 
+        // The SLA compliance stats (Phase 5.4). Registered unconditionally; each widget's own canView() gates on the module and a permission.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
+
         // The two SLA reports (reports-expansion-plan.md Phase 1.3). Hidden from the sidebar and reached
         // from the Reports hub, but they still need registering or their URLs do not exist.
         $panel->discoverPages(

@@ -32,7 +32,7 @@ class NoReportPane implements ReportPaneRenderer
         return [];
     }
 
-    public function for(string $key, string $asOf, bool $comparison = true, array $asked = []): ?array
+    public function for(string $key, string $asOf, bool|string $comparison = true, array $asked = []): ?array
     {
         return ReportRenderers::render($key, $asOf, $comparison, $asked);
     }

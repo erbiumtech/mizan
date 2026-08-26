@@ -215,6 +215,7 @@ class ModuleBoundaryTest extends TestCase
         // required the other, so nothing was declared to make this possible; see §11.
         'billing' => ['advances'],
         'expenses' => ['accounting'],
+        'advances' => ['accounting'],
 
         // Debt.
         // Accounting reaches Inventory, Invoicing and Payroll no longer. Four registries and one shared
@@ -528,6 +529,15 @@ class ModuleBoundaryTest extends TestCase
             // requiring it would make the module unsellable to a company that keeps
             // its books elsewhere.
             'expenses' => ['accounting'],
+
+            // The outstanding-advances report states what the advances account holds beside what the
+            // register says, because the two disagree for reasons worth knowing — nothing posts an advance
+            // when it is entered, so the account usually carries only the recoveries
+            // (reports-expansion-plan.md Phase 2.7). Guarded in `AdvanceReports::advancesAccountId()`: with
+            // no accounting module there is no comparison and the register still reads. Advances declares
+            // `payroll` and not `accounting` for the same reason Expenses does — requiring it would make the
+            // module unsellable to a company that keeps its books elsewhere.
+            'advances' => ['accounting'],
 
             // A job's client and certifier are Contacts, and `construction` requires nothing — so both
             // pickers are hidden without Invoicing and the columns stay null. The job is still a job:

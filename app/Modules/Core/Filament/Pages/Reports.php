@@ -4,9 +4,21 @@ namespace App\Modules\Core\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Modules\Core\Filament\Resources\ReportSchedules\ReportScheduleResource;
+use App\Modules\Core\Models\ReportDefinition;
+use App\Modules\Core\Models\SavedReportView;
+use App\Support\Reporting\BuiltReport;
+use App\Support\Reporting\DatasetColumn;
+use App\Support\Reporting\DatasetFilter;
+use App\Support\Reporting\DatasetRegistry;
+use App\Support\Reporting\ExportsTheOpenReport;
+use App\Support\Reporting\RelativePeriod;
 use App\Support\Reporting\ReportCatalogue;
+use App\Support\Reporting\ReportComparison;
 use App\Support\Reporting\ReportPaneRenderer;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\Attributes\Url;
 
@@ -31,6 +43,7 @@ use Livewire\Attributes\Url;
 class Reports extends Page
 {
     use BelongsToModule;
+    use ExportsTheOpenReport;
 
     protected string $view = 'filament.pages.reports';
 
@@ -105,9 +118,25 @@ class Reports extends Page
     #[Url]
     public ?string $asOf = null;
 
-    /** Whether the prior year's column is shown. A preference, so it travels too. */
+    /**
+     * Whether the prior year's column is shown. A preference, so it travels too.
+     *
+     * **Superseded by `$compare` in Phase 4.2 and kept because links carry it.** A URL somebody saved says
+     * `?comparison=0`, and answering that with the comparison back on would be a small betrayal of a
+     * bookmark. `mount()` translates it once and nothing else reads it.
+     */
     #[Url]
     public bool $comparison = true;
+
+    /**
+     * What the statement is compared against — `App\Support\Reporting\ReportComparison`.
+     *
+     * A basis rather than a boolean, because Phase 4.2 adds the previous month and the previous quarter to
+     * the previous year. Nullable so that `mount()` can tell "not specified" from "specified as none", which
+     * is what lets the legacy flag still mean something.
+     */
+    #[Url]
+    public ?string $compare = null;
 
     /**
      * What the three reports that need more than a date are looking at.
@@ -138,6 +167,12 @@ class Reports extends Page
     {
         $this->asOf ??= now()->toDateString();
 
+        // The basis, from whichever of the two the link carried. An explicit `?compare=` wins; a bare
+        // `?comparison=` is translated; neither means the previous year, as it always did.
+        $this->compare = $this->compare === null
+            ? ReportComparison::fromLegacyFlag($this->comparison)
+            : ReportComparison::normalise($this->compare);
+
         // The key came off the query string, so it gets the same treatment as one that came off a click:
         // anything not in this role's catalogue is refused. Without this, `?selected=` would be a way to
         // have the pane render a link to a report the role cannot open — see select().
@@ -158,6 +193,13 @@ class Reports extends Page
      */
     public function statement(): ?array
     {
+        // While a report is being assembled the pane shows *that* report — see the builder below. Which is
+        // what item 7 means by "reads it in the same pane as every built-in report": the preview is not a
+        // preview of the report, it is the report, drawn by the one renderer.
+        if ($this->building) {
+            return app(BuiltReport::class)->for($this->draftDefinition(), $this->asOf ?: now()->toDateString());
+        }
+
         $report = $this->selectedReport();
 
         if ($report === null || ! app(ReportPaneRenderer::class)->supportsReport($report['key'])) {
@@ -167,7 +209,7 @@ class Reports extends Page
         return app(ReportPaneRenderer::class)->for(
             $report['key'],
             $this->asOf ?: now()->toDateString(),
-            $this->comparison,
+            $this->comparisonBasis(),
             [
                 'account' => $this->account,
                 'budget' => $this->budget,
@@ -175,6 +217,469 @@ class Reports extends Page
                 'month' => $this->month,
             ],
         );
+    }
+
+    // ------------------------------------------------ the builder (Phase 6.7)
+
+    /**
+     * Whether a report is being assembled — `docs/reports-expansion-plan.md` Phase 6, item 7.
+     *
+     * **A mode of this page rather than a screen of its own**, which is Phase 7's arranger decision applied
+     * to the other half of the plan and for the same two reasons. The first is that item 4 already decided a
+     * built report has no page: it is drawn in this pane so that it inherits the pane, and a builder anywhere
+     * else would have to reproduce the pane to show what it was building. The second is that it costs nothing
+     * when nobody is building — this property is false, the form is not rendered, and no dataset is asked for
+     * its columns.
+     *
+     * Not in the URL, for the same reason `$query` and `$viewName` are not: a half-assembled report is not a
+     * place to return to, and a link that opened somebody else's unsaved draft would be a link to nothing.
+     */
+    public bool $building = false;
+
+    /**
+     * The report being edited, by report key, or null while building a new one.
+     *
+     * What makes Save a rename rather than a duplicate — see `ReportDefinition::put()`'s `$replacing`.
+     */
+    public ?string $editing = null;
+
+    /**
+     * The report being assembled.
+     *
+     * A plain array bound straight to the form, and every value in it is checked twice before it reaches a
+     * query: `ReportDefinition::sanitise()` when the preview is drawn and again when it is saved. So the form
+     * may hold anything the browser sends — the draft is not the boundary, the registry is.
+     *
+     * `sort_column` and `sort_direction` are flat rather than a nested `sort` array because Livewire binds to
+     * a path that exists, and a nullable nested array is a path that does not.
+     *
+     * @var array<string, mixed>
+     */
+    public array $draft = [];
+
+    /** The subjects this person may build over, grouped by module — the picker's options. */
+    public function subjects(): array
+    {
+        return DatasetRegistry::labels();
+    }
+
+    /** The subject being built over, or null before one is chosen. */
+    public function subject(): ?string
+    {
+        return DatasetRegistry::find(is_string($this->draft['dataset'] ?? null) ? $this->draft['dataset'] : null);
+    }
+
+    /**
+     * Start a new report.
+     *
+     * Gated on `ReportBuild` here as well as in `ReportDefinition::put()`, because a mode that opens and then
+     * refuses to save is a worse answer than a button that was never offered.
+     */
+    public function startBuilding(): void
+    {
+        if (! $this->canBuild()) {
+            return;
+        }
+
+        $this->editing = null;
+        $this->draft = static::emptyDraft();
+        $this->building = true;
+    }
+
+    /**
+     * Open one of my own reports for editing.
+     *
+     * Mine only. A shared report belongs to whoever made it — somebody else editing it would change what
+     * every reader of it sees, and "save a copy of my own" is the same as building a new one, which the
+     * button beside it already does.
+     */
+    public function editReport(string $key): void
+    {
+        $definition = $this->ownedDefinition($key);
+
+        if ($definition === null || ! $this->canBuild()) {
+            return;
+        }
+
+        $settings = $definition->settings();
+
+        $this->editing = $definition->reportKey();
+        $this->draft = [
+            'dataset' => $definition->dataset,
+            'name' => (string) $definition->name,
+            'description' => (string) $definition->description,
+            'is_public' => (bool) $definition->is_public,
+            'columns' => $settings['columns'],
+            'filters' => $settings['filters'],
+            'group_by' => $settings['group_by'],
+            'aggregates' => $settings['aggregates'],
+            'sort_column' => $settings['sort']['column'] ?? null,
+            'sort_direction' => $settings['sort']['direction'] ?? ReportDefinition::ASCENDING,
+            'period' => $settings['period'],
+        ];
+        $this->building = true;
+    }
+
+    public function cancelBuilding(): void
+    {
+        $this->building = false;
+        $this->editing = null;
+        $this->draft = [];
+    }
+
+    /**
+     * Keep the report, and open it.
+     *
+     * Opening it afterwards is the point: the thing somebody just built is the thing they want to read, and
+     * leaving them on an empty form having saved is the small rudeness that makes a feature feel unfinished.
+     */
+    public function saveReport(): void
+    {
+        if (! $this->building || ! $this->canBuild()) {
+            return;
+        }
+
+        $name = trim((string) ($this->draft['name'] ?? ''));
+
+        if ($name === '' || $this->subject() === null) {
+            $this->warn('A report needs a name and a subject.');
+
+            return;
+        }
+
+        $definition = ReportDefinition::put(
+            $name,
+            (string) $this->draft['dataset'],
+            $this->draftState(),
+            filled($this->draft['description'] ?? null) ? (string) $this->draft['description'] : null,
+            (bool) ($this->draft['is_public'] ?? false),
+            $this->editing === null ? null : $this->ownedDefinition($this->editing),
+        );
+
+        if ($definition === null) {
+            // Three ways to get here and each is worth a sentence rather than a silent no-op: the share box
+            // is ticked without `ReportShare`, the new name is one of this person's own already, or the
+            // subject stopped being available while the form was open.
+            $this->warn('That report could not be saved. Check the name is not already used, and that you may share it.');
+
+            return;
+        }
+
+        $this->building = false;
+        $this->editing = null;
+        $this->draft = [];
+
+        $this->select($definition->reportKey());
+    }
+
+    /** Forget one of my own reports. */
+    public function deleteReport(string $key): void
+    {
+        $definition = $this->ownedDefinition($key);
+
+        if ($definition === null) {
+            return;
+        }
+
+        $definition->delete();
+
+        if ($this->selected === $key) {
+            $this->deselect();
+        }
+
+        $this->cancelBuilding();
+    }
+
+    /**
+     * Add a column, or take it out.
+     *
+     * Appended in the order they are chosen, because that order *is* the report's shape — which is also why
+     * these are buttons rather than a checkbox group bound to an array: a checkbox group hands back the
+     * order the boxes are drawn in, so every report would come out in the dataset's declaration order and
+     * nobody could say why.
+     */
+    public function toggleColumn(string $key): void
+    {
+        $columns = array_values((array) ($this->draft['columns'] ?? []));
+
+        $this->draft['columns'] = in_array($key, $columns, true)
+            ? array_values(array_filter($columns, fn (string $column): bool => $column !== $key))
+            : [...$columns, $key];
+    }
+
+    /** Move a chosen column one place left or right. */
+    public function moveColumn(string $key, int $by): void
+    {
+        $columns = array_values((array) ($this->draft['columns'] ?? []));
+        $at = array_search($key, $columns, true);
+        $to = $at === false ? null : $at + $by;
+
+        if ($at === false || $to < 0 || $to > count($columns) - 1) {
+            return;
+        }
+
+        [$columns[$at], $columns[$to]] = [$columns[$to], $columns[$at]];
+
+        $this->draft['columns'] = $columns;
+    }
+
+    /**
+     * A subject changed, so everything chosen against the old one goes.
+     *
+     * Columns, filters, grouping and aggregates are all keys of a *particular* dataset. Keeping them would
+     * not be dangerous — `sanitise()` drops what the new subject does not declare — but it would be
+     * confusing: half a report would survive a change of subject and the half that vanished would look like
+     * a bug.
+     */
+    public function updatedDraft(mixed $value, ?string $key = null): void
+    {
+        if ($key === 'dataset') {
+            $this->draft = [
+                ...static::emptyDraft(),
+                'dataset' => $value,
+                'name' => $this->draft['name'] ?? '',
+                'description' => $this->draft['description'] ?? '',
+                'is_public' => $this->draft['is_public'] ?? false,
+            ];
+        }
+    }
+
+    /** The columns the chosen subject offers. @return array<int, DatasetColumn> */
+    public function subjectColumns(): array
+    {
+        $class = $this->subject();
+
+        return $class === null ? [] : $class::columns();
+    }
+
+    /** The chosen columns, in the order they will be drawn. @return array<int, DatasetColumn> */
+    public function chosenColumns(): array
+    {
+        $class = $this->subject();
+
+        if ($class === null) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (string $key): ?DatasetColumn => $class::column($key),
+            array_values((array) ($this->draft['columns'] ?? [])),
+        )));
+    }
+
+    /** The filters the chosen subject offers. @return array<int, DatasetFilter> */
+    public function subjectFilters(): array
+    {
+        $class = $this->subject();
+
+        return $class === null ? [] : $class::filters();
+    }
+
+    /** Whether the chosen subject can be bounded by a period at all — see `Dataset::periodColumn()`. */
+    public function subjectHasPeriod(): bool
+    {
+        $class = $this->subject();
+
+        return $class !== null && $class::periodColumn() !== null;
+    }
+
+    /** The relative spans a report may be filed for. @return array<string, string> */
+    public function periods(): array
+    {
+        return RelativePeriod::PERIODS;
+    }
+
+    /** The ceiling a built report is held to, for the sentence that says so — item 5. */
+    public function rowCeiling(): int
+    {
+        return BuiltReport::MAX_ROWS;
+    }
+
+    public function canBuild(): bool
+    {
+        return (bool) auth()->user()?->can(ReportDefinition::BUILD);
+    }
+
+    public function canShare(): bool
+    {
+        return (bool) auth()->user()?->can(ReportDefinition::SHARE);
+    }
+
+    /** The open report, if it is one of mine to edit. */
+    public function editableReport(): ?ReportDefinition
+    {
+        return $this->canBuild() ? $this->ownedDefinition((string) $this->selected) : null;
+    }
+
+    /**
+     * The draft as a definition, unsaved.
+     *
+     * An unsaved model rather than a second payload builder, so the preview goes down exactly the path a
+     * saved report does — including `settings()`, which sanitises the state against the subject. A preview
+     * drawn any other way would be a second answer to "what does this report say".
+     */
+    private function draftDefinition(): ReportDefinition
+    {
+        return new ReportDefinition([
+            'name' => trim((string) ($this->draft['name'] ?? '')) ?: 'Untitled report',
+            'description' => (string) ($this->draft['description'] ?? ''),
+            'dataset' => (string) ($this->draft['dataset'] ?? ''),
+            'state' => $this->draftState(),
+            'is_public' => false,
+        ]);
+    }
+
+    /**
+     * The draft's state in the shape a definition holds — the flat sort put back together.
+     *
+     * @return array<string, mixed>
+     */
+    private function draftState(): array
+    {
+        $sortColumn = $this->draft['sort_column'] ?? null;
+
+        return [
+            'columns' => array_values((array) ($this->draft['columns'] ?? [])),
+            'filters' => (array) ($this->draft['filters'] ?? []),
+            'group_by' => $this->draft['group_by'] ?? null,
+            'aggregates' => (array) ($this->draft['aggregates'] ?? []),
+            'sort' => filled($sortColumn) ? [
+                'column' => (string) $sortColumn,
+                'direction' => (string) ($this->draft['sort_direction'] ?? ReportDefinition::ASCENDING),
+            ] : null,
+            'period' => $this->draft['period'] ?? RelativePeriod::YEAR_TO_DATE,
+        ];
+    }
+
+    /** A definition by key, but only if it is this person's own. */
+    private function ownedDefinition(?string $key): ?ReportDefinition
+    {
+        $definition = ReportDefinition::forKey($key);
+
+        return $definition !== null && (int) $definition->user_id === (int) auth()->id()
+            ? $definition
+            : null;
+    }
+
+    /** @return array<string, mixed> */
+    private static function emptyDraft(): array
+    {
+        return [
+            'dataset' => null,
+            'name' => '',
+            'description' => '',
+            'is_public' => false,
+            'columns' => [],
+            'filters' => [],
+            'group_by' => null,
+            'aggregates' => [],
+            'sort_column' => null,
+            'sort_direction' => ReportDefinition::ASCENDING,
+            'period' => RelativePeriod::YEAR_TO_DATE,
+        ];
+    }
+
+    /** Say what went wrong, where the person is looking. */
+    private function warn(string $message): void
+    {
+        Notification::make()->danger()->title($message)->send();
+    }
+
+    // ------------------------------------------------- saved views (Phase 4.5)
+
+    /**
+     * The name being typed into the save box. Not in the URL: a half-typed name is not a place to return to.
+     */
+    public string $viewName = '';
+
+    /**
+     * The signed-in user's saved views for the open report.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, SavedReportView>
+     */
+    public function savedViews(): \Illuminate\Database\Eloquent\Collection
+    {
+        return SavedReportView::forReport($this->selected);
+    }
+
+    /**
+     * Keep the current filters under a name.
+     *
+     * **The date is not among them**, which is Phase 4.5's own point: the plan asks for "the filters somebody
+     * uses every month", and the date is the one thing that changes every month. `SavedReportView::FILTERS`
+     * is the allow-list and `asOf` is deliberately absent from it.
+     */
+    public function saveView(): void
+    {
+        $name = trim($this->viewName);
+
+        if ($name === '' || blank($this->selected)) {
+            return;
+        }
+
+        SavedReportView::put($this->selected, $name, [
+            'compare' => $this->comparisonBasis(),
+            'account' => $this->account,
+            'budget' => $this->budget,
+            'find' => $this->find,
+            'month' => $this->month,
+        ]);
+
+        $this->viewName = '';
+    }
+
+    /**
+     * Put a saved view's filters back on the page.
+     *
+     * Read through the model's own scope rather than by id alone, so a id belonging to somebody else — or to
+     * another report — finds nothing. `$id` arrives from the browser like every other parameter here.
+     *
+     * The date is left exactly as it is, because a saved view has no opinion about it. Opening last month's
+     * filters should show them against today unless the person changes the date themselves.
+     */
+    public function applyView(int|string $id): void
+    {
+        $view = SavedReportView::query()->mine()->whereKey($id)->where('report_key', $this->selected)->first();
+
+        if ($view === null) {
+            return;
+        }
+
+        $filters = $view->filters();
+
+        // Only what the view carries. A view that stored no account must not blank an account the person has
+        // since picked — the absence of a filter is not an instruction to clear one.
+        foreach ($filters as $key => $value) {
+            $this->{$key} = $value;
+        }
+    }
+
+    /** Forget a saved view. Scoped the same way, and for the same reason. */
+    public function forgetView(int|string $id): void
+    {
+        SavedReportView::query()->mine()->whereKey($id)->where('report_key', $this->selected)->delete();
+    }
+
+    /**
+     * The basis in force, safe against anything the query string says.
+     *
+     * Normalised on every read rather than only in `mount()`, because Livewire writes `$compare` straight
+     * from the wire when the picker changes — and a value that never went through `mount()` would otherwise
+     * reach the statement unchecked.
+     */
+    public function comparisonBasis(): string
+    {
+        return ReportComparison::normalise($this->compare);
+    }
+
+    /**
+     * The bases the picker offers.
+     *
+     * @return array<string, string>
+     */
+    public function comparisonBases(): array
+    {
+        return ReportComparison::BASES;
     }
 
     /**
@@ -430,10 +935,111 @@ class Reports extends Page
         return false;
     }
 
+    /**
+     * Help, and the two exports — Phase 4.1.
+     *
+     * The exports sit on the hub as well as on each report's own page because the two are views of one
+     * payload: `ReportPaneRenderer` feeds both, and there is a test per report asserting they agree. An
+     * export offered on one screen and not the other would be an arbitrary difference between two ways of
+     * looking at the same thing.
+     */
     protected function getHeaderActions(): array
     {
         return [
             HelpAction::make('reports', 'Reports: Help'),
+            ...$this->buildActions(),
+            ...$this->scheduleActions(),
+            ...$this->exportActions(),
+        ];
+    }
+
+    /**
+     * Send this report on a timetable — `docs/reports-expansion-plan.md` Phase 8, item 1.
+     *
+     * **It carries the filters, which is what that item means by "the schedule and the link are the same
+     * thing".** A schedule stores the state the URL carries, so the honest way to make one is from the report
+     * somebody is already looking at: the account they picked, the month they filed, the comparison they set.
+     * A schedule form that started blank would quietly send the *default* register of the *default* account,
+     * which is a wrong report rather than a missing feature.
+     *
+     * A link to the create screen rather than a save here: recipients, a timetable and a timezone are the
+     * rest of a schedule, and this page has nowhere to ask for them.
+     *
+     * @return array<int, Action>
+     */
+    private function scheduleActions(): array
+    {
+        $report = $this->selectedReport();
+
+        if ($this->building || $report === null || ! auth()->user()?->can('ReportScheduleCreate')) {
+            return [];
+        }
+
+        return [
+            Action::make('scheduleReport')
+                ->label('Schedule')
+                ->icon('heroicon-m-paper-airplane')
+                ->color('gray')
+                ->url(fn (): string => ReportScheduleResource::getUrl('create', [
+                    'report_key' => $report['key'],
+                    'state' => $this->scheduleState(),
+                ])),
+        ];
+    }
+
+    /**
+     * The open report's filters, in the shape a schedule stores them.
+     *
+     * `SavedReportView::FILTERS` is the allow-list, because it is the same set for the same reason — Phase
+     * 4.5 decided what a report's state is and there should not be a second answer. The date is not among
+     * them, and must not be: a schedule resolves its own period each time it runs.
+     *
+     * @return array<string, mixed>
+     */
+    private function scheduleState(): array
+    {
+        $state = [
+            'compare' => $this->comparisonBasis(),
+            'account' => $this->account,
+            'budget' => $this->budget,
+            'find' => $this->find,
+            'month' => $this->month,
+        ];
+
+        return array_filter(
+            $state,
+            fn (mixed $value, string $key): bool => in_array($key, SavedReportView::FILTERS, true)
+                && $value !== null
+                && $value !== '',
+            ARRAY_FILTER_USE_BOTH,
+        );
+    }
+
+    /**
+     * One button to start a report — Phase 6, item 7.
+     *
+     * **Only "new" lives up here.** Save and Cancel belong inside the form, beside the fields they act on, and
+     * the two mistakes that would follow from putting them in the header are worth stating: a header action is
+     * built when the component boots, so a mode's own buttons are the awkward ones to test (Phase 7 records
+     * that trap), and a Save somebody has to look away from the form to find is a Save people miss.
+     *
+     * Hidden without `ReportBuild`. A mode that opens and then refuses to save is a worse answer than a button
+     * that was never there.
+     *
+     * @return array<int, Action>
+     */
+    private function buildActions(): array
+    {
+        if ($this->building || ! $this->canBuild()) {
+            return [];
+        }
+
+        return [
+            Action::make('buildReport')
+                ->label('New report')
+                ->icon('heroicon-m-squares-plus')
+                ->color('gray')
+                ->action(fn (): mixed => $this->startBuilding()),
         ];
     }
 
@@ -486,6 +1092,8 @@ class Reports extends Page
                     'description' => $description,
                     'url' => $page::getUrl(),
                     'icon' => $page::getNavigationIcon(),
+                    // Every coded report has a screen of its own, where its actions live.
+                    'own_page' => true,
                 ];
             }
 
@@ -494,6 +1102,55 @@ class Reports extends Page
             }
         }
 
+        $custom = static::customReports();
+
+        if ($custom !== []) {
+            $sections[ReportCatalogue::CUSTOM] = $custom;
+        }
+
         return $sections;
+    }
+
+    /**
+     * The reports somebody assembled, as rows of the hub — `docs/reports-expansion-plan.md` Phase 6, item 4.
+     *
+     * **Rows rather than pages, which is the one way this section differs from the other nine.** A coded
+     * report is a class with a `canAccess()`, so the loop above can ask it; a definition is a row, and what
+     * stands in for `canAccess()` is `ReportDefinition::readable()` — visible to this reader *and* over a
+     * subject their licence and permissions let them open. Nothing else here needs to know the difference.
+     *
+     * **The URL is the hub itself with the report selected**, and that is not a shortcut. A built report has
+     * no page of its own: item 4 puts it in the pane precisely so it inherits the pane's filters, record row,
+     * export and URL state, so "the report's own screen" *is* this screen with `?selected=` set — which is
+     * also the link Phase 8 will put in an email.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function customReports(): array
+    {
+        $rows = [];
+
+        foreach (ReportDefinition::readable() as $definition) {
+            $dataset = $definition->dataset();
+
+            $rows[] = [
+                'key' => $definition->reportKey(),
+                'label' => (string) $definition->name,
+                // A definition need not carry a description, and a blank one reads as a broken row rather
+                // than as an omission — so the subject and the span stand in, which is what somebody would
+                // have written anyway.
+                'description' => filled($definition->description)
+                    ? (string) $definition->description
+                    : trim(($dataset === null ? '' : $dataset::label().' · ')
+                        .RelativePeriod::label($definition->settings()['period']), ' ·'),
+                'url' => static::getUrl(['selected' => $definition->reportKey()]),
+                // The row's icon comes from its section, as every row's has since Phase 4 replaced fifty-one
+                // inline heroicons with nine symbols. See ReportIcons.
+                'icon' => null,
+                'own_page' => false,
+            ];
+        }
+
+        return $rows;
     }
 }

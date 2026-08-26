@@ -34,6 +34,11 @@ return [
         'App\\Models\\LoanInstalment' => \App\Modules\Accounting\Models\LoanInstalment::class,
         'App\\Models\\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
         'App\\Models\\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
+
+        // The AI command bot — docs/ai-command-bot-plan.md. Here rather than in a module of its own
+        // because what it produces is a register row: it is a second way into Accounting, not a domain.
+        'App\\Models\\CommandUtterance' => \App\Modules\Accounting\Models\CommandUtterance::class,
+        'App\\Models\\TransactionTypeAlias' => \App\Modules\Accounting\Models\TransactionTypeAlias::class,
     ],
 
     'resources' => [
@@ -79,6 +84,14 @@ return [
     'widgets' => [
         'App\\Filament\\Widgets\\AccountBalancesOverview' => \App\Modules\Accounting\Filament\Widgets\AccountBalancesOverview::class,
         'App\\Filament\\Widgets\\CashFlowChart' => \App\Modules\Accounting\Filament\Widgets\CashFlowChart::class,
+        'App\\Filament\\Widgets\\CashCommittedOverview' => \App\Modules\Accounting\Filament\Widgets\CashCommittedOverview::class,
+        'App\\Filament\\Widgets\\RevenueAndExpensesChart' => \App\Modules\Accounting\Filament\Widgets\RevenueAndExpensesChart::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\JournalLineDataset' => \App\Modules\Accounting\Reporting\JournalLineDataset::class,
     ],
 
     'permission_groups' => [
@@ -105,6 +118,45 @@ return [
         ['name' => 'AccountUpdate', 'group' => 'Account'],
         ['name' => 'AccountDelete', 'group' => 'Account'],
         ['name' => 'ReportView', 'group' => 'Report'],
+        /*
+         * The report builder — reports-expansion-plan.md Phase 6, item 6.
+         *
+         * Here rather than in Core because `ReportView` is here: the Report group has one owner, and
+         * `ModuleAuthorization` resolves a bare permission's module *through its group*, so splitting the
+         * group across two modules would make "which module gates this check" depend on which manifest
+         * declared which name.
+         *
+         * `ReportBuild` is composing one at all. Reading stays `ReportView`, which every report in the
+         * application is already gated on — a custom report is a report.
+         *
+         * `ReportShare` is the toggle that makes one visible to the whole company, and it is separate
+         * because the item says so and the reason is concrete: a company-wide custom report over payslips
+         * would be a payroll leak. Granted to nobody below Administrator. Note that it is not the *only*
+         * thing standing in the way — reading a definition resolves its subject through the reader's own
+         * module and permission gates, so a shared payslip report shows a person nothing they could not
+         * already open. See App\Modules\Core\Models\ReportDefinition.
+         */
+        ['name' => 'ReportBuild', 'group' => 'Report'],
+        ['name' => 'ReportShare', 'group' => 'Report'],
+        /*
+         * Scheduled reports — reports-expansion-plan.md Phase 8, items 1 and 2.
+         *
+         * In the same group as the rest, for the reason above: the Report group has one owner. Four
+         * permissions rather than one because a schedule is a row somebody keeps — the usual
+         * view/create/update/delete — and the update and delete ones are additionally scoped to the *owner*
+         * by `ReportSchedulePolicy`, since a schedule renders with its owner's access and editing somebody
+         * else's recipient list would be sending their rows to a list they never agreed to.
+         *
+         * `ReportSendExternal` is the one that is not a CRUD verb, and item 2 is explicit about why:
+         * "external recipients need their own permission". An address that matches nobody in this company is
+         * a report leaving the company, decided by the person whose access produced the rows. Granted to
+         * nobody below Administrator.
+         */
+        ['name' => 'ReportScheduleView', 'group' => 'Report'],
+        ['name' => 'ReportScheduleCreate', 'group' => 'Report'],
+        ['name' => 'ReportScheduleUpdate', 'group' => 'Report'],
+        ['name' => 'ReportScheduleDelete', 'group' => 'Report'],
+        ['name' => 'ReportSendExternal', 'group' => 'Report'],
         // Planning, separate from ReportView: the budget says what the
         // company intends to do, which is not the same thing as being
         // allowed to read what it has already done.
@@ -217,6 +269,13 @@ return [
             'PettyCashCreate',
             'PettyCashView',
             'RegisterPost',
+            'ReportBuild',
+            // Keeping a schedule of one's own, on the same reasoning as `ReportBuild`: anybody trusted to
+            // read the ledger is trusted to have it emailed to them. Deleting is CEO's, with the other
+            // deletes.
+            'ReportScheduleCreate',
+            'ReportScheduleUpdate',
+            'ReportScheduleView',
             'ReportView',
             'TransactionTypeCreate',
             'TransactionTypeUpdate',
@@ -244,6 +303,7 @@ return [
             'CompanyBankAccountDelete',
             'FixedAssetDelete',
             'LoanDelete',
+            'ReportScheduleDelete',
             'TransactionTypeDelete',
         ],
     ],

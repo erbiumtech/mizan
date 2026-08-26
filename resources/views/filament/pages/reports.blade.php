@@ -16,9 +16,106 @@
         see ComparativeStatement. Selecting one offers its own page rather than a wrong rendering.
 --}}
 <x-filament-panels::page>
+    {{--
+        The icon sprite: one `<symbol>` per section, defined once and referenced by every row.
+
+        Fifty-one rows each inlining their own heroicon came to 30.4 KB of a 366 KB page against a 360 KB
+        ceiling that `PanelPerformanceTest` says must not be raised — its comment predicted this and named
+        "the hub's card markup" as what should give way. Nine symbols and fifty-one `<use>` references is
+        about 6 KB. See App\Support\Reporting\ReportIcons.
+    --}}
+    {{ \App\Support\Reporting\ReportIcons::sprite() }}
+
     <div class="fi-explorer">
         {{-- ------------------------------------------------------------------ the list --}}
-        <aside class="fi-explorer-list">
+        {{--
+            Keyboard navigation of the list — reports-expansion-plan.md Phase 4.4, which set 35 rows as the
+            point at which it earns its keep. There are 51.
+
+            **The rows stay native `<button>`s.** The ARIA listbox pattern would mean `role="option"` and
+            `aria-activedescendant`, which replaces the button semantics a screen reader already announces
+            correctly with a pattern that has to reimplement them. Arrow keys move real DOM focus between
+            real buttons instead, so Enter and Space keep working because they always did, and nothing is
+            faked.
+
+            **The search box is the type-ahead.** A second string matcher — keystrokes jumping the selection
+            without filtering — would give two behaviours to one set of keys, and the box is the better of
+            the two: it filters, and it shows you what you typed so you can correct it. So a printable key
+            pressed anywhere in the list goes to the box. Down-arrow out of the box enters the list and
+            up-arrow off the first row returns to it, which makes "type to narrow, arrow down, Enter" the
+            path through 51 reports.
+        --}}
+        <aside
+            class="fi-explorer-list"
+            x-data="{
+                rows() {
+                    return Array.from($el.querySelectorAll('[data-report-row]'));
+                },
+                search() {
+                    return $el.querySelector('[data-report-search]');
+                },
+                move(step) {
+                    const rows = this.rows();
+
+                    if (! rows.length) {
+                        return;
+                    }
+
+                    const at = rows.indexOf(document.activeElement);
+
+                    // Not in the list yet — a down-arrow from the search box enters at the top, an up-arrow
+                    // from outside enters at the bottom.
+                    if (at < 0) {
+                        (step > 0 ? rows[0] : rows[rows.length - 1]).focus();
+
+                        return;
+                    }
+
+                    // Off the top goes back to the search box rather than sticking, so the way in is also
+                    // the way out.
+                    if (at === 0 && step < 0) {
+                        this.search()?.focus();
+
+                        return;
+                    }
+
+                    rows[Math.min(at + step, rows.length - 1)].focus();
+                },
+                edge(step) {
+                    const rows = this.rows();
+
+                    if (rows.length) {
+                        (step < 0 ? rows[0] : rows[rows.length - 1]).focus();
+                    }
+                },
+                typeAhead(event) {
+                    const box = this.search();
+
+                    // Modified keys belong to the browser and to the command palette, which is Cmd+K.
+                    if (! box || event.target === box || event.ctrlKey || event.metaKey || event.altKey) {
+                        return;
+                    }
+
+                    // One printable character. `event.key` is a word for every key that is not one.
+                    if (event.key.length !== 1) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    box.focus();
+                    box.value += event.key;
+
+                    // Livewire is bound on `input`, so the property only follows a value set in script if
+                    // the event is raised by hand.
+                    box.dispatchEvent(new Event('input'));
+                },
+            }"
+            @keydown.down.prevent="move(1)"
+            @keydown.up.prevent="move(-1)"
+            @keydown.home.prevent="edge(-1)"
+            @keydown.end.prevent="edge(1)"
+            @keydown="typeAhead($event)"
+        >
             <div class="fi-explorer-list-header">
                 <div class="fi-explorer-list-title">
                     <span>Reports</span>
@@ -33,6 +130,10 @@
                         placeholder="Search reports"
                         aria-label="Search reports"
                         class="fi-explorer-search-input"
+                        data-report-search
+                        {{-- Escape empties the box rather than blurring it, which is what every search
+                             field in a list does and what somebody who mistyped expects. --}}
+                        @keydown.escape.prevent="$el.value = ''; $el.dispatchEvent(new Event('input'))"
                     >
                 </label>
 
@@ -60,10 +161,17 @@
                         type="button"
                         wire:click="select('{{ $report['key'] }}')"
                         wire:key="row-{{ $report['key'] }}"
+                        {{-- Carries the key so the attribute is greppable per row rather than a bare flag
+                             indistinguishable from the selector string in the component above. --}}
+                        data-report-row="{{ $report['key'] }}"
                         @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])
                     >
                         <span class="fi-explorer-row-icon">
-                            <x-filament::icon :icon="$report['icon']" class="fi-explorer-row-icon-svg" />
+                            {{-- The section's icon, from the sprite above. A row's icon now says which
+                                 section the report is in rather than being the report's own: the fifty-one
+                                 distinct navigation icons distinguished nothing a reader was using, and
+                                 inlining them cost 30 KB the page's ceiling did not have. --}}
+                            {{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}
                         </span>
 
                         <span class="fi-explorer-row-text">
@@ -84,7 +192,31 @@
         @php($report = $this->selectedReport())
 
         <section class="fi-explorer-pane">
-            @if ($statement)
+            {{--
+                Assembling a report — reports-expansion-plan.md Phase 6, item 7.
+
+                First in the chain because while somebody is building there is no *selected* report to draw:
+                `statement()` returns the draft, and the two partials below it are the pane's own, so what is
+                on screen while building is the report itself rather than a preview of it. The form is not
+                rendered otherwise, which is what makes the mode cost nothing on the ordinary page.
+            --}}
+            @if ($this->building)
+                @include('filament.partials.report-builder')
+
+                @if ($statement)
+                    {{-- The report's own title and period, as the pane states them for every other report:
+                         what is under the form is the report, so it says what it is. --}}
+                    <div class="fi-explorer-pane-heading">
+                        <h2 class="fi-explorer-pane-title">{{ $statement['title'] }}</h2>
+                        <p class="fi-explorer-pane-subtitle">{{ $statement['subtitle'] }}</p>
+                    </div>
+
+                    <div class="fi-explorer-pane-body">
+                        @include('filament.partials.report-tiles', ['statement' => $statement])
+                        @include('filament.partials.report-table', ['statement' => $statement])
+                    </div>
+                @endif
+            @elseif ($statement)
                 <header class="fi-explorer-pane-header">
                     <div class="fi-explorer-pane-heading">
                         <h2 class="fi-explorer-pane-title">{{ $statement['title'] }}</h2>
@@ -147,21 +279,98 @@
                         @endforeach
 
                         {{--
-                            Only where a prior year is drawn. A trial balance proves this period adds up and
-                            a bank file is a file — a toggle that changed nothing on either would be a
-                            control that lies about what it does.
+                            Only where a comparison column is drawn. A trial balance proves this period adds
+                            up and a bank file is a file — a control that changed nothing on either would be
+                            a control that lies about what it does.
+
+                            A picker rather than a toggle since Phase 4.2, because there are now four
+                            answers. Worth knowing what it does to a profit and loss: choosing a month or a
+                            quarter narrows the *current* period to match, because a comparison shorter than
+                            the period compared is not a comparison. See ReportComparison.
                         --}}
                         @if ($statement['kind'] === 'statement')
-                            <button
-                                type="button"
-                                wire:click="$toggle('comparison')"
-                                @class(['fi-explorer-toggle', 'fi-active' => $this->comparison])
-                                aria-pressed="{{ $this->comparison ? 'true' : 'false' }}"
-                            >vs previous year</button>
+                            <label class="fi-explorer-date">
+                                <span class="fi-sr-only">Compare against</span>
+                                <select wire:model.live="compare" class="fi-explorer-date-input">
+                                    @foreach ($this->comparisonBases() as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                         @endif
 
-                        <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        {{--
+                            Only for a report that has a page of its own — reports-expansion-plan.md Phase 6,
+                            item 4. A built report is drawn here and nowhere else, so its "own page" is this
+                            page with `?selected=` set, and a link back to the screen you are reading is an
+                            affordance that does nothing.
+                        --}}
+                        @if ($report['own_page'] ?? true)
+                            <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        @endif
+
+                        {{--
+                            Editing one of my own — Phase 6, item 7.
+
+                            Mine only: a shared report belongs to whoever made it, and somebody else editing
+                            it would change what every reader of it sees. Building a new one is the answer to
+                            "I want it slightly different", and the header's own button is right there.
+                        --}}
+                        @if ($this->editableReport())
+                            <button type="button" wire:click="editReport('{{ $report['key'] }}')" class="fi-explorer-open">Edit report</button>
+                        @endif
                     </div>
+
+                    {{--
+                        Saved views — reports-expansion-plan.md Phase 4.5.
+
+                        **The date is not in a saved view**, which is the phase's own point: what somebody
+                        uses every month is the filters, and the date is the thing that changes every month.
+                        For a fixed date the URL already carries the whole state — 4c's premise — so "the
+                        balance sheet at 30 June" is a link. A link for a moment, a saved view for a habit.
+
+                        Only where the report has something to save: a report with no filters and no
+                        comparison would offer to keep an empty set.
+                    --}}
+                    @if ($this->filters() !== [] || $statement['kind'] === 'statement')
+                        <div class="fi-explorer-views">
+                            @foreach ($this->savedViews() as $view)
+                                <span class="fi-explorer-view">
+                                    <button
+                                        type="button"
+                                        wire:click="applyView({{ $view->getKey() }})"
+                                        class="fi-explorer-view-apply"
+                                        title="Apply these filters"
+                                    >{{ $view->name }}</button>
+
+                                    <button
+                                        type="button"
+                                        wire:click="forgetView({{ $view->getKey() }})"
+                                        class="fi-explorer-view-forget"
+                                        aria-label="Forget the view “{{ $view->name }}”"
+                                        title="Forget this view"
+                                    >&times;</button>
+                                </span>
+                            @endforeach
+
+                            <label class="fi-explorer-view-save">
+                                <span class="fi-sr-only">Name for these filters</span>
+                                <input
+                                    type="text"
+                                    wire:model="viewName"
+                                    @keydown.enter.prevent="$wire.saveView()"
+                                    placeholder="Save these filters as…"
+                                    class="fi-explorer-view-input"
+                                >
+                            </label>
+
+                            @if (filled($this->viewName))
+                                <button type="button" wire:click="saveView" class="fi-explorer-chip fi-active">
+                                    Save
+                                </button>
+                            @endif
+                        </div>
+                    @endif
                 </header>
 
                 <div class="fi-explorer-pane-body">
@@ -216,16 +425,16 @@
                                                 {{ $row['label'] }}
                                             </span>
                                         @endif
-                                        <span class="fi-num">{{ $row['current'] === null ? '' : number_format($row['current'], 0) }}</span>
-                                        <span class="fi-num">{{ $row['previous'] === null ? '' : number_format($row['previous'], 0) }}</span>
+                                        <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($row['current']) }}</span>
+                                        <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($row['previous']) }}</span>
                                         <span class="fi-num fi-explorer-change">{{ $row['change'] === null ? '—' : sprintf('%+.1f%%', $row['change']) }}</span>
                                     </div>
                                 @endforeach
 
                                 <div class="fi-explorer-total">
                                     <span>{{ $section['total']['label'] }}</span>
-                                    <span class="fi-num">{{ number_format($section['total']['current'], 0) }}</span>
-                                    <span class="fi-num">{{ $section['total']['previous'] === null ? '' : number_format($section['total']['previous'], 0) }}</span>
+                                    <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($section['total']['current']) }}</span>
+                                    <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($section['total']['previous']) }}</span>
                                     <span class="fi-num fi-explorer-change">{{ $section['total']['change'] === null ? '—' : sprintf('%+.1f%%', $section['total']['change']) }}</span>
                                 </div>
                             @empty
@@ -237,8 +446,8 @@
                             {{-- The closing identity: what the sections above have to add up to. --}}
                             <div class="fi-explorer-total fi-explorer-closing">
                                 <span>{{ $statement['closing']['label'] }}</span>
-                                <span class="fi-num">{{ number_format($statement['closing']['current'], 0) }}</span>
-                                <span class="fi-num">{{ $statement['closing']['previous'] === null ? '' : number_format($statement['closing']['previous'], 0) }}</span>
+                                <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($statement['closing']['current']) }}</span>
+                                <span class="fi-num">{{ \App\Support\Reporting\ReportFigures::money($statement['closing']['previous']) }}</span>
                                 <span class="fi-num"></span>
                             </div>
                         </div>
@@ -301,14 +510,16 @@
                                         @endif
 
                                         @foreach (array_slice($row['cells'], 1, null, true) as $i => $cell)
-                                            <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                                            @php($isNumeric = in_array($i, $statement['numeric'], true))
+                                            <span @class(['fi-num' => $isNumeric])>{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell($cell) : $cell }}</span>
                                         @endforeach
                                     </div>
                                 @endforeach
 
                                 <div class="fi-explorer-total" style="{{ $grid }}">
                                     @foreach ($section['total']['cells'] as $i => $cell)
-                                        <span @class(['fi-num' => in_array($i, $statement['numeric'], true)])>{{ $cell }}</span>
+                                        @php($isNumeric = in_array($i, $statement['numeric'], true))
+                                        <span @class(['fi-num' => $isNumeric])>{{ $isNumeric ? \App\Support\Reporting\ReportFigures::cell($cell) : $cell }}</span>
                                     @endforeach
                                 </div>
                             @empty

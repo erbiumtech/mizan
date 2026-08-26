@@ -35,6 +35,10 @@ return [
         'App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource' => \App\Modules\Attendance\Filament\Resources\WorkPatterns\WorkPatternResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\AttendanceTodayOverview' => \App\Modules\Attendance\Filament\Widgets\AttendanceTodayOverview::class,
+    ],
+
     'permission_groups' => [
         'Attendance',
         'AttendanceRegularization',
@@ -83,7 +87,14 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    /** The monthly register (Phase 3.1). A page: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\AttendanceRegister' => \App\Modules\Attendance\Filament\Pages\AttendanceRegister::class,
+    ],
+
     'navigation' => [
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
         'Employee' => 'people',
     ],
 ];

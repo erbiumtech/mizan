@@ -128,14 +128,20 @@ class ReportsHubTest extends TestCase
         // it lives in Settings now; NavigationGroupsTest holds that end of it.
         foreach ([
             'Balance Sheet', 'Profit & Loss', 'Cash Flow', 'Trial Balance', 'Budget vs Actual',
+            'Fixed Asset Register', 'Bank Reconciliation Statement',
             'Aged Receivables', 'Aged Payables', 'Contractor Payments',
+            'Revenue by Customer, Project and Product',
             'Tax Summary', 'FBR Tax File', 'Salary Bank File',
+            'Credit Notes Issued',
             'FBR Invoice Reporting',
             'Account Register', 'Petty Cash Book', 'Loans Outstanding', 'Cash Commitments',
             'Bank Payment File',
             'Pipeline by Stage', 'Sales Forecast', 'Win / Loss', 'Rotting Deals', 'Target Attainment',
+            'Quotation Conversion',
             'SLA Performance', 'SLA Breaches', 'Unbilled WIP', 'Stock on Hand',
             'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register', 'Leave Liability',
+            'Advances Outstanding', 'Expense Claims', 'Attendance Register', 'Hiring Funnel',
+            'Headcount Movement', "Assets in Employees' Hands", 'Final Settlements', 'Onboarding / Offboarding Progress', 'Consent Register', 'Campaign Performance', 'Review Cycle Progress', 'Environment Health & Incidents',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }
@@ -312,5 +318,146 @@ class ReportsHubTest extends TestCase
         // (GnuCash Import went to Settings), and this only needs to catch a scan
         // that found nothing.
         $this->assertGreaterThanOrEqual(10, $examined, 'the panel reported no pages hidden from the sidebar');
+    }
+
+    // ──────────────────────── keyboard navigation of the list (Phase 4.4) ──
+
+    /**
+     * The list carries the hooks arrow-key navigation needs.
+     *
+     * **This asserts the wiring, not the behaviour.** There is no browser harness in this project — no Dusk,
+     * no Playwright — so nothing here can press a key and see where focus went. What it can do is fail if
+     * somebody removes an attribute the Alpine component reads, which is the realistic way this breaks: the
+     * markup is edited for an unrelated reason and the keyboard quietly stops working with no test to say so.
+     */
+    public function test_the_list_carries_the_keyboard_navigation_hooks(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $html = Livewire::test(Reports::class)->assertSuccessful()->html();
+
+        // Every row is reachable by the component, and the search box is what type-ahead types into.
+        $this->assertStringContainsString('data-report-row', $html);
+        $this->assertStringContainsString('data-report-search', $html);
+
+        // The four movement keys and the type-ahead redirect.
+        foreach (['keydown.down', 'keydown.up', 'keydown.home', 'keydown.end'] as $binding) {
+            $this->assertStringContainsString($binding, $html, "the list does not handle {$binding}");
+        }
+
+        $this->assertStringContainsString('typeAhead($event)', $html);
+    }
+
+    /**
+     * There is a `data-report-row` on every visible row, not just the first.
+     *
+     * The hook is inside the loop, and a hook outside it would give a keyboard that moves between one row.
+     */
+    public function test_every_visible_row_carries_the_hook(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $page = Livewire::test(Reports::class)->assertSuccessful();
+
+        // `data-report-row="` and not `data-report-row`: the Alpine component's own selector string
+        // contains the bare name, which made this off by one and passing for the wrong reason would have
+        // been a matter of a single row.
+        $this->assertSame(
+            count($page->instance()->visibleReports()),
+            substr_count($page->html(), 'data-report-row="'),
+        );
+    }
+
+    /**
+     * The rows stay buttons.
+     *
+     * Deliberately not an ARIA listbox: `role="option"` would replace the button semantics a screen reader
+     * already announces correctly with a pattern that has to reimplement them, and Enter and Space work on
+     * these rows because they have always been buttons. A later change to `role="option"` should have to
+     * argue with this test.
+     */
+    public function test_the_rows_are_buttons_rather_than_listbox_options(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $html = Livewire::test(Reports::class)->assertSuccessful()->html();
+
+        $this->assertStringNotContainsString('role="option"', $html);
+        $this->assertStringNotContainsString('aria-activedescendant', $html);
+        $this->assertStringContainsString('data-report-row', $html);
+    }
+
+    // ──────────────── the icon sprite, which keeps the page-size ceiling ──
+
+    /**
+     * Every row's icon comes from the sprite, not from an inline copy.
+     *
+     * `PanelPerformanceTest`'s size budget is the reason this exists, and its comment is explicit that the
+     * ceiling must not be raised to accommodate the hub: fifty-one rows each inlining their own heroicon came
+     * to 30.4 KB of a 366 KB page against a 360 KB budget. Nine `<symbol>`s and fifty-one `<use>`s is about
+     * 6 KB. A change that put the inline icons back would pass every other test in this file and fail the
+     * budget in another one, which is a confusing way to find out — so it fails here too.
+     */
+    public function test_every_row_icon_comes_from_the_sprite(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $html = Livewire::test(Reports::class)->assertSuccessful()->html();
+        $rows = count(Reports::catalogue());
+
+        // One `<use>` per row, and no `<path>` inside a row's icon.
+        $this->assertSame($rows, substr_count($html, '<use href="#rpt-icon-'));
+        $this->assertStringNotContainsString('fi-explorer-row-icon-svg" ><path', $html);
+    }
+
+    /**
+     * The sprite defines a symbol for every section, not only the visible ones.
+     *
+     * The list is filtered by section and by search and re-renders on both. A sprite that shrank with the
+     * filter would drop the symbol a row still points at, and the row would render blank — which looks like
+     * a broken icon rather than a filtering bug.
+     */
+    public function test_the_sprite_defines_every_section_even_when_filtered(): void
+    {
+        $this->actAsSuperAdminOf(Company::factory()->create());
+
+        $html = Livewire::test(Reports::class)
+            ->set('section', 'Operations')
+            ->assertSuccessful()
+            ->html();
+
+        foreach (array_keys(\App\Support\Reporting\ReportIcons::SECTION_ICONS) as $section) {
+            $this->assertStringContainsString(
+                'id="'.\App\Support\Reporting\ReportIcons::idFor($section).'"',
+                $html,
+                "the sprite dropped [{$section}] while the list was filtered",
+            );
+        }
+    }
+
+    /**
+     * A section nobody mapped gets the fallback rather than an empty slot.
+     *
+     * A new module registering a new heading is a small omission in `SECTION_ICONS`, not a reason to render a
+     * hole where an icon goes — which reads as a rendering failure.
+     */
+    public function test_an_unmapped_section_gets_the_fallback_icon(): void
+    {
+        $this->assertStringContainsString(
+            'rpt-icon-fallback',
+            \App\Support\Reporting\ReportIcons::icon('Something Nobody Mapped')->toHtml(),
+        );
+    }
+
+    /** The symbols carry the stroke attributes, or every icon renders invisible rather than wrong. */
+    public function test_the_sprite_symbols_carry_their_stroke_attributes(): void
+    {
+        $sprite = \App\Support\Reporting\ReportIcons::sprite()->toHtml();
+
+        $this->assertStringContainsString('<symbol id="rpt-icon-operations"', $sprite);
+        $this->assertStringContainsString('stroke="currentColor"', $sprite);
+        $this->assertStringContainsString('viewBox=', $sprite);
+        // The referencing element supplies these; a symbol carrying them would override the row's own size.
+        $this->assertStringNotContainsString('<symbol id="rpt-icon-operations" class=', $sprite);
     }
 }
