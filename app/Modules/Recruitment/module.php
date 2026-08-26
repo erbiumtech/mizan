@@ -63,7 +63,14 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    /** The hiring funnel (Phase 3.2). A page: a report is a question, not rows to edit. */
+    'pages' => [
+        'App\\Filament\\Pages\\HiringFunnel' => \App\Modules\Recruitment\Filament\Pages\HiringFunnel::class,
+    ],
+
     'navigation' => [
+        // The report declares the Reports group, as every report page in this application does.
+        'Reports' => 'reports',
         'Hiring' => 'people',
     ],
 ];

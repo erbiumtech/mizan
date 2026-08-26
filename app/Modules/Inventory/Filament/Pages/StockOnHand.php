@@ -28,7 +28,7 @@ class StockOnHand extends ModuleReportPage
 
     protected static ?int $navigationSort = 45;
 
-    protected function getHeaderActions(): array
+    protected function reportActions(): array
     {
         // Literal, in this file. HelpCoverageTest reads each page's own source, and the slug is per report.
         return [

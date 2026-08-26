@@ -41,6 +41,17 @@ return [
         'App\\Filament\\Pages\\UnbilledWip' => \App\Modules\Timesheets\Filament\Pages\UnbilledWip::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\BillableShareOverview' => \App\Modules\Timesheets\Filament\Widgets\BillableShareOverview::class,
+        'App\\Filament\\Widgets\\UnbilledWipOverview' => \App\Modules\Timesheets\Filament\Widgets\UnbilledWipOverview::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\TimesheetEntryDataset' => \App\Modules\Timesheets\Reporting\TimesheetEntryDataset::class,
+    ],
+
     'permission_groups' => [
         'Timesheet',
     ],

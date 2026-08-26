@@ -19,6 +19,17 @@ return [
         'App\\Models\\User' => \App\Modules\Core\Models\User::class,
         'App\\Models\\Company' => \App\Modules\Core\Models\Company::class,
         'App\\Models\\TableView' => \App\Modules\Core\Models\TableView::class,
+        // A person's saved filters for one report — Core for the same reason the Reports hub is: the hub
+        // belongs to no module and every module puts reports in it.
+        'App\\Models\\SavedReportView' => \App\Modules\Core\Models\SavedReportView::class,
+        // A report somebody assembled in the builder — Phase 6, item 3 of the reports plan.
+        'App\\Models\\ReportDefinition' => \App\Modules\Core\Models\ReportDefinition::class,
+        // A report on a timetable, and one send of one — Phase 8, items 1 and 4 of the reports plan. Core
+        // because the schedule may name any module's report, and the hub they are named from is here.
+        'App\\Models\\ReportSchedule' => \App\Modules\Core\Models\ReportSchedule::class,
+        'App\\Models\\ReportDelivery' => \App\Modules\Core\Models\ReportDelivery::class,
+        // How one person, or the company, has arranged the dashboard — Phase 7 of the reports plan.
+        'App\\Models\\DashboardLayout' => \App\Modules\Core\Models\DashboardLayout::class,
         'App\\Models\\CustomField' => \App\Modules\Core\Models\CustomField::class,
         'App\\Models\\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
         'App\\Models\\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
@@ -43,6 +54,8 @@ return [
         'App\\Filament\\Resources\\ActivityLogs\\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
         'App\\Filament\\Resources\\Comments\\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
         'App\\Filament\\Resources\\FiscalYears\\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
+        // Scheduled reports — Phase 8, item 1 of the reports plan.
+        'App\\Filament\\Resources\\ReportSchedules\\ReportScheduleResource' => \App\Modules\Core\Filament\Resources\ReportSchedules\ReportScheduleResource::class,
         'App\\Filament\\Resources\\Holidays\\HolidayResource' => \App\Modules\Core\Filament\Resources\Holidays\HolidayResource::class,
     ],
 
@@ -52,7 +65,13 @@ return [
     ],
 
     'pages' => [
+        // The dashboard. Core for the reason the Reports hub is: it belongs to no module and every module
+        // contributes widgets to it, so each widget's own canView() is the only thing deciding what appears.
+        'App\\Filament\\Pages\\Dashboard' => \App\Modules\Core\Filament\Pages\Dashboard::class,
         'App\\Filament\\Pages\\Reports' => \App\Modules\Core\Filament\Pages\Reports::class,
+        // The delivery log — Phase 8, item 8 of the reports plan. A report about the application rather than
+        // about the business, which is why it is here and not in a module.
+        'App\\Filament\\Pages\\ReportDeliveries' => \App\Modules\Core\Filament\Pages\ReportDeliveries::class,
         'App\\Filament\\Pages\\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
         'App\\Filament\\Pages\\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
         'App\\Filament\\Pages\\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
@@ -149,7 +168,10 @@ return [
      * by label: the Dashboard and the manual belong to Home while the Reports hub is its own domain.
      */
     'navigation_items' => [
-        \Filament\Pages\Dashboard::class => 'home',
+        // Ours since reports-expansion-plan.md Phase 5.1, which replaced Filament's in the panel. Keyed on
+        // the class, so the mapping has to follow the swap or the dashboard falls out of the Home domain and
+        // into Filament's unlabelled group.
+        \App\Modules\Core\Filament\Pages\Dashboard::class => 'home',
         \App\Modules\Core\Filament\Pages\UserManual::class => 'home',
         \App\Modules\Core\Filament\Pages\Reports::class => 'reports',
     ],

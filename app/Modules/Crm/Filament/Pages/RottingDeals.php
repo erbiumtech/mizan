@@ -24,7 +24,7 @@ class RottingDeals extends ModuleReportPage
 
     protected static ?int $navigationSort = 23;
 
-    protected function getHeaderActions(): array
+    protected function reportActions(): array
     {
         // Literal, in this file, on every one of the five. HelpCoverageTest reads each page's own source
         // for `HelpAction::make('...')` — a call inherited from a shared parent is a page with no help as

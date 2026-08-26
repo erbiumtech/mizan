@@ -26,6 +26,9 @@ class TenantBaselineSeeder extends Seeder
             // Currencies screen, and no row saying which one its books are kept in.
             CurrencySeeder::class,
             TransactionTypeSeeder::class,
+            // The other words those categories go by, for the command bot — docs/ai-command-bot-plan.md §3.2.
+            // After the types, because it keys off their codes and silently skips any that are absent.
+            TransactionTypeAliasSeeder::class,
             SalarySlabSeeder::class,
             // The statutory pay COMPONENTS — EOBI, social security, provident fund — and
             // no amounts: creating them says this company may deduct EOBI, and deducts

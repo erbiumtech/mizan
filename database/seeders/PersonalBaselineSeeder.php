@@ -35,6 +35,9 @@ class PersonalBaselineSeeder extends Seeder
             // TransactionTypeSeeder: those are keyed to the business chart's
             // codes, which mean different things here.
             PersonalTransactionTypeSeeder::class,
+            // Same alias list for both charts: it keys off category codes and skips the ones a personal
+            // account does not have, so one seeder serves both.
+            TransactionTypeAliasSeeder::class,
             TaxScheduleSeeder::class,
         ];
     }

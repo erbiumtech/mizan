@@ -5,6 +5,26 @@ namespace Database\Seeders;
 use App\Modules\Accounting\Models\Account;
 use Illuminate\Database\Seeder;
 
+/**
+ * The chart of accounts a business starts with.
+ *
+ * ADDITIVE, and firstOrCreate rather than updateOrCreate is the whole of it: this
+ * runs at provisioning, again from tenants:seed-baseline whenever a release adds
+ * an account, and again from any db:seed. On every run after the first, the rows
+ * it matches are a live chart somebody has been posting to — so an account that
+ * already exists is left exactly as it is, name, type, parent and all.
+ *
+ * updateOrCreate made each of those runs rewrite the chart to whatever this file
+ * happened to say. A company that renamed 4200 to "Consulting Revenue" got it
+ * silently renamed back with seven journal entries hanging off it, and reparenting
+ * an account that had been posted to threw out of Account::booted() — correctly,
+ * because giving a posted-to account children retires it for all future postings.
+ *
+ * The consequence to accept: correcting a name or a parent here does not reach
+ * companies that already have that account. That is the right way round. Reference
+ * data a company cannot edit (currencies, banks, tax schedules) may be re-asserted;
+ * a chart of accounts is the company's own and is not ours to rewrite.
+ */
 class ChartOfAccountsSeeder extends Seeder
 {
     public function run()
@@ -79,10 +99,10 @@ class ChartOfAccountsSeeder extends Seeder
             $children = $parentData['children'];
             unset($parentData['children']);
 
-            $parent = Account::updateOrCreate(['code' => $parentData['code']], $parentData);
+            $parent = Account::firstOrCreate(['code' => $parentData['code']], $parentData);
 
             foreach ($children as $childData) {
-                Account::updateOrCreate(
+                Account::firstOrCreate(
                     ['code' => $childData['code']],
                     $childData + ['parent_id' => $parent->id]
                 );

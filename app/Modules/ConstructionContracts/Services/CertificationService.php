@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionContracts\Services;
 
+use App\Support\Num;
 use App\Modules\ConstructionContracts\Models\CertificateDeduction;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\ContractItem;
@@ -168,9 +169,20 @@ class CertificationService
                 'contract_sum_original' => $contract->contract_sum,
                 // **Agreed only.** The whole of §9's rule, in one call.
                 'variations_net_to_date' => $contract->agreedVariationsNet(),
-                // Net cash certified by every live certificate before this one, which is what this period's
-                // payment is netted against.
+                /*
+                 * Two snapshots of "what came before", because two questions are being asked.
+                 *
+                 * `previously_certified` is net cash — the sum of earlier certificates' `current_due`. It
+                 * is G702 line 7 and is what the printed form shows.
+                 *
+                 * `previous_gross_value_to_date` is gross. It is what the *arithmetic* nets against, and
+                 * the two must not be confused: this certificate's deduction rows are movements (this
+                 * period's retention, this period's advance), so netting them against a figure that has
+                 * already had earlier retention removed hands that retention back. Gross against gross,
+                 * movement against movement.
+                 */
                 'previously_certified' => $this->previouslyCertified($contract),
+                'previous_gross_value_to_date' => (float) ($previous?->gross_value_to_date ?? 0),
             ]);
 
             $this->writeLines($certificate, $contract, $claim, $previous);
@@ -277,6 +289,19 @@ class CertificationService
                 'retention_to_date' => $retentionToDate,
                 'variations_net_to_date' => $contract->agreedVariationsNet(),
                 'previously_certified' => $this->previouslyCertified($contract, $certificate),
+                /*
+                 * Refreshed alongside the net figure, and it has to be.
+                 *
+                 * Voiding a predecessor is the case: `test_voiding_a_certificate_is_absorbed_by_the_next
+                 * _one` exists because the next draft must pick the change up, and it does that by
+                 * re-reading both snapshots. Refreshing only the net one would leave this certificate
+                 * netting against the gross of a certificate that no longer counts — "the whole reason for
+                 * storing cumulative figures rather than movements", as that test's docblock puts it,
+                 * applied to the figure the movements are measured from.
+                 */
+                'previous_gross_value_to_date' => (float) (
+                    $this->latestLiveCertificate($contract, $certificate)?->gross_value_to_date ?? 0
+                ),
             ]);
 
             $this->writeAutomaticDeductions($certificate->refresh());
@@ -321,7 +346,7 @@ class CertificationService
         if ($retentionMovement != 0.0) {
             $certificate->deductions()->create([
                 'kind' => CertificateDeduction::KIND_RETENTION,
-                'description' => 'Retention @ '.rtrim(rtrim((string) $contract->retention_percent, '0'), '.').'%',
+                'description' => 'Retention @ '.Num::percent($contract->retention_percent),
                 // Negative reduces the payment — the one convention (§10.3).
                 'amount' => -1 * $retentionMovement,
                 'is_automatic' => true,
@@ -332,17 +357,26 @@ class CertificationService
             $certificate->deductions()->create([
                 'kind' => CertificateDeduction::KIND_ADVANCE_RECOVERY,
                 'description' => 'Advance payment recovery @ '
-                    .rtrim(rtrim((string) $contract->advance_recovery_rate_pct, '0'), '.').'%',
+                    .Num::percent($contract->advance_recovery_rate_pct),
                 'amount' => -1 * $advance,
                 'is_automatic' => true,
             ]);
         }
 
-        if ((float) $certificate->previously_certified != 0.0) {
+        /*
+         * Netted against the previous GROSS, not the previous net cash — the whole of this file's
+         * movement convention in one line.
+         *
+         * Every other row here is a movement: retention for this period, advance recovered this period.
+         * Mixing a movement retention with a net previously-certified removed the earlier retention zero
+         * times rather than once, and the contract over-certified by exactly that figure from the second
+         * live certificate onward. Gross here keeps each period's retention removed exactly once.
+         */
+        if ((float) $certificate->previous_gross_value_to_date != 0.0) {
             $certificate->deductions()->create([
                 'kind' => CertificateDeduction::KIND_PREVIOUS_CERTIFICATES,
                 'description' => 'Less previously certified',
-                'amount' => -1 * (float) $certificate->previously_certified,
+                'amount' => -1 * (float) $certificate->previous_gross_value_to_date,
                 'is_automatic' => true,
             ]);
         }

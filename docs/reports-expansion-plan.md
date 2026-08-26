@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phase 1 complete (0.1, 0.2, 0.5 and 1.1–1.7 landed); Phase 2 six of eight done (2.1–2.6 landed); the rest outstanding — see [What landed](#what-landed)
+**Status:** Complete. Phases 1–8 are in; what remains of this document is the record of how. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -260,10 +260,10 @@ the assertion its test should make, not the row count.
    completed statements, and it cannot be one:** `complete()` requires the statement balance to equal the
    ledger balance exactly, so a statement carrying an unpresented cheque can never be closed and a closed one
    has nothing to reconcile. The report is about the open ones.
-7. **Employee Advances Outstanding** — advances less recoveries per employee, with the instalment and
+7. **Employee Advances Outstanding** — *done, 2026-08-24.* Advances less recoveries per employee, with the instalment and
    the months remaining. A receivable from staff; feeds final settlement, so a wrong figure leaves the
    company out of pocket.
-8. **Expense Claims** — by status, employee and period; reimbursed through payroll versus pending,
+8. **Expense Claims** — *done, 2026-08-24.* By status, employee and period; reimbursed through payroll versus pending,
    where the pending total is an accrued liability.
 
 ## Phase 3 — Operational reports, per module
@@ -271,31 +271,31 @@ the assertion its test should make, not the row count.
 Lower value each than Phase 2 but cheap, and each is the report the people who use that module ask
 for. Ordered by how often that has come up.
 
-1. **Monthly Attendance Register** — employee × day grid with present/leave/absent, and LOP, late and
+1. **Monthly Attendance Register** — *done, 2026-08-24.* Employee × day grid with present/leave/absent, and LOP, late and
    overtime totals per employee. `AttendanceMonth` already computes `paidDays()`, `lossOfPayDays()`
    and `overtimeHours()` per employee, so this is the company-wide aggregation of an existing figure —
    and the same figure payroll prorates on, which makes disagreement between the two visible.
-2. **Hiring Funnel & Time to Hire** — applications by stage per vacancy, offer acceptance rate, days
+2. **Hiring Funnel & Time to Hire** — *done, 2026-08-24.* Applications by stage per vacancy, offer acceptance rate, days
    from applied → offer → joining, and open-vacancy ageing.
-3. **Quotation Conversion** — issued → accepted → invoiced with win rate, plus quotes expiring inside
+3. **Quotation Conversion** — *done, 2026-08-24.* Issued → accepted → invoiced with win rate, plus quotes expiring inside
    14 days (`valid_until`) and superseded versions excluded from the rate.
-4. **Revenue by Customer / Project / Product** — one report with a dimension filter, gross and net of
+4. **Revenue by Customer / Project / Product** — *done, 2026-08-24, as three groupings rather than a filter — see [What landed](#what-landed).* One report with a dimension filter, gross and net of
    credit notes. `invoices.project_id` exists and nothing reports on it.
-5. **Credit Notes Issued** — a tax-sensitive list with commissioner approval status; only visible
+5. **Credit Notes Issued** — *done, 2026-08-24.* A tax-sensitive list with commissioner approval status; only visible
    per invoice today.
-6. **Headcount Movement & Turnover** — joiners and leavers per month from `employee_job_history` and
+6. **Headcount Movement & Turnover** — *done, 2026-08-24. The column is `left_on`, not `leaving_date`.* Joiners and leavers per month from `employee_job_history` and
    `employees.leaving_date`, with turnover percentage and average tenure.
-7. **Assets in Employees' Hands** — `issued_assets` not returned, by employee, with value; ties to the
+7. **Assets in Employees' Hands** — *done, 2026-08-24. Both ties are real; the value column *is* the settlement recovery — see [What landed](#what-landed).* `issued_assets` not returned, by employee, with value; ties to the
    asset register and to settlement recovery.
-8. **Final Settlements** — composition per leaver: notice recovery, encashment, gratuity, advance and
+8. **Final Settlements** — *done, 2026-08-24. Lists leavers rather than settlements, which is what makes an unbuilt one visible — see [What landed](#what-landed).* composition per leaver: notice recovery, encashment, gratuity, advance and
    asset recoveries, net.
-9. **Onboarding / Offboarding Progress** — checklist items overdue by owner role, from
+9. **Onboarding / Offboarding Progress** — *done, 2026-08-24, as a progress report rather than an overdue list, because two of its three findings are never late — see [What landed](#what-landed).* checklist items overdue by owner role, from
    `employee_checklist_items.due_on`.
-10. **Consent Register** — consent state per contact per channel with source and date. This is
+10. **Consent Register** — *done, 2026-08-24. The "not marketing statistics" clause was the specification — see [What landed](#what-landed).* consent state per contact per channel with source and date. This is
     compliance evidence, not marketing statistics, which is why it belongs with the reports.
-11. **Campaign Performance** — sends, failures and reasons per campaign.
-12. **Review Cycle Progress** — reviews and goals complete per cycle, one-to-ones held.
-13. **Environment Health & Incidents** — checks failed and incidents per project over a period; the
+11. **Campaign Performance** — *done, 2026-08-24. The skip count is the report; one metric was deliberately not built — see [What landed](#what-landed).* sends, failures and reasons per campaign.
+12. **Review Cycle Progress** — *done, 2026-08-24. "Complete" turned out to be the whole question — see [What landed](#what-landed).* reviews and goals complete per cycle, one-to-ones held.
+13. **Environment Health & Incidents** — *done, 2026-08-24, and the history is thirty days long — see [What landed](#what-landed).* checks failed and incidents per project over a period; the
     existing widgets are point-in-time and this is the history.
 
 ## Phase 4 — What the pane still lacks
@@ -303,13 +303,13 @@ for. Ordered by how often that has come up.
 Deferred from the 4c work and worth doing once the catalogue is larger, because each one pays off per
 report:
 
-1. **Export the open pane** — PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
+1. **Export the open pane** — *done, 2026-08-24. One grid from three shapes; the CSV deliberately undoes the display formatting — see [What landed](#what-landed).* PDF and CSV. Twenty new reports make "I need this in a spreadsheet"
    twenty times more likely. One implementation on the pane rather than per report — and the one Phase 8
    sends, which is why that phase waits for this one rather than growing a second renderer.
-2. **Comparison periods beyond the previous year** — previous month, previous quarter, budget.
-3. **Negatives in parentheses**, and a company-wide preference for it. Accountants read `(1,250)`.
-4. **Keyboard navigation of the report list** — arrow keys and type-ahead, once the list is 35+ rows.
-5. **A saved view per report** — the filters somebody uses every month, kept. The URL already carries
+2. **Comparison periods beyond the previous year** — *done, 2026-08-24, except budget, which `BudgetVsActual` already is — see [What landed](#what-landed).* previous month, previous quarter, budget.
+3. **Negatives in parentheses** — *done, 2026-08-24. Applied in the views, never in the CSV — see [What landed](#what-landed).* and a company-wide preference for it. Accountants read `(1,250)`.
+4. **Keyboard navigation of the report list** — *done, 2026-08-24. The search box is the type-ahead; the rows stay buttons — see [What landed](#what-landed).* arrow keys and type-ahead, once the list is 35+ rows.
+5. **A saved view per report** — *done, 2026-08-24. The date is deliberately not saved — see [What landed](#what-landed).* the filters somebody uses every month, kept. The URL already carries
    the whole state, so this is storage rather than plumbing.
 
 ## Phase 5 — The dashboard
@@ -325,29 +325,29 @@ report that disagree about a number is worse than either alone, because the pers
 tell which to believe — and this is a real risk here, not a hypothetical: the aggregates already exist
 and it would be quicker to re-derive each figure inline.
 
-1. **A dashboard page of our own**, replacing `Dashboard::class` in `AdminPanelProvider`, carrying a
+1. *done, 2026-08-24 — and it cost the reports hub's icon column, see [What landed](#what-landed).* **A dashboard page of our own**, replacing `Dashboard::class` in `AdminPanelProvider`, carrying a
    **period filter** (this month / this quarter / financial year to date / a custom range through
    `ReportPeriod`) in the URL, so a dashboard someone links to opens on the period they meant. Widgets
    read the page's filter; none of them keeps its own idea of "now". Where the retail plan lands, the
    store scope is the second filter on the same page (`docs/retail-stores-pos-plan.md` §7).
-2. **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
+2. *done, 2026-08-25 — and a fixture found a real bug in one of the widgets, see [What landed](#what-landed).* **People** (Employees, Attendance, Leave): headcount with joiners and leavers this month; present /
    late / on leave today; leave requests awaiting a decision; documents expiring in 30 days (the same
    `DocumentExpiryCheck::due()` as Phase 1.5).
-3. **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
+3. *done, 2026-08-24 — and the funnel is the one widget the period must not filter, see [What landed](#what-landed).* **Sales** (CRM, Quotations): pipeline by stage as a funnel; weighted forecast against target
    attainment; quotations expiring inside 14 days. All three off `PipelineReports` and
    `QuotationService`.
-4. **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
+4. *done, 2026-08-25 — two of this item's three instructions were followed in spirit and not to the letter, see [What landed](#what-landed).* **Service** (Support, Timesheets): SLA compliance this month with breaches outstanding now; billable
    utilisation this month; unbilled WIP value. Off `TicketService::performance()`/`breaches()` and
    `TimesheetService::utilisationFor()`.
-5. **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
+5. *done, 2026-08-24 — three widgets, three different readings of the page's period, see [What landed](#what-landed).* **Money** (Accounting, Invoicing): revenue against expenses over twelve months; the five largest
    debtors with days overdue; cash committed in the next 90 days (Phase 1.7's own figures).
-6. **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
+6. *done, 2026-08-25 — Phase 2.4 exists, so this is that valuation; the sharp end was the reorder rule, see [What landed](#what-landed).* **Inventory**: stock value, count below reorder level, and — once Phase 2.4 exists — the same
    valuation the report states, from the same service.
-7. **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
+7. *done, 2026-08-25 — and it found two things nothing was watching, see [What landed](#what-landed).* **Every widget**: `WidgetBelongsToModule` plus its own `canView()` gating on module *and*
    permission; `$isLazy = true` without exception, so the dashboard renders and the panels fill in;
    `$sort` set deliberately so the order is money → sales → service → people rather than discovery
    order — that order becomes the company default a user may depart from in Phase 7 — and no polling.
-8. **A cache for the expensive ones**, with the tenant in the key. `docs/page-load-performance-plan.md`
+8. *done, 2026-08-25 — the cache lives in the widget and never in the service, and the tenant is not the one you would reach for, see [What landed](#what-landed).* **A cache for the expensive ones**, with the tenant in the key. `docs/page-load-performance-plan.md`
    is explicit about the failure mode here — caching across requests without the tenant in the key is a
    cross-tenant leak — and a five-minute TTL on a twelve-month revenue series is the difference between
    a dashboard and a report that runs fifteen times a day per user.
@@ -367,36 +367,36 @@ What it is: a screen where somebody assembles a report from a **declared** datas
 filters, a grouping, what to total — saves it under a name, shares it, and reads it in the same pane as
 every built-in report, with the same record row and the same export.
 
-1. **The dataset registry** (`App\Support\Reporting\Dataset`), one declaration per reportable subject:
+1. *done, 2026-08-25 — eleven subjects, and the boundary is a declaration rather than a validator; see [What landed](#what-landed).* **The dataset registry** (`App\Support\Reporting\Dataset`), one declaration per reportable subject:
    journal lines, invoices and their lines, payslips and their components, employees, stock movements,
    timesheet entries, tickets, opportunities, leave days. Each declares its label, its **module**, the
    **permission** it needs, its base query *through the Eloquent model* so every global scope and
    tenancy applies, and then the columns (label, type, whether it groups, whether it aggregates, how it
    resolves) and the filters it offers. **The registry is the boundary**: no raw SQL, no table it has
    not named, no relation it has not declared.
-2. **Row-level access is inherited, not re-implemented.** The base query goes through the same access
+2. *done, 2026-08-25 — and the payroll leak turns out to need both halves, see [What landed](#what-landed).* **Row-level access is inherited, not re-implemented.** The base query goes through the same access
    filters the resources use (`EmployeeAccess`, and `StoreAccess` if retail lands), so the builder can
    never be the way around scoping. The test that matters: a non-privileged user building a report over
    payslips sees their own rows and their downline's, and nobody else's.
-3. **Definitions stored like saved views**, deliberately: `report_definitions` with `company_id`,
+3. *done, 2026-08-25 — four of the listed columns were deliberately not built, and the period is relative; see [What landed](#what-landed).* **Definitions stored like saved views**, deliberately: `report_definitions` with `company_id`,
    `user_id`, `name`, `description`, `dataset`, a `state` json (columns, filters, group by, aggregates,
    sort, period), `is_public`, `is_global`, `is_default`, `icon`, `color` — the same shape as
    `table_views`, including normalising the dataset key through `ModuleMap::alias()` so a class that
    moves does not break saved reports. `HasSavedViews` is the working example of every one of those
    decisions.
-4. **Rendered through `ReportPane`.** A built report is a `table` (or the `matrix` of Phase 0.2) with a
+4. *done, 2026-08-26 — and the routing hook is a key prefix rather than a page, see [What landed](#what-landed).* **Rendered through `ReportPane`.** A built report is a `table` (or the `matrix` of Phase 0.2) with a
    `footer`, so it inherits the sticky header, the record row, the URL state and Phase 4's export
    without knowing they exist. It appears in the hub in a **Custom** section beside the coded reports,
    which is also the answer to "where do I find the one I made".
-5. **Cost guards, stated rather than discovered.** A mandatory period filter or an explicit row cap;
+5. *done, 2026-08-26 — the refusal is what makes the record row honest, see [What landed](#what-landed).* **Cost guards, stated rather than discovered.** A mandatory period filter or an explicit row cap;
    `LIMIT` enforced on the rendered query; aggregation pushed into SQL rather than grouping a hundred
    thousand rows in PHP; and a refusal — "this report asks for too much, narrow the period" — in place
    of a timeout. A builder is the one feature in this plan whose cost the *user* chooses, so the
    ceiling has to be the application's.
-6. **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
+6. *done, 2026-08-25 — and payslips turn out to be the one subject the reader gate does not protect, see [What landed](#what-landed).* **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
    `is_global` needs an administrator permission of its own. A company-wide custom report over payslips
    is a payroll leak, and it is one careless toggle away.
-7. **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
+7. *done, 2026-08-26 — a mode of the hub rather than a screen of its own, and the refusal is on it; see [What landed](#what-landed). **Phase 6 is complete.*** **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
    question that needs two subjects joined is a coded report. The builder's answer to it is a clear
    refusal, not a join it cannot secure.
 
@@ -408,32 +408,32 @@ neither wants to scroll past the other's charts every morning.
 
 The design decision that makes this survivable is the first item, and everything else follows from it.
 
-1. **A layout is a partial override, never a list of widgets.** Store an *order* map and a *hidden* set,
+1. *done, 2026-08-25 — and the test for it needs no new widget, see [What landed](#what-landed).* **A layout is a partial override, never a list of widgets.** Store an *order* map and a *hidden* set,
    then resolve: take the widgets this user may see, apply the order to the ones named, append anything
    the layout does not mention. A stored array of "the widgets I have" means every widget added after a
    user saved their layout is invisible to them forever, and that is precisely how layout features come
    to be hated — the person who arranged their dashboard is the person who never sees a new chart.
-2. **A company default plus a personal override.** An administrator sets the arrangement everyone starts
+2. *done, 2026-08-25.* **A company default plus a personal override.** An administrator sets the arrangement everyone starts
    from; a user may depart from it and reset back to it. This keeps what was valuable about one shared
    dashboard — a company where nobody can be told "look at the third chart" has lost something — while
    letting people who use one module all day put it first.
-3. **Stored in the `table_views` shape**, because that shape has already been argued out:
+3. *done, 2026-08-25 — minus the `company_id`, and that difference is argued in [What landed](#what-landed).* **Stored in the `table_views` shape**, because that shape has already been argued out:
    `dashboard_layouts` with `company_id`, `user_id` (null = the company default), a `state` json (order,
    hidden, spans) and timestamps, company-scoped by a global scope. Widgets are keyed on
    `ModuleMap::alias()`, not on the class name, for exactly the reason `TableView::setResourceAttribute()`
    does it (`app/Modules/Core/Models/TableView.php:20-27`) — a widget that moves between directories must
    not orphan every saved layout.
-4. **A layout can never reveal a widget `canView()` refuses.** Resolve the visible set *first*, then
+4. *done, 2026-08-25 — structurally rather than by a check, and the permission half is tested too, see [What landed](#what-landed).* **A layout can never reveal a widget `canView()` refuses.** Resolve the visible set *first*, then
    order it. Said explicitly because the tempting implementation — read the layout, instantiate what it
    names — is a module-gating bypass that would survive the module being switched off. Unknown keys are
    dropped on read, and a hidden widget that the user has lost access to is simply gone.
-5. **Widths, not resizing:** one of half / two-thirds / full per widget, mapped to `$columnSpan`. Three
+5. *done, 2026-08-25 — two thirds is why the grid is now six columns, see [What landed](#what-landed).* **Widths, not resizing:** one of half / two-thirds / full per widget, mapped to `$columnSpan`. Three
    choices need no grid engine and answer the actual complaint, which is that a stats row does not
    deserve the same space as a twelve-month chart.
-6. **The interaction is Filament's own.** `x-sortable` with a drag handle on each widget header,
+6. *done, 2026-08-25 — Filament's own interaction, but its column manager rather than a handle per widget header; the reason is in [What landed](#what-landed).* **The interaction is Filament's own.** `x-sortable` with a drag handle on each widget header,
    persisting on `onEnd` through a Livewire call — SortableJS is already bundled in `filament/support`, so
    this adds no dependency and behaves like the reorderable tables people already use here.
-7. **Guards.** A test that registers a *new* widget and asserts it appears for a user who has a saved
+7. *done, 2026-08-25 — 35 tests, plus two guards the item does not name, see [What landed](#what-landed).* **Guards.** A test that registers a *new* widget and asserts it appears for a user who has a saved
    layout (item 1's regression, and the one that matters); a test that a widget whose module is disabled
    stays absent even when a layout names it; and a reset that restores the company default. An admin
    action to push the default to everybody is worth having and must ask first — it discards arrangements
@@ -448,43 +448,1459 @@ run, the SLA summary on the first of the month.
 Cheap by this point, and only by this point: Phase 4 renders the export, Phase 6 stores the definition,
 and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryService` + `sent_at`).
 
-1. **What a schedule is.** `report_schedules`: the report — a coded report's key *or* a Phase 6 definition
+1. *done, 2026-08-26 — one column for both kinds of report, see [What landed](#what-landed).* **What a schedule is.** `report_schedules`: the report — a coded report's key *or* a Phase 6 definition
    — its filter state as json (the same state the URL carries, so "the schedule" and "the link" are the
    same thing), a period rule (`this month`, `last month`, `financial year to date`), a format
    (PDF / CSV / both), a cron expression with a timezone, recipients, `is_active`, and the owner.
-2. **The security model, which is the whole of this phase.** An emailed report leaves the application's
+2. *done, 2026-08-26 — and a tenancy scope nearly turned a leaver into an external recipient, see [What landed](#what-landed).* **The security model, which is the whole of this phase.** An emailed report leaves the application's
    authorization behind: nobody has to log in to read it, and nothing in the app records who saw it. So —
    **the render runs as the schedule's owner**, whose access decides what the rows are; **the recipient
    list is re-authorised at send time, not at schedule time**, because a person whose role changed or who
    left the company is the ordinary case and the schedule would otherwise keep posting to them for years;
    **external recipients need their own permission** and are recorded on every delivery. A schedule whose
    owner loses access to the report is suspended, not silently rendered with fewer rows.
-3. **Periods go through `ReportPeriod`.** "Monthly on the 1st" for a company whose year starts 1 July is
+3. *done, 2026-08-26 — through `RelativePeriod`, which is `ReportPeriod` with a rule in front of it, see [What landed](#what-landed).* **Periods go through `ReportPeriod`.** "Monthly on the 1st" for a company whose year starts 1 July is
    exactly the case that made `ReportPeriod` necessary, and the resolved period is also the idempotency
    key in item 4 — so getting it wrong is not a cosmetic error but a double send.
-4. **One delivery per period, whatever the queue does.** `report_deliveries` with
+4. *done, 2026-08-26 — the row is written before the work, see [What landed](#what-landed).* **One delivery per period, whatever the queue does.** `report_deliveries` with
    `unique(schedule_id, period_key)`, plus status, rendered_at, sent_at, recipient list and error. This is
    the `payslips.sent_at` / `SubscriptionBillingService::alreadyBilled()` pattern, and it is not optional:
    a queued render that exceeds its timeout is retried by design, and without this the retry emails the
    report a second time.
-5. **The schedule entry is one line, per module.** A `reports:deliver` command in the reports module's
+5. *done, 2026-08-26 — in Core, and `SkipsDisabledModules` deliberately not used, see [What landed](#what-landed).* **The schedule entry is one line, per module.** A `reports:deliver` command in the reports module's
    own `routes/console.php`, `TenantAware`, `SkipsDisabledModules`, running every fifteen minutes and
    dispatching only the schedules whose cron says they are due — the `CheckEnvironmentsHealth` shape, so
    a thousand schedules still need one entry. It needs cron and a worker, and the file should say so.
-6. **Rendering is Phase 4's export in a job**, with the PDF engine's existing per-engine template
+6. *done, 2026-08-26.* **Rendering is Phase 4's export in a job**, with the PDF engine's existing per-engine template
    overrides. The queue timeouts are already ordered correctly in `config/queue.php`; a report large
    enough to exceed them is a report to cap, not a timeout to raise.
-7. **The email**, through `EmailTemplate` where the company has one, with the file attached exactly as
+7. *done, 2026-08-26 — the files travel with the notification rather than being re-rendered per recipient, see [What landed](#what-landed).* **The email**, through `EmailTemplate` where the company has one, with the file attached exactly as
    `PayslipIssued` does it — **and a link to the live report in the body**, so a recipient who wants to
    drill in lands in the application and is authorised there. A size cap, with the attachment replaced by
    a link when it is exceeded: a 40 MB PDF does not fail in this application, it fails at somebody's mail
    server, hours later, silently.
-8. **A delivery log people can read** — a report of the reports: what went out, to whom, when, and what
+8. *done, 2026-08-26 — a report in the hub rather than a resource, see [What landed](#what-landed). **Phase 8 is complete.*** **A delivery log people can read** — a report of the reports: what went out, to whom, when, and what
    failed. Retries are bounded and the owner is notified after repeated failure, because a scheduled
    report that quietly stopped arriving is worse than one that was never set up: everybody assumes the
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-26 — scheduled and emailed reports (Phase 8: items 1–8). Phase 8 is complete, and so is this plan.**
+
+- **Cheap by this point, and only by this point — which the diff bears out.** There is no renderer here: item 6
+  is `ReportExport` and `PdfDocument` on the same `reports.pane-export` template the download button uses, item
+  1's stored state is the state the URL carries, and a built report arrives through `BuiltReport` exactly as it
+  does in the pane. What Phase 8 adds is two tables, a service, a job, a command, two notifications and a
+  report — and none of them knows how to draw a report.
+- **A schedule is started from the report somebody is looking at**, which is what item 1 means by "the same
+  state the URL carries, so 'the schedule' and 'the link' are the same thing". The hub's *Schedule* button
+  carries the open report and its filters — the account picked, the month filed — into the create form, and
+  they are stored on the schedule. A form that started blank would have sent the *default* register of the
+  *default* account: a wrong report rather than a missing feature. The filters travel as a hidden field rather
+  than being read from the request at save time, because a Livewire submit is a different request from the one
+  that carried the link — and `fillPartially()` turned out to be the wrong tool for it, since it dots its
+  paths and a value that is itself an array is dropped by a path list naming the array.
+- **One column for both kinds of report.** `report_schedules.report_key` holds `AgedReceivables` or
+  `custom-7`, because both are already keys the hub routes on and `ReportRenderers` already resolves. Two
+  columns with a check constraint between them would have been the same fact stored twice, and the form's
+  report picker is the hub's own catalogue — which also means somebody cannot schedule a report they could not
+  open.
+- **Item 2 is the whole phase, and the sharpest thing found while building it was a *tenancy scope*.**
+  Recipients are stored as addresses so that the list can be re-authorised at send time; resolving an address
+  to a user went through `User::query()->where('email', …)`, and `users` carries Filament's tenancy scope — so
+  a person **removed from the company came back as "no account here", which is the definition of an external
+  recipient**, and an owner holding `ReportSendExternal` would have had the report sent to them anyway. The fix
+  is `acrossCompanies()` and then asking whether they are still a member; the test that caught it is the one
+  asserting a leaver is refused, and it failed by sending *two* emails rather than by sending none. `owner()`
+  has the same fix for a different reason: "no account at all" and "no longer a member" are two suspensions
+  with two different fixes, and a scoped lookup cannot tell them apart.
+- **The render runs as the owner, and the acting user is put back.** `Auth::setUser($owner)` around the
+  payload, because every gate in this application — module licensing, `ReportView`, `EmployeeAccess` — reads
+  `auth()->user()`, and a console command has none. The `finally` that restores the previous user is not
+  tidiness: one command run delivers many schedules, and the first owner leaking into the second's render is
+  precisely the leak this item exists to prevent. There is a test asserting the restore.
+- **Two dates for two kinds of report, and the difference is not an inconsistency.** A coded report is "as at
+  a date", so the schedule's period sets that date to the span's *end* — last month's aged receivables are the
+  receivables at last month's end. A built report carries its own relative period, so the schedule's rule
+  *overrides* it and resolves against the run date: resolving a relative period against a date that is itself
+  the end of a relative period would answer the month before the one somebody asked for. `BuiltReport::for()`
+  gained an optional period for that, normalised through `RelativePeriod` so an override cannot express a span
+  the builder could not.
+- **The idempotency key is the resolved span, not the rule** — item 3 meeting item 4. `last_month:2027-01-01..2027-01-31`
+  is one key however many times the queue retries; `this_month:…..2027-02-19` is a new key tomorrow, so a
+  daily month-to-date report sends daily. One rule, both behaviours, and no flag deciding which.
+- **The delivery row is written before the work.** `claim()` inserts a pending row and lets the unique index
+  refuse a second one, so the window between the mail leaving and the record landing — where a duplicate send
+  lives — does not exist. A row already `sent` or deliberately `skipped` means this period is answered; a
+  `failed` or `pending` one is handed back, because that is a retry of the same send rather than a new one.
+- **"Nothing was sent" is a status, not a failure.** Every recipient refused at send time is `skipped` with
+  the reason recorded: the render worked, the report was right, and there was nobody left to send it to.
+  Marking it failed would put a red row in the log for something no retry can fix.
+- **The notification carries the rendered files, which is the opposite of `PayslipIssued`** — and the plan
+  names that class as the pattern, so the deviation is worth stating. A payslip notification carries an id and
+  renders at send time because a payslip is a document about a row that may have changed. A scheduled report is
+  the other case: the render *is* the moment the report was true, one delivery has already been recorded for
+  this period, and re-rendering per recipient would run a heavy report once per person and risk five people
+  receiving five different numbers. For the same reason it is deliberately not `ShouldQueue`: the job that
+  produced the files is already queued, and queueing the notification would put megabytes of base64 into the
+  payload, paid for again on every retry.
+- **The size cap replaces the attachment rather than trimming it**, because half a report is not a smaller
+  report. Eight megabytes, and the email says so and links to the live report — item 7's "a 40 MB PDF does not
+  fail in this application, it fails at somebody's mail server, hours later, silently".
+- **The command is in Core, and `SkipsDisabledModules` is deliberately not used.** Item 5 asks for "the reports
+  module's own `routes/console.php`", and there is no reports module: the hub belongs to no module and every
+  module puts reports in it. Which answers the licence guard too — Core is always on, so the trait would guard
+  a condition that cannot occur, and a report belonging to a module a company has switched off is refused one
+  layer down, where `renderAs()` runs as an owner whose module gating decides whether it resolves at all. A
+  schedule over an unavailable report is *suspended*, which is louder than skipped and is the state item 2
+  asks for.
+- **Bounded retries live in two places that must agree.** `DeliverScheduledReport::$tries` and
+  `ReportDelivery::MAX_ATTEMPTS` are the same constant, because the row's attempt count is what decides when
+  the owner is told: a queue configured to retry more would report a give-up that had not happened, and one
+  configured to retry less would never reach it. The owner is notified from the job's `failed()` hook — once,
+  after the attempts are spent, because three emails about one failure is how a warning becomes a filter rule.
+- **The schedules screen needed a line in `NavigationTree`, and `NavigationDomainsTest` is what said so.**
+  The Settings group is *split into branches* — Company, Payroll setup, Calendar & currency, Imports — and an
+  item in no branch leaves a group labelled "Settings" that no domain column owns, so the screen would have
+  been reachable by URL and by nothing else. It sits beside *Email Wording*, because both are about the post
+  going out. Worth recording because nothing about adding a resource prompts it: the test found it, which is
+  what that test is for.
+- **The log is a report, not a resource** (item 8). Everything it needed already existed: `ReportShapes` for
+  the payload, the hub for the door, Phase 4's export for the copy somebody forwards, `ReportView` for the
+  gate. It shows "3 of 5" for recipients, because a delivery reaching fewer people than the schedule names is
+  *correct* behaviour that somebody still needs to see, and it reports itself as unbalanced when any delivery
+  failed — which makes the pane draw its note in warning colour.
+- **Permissions are four plus one.** `ReportScheduleView/Create/Update/Delete` in Accounting's `Report` group,
+  for the reason Phase 6.2 gives about a group having one owner, with update and delete additionally scoped to
+  the *owner* by the policy — a schedule renders with its owner's access, so editing somebody else's recipient
+  list is sending their rows to a list they never agreed to. `ReportSendExternal` is the one that is not a CRUD
+  verb and is Administrator's alone. Reading the delivery log needs only `ReportView`: reading what the
+  application sent is not the same act as choosing what it sends.
+- 19 tests, 75 assertions. Two pre-existing failures were confirmed as *not* this work and left alone:
+  `PanelPerformanceTest`'s page-size ceiling for the reports hub (365–368 KB against 360, and 366 on a clean
+  `master`) and `ModuleBoundaryTest`'s violation in `app/Support/Ai/LocalPatternModel.php` — both arrived with
+  the command-bar commits.
+
+**2026-08-26 — the builder screen (Phase 6.4: item 7). Phase 6 is complete.**
+
+- **It is a mode of the Reports hub, not a screen of its own**, which is Phase 7's arranger decision applied
+  to the other half of this plan and for the same two reasons. Item 4 had already decided a built report has
+  no page — it lives in the pane so that it inherits the pane — so a builder anywhere else would have had to
+  reproduce the pane in order to show what it was building. And a mode costs nothing when nobody is using it:
+  `$building` is false, the form is not rendered, and no dataset is asked for its columns. A page would also
+  have owed a manifest entry, a navigation home in a domain whose sidebar is deliberately a list of report
+  categories, and a help topic of its own — three files arguing about where a builder belongs, to reach the
+  same screen.
+- **The preview is the report.** `statement()` returns the draft as an unsaved `ReportDefinition` handed to
+  the same `BuiltReport` that draws a saved one, so what is under the form is not a preview of the report but
+  the report — including its record row, its ceiling and its refusals. Two payload builders would have been
+  two answers to "what does this report say", and the one on screen while building is the one people would
+  trust.
+- **Columns are buttons rather than a checkbox group, because the order is the report's shape.** A checkbox
+  group bound to an array hands back the order the boxes were *drawn* in, so every report would have come out
+  in the dataset's declaration order and nobody could have said why. `toggleColumn()` appends, and the chosen
+  columns carry ‹ › to reorder.
+- **Item 7's refusal is on the screen, not only in this document.** "A report is over one subject. A question
+  that needs two joined — invoices *and* payslips — is a coded report rather than a built one: ask for it, and
+  it arrives with tests and a total that reconciles." Said where somebody would otherwise go looking for the
+  join, because a refusal nobody reads is a refusal that comes back as a missing feature. Two smaller ones are
+  stated the same way: a grouped report shows the group and its totals and drops the rest, and a subject with
+  no date says "every row" instead of offering a period picker that would do nothing.
+- **Save is a rename when it is a rename.** `put()` gained `$replacing`: without it, editing a report and
+  changing its name would upsert on the *new* name and leave the old row behind, so Save would have duplicated
+  every report anybody renamed. Scoped to the owner, and a rename onto a name that person already uses is
+  refused with a sentence rather than leaving two reports called the same thing.
+- **Mine to edit, theirs to keep.** A shared report belongs to whoever made it — editing it would change what
+  every reader of it sees — so the Edit button is only drawn for the owner and `editReport()`/`deleteReport()`
+  refuse anything else. "I want it slightly different" is answered by the New report button, which is right
+  there.
+- **The form is not the boundary; the registry is.** Every control offers what a dataset declared: the
+  subject picker lists subjects this reader may open, the column buttons that subject's columns, the aggregate
+  picker the aggregates that column allows. There is no field through which a column name, a table or a
+  relation reaches a query. A test writes `contact_id` — a real database column and not a declared key —
+  straight at the property the way a crafted request would, and asserts it does not survive the save.
+- **`ReportBuild` hides the button as well as refusing the save**, because a mode that opens and then refuses
+  is a worse answer than a button that was never there. The test for it needed a purpose-built role: no
+  seeded role has the shape "may read reports, may not build", since `ReportBuild` goes to Accountant and
+  upward and the roles below it cannot open the hub at all — which would have tested the wrong refusal. A
+  company that grants `ReportView` to a Sales role and nothing else is the real case, so the test creates
+  exactly that.
+- 18 tests, 66 assertions. Phase 6 is complete: the registry, the definitions, the permissions, the
+  rendering, the cost guards and the screen.
+- **Still not ours, still red:** `PanelPerformanceTest`'s page-size ceiling for the reports hub. It measures
+  365–368 KB run to run against 360, and 366 on a clean `master` — the breach arrived with the command-bar
+  work, and this item's own contribution (a header action) is inside the run-to-run spread. Raising a ceiling
+  to cover somebody else's markup is the formality that file warns about.
+
+**2026-08-26 — a built report is drawn in the pane, with a ceiling (Phase 6.3: items 4 and 5).**
+
+- **Item 4 is a claim about inheritance, and the whole of it is that `BuiltReport` returns a `table`.** The
+  pane draws it, `NoReportPane` draws it, Phase 4.1's CSV and PDF write it, Phase 4.3's parentheses apply to
+  its figures, and the URL carries which report and at what date — none of which knows a custom report exists.
+  There is no view, no page class and no second export in this item.
+- **The routing hook is a key *prefix*, which is the one piece of new machinery.** Every other report's key is
+  a page's class basename, known when a provider boots; a built report's key is `custom-7` and names a row. So
+  `ReportRenderers` gained `registerFamily()` — a prefix and a closure that is handed the key — and Core
+  registers one line. That put built reports on the pane, on `NoReportPane` and in the export at once, where
+  teaching each of those three what a definition is would have been three places to keep in step. The family
+  match is deliberately syntactic and does *not* check that the row exists: it is asked once per report while
+  the hub's list is drawn, and a database read per row is the fault `docs/page-load-performance-plan.md` is
+  about. `render()` answers null for a key that names nothing, which is what the pane already does for a
+  report it cannot draw.
+- **A built report has no page of its own, and that is item 4 read literally rather than a shortcut.** The
+  point of putting it in the pane is that it inherits the pane; so "the report's own screen" *is* the hub with
+  `?selected=custom-7`, which is also the link Phase 8 will put in an email. The "Open in full page" affordance
+  is therefore suppressed for these rows — a link back to the screen you are reading is an affordance that does
+  nothing — and the hub row's URL is that self-link, which is what makes the sidebar column work unchanged.
+- **The date the pane already carries is what a relative period resolves against**, which is what makes a
+  built report as linkable as a coded one. `?asOf=2027-03-15` with `last_month` is February 2027. Phase 6.2
+  stored the period relative so Phase 8 could send it; the same decision turns out to be what lets 4c's "the
+  URL is the whole state" hold for a report whose state is in a row.
+- **A stored *filter* may be a period too, and it is relative for the same reason.** An invoice dataset offers
+  a due-date range as well as its period, and a filter holding `['from' => '2027-04-01', …]` would have
+  reintroduced exactly what 6.2 kept out — "due in April", filed in April, for ever. So a date-range filter
+  stores a `RelativePeriod` key, and `ReportDefinition::sanitise()` now checks a filter's value against its
+  *kind* rather than only for presence. Everything else must be a scalar, because it reaches a `where` binding
+  and an array there is not "either of these" but a shape Eloquent will interpret.
+- **The period is `>= from` and `< the morning after`, not `whereBetween`.** Half the date columns in these
+  datasets are datetimes, and `between '2026-07-01' and '2026-07-31'` silently drops everything that happened
+  *during* the 31st. The form used here is right for both kinds and still uses the index, which `whereDate()`
+  on either would not. A test asserts the last day of the span is in.
+- **Item 5's ceiling refuses rather than truncating, and that decides two other things.** A thousand rows, and
+  a report that wants more comes back with its columns, no rows, and "narrow the period, or add a filter". The
+  first consequence is that the record row is honest by construction: a footer under the first thousand of nine
+  thousand rows is a total belonging to no visible set of figures, so refusing means the total of the rendered
+  rows *is* the total of the query — which is also why summing it in PHP is not a violation of "aggregation in
+  SQL". The second is that the ceiling is detected by asking for one row more than it, rather than by a
+  `count()` that would be a second query over the same rows.
+- **What cannot be totalled is still not totalled.** Only a real column of the dataset's own table reaches the
+  footer. Phase 6.1 made "outstanding by customer" unbuildable on purpose — it is a sum of a derived column,
+  and the coded ageing report is the answer — so adding it up here in PHP is precisely how that refusal would
+  have been undone by the next phase. The blank cell under it is the assertion.
+- **A grouped footer adds up sums and counts and leaves an average alone.** A total of averages is a number and
+  nothing else, which is the danger: nobody reading a record row checks whether the column above it was
+  addable.
+- **Grouping prints the related name and buckets on the foreign key**, which is 6.1's design made visible —
+  `GROUP BY contacts.name` needs a join this builder does not write, `GROUP BY contact_id` needs nothing, and
+  one statement fetches the names for the column. A bucket with nothing in it is called "None": every grouped
+  report has one, and an empty first cell reads as a rendering fault rather than as an answer.
+- **The one raw SQL fragment in the feature is `sum("total") as report_aggregate_0`**, and what makes it safe
+  is that neither half comes from a request: the column is the dataset's own declaration wrapped by the
+  connection's grammar, and the function is one of five words. There is no Eloquent form of "select sum(x) as y
+  group by z" that avoids it, and pulling the rows back to add them up in PHP is the thing item 5 forbids.
+- **A subject with no period says "every row" rather than implying one it did not apply.** Employees and
+  payslips take item 5's row-cap branch — `payslips.month` holds a month *name* — and the note and subtitle say
+  so, because "last month" over a headcount would read as this month's joiners.
+- **A definition with no columns says so.** A report that asks for nothing and a report that matched nothing
+  are different answers, and telling somebody "nothing matches this period" about the first sends them looking
+  for data that is already there.
+- **`report_definitions` is read once per request and every budget in `PanelPerformanceTest` moved by one.**
+  The surprise was *where*: `domain-rail.blade.php` renders the Reports flyout — the categories and their
+  counts — on every page in the panel, so a section's count is part of every page's shell. Reading the
+  definitions only in the reports domain would make the flyout say nine categories on the dashboard and ten on
+  a reports page, a count that changes as you navigate; leaving custom reports out of the counts would make
+  "All reports" disagree with the list the hub draws. So it is one memoised statement, and the *availability*
+  filter over it is deliberately not memoised — which subjects a reader may open can change inside the request
+  that changes it, and an existing test in `ReportDefinitionTest` proved that by failing when the first version
+  cached both halves.
+- 26 tests, 120 assertions. Items 4, 5 and — from 6.1 — the whole of the query builder are covered; item 7, the
+  builder screen, is what remains of Phase 6.
+- **Not fixed here, and not ours:** `PanelPerformanceTest`'s *page size* ceiling for the reports hub is already
+  breached on `master` — 366 KB against 360 — by the command-bar work that landed alongside Phase 6.1. This
+  item adds about a kilobyte (one more `<symbol>` in the hub's sprite, for the Custom section's icon) to a page
+  that is over its ceiling for a different reason. Raising that number to cover somebody else's markup is the
+  formality that file warns about, so it is left red and stated here instead.
+
+**2026-08-25 — saved report definitions and the builder's permissions (Phase 6.2: items 3 and 6).**
+
+- **The shape item 3 asked for, minus four of its columns, and each omission is a decision.** No `company_id`:
+  `table_views` needs one because it lives on the *landlord* connection and a global scope is the only thing
+  separating companies there, while this is on the tenant connection where the company *is* the database —
+  the third time this phase-set has made that call, after 4.5 and 7. No `is_default`: on a table view it means
+  "the view this resource's table opens with", and a report is opened by name from a list, so there is nothing
+  for a default to be. No `icon` or `color`, and that one is a measurement: Phase 4 took the hub from 366 KB to
+  348.5 KB by replacing 51 inline heroicons with nine `<symbol>`s, *because icons repeat per section* — a
+  per-definition icon reintroduces exactly the shape that saving deleted, on the one page `PanelPerformanceTest`
+  says must not grow.
+- **And no `is_global`, because `table_views` has never used it.** The plan names that table as the working
+  example; in it `is_global` is in `$fillable`, in the visibility scope, in the policy and in the factory as
+  `false`, and *nothing in the application ever sets it true*. What is actually used is `is_public` — "make
+  this available to everyone in this company" — so there is one sharing flag here, which is also the one thing
+  item 6 needs a permission for. Copying the shape faithfully would have copied a column nobody has ever set.
+- **The period is relative and there is no way to store two dates**, which is Phase 4.5's lesson applied one
+  level up and made structural. A saved view kept the date out because "a view holding 30 June would open on
+  30 June for ever and nobody would notice for a while"; a *definition* is worse, because Phase 8 will send it
+  — "the aged receivables every Monday" has to resolve its own dates each Monday. So `RelativePeriod` offers
+  six spans, all bounded, and a state holding `['from' => …, 'to' => …]` normalises to the financial year to
+  date. There is deliberately no "all time": half of item 5's cost guard arrives free when the list of choices
+  cannot express an unbounded query.
+- **Quarters and years are financial, by calling the arithmetic rather than repeating it.**
+  `DashboardPeriod::fiscalQuarterStart()` became public for this — its reasoning (count back from the year
+  *end*, then clamp to the start, because a company that joined in November still has July–September quarters)
+  took a test to get right in Phase 5.1, and a second copy would be a second answer waiting to disagree. "Last
+  quarter" is then found by stepping back a day from this quarter's start and asking which quarter *that* day
+  is in, rather than by subtracting three months — which looks equivalent and is not: on a short first year it
+  would answer a month before the company existed. A mutation survived until the test for that existed.
+- **The state is sanitised against the dataset, on write and on read.** Every key is a *declared* key of its
+  subject: a column the dataset offers, a filter it offers, an aggregate that column allows, a group-by the
+  database can actually group on, one of two sort directions. Read as well as write, because a row outlives
+  the code that wrote it — a definition naming a column since removed loses that column and keeps the rest,
+  which is what lets a dataset evolve without breaking every report over it.
+- **Item 6's sharp end is `dataset()`, not `is_public`.** The plan warns that "a company-wide custom report over
+  payslips is a payroll leak, and it is one careless toggle away". Reading a definition resolves its subject
+  through the *reader's* module licence and the *reader's* permission, so a shared report over a subject
+  somebody cannot open resolves to nothing for them — no columns, no query, no rows. The toggle cannot reveal
+  what the reader could not already open, which is a stronger guarantee than being careful with the toggle.
+- **And payslips, the example the plan names, turn out to be the one subject that gate does not protect.**
+  Every seeded role that can read a report at all holds `PayslipView` — an employee sees their own payslip, an
+  accountant runs payroll — so a shared payslip report passes the reader gate for all of them. What makes it
+  safe is entirely Phase 6.1's item 2: `EmployeeAccess` on the dataset's base query, so each reader gets their
+  own rows and their downline's. The two halves are not overlapping defences; for most subjects the permission
+  refuses, and for the one the plan was worried about it is the row scoping and nothing else. There is a test
+  named for that, so a role that stops holding `PayslipView` turns it back into the ordinary case.
+- **Two permissions, one of them granted to nobody below Administrator.** `ReportBuild` sits with `ReportView`
+  in Accounting's `Report` group — not in Core, because `ModuleAuthorization` resolves a bare permission's
+  module *through its group*, so splitting the group would make "which module gates this check" depend on which
+  manifest declared which name. Accountant upward gets `ReportBuild`: anybody trusted to read the ledger is
+  trusted to ask it a question. `ReportShare` is Administrator's alone, and what it protects is worth being
+  precise about — not the figures, which the reader gate already handles, but the company's own list of
+  reports: an unshared definition is somebody's working note, and a hub filling up with forty of them is a hub
+  nobody reads.
+- **Sharing without the permission is refused rather than silently unshared.** Somebody who ticks the box
+  should be told, and returning null is the only way the caller can tell them.
+- 28 tests, 76 assertions; 12 mutations tried and all 12 killed — two of them only after the tests that catch
+  them were written, and both of those were tests that had been passing for the wrong reason.
+- Items 4, 5 and 7 remain: rendering through `ReportPane`, the cost guards, and the builder screen.
+
+**2026-08-25 — the dataset registry (Phase 6.1: items 1 and 2).**
+
+- **Eleven subjects, declared by the module that owns each**, exactly as models, resources, pages and widgets
+  are: `ModuleManifest` gained a `datasets` table and each `module.php` names its own. A central list would
+  have been a file every module has to edit, which is what `docs/module-packaging-plan.md` §5 was written to
+  remove — and declaring per module means a dataset arrives with a module already attached, which is what
+  `isAvailable()` gates on.
+- **The boundary is a declaration, not a validator, and that is the design.** Nothing accepts a column name
+  from a request: a definition names a column *key*, the dataset turns that key into the one column it
+  declared, and an unrecognised key resolves to nothing. A validator has to be right every time; a registry
+  has to be wrong on purpose. Three tests hold the line — every declared column exists on the table, every
+  declared relation exists on the model, and an unknown key (including a real database column that is not a
+  declared key) resolves to null.
+- **A column resolves in one of three ways and the difference decides what SQL may do with it.** A real column
+  sorts, groups and aggregates; a related column displays and groups only where the declaration also names the
+  *local* key to group on, because `GROUP BY contacts.name` needs a join this builder does not write while
+  `GROUP BY contact_id` needs nothing and gives the same buckets; a derived column displays and nothing else.
+  That last one is enforced in `DatasetColumn::derived()` rather than checked later, which is what keeps item
+  5's "aggregation in SQL" true by construction.
+- **Which makes several obvious reports deliberately unbuildable, and each refusal is item 7 working.**
+  Outstanding by customer, weighted forecast totals and average tenure are all sums of derived columns, so the
+  builder lists the rows and the coded report states the total. Journal lines cannot group by month, because
+  the date is on the entry and grouping through a relation needs a join — the general ledger is that report.
+  Leave days cannot group by employee, for the same reason and with the same answer.
+- **The four filter kinds are extracted from the thirty coded reports rather than guessed**, which is what the
+  plan asked for by putting this phase last: a date range (every report has one), a select (`ReportPane::ASKS`
+  has three and Phases 2–3 added a dozen more of the same shape), a search (`FindTransactions`), and a flag.
+  Nothing else earned a place — a between-two-numbers filter looks obvious and no coded report needed one.
+- **Two subjects have no period, and finding out why was the useful part of the extraction.** Item 5 offers "a
+  mandatory period filter **or** an explicit row cap", and employees take the second branch because an employee
+  is a *state* — a mandatory period over `date_of_joining` would answer "who joined this quarter" to somebody
+  who asked for a headcount. Payslips take it for a sharper reason: **`payslips.month` holds a month name**
+  ('January'), not a date, so `'January' >= '2026-07-01'` is a comparison the database will answer and nobody
+  can predict. What stands in for a period there is the fiscal year, which is a real foreign key.
+- **A period may be reached through a declared relation, because journal lines have no date.**
+  `journal_entry_lines` has never carried one — the date is on the entry, since an entry is one event with two
+  or more sides and a date per side would be the same fact stored twice with nothing keeping the copies equal.
+  So the period is a `whereHas`, which costs a subquery, and a dataset with its own date names that one.
+- **Row-level access is inherited** (item 2): `EmployeeAccess`, the same service and the same column the
+  resources use, applied to the base query so no column choice, filter or aggregate can reach a row it
+  excludes. Payslip components and leave days reach it through a `whereHas` on their parent, because those
+  tables have no `employee_id` of their own — which is precisely where a leak would have hidden, in a table
+  that looks like an implementation detail. A test asserts every dataset holding employee rows overrides
+  `access()`, written against the files rather than a list of three, because the failure it prevents is the
+  *next* dataset.
+- **Item 6's "payroll leak" needs both halves, and the test proves it rather than assuming it.** The Employee
+  role *does* hold `PayslipView` — everybody sees their own payslip — so the permission gate lets an employee
+  build over payslips, and what keeps that from being a leak is the row scoping: they get one row, their own.
+  Take either half away and the subject is dangerous. What the permission gate refuses them is what their role
+  has no business reading at all: invoices, journal lines, other people's records, the pipeline.
+- **Every dataset's permission is checked against the seeder**, which nothing else in the suite would catch:
+  `can()` on an unknown permission returns *false* (spatie catches `PermissionDoesNotExist`), so a typo makes a
+  subject invisible to everybody and reads as a licensing question. `ModuleCoverageTest` mines literal
+  `can('X')` calls and these are strings behind a method.
+- **A mutation showed the module gate could not fail**, and the fix was a better test rather than a deleted
+  check. `ModuleAuthorization` denies any permission belonging to a disabled module — returning false, so it
+  short-circuits — which means switching payroll off makes `can('PayslipView')` false too and the subject
+  vanishes whether `isAvailable()` looks at the module or not. The check still earns its place for the one
+  shape none of the eleven happens to have: a dataset in one module gated on *another* module's permission. So
+  the test now uses a purpose-built dataset of exactly that shape, and the mutation dies.
+- **`ModuleManifest`'s cache watched the manifests and not its own code**, which cost a debugging session here
+  and is now fixed. Adding the `datasets` table changed this class *and* nine `module.php` files; editing the
+  manifests marked the cache stale, but any process whose cache predated only the code change served a merged
+  array with no `datasets` key at all. The symptom was `ModuleMap::datasets()` returning eleven in one process
+  and nothing in another — which reads as a broken registry rather than a stale file, and that is the direction
+  of failure this application already treats as the dangerous one. `ModuleManifestCacheTest` is deterministic
+  about it: the fixture manifest is touched into the year 2000, so nothing but the rule under test can make a
+  later cache stale.
+- 24 tests, 194 assertions for the registry and 5 more for the cache rule; 11 mutations tried and all 11
+  killed, one of them only after the test that catches it was rewritten.
+- **Where the code is, which the history does not make obvious:** a parallel session's two commits
+  (`0d87b6c`, `7c299eb`, both titled "command bar") staged the whole working tree and took every file of this
+  item with them. Nothing is lost and nothing is mixed *within* a file, but `git log` attributes the registry
+  to a commit about something else. Items 3 to 7 remain.
+
+**2026-08-25 — per-user dashboard layouts (Phase 7). Phase 7 is complete.**
+
+- **A layout is a partial override, never a list of widgets** (item 1), and the test for it needs no new
+  widget. To a stored layout, a widget added last week and a widget it simply never mentioned are the same
+  thing — the state has no way to tell them apart — so a layout naming two of three widgets *is* the case the
+  item describes. Registering a real widget to prove it would have tested the panel rather than the resolver.
+- **Item 4 is structural rather than a check, which is a stronger guarantee than the item asks for.** Every
+  resolution starts from the list the *panel* handed over and only ever consults the layout as a lookup on it,
+  so there is no code path in which a stored key could summon a widget. Filtering afterwards can be forgotten;
+  this cannot be reached. `DashboardArrangement::classFor()` is the one place an alias becomes a class again,
+  and it is used to ask how wide a widget is by default, never to render one.
+- **The permission half of item 4 is tested as well as the module half**, and it is the one that matters more:
+  a module gate leaks a *feature*, a permission gate leaks *figures*. Written without naming a widget or a
+  permission — whatever an Administrator can see and an Employee cannot is the case under test — so it keeps
+  testing the right thing as roles change, and it fails loudly if that set is ever empty.
+- **`company_id` was deliberately not built** (item 3). `table_views` carries one because it lives on the
+  *landlord* connection — it has a foreign key to `users`, who live there — so a global scope is the only thing
+  separating one company's rows from another's. `dashboard_layouts` is on the tenant connection, where the
+  company *is* the database, exactly as Phase 4.5's `saved_report_views` already argued. A `company_id` here
+  would be a column that could only ever hold one value plus a scope that could only ever be true.
+- **The unique index does not enforce one company default, and SQL is why.** Both MySQL and SQLite treat NULLs
+  as distinct in a unique index, so two `user_id IS NULL` rows would both be allowed. What enforces it is
+  `updateOrCreate`, because Eloquent turns a null there into `whereNull`. The index still earns its place — the
+  per-user case is every row but one — and there is a test, precisely because the index *looks* like it is
+  doing the work.
+- **The grid is now six columns wide, because two cannot express two thirds** (item 5). Six is the smallest
+  grid giving all three widths as whole columns (3, 4, 6) and the change is invisible to everything already
+  built: every widget declares either `$columnSpan = 1` — half of the old two-column grid, three of this one —
+  or `'full'`, which is a keyword rather than a number and means the same in any grid. The default is read off
+  each widget's own property by reflection rather than assumed, which is what made that claim checkable.
+- **A width equal to the widget's own is stored as nothing at all**, which is item 1's "partial override"
+  applied to widths as well as order: somebody who never widened a chart follows that chart's own default if it
+  ever changes, rather than being pinned to whatever it was the day they arranged their dashboard.
+- **The width arrives as a public property, and the trait that carries it is composed into
+  `WidgetBelongsToModule`.** Filament hands a widget its configuration as Livewire mount properties, and
+  Livewire only assigns public ones — `$columnSpan` is protected, so it cannot be the one. Composing into the
+  trait every widget already uses means a widget cannot be added without the ability to be widened, where a
+  second trait would have been a second thing to remember with no second decision behind it. Its fallback to
+  the widget's own span is load-bearing rather than defensive: a widget on a resource page is in a two-column
+  grid and would be a sixth of a page wide if it were handed a dashboard width.
+- **Item 6 is Filament's own interaction, but its column manager rather than a drag handle per widget
+  header**, and the deviation is worth stating. Two things stand in the way of dragging the live widgets. A
+  handle has to live in each widget's header and *a stats overview has no header* — three of the widget kinds
+  on this dashboard render markup this application does not own, so a handle would mean overriding Filament's
+  widget views rather than using them. And every drop is a Livewire round trip, so leaving twenty-odd widgets
+  rendered would remount each one and re-run the aggregates behind it every time somebody moved a card. What
+  landed is the shape Filament already uses for exactly this job — a list of names with a control and a handle
+  each, same directives, same handle icon. Arranging shows the arrangement; the figures come back when you
+  press Done.
+- **Two memos, cleared on every write, and they fail differently.** Livewire mutates and re-renders inside one
+  request, so a memo that outlived a write would draw the arrangement as it was before the drop — Phase 5.8's
+  mistake in a different costume. One test proves the *rendering* is rebuilt and another that two changes in one
+  pass *compose* rather than overwrite; the second exists because the first left the state memo's mutation
+  alive, and hiding a widget then dragging a card would have silently undone the hide.
+- **Arranging while a module is off does not erase that module's widgets.** The arranger lists what somebody
+  can see, so a drop sends back a list with the off-module widget missing, and taking that as the whole truth
+  would quietly delete it. It keeps a place at the end instead — the same treatment a widget added since the
+  layout was saved gets. Sanitising drops aliases that name *nothing*, never aliases that are inconvenient this
+  week.
+- **One query, and the budget moved by one.** `PanelPerformanceTest`'s dashboard ceiling went 32 → 33 cold and
+  the warm budget did not move at all (it measures 6 against 8). This is the sanctioned kind: the page cannot
+  render an arrangement without reading it, so there is no version of this feature with no query in it — unlike
+  the counts this file has *fixed* rather than budgeted for, each of which ran a query a correct implementation
+  did not need. What was available to reduce is reduced: one statement fetches the personal row and the company
+  default together rather than asking twice, and the page memoises it so resolving, listing and rendering share
+  a single read. Caching it was rejected — `DashboardCache`'s TTL is five minutes, so somebody would drag a card
+  and watch it spring back. A stale figure is a trade this application makes; a stale arrangement is a bug
+  report.
+- **The dashboard renders 332 KB against its 350 KB ceiling** with 24 widgets registered, up from the 304.7 KB
+  measured at 17 in Phase 5.7. The arranger costs nothing on the ordinary page: it is not rendered unless
+  somebody opens it.
+- **Two things found while starting this phase, both committed separately.** `SavedReportView` (Phase 4.5) was
+  never added to Core's manifest and neither was the `Dashboard` page (Phase 5.1), so
+  `ModuleCoverageTest::test_every_model_is_in_the_morph_map` and its Filament-class twin had been red since
+  those commits. Registering the page pulled in what registering a page is supposed to pull in — a Help topic,
+  which the dashboard had never had.
+- **A Filament trap worth knowing, from the tests.** A page's header actions are built when the component
+  boots, so `->set('arranging', true)` on a mounted page does not rebuild them and the action added by that
+  mode is not there to find. Mounting with the property set does. In a browser every property change is its own
+  request and the question never arises.
+- 35 tests, 88 assertions; 17 mutations tried and all 17 killed — two of them only after the tests that catch
+  them were added, which is the point of trying.
+
+**2026-08-25 — the dashboard's cache (Phase 5.8). Phase 5 is complete.**
+
+- **The cache lives in the widget and never in the service, and that rule is what keeps the whole phase
+  coherent.** Phase 5's premise is that a widget and its report read one service. Put the cache in the service
+  and the *report* reads a five-minute-old figure too — and a report whose entire claim is that its rows add up
+  to its total cannot be quietly behind the ledger it reconciles against. So the services stay exact and only
+  the dashboard is allowed to be behind. There is a test that reads the service and the widget after the same
+  write and asserts they *disagree*, which is the clearest way to state a deliberate staleness.
+- **The tenant is not the one you would reach for.** This application has two notions of a current company:
+  spatie's `Company::current()`, made current by its middleware in a real request, and Filament's
+  `Filament::getTenant()`, set by the panel. **They do not agree under test** — `InteractsWithTenant` sets
+  Filament's and leaves spatie's null — so the first version of this cache keyed on `Company::current()` and
+  silently never cached at all. Four tests failed identically and the cause was one line.
+- **The same defect was in Phase 5.7's `DashboardStats` memo**, added a commit earlier and keyed the same wrong
+  way: every company resolved under one `'none'`, so a test iterating two companies would have served the
+  first one's figures under the second one's name. Found by fixing this and looking. `NavigationBadge` has read
+  `Filament::getTenant()` all along, for exactly this reason.
+- **The period is in the key, which is a second leak and easier to miss than the first.** Without it, switching
+  the dashboard from this month to the financial year would show the month's figures under the year's heading
+  for five minutes — a caching bug wearing a reporting bug's clothes. A test reads two periods in one pass to
+  prove it.
+- **The user is in the key too**, because several widgets are scoped to what that person may see and one to
+  their own work. A shared key there is a data leak rather than a wrong number.
+- **In the key itself, not left to the store's prefix.** spatie's `PrefixCacheTask` prefixes per company while
+  a tenant is current, but that is a property of the *store*, and the array store this suite runs on ignores
+  prefixes entirely — so a guard that relied on it would pass in production and leak in the tests, which is
+  backwards from what a test should tell you.
+- **Four widgets are cached and the rest deliberately are not.** The revenue chart (twelve `profitAndLoss()`
+  calls — the widget the item names), billable share (three queries a month, up to twelve months), largest
+  debtors (the ageing service loads every open invoice), and stock on hand (a walk over every active product).
+  The others are one grouped query each, and the leave queue and the SLA breach count are worth *more* fresh
+  than fast — a queue that is five minutes stale is a queue somebody has already actioned.
+- **No invalidation on write, deliberately.** A five-minute TTL is the trade the plan asks for; hooking every
+  posting path to clear a dashboard figure would be a great deal of coupling to save one stale number. A
+  `forget()` exists for the day somebody has to demonstrate a change taking effect.
+
+**Phase 5 in summary.** A dashboard page with a linkable period; five widget groups, fourteen new widgets, all
+fed by the services behind their own reports; every widget lazy, gated on module and permission, sorted into a
+deliberate band, and no longer polling every five seconds; the expensive four cached per tenant, per user and
+per period. Along the way it found that every widget in the panel had been polling unasked, that the headline
+stats widget was registered nowhere, that two widgets were never lazy, and that the two current-company
+mechanisms disagree under test.
+
+**2026-08-25 — the rules every widget obeys (Phase 5.7). Enforcing them found two faults nothing was
+watching.**
+
+- **Every widget in this panel was polling every five seconds.** `CanPoll::$pollingInterval` is `'5s'` in
+  Filament, so a dashboard of twenty-three widgets re-ran every aggregate twelve times a minute per open tab,
+  unasked. The item says "and no polling" in four words at the end of a sentence; it turns out to have been the
+  most expensive of its four requirements. All twenty-three now set `$pollingInterval = null`.
+- **`OperationsOverview` — the company's headline figures — was registered nowhere.** Core discovered
+  resources and pages but never widgets, so the one widget assembled from every module's contributions had
+  been absent from the dashboard. **How it hid is the interesting part**: the old `FilamentWidgetsSmokeTest`
+  *named* it in a hand-written list of five and rendered it directly, so it passed while the panel had never
+  heard of the class — exactly the failure Phase 5.9 describes. And enumerating the panel instead, which 5.9
+  asks for and which landed in 5.1, **could not have caught it either**: an enumeration only sees what is
+  registered. The guard that finds it compares the widget *files* against the registered set, and is now in
+  `DashboardWidgetRulesTest`.
+- **Two widgets were not lazy** — `CashFlowChart` and `PayrollByEmployeeChart`, both predating this phase.
+  "Without exception" is the item's wording and now the test's.
+- **Sorts are `DashboardWidgets` constants, not twenty-three magic numbers.** A widget writing
+  `DashboardWidgets::MONEY + 3` says which band it is in and leaves the arithmetic visible. Deliberately *not*
+  a central list naming every widget in order: that is `docs/module-packaging-plan.md` §8's Group A, host code
+  holding a list of what each module owns, editable only from outside the module. Each widget states its own
+  position; the constants only say what positions mean. The nine that predated Phase 5 sat on 0–8 in discovery
+  order and are now placed in bands, with a one-line reason on each about *why* it sits where it does.
+- **A test rather than twenty-three careful edits.** Fixing the widgets is a commit; keeping them fixed is
+  `DashboardWidgetRulesTest` — which checks the trait, laziness, polling, band membership, no duplicate sorts,
+  the band order, and both halves of the gate (module off → hidden; no permissions → hidden) across every
+  registered widget at once. The next widget somebody adds fails there if it forgets any of it.
+- **Registering the missing widget put the dashboard one query over its budget, and the query was fixed rather
+  than budgeted for** — which is what `PanelPerformanceTest`'s own comment demands of query counts, as against
+  page size. `OperationsOverview::canView()` resolves every contributed stat to decide whether to show any,
+  then `getStats()` resolves them again; the widget's docblock has always said so. `DashboardStats::resolve()`
+  now memoises per request, **keyed on the company**, because `docs/page-load-performance-plan.md` names
+  caching without the tenant in the key as a cross-tenant leak. Cleared by `register()` as well as `flush()`,
+  since a contribution arriving after a resolve would otherwise never appear.
+- **One self-inflicted mistake worth recording**: my own cleanup of Pint's unrelated reformatting reverted the
+  `CorePlugin` fix along with it, because the filter spared only `Filament/Widgets/` paths. The test caught it
+  immediately, which is the argument for writing the guard before the fix rather than after.
+
+**2026-08-25 — the inventory widget (Phase 5.6). All five of Phase 5's widget groups are now in.**
+
+- **The item's condition is met: Phase 2.4 exists, so this is that valuation.**
+  `InventoryReports::summary()` reads `InventoryValuationService::valuationForAll()` — the same call behind
+  the Stock on Hand report.
+- **The sharp end was not the valuation but the reorder rule, and it was already a bug once.** A reorder level
+  of nought means there is *no* level rather than a level of nought: the column defaults to `0`, so treating it
+  as a threshold flagged every product that had merely been sold out, since `0 <= 0`. Phase 2.4's own tests
+  caught that in the report. A widget re-deriving the flag would have reproduced it — so the rule is now
+  `InventoryReports::reorderLevelFor()` and `isBelowReorder()`, extracted, with the report's inline copy
+  replaced by a call to them. The report's eighteen tests still pass on the extraction, which is the point of
+  doing it that way round.
+- **Two loops, one set of rules, and a test that pins their agreement.** `summary()` walks products
+  separately from `stockOnHand()` rather than sharing one pass: sharing would mean the report walking its
+  products twice per render, or the dashboard depending on the shape of a table's rows. What is shared is every
+  *rule* — the reorder threshold, staleness, the valuation itself — and a test asserts the widget's stock value
+  equals the report's own tile rather than a literal.
+- **Stale stock sits beside the reorder count**, because they are opposite problems that a total hides: one is
+  stock about to run out, the other stock nobody has touched in ninety days, and a stock value made mostly of
+  the second is a very different figure from one made mostly of the first. A product that has never moved
+  counts as stale, which is the report's reading and its reason — treating "no history" as fresh would hide
+  every product somebody set up and forgot.
+- **A product with a level and no movements at all is counted.** It has no row in `stock_movements`, so a
+  summary built from the valuation alone would never see it — and it is exactly what a reorder flag is for.
+- **The fixture had to go through `InventoryService`.** `stock_movements.type` is NOT NULL and a purchase also
+  posts to the ledger, so the hand-built row I reached for first was both invalid and unrepresentative of
+  anything the application does. Fourth fixture correction of this session, and the same lesson each time: the
+  model's own API knows things a plausible insert does not.
+
+**2026-08-25 — the people widgets (Phase 5.2). Four figures across four modules, and a fixture that found a
+real bug rather than a fixture bug.**
+
+- **`LeaveRequest`'s column is `from_date`, and the widget said `start_date`.** An absent Eloquent attribute
+  reads as null rather than erroring, so the "leave already started while nobody answered" figure was
+  *silently always nought* — the sharpest row in the queue, permanently empty. Every structural assertion
+  passed; it took a fixture insert failing on a NOT NULL to expose it. That is the third time this session a
+  wrong column name has been invisible until something asserted a value, and the first time the widget rather
+  than the test was wrong.
+- **Two service methods were added rather than querying in the widgets**, each in the class that owns the
+  concept. `HeadcountReports::summary()` sits beside the Headcount Movement report's own loop and reuses its
+  `headcountAt()`, which matters more here than anywhere in Phase 5: that helper compares date *strings*
+  because `left_on` is a date cast and a boundary is an instant, and getting it wrong once already reported
+  200% turnover for a month in which one person of one left. A widget with its own `whereNull` would have
+  reproduced the bug instead of inheriting the fix.
+- **`AttendanceRegister::daySummary()` is one grouped query, not the register's grid.** `forMonth()` needs a
+  row per employee per day; a dashboard wants four numbers about one day, and running the grid to get them is
+  the per-row shape this plan's own risk list names.
+- **Unmarked attendance days are on the dashboard, because they are the finding.** A day nobody recorded is
+  not a day nobody worked — the register's note leads with them for that reason — and "12 present" for a
+  company of thirty with eighteen absent from every figure reads as an attendance problem rather than a
+  recording one. Half days and home working count as present: one is a shorter day, the other a different
+  desk, and neither is an absence. Lateness is counted from the days somebody attended, so a late arrival is
+  present *and* late rather than a status of its own.
+- **Leave uses the model's `pending()` scope and no new service method**, and that is deliberate: the scope
+  *is* the shared definition of "awaiting a decision", so a widget writing `where('status', 'pending')` would
+  be a second copy that a fourth status would break. The oldest wait is named beside the count, because a
+  queue of five is a different problem from one request sitting for a month and a count cannot tell them apart.
+- **Documents already expired are counted apart from documents expiring.** Both come back from
+  `DocumentExpiryCheck::due()` — including the part a fresh query would get wrong, that an expired document
+  keeps being reported because "an expired visa is not a warning that stops being true" — and folding them
+  together would put a lapsed work permit in the same figure as one with three weeks left.
+- **Two more widgets ignore the period, and say so on the stat.** The leave queue and the expiring documents
+  are facts about now; filtering them by the dashboard's span would hide the oldest requests and the nearest
+  expiries, which are exactly what they exist to surface. Three widgets now ignore the filter and each says
+  so, because two thirds of the dashboard *does* move with it and a reader would otherwise assume they all do.
+
+**2026-08-25 — the service widgets (Phase 5.4). Two of this item's three instructions were followed in spirit
+rather than to the letter, and both departures are the interesting part.**
+
+- **The item names `TimesheetService::utilisationFor()`; this uses `utilisation()`.** The named method answers
+  for *one* employee and reaches `AttendanceCalendar::summarise()`, which walks every day of the month doing a
+  holiday and a shift-pattern lookup per day. The service's own docblock says what looping it over a company
+  costs: "hundreds of queries for one screen — the exact fault `docs/page-load-performance-plan.md` was
+  written about, and the risk `docs/reports-expansion-plan.md` names for these reports by name". The
+  company-wide `utilisation()` is three queries a month whatever the headcount, and is what the Timesheet
+  Utilisation report already uses. Following the plan literally here would have built the thing the plan
+  elsewhere warns about.
+- **The item asks for "billable utilisation"; this reports billable *share*.** `TimesheetService` refuses to
+  state capacity and gives the reason: `expected_hours` is null in every branch because a rule making
+  timesheets and attendance reconcile "would make people book the difference somewhere to make the screen
+  agree, which produces worse data than the gap it closed". A dashboard percentage against an invented
+  denominator would have undone that decision quietly, on the one screen where a figure reads as fact.
+  Billable share needs no assumption about what somebody's month should have held, and there is a test that
+  the widget says nothing about capacity at all.
+- **`utilisation()` answers per month, so the widget sums every month the period touches.** A quarter is three
+  calls, a financial year to date at most twelve — bounded and small. Showing one month under a label reading
+  "this quarter" would have been the easy version and the wrong one. Headcount is counted across the whole
+  span, so somebody who booked in January and not February is one person rather than two halves.
+- **The SLA widget's two halves read the period differently, and the plan's own wording is why.** Compliance
+  is "this month" — a rate over a window. Breaches are "outstanding **now**", and `breaches()` takes no
+  arguments at all, because a breach outstanding in March and since resolved is not something to act on today.
+  So one stat moves with the filter and one does not, and the widget says so on the stat rather than leaving a
+  reader to assume they match.
+- **Resolution, not response, is the headline.** `performance()` reports both, and a company that answers
+  within the hour and fixes nothing has met its response commitment and failed its customer.
+- **Two of my fixtures passed for the wrong reason, from one cause.** `Ticket`'s category key is `category_id`
+  and I wrote `ticket_category_id`, which mass assignment dropped silently — so the tickets were
+  *uncategorised*, had no SLA, and therefore counted as compliant. One test asserted 100% and got it; another
+  looked for a breach and found none. The compliance test now creates a ticket that genuinely blows its
+  commitment and asserts the category came out right, so a null category cannot satisfy it. Separately,
+  `timesheets.require_approval_to_bill` defaults to **true**, so unapproved time is correctly excluded from
+  WIP — my entries had no `approved_at` and every WIP figure was nought.
+
+**And the dashboard's size ceiling moved, 300 to 350 — the sanctioned case rather than the formality.**
+
+- `PanelPerformanceTest`'s comment draws the distinction itself: "raise a ceiling for markup a new screen
+  legitimately adds; never raise one to make a page that got heavier for no reason pass." Phase 5 replaces the
+  dashboard with five groups of widgets; eight of them put it at 304.7 KB against 300.
+- **Unlike the reports hub, there is nothing per-item to reduce.** The hub's fix was real — 30.4 KB of inline
+  icons became 6.2 KB of sprite references — but a widget's cost *is* its Livewire component, and the only way
+  to render fewer bytes is to render fewer widgets.
+- Measured: 304.7 KB, 17 widgets registered, 23.7 KB of Livewire snapshots — about 1.4 KB all-in per widget.
+  Phase 5's remaining groups are roughly six more, so ~313 KB; 350 leaves room for about twenty-six widgets
+  beyond the plan, which is deliberately more than it needs so this stays a ratchet.
+- Recorded in the test for whoever needs the bytes back: **88.6 KB of the dashboard is inline SVG**, most of it
+  the domain rail's flyouts. That is where the fat is, not the widgets.
+
+**2026-08-24 — the sales widgets (Phase 5.3), including the one widget the period filter must not touch.**
+
+- **The funnel is unwindowed on purpose, and it is the only widget on the dashboard that ignores the
+  period.** `PipelineReports::byStage()` accepts a closing window and the forecast report passes one, but the
+  service's own comment says why a funnel must not: "a deal with no expected close date is not 'closing
+  outside the window', it is unforecastable — and it belongs in the unwindowed pipeline view". Filtering a
+  funnel by the dashboard's period would silently drop every deal nobody has dated, which are the ones most in
+  need of attention. A test proves it by putting one dated deal outside the period and one undated deal in the
+  same stage and asserting both are counted.
+- **Three widgets, three readings of one filter, and now four across the dashboard.** A *window* for the
+  forecast, an *as-at* for target attainment, an *origin* for the expiring quotations, and *ignored* for the
+  funnel. Each one is a property of the question, not a preference — and the money group added a fifth
+  reading, the twelve-month series that uses the period only as its endpoint.
+- **Attainment takes an as-at while the forecast beside it takes a window, and the asymmetry is deliberate.**
+  `attainment()` finds the targets *covering* one date, because a target is a period of its own — somebody's
+  quarter — so "which targets are live" is a question about a moment. Handing it a range would mean choosing
+  an end arbitrarily.
+- **Attainment is reported as a count, not an average.** One salesperson at 200% with three at 40% averages
+  to 80% and describes nobody. And targets with no number on them are excluded from the denominator, because
+  `attainment_pct` is null there and counting them would report a company as behind on targets nobody set.
+- **`QuotationService::expiringWithin()` was added rather than querying `Quotation` in the widget**, which is
+  the rule applied to a query that did not exist yet. It is the mirror of `expireLapsed()` — the same three
+  conditions with the comparison reversed — so a widget with its own query would have been a second definition
+  of "live but lapsing", and the first status added to the ladder would have made them disagree. Both ends are
+  inclusive: a quote lapsing *today* is the most urgent of the set, and the widget says "lapses today" rather
+  than "in 0 days".
+- **A fixture that made a test pass for the wrong reason.** `weightedAmount()` reads the *deal's*
+  `probability_pct`, not its stage's — the stage's is the default a user is offered. A fixture leaving it null
+  weighted every deal at nought, which every structural assertion tolerated until one asserted an amount.
+  It is now explicit in the helper, with the reason.
+- **CRM and Quotations had no widget discovery at all**, so both plugins gained `discoverWidgets` and both
+  manifests a `widgets` table — the same shape the report pages needed in Phase 3.
+
+**2026-08-24 — the money widgets (Phase 5.5), and three different right answers to one filter.**
+
+- **Every figure comes from the service behind its own report**, which is Phase 5's rule and the reason it is
+  written into the section header. `RevenueAndExpensesChart` calls
+  `FinancialReportService::profitAndLoss()` — the Profit & Loss report's service; `LargestDebtorsList` calls
+  `InvoiceService::outstandingReceivables()` — the Aged Receivables report's; `CashCommittedOverview` reads
+  `App\Support\CashCommitments`, Phase 1.7's registry. Each test asserts the widget against its service
+  rather than against a literal, so the pair cannot drift.
+- **The plan warned that re-deriving inline would be quicker, and it was.** Summing `total - paid` over
+  invoices for the debtor list is three lines against an aggregation over a service's return. The rule is
+  what stopped it, and the aggregation is why the top debtor here is by construction the figure the ageing
+  report shows for that contact.
+- **All three read the dashboard's period differently, and each difference is a decision rather than an
+  inconsistency:**
+  - the **chart** lets the period choose where the twelve-month series *ends*. Honouring a one-month period by
+    drawing one bar would destroy the widget rather than filter it — twelve months is the shape it exists to
+    show. Its final column is capped at the period's end, so early in a month it is the month *so far* rather
+    than a whole month padded with a future nobody has traded in.
+  - the **debtors list** treats it as an as-at, because ageing is a balance and not a span. Read for last
+    quarter it says who owed then.
+  - the **commitments** widget treats it as the *origin* of a forward ninety days, because that window looks
+    ahead. Read at a year end it answers "what is committed for the ninety days after June", which is the
+    question somebody asks there.
+- **A debtor is a contact, not an invoice**, and days overdue is the *worst* of their invoices rather than an
+  average. A customer with one invoice ninety days late and nine current ones is a ninety-day problem;
+  averaging reports them as nine days late, which is the number that gets them left alone. A contact whose
+  credit notes cancel their invoices is not a debtor at all, and would otherwise take one of the five places
+  from somebody who is.
+- **Out and in are kept apart, with the net stated.** A commitment registry carries both directions — a
+  recurring sales invoice is money coming in — and adding them gives a figure that is neither what the company
+  owes nor what it expects. The net is on the widget because that is what somebody opens it for, rather than
+  arithmetic left across two stats a centimetre apart.
+- **The sort order is banded, ten apart**: money 10–19, sales 20–29, service 30–39, people 40–49, inventory
+  50–59. So a group can gain a widget without renumbering its neighbours. The nine widgets that predate this
+  phase still sit on 0–8 and therefore render above; placing them in the bands is Phase 5.7's own job and is
+  noted rather than half-done here.
+- **`RevenueAndExpensesChart` is twelve `profitAndLoss()` calls and is the widget Phase 5.8's cache exists
+  for.** It is stated in the class rather than left to be discovered: until 5.8 lands it is the most expensive
+  thing on the page, and it is `$isLazy` so the dashboard renders without waiting for it.
+
+**2026-08-24 — the dashboard page and its period filter (Phase 5.1), plus 5.9's widget enumeration.**
+
+- **The period reaches widgets through `getWidgetData()`**, which Filament spreads into every widget's mount
+  properties. So a widget declares `public ?string $periodFrom` and is *handed* the span rather than deriving
+  it — which is item 1's actual requirement, "none of them keeps its own idea of 'now'". Widgets get the
+  resolved **dates**, not the period name: twenty widgets each resolving "this quarter" is twenty chances to
+  resolve it differently, a centimetre apart on one screen.
+- **Filament's own filter form was not used, because the plan asks for the URL.** `HasFiltersForm` keeps
+  filter state in a schema, which is not linkable, and "a dashboard someone links to opens on the period they
+  meant" needs `#[Url]`.
+- **Every period ends today, and only its start moves.** A dashboard answers "how are we doing", and nobody
+  has revenue from the rest of the month — so "this quarter" is the quarter so far rather than a quarter two
+  thirds empty. A custom range is the exception, because naming both ends means both ends.
+- **A test found a real bug in the quarter arithmetic.** `FiscalYear` *enforces* a 30 June end and says why —
+  "a company joining part-way through gets a shorter year ending on the same date" — so a company that joined
+  in November runs 1 November to 30 June. Counting three-month blocks forward from *that* start gave it
+  quarters beginning in November, February and May, while its accounts and every report treat the quarters as
+  July–September and so on. Counting back from the fixed year end fixes it, then clamping to the year's start,
+  because that company has no October to report.
+- **`DashboardPeriod` is deliberately not `ReportComparison::currentRange()`**, which looks like it would do.
+  That answers "the three months up to this date", because a comparison must be the same length as the thing
+  compared; this answers "the quarter we are in". They agree only when today is a quarter end.
+- **Phase 0.3's `period` filter is now superseded rather than outstanding.** It was written as a pane filter;
+  the page that actually needed a period was the dashboard, and this is it.
+- **5.9's first half landed here** because every later widget commit depends on it:
+  `FilamentWidgetsSmokeTest` now enumerates `Filament::getWidgets()` instead of naming five. A hand-written
+  list covers the widgets somebody remembered, which is the set least likely to be broken — and Phase 5 adds
+  a widget group per module, so the list would have been wrong on its first commit. It carries a floor of
+  five, because an enumeration that silently found nothing would be the most reassuring test in the suite and
+  the least informative.
+
+**And the reports hub lost its per-report icons to keep a ceiling — the interesting part of this commit.**
+
+- `PanelPerformanceTest`'s size budget failed at **366 KB against 360**, from Phase 4's additions. Its own
+  comment predicted this and forbade the easy fix: "the remaining plan needs ~60 KB the ceiling does not have,
+  so the hub's card markup is what should give way next, not this number. Raising it again would be the
+  formality this comment warns about."
+- Measured rather than guessed: the 51 rows were **70.3 KB, of which 30.4 KB was inline heroicons** — 8% of
+  the whole page in icons nobody navigates by.
+- **A sprite only helps because the icons now repeat.** The reports' own navigation icons were all *distinct*,
+  so fifty-one `<symbol>`s would have saved nothing. Collapsing to one icon per section — nine — is what makes
+  `<use>` worth having, and it is a genuine change to what the screen shows: a row's icon says which section
+  the report is in rather than being the report's own. The report's navigation icon is untouched on its own
+  page and in the sidebar.
+- Result: **369 → 348.5 KB**, row icons 30.4 → 6.2 KB, rows 70.3 → 47.5 KB. Roughly 12 KB of headroom at
+  ~930 bytes a row, which is a dozen more reports rather than the two the old markup allowed.
+- The sprite defines **every** section's symbol, not the visible ones: the list is filtered by section and by
+  search and re-renders on both, and a sprite that shrank with the filter would leave a row pointing at a
+  symbol that had gone — rendering blank, which reads as a broken icon rather than a filtering bug. Four tests
+  pin it, including one that fails if the inline icons come back.
+
+**2026-08-24 — a saved view per report (Phase 4.5). Phase 4 is complete.**
+
+- **The date is not saved, and the plan's own sentence is the argument.** It asks for "the filters somebody
+  uses every month" — and the date is the one thing that *changes* every month. A view holding 30 June would
+  keep opening on 30 June and the person who saved it would not notice for a while, which is the worst kind
+  of wrong on a report. Applying a view leaves the date alone for the same reason, and both halves have a
+  test.
+- **The second half of that sentence gave the design.** "The URL already carries the whole state" is not just
+  a note about effort — it means the fixed-date case *already has a mechanism*, and a better one: "the balance
+  sheet at 30 June" is a link somebody sends. So the saved view should be the other thing entirely. A link
+  for a moment, a saved view for a habit; two mechanisms doing one job each rather than one doing both badly.
+- **Applying a view never clears a filter it does not carry.** The absence of a stored account is not an
+  instruction to blank an account somebody has since picked. The obvious loop — assign every key in `FILTERS`
+  — would have done exactly that, and its mutation is one of the ones that dies.
+- **The stored keys are an allow-list rather than "whatever the page had".** So `asOf` cannot get in, and a
+  future property on the hub does not silently join everybody's existing views — which is the realistic
+  version of this going wrong: somebody adds a property, saving starts storing it, and every saved view
+  begins applying something it never meant to.
+- **The comparison basis is normalised on save *and* on read**, because a stored row can outlive a basis. A
+  view saved when some basis briefly existed would otherwise hand the pane a string it has stopped
+  recognising.
+- **Only eight of the fifty-one reports offer it, and finding that out corrected the tests.** A saved view
+  holds a comparison basis or one of the four pickers, so the three statements and the five reports with an
+  `ASKS` entry have something to remember and the other forty-three have a date and nothing else. The first
+  draft of the tests used the aged receivables and passed every assertion about the model while the control
+  was correctly absent from the page — the model was fine and the test was fiction.
+- **Named `SavedReportView`, not `ReportView`.** `ReportView` is the permission every report is gated on, and
+  a model sharing that name would make `can('ReportView')` and `ReportView::find()` read like one subject.
+- **Per user, with no foreign key to `users`** — that table is on the landlord connection and a
+  cross-connection constraint is not a constraint. The scope to the signed-in id is what actually separates
+  people's views, so it lives in the model rather than being trusted to each caller; there are tests that
+  another person's view can be neither applied nor forgotten however the id arrives.
+- **Seventeen mutations, fifteen killed — and one survivor is the design working.** Making the page pass
+  `asOf` into a saved view changes nothing, because the model's allow-list drops it; adding `asOf` to that
+  list fails immediately. The mutation surviving is the proof that the allow-list is the guard and the page's
+  omission is only politeness, which is the right way round. The other survivor is the blank-key check in
+  `forReport()`, which saves a round trip the query would have answered emptily anyway.
+- **`state` is JSON rather than a column per filter**, because the *set* differs per report — a column each
+  would be five nullable columns of which any report uses at most one, and a new filter would be a migration
+  rather than a key.
+
+**2026-08-24 — keyboard navigation of the report list (Phase 4.4). The phase set 35 rows as the threshold;
+there are 51.**
+
+- **The rows stay native `<button>` elements, and refusing the ARIA listbox pattern was the main decision.**
+  `role="option"` plus `aria-activedescendant` is the textbook answer and it would have been a downgrade
+  here: it replaces button semantics a screen reader already announces correctly with a pattern that then has
+  to reimplement them, and Enter and Space work on these rows only because they have always been buttons.
+  Arrow keys move real DOM focus between real buttons instead. A test asserts `role="option"` is *absent*, so
+  a later change to it has to argue with something.
+- **The search box is the type-ahead.** The plan asks for both arrow keys and type-ahead, and a literal
+  reading would have meant a second string matcher — keystrokes jumping the selection without filtering —
+  giving two behaviours to one set of keys. The box is the better of the two: it filters, and it shows you
+  what you typed so you can correct it. So a printable key pressed anywhere in the list goes into it, which
+  delivers the phase's intent through one mechanism rather than two.
+- **The way in is the way out.** Down-arrow from the search box enters the list, up-arrow off the first row
+  returns to it. That is what makes "type to narrow, arrow down, Enter" a path rather than three unrelated
+  controls, and it is the only reason this is faster than the mouse at 51 rows.
+- **Modified keys are left alone** — Cmd+K is the command palette, and a type-ahead that swallowed it would
+  break a control that already exists.
+- **`focus-visible`, not `focus`.** Arrow keys move real focus, so the ring is the only thing telling
+  somebody where they are in a list this long — and a mouse click should not leave one behind.
+- **The behaviour is not automatically tested, and the tests say so rather than implying otherwise.** There
+  is no Dusk and no Playwright in this project, so nothing can press a key and see where focus went. What
+  the tests do is fail if a hook the Alpine component reads is removed, which is the realistic way this
+  breaks: the markup edited for an unrelated reason and the keyboard quietly stopping.
+- **One test passed for the wrong reason and was fixed.** Counting `data-report-row` across the page came to
+  52 against 51 rows, because the component's own selector string contains the bare attribute name. The
+  attribute now carries the report key so the count is unambiguous — and being off by one row is exactly the
+  error that count exists to catch.
+- **The rebuilt CSS is deliberately not in this commit.** `public/build` is tracked, and rebuilding re-hashed
+  `app-*.css` as well as the theme — an asset this change did not author. The stylesheet compiles; shipping
+  it needs `npm run build` committed by whoever owns the asset pipeline.
+
+**2026-08-24 — comparison periods (Phase 4.2), and one item of the plan deliberately not built.**
+
+- **A comparison basis shorter than the reporting period is a category error, not a shorter comparison — and
+  that one observation shaped the whole class.** A profit and loss is the financial year to date. Shifting
+  its range back thirty days for a "previous month" comparison puts 1 June–20 January beside 1 July–20
+  February: two overlapping eight-month spans whose difference is almost entirely the same trading counted
+  twice. The figure would look entirely plausible. So a month or quarter basis narrows the **current** period
+  to match, and `currentRange()` exists for no other reason.
+- **A balance sheet is exempt, and that is not an inconsistency.** It is an as-at rather than a period, so
+  the current figure is the balance on the day whatever the basis and only the comparison date moves. Hence
+  two methods — `shift()` for as-at statements and `currentRange()`/`previousRange()` for period ones —
+  rather than one that would have had to lie to one of them.
+- **The comparison covers the whole previous month or quarter, not the same number of days.** Twenty days
+  against twenty days would be tidier and would answer a question nobody asks: what a month is worth is what
+  the month came to.
+- **Budget is not a basis, and this is the decision worth recording.** The plan lists it. `BudgetVsActual`
+  already *is* that report — per account, Planned against Actual with the variance, and its own budget
+  picker — so putting budget in the comparison slot would be a second implementation of an existing
+  comparison, and a poorer one, since the statement kind has nowhere to ask which budget. This plan's own
+  Phase 5 states the principle for widgets and it holds here: two paths to one number is how they come to
+  disagree, and the reader who spots it cannot tell which to believe. A test asserts budget is *not* offered,
+  so the decision is recorded where somebody would otherwise re-make it.
+- **`ComparativeStatement::profitAndLoss()` now takes an as-at date and a basis rather than a range.** It had
+  to: a month basis narrows the current period, and a range handed in from outside could not be narrowed
+  without the caller knowing the rule — at which point two places would know it. One existing test asserted
+  the old range-taking contract and was rewritten rather than adapted.
+- **Every subtraction is `subMonthsNoOverflow`.** Plain `subMonth()` from 31 March lands on 3 March, which
+  would make a month-on-month comparison at any month end quietly wrong. A mutation survived the first pass
+  here for a good reason worth remembering: the test used 31 March, and three months back from March is
+  December, which *has* a 31st — so that date cannot tell the two subtractions apart. 31 May can.
+- **Links people kept still work.** The hub carried a boolean `?comparison=` and a saved `?comparison=0` must
+  still mean no comparison; `mount()` translates it, an explicit `?compare=` wins, and the basis is
+  re-normalised on every read because Livewire writes the property straight from the wire when the picker
+  changes. An unrecognised basis becomes the previous year rather than none: arriving with a bad one usually
+  means an old link, and answering that with a column silently removed is the worse of the two answers.
+- **Eighteen mutations, sixteen killed.** The two survivors are the `startOfMonth()` snap and the overflow
+  guard on the range's *start*, which are defensive: the only two bases reaching `shiftRange()` are handed a
+  `from` that is already the first of a month. The guard on the *end* is load-bearing and its mutation dies.
+  Documented in place rather than left to look like coverage.
+- **`label()` and `isOff()` were written and then deleted.** Both were unused once the picker read `BASES`
+  directly, and a public method with no caller is an invitation to drift.
+
+**2026-08-24 — negatives in parentheses (Phase 4.3), and where a formatting rule has to live.**
+
+- **A preference, not a default.** `(1,250)` is how a balance sheet is read and `-1,250` is how everyone who
+  is not an accountant reads a figure, and this application prints both kinds of report to both kinds of
+  reader. Off unless a company turns it on, so nothing changes underneath anybody.
+- **Applied where a report is drawn, not where it is calculated — and that was the design decision.** All
+  fifty-one reports format their own cells with `number_format()` before the payload leaves the service, so a
+  preference honoured inside each of them would have been fifty-one places to forget and a sweep across
+  thirty files to land it. Instead the display layer re-reads what the payload already declares: the
+  `numeric` column list, which is the same thing Phase 4.1's exporter uses. One rule, five call sites, and
+  the reports know nothing about it.
+- **The CSV deliberately does not get it, and that is why the rewrite is in the views.** A spreadsheet reads
+  `(1,250)` as text. Applied to the payload — the obvious place — it would have reached the one output where
+  parentheses are actively harmful, the file somebody opens in order to do arithmetic. A test asserts the
+  payload still carries `-60,000` while the page shows `(60,000)`.
+- **Five things in numeric columns had to survive, and the pattern is anchored at both ends because of
+  them:** an em dash meaning "does not apply" (which nearly every report uses), a bare hyphen, a date like
+  `2027-02-20`, prose beginning with a negative number, and a status cell like `Draft · net differs`. An
+  unanchored pattern would have made a hash of every date column in the application, and a caught em dash
+  would have emptied half the cells on half the reports — looking like missing data rather than a formatting
+  bug. Each has its own test.
+- **A figure that rounds away to nothing is not negative.** `number_format(-0.4, 0)` is the string `-0`, so
+  deciding the sign before the rounding gives `(0)` — which reads as a puzzle — or `-0`, which reads as a
+  bug. Both are wrong about the same number, and `money()` and `cell()` apply the identical rule so the two
+  cannot disagree about it.
+- **No caching in the formatter, on purpose.** `setting()` goes through `TenantSettings`, which already holds
+  one array per tenant, so a lookup per cell is an array read. A static cache in a class called from a Blade
+  loop would be the classic tenant leak: the first company's preference applied to the second company's
+  report in the same worker.
+- **Fourteen mutations, all killed.** The setting section lives in Core rather than Accounting, because it
+  governs reports in every module and Core is the one module always licensed — a preference filed behind a
+  module a company has not bought is a preference it cannot reach.
+
+**2026-08-24 — exporting the open pane (Phase 4.1). Phase 8 now has something to send.**
+
+- **One implementation meant one normalisation.** The pane draws four kinds and three of them are shaped
+  differently: a `table` is columns and rows, a `ledger` is columns and sections each with their own total,
+  a `statement` is label-and-amount rows with an optional prior year. `ReportExport` flattens all three to
+  one grid, and the CSV writer and the PDF template each exist once. Per-kind exporters would have been three
+  writers and three templates, and Phase 8 would have had to pick one.
+- **The interesting work was undoing the presentation, not the plumbing.** The pane exists to make figures
+  readable — `275,000` with a separator, an em dash where a value does not apply — and both are *wrong* in a
+  spreadsheet: one arrives as text in most importers, the other stops a column summing. So the CSV strips
+  separators from the columns the report declares numeric and empties those dashes. It is the one place in
+  this application where the display layer is deliberately reversed, and the PDF keeps the formatting because
+  a PDF is for reading.
+- **Only the numeric columns, and the dash is why.** In a numeric column a dash is a figure that does not
+  apply and an empty cell says so properly. In a *text* column it is the pane's own wording — the serial
+  number a device does not have — and unformatting every column alike would delete a value somebody chose to
+  show. A surviving mutation is what made the distinction explicit.
+- **CSV formula injection is a real risk here and is now handled.** Report cells carry text somebody typed: a
+  project name, a checklist item, a campaign's delivery failure reason. A spreadsheet executes a cell
+  beginning `=`, `+`, `-` or `@`, so that is an attack on whoever opens the export rather than on this
+  application. Escaped with a leading apostrophe — **and numbers exempted**, which is the whole difficulty: a
+  negative figure begins with `-`, and a careless escape would turn every loss on every report into a string.
+- **A byte-order mark, which is not decoration.** Excel on Windows reads a CSV without one as the local
+  codepage, and these reports are full of em dashes and middots — every one would arrive as mojibake in the
+  spreadsheet most likely to open the file.
+- **`ModuleReportPage::getHeaderActions()` is now `final`, and the subclass hook is `reportActions()`.** All
+  thirty-three report pages declared `getHeaderActions()` themselves and returned their help button, so two
+  new actions would have meant editing thirty-three files and remembering on the thirty-fourth. The base page
+  now assembles the row and a report contributes to it. The help call still has to be a **literal in the
+  subclass's own file** — `HelpCoverageTest` reads each page's source — which the rename preserves.
+- **Both doors, because they are one payload.** The hub's pane and each report's own page render the same
+  statement and there is a test per report asserting it, so an export on one and not the other would be an
+  arbitrary difference between two views of one thing. A test asserts the two produce byte-identical CSV.
+- **One mutation survives and is documented rather than papered over.** `UNEXPORTABLE_KINDS` cannot be the
+  operative refusal for a `file` report: that payload carries no columns and no rows at all, so the
+  empty-rows check would refuse it anyway and no test can tell the two reasons apart. It stays as the thing
+  that would still refuse one if somebody later taught `grid()` to flatten a file. Twenty-six mutations,
+  twenty-five killed.
+- **The PDF reuses `reports.layout`**, which already carries the table styling every accounting report PDF
+  uses and already pulls in the Dompdf override partial. Tiles are laid out as a table row rather than with
+  flexbox for the same reason: Dompdf does not lay out flex, and a PDF that only renders under headless
+  Chrome breaks on every machine without Node.
+
+**2026-08-24 — environment health and incidents (Phase 3.13). Phase 3 is complete: thirteen reports, and the
+hub holds 51.**
+
+- **The plan called this "the history", and the history is thirty days long.** `ProjectEnvironmentCheck` is
+  `Prunable` at `projects.health.retention_days` — thirty by default — so the checks behind an uptime figure
+  are *deleted* past that horizon. Taking "over a period" at face value and offering a financial-year uptime
+  column would have computed it from whatever survived pruning and presented one month as though it were
+  eight. The check window is clamped to the horizon, the subtitle states both spans, and the note says the
+  horizon out loud on every read.
+- **Incidents are not pruned, so the two halves of the report cover different windows on purpose.** The
+  alternative — quietly shortening the incident history to match the checks — would throw away the only long
+  record there is. Stating two windows is less tidy and more honest, and both are tested.
+- **Only *confirmed* incidents count as outages.** `ProjectEnvironmentIncident` doubles as the
+  flap-suppression state: a row opens on the first failure and is confirmed once the threshold is crossed.
+  `EnvironmentHealthOverview` already reads `open()->confirmed()`, so the report agrees with the widget rather
+  than inventing a second definition. The unconfirmed rows are reported as suppressed blips — visible, not
+  counted.
+- **`uptimePercent()`'s rule was honoured rather than its code reused.** "Never render 0% for not checked yet"
+  is exactly right, and an unchecked environment is the opposite of a down one. But the method counts
+  backwards from `now()` and this report answers as at a date, so the rule was reimplemented over the report's
+  own window and the reason is in the docblock. *Never checked* became its own standing and its own finding:
+  monitored, has a URL, nothing has ever run against it.
+- **"Nobody was told" is the finding neither existing widget can show.** An outage that ran while alerts were
+  off or the environment was muted. Both widgets are point-in-time and a mute has usually expired by the time
+  anybody looks. **Its limitation is stated rather than smoothed over**: nothing records whether an alert
+  actually went out, so this reads the environment's *current* settings against a past event, and the help
+  says to read it as "these would not be alerted under today's settings".
+- **Twenty-nine mutations, all killed** — but two survived the first pass, both upper bounds. No fixture had a
+  check or an incident dated *after* the as-at date, so an as-at report that included the future passed
+  cleanly. Both now have tests. The same class of gap as Phase 3.12's missing lower bound on meetings: **the
+  bound nobody thinks to test is the one on the side the fixtures never reach.**
+- **Pint reformatted three committed files it had nothing to do with** — pre-existing import-order violations
+  in `ProjectPolicy`, `MyProjectsOverview` and `EnvironmentIncidentManager`, none of them mine. Reverted, so
+  the commit stays scoped. Worth knowing that running Pint on a whole module directory picks up other
+  people's debt.
+- **Projects had no report wiring**, so it gained `discoverPages`, a `pages` manifest key and a
+  `registerReports()`. Filed under *Operations* beside the SLA reports: whoever reads an SLA breach wants to
+  know how long production was down.
+
+**2026-08-24 — review cycle progress (Phase 3.12), where one word in the plan carried the design.**
+
+- **"Complete" was the whole question, and `Review` had already answered it.** Five rungs — pending, self
+  submitted, manager submitted, shared, acknowledged — and only the last is a review that finished. Counting
+  *shared* would report a cycle as done while half the company had not opened their review.
+- **A closed cycle holding unshared reviews is the sharpest finding on the report.** Somebody wrote a review
+  of a person, the cycle was closed, and the person never saw it. `Review::isVisibleToEmployee()` is
+  `shared_at !== null` and its docblock explains why — "submitted is not shared", because a review is a draft
+  about somebody until a manager decides to share it, so that drafting can be honest. Which means a review
+  sitting at *manager submitted* looks like completed work on every other screen in the application.
+- **Sharing is judged on the timestamp, not the status.** A status is a label somebody set; the timestamp is
+  what decides whether the person can read their own review, and a status of *shared* with no timestamp is not
+  shared. The test asserts the report against `isVisibleToEmployee()` rather than against a literal.
+- **The same fact means opposite things at the two ends of a cycle.** An unshared review in an open or
+  calibrating cycle is work in progress; the identical row in a closed cycle is work abandoned. Both closure
+  findings are therefore raised only once a cycle is closed, and both directions are tested.
+- **`missed` is a settled goal state, and that had to be honoured.** Recording a goal as missed is a decision;
+  leaving it open past the end of its cycle is not a kindness but nobody having decided, which means nothing
+  can be learned from it. Counting only achieved goals would have rewarded the silence.
+- **One-to-ones are counted inside each cycle's own dates**, because `one_to_ones` has no cycle column — the
+  only thing tying a conversation to a cycle is the date falling inside it. Two overlapping cycles each count
+  the same conversation, which is right: it happened during both.
+- **A goal with no cycle is charged to no cycle.** `review_cycle_id` is nullable for standing objectives, and
+  attributing those to whichever cycle happens to be open would make a cycle answerable for goals nobody set
+  in it.
+- **Four tests failed on first run and the report was right every time.** Each fixture had reviews and no
+  one-to-ones, so the *no one-to-ones* suffix fired correctly and my expected strings had forgotten it. Fixed
+  by adding a conversation to those fixtures rather than by baking a second finding into the expected
+  string — a test about unshared reviews should be about unshared reviews.
+- **Twenty-six mutations, twenty-five killed.** The real gap was the meeting bound: the period test only had a
+  conversation *after* the cycle, so removing the lower bound changed nothing. It now has one on each side of
+  both ends. The survivor is the `whereIn` on cycle keys, a narrowing rather than a guard — the grouped result
+  is read by cycle key, so a goal from another cycle would be fetched and never looked up. Documented as such,
+  the same treatment Phase 3.11's `whereIn` got.
+- **Performance had no report wiring**, so it gained `discoverPages`, a `pages` manifest key and a
+  `registerReports()`. The page is `ReviewCycleProgress` because `ReviewCycleResource` already derives the
+  `review-cycles` slug — the third time that collision has been caught before it became a missing route.
+
+**2026-08-24 — campaign performance (Phase 3.11), and one metric deliberately not built.**
+
+- **The skip count is the report.** `CampaignSend`'s own docblock set the brief: `skipped_no_consent` "has to
+  be reported as a distinct figure rather than a silence — otherwise nobody can tell a campaign that reached
+  nobody from one that was never sent". Every other view of a campaign shows what went out; this shows what
+  did not.
+- **The two skip reasons are separated, because one is a fault and the other is a success.** A recipient who
+  never agreed is a list-building problem pointing at the consent register. A recipient who withdrew between
+  `prepare()` and `send()` is the guard working — `CampaignSender` calls that gap "exactly when a complaint
+  comes from", and the message did not go. Merging them would report a success as a fault, so the note words
+  each as what it means rather than as a count.
+- **The two reasons became constants on `CampaignSend`** so the report could tell them apart. They were
+  sentences typed at two call sites in `CampaignSender`, and matching a sentence is not a contract: a
+  reworded message would have silently emptied the split.
+- **A campaign marked sent with pending rows never finished.** `send()` leaves every pending row either sent
+  or skipped before marking the campaign sent, so a pending row on a sent campaign means the loop stopped part
+  way — and nothing else in the application notices, because the campaign's own status says it went out.
+  Pending rows on an in-flight or cancelled campaign are expected and are not flagged; both directions are
+  tested.
+- **A campaign with no `sent_at` is placed by `created_at`.** Without that fallback the unfinished and
+  in-flight runs would be precisely the ones the report could not see, since neither has a send date.
+- **The recipient-count-versus-segment metric was deliberately not built, and this is the most useful thing
+  in this entry.** A recipient with no address on the channel gets no row at all — `prepare()` passes over
+  them with a bare `continue`, on the stated grounds that "somebody with no WhatsApp number has not refused
+  anything" — so the send count really is lower than the audience and nothing records the difference. The
+  obvious fix is to re-run the segment and compare, and it would be wrong: `audienceFor()` evaluates its
+  filters *live*, so it returns today's audience rather than the one that existed at send time, and every
+  campaign whose segment has since gained a member would show a false shortfall. The gap is stated in the help
+  instead of guessed at in the report.
+- **A surviving mutation found a real trap: `failed_reason` carries skip reasons too.** `prepare()` writes the
+  consent message into it, so a top-failure column that did not filter on `STATUS_FAILED` would report "No
+  consent on record for this channel" as a *delivery failure*. Two tests now pin the guard in both
+  directions — a skip reason is not a failure, and a failure mentioning consent is not a skip.
+- **Twenty-seven mutations, twenty-six killed.** The survivor is a `whereIn` on the two known reasons, which
+  is a narrowing rather than a guard: the split is read by key, so an unrecognised reason sits in the array
+  unread. It stays because the table grows by one row per recipient per campaign, and the docblock says
+  plainly that removing it changes no output and no test pretends otherwise.
+
+**2026-08-24 — the consent register (Phase 3.10), where the plan's own aside was the specification.**
+
+- **"Compliance evidence, not marketing statistics" ruled out more than it ruled in.** No opt-in rate, no
+  channel comparison, no trend — and a test asserts there is no percentage anywhere on the report, note or
+  tiles. A percentage invites a target, and the moment consent has a target somebody manages the number
+  instead of the record.
+- **The state is derived from the latest row, and the register resolves the tie exactly as
+  `Consent::permits()` does** — most recent `recorded_at`, then highest `id`. That second key is not
+  decoration: a bulk import can stamp a whole file with one timestamp, and a report that broke the tie the
+  other way would state a permission the sender refuses to act on. The test asserts the register against
+  `permits()` rather than against a literal, so the two cannot drift.
+- **A true as-at, so "what did we have permission for on 30 June" has an answer.** The latest row *on or
+  before* the date, and the change count is as-at too. A subject whose only rows come later is absent rather
+  than shown as revoked — there was nothing on the register then, and `permits()` is explicit that no row
+  means no.
+- **An empty register says nobody may be contacted, not "nothing to show".** On a compliance report the
+  difference matters: one is an absence of data and the other is a fact somebody about to run a campaign
+  needs stated.
+- **The finding is a grant with no source**, in the migration's own words: "'they agreed' is worth nothing
+  without 'and here is how'". Counted on *grants only*, and the asymmetry is deliberate — removing somebody
+  from a list needs no justification, so a sourceless revocation is not a finding and counting it would bury
+  the grants that matter.
+- **The `recorded_by` null case cannot be created through `Consent::create()`** — `booted()` does
+  `recorded_by ??= auth()->id()`, so a test passing null gets the acting user stamped on it. Nulling the
+  column afterwards is not a workaround: a row with no recorder only ever arises from something written
+  outside a request, which is exactly what the report is reporting.
+- **The section label is `Sales & pipeline`, with an ampersand.** `ReportsHubTest` caught `Sales and
+  pipeline` immediately as a tenth section rather than a report filed in an existing one — the section
+  registry doing precisely what it is for.
+- **Campaigns had no report wiring at all before this**, so it gained `discoverPages`, a `pages` key in its
+  manifest and a `registerReports()`. Phase 3.11 lands in the same module and now has somewhere to go.
+- **Twenty-one mutations, all killed** on the first pass — including the four that would each have hollowed
+  out the register: the as-at filter dropped, the first row winning instead of the latest, the channel
+  falling out of the grouping key, and sourceless grants going uncounted.
+
+**2026-08-24 — onboarding and offboarding progress (Phase 3.9), built against the plan's own phrasing.**
+
+- **The plan asked for "items overdue by owner role" and an overdue list is the wrong shape for it.** Both
+  `due_on` and `owner_role` are nullable, and each null is a finding an overdue-only report structurally
+  cannot show: an item with no due date can never *become* overdue, so it sits outstanding forever and the
+  one report somebody would look for it on is precisely the report it never appears on. Undated items
+  therefore sort *above* not-yet-due ones — a finding, not a future task.
+- **An item with no owner role has not been asked of anyone**, which `ChecklistItem` already worries about in
+  its own docblock: a template "pointing at somebody who left is a checklist nobody owns". The cell reads
+  *Nobody* rather than sitting blank, because an empty cell reads as a rendering fault instead of the state of
+  the record.
+- **An exit item still open for somebody who has already left is a door still unlocked.** Exit checklists are
+  where access cards, accounts and keys get revoked. Nothing else in the application puts "this person has
+  gone" next to "their access has not been removed", and an onboarding item for the same leaver is
+  deliberately *not* counted as the same finding.
+- **"By owner role" is delivered in the note and the ordering, not by making roles the rows.** Grouping under
+  role headings answers whose queue is longest and loses which task, for whom — and somebody acting on this
+  needs to know it is the laptop for the new starter in accounts. So the note splits the overdue count by
+  role biggest-queue-first, the worst-blocked role's items rise to the top, and every row stays individually
+  actionable.
+- **Two mutations survived the first pass and both were the tests' fault, not the code's.** The role-split
+  fixture created its largest queue first, so insertion order already matched sorted order and removing
+  `arsort()` changed nothing observable; the fixture now creates the biggest queue *last*. And the
+  truncation test could not tell a sorted-then-cut list from a cut-then-sorted one until a late-created role
+  had to survive the cut to be named.
+- **One mutation was invalid rather than surviving.** Reversing the days comparison on one side of a `<=>`
+  leaves an inconsistent comparator, which is undefined behaviour in `usort` — it happened to preserve the
+  order and looked like a test gap. Mutating both sides killed it immediately. Worth remembering: a
+  one-sided edit to a spaceship comparison does not test anything.
+- **Each row carries its own sort key** rather than being matched back to the item collection by position.
+  The positional version worked and was one inserted filter away from silently pairing a key with the wrong
+  row.
+- **Progress is measured against the checklists that still have work**, not every checklist ever run. Diluted
+  by years of finished onboardings the figure would sit near 100% permanently; against the live ones it moves.
+- **The third report in a row to agree that somebody's last day is not yet a leaver**, matching
+  `HeadcountReports::headcountAt()` and the correction Phase 3.7 needed. Three reports agreeing on what
+  `left_on` means is worth more than each deciding for itself.
+
+**2026-08-24 — final settlements (Phase 3.8), and a tolerance that was quietly wrong.**
+
+- **The report lists leavers, not settlements, and that single decision is most of its value.** Every other
+  view of a settlement in this application starts from a settlement that exists, so an employee who left and
+  was never settled is invisible everywhere. Those rows carry no figures and sort to the top.
+- **There is no ledger balance to tie to, and saying so is not a shortfall.** A settlement posts nothing —
+  approving one records that a figure was agreed. The Phase 2 rule therefore does not apply, and what the
+  report offers instead is three disagreements: the unbuilt settlement above, a stored net that is no longer
+  the sum of its parts, and a draft quoting kit that has since moved.
+- **`net_amount` is written on build and on approve, and not on edit** — while every component is editable on
+  the resource form. So typing a notice recovery into a draft leaves the stored net behind, and the figure of
+  record disagrees with the figures it is made of. The Net column shows the *computed* net so the row adds up,
+  and the status cell carries the disagreement; a row whose parts do not sum to its total reads as a bug in
+  the report rather than a defect in the record.
+- **The stale-kit check runs on drafts only, on purpose.** The builder refuses to rebuild an approved
+  settlement "or the agreed figure would move underneath it" — so flagging an approved one as stale would be
+  arguing with the agreement. The *net differs* check does apply to approved settlements, because a stored
+  figure that disagrees with its own components is a defect however it was agreed. Both directions have a test.
+- **`abs($a - $b) >= 0.01` is the wrong way to compare two money figures, and a surviving mutation is what
+  exposed it.** Removing the tolerance entirely broke nothing, which said the tolerance was doing no work — and
+  it turned out to be doing the wrong work: float subtraction of two `decimal:2` values under-shoots, so
+  1234.56 − 1234.55 is 0.009999999999990905 and a genuine one-paisa disagreement reads as *no difference*.
+  Four of five sampled paisa-apart pairs failed that way. The comparison now rounds the difference to two
+  places, which needs no tolerance at all. Worth carrying to any other report comparing money.
+- **Payable and owed-back are two tiles, never one.** A negative settlement is legitimate — the model says so
+  — and summing a positive with a negative gives a figure that is neither what the company owes nor what it is
+  owed. Both are somebody's job.
+- **One mutation survives and is honestly equivalent.** A bare `!== 0.0` in place of the rounded comparison
+  behaves identically on this schema, because every operand is a `decimal:2` column; no test can distinguish
+  them and none pretends to. The rounding stays as the form that is still right if a caller hands it an
+  unrounded sum.
+- **The page is `FinalSettlementsReport`, not `FinalSettlements`** — `FinalSettlementResource` already derives
+  the `final-settlements` slug, and two things claiming one URL surfaces as a missing route rather than a
+  clash. The same reason `ExpenseClaimsReport` carries the suffix, and the help slug is suffixed to match.
+
+**2026-08-24 — assets in employees' hands (Phase 3.7), where both of the plan's ties turned out to be real.**
+
+- **The value column is not *like* the settlement recovery, it is the same figure.** `unreturnedAssets()` sums
+  `value` over outstanding items for one employee; this report sums the same column over the same scope for
+  everybody. The test asserts the report's total against the builder's return rather than against a literal,
+  so if somebody changes what a settlement charges for, the test fails and the report is wrong. That is worth
+  more than a matching number: it makes the tie structural rather than coincidental.
+- **An item with no value recorded prints a dash, not a nought — and that is a finding, not formatting.**
+  Because the settlement sums the column, a null recovers *nothing*: the laptop is gone and the deduction is
+  zero. A nought in the cell would read as kit that is genuinely worthless rather than kit nobody priced, so
+  the report dashes it and the note counts them.
+- **The second tie surfaced something no screen in this application puts together: a fixed asset disposed on
+  the books while somebody is still holding it.** The accounts say the company no longer owns it; an
+  `issued_assets` row says who has it. Either it came back and was never marked returned, or it was written
+  off out of the building. Nothing else asks.
+- **The leaver boundary was wrong until a test name caught it.** The test was called *the last day of
+  employment is not yet a leaver* and asserted the opposite — and passed, because `hasLeft()` was `<=`.
+  `HeadcountReports::headcountAt()` counts an employee whose `left_on` is the date being read, so the two
+  reports disagreed about whether somebody was employed on their last day. Now strictly `<`, which is also the
+  right reading here: somebody in the building today can hand the laptop back today.
+- **Judged as at the date, never by `status`.** A register read for September must not mark somebody a leaver
+  who resigned in December. Reading "is inactive now" would have looked identical on today's data and been
+  wrong on every historical read — the same class of bug as an as-at report that filters on the current state.
+- **The asset register is guarded on `accounting`, and unreadable is its own answer.** A company can disable
+  the module and still hold `fixed_asset_id` values from before it did. The column then says *Not on register*
+  rather than *On the register*, because the latter would assert something nothing verified. The items are
+  still listed and still valued — a laptop is out whether or not the books can be read.
+- **A row per item, though the plan says "by employee".** A serial number, an issue date and a days-out figure
+  are properties of a thing, and somebody chasing a laptop needs to know which laptop. The holder is named on
+  every row and the ordering groups by holder — leavers first, then longest out, because that is the order the
+  rows need acting on.
+- **Fifteen mutations, all killed**, including the four that would each have quietly emptied a finding: the
+  as-at filter dropped, the leaver total never accumulating, the disposal never counted, and an unvalued item
+  printing 0.
+
+**2026-08-24 — headcount movement and turnover (Phase 3.6), and a date-versus-instant bug worth naming.**
+
+- **Comparing a `date` cast against an `endOfMonth()` made a leaver vanish on their last day.** `left_on` is
+  midnight; the month boundary is 23:59:59; `left_on >= boundary` is therefore false on the very day somebody
+  left. That dropped them from the closing headcount, which halved the turnover denominator and reported
+  **200% for a month in which one person of one left**. Two tests failed from the one cause. Every boundary
+  comparison in the report is now on date strings, because dates are what the question is about.
+- **Turnover is over the *average* of opening and closing headcount**, which is the convention and the only
+  denominator that behaves at both ends: against opening, a company that halved understates its rate; against
+  closing, it overstates it, or divides by nought in a month that ended empty.
+- **Turnover above 100% is a real answer and is not capped.** Somebody joining and leaving inside one month
+  gives 200% in a one-person company. That reads oddly and is correct — churn can exceed average headcount —
+  and capping it would hide exactly the months worth looking at.
+- **Two columns read different sources on purpose.** Joiners come from `date_of_joining`, because a month's
+  joiners is a fact about that month and somebody re-employed has joined again. Tenure is *continuous
+  service* from the first job-history row, which is the rule `FinalSettlementBuilder` already set — "somebody
+  re-employed after a break has two spans and only the current one counts" — so measuring from the original
+  joining date would credit the company for the gap. Both mutations fail named tests.
+- **The earliest history row, not the latest.** `keyBy` keeps the last of a duplicate key, so the query orders
+  descending to make it keep the first. Sorted the other way this would silently measure tenure from
+  somebody's most recent promotion, which is a plausible-looking figure and wrong; there is a test for it.
+- Somebody with no history and no joining date is left out of the tenure average rather than counted as
+  nought years, which would drag it down for a missing record rather than a short career.
+- **The plan cites `employees.leaving_date`; the column is `left_on`.** Recorded rather than silently
+  corrected, because the plan's data table is otherwise reliable and a reader checking against it would look
+  for a column that does not exist.
+
+
+**2026-08-24 — credit notes issued (Phase 3.5), which is a compliance report rather than a list.**
+
+- **The tax rule is the report.** A credit note may be issued against an invoice for `fbr.credit_note_days`
+  (180 by default), and beyond that it needs the Commissioner's approval under rule 22. Nothing in this
+  application refuses a late credit note — the window is *reported*, the way the SLA clocks are — so this list
+  is the only place a reversal made without cover is visible at all.
+- **The exposure is stated as money, not a count.** What matters is how much tax was reversed without cover,
+  not how many documents did the reversing: one large credit note is a bigger problem than five small ones.
+- **A credit note naming no invoice is not called compliant.** The window cannot be computed without the
+  invoice, and "within the window" would be a guess in the company's favour on a tax question — so it reads
+  *No invoice named*, is counted separately in the note, and is not added to the exposure either. Mutating it
+  to "within window" fails two tests.
+- **The window is read from the company's setting.** A company on a different regime has a different window,
+  and judging it by the default would report an exposure that is not one — the worse of the two errors on a
+  tax report. Hard-coding 180 fails a test by name.
+- **The credited invoice is looked up outside the report's own period.** A credit note raised late is the case
+  this report exists for, so the invoice it credits is usually older than the window being reported and often
+  older than the fiscal year. Read through the query builder for two columns, so an Eloquent relation cannot
+  quietly pull a whole invoice from outside the period a reader thinks they are looking at.
+- Filed under *Statutory reporting* rather than with the receivables, because the question it answers is the
+  tax one and that section already holds the FBR reports.
+
+
+**2026-08-24 — revenue by customer, project and product (Phase 3.4).**
+
+- **Three groupings in one table rather than a dimension filter**, which is a departure from the plan's
+  wording. A picker would have to be declared in `ReportPane::ASKS` — an Accounting constant — and putting an
+  Invoicing concept there is precisely the coupling Phase 1.2 removed from `supports()`. *Win/Loss* already
+  stacks three groupings behind a labelled first column, and reading them together is better than switching
+  between them anyway: a customer whose revenue is all on one project is a different risk from one spread
+  across four.
+- **The groupings must not be added together, and that is the report's most dangerous property.** A sale
+  appears once under its customer, once under its project and once per product line, so summing the rows
+  trebles the revenue. The record row totals the customer grouping alone, the note says so, and mutating that
+  condition away fails the test by name.
+- **A credit note is attributed to the invoice it credits.** The revenue was recognised against that
+  customer, project and products, so the reversal belongs in the same place. In practice a credit note carries
+  a customer and no project, so attributing it by its own columns would drop the reversal into *No project*
+  and leave the project holding revenue that had been given back. Mutating this fails four tests.
+- **`No project` and `Not a product` are rows, not gaps.** Invoicing unattributed to a project is the figure
+  that makes the project grouping smaller than the customer one, so the note states the amount; and a line
+  with no product — a service, a one-off — is common enough that dropping it would make the product grouping
+  quietly fail to add up.
+- **Issued, partially paid and paid only.** A draft is not revenue, a void one never was, and a purchase is
+  cost. Each has its own test, because each is a one-word change away from being counted.
+- Customer, project and product names are read through the query builder. `invoicing -> projects` is declared
+  so a model import would be legal, but the report needs one column of each table — and a company that has
+  switched the projects module off still has `project_id` values from before it did.
+
+
+**2026-08-24 — quotation conversion (Phase 3.3).**
+
+- **Superseded versions are excluded, and that is the report's reason for existing.** A quote revised three
+  times is one opportunity, not four. Counting each version would inflate what was issued by however often
+  the company negotiates and push the win rate *down* for doing the thing that wins work. Excluded in the
+  query rather than filtered later, so no figure can accidentally include one — and mutating that clause away
+  fails four tests.
+- **Two conversions, because they fail differently.** Issued → accepted is whether the work was won; accepted
+  → invoiced is whether anybody billed for it. The second is the one nothing else in the application
+  surfaces, and an accepted quote with no invoice against it is revenue the company has agreed and never
+  asked for. It gets its own column and comes first among the note's warnings, ahead of quotes about to lapse:
+  one is a failure to bill and the other is only a deadline.
+- **The win rate counts *decided* quotes**: accepted, declined, or run out of time. A quote still inside its
+  validity has not been lost — the same rule as the hiring funnel's acceptance rate — but an expired one has,
+  because it ran out without anybody saying yes.
+- **Expiry is computed, not read from the status.** The nightly sweep is what sets `expired`, so between a
+  quote lapsing and the sweep running the stored status still says `sent`. The model already computes it for
+  exactly this reason — "an expired quote must not be acceptable in the meantime" — and the report follows,
+  so a lapsed quote is a loss on the day it lapses rather than on the day a job notices.
+- **Expiring-soon is a column on the month whose quotes are running out**, which is 2.4's reason for putting
+  the stock flags on the product rows: the row is where the reader would have gone looking anyway. Drafts are
+  excluded, because nobody has been given them, and already-lapsed quotes are *expired* rather than expiring.
+- The period is the financial year to date through `ReportPeriod`. Read in February, a calendar year would
+  drop the first seven months of the company's quoting.
+
+
+**2026-08-24 — the hiring funnel (Phase 3.2).**
+
+- **Nothing in Phase 3 reconciles, and this is the first report to say so explicitly.** There is no account
+  behind a hiring funnel, so Phase 2's rule about record rows tying to balances does not apply. What replaces
+  it is a discipline about not overstating what the data supports, and four decisions carry it — each a way
+  the report could read as more confident than it is:
+  - **Acceptance is over offers *answered*, not issued.** An offer nobody has replied to is not a refusal, and
+    counting it as one makes a company that has just sent three offers look as though it lost them. One
+    accepted, one declined, one outstanding reads 50% and not 33%.
+  - **Time to offer is measured to `issued_at`.** A draft offer nobody has sent is not a milestone the
+    candidate has reached.
+  - **Time to join counts accepted offers only.** A declined offer has a joining date nobody will honour, and
+    averaging it in describes a notice period that never happened.
+  - **Ageing is only for vacancies still open.** A closed vacancy's age is a historical fact, and putting it
+    in the same column invites the two to be averaged into a sentence nobody meant.
+  Both of the first and third were mutation-checked: dividing by all offers, and counting declined joining
+  dates, each fail a named test.
+- **A withdrawal is not a rejection**, and is in no stage column. Somebody who withdrew left of their own
+  accord; counting them beside rejections would read as the company's decision. They stay in the applications
+  total, because they did apply, and the note says how many — which is what stops the stage columns looking
+  as though they have lost somebody.
+- **Wide, because a funnel is its stages.** Six stage columns plus four measures is past the pane's width, and
+  collapsing the stages into a total would remove the only thing that makes it a funnel.
+- The averages are means over however many offers a vacancy produced, which over two or three hires is a
+  rough guide rather than a statistic — so the application count sits on the same row, to be read with it.
+
+
+**2026-08-24 — the monthly attendance register (Phase 3.1), which needed a performance fix before it was
+possible at all.**
+
+- **`WorkPatternResolver` cached patterns per employee *per day*.** `AttendanceCalendar::summarise()` walks a
+  month a day at a time, so one employee's month cost 31 queries; a company-wide register over forty people
+  would have been upwards of twelve hundred. The rows do not change between two days of one month — the
+  *answer* does — so an employee's assignments are now loaded once and the date resolved against them in
+  memory. `first()` over the descending list reproduces the old query's "latest wins if the ranges overlap"
+  rule exactly, which matters because overlap is not prevented in the schema.
+- **Caching the assignments alone left 57 queries for one employee's month**, and the register's own
+  query-count test is what caught it: most companies have no dated assignment, so the *default* pattern was
+  the branch taken thirty-one times a month at two queries each. Memoised with `false` as the sentinel,
+  because null is a real answer — a company with no pattern at all — and the two have to be distinguishable
+  or the miss is re-queried every time. The register went from **326 queries to under 20** for five employees
+  over a month. Payroll benefits identically; payslip generation calls `summarise()` per employee.
+- **The comparison is the report's stated value and it is a payslip, not a ledger balance.** A payslip stores
+  the `paid_days` it prorated on, so the register either reproduces it or has found that pay was calculated
+  on a figure this calendar does not produce. The note counts the disagreements and says nothing about the
+  rows that agree — thirty-one columns are already competing for space and a column of ticks earns none.
+- **Read through the query builder, because naming `Payslip` here would close a cycle.** `payroll` requires
+  `attendance`, and the tangled-module budget is nought. Three columns of one table, guarded on the module,
+  matched on month name *and* fiscal year — a payslip has no date, and the name alone matches the same month
+  of every year the company has traded.
+- **`·` is not a blank cell.** An unmarked day is counted as *worked* by `paidDays()` — "a day nobody
+  recorded is not a day anybody missed" — so a month full of dots reads as a good month and is really an
+  unfilled one. The note counts them first, before the payroll comparison, because it is the figure that
+  makes everything else on the screen untrustworthy.
+
+
+**2026-08-24 — advances outstanding and expense claims (Phases 2.7 and 2.8). Phase 2 is complete.**
+
+- **Advances: the register and the account will usually disagree, and the report's job is to say why.**
+  Nothing posts an advance when it is entered — the register records that money was lent, and the ledger
+  only learns of it if the payment out was booked against the advances account, while a payslip's recovery
+  *credits* that account. So the note names which way round the difference falls, because the two directions
+  mean opposite things: the account holding **less** is advances lent without a payment booked, and holding
+  **more** is either a payment that is not an advance or a recovery recorded in the register and not in the
+  ledger. Phase 2.5 found the same shape in asset cost; a register is not a posting.
+- **A row per advance, not per employee**, departing from the plan's wording deliberately. The instalment
+  and the months remaining belong to an advance: somebody with two on different instalments has two answers
+  to "when is this cleared", and averaging them would invent a third.
+- **The `advances -> accounting` coupling was bought properly**, which `ModuleBoundaryTest` demanded in
+  those words: the call site is guarded, so a company without accounting gets the register and no
+  comparison. Advances declares `payroll` and not `accounting` for the reason the Expenses entry beside it
+  already gives — "requiring it would make the module unsellable to a company that keeps its books
+  elsewhere".
+- **Claims: two rules that pull in opposite directions, and both are asserted.** The rows are the *financial*
+  year to date, through `ReportPeriod` — read in February, a calendar year would drop seven months. But the
+  liability is a *balance*: a claim approved last March is owed just as much as one approved yesterday, so
+  the headline counts claims from before the window. A report applying one rule to both figures would be
+  wrong in one of them.
+- **Claims cannot be reconciled, and the report says why rather than leaving an apparent omission.**
+  Reimbursements post to the account `expense_reimbursement` maps, and the shipped mapping points it at the
+  same code as `meal_recovery`. One account holding two unrelated flows cannot be attributed to either. The
+  test asserts both the sentence *and* the premise — that the two config keys are equal — so if they are ever
+  separated the test says the report can now reconcile instead of silently keeping the excuse.
+- **Three mistakes of mine worth recording, all caught the same day:**
+  - I **overwrote a committed help doc.** `expense-claims` is the ExpenseClaim *resource's* help — how to
+    submit, decide and get reimbursed — and I wrote a report over it. Restored from git; the report's slug is
+    `expense-claims-report`. Help slugs share one namespace with resources, so a new one has to be checked
+    for before it is written.
+  - The page was first called `ExpenseClaims`, which derives the slug `expense-claims` — already the
+    resource's URL. The page's route was never defined and the hub could not link to it, surfacing as
+    `Route [filament.admin.pages.expense-claims] not defined`. Renamed `ExpenseClaimsReport`.
+  - I sorted the claims rows **after** formatting them, comparing "9,000" against "12,000" as text. Sorting
+    now happens on the grouped collection, before anything becomes a cell.
+
 
 **2026-08-23 — the bank reconciliation (Phase 2.6), and a workflow that forbids the thing being reported.**
 

@@ -37,6 +37,16 @@ return [
         'App\\Filament\\Resources\\LeaveEntitlements\\LeaveEntitlementResource' => \App\Modules\Leave\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource::class,
     ],
 
+    'widgets' => [
+        'App\\Filament\\Widgets\\LeaveAwaitingDecisionOverview' => \App\Modules\Leave\Filament\Widgets\LeaveAwaitingDecisionOverview::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\LeaveDayDataset' => \App\Modules\Leave\Reporting\LeaveDayDataset::class,
+    ],
+
     'permission_groups' => [
         'LeaveRequest',
         'LeaveType',

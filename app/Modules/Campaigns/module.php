@@ -33,6 +33,11 @@ return [
         'App\\Filament\\Resources\\Campaigns\\CampaignResource' => \App\Modules\Campaigns\Filament\Resources\Campaigns\CampaignResource::class,
     ],
 
+    'pages' => [
+        'App\\Filament\\Pages\\CampaignPerformance' => \App\Modules\Campaigns\Filament\Pages\CampaignPerformance::class,
+        'App\\Filament\\Pages\\ConsentRegister' => \App\Modules\Campaigns\Filament\Pages\ConsentRegister::class,
+    ],
+
     'permission_groups' => [
         'Campaign',
     ],

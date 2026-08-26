@@ -3,10 +3,11 @@
 namespace App\Modules\Projects\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
-use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Support\Reporting\DashboardWidgets;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -23,7 +24,16 @@ class MyProjectsOverview extends TableWidget
 
     protected static bool $isLazy = true;
 
-    protected static ?int $sort = 8;
+    /**
+     * No polling — `docs/reports-expansion-plan.md` Phase 5.7 asks for it and Filament's default is against
+     * it: `CanPoll::$pollingInterval` is `'5s'`, so every widget in this panel was re-running its aggregates
+     * every five seconds, per open tab, unasked. On a dashboard of twenty-three widgets that is the cost
+     * Phase 5.8's cache exists to avoid, incurred twelve times a minute instead of once a page.
+     */
+    protected ?string $pollingInterval = null;
+
+    /** What this person is delivering, before the environments under it. */
+    protected static ?int $sort = DashboardWidgets::SERVICE + 3;
 
     protected int|string|array $columnSpan = 'full';
 

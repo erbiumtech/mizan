@@ -107,6 +107,31 @@ class ConstructionCertificationTest extends AccountingTestCase
         return $this->certification->prepare($this->contract, $claim->period_end->toDateString(), $claim);
     }
 
+    /**
+     * The retention row says what rate it took — and says it correctly.
+     *
+     * A regression, and the bug is worth naming because it printed on a document a subcontractor signs.
+     * The description was built with `rtrim(rtrim((string) $percent, '0'), '.')`, which strips *characters*
+     * rather than a decimal fraction: given `10` there is no decimal point to stop it, so it removed the
+     * trailing zero and the certificate read **"Retention @ 1%"** against a contract holding ten per cent.
+     *
+     * It survived because it is invisible from the wrong side. `ConstructionCertificatePrintTest` asserts
+     * the label — but hand-writes the deduction row rather than generating it, so it was checking a string
+     * it had written itself. Nothing exercised `writeAutomaticDeductions()` on a whole-ten rate until now.
+     *
+     * The figures are unaffected either way; only the words were wrong. That is precisely why it lasted.
+     */
+    public function test_the_retention_row_names_the_rate_it_took(): void
+    {
+        $certificate = $this->certificate($this->claim('2026-08-31', [50, 0]));
+
+        $retention = $certificate->deductions->firstWhere('kind', CertificateDeduction::KIND_RETENTION);
+
+        $this->assertNotNull($retention, 'a 10% contract must produce a retention row');
+        $this->assertSame('Retention @ 10%', $retention->description);
+        $this->assertStringNotContainsString('@ 1%', $retention->description, 'ten per cent must not print as one');
+    }
+
     // ------------------------------------------------------------------ claims
 
     public function test_a_claim_is_numbered_and_seeded_with_every_schedule_line(): void
@@ -331,7 +356,19 @@ class ConstructionCertificationTest extends AccountingTestCase
             ->sum('amount');
     }
 
-    /** The bottom line: gross to date, less every deduction row. */
+    /**
+     * The bottom line: gross to date, less every deduction row.
+     *
+     * **This assertion used to read 2,000,000 and that figure was wrong**, which is worth recording because
+     * the test was here the whole time and passed. A certificate's deduction rows are *movements* — this
+     * period's retention — but the row netting off earlier certificates used the previous **net** cash,
+     * which had already had its own retention removed. Subtracting it handed that retention back, and
+     * nothing put it back again.
+     *
+     * The old numbers settle to nonsense over the two certificates: 1,800,000 + 2,000,000 = 3,800,000 paid
+     * against 4,000,000 of work, so only 200,000 was withheld — while `retention_to_date` and the retention
+     * register both said 400,000. Two of the company's own records disagreeing, neither wrong alone.
+     */
     public function test_the_amount_due_is_the_gross_less_every_deduction(): void
     {
         $first = $this->certificate($this->claim('2026-08-31', [50, 0]));
@@ -342,9 +379,49 @@ class ConstructionCertificationTest extends AccountingTestCase
 
         $second = $this->certificate($this->claim('2026-09-30', [100, 0]));
 
-        // 4,000,000 gross to date, 400,000 retention held, 200,000 of it new, 1,800,000 previously certified.
+        // 4,000,000 gross to date, 400,000 retention held to date, 200,000 of it new, and netted against
+        // the previous GROSS of 2,000,000 rather than the 1,800,000 that was paid for it.
         $this->assertSame(4_000_000.0, (float) $second->gross_value_to_date);
-        $this->assertSame(2_000_000.0, $second->currentDue());
+        $this->assertSame(400_000.0, (float) $second->retention_to_date);
+        $this->assertSame(2_000_000.0, (float) $second->previous_gross_value_to_date);
+        $this->assertSame(1_800_000.0, $second->currentDue());
+    }
+
+    /**
+     * **The identity the convention exists to hold.** Over any run of live certificates:
+     *
+     *     Σ current_due  ==  gross certified  −  retention held
+     *
+     * Asserted rather than reasoned, because it is the one statement that catches this class of error
+     * whatever shape it arrives in — a movement netted against a net figure, a cumulative row counted
+     * twice, a cap applied on the wrong side. Each certificate can look defensible on its own and still
+     * break this.
+     *
+     * It needs a **second live certificate**, which is exactly what the suite lacked: the two existing
+     * two-certificate tests both *void* the first, and voiding zeroes what the second nets against — so
+     * the second behaves like a first, where movement and cumulative agree and nothing can go wrong.
+     */
+    public function test_payments_settle_to_gross_less_retention(): void
+    {
+        $first = $this->certificate($this->claim('2026-08-31', [50, 0]));
+        $this->certification->issue($first, '2026-09-05');
+
+        $second = $this->certificate($this->claim('2026-09-30', [100, 0]));
+        $this->certification->issue($second, '2026-10-05');
+
+        $paid = PaymentCertificate::where('contract_id', $this->contract->id)
+            ->live()
+            ->sum('current_due');
+
+        $gross = (float) $second->refresh()->gross_value_to_date;
+        $held = (float) $second->retention_to_date;
+
+        $this->assertSame(
+            round($gross - $held, 2),
+            round((float) $paid, 2),
+            'cumulative payments must equal gross certified less retention held — anything else means the '
+            .'contract is over- or under-certified and the retention register disagrees with the cash',
+        );
     }
 
     public function test_a_manual_deduction_reduces_the_payment_and_shows_its_source(): void

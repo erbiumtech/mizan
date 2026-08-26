@@ -39,8 +39,15 @@ return [
 
     /** The two reports. Pages, not resources: a report is a question, not rows to edit. */
     'pages' => [
+        'App\\Filament\\Pages\\AssetsInHand' => \App\Modules\Lifecycle\Filament\Pages\AssetsInHand::class,
+        'App\\Filament\\Pages\\FinalSettlementsReport' => \App\Modules\Lifecycle\Filament\Pages\FinalSettlementsReport::class,
+        'App\\Filament\\Pages\\ChecklistProgress' => \App\Modules\Lifecycle\Filament\Pages\ChecklistProgress::class,
         'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
         'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
+    ],
+
+    'widgets' => [
+        'App\\Filament\\Widgets\\DocumentsExpiringOverview' => \App\Modules\Lifecycle\Filament\Widgets\DocumentsExpiringOverview::class,
     ],
 
     'permission_groups' => [

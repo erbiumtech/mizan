@@ -22,6 +22,23 @@ use Illuminate\Support\Carbon;
  */
 class WorkPatternResolver
 {
+    /**
+     * Every dated assignment an employee has, loaded once.
+     *
+     * **Keyed on the employee, not on the employee and the date.** It used to be the latter, which meant a
+     * distinct query for every day asked about: `AttendanceCalendar::summarise()` walks a month a day at a
+     * time, so one employee's month cost 31 queries and a company-wide attendance register cost 31 per head.
+     * An employee's assignments do not change between two days of one month — the *answer* does, but the
+     * rows do not — so the rows are fetched once and the date is resolved against them in memory.
+     *
+     * Found while building the monthly attendance register (`docs/reports-expansion-plan.md` Phase 3.1),
+     * which was not otherwise possible: forty employees over a month was upwards of twelve hundred queries
+     * before this. Payroll benefits too — payslip generation calls `summarise()` per employee.
+     *
+     * @var array<int, \Illuminate\Support\Collection<int, EmployeeWorkPattern>>
+     */
+    private array $assignments = [];
+
     /** @var array<string, ?WorkPattern> */
     private array $cache = [];
 
@@ -35,24 +52,37 @@ class WorkPatternResolver
     public function for(Employee|int $employee, string|Carbon $date): ?WorkPattern
     {
         $employeeId = $employee instanceof Employee ? $employee->getKey() : $employee;
-        $key = $employeeId.'@'.Carbon::parse($date)->toDateString();
+        $on = Carbon::parse($date)->toDateString();
+        $key = $employeeId.'@'.$on;
 
         if (! array_key_exists($key, $this->cache)) {
-            $assigned = EmployeeWorkPattern::query()
-                ->where('employee_id', $employeeId)
-                ->inForceOn($date)
-                // Latest wins if somebody has overlapping assignments. Overlap is not
-                // prevented in the schema — "no two ranges overlap" is not a column
-                // constraint — so answering deterministically matters more than
-                // pretending it cannot happen.
-                ->orderByDesc('from_date')
-                ->with('pattern.days')
-                ->first();
+            $assigned = $this->assignmentsFor($employeeId)
+                ->first(fn (EmployeeWorkPattern $row): bool => $row->from_date->toDateString() <= $on
+                    && ($row->to_date === null || $row->to_date->toDateString() >= $on));
 
             $this->cache[$key] = $assigned?->pattern ?? $this->defaultPattern();
         }
 
         return $this->cache[$key];
+    }
+
+    /**
+     * One query per employee, whatever the range asked about.
+     *
+     * Ordered by `from_date` descending so that `first()` reproduces the old query's rule exactly: **latest
+     * wins if somebody has overlapping assignments.** Overlap is not prevented in the schema — "no two
+     * ranges overlap" is not a column constraint — so answering deterministically matters more than
+     * pretending it cannot happen.
+     *
+     * @return \Illuminate\Support\Collection<int, EmployeeWorkPattern>
+     */
+    private function assignmentsFor(int|string $employeeId): \Illuminate\Support\Collection
+    {
+        return $this->assignments[$employeeId] ??= EmployeeWorkPattern::query()
+            ->where('employee_id', $employeeId)
+            ->orderByDesc('from_date')
+            ->with('pattern.days')
+            ->get();
     }
 
     /**
@@ -91,11 +121,30 @@ class WorkPatternResolver
     public function flush(): void
     {
         $this->cache = [];
+        $this->assignments = [];
+        $this->defaultPattern = false;
     }
+
+    /**
+     * The company default, resolved once.
+     *
+     * `false` rather than `null` for "not yet asked", because null is a real answer — a company with no
+     * pattern at all — and the two have to be distinguishable or the miss is re-queried every time.
+     *
+     * Memoised for the same reason the assignments are: `for()` is called once per day and most companies
+     * have no dated assignments, so this was the fallback taken thirty-one times a month per employee at two
+     * queries each. Caching the assignments alone left 57 queries for one employee's month, which the
+     * attendance register's own query-count test is what caught.
+     */
+    private WorkPattern|null|false $defaultPattern = false;
 
     private function defaultPattern(): ?WorkPattern
     {
-        return WorkPattern::query()->with('days')->where('is_default', true)->first()
+        if ($this->defaultPattern !== false) {
+            return $this->defaultPattern;
+        }
+
+        return $this->defaultPattern = WorkPattern::query()->with('days')->where('is_default', true)->first()
             ?? WorkPattern::query()->with('days')->orderBy('id')->first();
     }
 }

@@ -70,7 +70,7 @@
                                     @if ($newUrl)
                                         <a href="{{ $newUrl }}" target="_blank" rel="noopener">
                                             <img src="{{ $newUrl }}" alt="Requested {{ $labels[$key] ?? $key }}"
-                                                 style="max-height:130px;max-width:220px;border:2px solid rgb(var(--primary-500,217 119 6));border-radius:6px">
+                                                 style="max-height:130px;max-width:220px;border:2px solid var(--primary-500, #d97706);border-radius:6px">
                                         </a>
                                     @else
                                         {{-- Referenced but no longer on disk; say so rather than showing a broken image. --}}
@@ -81,7 +81,7 @@
                                 <td style="padding:.55rem .5rem;border-bottom:1px solid #f3f4f6;color:#9ca3af;text-decoration:line-through;vertical-align:top">
                                     {{ $format($oldValue) }}
                                 </td>
-                                <td style="padding:.55rem .5rem;border-bottom:1px solid #f3f4f6;color:rgb(var(--primary-600,217 119 6));font-weight:600;vertical-align:top">
+                                <td style="padding:.55rem .5rem;border-bottom:1px solid #f3f4f6;color:var(--primary-600, #d97706);font-weight:600;vertical-align:top">
                                     {{ $format($newValue) }}
                                 </td>
                             @endif

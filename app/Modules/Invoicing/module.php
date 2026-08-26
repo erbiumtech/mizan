@@ -35,13 +35,24 @@ return [
     ],
 
     'pages' => [
+        // Revenue by dimension (Phase 3.4) and the credit-note list (3.5).
+        'App\\Filament\\Pages\\CreditNotesIssued' => \App\Modules\Invoicing\Filament\Pages\CreditNotesIssued::class,
+        'App\\Filament\\Pages\\RevenueByDimension' => \App\Modules\Invoicing\Filament\Pages\RevenueByDimension::class,
         'App\\Filament\\Pages\\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
         'App\\Filament\\Pages\\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
         'App\\Filament\\Pages\\FbrInvoiceReporting' => \App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting::class,
     ],
 
     'widgets' => [
+        'App\\Filament\\Widgets\\LargestDebtorsList' => \App\Modules\Invoicing\Filament\Widgets\LargestDebtorsList::class,
         'App\\Filament\\Widgets\\ReceivablesPayablesOverview' => \App\Modules\Invoicing\Filament\Widgets\ReceivablesPayablesOverview::class,
+    ],
+
+    // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
+    // declared by the module that owns the subject, so it arrives with a module to gate on.
+    'datasets' => [
+        'App\\Reporting\\InvoiceDataset' => \App\Modules\Invoicing\Reporting\InvoiceDataset::class,
+        'App\\Reporting\\InvoiceLineDataset' => \App\Modules\Invoicing\Reporting\InvoiceLineDataset::class,
     ],
 
     'permission_groups' => [

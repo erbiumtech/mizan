@@ -24,9 +24,20 @@ use Illuminate\Support\Facades\DB;
  * silently, months after the rest of its data was fine. There was no command to
  * fix that short of knowing which seeder to run by hand against which tenant.
  *
- * SAFETY. This runs the same baseline seeder provisioning uses, and every seeder
- * in it is firstOrCreate or updateOrCreate — it adds what is missing and leaves
- * rows alone otherwise. The one exception is deliberately excluded:
+ * SAFETY. This runs the same baseline seeders provisioning uses, and what makes
+ * that safe is firstOrCreate: it adds what is missing and leaves every existing
+ * row exactly as it is.
+ *
+ * updateOrCreate does NOT have that property, and reading the two as
+ * interchangeable is what once made this command destructive. It re-asserts this
+ * file's values over whatever the company has since made of them, so it belongs
+ * only on reference data a company cannot edit — currencies, banks, tax
+ * schedules. The charts of accounts used it and so rewrote a live chart on every
+ * run, silently renaming accounts with journal entries posted against them.
+ * TenantBaselineCompletenessTest pins that behaviourally now, because a source
+ * grep for deletion cannot see an overwrite.
+ *
+ * The one seeder that genuinely deletes is deliberately excluded:
  * SalarySlabSeeder deletes a fiscal year's slabs and recreates them, so running
  * it over a company that has corrected its own tax rates by hand would throw
  * that work away. It is skipped for any company that already has slabs — see

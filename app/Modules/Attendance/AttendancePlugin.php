@@ -23,6 +23,19 @@ class AttendancePlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+
+        // The present/late/on-leave stats (Phase 5.2). Registered unconditionally; each widget's own canView() gates on the module and a permission.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
+
+        // The monthly register (reports-expansion-plan.md Phase 3.1). Hidden from the sidebar and reached
+        // from the Reports hub, but still registered or its URL does not exist.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void

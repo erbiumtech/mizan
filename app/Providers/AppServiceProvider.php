@@ -2,8 +2,16 @@
 
 namespace App\Providers;
 
+use App\Health\BackupConfigurationCheck;
+use App\Health\DiskSpaceCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
+use App\Modules\Accounting\Services\CommandInterpreter;
+use App\Modules\Accounting\Support\RegisterCommandResolver;
+use App\Modules\Expenses\Support\ExpenseClaimCommandResolver;
+use App\Support\Ai\Claude;
+use App\Support\Ai\LocalPatternModel;
+use App\Support\Ai\StructuredModel;
 use App\Support\EmployeeAccess;
 use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
@@ -35,7 +43,6 @@ use Spatie\Health\Checks\Checks\EnvironmentCheck;
 use Spatie\Health\Checks\Checks\HorizonCheck;
 use Spatie\Health\Checks\Checks\RedisCheck;
 use Spatie\Health\Checks\Checks\ScheduleCheck;
-use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
 use Spatie\Health\Facades\Health;
 
 class AppServiceProvider extends ServiceProvider
@@ -48,6 +55,45 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
         $this->app->singleton(Modules::class);
+
+        /*
+         * The model behind the command bot — docs/ai-command-bot-plan.md §4.
+         *
+         * Bound to the contract rather than the class so the whole feature below it
+         * — resolution, the sign rules, the confirmation, the booking — is testable
+         * without a key or a network call. `FakeStructuredModel` is what the suite
+         * swaps in; the one genuinely non-deterministic step is the only thing it
+         * stands in for.
+         *
+         * Not `singleton`: `Claude` holds a client keyed to config that a test may
+         * change between cases, and a memoised instance would outlive the change.
+         */
+        $this->app->bind(StructuredModel::class, fn (): StructuredModel => match (config('ai.driver')) {
+            'claude' => new Claude,
+            // `local` and anything unrecognised. Falling back to the driver that needs no key and cannot
+            // fail on the network is the safe direction: a typo'd driver name gives a working command bar
+            // rather than one that throws on the first keystroke.
+            default => new LocalPatternModel,
+        });
+
+        /*
+         * The command bot's resolvers — docs/ai-command-bot-plan.md §7.
+         *
+         * Registered here rather than discovered, so the set is readable in one place and its order is
+         * the routing order. Each resolver gates itself on its own module and permission
+         * (`CommandResolver::isAvailable()`), so listing one costs a licence-check, not a leak: a module
+         * this tenant has not bought contributes nothing to the prompt.
+         *
+         * The default resolver must be last-resort, not first-listed — `route()` reads `isDefault()`
+         * rather than position, so adding a resolver above or below the cash one changes nothing.
+         */
+        $this->app->bind(CommandInterpreter::class, fn ($app) => new CommandInterpreter(
+            $app->make(StructuredModel::class),
+            [
+                $app->make(ExpenseClaimCommandResolver::class),
+                $app->make(RegisterCommandResolver::class),
+            ],
+        ));
 
         // The sidebar's badge counts, memoised for the length of one request.
         //
@@ -322,7 +368,12 @@ class AppServiceProvider extends ServiceProvider
 
             // Backups, uploads and PDF temp files all land on the same volume, and the failure
             // mode of a full disk is a backup that half-writes.
-            UsedDiskSpaceCheck::new()
+            //
+            // Ours rather than the package's: `UsedDiskSpaceCheck` shells out to `df` and parses
+            // the output, which on a production host with no usable `df` crashed on every
+            // scheduled run and reported a regex error instead of a disk reading. See the class.
+            DiskSpaceCheck::new()
+                ->name('Disk space')
                 ->warnWhenUsedSpaceIsAbovePercentage(70)
                 ->failWhenUsedSpaceIsAbovePercentage(85),
 
@@ -364,6 +415,12 @@ class AppServiceProvider extends ServiceProvider
             Health::checks([
                 DebugModeCheck::new(),
                 EnvironmentCheck::new(),
+
+                // Whether the backup can report its own failure, and whether the archive is encrypted.
+                // `BackupsCheck` above watches that archives exist; this watches what they are worth.
+                // Production-only for the same reason as the two above it: a developer's dump never
+                // leaves the machine, so encrypting it is not a finding worth a permanent amber.
+                BackupConfigurationCheck::new()->name('Backup configuration'),
             ]);
         }
     }
