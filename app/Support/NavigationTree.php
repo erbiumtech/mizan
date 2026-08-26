@@ -126,6 +126,10 @@ class NavigationTree
                 'Modules',
                 'Custom Fields',
                 'Email Wording',
+                // What the application sends without being asked — reports-expansion-plan.md Phase 8. Beside
+                // Email Wording rather than in a branch of its own: both are about the post going out, and a
+                // branch holding one screen is a heading that says the screen's name twice.
+                'Scheduled Reports',
             ],
             'Payroll setup' => [
                 'Pay Components',

@@ -101,9 +101,14 @@ class BuiltReport
     /**
      * One definition, as a pane payload.
      *
+     * **`$period` overrides the definition's own**, and only Phase 8 passes it: a schedule carries a period
+     * rule of its own — "the aged receivables every Monday" — and the rule somebody set on the schedule is
+     * the one they meant. Normalised through `RelativePeriod` like every other period here, so an override
+     * cannot express a span the builder could not.
+     *
      * @return array<string, mixed>|null null when the reader may not report on this subject
      */
-    public function for(ReportDefinition $definition, string $asOf): ?array
+    public function for(ReportDefinition $definition, string $asOf, ?string $period = null): ?array
     {
         $class = $definition->dataset();
 
@@ -112,6 +117,10 @@ class BuiltReport
         }
 
         $state = $definition->settings();
+
+        if ($period !== null) {
+            $state['period'] = RelativePeriod::normalise($period);
+        }
         $range = RelativePeriod::range($state['period'], $asOf);
         $query = $this->query($class, $state, $range, $asOf);
 

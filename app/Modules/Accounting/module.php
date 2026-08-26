@@ -138,6 +138,25 @@ return [
          */
         ['name' => 'ReportBuild', 'group' => 'Report'],
         ['name' => 'ReportShare', 'group' => 'Report'],
+        /*
+         * Scheduled reports — reports-expansion-plan.md Phase 8, items 1 and 2.
+         *
+         * In the same group as the rest, for the reason above: the Report group has one owner. Four
+         * permissions rather than one because a schedule is a row somebody keeps — the usual
+         * view/create/update/delete — and the update and delete ones are additionally scoped to the *owner*
+         * by `ReportSchedulePolicy`, since a schedule renders with its owner's access and editing somebody
+         * else's recipient list would be sending their rows to a list they never agreed to.
+         *
+         * `ReportSendExternal` is the one that is not a CRUD verb, and item 2 is explicit about why:
+         * "external recipients need their own permission". An address that matches nobody in this company is
+         * a report leaving the company, decided by the person whose access produced the rows. Granted to
+         * nobody below Administrator.
+         */
+        ['name' => 'ReportScheduleView', 'group' => 'Report'],
+        ['name' => 'ReportScheduleCreate', 'group' => 'Report'],
+        ['name' => 'ReportScheduleUpdate', 'group' => 'Report'],
+        ['name' => 'ReportScheduleDelete', 'group' => 'Report'],
+        ['name' => 'ReportSendExternal', 'group' => 'Report'],
         // Planning, separate from ReportView: the budget says what the
         // company intends to do, which is not the same thing as being
         // allowed to read what it has already done.
@@ -251,6 +270,12 @@ return [
             'PettyCashView',
             'RegisterPost',
             'ReportBuild',
+            // Keeping a schedule of one's own, on the same reasoning as `ReportBuild`: anybody trusted to
+            // read the ledger is trusted to have it emailed to them. Deleting is CEO's, with the other
+            // deletes.
+            'ReportScheduleCreate',
+            'ReportScheduleUpdate',
+            'ReportScheduleView',
             'ReportView',
             'TransactionTypeCreate',
             'TransactionTypeUpdate',
@@ -278,6 +303,7 @@ return [
             'CompanyBankAccountDelete',
             'FixedAssetDelete',
             'LoanDelete',
+            'ReportScheduleDelete',
             'TransactionTypeDelete',
         ],
     ],
