@@ -7,7 +7,7 @@ use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Models\TransactionTypeAlias;
 use App\Modules\Accounting\Services\CommandBooker;
 use App\Modules\Accounting\Services\CommandInterpreter;
-use App\Support\Ai\LocalPatternModel;
+use App\Modules\Accounting\Support\LocalPatternModel;
 use App\Support\Ai\StructuredModel;
 use Database\Seeders\TransactionTypeAliasSeeder;
 use Database\Seeders\TransactionTypeSeeder;
