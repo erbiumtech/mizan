@@ -283,7 +283,15 @@ class InvoiceAllocationService
         }
 
         return Invoice::query()
-            ->with('lines')
+            /*
+             * `contact` as well as `lines`, because the queue names the supplier on every row.
+             *
+             * The screen renders `$invoice->contact->name`, so without this each row asks for its own
+             * supplier — an N+1 that `preventLazyLoading` turns into an exception on the page rather than a
+             * slow one nobody measures. Whatever the view reads is what this has to load: they are one
+             * screen, and only the test that renders it can say so.
+             */
+            ->with(['lines', 'contact'])
             ->where('kind', Invoice::KIND_PURCHASE)
             ->orderBy('invoice_date')
             ->get()
