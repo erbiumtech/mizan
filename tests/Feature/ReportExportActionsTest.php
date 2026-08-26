@@ -160,6 +160,30 @@ class ReportExportActionsTest extends TestCase
         $this->assertStringNotContainsString('180,000', $body);
     }
 
+    /**
+     * The PDF button actually downloads a PDF, which is the assertion this file was missing.
+     *
+     * It asserted that the action was *visible* and that the template rendered the right HTML, and both
+     * remained true while the button did nothing: `PdfDocument::toResponse()` returned a plain response under
+     * Browsershot, and Livewire only turns a `StreamedResponse` or a `BinaryFileResponse` into a download. So
+     * on every machine with Node — which is every developer's — pressing Export PDF was silent. See
+     * `PdfDownloadTest` for the other half of that fault, which was a 0-byte payslip on production.
+     *
+     * Under Dompdf, because that is what production runs and because a test that launches Chrome measures
+     * Chrome.
+     */
+    public function test_the_pdf_button_downloads_a_pdf(): void
+    {
+        config(['pdf.driver' => 'dompdf']);
+        \App\Support\Pdf\NodeRuntime::flush();
+
+        $this->issuedAsset();
+
+        Livewire::test(AssetsInHand::class, ['asOf' => self::AS_OF])
+            ->callAction('exportReportPdf')
+            ->assertFileDownloaded('assets-in-employees-hands-2027-02-20.pdf');
+    }
+
     private function downloadedBody(): string
     {
         $response = Livewire::test(AssetsInHand::class, ['asOf' => self::AS_OF])

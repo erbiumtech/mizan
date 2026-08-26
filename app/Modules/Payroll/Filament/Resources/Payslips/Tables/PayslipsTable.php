@@ -341,8 +341,21 @@ class PayslipsTable
                     $service = app(PayslipService::class);
                     $pdf = $service->renderPdf($record);
 
+                    /*
+                     * `raw()`, not `toResponse()->getContent()`.
+                     *
+                     * This used to echo the latter, and on a host without Node — which is production,
+                     * where `pdf.driver=auto` falls back to Dompdf — `toResponse()` returned a
+                     * `StreamedResponse`, whose `getContent()` is `false` by contract. `echo false`
+                     * prints nothing, so the payslip downloaded as a **0-byte PDF**: a file that looks
+                     * like a document until somebody opens it. On a machine with Node the same line
+                     * worked, which is why it survived.
+                     *
+                     * The bytes are what this needs, so it asks for the bytes. `raw()` refuses to be
+                     * empty, so a broken engine is now an error rather than an empty file.
+                     */
                     return response()->streamDownload(function () use ($pdf) {
-                        echo $pdf->toResponse(request()->create('/'))->getContent();
+                        echo $pdf->raw();
                     }, $service->pdfFilename($record));
 
                 } catch (\InvalidArgumentException $e) {
