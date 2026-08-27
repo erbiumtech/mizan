@@ -7,6 +7,7 @@ use Dompdf\Options;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
+use RuntimeException;
 use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Facades\Pdf as BrowsershotPdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -112,46 +113,77 @@ class PdfDocument implements Responsable
         return NodeRuntime::isAvailable() ? 'browsershot' : 'dompdf';
     }
 
+    /**
+     * The PDF's bytes.
+     *
+     * **Never empty.** An engine that produces nothing — Chrome that could not start, a Dompdf that
+     * threw past its own error handling — used to hand back an empty string, and every caller then
+     * did something reasonable with it: attached it to an email, wrote it to disk, or sent it to a
+     * browser as a 0-byte download. A 0-byte PDF is the worst shape a failure can take, because it
+     * looks like a document until somebody opens it, so this refuses instead and names the engine.
+     */
     public function raw(): string
     {
-        if ($this->driver() === 'browsershot') {
-            return (string) base64_decode($this->browsershot()->base64(), true);
+        $contents = $this->driver() === 'browsershot'
+            ? (string) base64_decode($this->browsershot()->base64(), true)
+            : $this->dompdf();
+
+        if ($contents === '') {
+            throw new RuntimeException(sprintf(
+                'The %s engine rendered no bytes for [%s]. A 0-byte PDF is never a document.',
+                $this->driver(),
+                $this->view,
+            ));
         }
 
-        return $this->dompdf();
+        return $contents;
     }
 
+    /**
+     * Write the PDF to disk.
+     *
+     * Through `raw()` for both engines rather than Browsershot's own `save()`, which costs a base64
+     * round trip and buys the guard: the MPR reports write a file here and then serve it, so an
+     * engine that rendered nothing would leave a 0-byte document on the disk for somebody to
+     * download later — the same fault as the response path, discovered a day afterwards instead of
+     * immediately.
+     */
     public function save(string $path): static
     {
-        if ($this->driver() === 'browsershot') {
-            $this->browsershot()->save($path);
-
-            return $this;
-        }
-
         File::ensureDirectoryExists(dirname($path));
-        File::put($path, $this->dompdf());
+        File::put($path, $this->raw());
 
         return $this;
     }
 
+    /**
+     * The PDF as an HTTP response — **one path for both engines**.
+     *
+     * It used to branch: Browsershot delegated to spatie's builder, which returns a plain
+     * `Response`, while Dompdf returned a `StreamedResponse`. Two response *types* for one call, and
+     * that difference broke a different button on each kind of host:
+     *
+     *  - **Livewire only turns a `StreamedResponse` or a `BinaryFileResponse` into a download**
+     *    (`SupportFileDownloads::call()` returns early for anything else). So on a host *with* Node,
+     *    every Filament action returning this — the report exports — handed Livewire a plain response
+     *    it ignored, and the button did nothing at all.
+     *  - **`StreamedResponse::getContent()` is `false` by contract**, because a streamed response has
+     *    no content until it is sent. So on a host *without* Node — which is production, since `auto`
+     *    falls back to Dompdf — a caller that echoed `toResponse()->getContent()` echoed `false`, and
+     *    the browser saved a **0-byte PDF**. That was the payslip download.
+     *
+     * Neither is a bug in the caller: they were written against whichever engine the author's machine
+     * had. So the engine no longer decides the shape of the answer. The bytes are rendered here, by
+     * `raw()`, which refuses to be empty — and a caller that wants the bytes should ask `raw()` for
+     * them rather than take them out of a response.
+     */
     public function toResponse($request)
     {
-        if ($this->driver() === 'browsershot') {
-            $pdf = $this->browsershot();
-
-            // download(), not name(): spatie's builder only sets a disposition
-            // when asked, and its toResponse() falls back to inline — so a PDF
-            // named but not asked for opened in the tab under Browsershot while
-            // the Dompdf branch below downloaded it. Same call, two behaviours,
-            // depending on whether the host had Node.
-            return ($this->isInline ? $pdf->inline($this->getName()) : $pdf->download($this->getName()))
-                ->toResponse($request);
-        }
-
-        $contents = $this->dompdf();
+        $contents = $this->raw();
         $name = $this->getName();
 
+        // Inline is for a controller handing a document to a tab; Livewire has no way to show one,
+        // so nothing that goes through a Filament action asks for it.
         if ($this->isInline) {
             return response($contents, 200, [
                 'Content-Type' => 'application/pdf',

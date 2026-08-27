@@ -1,6 +1,6 @@
 # More Reports, From Every Module — Plan
 
-**Status:** Phases 1–5 and 7 complete. Phase 6 is under way — 6.1 (the registry, items 1–2) and 6.2 (definitions and permissions, items 3 and 6) are in; items 4, 5 and 7 outstanding. Phase 8 outstanding. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
+**Status:** Complete. Phases 1–8 are in; what remains of this document is the record of how. Phase 0's `period` filter (0.3) is **superseded** — 5.1's `DashboardPeriod` is that filter, on the page that needed it.
 **Created:** 2026-08-14
 **Covers:** coded reports (Phases 1–3), the pane's remaining gaps (4), dashboard charts (5), a report
 builder (6), per-user dashboard layouts (7), scheduled and emailed reports (8)
@@ -384,11 +384,11 @@ every built-in report, with the same record row and the same export.
    `table_views`, including normalising the dataset key through `ModuleMap::alias()` so a class that
    moves does not break saved reports. `HasSavedViews` is the working example of every one of those
    decisions.
-4. **Rendered through `ReportPane`.** A built report is a `table` (or the `matrix` of Phase 0.2) with a
+4. *done, 2026-08-26 — and the routing hook is a key prefix rather than a page, see [What landed](#what-landed).* **Rendered through `ReportPane`.** A built report is a `table` (or the `matrix` of Phase 0.2) with a
    `footer`, so it inherits the sticky header, the record row, the URL state and Phase 4's export
    without knowing they exist. It appears in the hub in a **Custom** section beside the coded reports,
    which is also the answer to "where do I find the one I made".
-5. **Cost guards, stated rather than discovered.** A mandatory period filter or an explicit row cap;
+5. *done, 2026-08-26 — the refusal is what makes the record row honest, see [What landed](#what-landed).* **Cost guards, stated rather than discovered.** A mandatory period filter or an explicit row cap;
    `LIMIT` enforced on the rendered query; aggregation pushed into SQL rather than grouping a hundred
    thousand rows in PHP; and a refusal — "this report asks for too much, narrow the period" — in place
    of a timeout. A builder is the one feature in this plan whose cost the *user* chooses, so the
@@ -396,7 +396,7 @@ every built-in report, with the same record row and the same export.
 6. *done, 2026-08-25 — and payslips turn out to be the one subject the reader gate does not protect, see [What landed](#what-landed).* **Permissions**: `ReportBuild` to create and share, `ReportView` still governs reading, and sharing
    `is_global` needs an administrator permission of its own. A company-wide custom report over payslips
    is a payroll leak, and it is one careless toggle away.
-7. **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
+7. *done, 2026-08-26 — a mode of the hub rather than a screen of its own, and the refusal is on it; see [What landed](#what-landed). **Phase 6 is complete.*** **What it does not do** is in Not doing above, and the sharpest one is worth repeating here: a
    question that needs two subjects joined is a coded report. The builder's answer to it is a clear
    refusal, not a join it cannot secure.
 
@@ -448,43 +448,269 @@ run, the SLA summary on the first of the month.
 Cheap by this point, and only by this point: Phase 4 renders the export, Phase 6 stores the definition,
 and the delivery pattern already exists (`PayslipIssued` + `PayslipDeliveryService` + `sent_at`).
 
-1. **What a schedule is.** `report_schedules`: the report — a coded report's key *or* a Phase 6 definition
+1. *done, 2026-08-26 — one column for both kinds of report, see [What landed](#what-landed).* **What a schedule is.** `report_schedules`: the report — a coded report's key *or* a Phase 6 definition
    — its filter state as json (the same state the URL carries, so "the schedule" and "the link" are the
    same thing), a period rule (`this month`, `last month`, `financial year to date`), a format
    (PDF / CSV / both), a cron expression with a timezone, recipients, `is_active`, and the owner.
-2. **The security model, which is the whole of this phase.** An emailed report leaves the application's
+2. *done, 2026-08-26 — and a tenancy scope nearly turned a leaver into an external recipient, see [What landed](#what-landed).* **The security model, which is the whole of this phase.** An emailed report leaves the application's
    authorization behind: nobody has to log in to read it, and nothing in the app records who saw it. So —
    **the render runs as the schedule's owner**, whose access decides what the rows are; **the recipient
    list is re-authorised at send time, not at schedule time**, because a person whose role changed or who
    left the company is the ordinary case and the schedule would otherwise keep posting to them for years;
    **external recipients need their own permission** and are recorded on every delivery. A schedule whose
    owner loses access to the report is suspended, not silently rendered with fewer rows.
-3. **Periods go through `ReportPeriod`.** "Monthly on the 1st" for a company whose year starts 1 July is
+3. *done, 2026-08-26 — through `RelativePeriod`, which is `ReportPeriod` with a rule in front of it, see [What landed](#what-landed).* **Periods go through `ReportPeriod`.** "Monthly on the 1st" for a company whose year starts 1 July is
    exactly the case that made `ReportPeriod` necessary, and the resolved period is also the idempotency
    key in item 4 — so getting it wrong is not a cosmetic error but a double send.
-4. **One delivery per period, whatever the queue does.** `report_deliveries` with
+4. *done, 2026-08-26 — the row is written before the work, see [What landed](#what-landed).* **One delivery per period, whatever the queue does.** `report_deliveries` with
    `unique(schedule_id, period_key)`, plus status, rendered_at, sent_at, recipient list and error. This is
    the `payslips.sent_at` / `SubscriptionBillingService::alreadyBilled()` pattern, and it is not optional:
    a queued render that exceeds its timeout is retried by design, and without this the retry emails the
    report a second time.
-5. **The schedule entry is one line, per module.** A `reports:deliver` command in the reports module's
+5. *done, 2026-08-26 — in Core, and `SkipsDisabledModules` deliberately not used, see [What landed](#what-landed).* **The schedule entry is one line, per module.** A `reports:deliver` command in the reports module's
    own `routes/console.php`, `TenantAware`, `SkipsDisabledModules`, running every fifteen minutes and
    dispatching only the schedules whose cron says they are due — the `CheckEnvironmentsHealth` shape, so
    a thousand schedules still need one entry. It needs cron and a worker, and the file should say so.
-6. **Rendering is Phase 4's export in a job**, with the PDF engine's existing per-engine template
+6. *done, 2026-08-26.* **Rendering is Phase 4's export in a job**, with the PDF engine's existing per-engine template
    overrides. The queue timeouts are already ordered correctly in `config/queue.php`; a report large
    enough to exceed them is a report to cap, not a timeout to raise.
-7. **The email**, through `EmailTemplate` where the company has one, with the file attached exactly as
+7. *done, 2026-08-26 — the files travel with the notification rather than being re-rendered per recipient, see [What landed](#what-landed).* **The email**, through `EmailTemplate` where the company has one, with the file attached exactly as
    `PayslipIssued` does it — **and a link to the live report in the body**, so a recipient who wants to
    drill in lands in the application and is authorised there. A size cap, with the attachment replaced by
    a link when it is exceeded: a 40 MB PDF does not fail in this application, it fails at somebody's mail
    server, hours later, silently.
-8. **A delivery log people can read** — a report of the reports: what went out, to whom, when, and what
+8. *done, 2026-08-26 — a report in the hub rather than a resource, see [What landed](#what-landed). **Phase 8 is complete.*** **A delivery log people can read** — a report of the reports: what went out, to whom, when, and what
    failed. Retries are bounded and the owner is notified after repeated failure, because a scheduled
    report that quietly stopped arriving is worse than one that was never set up: everybody assumes the
    silence means nothing happened.
 
 ## What landed
+
+**2026-08-26 — scheduled and emailed reports (Phase 8: items 1–8). Phase 8 is complete, and so is this plan.**
+
+- **Cheap by this point, and only by this point — which the diff bears out.** There is no renderer here: item 6
+  is `ReportExport` and `PdfDocument` on the same `reports.pane-export` template the download button uses, item
+  1's stored state is the state the URL carries, and a built report arrives through `BuiltReport` exactly as it
+  does in the pane. What Phase 8 adds is two tables, a service, a job, a command, two notifications and a
+  report — and none of them knows how to draw a report.
+- **A schedule is started from the report somebody is looking at**, which is what item 1 means by "the same
+  state the URL carries, so 'the schedule' and 'the link' are the same thing". The hub's *Schedule* button
+  carries the open report and its filters — the account picked, the month filed — into the create form, and
+  they are stored on the schedule. A form that started blank would have sent the *default* register of the
+  *default* account: a wrong report rather than a missing feature. The filters travel as a hidden field rather
+  than being read from the request at save time, because a Livewire submit is a different request from the one
+  that carried the link — and `fillPartially()` turned out to be the wrong tool for it, since it dots its
+  paths and a value that is itself an array is dropped by a path list naming the array.
+- **One column for both kinds of report.** `report_schedules.report_key` holds `AgedReceivables` or
+  `custom-7`, because both are already keys the hub routes on and `ReportRenderers` already resolves. Two
+  columns with a check constraint between them would have been the same fact stored twice, and the form's
+  report picker is the hub's own catalogue — which also means somebody cannot schedule a report they could not
+  open.
+- **Item 2 is the whole phase, and the sharpest thing found while building it was a *tenancy scope*.**
+  Recipients are stored as addresses so that the list can be re-authorised at send time; resolving an address
+  to a user went through `User::query()->where('email', …)`, and `users` carries Filament's tenancy scope — so
+  a person **removed from the company came back as "no account here", which is the definition of an external
+  recipient**, and an owner holding `ReportSendExternal` would have had the report sent to them anyway. The fix
+  is `acrossCompanies()` and then asking whether they are still a member; the test that caught it is the one
+  asserting a leaver is refused, and it failed by sending *two* emails rather than by sending none. `owner()`
+  has the same fix for a different reason: "no account at all" and "no longer a member" are two suspensions
+  with two different fixes, and a scoped lookup cannot tell them apart.
+- **The render runs as the owner, and the acting user is put back.** `Auth::setUser($owner)` around the
+  payload, because every gate in this application — module licensing, `ReportView`, `EmployeeAccess` — reads
+  `auth()->user()`, and a console command has none. The `finally` that restores the previous user is not
+  tidiness: one command run delivers many schedules, and the first owner leaking into the second's render is
+  precisely the leak this item exists to prevent. There is a test asserting the restore.
+- **Two dates for two kinds of report, and the difference is not an inconsistency.** A coded report is "as at
+  a date", so the schedule's period sets that date to the span's *end* — last month's aged receivables are the
+  receivables at last month's end. A built report carries its own relative period, so the schedule's rule
+  *overrides* it and resolves against the run date: resolving a relative period against a date that is itself
+  the end of a relative period would answer the month before the one somebody asked for. `BuiltReport::for()`
+  gained an optional period for that, normalised through `RelativePeriod` so an override cannot express a span
+  the builder could not.
+- **The idempotency key is the resolved span, not the rule** — item 3 meeting item 4. `last_month:2027-01-01..2027-01-31`
+  is one key however many times the queue retries; `this_month:…..2027-02-19` is a new key tomorrow, so a
+  daily month-to-date report sends daily. One rule, both behaviours, and no flag deciding which.
+- **The delivery row is written before the work.** `claim()` inserts a pending row and lets the unique index
+  refuse a second one, so the window between the mail leaving and the record landing — where a duplicate send
+  lives — does not exist. A row already `sent` or deliberately `skipped` means this period is answered; a
+  `failed` or `pending` one is handed back, because that is a retry of the same send rather than a new one.
+- **"Nothing was sent" is a status, not a failure.** Every recipient refused at send time is `skipped` with
+  the reason recorded: the render worked, the report was right, and there was nobody left to send it to.
+  Marking it failed would put a red row in the log for something no retry can fix.
+- **The notification carries the rendered files, which is the opposite of `PayslipIssued`** — and the plan
+  names that class as the pattern, so the deviation is worth stating. A payslip notification carries an id and
+  renders at send time because a payslip is a document about a row that may have changed. A scheduled report is
+  the other case: the render *is* the moment the report was true, one delivery has already been recorded for
+  this period, and re-rendering per recipient would run a heavy report once per person and risk five people
+  receiving five different numbers. For the same reason it is deliberately not `ShouldQueue`: the job that
+  produced the files is already queued, and queueing the notification would put megabytes of base64 into the
+  payload, paid for again on every retry.
+- **The size cap replaces the attachment rather than trimming it**, because half a report is not a smaller
+  report. Eight megabytes, and the email says so and links to the live report — item 7's "a 40 MB PDF does not
+  fail in this application, it fails at somebody's mail server, hours later, silently".
+- **The command is in Core, and `SkipsDisabledModules` is deliberately not used.** Item 5 asks for "the reports
+  module's own `routes/console.php`", and there is no reports module: the hub belongs to no module and every
+  module puts reports in it. Which answers the licence guard too — Core is always on, so the trait would guard
+  a condition that cannot occur, and a report belonging to a module a company has switched off is refused one
+  layer down, where `renderAs()` runs as an owner whose module gating decides whether it resolves at all. A
+  schedule over an unavailable report is *suspended*, which is louder than skipped and is the state item 2
+  asks for.
+- **Bounded retries live in two places that must agree.** `DeliverScheduledReport::$tries` and
+  `ReportDelivery::MAX_ATTEMPTS` are the same constant, because the row's attempt count is what decides when
+  the owner is told: a queue configured to retry more would report a give-up that had not happened, and one
+  configured to retry less would never reach it. The owner is notified from the job's `failed()` hook — once,
+  after the attempts are spent, because three emails about one failure is how a warning becomes a filter rule.
+- **The schedules screen needed a line in `NavigationTree`, and `NavigationDomainsTest` is what said so.**
+  The Settings group is *split into branches* — Company, Payroll setup, Calendar & currency, Imports — and an
+  item in no branch leaves a group labelled "Settings" that no domain column owns, so the screen would have
+  been reachable by URL and by nothing else. It sits beside *Email Wording*, because both are about the post
+  going out. Worth recording because nothing about adding a resource prompts it: the test found it, which is
+  what that test is for.
+- **The log is a report, not a resource** (item 8). Everything it needed already existed: `ReportShapes` for
+  the payload, the hub for the door, Phase 4's export for the copy somebody forwards, `ReportView` for the
+  gate. It shows "3 of 5" for recipients, because a delivery reaching fewer people than the schedule names is
+  *correct* behaviour that somebody still needs to see, and it reports itself as unbalanced when any delivery
+  failed — which makes the pane draw its note in warning colour.
+- **Permissions are four plus one.** `ReportScheduleView/Create/Update/Delete` in Accounting's `Report` group,
+  for the reason Phase 6.2 gives about a group having one owner, with update and delete additionally scoped to
+  the *owner* by the policy — a schedule renders with its owner's access, so editing somebody else's recipient
+  list is sending their rows to a list they never agreed to. `ReportSendExternal` is the one that is not a CRUD
+  verb and is Administrator's alone. Reading the delivery log needs only `ReportView`: reading what the
+  application sent is not the same act as choosing what it sends.
+- 19 tests, 75 assertions. Two pre-existing failures were confirmed as *not* this work and left alone:
+  `PanelPerformanceTest`'s page-size ceiling for the reports hub (365–368 KB against 360, and 366 on a clean
+  `master`) and `ModuleBoundaryTest`'s violation in `app/Support/Ai/LocalPatternModel.php` — both arrived with
+  the command-bar commits.
+
+**2026-08-26 — the builder screen (Phase 6.4: item 7). Phase 6 is complete.**
+
+- **It is a mode of the Reports hub, not a screen of its own**, which is Phase 7's arranger decision applied
+  to the other half of this plan and for the same two reasons. Item 4 had already decided a built report has
+  no page — it lives in the pane so that it inherits the pane — so a builder anywhere else would have had to
+  reproduce the pane in order to show what it was building. And a mode costs nothing when nobody is using it:
+  `$building` is false, the form is not rendered, and no dataset is asked for its columns. A page would also
+  have owed a manifest entry, a navigation home in a domain whose sidebar is deliberately a list of report
+  categories, and a help topic of its own — three files arguing about where a builder belongs, to reach the
+  same screen.
+- **The preview is the report.** `statement()` returns the draft as an unsaved `ReportDefinition` handed to
+  the same `BuiltReport` that draws a saved one, so what is under the form is not a preview of the report but
+  the report — including its record row, its ceiling and its refusals. Two payload builders would have been
+  two answers to "what does this report say", and the one on screen while building is the one people would
+  trust.
+- **Columns are buttons rather than a checkbox group, because the order is the report's shape.** A checkbox
+  group bound to an array hands back the order the boxes were *drawn* in, so every report would have come out
+  in the dataset's declaration order and nobody could have said why. `toggleColumn()` appends, and the chosen
+  columns carry ‹ › to reorder.
+- **Item 7's refusal is on the screen, not only in this document.** "A report is over one subject. A question
+  that needs two joined — invoices *and* payslips — is a coded report rather than a built one: ask for it, and
+  it arrives with tests and a total that reconciles." Said where somebody would otherwise go looking for the
+  join, because a refusal nobody reads is a refusal that comes back as a missing feature. Two smaller ones are
+  stated the same way: a grouped report shows the group and its totals and drops the rest, and a subject with
+  no date says "every row" instead of offering a period picker that would do nothing.
+- **Save is a rename when it is a rename.** `put()` gained `$replacing`: without it, editing a report and
+  changing its name would upsert on the *new* name and leave the old row behind, so Save would have duplicated
+  every report anybody renamed. Scoped to the owner, and a rename onto a name that person already uses is
+  refused with a sentence rather than leaving two reports called the same thing.
+- **Mine to edit, theirs to keep.** A shared report belongs to whoever made it — editing it would change what
+  every reader of it sees — so the Edit button is only drawn for the owner and `editReport()`/`deleteReport()`
+  refuse anything else. "I want it slightly different" is answered by the New report button, which is right
+  there.
+- **The form is not the boundary; the registry is.** Every control offers what a dataset declared: the
+  subject picker lists subjects this reader may open, the column buttons that subject's columns, the aggregate
+  picker the aggregates that column allows. There is no field through which a column name, a table or a
+  relation reaches a query. A test writes `contact_id` — a real database column and not a declared key —
+  straight at the property the way a crafted request would, and asserts it does not survive the save.
+- **`ReportBuild` hides the button as well as refusing the save**, because a mode that opens and then refuses
+  is a worse answer than a button that was never there. The test for it needed a purpose-built role: no
+  seeded role has the shape "may read reports, may not build", since `ReportBuild` goes to Accountant and
+  upward and the roles below it cannot open the hub at all — which would have tested the wrong refusal. A
+  company that grants `ReportView` to a Sales role and nothing else is the real case, so the test creates
+  exactly that.
+- 18 tests, 66 assertions. Phase 6 is complete: the registry, the definitions, the permissions, the
+  rendering, the cost guards and the screen.
+- **Still not ours, still red:** `PanelPerformanceTest`'s page-size ceiling for the reports hub. It measures
+  365–368 KB run to run against 360, and 366 on a clean `master` — the breach arrived with the command-bar
+  work, and this item's own contribution (a header action) is inside the run-to-run spread. Raising a ceiling
+  to cover somebody else's markup is the formality that file warns about.
+
+**2026-08-26 — a built report is drawn in the pane, with a ceiling (Phase 6.3: items 4 and 5).**
+
+- **Item 4 is a claim about inheritance, and the whole of it is that `BuiltReport` returns a `table`.** The
+  pane draws it, `NoReportPane` draws it, Phase 4.1's CSV and PDF write it, Phase 4.3's parentheses apply to
+  its figures, and the URL carries which report and at what date — none of which knows a custom report exists.
+  There is no view, no page class and no second export in this item.
+- **The routing hook is a key *prefix*, which is the one piece of new machinery.** Every other report's key is
+  a page's class basename, known when a provider boots; a built report's key is `custom-7` and names a row. So
+  `ReportRenderers` gained `registerFamily()` — a prefix and a closure that is handed the key — and Core
+  registers one line. That put built reports on the pane, on `NoReportPane` and in the export at once, where
+  teaching each of those three what a definition is would have been three places to keep in step. The family
+  match is deliberately syntactic and does *not* check that the row exists: it is asked once per report while
+  the hub's list is drawn, and a database read per row is the fault `docs/page-load-performance-plan.md` is
+  about. `render()` answers null for a key that names nothing, which is what the pane already does for a
+  report it cannot draw.
+- **A built report has no page of its own, and that is item 4 read literally rather than a shortcut.** The
+  point of putting it in the pane is that it inherits the pane; so "the report's own screen" *is* the hub with
+  `?selected=custom-7`, which is also the link Phase 8 will put in an email. The "Open in full page" affordance
+  is therefore suppressed for these rows — a link back to the screen you are reading is an affordance that does
+  nothing — and the hub row's URL is that self-link, which is what makes the sidebar column work unchanged.
+- **The date the pane already carries is what a relative period resolves against**, which is what makes a
+  built report as linkable as a coded one. `?asOf=2027-03-15` with `last_month` is February 2027. Phase 6.2
+  stored the period relative so Phase 8 could send it; the same decision turns out to be what lets 4c's "the
+  URL is the whole state" hold for a report whose state is in a row.
+- **A stored *filter* may be a period too, and it is relative for the same reason.** An invoice dataset offers
+  a due-date range as well as its period, and a filter holding `['from' => '2027-04-01', …]` would have
+  reintroduced exactly what 6.2 kept out — "due in April", filed in April, for ever. So a date-range filter
+  stores a `RelativePeriod` key, and `ReportDefinition::sanitise()` now checks a filter's value against its
+  *kind* rather than only for presence. Everything else must be a scalar, because it reaches a `where` binding
+  and an array there is not "either of these" but a shape Eloquent will interpret.
+- **The period is `>= from` and `< the morning after`, not `whereBetween`.** Half the date columns in these
+  datasets are datetimes, and `between '2026-07-01' and '2026-07-31'` silently drops everything that happened
+  *during* the 31st. The form used here is right for both kinds and still uses the index, which `whereDate()`
+  on either would not. A test asserts the last day of the span is in.
+- **Item 5's ceiling refuses rather than truncating, and that decides two other things.** A thousand rows, and
+  a report that wants more comes back with its columns, no rows, and "narrow the period, or add a filter". The
+  first consequence is that the record row is honest by construction: a footer under the first thousand of nine
+  thousand rows is a total belonging to no visible set of figures, so refusing means the total of the rendered
+  rows *is* the total of the query — which is also why summing it in PHP is not a violation of "aggregation in
+  SQL". The second is that the ceiling is detected by asking for one row more than it, rather than by a
+  `count()` that would be a second query over the same rows.
+- **What cannot be totalled is still not totalled.** Only a real column of the dataset's own table reaches the
+  footer. Phase 6.1 made "outstanding by customer" unbuildable on purpose — it is a sum of a derived column,
+  and the coded ageing report is the answer — so adding it up here in PHP is precisely how that refusal would
+  have been undone by the next phase. The blank cell under it is the assertion.
+- **A grouped footer adds up sums and counts and leaves an average alone.** A total of averages is a number and
+  nothing else, which is the danger: nobody reading a record row checks whether the column above it was
+  addable.
+- **Grouping prints the related name and buckets on the foreign key**, which is 6.1's design made visible —
+  `GROUP BY contacts.name` needs a join this builder does not write, `GROUP BY contact_id` needs nothing, and
+  one statement fetches the names for the column. A bucket with nothing in it is called "None": every grouped
+  report has one, and an empty first cell reads as a rendering fault rather than as an answer.
+- **The one raw SQL fragment in the feature is `sum("total") as report_aggregate_0`**, and what makes it safe
+  is that neither half comes from a request: the column is the dataset's own declaration wrapped by the
+  connection's grammar, and the function is one of five words. There is no Eloquent form of "select sum(x) as y
+  group by z" that avoids it, and pulling the rows back to add them up in PHP is the thing item 5 forbids.
+- **A subject with no period says "every row" rather than implying one it did not apply.** Employees and
+  payslips take item 5's row-cap branch — `payslips.month` holds a month *name* — and the note and subtitle say
+  so, because "last month" over a headcount would read as this month's joiners.
+- **A definition with no columns says so.** A report that asks for nothing and a report that matched nothing
+  are different answers, and telling somebody "nothing matches this period" about the first sends them looking
+  for data that is already there.
+- **`report_definitions` is read once per request and every budget in `PanelPerformanceTest` moved by one.**
+  The surprise was *where*: `domain-rail.blade.php` renders the Reports flyout — the categories and their
+  counts — on every page in the panel, so a section's count is part of every page's shell. Reading the
+  definitions only in the reports domain would make the flyout say nine categories on the dashboard and ten on
+  a reports page, a count that changes as you navigate; leaving custom reports out of the counts would make
+  "All reports" disagree with the list the hub draws. So it is one memoised statement, and the *availability*
+  filter over it is deliberately not memoised — which subjects a reader may open can change inside the request
+  that changes it, and an existing test in `ReportDefinitionTest` proved that by failing when the first version
+  cached both halves.
+- 26 tests, 120 assertions. Items 4, 5 and — from 6.1 — the whole of the query builder are covered; item 7, the
+  builder screen, is what remains of Phase 6.
+- **Not fixed here, and not ours:** `PanelPerformanceTest`'s *page size* ceiling for the reports hub is already
+  breached on `master` — 366 KB against 360 — by the command-bar work that landed alongside Phase 6.1. This
+  item adds about a kilobyte (one more `<symbol>` in the hub's sprite, for the Custom section's icon) to a page
+  that is over its ceiling for a different reason. Raising that number to cover somebody else's markup is the
+  formality that file warns about, so it is left red and stated here instead.
 
 **2026-08-25 — saved report definitions and the builder's permissions (Phase 6.2: items 3 and 6).**
 

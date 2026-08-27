@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Support\Ai;
+namespace App\Modules\Accounting\Support;
 
 use App\Modules\Accounting\Models\TransactionType;
-use App\Modules\Accounting\Support\AmountWords;
-use App\Modules\Accounting\Support\CommandGrammar;
+use App\Support\Ai\StructuredModel;
 use Illuminate\Support\Carbon;
 
 /**
@@ -34,6 +33,15 @@ use Illuminate\Support\Carbon;
  *
  * It implements {@see StructuredModel} and returns the same shape, so nothing downstream knows the
  * difference: the resolvers, the sign rules, the confirmation and the booking are unchanged.
+ *
+ * **In Accounting rather than beside the interface it implements, and `ModuleBoundaryTest` is why.** This
+ * started in `App\Support\Ai`, next to `Claude` and `StructuredModel` — and it is the one driver in that
+ * directory that is not generic: it reads {@see CommandGrammar}'s direction words, {@see AmountWords},
+ * and `transaction_types`. Shared code that needs a module's classes is that module's code, or every other
+ * module depends on Accounting through the back door. The *interface* stays shared, which is the part that
+ * has to be: a second driver for another module's commands would implement the same one from its own
+ * directory. The container binding lives in a provider, which is the layer that exists to wire modules
+ * together and is exempt for that reason.
  */
 class LocalPatternModel implements StructuredModel
 {

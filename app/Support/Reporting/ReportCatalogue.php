@@ -22,6 +22,23 @@ namespace App\Support\Reporting;
 class ReportCatalogue
 {
     /**
+     * Where a report somebody assembled appears — `docs/reports-expansion-plan.md` Phase 6, item 4.
+     *
+     * > It appears in the hub in a **Custom** section beside the coded reports, which is also the answer to
+     * > "where do I find the one I made".
+     *
+     * **Named here and filled by `Reports::sections()`, which is the one section no module registers into.**
+     * Every other section holds page classes known when a provider boots; this one holds rows of
+     * `report_definitions`, which are per company, per reader and per moment. So the heading lives with the
+     * others — one place names the sections — and the rows arrive at render time.
+     *
+     * **Last, and it is the one ordering decision in this feature.** The coded reports are the ones everybody
+     * in a company shares and the ones a new person is told to look at; a list that opened with four of
+     * somebody's working notes would bury them.
+     */
+    public const CUSTOM = 'Custom';
+
+    /**
      * The sections, in reading order, with the reports registered into each.
      *
      * Declared here rather than created on first use so the hub's order is a decision instead of a

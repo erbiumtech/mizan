@@ -94,10 +94,29 @@ class PanelPerformanceTest extends TestCase
      * somebody would drag a card and watch it spring back. A stale *figure* is a trade this application makes
      * deliberately; a stale *arrangement* is a bug report.
      */
+    /*
+     * **Every budget moved by one on 2026-08-26 for Phase 6.4's custom reports, and the reason it hits all three
+     * pages is worth stating rather than absorbing.** A report somebody assembled is a row of
+     * `report_definitions`, so the hub cannot list one without reading them — the same "cannot render it without
+     * reading it" as Phase 7's layout. What makes this land on the *dashboard* and on the *employees* index as
+     * well is `filament/partials/domain-rail.blade.php`: the rail's Reports flyout renders the categories and
+     * their counts on every page in the panel, so the count of a section is part of every page's shell.
+     *
+     * Two alternatives were considered and both were worse than one query. Reading the definitions only in the
+     * reports domain would make the flyout say nine categories on the dashboard and ten on a reports page, which
+     * is a count that changes as you navigate — a bug report. Leaving custom reports out of the counts entirely
+     * would mean the flyout's "All reports" number disagrees with the list the hub draws.
+     *
+     * What is available to reduce is reduced: the read is memoised per request in
+     * `ReportDefinition::visible()`, so the section chips, the counts, the rows, the column and `select()`'s own
+     * check share one statement — `report_definitions` appears exactly once in each statement list. The
+     * availability filter over it is deliberately *not* memoised, because which subjects a reader may open can
+     * change inside the request that changes it.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 33, 'warm' => 8],
-        'employees' => ['cold' => 30, 'warm' => 10],
-        'reports' => ['cold' => 29, 'warm' => 6],
+        'dashboard' => ['cold' => 34, 'warm' => 9],
+        'employees' => ['cold' => 31, 'warm' => 11],
+        'reports' => ['cold' => 30, 'warm' => 7],
     ];
 
     private Company $company;
@@ -270,6 +289,18 @@ class PanelPerformanceTest extends TestCase
      * What is *not* in that figure and is worth knowing: 88.6 KB of the dashboard is inline SVG, most of it
      * the domain rail's flyouts, which this comment has accepted as a measured cost since it was written. If
      * a future phase needs the ceiling back, the rail is where the bytes are — not the widgets.
+     *
+     * **The card gave way a second time, on 2026-08-26, and the thing that gave was whitespace.** The plan
+     * finished at fifty-two reports and the hub reached 370.8 KB against 360 — the arithmetic this comment
+     * predicted, arriving on schedule. Measured before touching anything: an explorer row was **947 bytes**,
+     * of which some 450 was the indentation of a block laid out over twenty-four lines, and the sidebar
+     * column's link was 316 bytes for a single anchor. Fifty-two of each, twice over on the same page.
+     *
+     * Writing those two loop bodies as one line each — with everything the attributes used to say moved into
+     * a comment above the loop, where it reads better anyway — took the row to **481 bytes**, the link to
+     * **125**, and the page to **335.9 KB**. Thirty-five kilobytes, no behaviour changed, and the ceiling
+     * did not move. Which is the same answer as 2026-08-24's: what a page repeats fifty times is where its
+     * bytes are, and formatting the browser discards is the cheapest kilobyte in the building.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {

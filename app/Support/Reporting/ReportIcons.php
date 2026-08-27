@@ -44,6 +44,11 @@ class ReportIcons
         'Sales & pipeline' => 'heroicon-o-presentation-chart-line',
         'People & payroll' => 'heroicon-o-users',
         'Operations' => 'heroicon-o-cog-6-tooth',
+
+        // The reports somebody assembled — Phase 6, item 4. Mapped rather than left to the fallback because
+        // this is the one section whose rows are *not* the same for two people, and the icon is what says so
+        // in a list where every other row is a report the whole company has.
+        ReportCatalogue::CUSTOM => 'heroicon-o-squares-plus',
     ];
 
     /**
