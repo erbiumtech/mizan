@@ -183,14 +183,14 @@ Nothing here ships a report; it removes the friction from the thirty-odd that fo
    totals column, which `table` can render but not total per column beyond one footer row. Either
    extend `table` with a `column_totals` flag or add a kind. Decide before writing the payroll
    register, because it is the shape three reports share.
-3. **A `period` filter alongside `month`.** Several new reports are read for a month *or* a quarter
+3. *Superseded, 2026-08-24 by Phase 5.1 — `DashboardPeriod` is this filter, on the page that needed it, and no coded report asked for a second one.* **A `period` filter alongside `month`.** Several new reports are read for a month *or* a quarter
    (`ASKS` currently offers account/budget/search/month). Add `period` — from/to through
    `ReportPeriod` — rather than letting each report invent its own date pair.
 4. **Extend `ReportPaneTest`'s coverage loop** to assert every new report's payload shape as they land;
    it already loops the catalogue, so this is free once the reports are registered. *Confirmed free,
    2026-08-23: the five CRM reports arrived in that loop with no change to it. Its "not empty" floor was
    raised from 17 to 23 to match, so a report that stops being registered fails it too.*
-5. **Make `FilamentReportPagesSmokeTest` enumerate the hub rather than a hand-written list.** It names
+5. *Done, 2026-08-16 with Phase 1.1 — it loops `Reports::linkedPages()`, plus GnuCash Import, which is not in the hub and is still a page worth rendering.* **Make `FilamentReportPagesSmokeTest` enumerate the hub rather than a hand-written list.** It names
    eight page classes literally, so a new report page renders in nobody's test until somebody remembers
    to add it. `Reports::linkedPages()` is the list it should loop — one change, and every report added
    below arrives with a render test. Do this before Phase 1, not after.
@@ -200,7 +200,7 @@ Nothing here ships a report; it removes the friction from the thirty-odd that fo
 Highest value per hour of work in this plan, because the computation and its tests exist. Each item is
 a page + hub entry + pane adapter, with **no new business logic**.
 
-1. **General Ledger** — `generalLedger($from, $to)`, rendered as the `ledger` kind: every account,
+1. *done, 2026-08-16.* **General Ledger** — `generalLedger($from, $to)`, rendered as the `ledger` kind: every account,
    its entries in date order, opening → movement → closing. The one report an auditor asks for first,
    and the only reason it is missing is that nothing ever called the method. Drill-through to the
    account register already exists (`ReportPane::drillable()`).
@@ -351,7 +351,7 @@ and it would be quicker to re-derive each figure inline.
    is explicit about the failure mode here — caching across requests without the tenant in the key is a
    cross-tenant leak — and a five-minute TTL on a twelve-month revenue series is the difference between
    a dashboard and a report that runs fifteen times a day per user.
-9. **Guards**: extend `PanelPerformanceTest` with a dashboard query ceiling (it is the most-loaded page
+9. *done, 2026-08-24 and 2026-08-25 — the ceiling is in `PanelPerformanceTest::BUDGET`, moved 32 → 33 → 34 since, each time with the reason recorded there; `FilamentWidgetsSmokeTest` loops `Filament::getWidgets()`.* **Guards**: extend `PanelPerformanceTest` with a dashboard query ceiling (it is the most-loaded page
    in the panel), and make `FilamentWidgetsSmokeTest` enumerate the panel's registered widgets rather
    than a hand-written list of five.
 

@@ -33,11 +33,27 @@ npm ci
 npm run build
 
 echo "==> Database"
-# Landlord only. Each company's own database is migrated by
-# `php artisan tenants:artisan migrate --tenant=...` — see App\Support\TenantMigrations —
-# which is a separate decision from deploying code, because it runs per company
-# and can take a while.
+# Landlord only. Each company's own database is migrated by `php artisan tenants:migrate`
+# — see App\Support\TenantMigrations — which is a separate decision from deploying
+# code, because it runs per company and can take a while. It is printed again at the
+# end of this script, because a release whose tenant schema is behind fails at the
+# first screen that reads a new table rather than here.
 php artisan migrate --force
+
+echo "==> Permissions and roles"
+# **Not optional, and idempotent.** A module declares its permissions in its own
+# `module.php`, and a policy that checks one the database has not got does not deny —
+# `hasPermissionTo()` *throws*, so the panel 500s rather than hiding a button.
+# PermissionSeeder's own docblock names that failure. It is exactly what a release
+# that adds a permission and forgets this step ships.
+#
+# Both are safe to re-run: the first writes the declared set (with a guard against
+# discovering nothing, which would otherwise wipe the table), and the second syncs
+# every company's five roles — Administrator gains a new module's permissions the
+# moment they exist, which is the other half of why this belongs in every deploy
+# rather than in a runbook somebody follows when they remember.
+php artisan db:seed --class=Database\\Seeders\\PermissionSeeder --force
+php artisan db:seed --class=Database\\Seeders\\RoleSeeder --force
 
 echo "==> Caches"
 # Clear first: `optimize` writes over the config and route caches, but a view
@@ -59,8 +75,16 @@ echo "==> Restart workers"
 php artisan queue:restart
 
 echo
-echo "Done. If OPcache is running with opcache.validate_timestamps=0, restart"
-echo "PHP-FPM now — otherwise it will keep serving the release before this one:"
+echo "Done. Two things this script deliberately does not do:"
 echo
-echo "    sudo systemctl reload php8.3-fpm"
+echo "  1. Tenant migrations. They run per company and can take a while, so they are"
+echo "     a decision rather than a step — but a release whose tenant schema is behind"
+echo "     fails at the first screen that reads a new table:"
+echo
+echo "         php artisan tenants:migrate"
+echo
+echo "  2. Restart PHP-FPM. If OPcache runs with opcache.validate_timestamps=0 it will"
+echo "     keep serving the release before this one:"
+echo
+echo "         sudo systemctl reload php8.3-fpm"
 echo
