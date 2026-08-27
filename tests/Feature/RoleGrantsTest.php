@@ -363,13 +363,29 @@ class RoleGrantsTest extends AccountingTestCase
      * they could not already open. What it protects is the company's own list of reports: an unshared
      * definition is somebody's working note, and a hub filling up with forty of them is a hub nobody reads.
      *
+     * Phase 8 of the reports plan, scheduled reports — **five names, four of them granted.** **Employee gains
+     * nothing; Accountant +3** (`ReportScheduleView`, `ReportScheduleCreate`, `ReportScheduleUpdate`),
+     * inherited upward, **and CEO +1** (`ReportScheduleDelete`) with the other deletes.
+     * `ReportSendExternal` is granted to no role and therefore moves no count.
+     *
+     * Keeping a schedule sits with `ReportBuild` on the same reasoning: anybody trusted to read the ledger is
+     * trusted to have it emailed to them. What stops that being a way to send *somebody else's* rows is not a
+     * permission but the policy — update and delete are the owner's own, because a schedule renders with its
+     * owner's access and editing its recipient list would be sending their figures to a list they never
+     * agreed to.
+     *
+     * `ReportSendExternal` is Administrator's alone, and it is the one name in this phase that is not a CRUD
+     * verb. An address matching nobody in the company is a report *leaving* the company — nobody has to log in
+     * to read it and nothing in the application records who forwarded it — so the decision belongs with the
+     * person who can already see everything, and every external delivery is recorded on the delivery row.
+     *
      * @var array<string, int>
      */
     private const EXPECTED = [
         'Employee' => 69,
-        'Accountant' => 150,
-        'Manager' => 192,
-        'CEO' => 212,
+        'Accountant' => 153,
+        'Manager' => 195,
+        'CEO' => 216,
     ];
 
     protected function setUp(): void

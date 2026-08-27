@@ -624,8 +624,25 @@ class CrmReportsTest extends TestCase
     {
         $pages = collect(ReportCatalogue::sections()['Sales & pipeline'] ?? [])->keys();
 
-        $this->assertCount(5, $pages, 'the Sales & pipeline section should hold exactly the five CRM reports');
+        /*
+         * CRM's five are what this file owns, so they are named rather than counted.
+         *
+         * The section is **not** CRM's alone any more: `docs/reports-expansion-plan.md` Phases 3.3, 3.10 and
+         * 3.11 put Quotation Conversion, the Consent Register and Campaign Performance in it, each a decision
+         * recorded there and in `ReportsHubTest`. This used to assert the section held exactly five, which
+         * turned every later report filed beside these into a failure in the CRM tests — a count that asserts
+         * somebody else's decision.
+         */
+        foreach ([PipelineByStage::class, SalesForecast::class, WinLoss::class, RottingDeals::class, TargetAttainment::class] as $page) {
+            $this->assertContains($page, $pages->all(), class_basename($page).' is not in the hub');
+        }
 
+        // Guards the loop below, which passes trivially over an empty section.
+        $this->assertGreaterThanOrEqual(5, $pages->count());
+
+        // And the rule is checked for every report in the section rather than only for CRM's: a key
+        // registered under one name and paged under another renders on its own page and is missing from the
+        // hub, which is the same confusing half-failure whoever put it there.
         foreach ($pages as $page) {
             $key = class_basename($page);
 

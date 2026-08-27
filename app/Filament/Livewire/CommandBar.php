@@ -105,9 +105,31 @@ class CommandBar extends Component
      */
     public static function available(): bool
     {
-        return (bool) config('ai.enabled')
-            && app(StructuredModel::class)->isConfigured()
-            && auth()->user()?->can('create', \App\Modules\Accounting\Models\JournalEntry::class) !== false;
+        if (! config('ai.enabled') || ! app(StructuredModel::class)->isConfigured()) {
+            return false;
+        }
+
+        /*
+         * The permission question must not be able to break the page this sits in.
+         *
+         * This is rendered from the panel's topbar, so it runs on **every screen** — and
+         * `JournalEntryPolicy::create()` asks `hasPermissionTo()`, which throws
+         * `PermissionDoesNotExist` for a name the permissions table has not got. On a half-seeded
+         * install — a new module whose seeder has not run yet, a restore taken mid-deploy — that
+         * exception is not a command bar that fails to appear, it is a 500 on the dashboard, on
+         * every list, and on the profile page somebody is trying to change their password from.
+         * `PasswordChangeTest` caught exactly that.
+         *
+         * Rescued to a denial rather than reported, because the rest of this application already
+         * takes that position: `ModuleAuthorization` treats a permission it cannot resolve as a
+         * refusal, and a command bar is a convenience — if authorization cannot be determined, it is
+         * not offered.
+         */
+        return rescue(
+            fn (): bool => (bool) auth()->user()?->can('create', \App\Modules\Accounting\Models\JournalEntry::class),
+            false,
+            report: false,
+        );
     }
 
     public function isAvailable(): bool

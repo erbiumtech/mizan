@@ -25,6 +25,11 @@ class EmailTemplate extends Model
         'expense_claim_submitted' => ['employee_name', 'amount', 'description', 'claimed_on', 'company'],
         'expense_claim_decided' => ['employee_name', 'amount', 'description', 'decision', 'reason', 'company'],
         'employee_change_request' => ['employee_name', 'requester', 'company'],
+        // A scheduled report, with the file attached — reports-expansion-plan.md Phase 8, item 7. No
+        // recipient name among the placeholders on purpose: a recipient may be an address with no account
+        // here, so there is no name to fill in and a greeting that said "Hello {employee_name}" would arrive
+        // with the braces showing.
+        'report_delivered' => ['report', 'period', 'company'],
     ];
 
     protected $fillable = ['key', 'subject', 'greeting', 'body', 'action_label', 'closing', 'is_active'];

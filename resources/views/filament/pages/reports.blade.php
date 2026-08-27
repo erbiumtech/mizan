@@ -155,32 +155,30 @@
                 </div>
             </div>
 
+            {{--
+                One row per report, and it is deliberately written as one line.
+
+                **Because the indentation is 45% of it.** Measured: a row laid out over twenty-four
+                indented lines is 947 bytes, of which some 450 is whitespace the browser discards — and
+                there are fifty-two of them, so the formatting of this one block was ~23 KB of a page
+                `PanelPerformanceTest` holds to 360 KB. That test's own note predicted this moment and
+                said which way it should go: "the hub's card markup is what should give way next, not this
+                number". This is that.
+
+                What the row carries, since the attributes can no longer be read down a column:
+
+                  - `wire:click` selects the report and `wire:key` keeps Livewire's diffing stable;
+                  - `data-report-row` carries the key so the attribute is greppable per row rather than a
+                    bare flag indistinguishable from the selector string in the Alpine component above —
+                    it is what the keyboard navigation reads;
+                  - the icon comes from the sprite at the top of the page and is the *section's*, not the
+                    report's. Fifty-one distinct navigation icons distinguished nothing a reader was using
+                    and cost 30 KB inline, which is the same arithmetic as this comment;
+                  - the second line is the section, or "SHOWING NOW" for the open report.
+            --}}
             <div class="fi-explorer-list-body">
                 @forelse ($this->visibleReports() as $report)
-                    <button
-                        type="button"
-                        wire:click="select('{{ $report['key'] }}')"
-                        wire:key="row-{{ $report['key'] }}"
-                        {{-- Carries the key so the attribute is greppable per row rather than a bare flag
-                             indistinguishable from the selector string in the component above. --}}
-                        data-report-row="{{ $report['key'] }}"
-                        @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])
-                    >
-                        <span class="fi-explorer-row-icon">
-                            {{-- The section's icon, from the sprite above. A row's icon now says which
-                                 section the report is in rather than being the report's own: the fifty-one
-                                 distinct navigation icons distinguished nothing a reader was using, and
-                                 inlining them cost 30 KB the page's ceiling did not have. --}}
-                            {{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}
-                        </span>
-
-                        <span class="fi-explorer-row-text">
-                            <span class="fi-explorer-row-name">{{ $report['label'] }}</span>
-                            <span class="fi-explorer-row-meta">
-                                {{ $this->selected === $report['key'] ? 'SHOWING NOW' : $report['section'] }}
-                            </span>
-                        </span>
-                    </button>
+                    <button type="button" wire:click="select('{{ $report['key'] }}')" wire:key="row-{{ $report['key'] }}" data-report-row="{{ $report['key'] }}" @class(['fi-explorer-row', 'fi-active' => $this->selected === $report['key']])><span class="fi-explorer-row-icon">{{ \App\Support\Reporting\ReportIcons::icon($report['section']) }}</span><span class="fi-explorer-row-text"><span class="fi-explorer-row-name">{{ $report['label'] }}</span><span class="fi-explorer-row-meta">{{ $this->selected === $report['key'] ? 'SHOWING NOW' : $report['section'] }}</span></span></button>
                 @empty
                     <p class="fi-explorer-empty">Nothing matches “{{ $this->query }}”.</p>
                 @endforelse
@@ -192,7 +190,31 @@
         @php($report = $this->selectedReport())
 
         <section class="fi-explorer-pane">
-            @if ($statement)
+            {{--
+                Assembling a report — reports-expansion-plan.md Phase 6, item 7.
+
+                First in the chain because while somebody is building there is no *selected* report to draw:
+                `statement()` returns the draft, and the two partials below it are the pane's own, so what is
+                on screen while building is the report itself rather than a preview of it. The form is not
+                rendered otherwise, which is what makes the mode cost nothing on the ordinary page.
+            --}}
+            @if ($this->building)
+                @include('filament.partials.report-builder')
+
+                @if ($statement)
+                    {{-- The report's own title and period, as the pane states them for every other report:
+                         what is under the form is the report, so it says what it is. --}}
+                    <div class="fi-explorer-pane-heading">
+                        <h2 class="fi-explorer-pane-title">{{ $statement['title'] }}</h2>
+                        <p class="fi-explorer-pane-subtitle">{{ $statement['subtitle'] }}</p>
+                    </div>
+
+                    <div class="fi-explorer-pane-body">
+                        @include('filament.partials.report-tiles', ['statement' => $statement])
+                        @include('filament.partials.report-table', ['statement' => $statement])
+                    </div>
+                @endif
+            @elseif ($statement)
                 <header class="fi-explorer-pane-header">
                     <div class="fi-explorer-pane-heading">
                         <h2 class="fi-explorer-pane-title">{{ $statement['title'] }}</h2>
@@ -275,7 +297,26 @@
                             </label>
                         @endif
 
-                        <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        {{--
+                            Only for a report that has a page of its own — reports-expansion-plan.md Phase 6,
+                            item 4. A built report is drawn here and nowhere else, so its "own page" is this
+                            page with `?selected=` set, and a link back to the screen you are reading is an
+                            affordance that does nothing.
+                        --}}
+                        @if ($report['own_page'] ?? true)
+                            <a href="{{ $report['url'] }}" wire:navigate class="fi-explorer-open">Open in full page ↗</a>
+                        @endif
+
+                        {{--
+                            Editing one of my own — Phase 6, item 7.
+
+                            Mine only: a shared report belongs to whoever made it, and somebody else editing
+                            it would change what every reader of it sees. Building a new one is the answer to
+                            "I want it slightly different", and the header's own button is right there.
+                        --}}
+                        @if ($this->editableReport())
+                            <button type="button" wire:click="editReport('{{ $report['key'] }}')" class="fi-explorer-open">Edit report</button>
+                        @endif
                     </div>
 
                     {{--
