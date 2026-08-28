@@ -36,6 +36,11 @@ class CsvImportTest extends AccountingTestCase
 
     private const COST_CODES = 'construction_cost_codes';
 
+    /** The two that arrived with `docs/erpnext-gap-plan.md` Phase 5, so ageing and the shelf start filled. */
+    private const OPENING_INVOICES = 'opening_invoices';
+
+    private const OPENING_STOCK = 'opening_stock';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -251,11 +256,42 @@ class CsvImportTest extends AccountingTestCase
 
         $this->assertNotEmpty($types, 'the modules that own importable records registered nothing');
 
+        $this->seedWhatTheTemplatesReference();
+
         foreach ($types as $type) {
             $template = $this->imports()->template($type);
 
             $this->assertStringContainsString($this->imports()->columns($type)[0], $template);
             $this->assertSame(0, $this->imports()->preview($template, $type)['skipped'], "{$type} template");
+        }
+    }
+
+    /**
+     * The reference data two of the shipped templates point at.
+     *
+     * The opening-invoice and opening-stock templates name a customer and a SKU, because those imports
+     * *require* the party and the product to exist — a company loads its contacts and its catalogue first,
+     * which is the order ERPNext recommends and the order the data depends on. An empty company would skip
+     * both template rows for the right reason, and the guard above would then be measuring the fixture
+     * rather than the file.
+     *
+     * Built from each importer's own `example()` so it cannot drift: changing an example changes what is
+     * seeded here.
+     */
+    private function seedWhatTheTemplatesReference(): void
+    {
+        if (CsvImporters::has(self::OPENING_INVOICES)) {
+            \App\Modules\Invoicing\Models\Contact::firstOrCreate(
+                ['name' => CsvImporters::get(self::OPENING_INVOICES)->example()[1]],
+                ['kind' => 'customer'],
+            );
+        }
+
+        if (CsvImporters::has(self::OPENING_STOCK)) {
+            \App\Modules\Inventory\Models\Product::firstOrCreate(
+                ['sku' => CsvImporters::get(self::OPENING_STOCK)->example()[0]],
+                ['name' => 'Template widget', 'unit' => 'pcs', 'is_active' => true],
+            );
         }
     }
 
@@ -267,8 +303,14 @@ class CsvImportTest extends AccountingTestCase
         // Construction's cost codes joined at 40 when its Phase 1c landed; the library has to be loaded from a
         // spreadsheet because no proprietary code list ships, so this importer is the delivery mechanism
         // rather than a convenience. See docs/construction-management-plan.md Phase 0.
+        // Phase 5 of docs/erpnext-gap-plan.md added the last two, at 45 and 50: the opening trial balance
+        // brings in the receivables and inventory *totals*, and these bring in the documents and the lots
+        // behind them — so they come after it, which is also the order ERPNext recommends.
         $this->assertSame(
-            [self::CONTACTS, self::PRODUCTS, self::OPENING_BALANCES, self::COST_CODES],
+            [
+                self::CONTACTS, self::PRODUCTS, self::OPENING_BALANCES, self::COST_CODES,
+                self::OPENING_INVOICES, self::OPENING_STOCK,
+            ],
             CsvImporters::keys(),
         );
 
@@ -296,6 +338,15 @@ class CsvImportTest extends AccountingTestCase
         $this->assertSame(
             'Balances as at',
             CsvImporters::get(self::OPENING_BALANCES)->dateField()['label'],
+        );
+
+        // Opening invoices ask for no date and opening stock does, which is the distinction Phase 5 had to
+        // get right: an invoice's own date is what ages it, so a single "as at" would flatten a year of
+        // ageing into one bucket — while a stock count is a single fact about a single day.
+        $this->assertNull(CsvImporters::get(self::OPENING_INVOICES)->dateField());
+        $this->assertSame(
+            'Stock on hand as at',
+            CsvImporters::get(self::OPENING_STOCK)->dateField()['label'],
         );
     }
 }

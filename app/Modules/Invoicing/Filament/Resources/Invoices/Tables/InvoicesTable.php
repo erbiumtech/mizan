@@ -46,19 +46,23 @@ class InvoicesTable
                 TextColumn::make('kind')
                     ->label('Kind')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => $state === Invoice::KIND_CREDIT_NOTE
-                        ? 'Credit note'
-                        : ucfirst($state))
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        Invoice::KIND_CREDIT_NOTE => 'Credit note',
+                        Invoice::KIND_DEBIT_NOTE => 'Debit note',
+                        default => ucfirst($state),
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'sale' => 'info',
                         'purchase' => 'warning',
                         // Danger, like a void: both mean money coming back off a sale, and a
                         // credit note in a list of invoices needs to be impossible to skim past.
-                        Invoice::KIND_CREDIT_NOTE => 'danger',
+                        //
+                        // A debit note is the same colour for the same reason, on the other side — Phase 5.
+                        Invoice::KIND_CREDIT_NOTE, Invoice::KIND_DEBIT_NOTE => 'danger',
                         default => 'gray',
                     })
-                    // What it credits, so a credit note is never an orphan on screen.
-                    ->description(fn (Invoice $record): ?string => $record->isCreditNote()
+                    // What it adjusts, so neither note is ever an orphan on screen.
+                    ->description(fn (Invoice $record): ?string => $record->isAdjustment()
                         ? 'against '.($record->creditedInvoice?->invoice_number ?? 'the balance')
                         : null)
                     ->sortable(),
@@ -192,11 +196,11 @@ class InvoicesTable
             Action::make('recordPayment')
                 ->label('Record Payment')
                 ->icon('heroicon-o-banknotes')
-                // Hidden on a credit note rather than offered and refused: nobody pays one,
-                // and the service says so at length if asked.
+                // Hidden on either note rather than offered and refused: nobody pays one, and the service
+                // says so at length if asked.
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoicePay') ?? false)
                     && $record->isOpen()
-                    && ! $record->isCreditNote())
+                    && ! $record->isAdjustment())
                 ->schema(self::paymentFields())
                 ->action(fn (array $data, Invoice $record) => self::run(fn (InvoiceService $s) => $s->recordPayment($record, (float) $data['amount'], $data['date'], isset($data['rate']) && $data['rate'] !== '' ? (float) $data['rate'] : null), 'Payment recorded')),
 
@@ -281,6 +285,49 @@ class InvoicesTable
                         'granted_on' => $data['commissioner_granted_on'] ?? null,
                     ]),
                     'Credit note drafted'
+                )),
+
+            /**
+             * Debit — the same correction on the purchase side, `docs/erpnext-gap-plan.md` Phase 5.
+             *
+             * Gated on `InvoiceVoid` for the reason the Credit action gives: reversing a posted document is
+             * one authority, and inventing `InvoicePurchaseAdjust` would hide the button from everybody who
+             * can already void until a seeder granted it.
+             *
+             * **Four fields fewer than Credit.** No Commissioner extension and no window, because rule 22
+             * bounds the tax on a supply this company made and reported — a supplier's bill is a document
+             * received. See `InvoiceService::debitNote()`.
+             *
+             * Offered on paid bills too, like Credit: a bill already paid is exactly the one nothing else
+             * can correct, and the note then stands as a credit against the supplier's balance.
+             */
+            Action::make('debit')
+                ->label('Debit')
+                ->icon('heroicon-o-receipt-refund')
+                ->color('warning')
+                ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoiceVoid') ?? false)
+                    && $record->kind === Invoice::KIND_PURCHASE
+                    && ! $record->isDraft()
+                    && $record->status !== Invoice::STATUS_VOID
+                    && ! $record->isFullyCredited())
+                ->modalHeading('Raise a debit note')
+                ->modalDescription('This creates a debit note for the whole bill as a draft. Nothing posts '
+                    .'until you issue it, so you can edit its lines down first if only part of the bill is '
+                    .'being reversed.')
+                ->modalSubmitActionLabel('Create draft debit note')
+                ->schema([
+                    Textarea::make('reason')
+                        ->label('Why')
+                        ->required()
+                        ->rows(2)
+                        ->maxLength(255)
+                        ->helperText('What the supplier will be told, and the only part of the claim the '
+                            .'figures cannot show. Goods returned, billed twice, quantity overstated — and '
+                            .'their own credit note reference once you have it.'),
+                ])
+                ->action(fn (array $data, Invoice $record) => self::run(
+                    fn (InvoiceService $s) => $s->debitNote($record, $data['reason']),
+                    'Debit note drafted'
                 )),
         ];
     }

@@ -26,14 +26,20 @@
     <div class="header">
         <div>
             {{-- A credit note titled "Invoice" is a document that lies about what it is: the
-                 customer files it as a bill and pays it. --}}
-            <h1>{{ $invoice->isCreditNote() ? 'Credit Note' : ($invoice->kind === 'purchase' ? 'Bill' : 'Invoice') }} {{ $invoice->invoice_number }}</h1>
+                 customer files it as a bill and pays it. A debit note titled "Bill" is the same
+                 mistake on the purchase side — the supplier would file it as a charge to pay. --}}
+            <h1>{{ match ($invoice->kind) {
+                'credit_note' => 'Credit Note',
+                'debit_note' => 'Debit Note',
+                'purchase' => 'Bill',
+                default => 'Invoice',
+            } }} {{ $invoice->invoice_number }}</h1>
             <div class="muted">Date: {{ $invoice->invoice_date->format('d M Y') }}</div>
-            @if ($invoice->due_date && ! $invoice->isCreditNote())
+            @if ($invoice->due_date && ! $invoice->isAdjustment())
                 <div class="muted">Due: {{ $invoice->due_date->format('d M Y') }}</div>
             @endif
-            @if ($invoice->isCreditNote() && $invoice->creditedInvoice)
-                <div class="muted">Against invoice: {{ $invoice->creditedInvoice->invoice_number }}</div>
+            @if ($invoice->isAdjustment() && $invoice->creditedInvoice)
+                <div class="muted">Against {{ $invoice->isDebitNote() ? 'bill' : 'invoice' }}: {{ $invoice->creditedInvoice->invoice_number }}</div>
             @endif
             @if ($invoice->credit_reason)
                 <div class="muted">Reason: {{ $invoice->credit_reason }}</div>
@@ -84,10 +90,14 @@
     <table class="totals">
         <tr><td>Subtotal</td><td class="num">{{ number_format($invoice->subtotal, 2) }}</td></tr>
         <tr><td>Tax</td><td class="num">{{ number_format($invoice->tax_amount, 2) }}</td></tr>
-        <tr class="grand"><td>{{ $invoice->isCreditNote() ? 'Total credited (PKR)' : 'Total (PKR)' }}</td><td class="num">{{ number_format($invoice->total, 2) }}</td></tr>
-        {{-- Suppressed on a credit note. Nobody pays one, so "Paid 0.00 / Outstanding 1,000.00"
+        <tr class="grand"><td>{{ match ($invoice->kind) {
+            'credit_note' => 'Total credited (PKR)',
+            'debit_note' => 'Total debited (PKR)',
+            default => 'Total (PKR)',
+        } }}</td><td class="num">{{ number_format($invoice->total, 2) }}</td></tr>
+        {{-- Suppressed on either note. Nobody pays one, so "Paid 0.00 / Outstanding 1,000.00"
              reads as a demand for money on a document that is the opposite of one. --}}
-        @unless ($invoice->isCreditNote())
+        @unless ($invoice->isAdjustment())
             <tr><td>Paid</td><td class="num">{{ number_format($invoice->amount_paid, 2) }}</td></tr>
             <tr><td>Outstanding</td><td class="num">{{ number_format($invoice->outstanding(), 2) }}</td></tr>
         @endunless

@@ -30,6 +30,18 @@ class EmailTemplate extends Model
         // here, so there is no name to fill in and a greeting that said "Hello {employee_name}" would arrive
         // with the braces showing.
         'report_delivered' => ['report', 'period', 'company'],
+        /*
+         * An overdue reminder to a customer — `docs/erpnext-gap-plan.md` Phase 5.
+         *
+         * The one notification on this list that goes to somebody outside the company, which is why the
+         * wording being a company's own matters more here than anywhere else: the shipped text is polite and
+         * neutral, and a company that chases differently — or in Urdu — should not be sending ours.
+         *
+         * `contact_name` rather than `employee_name`: the reader is a customer. There is no amount for the
+         * *account*, only for the invoice, because a reminder about one invoice is a reminder somebody can
+         * act on and a statement of account is a different document (§4, item 1).
+         */
+        'invoice_overdue' => ['contact_name', 'invoice_number', 'amount', 'due_date', 'days_overdue', 'company'],
     ];
 
     protected $fillable = ['key', 'subject', 'greeting', 'body', 'action_label', 'closing', 'is_active'];

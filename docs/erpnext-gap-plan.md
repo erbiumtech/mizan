@@ -1,6 +1,8 @@
 # What ERPNext's accounting module has that we do not
 
-**Status:** Analysis and plan. Nothing here is built.
+**Status:** Built. Phases 1–5 landed on 2026-08-28, one commit each; what each one *turned out* to be is
+recorded in §3.1–§3.4, including the six places this analysis was wrong. §4 is still a plan and nothing in it
+is built.
 **Created:** 2026-08-28
 **Constraint:** additive only — nothing that works today changes behaviour, and every phase is built out of
 machinery this application already has. §3 says what each one reuses, and lists the four things an earlier
@@ -11,9 +13,11 @@ draft of this document proposed that the constraint threw out.
 - **A profit and loss by department, branch or project is wanted** — asked for, not inferred. So Phase 1 is
   justified in full, including the resolver and the grouping, rather than stopping at the audit-trail half.
 - **The company does pay contractors under §153, and treats the deduction as optional here** — handled
-  outside the application for now. Phase 4 therefore stays written down and **unscheduled**, rather than
-  going first as an earlier draft of this section recommended. The risk that comes with that choice is named
-  in §2.4 and is the company's to carry, not this document's to re-argue.
+  outside the application for now. Phase 4 was therefore written down and **unscheduled** rather than going
+  first, as an earlier draft of this section recommended. It was then **built the same day, on request**; the
+  reasoning for not scheduling it stands unchanged and is kept in §3 beside the phase, because it is why the
+  phase is optional rather than urgent. The risk named in §2.4 is now carried by the application instead of
+  by a person, which is the whole of what changed.
 
 **Source read (2026-08-28, second pass):** the accounting module, not the index. Thirty pages —
 `accounting-introduction`, `chart-of-accounts`, `how-transactions-affect-the-ledger`,
@@ -62,19 +66,19 @@ Grouped under ERPNext's own headings, so the comparison can be checked against t
 | **GL Entry** | `journal_entries` + `journal_entry_lines`, draft → pending → approved → posted, balanced at post | Present, and stricter: ERPNext has no approval step |
 | **Payment Ledger Entry** — party subledger | Nothing. Party lives on `invoices`, never on a ledger line | **Gap — §2.2** |
 | **[2nd pass] Payment Ledger, read properly** — "keeps that invoice-to-payment relationship" and *does not create duplicate accounting postings*; AR and AP are computed from it rather than from invoices or from the GL | `invoices.amount_paid` (a running total) and `InvoiceEvent` rows (a narrative). No record of which receipt settled which invoice beyond a memo | **Gap — §2.2, and not the one I described first** |
-| **Accounts Settings**, frozen dates | Year-level only: `fiscal_years.closed_at`, enforced in `JournalEntryService::post` (:216-223) | **Partial gap — §2.3** |
+| **Accounts Settings**, frozen dates | Year-level only: `fiscal_years.closed_at`, enforced in `JournalEntryService::post` (:216-223) | **Closed by Phase 3** — `accounting.ledger_frozen_before` plus a `JournalEntryBackdate` exemption; §2.3, §3 |
 | **Finance Books** — parallel depreciation bases | One basis, `DepreciationService` | Gap, low value — §4 |
 | **Chart of Accounts Importer** | `GnuCashImportService` + `GnuCashImport` page | Present in effect |
 | **Sales Invoice** | `invoices` with `kind = sale`, lines, tax, FBR digital invoicing | Present |
 | **Credit Notes** | `credits_invoice_id` + `credit_reason` + `InvoiceService::creditNote()` (:537) with an adjustment window | Present |
 | **Accounts Receivable / ageing** | `InvoiceService::aging()` (:919), `AgedReceivables`, `AgedInvoices` reports | Present — but computed from invoices, not the ledger (§2.2) |
 | **Payment Requests** — customer pay links | Nothing | Gap, low value — §4 |
-| **Dunning** — overdue follow-up | Nothing | Gap — §4, and cheaper here than in ERPNext |
+| **Dunning** — overdue follow-up | Nothing | **Closed by Phase 5** — `OverdueReminderService`, off by default, the letter only; §3.4 |
 | **Purchase Invoice** | `invoices` with `kind = purchase`, `purchaseEntryLines()` (:1081) | Present |
-| **Debit Notes** | Credit-note machinery is sale-shaped | Small gap — §4 |
+| **Debit Notes** | Credit-note machinery is sale-shaped | **Closed by Phase 5** — `KIND_DEBIT_NOTE` through the same guards; §3.4 |
 | **Accounts Payable / ageing** | `outstandingPayables()` (:914), `AgedPayables` | Present |
 | **Payment Orders** — approval before release | `payments` draft → approved → exported → paid, `SecondApproverRule`, `BankPaymentExportService` | Present, and better: a real bank file comes out of it |
-| **Tax Withholding** — deduct at source from suppliers | Payroll §149 only (`PayslipService`, `FbrTaxFile`). Nothing on supplier payments | **Gap — §2.4** |
+| **Tax Withholding** — deduct at source from suppliers | Payroll §149 only (`PayslipService`, `FbrTaxFile`). Nothing on supplier payments | **Closed by Phase 4** — `WithholdingService`, two tables, one line on the payment's entry; §2.4, §3.3 |
 | **[2nd pass] Tax Withholding Category, read properly** — rates by date range; single-transaction threshold *and* cumulative threshold; "deduct only on the excess"; round-off; a **Tax Withholding Group** so one category can hold two rates for two classes of party; deduction at invoice by default and at payment for advances, deduplicated between them; an account head per company; and a **Tax Withholding Entries** table recording category, taxable base, rate, amount and source document | — | **§2.4, and it corrects the plan I wrote — see there** |
 | **Payment Entry** — receipts, payments, transfers | `PaymentService`, `BankTransferService`, and `InvoiceService::recordPayment()` (:264) one invoice at a time | **Partial gap — §2.2** |
 | **Payment Reconciliation** — allocate unallocated | Nothing | **Gap — §2.2** |
@@ -86,13 +90,13 @@ Grouped under ERPNext's own headings, so the comparison can be checked against t
 | **Stock Entries**, perpetual inventory | `stock_movements`, `InventoryService` posts its own journal entries, `InventoryValuationService`, `StockOnHand` | Present |
 | **Depreciation Schedules** | `fixed_assets`, `DepreciationService`, `FixedAssetRegister` | Present |
 | **Expense Claims** | `Expenses` module, `ExpenseClaimsReport` | Present |
-| **Deferred Revenue / Expense** | Nothing | Gap — §4, and small |
+| **Deferred Revenue / Expense** | Nothing | **Closed by Phase 5** — `DeferralService` over `ScheduledTransaction`, both directions; §3.4 |
 | **[2nd pass] Deferred revenue, mechanically** — per invoice *row*: a deferred liability account, service start/end/stop dates; recognition monthly or prorated by days (a company-wide setting); run by a background job or by a manual *Process Deferred Accounting*; optionally booked through Journal Entries rather than straight GL rows | — | Sharpens §5's estimate rather than changing it |
 | **Subscriptions** — recurring billing | `RecurringInvoice`, `BillingRun`, `SubscriptionBillingService`, `BeneficiarySubscription` | Present |
 | **Projects & Timesheets** — service billing | `Projects`, `Timesheets`, `UnbilledWip`, `TimesheetUtilisation`, `PlanVersusActual` | Present |
-| **Cost Centers** | Nothing. `employees.department` is free text (`2026_06_19_105813:17`) | **Gap — §2.1** |
+| **Cost Centers** | Nothing. `employees.department` is free text (`2026_06_19_105813:17`) | **Answered by Phase 1** — not a column but the source morph plus `LedgerDimensions`; §2.1, §3.1 |
 | **[2nd pass] Cost Center Allocation** — one posted cost centre split across several by percentage, applied when the GL rows are written, effective-dated and never retroactive | Nothing, and nothing to hang it on | Not a gap — evidence for §5: even ERPNext needed a second mechanism to correct a dimension after the fact |
-| **Accounting Dimensions** | Nothing on the ledger. `invoices.project_id` exists, and `RevenueByDimension` reports it *from invoices* | **Gap — §2.1, the main finding** |
+| **Accounting Dimensions** | Nothing on the ledger. `invoices.project_id` exists, and `RevenueByDimension` reports it *from invoices* | **Answered by Phase 1** — `ProfitAndLossByDimension` reads them off the document each posting names; §2.1, §3.1 |
 | **Budgets** — by account, cost centre, project, dimension | `budgets` + `budget_lines` by account, `BudgetService`, `BudgetVsActual` | Present by account; the other three axes wait on §2.1 |
 | **[2nd pass] Budget *control*** — Stop / Warn / Ignore at Material Request, Purchase Order, actual expense and cumulative expense, checked annually *and* per distribution period | `BudgetService` plans and spreads; `BudgetVsActual` reports. Nothing blocks or warns on any document | **Gap — new, §4.** Ours is a budget you read; ERPNext's is a budget that argues back |
 | **Exchange Rate Revaluation** | `CurrencyRevaluationService` + `CurrencyRevaluation` page | Present |
@@ -344,6 +348,10 @@ Order, after the 2026-08-28 decisions above: **Phase 1**, then **Phase 2 item 1*
 taking out of order), then stop. Phases 3, 4 and 5 are written down and unscheduled — 3 and 5 because nobody
 has asked, 4 by decision.
 
+**What actually happened, 2026-08-28:** all five were built, in order, one commit each, on a request to build
+them all. The order above is why they went in that order, and each phase's *what it turned out to be* section
+is where the estimate and the plan are checked against what shipped.
+
 **Phase 1 — Fill in `journal_entries.source`, then derive dimensions from it. ~1 week. Scheduled.**
 *Built 2026-08-28. Two of its five items were built differently than written, and both deviations are
 recorded in §7.*
@@ -413,7 +421,9 @@ application, so this was never the emergency an earlier draft made it. What the 
 cost — "when that becomes the annoyance rather than the risk, this phase is a week" — and what it got wrong
 is that the week was mostly the *thinking*, which §2.4's second pass had already done. See §3.3.
 
-**Phase 5 — the small ones, each one a reuse.** Debit notes through `creditNote()`'s existing window and
+**Phase 5 — the small ones, each one a reuse.** *Built 2026-08-28. Four of the five landed; the fifth was
+already conditional and the condition has not been met. Two of the reuses named below turned out to be the
+wrong machinery, and both corrections are in §3.4.* Debit notes through `creditNote()`'s existing window and
 approval logic; deferred revenue as a `ScheduledTransaction`, which is already a dated recurring posting with
 a source link; dunning as a `ReportSchedule` over an overdue query with an `EmailTemplate` — the Phase 8
 delivery machinery makes this nearly free and it needs no new concept; opening invoices and opening stock as
@@ -540,10 +550,96 @@ question about the two fields below it.
 `php artisan tenants:seed-baseline` to give existing companies the sections. Neither withholds anything: a
 company that runs both and assigns no section pays every supplier exactly as it did before.
 
+## 3.4 What Phase 5 turned out to be
+
+Built 2026-08-28. Four items, four reuses, and two of the reuses this document named were wrong — which is
+the useful part of writing them down in advance.
+
+**Debit notes reused more than expected.** `credits_invoice_id` means "the document this one adjusts", so
+`creditedTotal()`, `creditableAmount()` and `isFullyCredited()` all work for a bill without a line changed —
+two partial debit notes cannot together exceed it, through the same guard the credit note uses. What made the
+rest of it nearly free was one line in `aging()`: payables now include the new kind, and Aged Payables,
+`outstandingPayables()` *and* Phase 2's control check all read that one query. `isAdjustment()` is the other
+half — the two notes behave identically everywhere that does not care which direction the money goes, so the
+new kind is not a second set of branches beside the first.
+
+- **[correction] The window and approval logic is *not* reused, and applying it would have been wrong.** The
+  plan said "through `creditNote()`'s existing window and approval logic". Rule 22 bounds the adjustment of
+  tax on a supply *this company made and reported*; a supplier's bill is a document received, and the
+  input-tax adjustment rides on the credit note the supplier issues. Reusing
+  `assertAdjustmentWindowAllows()` would have refused a bookkeeping correction by citing a rule about
+  somebody else's document — and said "output tax" while doing it. The supplier's own credit note reference
+  goes in the reason, where somebody reconciling reads it.
+- **A sentence in the application was made false and had to be corrected.** `creditNote()` refused a bill
+  with "a purchase bill is corrected by the supplier, who issues the credit note to you". True of the tax,
+  never true of the books: what the company owed still had to come down, and the only route was a journal
+  entry typed at Accounts Payable — which is precisely the posting Phase 2's check exists to complain about.
+- **And it found a live bug that has nothing to do with this plan.** `invoices.kind` was created as
+  `enum('sale', 'purchase')` in July; the credit note added a third value in August and widened nothing.
+  Laravel renders `enum` as a plain `varchar` on SQLite, which is the default tenant driver and what the whole
+  suite runs on — so nothing noticed. `.env.example` documents `TENANT_DB_DRIVER=mysql` for production, where
+  the ENUM is real: **credit notes have been unstorable on exactly the configuration production runs**, either
+  rejected outright or silently saved as the empty string, which every `where('kind', …)` then omits. The
+  column is a string now, as `invoices.status` already was, so the fifth kind will not need a migration
+  either. Worth remembering as a class of bug rather than an incident: a value list in the schema and a value
+  list in the model, with only one of them enforced, and the enforcement absent from the test environment.
+
+**[correction] Dunning is not a `ReportSchedule`.** The plan said "dunning as a `ReportSchedule` over an
+overdue query with an `EmailTemplate` — the Phase 8 delivery machinery makes this nearly free". It does not:
+a schedule sends *one rendered report to a list of internal recipients*, and a reminder is one message about
+one invoice to the customer. That is the same distinction §4's first item draws about customer statements,
+and it cuts the other way here — a reminder needs no per-recipient rendering at all, so it is a notification
+and a command rather than a schedule. What was genuinely reused: `EmailTemplate` for the wording,
+`InvoiceEvent` for "when did we last chase this?" — which is why the repeat interval needed no migration and
+is visible on the invoice — and `TenantAware` + `SkipsDisabledModules` for the daily job.
+
+- **Off by default, and that is the whole safety of shipping it.** It is the only thing in the application
+  that emails somebody outside the company. Three settings, `--dry-run` on the command, and a first test
+  asserting that nothing is sent while it is off.
+- **No interest and no fee**, as §4 said: theirs books both through the payment's deductions, and that is a
+  posting decision needing a rate, a start date and an account.
+
+**Deferred revenue was the reuse the plan promised.** `ScheduledTransaction` was already a dated monthly
+posting between two dates, so the item was the arithmetic and a pair of accounts — 2500 Deferred Revenue and
+1350 Prepaid Expenses, added to the shipped chart. The expense mirror came free (the same two lines with the
+accounts swapped) and was built rather than left, because the alternative is a second class doing the mirror
+later. Two decisions worth keeping:
+
+- **The remainder is recognised immediately rather than stranded.** 1,000 over three months is 333.33, and a
+  fixed-line schedule cannot vary its last posting; deferring 999.99 leaves the cent where it already was.
+- **No surface of its own.** A deferral *is* a scheduled entry, so it is an action on that list rather than a
+  page — no manifest entry, no alias, no navigation slot for a form that writes the record the screen already
+  shows.
+
+**The two importers are what the plan said, plus one property it did not name: they post nothing.** The
+opening trial balance already carries the receivables total and the inventory value, so posting the documents
+again would double both. What they fill is the other side — the invoices ageing reads and the lots the
+valuation engine consumes — and **Phase 2's control check is what says a company entered them right.** That
+is the nicest thing in this phase: an import whose correctness is asserted by a health check written three
+phases earlier for a different reason.
+
+- Opening invoices ask for **no date field** and opening stock does: an invoice's own date is what ages it,
+  so a single "as at" would flatten a year of ageing into one bucket, while a stock count is one fact about
+  one day.
+- A part-paid opening invoice is imported as **what is left**, with no tax split: the tax on the paid part
+  was filed under the old system, and restating it here would put it in this company's next return.
+- Both refuse to overwrite anything real — a posted invoice, a stock movement with a journal entry behind it
+  — which is the guard a re-runnable import needs and the only one that matters.
+
+**Tax categories were not built, and the condition is unchanged.** The plan said "only *if* picking a rate
+per line ever becomes the annoyance ERPNext designed Tax Rules for". Nobody has asked; §4 item 9 keeps the
+design worth copying if they do.
+
 ## 4. Ranked, everything not in §3
 
 Two of these are **[2nd pass]** entries: the first read of the module missed them entirely, and one of them
 is now the highest-value item on the list.
+
+**Four of them were built on 2026-08-28 as Phase 5, and a fifth in part** — items 2, 4, 6 and 7 in full, item
+3 as the deferral itself without the invoice-line generator. They are struck through where they stand, rather than
+deleted — the ranking is a record of what was thought worth doing and in what order, and an item that turned
+out to be cheaper or differently shaped than its entry says is the useful part of keeping it. **Customer
+statements is now the top of the list**, and item 3 has half of it left.
 
 1. **[2nd pass] Customer statements** — ERPNext's *Process Statement of Accounts*: one PDF per customer,
    with their opening balance, their ledger for the period, their closing balance and an optional ageing
@@ -554,26 +650,27 @@ is now the highest-value item on the list.
    recipient*, authorised as that recipient's own. That refusal ("Per-recipient row filtering in a schedule
    … is a different feature and should be named as one") is exactly this feature, now named. Ranked first
    because it is the only item on this list a customer sees, and because the machinery is a phase old.
-2. **Debit notes** — the purchase mirror of `creditNote()`. The window and approval logic is written, and
-   ERPNext confirms the shape: theirs is the same invoice with `is_return`, not a separate document.
-3. **Deferred revenue and expense** — a schedule generated from an invoice line, recognised monthly. The
-   mechanics are now known rather than guessed: service start/end on the row, a deferred liability account,
-   monthly or day-prorated recognition chosen once for the company, run by a job. `ScheduledTransaction` is
-   the dated-posting half; the generator from an invoice line is the new part.
-4. **Dunning** — overdue reminders. Cheaper here than in ERPNext for the letter, and *not* cheaper for the
-   part I had not read: theirs books interest and a fee through the payment's deductions, which is a posting
-   decision and not an email. Take the reminder, leave the interest until somebody charges it.
+2. ~~**Debit notes**~~ — **built, Phase 5.** `KIND_DEBIT_NOTE` through the credit note's own guards, and
+   ERPNext's shape confirmed: theirs is the same invoice with `is_return`, not a separate document. What the
+   entry above got wrong is that the *window* is not reused — see §3.4.
+3. ~~**Deferred revenue and expense**~~ — **built, Phase 5**, as `DeferralService` over
+   `ScheduledTransaction`: whole months, both directions, and the remainder recognised immediately. **What
+   is still not built is the part this entry named**: the *generator from an invoice line*. Deferring is an
+   act somebody performs on an amount, not something an invoice row does by itself, and until service dates
+   exist on `invoice_lines` that is the honest shape. That is the remaining half of this item.
+4. ~~**Dunning**~~ — **built, Phase 5**, as the reminder and nothing else: off by default, one message per
+   overdue invoice, no interest and no fee. The prediction that it was "cheaper here" held; the prediction
+   about *which* machinery made it cheap did not — see §3.4.
 5. **[2nd pass] Credit limits** — a limit per customer, a role that may override it, and an overdue-exposure
    threshold that blocks new billing. Nothing here has any of it: `contacts` carries payment terms, not a
    limit. Ranked here rather than lower because it is the one control on this list that prevents a loss
    rather than reporting one, and it is a column, a setting and a guard in `InvoiceService`.
-6. **Opening stock** — ERPNext's Stock Reconciliation. `stock_movements` can express it; there is no screen,
-   so a company arriving with stock on hand has a valuation the ledger knows and the shelf does not.
-7. **Opening invoices** — the trial balance import brings in the Receivables *total*; the individual open
-   invoices behind it have to be typed, so ageing starts empty. A CSV importer alongside
-   `OpeningBalanceCsvImporter`, not a new document type. ERPNext's own guidance is worth copying with it:
-   load the chart, then invoices, then payments, then stock, then assets, then the journal for the
-   remainder — running a trial balance after each stage so an error belongs to one batch.
+6. ~~**Opening stock**~~ — **built, Phase 5**, as `OpeningStockCsvImporter`: one lot per row, no posting,
+   and re-running replaces the opening lot without touching a movement a real delivery created.
+7. ~~**Opening invoices**~~ — **built, Phase 5**, as `OpeningInvoiceCsvImporter`, and ERPNext's loading order
+   is copied into `csv-import.md` where somebody importing will read it. The property neither this entry nor
+   the phase text predicted: because these documents post nothing, **Phase 2's control check is what tells a
+   company it entered them right** — see §3.4.
 8. **[2nd pass] Budget control** — ours plans and reports; theirs stops or warns at material request,
    purchase order, actual expense and cumulative expense, annually and per period. A warn-only version over
    purchase orders is the useful half and needs no new table.

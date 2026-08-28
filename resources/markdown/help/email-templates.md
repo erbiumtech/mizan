@@ -17,6 +17,13 @@ Click **New**, then pick which **Email** it rewords from the dropdown — one of
 - Expense claim submitted
 - Expense claim decided
 - Employee change request
+- Report delivered — a scheduled report, with the file attached
+- Invoice overdue — a reminder to a **customer**
+
+The last one is worth a second look before you change it: every other email on
+this list goes to somebody who works here, and that one goes to a customer. It is
+also only ever sent if overdue reminders are switched on in Company Settings →
+*Chasing overdue invoices*.
 
 Each of these can only have one template — the Email field is unique. Fill in
 any of **Subject**, **Greeting**, **Body**, or **Closing** you want to

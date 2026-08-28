@@ -72,8 +72,8 @@ right — the invoice has been paid, or it's been reported to FBR and the 72-hou
 amendment window has closed.
 
 It's offered on any customer invoice that isn't a draft, isn't voided, and hasn't
-already been credited in full. Purchase bills can't be credited here: a supplier
-overcharging you is corrected by *their* credit note to you.
+already been credited in full. Purchase bills aren't credited — they're **debited**;
+see below.
 
 **What it does.** Creates a credit note **as a draft**, copying the invoice's
 lines, tax and currency. Nothing posts until you issue it, exactly like an
@@ -120,12 +120,71 @@ None of this applies if the company doesn't report invoices to FBR. The rule
 binds sales-tax-registered persons, so a company below the threshold can credit an
 old invoice without being asked for anything.
 
+## Debiting a bill <!-- requires: InvoiceVoid -->
+
+**Debit** is the same document on the purchase side: a debit note, numbered `DN-`,
+that reverses a supplier's bill. Use it when you're paying a supplier less than
+they billed — goods returned, a bill that overstated the quantity, work you had
+redone at your own cost.
+
+It's offered on any bill that isn't a draft, isn't voided and hasn't already been
+debited in full, and it behaves exactly like Credit does: a draft first, posting
+nothing until you issue it, and then debiting Accounts Payable and crediting back
+whatever the bill charged. A full debit note against a bill comes to nothing.
+
+**Four things worth knowing:**
+
+- **It isn't paid.** A debit note reduces what you owe and shows against the
+  supplier's balance and in Aged Payables. You settle it by paying the bill less
+  the note. If the supplier has refunded you in cash, record that as a receipt
+  into the account it arrived in.
+- **It doesn't return goods to stock either** — for a stronger reason than a
+  credit note. The bill took goods *in* at a known cost; reversing the quantity
+  automatically would take them out at whatever the valuation engine's cost is
+  today, which after any other delivery isn't what these goods cost. Record the
+  return as a stock movement against the shelf they came off.
+- **There's no 180-day limit and no Commissioner field.** That rule bounds the tax
+  on a supply *you* made and reported. A supplier's bill is a document you
+  received, and the input-tax adjustment rides on the credit note *they* issue —
+  so put their credit note reference in the reason.
+- **The reason is the important field.** It's what the supplier will be told, it's
+  on the bill's own history, and it's the only part of the claim the figures can't
+  show.
+
 ## Deleting a draft <!-- requires: InvoiceVoid -->
 
 A **Draft** invoice can be deleted outright — but the permission behind that
 button is the same one that gates Void (`InvoiceVoid`), not a separate delete
 permission. If someone can void an issued invoice, they can also delete an
 unissued one.
+
+## Chasing overdue invoices
+
+Overdue reminders are **off** until somebody switches them on: Company Settings →
+*Chasing overdue invoices*. It's the only thing in this application that emails
+anybody outside the company, so nothing is sent by default.
+
+Once on, a daily job emails the customer of every sale invoice that is past due by
+more than the number of days you set, at the address correspondence goes to (the
+primary named person, otherwise the contact's own address). Each reminder is
+recorded on the invoice's own history, and that record is what stops the same
+invoice being chased again inside the repeat interval.
+
+Try it first with:
+
+```
+php artisan invoicing:send-overdue-reminders --dry-run
+```
+
+which prints who would be chased and sends nothing.
+
+The wording is yours to change — Email Templates, key `invoice_overdue`, with
+`{contact_name}`, `{invoice_number}`, `{amount}`, `{due_date}` and
+`{days_overdue}`. The shipped letter is deliberately neutral.
+
+**No interest and no late fee.** A reminder is a message; charging for lateness is
+a posting, and it needs a rate, a start date and an account before it means
+anything. Nothing here posts.
 
 ## Recurring invoices
 

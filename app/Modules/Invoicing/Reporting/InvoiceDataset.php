@@ -91,6 +91,7 @@ class InvoiceDataset extends Dataset
                 Invoice::KIND_SALE => 'Sale',
                 Invoice::KIND_PURCHASE => 'Purchase',
                 Invoice::KIND_CREDIT_NOTE => 'Credit note',
+                Invoice::KIND_DEBIT_NOTE => 'Debit note',
             ]),
             DatasetFilter::select('status', 'Status', 'status', fn (): array => [
                 Invoice::STATUS_DRAFT => 'Draft',
