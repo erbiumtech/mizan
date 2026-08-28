@@ -207,6 +207,15 @@ return [
         ['name' => 'JournalEntryReject', 'group' => 'JournalEntry'],
         ['name' => 'JournalEntryPost', 'group' => 'JournalEntry'],
         ['name' => 'JournalEntryReverse', 'group' => 'JournalEntry'],
+        /*
+         * Posting into a frozen period — `docs/erpnext-gap-plan.md` Phase 3.
+         *
+         * `accounting.ledger_frozen_before` stops entries dated before it reaching the ledger, and this is
+         * the exemption ERPNext carries on both of its equivalents. Without one, the first genuine
+         * correction forces somebody to clear the date, post, and remember to set it back — a window that
+         * is open silently. Granted to nobody below Administrator, and the activity log records the post.
+         */
+        ['name' => 'JournalEntryBackdate', 'group' => 'JournalEntry'],
         ['name' => 'FixedAssetView', 'group' => 'FixedAsset'],
         ['name' => 'FixedAssetCreate', 'group' => 'FixedAsset'],
         ['name' => 'FixedAssetUpdate', 'group' => 'FixedAsset'],

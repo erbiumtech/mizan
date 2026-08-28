@@ -9,6 +9,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Support\TenantTransaction;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
 class JournalEntryService
@@ -49,6 +50,51 @@ class JournalEntryService
 
             return $entry;
         });
+    }
+
+    /**
+     * Nothing reaches the ledger before the frozen date — `docs/erpnext-gap-plan.md` Phase 3.
+     *
+     * There was nothing between "the year is open" and "the year is closed", so the ordinary month-end
+     * request — *stop backdating into July now that July is reported, while the year stays open* — could not
+     * be expressed. ERPNext has two mechanisms for this and only the simpler one is worth having: a frozen
+     * date. Its other one blocks selected *document types* per period, which is a permission matrix crossed
+     * with a calendar, and nobody here has asked for it.
+     *
+     * **The escape hatch is what makes it usable rather than annoying**, and it is why this takes a user
+     * rather than reading `auth()` blindly: without one, the first genuine correction forces somebody to
+     * clear the date, post, and remember to set it back — a window that is open silently and recorded
+     * nowhere. ERPNext carries the same exemption on both of its mechanisms. So the date stops everybody
+     * except a holder of `JournalEntryBackdate`, and the activity log already records who posted what.
+     *
+     * Checked at posting rather than at creation, exactly as the closed-year guard above is: a draft may be
+     * written and re-dated, and only the ledger is protected.
+     */
+    protected function refuseIfFrozen(JournalEntry $entry): void
+    {
+        $frozenBefore = setting('accounting.ledger_frozen_before');
+
+        if (blank($frozenBefore)) {
+            return;
+        }
+
+        $frozen = Carbon::parse($frozenBefore)->startOfDay();
+
+        if ($entry->entry_date->startOfDay()->greaterThanOrEqualTo($frozen)) {
+            return;
+        }
+
+        if (auth()->user()?->can('JournalEntryBackdate')) {
+            return;
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'The ledger is frozen before %s, so an entry dated %s cannot be posted. '
+            .'Date it %s or later, or ask somebody who may post into a frozen period.',
+            $frozen->toDateString(),
+            $entry->entry_date->toDateString(),
+            $frozen->toDateString(),
+        ));
     }
 
     /**
@@ -251,6 +297,8 @@ class JournalEntryService
                 .$entry->entry_date->toDateString().'.'
             );
         }
+
+        $this->refuseIfFrozen($entry);
 
         TenantTransaction::run(function () use ($entry) {
             foreach ($entry->lines()->with('account')->get() as $line) {

@@ -377,7 +377,10 @@ bank-file table and a customer receipt never writes a row there. See §2.2.
    than hiding.
 3. **Not** unallocated money on account, and **not** a party column. Both wait for a real example.
 
-**Phase 3 — `ledger_frozen_before`. ~1 day.** *Reuses:* `TenantSettings`, the closed-year guard's own shape,
+**Phase 3 — `ledger_frozen_before`. ~1 day.** *Built 2026-08-28, and it was a day: a setting, a guard, a
+section, a permission and six tests. The exemption is `JournalEntryBackdate`, granted to nobody below
+Administrator, and the closed-year guard is untouched beside it — the two are separate rules and a test says
+so.* *Reuses:* `TenantSettings`, the closed-year guard's own shape,
 and the permission gating that already surrounds posting.
 A setting key, a guard beside the existing one in `JournalEntryService::post`, a field on company settings,
 and a test that a backdated post is refused and a same-period one is not. **[2nd pass] Plus the escape

@@ -25,6 +25,7 @@ use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLossByDimension;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
 use App\Modules\Accounting\Filament\Settings\CurrencySettingsSection;
+use App\Modules\Accounting\Filament\Settings\LedgerFreezeSettingsSection;
 use App\Modules\Accounting\Filament\Settings\PayrollPostingSettingsSection;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\BankStatement;
@@ -248,6 +249,9 @@ class AccountingServiceProvider extends ServiceProvider
         // on that page: it is what every other figure there means.
         SettingsSections::register('accounting.currency', CurrencySettingsSection::class, 10);
         SettingsSections::register('accounting.payroll-posting', PayrollPostingSettingsSection::class, 60);
+        // Closing off a period — `docs/erpnext-gap-plan.md` Phase 3. After the currency and before payroll
+        // posting: it is a decision about the books rather than about a module's own behaviour.
+        SettingsSections::register('accounting.ledger-freeze', LedgerFreezeSettingsSection::class, 20);
 
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
