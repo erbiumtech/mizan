@@ -386,6 +386,7 @@
         "App\\Filament\\Pages\\HiringFunnel": "App\\Modules\\Recruitment\\Filament\\Pages\\HiringFunnel",
         "App\\Filament\\Pages\\QuotationConversion": "App\\Modules\\Quotations\\Filament\\Pages\\QuotationConversion",
         "App\\Filament\\Pages\\RevenueByDimension": "App\\Modules\\Invoicing\\Filament\\Pages\\RevenueByDimension",
+        "App\\Filament\\Pages\\RecordReceipt": "App\\Modules\\Invoicing\\Filament\\Pages\\RecordReceipt",
         "App\\Filament\\Pages\\CreditNotesIssued": "App\\Modules\\Invoicing\\Filament\\Pages\\CreditNotesIssued",
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
     },

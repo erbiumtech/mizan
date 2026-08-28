@@ -262,7 +262,67 @@ class InvoiceService
      * bank advice saying what actually landed is a fact, and the rate table is only an
      * estimate of it.
      */
-    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null): Invoice
+    /**
+     * One receipt settling several invoices — `docs/erpnext-gap-plan.md` Phase 2, item 2.
+     *
+     * ERPNext's Payment Entry is a document with a references table: one payment, many invoices, and
+     * whatever is left over sits as an advance. The lazy form of that is this — **a screen, not a document
+     * type**. Every allocation goes through `recordPayment()`, which is the settlement path that already
+     * exists and is already tested: the same FX treatment, the same realised difference, the same status
+     * transition, the same attribution to the invoice. Nothing new posts anything.
+     *
+     * **What this deliberately does not buy** is money on account with no invoice behind it. The plan says
+     * to wait until somebody has that problem, and it is right to: an unallocated receipt needs somewhere
+     * to sit, which is a table, which is the document type this avoids. So the allocations must add up to
+     * the receipt, and a customer who overpays is refused with a sentence rather than silently left with a
+     * credit nobody can see.
+     *
+     * @param  array<int|string, float>  $allocations  invoice id => amount to settle
+     * @return array<int, Invoice> the invoices as they now stand
+     */
+    public function recordBatchReceipt(float $received, string $date, array $allocations, ?string $reference = null): array
+    {
+        $allocations = array_filter(
+            array_map(fn (mixed $amount): float => round((float) $amount, 2), $allocations),
+            fn (float $amount): bool => $amount > 0,
+        );
+
+        if ($allocations === []) {
+            throw new InvalidArgumentException('Allocate the receipt to at least one invoice.');
+        }
+
+        $allocated = round(array_sum($allocations), 2);
+        $received = round($received, 2);
+
+        // The whole receipt, and no more than the whole receipt. Both directions are refused for the same
+        // reason: the difference has nowhere to go. Under-allocating leaves money on account and
+        // over-allocating invents it, and this application models neither.
+        if (abs($allocated - $received) >= 0.01) {
+            throw new InvalidArgumentException(sprintf(
+                'The allocations come to %s and the receipt is %s. They have to match: this application has '
+                .'nowhere to hold money that is not against an invoice.',
+                number_format($allocated, 2),
+                number_format($received, 2),
+            ));
+        }
+
+        return TenantTransaction::run(function () use ($allocations, $date, $reference): array {
+            $settled = [];
+
+            foreach ($allocations as $invoiceId => $amount) {
+                $invoice = Invoice::query()->whereKey($invoiceId)->firstOrFail();
+
+                // One transaction around the lot, so a receipt that fails on its fourth invoice leaves the
+                // first three unsettled too. Half a receipt recorded is worse than none: the customer's
+                // balance is then wrong in a way that reconciles to nothing.
+                $settled[] = $this->recordPayment($invoice, $amount, $date, null, null, $reference);
+            }
+
+            return $settled;
+        });
+    }
+
+    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null, ?string $reference = null): Invoice
     {
         if (! $invoice->isOpen()) {
             throw new InvalidArgumentException("Only issued or partially paid invoices accept payments (invoice is {$invoice->status}).");
@@ -299,7 +359,7 @@ class InvoiceService
             );
         }
 
-        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId) {
+        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId, $reference) {
             $cash = $cashAccountId ?? $this->accountId('1100');
             $paid = round((float) $invoice->amount_paid + $amount, 2);
 
@@ -323,7 +383,17 @@ class InvoiceService
 
             // The settlement belongs to the invoice it settles: same project, same customer, and the
             // receipt is the second half of that invoice's story rather than an event of its own.
-            $this->postSystemEntry($date, "Payment against {$invoice->invoice_number}", $lines, $invoice);
+            //
+            // The reference, where one is given, is what ties five settlements back to the one transfer
+            // that paid them — `docs/erpnext-gap-plan.md` Phase 2. It is in the memo rather than in a
+            // column because there is no receipt row to put it on: a customer receipt writes a journal
+            // entry and updates the invoice, and nothing else. That ceiling is named in the plan.
+            $this->postSystemEntry(
+                $date,
+                "Payment against {$invoice->invoice_number}".(filled($reference) ? " — {$reference}" : ''),
+                $lines,
+                $invoice,
+            );
 
             $invoice->update([
                 'amount_paid' => $paid,
