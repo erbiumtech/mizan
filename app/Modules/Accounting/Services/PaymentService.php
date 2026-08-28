@@ -72,6 +72,10 @@ class PaymentService
             'entry_type' => 'general',
             'memo' => "{$type?->name} payment — {$payment->details}",
             'transaction_type_id' => $type?->id,
+            // What produced it — `docs/erpnext-gap-plan.md` Phase 1. A payment knows who it was paid to,
+            // and for an employee that reaches their department.
+            'source_type' => $payment::class,
+            'source_id' => $payment->getKey(),
         ], [
             ['account_id' => $this->debitAccountFor($payment), 'debit_amount' => (float) $payment->amount, 'description' => $payment->details],
             ['account_id' => $cashAccount->id, 'credit_amount' => (float) $payment->amount, 'description' => $payment->details],

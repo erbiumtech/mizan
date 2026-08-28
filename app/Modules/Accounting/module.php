@@ -76,6 +76,7 @@ return [
         'App\\Filament\\Pages\\TrialBalance' => \App\Modules\Accounting\Filament\Pages\TrialBalance::class,
         'App\\Filament\\Pages\\GeneralLedger' => \App\Modules\Accounting\Filament\Pages\GeneralLedger::class,
         'App\\Filament\\Pages\\ProfitAndLoss' => \App\Modules\Accounting\Filament\Pages\ProfitAndLoss::class,
+        'App\\Filament\\Pages\\ProfitAndLossByDimension' => \App\Modules\Accounting\Filament\Pages\ProfitAndLossByDimension::class,
         'App\\Filament\\Pages\\GnuCashImport' => \App\Modules\Accounting\Filament\Pages\GnuCashImport::class,
         'App\\Filament\\Pages\\PettyCashBook' => \App\Modules\Accounting\Filament\Pages\PettyCashBook::class,
         'App\\Filament\\Pages\\BankPaymentFile' => \App\Modules\Accounting\Filament\Pages\BankPaymentFile::class,

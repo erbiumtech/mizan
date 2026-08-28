@@ -99,7 +99,7 @@ class PettyCashService
             'amount' => $amount,
         ]);
 
-        return PettyCashVoucher::create([
+        $voucher = PettyCashVoucher::create([
             'date' => $date->toDateString(),
             'details' => $data['details'],
             'amount' => $amount,
@@ -107,6 +107,12 @@ class PettyCashService
             'receipt_path' => $data['receipt_path'] ?? null,
             'journal_entry_id' => $entry->id,
         ]);
+
+        // What produced the posting — `docs/erpnext-gap-plan.md` Phase 1. After the fact because the
+        // voucher carries the entry's id, so the entry exists first.
+        app(JournalEntryService::class)->attributeTo($entry, $voucher);
+
+        return $voucher;
     }
 
     /**

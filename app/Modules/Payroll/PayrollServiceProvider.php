@@ -30,6 +30,7 @@ use App\Modules\Payroll\Policies\PayslipPolicy;
 use App\Modules\Payroll\Policies\SalarySlabPolicy;
 use App\Modules\Payroll\Services\SalaryPaymentGenerator;
 use App\Modules\Payroll\Support\PayrollReports;
+use App\Support\LedgerDimensions;
 use App\Support\PaymentGenerators;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
@@ -121,6 +122,19 @@ class PayrollServiceProvider extends ServiceProvider
         ReportRenderers::register('TaxSummary', fn (string $asOf, bool $comparison, array $asked): array => app(PayrollReports::class)
             ->taxSummary($asOf, $asked['month'] ?? null));
         ReportRenderers::register('PayrollRegister', fn (string $asOf): array => app(PayrollReports::class)->register($asOf));
+
+        /*
+         * What a payslip's postings were for — `docs/erpnext-gap-plan.md` Phase 1.
+         *
+         * Payroll is the one path that has always stamped `source_type`, so this registration makes a
+         * profit and loss by department readable over history that already exists rather than only over
+         * postings made from today. `employees.department` is free text and that is deliberate: the gap
+         * plan refuses a `cost_centers` table until somebody needs what a table buys.
+         */
+        LedgerDimensions::register(Payslip::class, fn (Payslip $payslip): array => [
+            LedgerDimensions::PARTY => $payslip->employee?->name,
+            LedgerDimensions::DEPARTMENT => $payslip->employee?->department,
+        ], ['employee']);
         ReportRenderers::register('FbrTaxFile', fn (string $asOf): array => app(PayrollReports::class)->taxFile($asOf));
         ReportRenderers::register('SalaryBankFile', fn (string $asOf): array => app(PayrollReports::class)->salaryFile($asOf));
 

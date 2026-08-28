@@ -41,6 +41,9 @@ class ReportPaneTest extends AccountingTestCase
         'BudgetVsActual' => ['budget'],
         'TaxSummary' => ['month'],
         'PettyCashBook' => ['month'],
+        // Which dimension the profit is split by — docs/erpnext-gap-plan.md Phase 1. The sixth report to
+        // need a control, and the first to need one that is not a date, an account or a document.
+        'ProfitAndLossByDimension' => ['dimension'],
     ];
 
     protected function setUp(): void

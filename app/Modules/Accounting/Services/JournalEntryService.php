@@ -8,6 +8,7 @@ use App\Modules\Accounting\Support\Money;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Support\TenantTransaction;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 class JournalEntryService
@@ -48,6 +49,32 @@ class JournalEntryService
 
             return $entry;
         });
+    }
+
+    /**
+     * Record what produced an entry, where the document is created after its posting.
+     *
+     * Most paths pass `source_type` and `source_id` in the header and need nothing here — one key in an
+     * array they already build. Two cannot: a stock movement and a petty cash voucher both carry
+     * `journal_entry_id`, so the entry has to exist before the document does, and the attribution can only
+     * be made once both are. Inside the caller's own transaction, so a document that fails to save leaves
+     * no entry claiming it.
+     *
+     * Never overwrites: an entry attributed at creation is attributed correctly, and a second caller
+     * guessing later is how a source comes to point at the wrong document.
+     */
+    public function attributeTo(JournalEntry $entry, Model $source): JournalEntry
+    {
+        if ($entry->source_type !== null) {
+            return $entry;
+        }
+
+        $entry->forceFill([
+            'source_type' => $source::class,
+            'source_id' => $source->getKey(),
+        ])->save();
+
+        return $entry;
     }
 
     /**
