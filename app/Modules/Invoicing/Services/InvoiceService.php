@@ -209,7 +209,8 @@ class InvoiceService
             $entry = $this->postSystemEntry(
                 $invoice->invoice_date->toDateString(),
                 "{$invoice->invoice_number} — {$invoice->contact->name}",
-                $entryLines
+                $entryLines,
+                $invoice,
             );
 
             // A credit note moves no stock, and that is a decision rather than an omission.
@@ -320,7 +321,9 @@ class InvoiceService
                 $lines[] = $this->realisedLine($invoice, $settlement['difference']);
             }
 
-            $this->postSystemEntry($date, "Payment against {$invoice->invoice_number}", $lines);
+            // The settlement belongs to the invoice it settles: same project, same customer, and the
+            // receipt is the second half of that invoice's story rather than an event of its own.
+            $this->postSystemEntry($date, "Payment against {$invoice->invoice_number}", $lines, $invoice);
 
             $invoice->update([
                 'amount_paid' => $paid,
@@ -1306,12 +1309,24 @@ class InvoiceService
         }
     }
 
-    protected function postSystemEntry(string $date, string $memo, array $lines): JournalEntry
+    /**
+     * @param  Invoice|null  $source  what produced this posting — `docs/erpnext-gap-plan.md` Phase 1
+     */
+    protected function postSystemEntry(string $date, string $memo, array $lines, ?Invoice $source = null): JournalEntry
     {
         $entry = $this->journalEntryService->create([
             'entry_date' => $date,
             'entry_type' => 'general',
             'memo' => $memo,
+            /*
+             * Two keys in a header this method already built, and they are the whole of Phase 1's first
+             * item here. An invoice knows its project and its customer, so an entry that records the
+             * invoice knows them too — which is what lets a profit and loss be read by project without a
+             * dimension column on the line. Nullable, so a caller that has no document passes nothing and
+             * nothing changes.
+             */
+            'source_type' => $source === null ? null : $source::class,
+            'source_id' => $source?->getKey(),
         ], array_values(array_filter($lines, fn ($l) => ($l['debit_amount'] ?? 0) > 0 || ($l['credit_amount'] ?? 0) > 0)));
 
         $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);

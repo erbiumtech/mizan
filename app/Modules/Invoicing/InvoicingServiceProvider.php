@@ -26,6 +26,7 @@ use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
 use App\Support\JournalEntryOwners;
+use App\Support\LedgerDimensions;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
@@ -161,6 +162,19 @@ class InvoicingServiceProvider extends ServiceProvider
         // to edit it. Registered from here rather than named in Accounting: that naming was an
         // `accounting -> invoicing` edge, and Accounting does not require Invoicing.
         JournalEntryOwners::register('an invoice', Invoice::class);
+
+        /*
+         * What an invoice's postings were for — `docs/erpnext-gap-plan.md` Phase 1.
+         *
+         * Registered here rather than read by Accounting, for the reason the owners registry above was
+         * written: a ledger that named this module would re-create the `accounting -> invoicing` edge four
+         * registries were built to remove. An invoice knows its project and its customer; a company without
+         * Invoicing registers neither and its ledger reports every entry as unassigned, which is correct.
+         */
+        LedgerDimensions::register(Invoice::class, fn (Invoice $invoice): array => [
+            LedgerDimensions::PROJECT => $invoice->project?->name,
+            LedgerDimensions::PARTY => $invoice->contact?->name,
+        ], ['project', 'contact']);
 
         // Invoicing's own three reports. See PayrollReports for the other half of the same change.
         foreach (['AgedReceivables', 'AgedPayables'] as $key) {
