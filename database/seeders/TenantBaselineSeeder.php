@@ -41,6 +41,10 @@ class TenantBaselineSeeder extends Seeder
             // components to post through them.
             StatutoryComponentSeeder::class,
             BankSeeder::class,
+            // The §153 withholding rates — docs/erpnext-gap-plan.md Phase 4. After the chart, because each
+            // section posts to a liability account in it. Seeding them withholds nothing: a section applies
+            // only to a supplier somebody has assigned it to.
+            WithholdingSectionSeeder::class,
             // Tax brackets for the Personal Finance estimate. Reference data
             // shared by everyone in the company, unlike the per-person chart of
             // accounts, which is seeded for a user the first time they open the

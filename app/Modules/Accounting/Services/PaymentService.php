@@ -67,6 +67,18 @@ class PaymentService
             throw new RuntimeException('Account 1100 Cash/Bank not found.');
         }
 
+        /*
+         * Tax withheld at source — `docs/erpnext-gap-plan.md` Phase 4.
+         *
+         * Null for every payment until a company assigns a withholding section to a supplier, and this
+         * whole block is then three lines instead of two: the money owed is still debited in full, the
+         * bank is credited what actually leaves it, and the difference is a liability to FBR. Resolved
+         * before the entry is created because the withheld figure is one of the entry's own lines.
+         */
+        $withholding = app(WithholdingService::class)->due($payment);
+        $withheld = (float) ($withholding['amount'] ?? 0);
+        $paid = round((float) $payment->amount - $withheld, 2);
+
         $entry = $this->journalEntryService->create([
             'entry_date' => ($payment->value_date ?? now())->toDateString(),
             'entry_type' => 'general',
@@ -76,14 +88,31 @@ class PaymentService
             // and for an employee that reaches their department.
             'source_type' => $payment::class,
             'source_id' => $payment->getKey(),
-        ], [
+        ], array_values(array_filter([
             ['account_id' => $this->debitAccountFor($payment), 'debit_amount' => (float) $payment->amount, 'description' => $payment->details],
-            ['account_id' => $cashAccount->id, 'credit_amount' => (float) $payment->amount, 'description' => $payment->details],
-        ]);
+            ['account_id' => $cashAccount->id, 'credit_amount' => $paid, 'description' => $payment->details],
+            $withholding ? [
+                'account_id' => $withholding['account_id'],
+                'credit_amount' => $withheld,
+                'description' => sprintf(
+                    'Tax withheld under %s at %s%%',
+                    $withholding['section']->section,
+                    rtrim(rtrim(number_format($withholding['rate'], 3), '0'), '.'),
+                ),
+            ] : null,
+        ])));
 
         $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);
 
-        return $this->journalEntryService->post($entry);
+        $posted = $this->journalEntryService->post($entry);
+
+        // After posting, because a deduction is a fact about an entry that exists: if the post is refused —
+        // a frozen period, an unbalanced entry — there is no withholding either.
+        if ($withholding) {
+            app(WithholdingService::class)->record($payment, $withholding, $posted);
+        }
+
+        return $posted;
     }
 
     /**

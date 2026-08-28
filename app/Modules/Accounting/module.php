@@ -35,6 +35,11 @@ return [
         'App\\Models\\ScheduledTransaction' => \App\Modules\Accounting\Models\ScheduledTransaction::class,
         'App\\Models\\ScheduledTransactionLine' => \App\Modules\Accounting\Models\ScheduledTransactionLine::class,
 
+        // Tax withheld at source from suppliers — docs/erpnext-gap-plan.md Phase 4. The rate table is
+        // reference data (WithholdingSectionSeeder) and the deductions are what the §165 statement reads.
+        'App\\Models\\WithholdingSection' => \App\Modules\Accounting\Models\WithholdingSection::class,
+        'App\\Models\\WithholdingDeduction' => \App\Modules\Accounting\Models\WithholdingDeduction::class,
+
         // The AI command bot — docs/ai-command-bot-plan.md. Here rather than in a module of its own
         // because what it produces is a register row: it is a second way into Accounting, not a domain.
         'App\\Models\\CommandUtterance' => \App\Modules\Accounting\Models\CommandUtterance::class,
@@ -77,6 +82,7 @@ return [
         'App\\Filament\\Pages\\GeneralLedger' => \App\Modules\Accounting\Filament\Pages\GeneralLedger::class,
         'App\\Filament\\Pages\\ProfitAndLoss' => \App\Modules\Accounting\Filament\Pages\ProfitAndLoss::class,
         'App\\Filament\\Pages\\ProfitAndLossByDimension' => \App\Modules\Accounting\Filament\Pages\ProfitAndLossByDimension::class,
+        'App\\Filament\\Pages\\WithholdingStatement' => \App\Modules\Accounting\Filament\Pages\WithholdingStatement::class,
         'App\\Filament\\Pages\\GnuCashImport' => \App\Modules\Accounting\Filament\Pages\GnuCashImport::class,
         'App\\Filament\\Pages\\PettyCashBook' => \App\Modules\Accounting\Filament\Pages\PettyCashBook::class,
         'App\\Filament\\Pages\\BankPaymentFile' => \App\Modules\Accounting\Filament\Pages\BankPaymentFile::class,

@@ -200,7 +200,9 @@
         "App\\Models\\WipSnapshot": "App\\Modules\\ConstructionCosting\\Models\\WipSnapshot",
         "App\\Models\\Worker": "App\\Modules\\ConstructionCosting\\Models\\Worker",
         "App\\Models\\CommandUtterance": "App\\Modules\\Accounting\\Models\\CommandUtterance",
-        "App\\Models\\TransactionTypeAlias": "App\\Modules\\Accounting\\Models\\TransactionTypeAlias"
+        "App\\Models\\TransactionTypeAlias": "App\\Modules\\Accounting\\Models\\TransactionTypeAlias",
+        "App\\Models\\WithholdingSection": "App\\Modules\\Accounting\\Models\\WithholdingSection",
+        "App\\Models\\WithholdingDeduction": "App\\Modules\\Accounting\\Models\\WithholdingDeduction"
     },
     "resources": {
         "App\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource": "App\\Modules\\Core\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource",
@@ -388,7 +390,8 @@
         "App\\Filament\\Pages\\RevenueByDimension": "App\\Modules\\Invoicing\\Filament\\Pages\\RevenueByDimension",
         "App\\Filament\\Pages\\RecordReceipt": "App\\Modules\\Invoicing\\Filament\\Pages\\RecordReceipt",
         "App\\Filament\\Pages\\CreditNotesIssued": "App\\Modules\\Invoicing\\Filament\\Pages\\CreditNotesIssued",
-        "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
+        "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement",
+        "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement"
     },
     "widgets": {
         "App\\Filament\\Widgets\\StockOnHandOverview": "App\\Modules\\Inventory\\Filament\\Widgets\\StockOnHandOverview",

@@ -388,7 +388,9 @@ hatch** — both of ERPNext's mechanisms carry one, and without it the first mon
 global unfreeze that nobody records re-freezing. One `can()` in the same guard. Cheapest item here by an
 order of magnitude, and the only one a user would notice on the day it ships.
 
-**Phase 4 — §153 withholding. ~1 week, and the only compliance item.**
+**Phase 4 — §153 withholding. ~1 week, and the only compliance item.** *Built 2026-08-28. All four items
+landed as the second pass corrected them; the fifth thing it needed was not on the list and is the one worth
+reading — see §3.3.*
 *Reuses:* `tax_rates` (name, code, rate, posting account — already the right shape, and `code` is there for
 the authority's own code), the `payments` draft → approved → exported flow, `ContractorPaymentSummary` as the
 statement, `FbrTaxFile` as the filing-export pattern, `CertificateDeduction` as the precedent for deducting on
@@ -405,11 +407,11 @@ a payment.
    why ERPNext keeps Tax Withholding Entries beside its postings.
 4. The §165 statement as a report over those records, built like `FbrTaxFile`.
 
-**Unscheduled by decision, 2026-08-28.** Contractors are paid and the deduction is handled outside this
-application, so this is not the emergency an earlier draft of this section made it. Worth writing down once
-and not repeating: a deduction computed by hand is a deduction somebody can forget, and the §165 statement is
-then assembled from records the ledger does not hold. When that becomes the annoyance rather than the risk,
-this phase is a week.
+**Unscheduled by decision, 2026-08-28 — then built the same day, on request.** The decision not to schedule
+it stands as reasoning and is worth keeping: contractors are paid and the deduction is handled outside this
+application, so this was never the emergency an earlier draft made it. What the paragraph got right is the
+cost — "when that becomes the annoyance rather than the risk, this phase is a week" — and what it got wrong
+is that the week was mostly the *thinking*, which §2.4's second pass had already done. See §3.3.
 
 **Phase 5 — the small ones, each one a reuse.** Debit notes through `creditNote()`'s existing window and
 approval logic; deferred revenue as a `ScheduledTransaction`, which is already a dated recurring posting with
@@ -490,6 +492,53 @@ turned out to be the wrong table, which §2.2 already records.
   settlement so five rows can be recognised as one transfer. That is the ceiling §2.2 named: there is no
   receipt row to put it on, because a customer receipt writes a journal entry and updates the invoice and
   nothing else.
+
+## 3.3 What Phase 4 turned out to be
+
+Built 2026-08-28. The four items landed as §2.4's second pass corrected them — a table of its own, the
+deduction line at approval, a record per deduction, the §165 statement as a report — and the estimate held
+because the expensive part had already been paid: reading ERPNext's Tax Withholding Category properly is what
+turned "rows in `tax_rates`" into "two tables", and that was the week.
+
+Five things the plan did not say.
+
+- **The bank file had to change, and nothing in the plan predicted it.** The deduction splits one credit
+  into two: cash gets the net, the liability gets the tax. But `BankPaymentExportService` writes
+  `payments.amount` into the file, so with the entry crediting cash 80,000 and the file transferring
+  100,000 the cash account would disagree with the bank statement by exactly the withheld figure — a
+  reconciliation break caused by a tax feature. `Payment::transferAmount()` is the answer and the amount
+  column stays the gross, because the gross is what the company owes; the transfer is what leaves. This is
+  the item to remember from the phase: *a deduction is not a bookkeeping change, it is a change to how much
+  money moves.*
+- **There is no maintenance screen for the rate table, and that is deliberate.** The rates, the thresholds
+  and the sections are national law — reference data, like the banks and the tax schedule already in the
+  baseline — so `WithholdingSectionSeeder` ships them and a Finance Act change ships as a new dated row.
+  What belongs to a company is *which supplier each section applies to* and *whether that supplier files*,
+  and both of those are two fields on the beneficiary form. A resource, its policy, four permissions and
+  three role grants would have been the alternative, and every one of them would have been asking a company
+  to maintain a copy of the statute.
+- **Non-filer is the default, and the default is a decision.** The non-filer rate is the higher one, so
+  over-deducting is recoverable by the supplier through their own return while under-deducting is the
+  company's liability plus a penalty. The safe default is the one that costs somebody money they can get
+  back. The form says as much where the toggle is.
+- **The annual threshold is the item that could not be done "on the payment in front of you".** A monthly
+  retainer under the limit becomes withheld from in the month the year's total crosses it, so the check has
+  to sum that supplier's own payments for the tax year — per supplier, not per section, which is the obvious
+  way to get it wrong. And the crossing payment is withheld from **in full**: ERPNext offers deduct-on-the-
+  excess and a cumulative catch-up, and both would mean a tax line against payments already settled and
+  posted. One journal entry does that, decided by a person.
+- **`is_active` is never re-asserted by the seeder.** Switching a section off is a statement about this
+  company — it buys no transport, it engages no contractors — and a seeder that turned one back on would
+  start withholding tax from somebody's supplier on the strength of a deploy. Re-running does update the
+  statutory figures, which is the position `TaxRateSeeder` already takes for the same reason.
+
+**One sentence in the application was made false by this phase and had to be corrected**: the beneficiary
+form's Contractor toggle said "No tax is withheld from them". It was true when it was written and is now a
+question about the two fields below it.
+
+**Deployment.** `php artisan tenants:migrate` for the two tables and the two beneficiary columns, then
+`php artisan tenants:seed-baseline` to give existing companies the sections. Neither withholds anything: a
+company that runs both and assigns no section pays every supplier exactly as it did before.
 
 ## 4. Ranked, everything not in §3
 

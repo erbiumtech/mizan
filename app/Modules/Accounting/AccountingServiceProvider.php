@@ -24,6 +24,7 @@ use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLossByDimension;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
+use App\Modules\Accounting\Filament\Pages\WithholdingStatement;
 use App\Modules\Accounting\Filament\Settings\CurrencySettingsSection;
 use App\Modules\Accounting\Filament\Settings\LedgerFreezeSettingsSection;
 use App\Modules\Accounting\Filament\Settings\PayrollPostingSettingsSection;
@@ -73,6 +74,7 @@ use App\Modules\Accounting\Support\FixedAssetReports;
 use App\Modules\Accounting\Support\LoanReports;
 use App\Modules\Accounting\Support\OpeningBalanceCsvImporter;
 use App\Modules\Accounting\Support\ReportPane;
+use App\Modules\Accounting\Support\WithholdingReports;
 use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Models\Employee;
 use App\Support\Contracts\FiscalYearCloseCheck;
@@ -140,6 +142,26 @@ class AccountingServiceProvider extends ServiceProvider
         ReportCatalogue::register('Financial statements', GeneralLedger::class, 'Every account, every entry against it, opening to closing — what an audit reads.');
         ReportCatalogue::register('Financial statements', BudgetVsActual::class, 'What was planned against what was spent, by account and by month.');
         ReportCatalogue::register('Receivables & payables', ContractorPayments::class, 'What each contractor has been paid, and over what period.');
+        /*
+         * The §165 statement — `docs/erpnext-gap-plan.md` Phase 4, item 4.
+         *
+         * Filed beside the contractor summary rather than under Financial statements: both answer a
+         * question about money paid out to people who are not on the payroll, and somebody reaching for one
+         * is usually reconciling the other.
+         *
+         * `asked['month']` comes from the pane's filter bar — §165 is filed monthly and read for the year,
+         * so the month is a filter and the whole year is a legitimate answer. See `ReportPane::ASKS`.
+         */
+        ReportCatalogue::register(
+            'Receivables & payables',
+            WithholdingStatement::class,
+            'Tax withheld from suppliers under §153: who, which section, and what was deducted.',
+        );
+        ReportRenderers::register(
+            'WithholdingStatement',
+            fn (string $asOf, bool|string $comparison, array $asked): array => app(WithholdingReports::class)
+                ->statement($asOf, is_string($asked['month'] ?? null) ? $asked['month'] : null),
+        );
         ReportCatalogue::register('Ledgers & books', AccountRegister::class, 'One account, every transaction against it, running balance — and edits.');
         ReportCatalogue::register('Ledgers & books', FindTransactions::class, 'Search the whole ledger by account, date, amount or wording.');
         ReportCatalogue::register('Ledgers & books', PettyCashBook::class, 'The cash float: what was spent, what is left, and replenishment.');
