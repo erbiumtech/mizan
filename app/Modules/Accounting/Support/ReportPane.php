@@ -114,6 +114,9 @@ class ReportPane implements ReportPaneRenderer
         // Which dimension the profit is split by — `docs/erpnext-gap-plan.md` Phase 1. Declared rather than
         // branched on: the picker, its options and the URL round-trip are what a report gets for asking.
         'ProfitAndLossByDimension' => ['dimension'],
+        // §165 is filed monthly and reconciled for the year — Phase 4. Same filter as the tax summary
+        // above, and for the same reason: the whole year is a legitimate answer.
+        'WithholdingStatement' => ['month'],
     ];
 
     /** @return array<int, string> the controls the pane must offer for a report */

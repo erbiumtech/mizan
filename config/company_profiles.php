@@ -43,6 +43,7 @@ use Database\Seeders\StatutoryComponentSeeder;
 use Database\Seeders\TaxScheduleSeeder;
 use Database\Seeders\TransactionTypeAliasSeeder;
 use Database\Seeders\TransactionTypeSeeder;
+use Database\Seeders\WithholdingSectionSeeder;
 
 // Order matters and is not alphabetical: the chart must exist before the
 // transaction types that key to its codes, and the fiscal years before the
@@ -61,6 +62,10 @@ $business = [
     // to its own liability account.
     StatutoryComponentSeeder::class,
     BankSeeder::class,
+    // The §153 withholding rates — docs/erpnext-gap-plan.md Phase 4. Reference data, like the banks
+    // above and the tax schedule below: national law, not a decision about this company. Which supplier
+    // each section applies to is the decision, and it lives on the beneficiary.
+    WithholdingSectionSeeder::class,
     TaxScheduleSeeder::class,
 ];
 
