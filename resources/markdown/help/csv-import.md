@@ -26,6 +26,38 @@ spreadsheet-shaped case.
 Changing what you're importing, or re-uploading a file, clears any existing
 preview, since it no longer describes what's about to happen.
 
+## Bringing an existing company onto the system
+
+The opening trial balance carries your *totals*. Two of the import types carry the
+documents behind two of those totals, and without them the totals are all you have:
+
+- **Opening invoices and bills** — the individual invoices that make up your
+  receivables and payables. Without these, Aged Receivables shows a company that is
+  owed millions as owed nothing, because it reads invoices rather than the ledger.
+  Each row carries its own date, because that date is what ages it.
+- **Opening stock** — what is on each shelf, and what it cost. Without these, the
+  ledger has your inventory value and the valuation engine has an empty shelf, so
+  every sale takes its cost from nothing.
+
+**Neither of them posts anything.** The value is already in the ledger from the
+trial balance, so posting again would double it. What they do is fill the other side
+— the documents and the lots — and the *Control accounts* health check is what tells
+you the two sides now agree.
+
+**Do it in this order**, running a trial balance after each stage so a mistake
+belongs to one batch:
+
+1. contacts, then products;
+2. opening balances (the trial balance);
+3. opening invoices and bills;
+4. opening stock;
+5. a journal entry for anything left over.
+
+Both are re-runnable: fix the file and upload it again. An opening invoice that has
+actually been posted in this system is refused rather than overwritten, and
+re-importing stock replaces the opening lot rather than adding a second one — it
+never touches a movement a real delivery or sale created.
+
 ## Roles and permissions
 
 Administrator only.

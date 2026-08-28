@@ -32,6 +32,25 @@ class Invoice extends Model
      */
     public const KIND_CREDIT_NOTE = 'credit_note';
 
+    /**
+     * A debit note: the same document on the purchase side — `docs/erpnext-gap-plan.md` Phase 5.
+     *
+     * What it records is a claim against a supplier: goods returned, a bill overstated, a back-charge. It
+     * debits Accounts Payable and credits back whatever the bill charged, so what the company owes falls by
+     * exactly what the bill raised.
+     *
+     * **Stored with positive amounts and posted as the reverse**, exactly as a credit note is, and for the
+     * same reason: `postSystemEntry()` drops legs that are not greater than zero, so a negative total is not
+     * an option. Everything that reads `credits_invoice_id`, `creditedTotal()` and `creditableAmount()`
+     * therefore works for both directions unchanged — see `creditNotes()`.
+     *
+     * **No FBR window and no Commissioner extension**, which is the one place it is *not* the mirror. Rule
+     * 22 bounds the adjustment of tax on a supply this company *made* and reported; a supplier's bill is a
+     * document this company received, and the input-tax adjustment rides on the credit note the supplier
+     * issues. That reference belongs in the reason, where somebody reconciling can read it.
+     */
+    public const KIND_DEBIT_NOTE = 'debit_note';
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_ISSUED = 'issued';
@@ -106,6 +125,7 @@ class Invoice extends Model
                 match ($invoice->kind) {
                     self::KIND_PURCHASE => 'Bill',
                     self::KIND_CREDIT_NOTE => 'Credit note',
+                    self::KIND_DEBIT_NOTE => 'Debit note',
                     default => 'Invoice',
                 }.' raised as a draft',
             );
@@ -130,6 +150,9 @@ class Invoice extends Model
         $prefix = match ($kind) {
             self::KIND_PURCHASE => 'BILL',
             self::KIND_CREDIT_NOTE => 'CN',
+            // Its own series for the same reason CN has one: a supplier asked which document reduced their
+            // bill needs an answer that is not "one of our invoices".
+            self::KIND_DEBIT_NOTE => 'DN',
             default => 'INV',
         };
         $year = Carbon::parse($date ?? now())->format('Y');
@@ -271,13 +294,38 @@ class Invoice extends Model
         return $this->kind === self::KIND_CREDIT_NOTE;
     }
 
-    /** The invoice this credit note reverses. Null on an ordinary invoice. */
+    public function isDebitNote(): bool
+    {
+        return $this->kind === self::KIND_DEBIT_NOTE;
+    }
+
+    /**
+     * Is this document a correction of another one? — Phase 5.
+     *
+     * The two notes behave identically in every place that does not care which direction the money goes:
+     * their totals come from their own lines rather than from the rate table, they move no stock, and they
+     * subtract from whatever adds documents up. Asking this rather than `isCreditNote()` twice is what kept
+     * the debit note from being a second set of branches beside the first.
+     */
+    public function isAdjustment(): bool
+    {
+        return $this->isCreditNote() || $this->isDebitNote();
+    }
+
+    /** The invoice or bill this note reverses. Null on an ordinary invoice. */
     public function creditedInvoice()
     {
         return $this->belongsTo(self::class, 'credits_invoice_id');
     }
 
-    /** Credit notes raised against this invoice. */
+    /**
+     * Notes raised against this document: credit notes on a sale, debit notes on a bill.
+     *
+     * One relation for both, because `credits_invoice_id` means "the document this one adjusts" and a
+     * document can only be adjusted in the direction it was raised. That is what let the debit note reuse
+     * every guard below — `creditedTotal()`, `creditableAmount()` and `isFullyCredited()` — instead of
+     * growing a parallel set that could disagree with them.
+     */
     public function creditNotes()
     {
         return $this->hasMany(self::class, 'credits_invoice_id');
@@ -356,7 +404,7 @@ class Invoice extends Model
      */
     public function ledgerSign(): int
     {
-        return $this->isCreditNote() ? -1 : 1;
+        return $this->isAdjustment() ? -1 : 1;
     }
 
     public function signedOutstanding(): float

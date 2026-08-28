@@ -75,7 +75,7 @@ echo "==> Restart workers"
 php artisan queue:restart
 
 echo
-echo "Done. Two things this script deliberately does not do:"
+echo "Done. Three things this script deliberately does not do:"
 echo
 echo "  1. Tenant migrations. They run per company and can take a while, so they are"
 echo "     a decision rather than a step — but a release whose tenant schema is behind"
@@ -87,4 +87,11 @@ echo "  2. Restart PHP-FPM. If OPcache runs with opcache.validate_timestamps=0 i
 echo "     keep serving the release before this one:"
 echo
 echo "         sudo systemctl reload php8.3-fpm"
+echo
+echo "  3. Top up each company's reference data. Migrations create the tables; the rows"
+echo "     that ship with the application arrive through the baseline seeders, which only"
+echo "     ever add — the withholding sections a supplier deduction reads, and the two"
+echo "     deferral accounts, both landed this way:"
+echo
+echo "         php artisan tenants:seed-baseline"
 echo
