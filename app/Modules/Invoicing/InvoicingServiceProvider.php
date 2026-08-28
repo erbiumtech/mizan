@@ -16,6 +16,7 @@ use App\Modules\Invoicing\Policies\ContactPolicy;
 use App\Modules\Invoicing\Policies\InvoiceLinePolicy;
 use App\Modules\Invoicing\Policies\InvoicePolicy;
 use App\Modules\Invoicing\Policies\TaxRatePolicy;
+use App\Modules\Invoicing\Services\ControlReconciliation;
 use App\Modules\Invoicing\Services\RecurringInvoiceService;
 use App\Modules\Invoicing\Support\ContactCsvImporter;
 use App\Modules\Invoicing\Support\CreditNoteReports;
@@ -162,6 +163,11 @@ class InvoicingServiceProvider extends ServiceProvider
         // to edit it. Registered from here rather than named in Accounting: that naming was an
         // `accounting -> invoicing` edge, and Accounting does not require Invoicing.
         JournalEntryOwners::register('an invoice', Invoice::class);
+
+        // Receivables and payables, and what they are supposed to equal — `docs/erpnext-gap-plan.md`
+        // Phase 2. Registered at boot so the health check finds the pair whether or not anybody has
+        // opened a report, which is why `CashCommitmentReports::registerSources()` is called here too.
+        ControlReconciliation::register();
 
         /*
          * What an invoice's postings were for — `docs/erpnext-gap-plan.md` Phase 1.

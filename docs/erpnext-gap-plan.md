@@ -364,7 +364,7 @@ recorded in §7.*
    reads a free-text column is available now; a dimension table earns its place when somebody needs a
    hierarchy, a rename that does not rewrite history, or a code.
 
-**Phase 2 — Prove ageing and the ledger agree; then allocate in a batch. ~1 week.**
+**Phase 2 — Prove ageing and the ledger agree; then allocate in a batch. ~1 week.** *Built 2026-08-28.*
 *Reuses:* `ReconciliationService`/`ReconciliationReport` as the pattern, `app/Health/` as the home, and the
 tested `recordPayment()` path. **[2nd pass] Not `payments.batch_reference`** — that column is on the outbound
 bank-file table and a customer receipt never writes a row there. See §2.2.
@@ -455,6 +455,38 @@ Phase 2 starts from the same assumptions.
 wins over a selected column of the same name, and a row hydrated from the aggregate has neither debit nor
 credit, so every project reported a profit of exactly zero. Plausible, well-formatted and entirely wrong.
 The alias is `movement` now.
+
+## 3.2 What Phase 2 turned out to be
+
+Built 2026-08-28, and closer to the plan than Phase 1 was. Both items landed; one reuse named in the plan
+turned out to be the wrong table, which §2.2 already records.
+
+- **The check is a registry too**, for the same reason Phase 1's resolver became one: `app/Health` is where
+  facts about the installation live, and a check importing Invoicing would put a module's model in shared
+  code. So `App\Support\LedgerControls` holds the pairs and Invoicing registers Receivables and Payables —
+  it owns both sides, since `InvoiceService` raises the invoices *and* names accounts 1250 and 2400 itself.
+  A company without Invoicing has no receivables to reconcile and registers nothing.
+- **It runs hourly, not every minute.** `health:check` is scheduled every minute because its neighbours are
+  a PDO connect and a disk stat; this one sums each company's ledger. A reconciliation drift found
+  fifty-nine minutes late is found in time. The gate is a run condition rather than a second command, so the
+  result still appears on the same page as everything else.
+- **A tolerance of one unit, and it is tested from both sides.** Both figures round to two places, so a
+  company with many invoices in several currencies differs by pennies through arithmetic alone; a check that
+  fires on that gets muted, and a muted check is worse than none. The test asserts that a 0.40 difference
+  passes *and* that tightening the tolerance catches it — otherwise the tolerance is indistinguishable from
+  the comparison being blind.
+- **The receipt screen refuses money it cannot place, and that refusal is the interesting part.** The
+  allocations must equal the receipt, because there is nowhere in this schema to hold a balance that is not
+  against an invoice. Over-allocating invents money and under-allocating leaves it on account; the plan says
+  to wait for somebody to actually have that problem rather than to build an advances table because ERPNext
+  has one, so the screen says so in a sentence instead.
+- **All of it or none of it.** One transaction around the batch, with a test that a failure on the second
+  invoice leaves the first unsettled. Half a receipt recorded is worse than none: the customer's balance is
+  then wrong in a way that reconciles to nothing.
+- **`recordPayment()` gained one optional parameter** — a reference, which lands in the memo of each
+  settlement so five rows can be recognised as one transfer. That is the ceiling §2.2 named: there is no
+  receipt row to put it on, because a customer receipt writes a journal entry and updates the invoice and
+  nothing else.
 
 ## 4. Ranked, everything not in §3
 
