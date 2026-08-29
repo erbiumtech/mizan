@@ -14,6 +14,7 @@ use App\Modules\Accounting\Services\GeneralLedgerService;
 use App\Modules\Accounting\Services\PettyCashService;
 use App\Modules\Accounting\Services\RegisterEntryService;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\LedgerDimensions;
 use App\Support\Reporting\ReportComparison;
 use App\Support\Reporting\ReportPaneRenderer;
 use App\Support\Reporting\ReportPeriod;
@@ -110,6 +111,12 @@ class ReportPane implements ReportPaneRenderer
         // than a derived period: "the whole year" is a legitimate answer and the pane has to allow it.
         'TaxSummary' => ['month'],
         'PettyCashBook' => ['month'],
+        // Which dimension the profit is split by — `docs/erpnext-gap-plan.md` Phase 1. Declared rather than
+        // branched on: the picker, its options and the URL round-trip are what a report gets for asking.
+        'ProfitAndLossByDimension' => ['dimension'],
+        // §165 is filed monthly and reconciled for the year — Phase 4. Same filter as the tax summary
+        // above, and for the same reason: the whole year is a legitimate answer.
+        'WithholdingStatement' => ['month'],
     ];
 
     /** @return array<int, string> the controls the pane must offer for a report */
@@ -192,6 +199,11 @@ class ReportPane implements ReportPaneRenderer
                 ->get()
                 ->mapWithKeys(fn (Budget $budget): array => [$budget->getKey() => $budget->name ?? ('Budget '.$budget->getKey())])
                 ->all(),
+            // The dimensions something knows how to resolve — `App\Support\LedgerDimensions`. A company
+            // without Invoicing registers no project resolver, and the picker still offers Project: the
+            // report then reads every posting as unassigned, which is the true answer rather than a
+            // missing option that looks like a bug.
+            'dimension' => LedgerDimensions::LABELS,
             // Keyed by name because that is what a payslip's month is stored as, and in fiscal order
             // because that is the order these are filed in. See ReportPeriod::months().
             'month' => collect(ReportPeriod::months($asOf ?? now()->toDateString()))

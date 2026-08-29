@@ -246,6 +246,30 @@ class Payment extends Model
     }
 
     /**
+     * Tax withheld from this payment, if any — `docs/erpnext-gap-plan.md` Phase 4.
+     *
+     * `hasOne`, because the deduction is one per payment and the database says so.
+     */
+    public function withholdingDeduction()
+    {
+        return $this->hasOne(WithholdingDeduction::class);
+    }
+
+    /**
+     * What actually leaves the bank: the amount, less anything withheld at source.
+     *
+     * `amount` stays the gross, because that is what the company owes and what the journal entry debits.
+     * The bank file has to carry the net — the transfer is the payment less the tax the company keeps back
+     * to remit — and a file that paid the gross would leave the cash account disagreeing with the bank
+     * statement by exactly the withheld figure. Every payment without a deduction returns `amount`
+     * unchanged, which is all of them until a company assigns a withholding section to a supplier.
+     */
+    public function transferAmount(): float
+    {
+        return round((float) $this->amount - (float) ($this->withholdingDeduction?->amount ?? 0), 2);
+    }
+
+    /**
      * The iPayments Payment Type for this transaction:
      * explicit override → RTGS above threshold → PAY for an employee salary →
      * BT when the beneficiary banks with the debiting bank → beneficiary

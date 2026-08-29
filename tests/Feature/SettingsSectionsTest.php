@@ -41,6 +41,21 @@ class SettingsSectionsTest extends AccountingTestCase
      * a page every administrator opens, and it should be a decision rather than a surprise. Update this in the
      * same commit as the registration, and say why.
      *
+     * **2026-08-28** — `invoicing.dunning` joined at sort 75, contributed by Invoicing:
+     * `docs/erpnext-gap-plan.md` Phase 5 adds overdue reminders, and this is the block that decides whether
+     * they are sent at all. **Off by default**, which is why it is a settings block rather than a feature:
+     * it is the only thing in the application that emails somebody outside the company, so switching it on
+     * has to be an act somebody performs having read the sentence next to it. Sorted after Accounting's
+     * blocks because a company setting up its books reads the currency and the freeze date first, and before
+     * the status page, which this page's own comment keeps last.
+     *
+     * **2026-08-28** — `accounting.ledger-freeze` joined at sort 20, contributed by Accounting:
+     * `docs/erpnext-gap-plan.md` Phase 3 adds a date before which nothing may be posted, which is the
+     * request a fiscal-year close is too blunt for — *stop backdating into July now that July is reported,
+     * while the year stays open*. One date, on the page where the other decisions about the books are, and
+     * between the currency and payroll posting because it is a decision about the ledger rather than about a
+     * module's behaviour.
+     *
      * **2026-08-18** — `construction.accounts` joined at sort 70, contributed by `construction_contracts` rather
      * than written into Core: §18.2 of `docs/construction-management-plan.md` refuses a `core -> construction`
      * coupling on the grounds that "the account map belongs on a Construction settings page", and this registry is
@@ -50,7 +65,10 @@ class SettingsSectionsTest extends AccountingTestCase
     public function test_the_modules_contribute_their_sections(): void
     {
         $this->assertSame(
-            ['accounting.currency', 'accounting.payroll-posting', 'construction.accounts'],
+            [
+                'accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting',
+                'construction.accounts', 'invoicing.dunning',
+            ],
             SettingsSections::keys(),
         );
     }
@@ -68,6 +86,7 @@ class SettingsSectionsTest extends AccountingTestCase
                 'Who has to sign an entry off',           // 30
                 'Auto-post payroll journal entries',      // 60, contributed
                 'iPayments Defaults',                     // 70
+                'Chasing overdue invoices',               // 75, contributed
                 'Enable public status page',              // 80
             ]);
     }
@@ -101,7 +120,7 @@ class SettingsSectionsTest extends AccountingTestCase
         }
 
         $this->assertSame(
-            ['accounting.currency', 'accounting.payroll-posting'],
+            ['accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting'],
             SettingsSections::keys(),
             'the registry was left as it was found',
         );

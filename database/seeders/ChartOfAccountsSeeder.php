@@ -38,6 +38,10 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
                 ['code' => '1250', 'name' => 'Accounts Receivable', 'type' => 'asset', 'description' => 'Amounts owed by customers on issued invoices'],
                 ['code' => '1300', 'name' => 'Inventory', 'type' => 'asset', 'description' => 'Stock on hand at cost'],
+                // Deferrals — docs/erpnext-gap-plan.md Phase 5. A cost paid in advance is not an expense
+                // yet: an annual licence bought in July is eleven months of next year's costs sitting in
+                // this month's profit unless it is held here and charged monthly. See DeferralService.
+                ['code' => '1350', 'name' => 'Prepaid Expenses', 'type' => 'asset', 'description' => 'Paid in advance and not yet incurred; charged a month at a time'],
                 ['code' => '1400', 'name' => 'Office Equipment', 'type' => 'asset', 'description' => 'Fixed assets: computers, furniture, hardware'],
                 ['code' => '1450', 'name' => 'Vehicles', 'type' => 'asset', 'description' => 'Fixed assets: company vehicles'],
                 ['code' => '1500', 'name' => 'Accumulated Depreciation', 'type' => 'asset', 'normal_balance' => 'credit', 'description' => 'Contra-asset: credit-normal'],
@@ -55,6 +59,10 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '2230', 'name' => 'Provident Fund Payable', 'type' => 'liability', 'description' => 'Employee contribution and employer match held for the fund'],
                 ['code' => '2300', 'name' => 'Salaries Payable', 'type' => 'liability', 'description' => 'Net salaries owed to employees'],
                 ['code' => '2400', 'name' => 'Accounts Payable', 'type' => 'liability', 'description' => 'Amounts owed to suppliers on bills'],
+                // The other half of the deferral pair. Billed is not earned: an annual subscription invoiced
+                // in July is a liability to deliver eleven more months of it, and recognising the whole
+                // amount on the day of the invoice overstates this year's profit by that much.
+                ['code' => '2500', 'name' => 'Deferred Revenue', 'type' => 'liability', 'description' => 'Billed and not yet earned; recognised a month at a time'],
             ]],
             ['code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '3100', 'name' => 'Owner Equity', 'type' => 'equity'],

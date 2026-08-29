@@ -41,6 +41,12 @@ class ReportPaneTest extends AccountingTestCase
         'BudgetVsActual' => ['budget'],
         'TaxSummary' => ['month'],
         'PettyCashBook' => ['month'],
+        // Which dimension the profit is split by — docs/erpnext-gap-plan.md Phase 1. The sixth report to
+        // need a control, and the first to need one that is not a date, an account or a document.
+        'ProfitAndLossByDimension' => ['dimension'],
+        // The §165 statement — Phase 4. A filing month, on the same reasoning as the tax summary's: filed
+        // monthly, reconciled for the year, so the whole year has to remain a legitimate answer.
+        'WithholdingStatement' => ['month'],
     ];
 
     protected function setUp(): void
