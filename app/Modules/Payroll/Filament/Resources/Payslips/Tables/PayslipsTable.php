@@ -23,6 +23,7 @@ use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class PayslipsTable
 {
@@ -127,11 +128,26 @@ class PayslipsTable
                         'rejected' => 'danger',
                         default => 'gray',
                     })
-                    // An acknowledgement entered by somebody signed in as the
-                    // employee reads exactly like the employee's own unless the
-                    // list says otherwise.
-                    ->description(fn (Payslip $record): ?string => $record->reviewWasRecordedOnBehalf()
-                        ? 'on behalf, by '.($record->employee_review_recorded_by_name ?: 'an administrator')
+                    /*
+                     * **Why it was rejected, under the badge that says it was.**
+                     *
+                     * The reason has been required at the point of rejection since the action existed, and it
+                     * reached the notification email, the payment row and the bank file's blocked-reason
+                     * column — everywhere except the screen the payroll team actually works from. So a
+                     * rejected payslip read as a red badge and a question, and the answer was in somebody's
+                     * inbox.
+                     *
+                     * Truncated rather than wrapped: the column is one of eight on a list read across, and the
+                     * whole sentence is on hover and on the payment it blocks. Sixty characters is enough for
+                     * "overtime for the 14th is missing" and short enough not to reflow the row.
+                     *
+                     * An acknowledgement entered by somebody signed in as the employee reads exactly like the
+                     * employee's own unless the list says otherwise, so that note stays and the two are shown
+                     * together when both apply.
+                     */
+                    ->description(fn (Payslip $record): ?string => self::reviewNote($record))
+                    ->tooltip(fn (Payslip $record): ?string => $record->employee_review === Payslip::REVIEW_REJECTED
+                        ? $record->employee_rejection_reason
                         : null)
                     ->sortable(),
             ])
@@ -362,6 +378,28 @@ class PayslipsTable
                     Notification::make()->title($e->getMessage())->danger()->send();
                 }
             });
+    }
+
+    /**
+     * The line under the review badge: the employee's objection, and who entered the review.
+     *
+     * Null for the ordinary cases — pending, and accepted by the employee themselves — so the column stays
+     * one line high for almost every row.
+     */
+    protected static function reviewNote(Payslip $record): ?string
+    {
+        $reason = $record->employee_review === Payslip::REVIEW_REJECTED
+            ? trim((string) $record->employee_rejection_reason)
+            : '';
+
+        $note = $record->reviewWasRecordedOnBehalf()
+            ? 'on behalf, by '.($record->employee_review_recorded_by_name ?: 'an administrator')
+            : '';
+
+        return implode(' — ', array_filter([
+            $reason === '' ? null : '"'.Str::limit($reason, 60).'"',
+            $note === '' ? null : $note,
+        ])) ?: null;
     }
 
     // --- AcceptPayslip ---
