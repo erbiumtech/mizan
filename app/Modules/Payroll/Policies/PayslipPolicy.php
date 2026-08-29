@@ -28,13 +28,27 @@ class PayslipPolicy
         return true;
     }
 
+    /**
+     * Reading one payslip.
+     *
+     * **`isPrivileged()` rather than `hasRole('Administrator')`, and the difference had no symptom until
+     * there was a page to symptom on.** The payslips *list* scopes its query with
+     * `EmployeeAccess::scopeAccessibleEmployees()`, which lets Administrator, Accountant, Manager and CEO see
+     * every row; this method let only an Administrator open one. Nothing routed through it — the row actions
+     * ask `runAction()` and Edit asks `update()` — so an Accountant could see, download and edit a payslip
+     * they were not allowed to *view*. `ViewPayslip` is the first screen to ask, and a list that offers a row
+     * the record page then refuses is the kind of inconsistency somebody reports as a permissions bug.
+     *
+     * This widens nothing real: those four roles already read every payslip in the list, download the PDF and
+     * edit the figures. Everybody else is still their own record and their reporting downline.
+     */
     public function view(User $user, Payslip $payslip): bool
     {
         if (! $user->hasPermissionTo('PayslipView')) {
             return false;
         }
 
-        if ($user->hasRole('Administrator')) {
+        if (app(EmployeeAccess::class)->isPrivileged($user)) {
             return true;
         }
 

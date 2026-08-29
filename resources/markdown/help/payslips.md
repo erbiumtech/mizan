@@ -84,10 +84,51 @@ payslip records that explicitly rather than presenting it as the employee's
 own acknowledgement.
 
 **The reason is shown in the list**, under the red *rejected* badge, shortened to
-fit the row — hover it for the whole sentence. It also travels with the money: the
-salary payment carries it, and the Salary Bank File names it as the reason that
-row is held back, so nobody has to go looking through email to find out what the
-employee said.
+fit the row — hover it for the whole sentence. It is also at the top of the
+payslip's own edit screen, above the figures somebody is about to correct, and in
+the payslip's Comments tab, where it opens the conversation. And it travels with
+the money: the salary payment carries it, and the Salary Bank File names it as the
+reason that row is held back.
+
+## The conversation about an objection
+
+A rejection is advisory for the payslip and **not** for the salary: the payment it
+pays is held back until somebody deals with the objection.
+
+**The objection starts a conversation.** The reason the employee types is written
+into the payslip's **Comments** tab as its first comment, and both sides can reply
+there. That thread is the record of what was discussed; the Comments tab shows a
+red *Needs a reply* flag while an objection is still waiting for one.
+
+**Where an employee finds it.** Open the payslip with **View** on its row in the
+list — Edit is the payroll team's screen and needs `PayslipUpdate`, which staff
+outside payroll do not have. The View page shows the month, the pay, the objection
+if there is one, and the Comments tab underneath, where they can reply. It is their
+own payslip and their reporting downline's; somebody else's is not offered.
+
+There are then two ways to deal with it: correct the payslip, or say why it was
+right and close the objection.
+
+## Closing an objection <!-- requires: PayslipUpdate -->
+
+**Close objection** is the second one, and it is in three places — on the payslip's
+row in the list, on its **View** page above the conversation, and on its **Edit**
+page, where the figures were just corrected. It marks the objection resolved,
+records who closed it and when, emails the employee the last reply beside their own
+words, and releases the salary. The payslip then reads *Rejected, answered* rather than
+*Accepted*, because nobody accepted it: the objection and the answer both stay on
+the record, and the list and the edit screen show them together.
+
+**It cannot be the first thing that happens.** Until somebody has replied in the
+Comments tab the button is disabled and says so — releasing a salary over a
+complaint nobody responded to is exactly what this step exists to prevent.
+
+Only somebody with `PayslipUpdate` sees it — Administrator, Accountant, Manager and
+CEO — so an employee cannot overrule their own objection. It can be done once; a
+second closure would be a running commentary rather than a decision.
+
+Filter the list by *Rejected* for the objections still waiting on somebody, and by
+*Rejected, answered* for the ones already dealt with.
 
 ## Roles and permissions
 
