@@ -16,6 +16,18 @@ run for that employee until the advance clears — **the last instalment is
 automatically trimmed to whatever is left**, so it can never take more than
 was actually lent.
 
+## When deductions run
+
+**Start deducting from** is the first payroll month to take an instalment.
+Leave it blank and recovery starts with the next payslip; set it to October and
+an advance handed over in July is deducted from nothing until October. Only the
+month matters — a date mid-month still means the whole of that month.
+
+**Skip these months** pauses recovery for the months you pick, offered from the
+advance's own schedule. A skipped month deducts nothing and **writes nothing
+off** — the balance doesn't move, so the advance simply runs one month longer.
+Neither setting changes what's owed; both only change when it comes back.
+
 **Status** controls what payroll does next:
 - **Active — deducting** — payroll keeps taking instalments.
 - **Settled** — set automatically once the balance reaches zero; also settable

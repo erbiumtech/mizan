@@ -6,11 +6,14 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class PayslipForm
 {
@@ -58,6 +61,25 @@ class PayslipForm
     {
         return $schema
             ->components([
+                /*
+                 * **What the employee said, at the top of the screen that answers it.**
+                 *
+                 * A rejection reached the payroll team as an email and a red badge on the list; the screen
+                 * where somebody actually corrects the figures said nothing at all, so the objection had to
+                 * be carried in from another window. It is read-only and it is a *summary*: the objection
+                 * itself is the first comment in the Comments tab below, which is where both sides reply.
+                 * Absent entirely on a payslip nobody has objected to, which is nearly all of them.
+                 *
+                 * `columnSpanFull()` because the form is a three-column grid of figures and a sentence
+                 * wrapped into a third of a row is a sentence nobody reads.
+                 */
+                Placeholder::make('employee_objection')
+                    ->label('Employee objection')
+                    ->columnSpanFull()
+                    ->visible(fn (?Payslip $record): bool => $record !== null
+                        && in_array($record->employee_review, [Payslip::REVIEW_REJECTED, Payslip::REVIEW_OVERRIDDEN], true))
+                    ->content(fn (?Payslip $record): HtmlString => self::objection($record)),
+
                 // --- SELECTORS (drive the calculation) ---
                 Select::make('employee_id')
                     ->label('Employee')
@@ -244,6 +266,60 @@ class PayslipForm
                     ->numeric()
                     ->readOnly(),
             ]);
+    }
+
+    /**
+     * The objection, the answer if there is one, and who said each.
+     *
+     * Assembled here rather than in the blade because two of the three parts are optional and the sentence
+     * has to read in every combination: rejected and unanswered, rejected and answered, and either of those
+     * entered by somebody signed in as the employee.
+     */
+    public static function objection(?Payslip $record): HtmlString
+    {
+        /*
+         * Rendered, and escaped first.
+         *
+         * The employee wrote the sentence in the middle of this and payroll wrote the one after it, so it is
+         * user input on an administrator's screen: `html_input => escape` is what keeps a reason containing a
+         * tag from becoming one, and `allow_unsafe_links` keeps a `javascript:` link from surviving the
+         * conversion. Markdown at all only because the three parts need telling apart at a glance.
+         */
+        return new HtmlString(Str::markdown(self::objectionText($record), [
+            'html_input' => 'escape',
+            'allow_unsafe_links' => false,
+        ]));
+    }
+
+    public static function objectionText(?Payslip $record): string
+    {
+        if ($record === null) {
+            return '';
+        }
+
+        $when = $record->employee_reviewed_at?->format('d M Y');
+        $lines = ['**Rejected'.($when ? " on {$when}" : '').':** '
+            .($record->employee_rejection_reason ?: 'no reason was recorded.')];
+
+        if ($note = $record->reviewOnBehalfNote()) {
+            $lines[] = $note;
+        }
+
+        if ($record->isReviewOverridden()) {
+            $who = $record->review_overridden_by_name ?: 'the payroll team';
+            $answered = $record->review_overridden_at?->format('d M Y');
+
+            $lines[] = '**Closed by '.$who.($answered ? " on {$answered}" : '').'.** The salary has been '
+                .'released for payment. The exchange is in **Comments**, below.';
+        } elseif ($record->objectionHasReply()) {
+            $lines[] = '_Replied to, and still open: the salary this payslip pays is held back until the '
+                .'objection is closed — use **Close objection** on the payslips list._';
+        } else {
+            $lines[] = '_Nobody has replied yet, and the salary this payslip pays is held back until '
+                .'somebody does. Reply in **Comments**, below; the objection can be closed after that._';
+        }
+
+        return implode("\n\n", $lines);
     }
 
     /**

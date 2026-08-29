@@ -7,6 +7,7 @@ use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\CreatePayslip;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\EditPayslip;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ViewPayslip;
 use App\Modules\Payroll\Filament\Resources\Payslips\RelationManagers\CommentsRelationManager;
 use App\Modules\Payroll\Filament\Resources\Payslips\Schemas\PayslipForm;
 use App\Modules\Payroll\Filament\Resources\Payslips\Tables\PayslipsTable;
@@ -82,6 +83,9 @@ class PayslipResource extends Resource
         return [
             'index' => ListPayslips::route('/'),
             'create' => CreatePayslip::route('/create'),
+            // The employee's way in. Edit needs `PayslipUpdate`, which they do not hold, so without a view
+            // page the comment thread on their own payslip was unreachable — see ViewPayslip.
+            'view' => ViewPayslip::route('/{record}'),
             'edit' => EditPayslip::route('/{record}/edit'),
         ];
     }
