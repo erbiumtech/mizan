@@ -59,7 +59,9 @@ class BankPaymentExportService
         // `payable` in this first call, and it has to be: loadMorph() below starts by plucking the
         // relation off every model to group them by class, which is itself a lazy read — so calling it
         // on an unloaded morph throws the very violation it is here to avoid.
-        $payments->loadMissing(['companyBankAccount', 'payslip', 'payable']);
+        // `withholdingDeduction` for transferAmount() below — one query for the set rather than one per row,
+        // and null for every payment that has no section assigned, which is almost all of them.
+        $payments->loadMissing(['companyBankAccount', 'payslip', 'payable', 'withholdingDeduction']);
         $payments->loadMorph('payable', [
             Employee::class => ['bank', 'user'],
             Beneficiary::class => ['bank'],
@@ -68,7 +70,11 @@ class BankPaymentExportService
         foreach ($payments as $i => $payment) {
             $beneficiary = $payment->beneficiaryDetails();
             $debit = $payment->companyBankAccount;
-            $total += (float) $payment->amount;
+            // The net, which for everything without a withholding deduction is the amount — see
+            // Payment::transferAmount(). The trailer total and the row are the same figure by construction:
+            // a file whose trailer disagreed with its rows is rejected by the bank.
+            $transfer = $payment->transferAmount();
+            $total += $transfer;
 
             $rows[] = $this->file->row([
                 'record_type' => 'P',
@@ -93,7 +99,7 @@ class BankPaymentExportService
                 // (built from ->amount just above) stayed correct. For a salary
                 // this column already carries the payslip's net figure:
                 // generateSalaryPayments() copies it in.
-                'amount' => $this->file->formatAmount((float) $payment->amount),
+                'amount' => $this->file->formatAmount($transfer),
                 'debit_currency' => $config['currency'],
                 'debit_bank_id' => $config['debit_bank_id'],
                 'beneficiary_email' => $beneficiary['email'],

@@ -16,10 +16,12 @@ class Beneficiary extends Model
         'address_line_1', 'address_line_2', 'email', 'phone',
         'transaction_type_id', 'payment_type', 'is_petty_cash_custodian', 'is_active',
         'is_contractor', 'engagement', 'engaged_on', 'engagement_ended_on',
+        'withholding_section_id', 'is_filer',
     ];
 
     protected $casts = [
         'is_contractor' => 'boolean',
+        'is_filer' => 'boolean',
         'engaged_on' => 'date',
         'engagement_ended_on' => 'date',
         'is_active' => 'boolean',
@@ -66,6 +68,22 @@ class Beneficiary extends Model
     public function subscriptions()
     {
         return $this->hasMany(BeneficiarySubscription::class);
+    }
+
+    /**
+     * Which section of the Ordinance applies to what this supplier is paid for — Phase 4.
+     *
+     * Null for almost everybody, and that is the design: nothing is withheld from a beneficiary with no
+     * section, so assigning one is the single act that turns the deduction on for that supplier.
+     */
+    public function withholdingSection()
+    {
+        return $this->belongsTo(WithholdingSection::class, 'withholding_section_id');
+    }
+
+    public function withholdingDeductions()
+    {
+        return $this->hasMany(WithholdingDeduction::class);
     }
 
     public function scopeContractors($query)

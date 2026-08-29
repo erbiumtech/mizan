@@ -155,6 +155,15 @@ class Reports extends Page
     public string $find = '';
 
     /**
+     * Which dimension a report that offers one is split by — `docs/erpnext-gap-plan.md` Phase 1.
+     *
+     * In the URL with the rest, so "the profit and loss by department at 30 June" is a link somebody sends,
+     * which is the whole premise of this pane. Null means the report's own default.
+     */
+    #[Url]
+    public ?string $dimension = null;
+
+    /**
      * The filing month, for the two reports that are read a month at a time.
      *
      * Null is the whole fiscal year, which is the more useful default of the two: a tax summary is
@@ -215,6 +224,7 @@ class Reports extends Page
                 'budget' => $this->budget,
                 'search' => $this->find,
                 'month' => $this->month,
+                'dimension' => $this->dimension,
             ],
         );
     }

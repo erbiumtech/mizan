@@ -3,11 +3,13 @@
 namespace App\Modules\Invoicing;
 
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
+use App\Modules\Invoicing\Console\Commands\SendOverdueReminders;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Filament\Pages\CreditNotesIssued;
 use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
 use App\Modules\Invoicing\Filament\Pages\RevenueByDimension;
+use App\Modules\Invoicing\Filament\Settings\DunningSettingsSection;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
@@ -16,19 +18,23 @@ use App\Modules\Invoicing\Policies\ContactPolicy;
 use App\Modules\Invoicing\Policies\InvoiceLinePolicy;
 use App\Modules\Invoicing\Policies\InvoicePolicy;
 use App\Modules\Invoicing\Policies\TaxRatePolicy;
+use App\Modules\Invoicing\Services\ControlReconciliation;
 use App\Modules\Invoicing\Services\RecurringInvoiceService;
 use App\Modules\Invoicing\Support\ContactCsvImporter;
 use App\Modules\Invoicing\Support\CreditNoteReports;
 use App\Modules\Invoicing\Support\InvoicingReports;
+use App\Modules\Invoicing\Support\OpeningInvoiceCsvImporter;
 use App\Modules\Invoicing\Support\RevenueReports;
 use App\Support\CashCommitments;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
 use App\Support\JournalEntryOwners;
+use App\Support\LedgerDimensions;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\SettingsSections;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -155,12 +161,54 @@ class InvoicingServiceProvider extends ServiceProvider
         // Sorted first, and so the type the page opens on: it is the one every company has a file of.
         CsvImporters::register('contacts', ContactCsvImporter::class, 10);
 
-        $this->commands([RaiseRecurringInvoices::class]);
+        /*
+         * The invoices that were already open on the day the company arrived — Phase 5.
+         *
+         * Sorted after the opening trial balance (30) because that is the order to do it in: the balance
+         * brings in the receivables *total* and these are the documents behind it, so importing them the
+         * other way round leaves a stage where the two disagree for no reason. ERPNext's own guidance is the
+         * same, and Phase 2's control check is what tells a company whether they now agree.
+         *
+         * 45 rather than 40, which construction's cost codes already hold: two importers on the same sort
+         * would leave their order in the dropdown to whichever provider booted first.
+         */
+        CsvImporters::register('opening_invoices', OpeningInvoiceCsvImporter::class, 45);
+
+        $this->commands([RaiseRecurringInvoices::class, SendOverdueReminders::class]);
 
         // An invoice's journal entry is the accounting half of the invoice, so the register must refuse
         // to edit it. Registered from here rather than named in Accounting: that naming was an
         // `accounting -> invoicing` edge, and Accounting does not require Invoicing.
         JournalEntryOwners::register('an invoice', Invoice::class);
+
+        // Receivables and payables, and what they are supposed to equal — `docs/erpnext-gap-plan.md`
+        // Phase 2. Registered at boot so the health check finds the pair whether or not anybody has
+        // opened a report, which is why `CashCommitmentReports::registerSources()` is called here too.
+        ControlReconciliation::register();
+
+        /*
+         * Whether to chase overdue invoices, and when — `docs/erpnext-gap-plan.md` Phase 5.
+         *
+         * Sorted after Accounting's sections rather than among them: a company setting up its books reads the
+         * currency and the freeze date first, and this one sends email to its customers. 75 rather than 80,
+         * which `CompanySettings` gives to the status page — its own comment puts that block last "because it
+         * is the least consequential", and sharing a sort would have put this after it. Off by default, which
+         * is what makes shipping it safe.
+         */
+        SettingsSections::register('invoicing.dunning', DunningSettingsSection::class, 75);
+
+        /*
+         * What an invoice's postings were for — `docs/erpnext-gap-plan.md` Phase 1.
+         *
+         * Registered here rather than read by Accounting, for the reason the owners registry above was
+         * written: a ledger that named this module would re-create the `accounting -> invoicing` edge four
+         * registries were built to remove. An invoice knows its project and its customer; a company without
+         * Invoicing registers neither and its ledger reports every entry as unassigned, which is correct.
+         */
+        LedgerDimensions::register(Invoice::class, fn (Invoice $invoice): array => [
+            LedgerDimensions::PROJECT => $invoice->project?->name,
+            LedgerDimensions::PARTY => $invoice->contact?->name,
+        ], ['project', 'contact']);
 
         // Invoicing's own three reports. See PayrollReports for the other half of the same change.
         foreach (['AgedReceivables', 'AgedPayables'] as $key) {
