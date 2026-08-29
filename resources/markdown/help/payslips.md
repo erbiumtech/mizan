@@ -106,8 +106,14 @@ outside payroll do not have. The View page shows the month, the pay, the objecti
 if there is one, and the Comments tab underneath, where they can reply. It is their
 own payslip and their reporting downline's; somebody else's is not offered.
 
-There are then two ways to deal with it: correct the payslip, or say why it was
-right and close the objection.
+There are then two ways to deal with it, and both are on the payslip's row, its
+**View** page and its **Edit** page:
+
+- **Send back for review** — you agreed, and changed the payslip. Say what changed;
+  the note is emailed to the employee and added to the thread, the review goes back
+  to *pending*, and they accept the corrected figures. The salary stays held until
+  they do, because it is a new figure awaiting a fresh acknowledgement.
+- **Close objection** — the payslip was right. See below.
 
 ## Closing an objection <!-- requires: PayslipUpdate -->
 
@@ -119,9 +125,21 @@ words, and releases the salary. The payslip then reads *Rejected, answered* rath
 *Accepted*, because nobody accepted it: the objection and the answer both stay on
 the record, and the list and the edit screen show them together.
 
+**Or mark it solved in the thread.** The Comments tab has **Mark solved** on each
+comment, for anybody with `CommentResolve`. On an ordinary comment it means what it
+says; on the objection itself it is the same act as *Close objection* — it releases
+the salary and emails the employee — because a resolved objection that left the
+payslip rejected would look finished and change nothing.
+
 **It cannot be the first thing that happens.** Until somebody has replied in the
-Comments tab the button is disabled and says so — releasing a salary over a
-complaint nobody responded to is exactly what this step exists to prevent.
+Comments tab the button reads *Close objection (reply first)* and does nothing —
+releasing a salary over a complaint nobody responded to is exactly what this step
+exists to prevent. *Send back for review* has no such condition: there is nothing
+left to argue about once the payslip has been corrected.
+
+**Marking a comment solved is not the same as closing the objection** — unless the
+comment *is* the objection, which is the first one in the thread. Marking a reply
+solved tidies the thread and leaves the review where it was.
 
 Only somebody with `PayslipUpdate` sees it — Administrator, Accountant, Manager and
 CEO — so an employee cannot overrule their own objection. It can be done once; a

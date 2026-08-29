@@ -5,13 +5,16 @@ namespace App\Modules\Payroll\Filament\Resources\Payslips\RelationManagers;
 use App\Modules\Core\Models\Comment;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\LandlordUserColumn;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use InvalidArgumentException;
 
 /**
  * The conversation about a payslip — and, when one has been rejected, the conversation *about the objection*.
@@ -66,6 +69,41 @@ class CommentsRelationManager extends RelationManager
         return false;
     }
 
+    /** Is this the comment the rejection reason was written into? */
+    protected function isObjection(Comment $comment): bool
+    {
+        return $comment->getKey() === $this->getOwnerRecord()->review_objection_comment_id;
+    }
+
+    /**
+     * Close a comment off — and, if it is the objection, everything that hangs on it.
+     *
+     * The two branches are deliberately not the same act: an ordinary comment is a note somebody has dealt
+     * with, and the objection is a decision to pay over a complaint. The second is the model's, so that the
+     * release, the record of who decided, and the email to the employee cannot be got wrong by a screen.
+     */
+    protected function markSolved(Comment $comment): void
+    {
+        if ($this->isObjection($comment)) {
+            try {
+                $this->getOwnerRecord()->resolveObjection();
+
+                Notification::make()
+                    ->title('Objection closed; the salary can be released.')
+                    ->success()
+                    ->send();
+            } catch (InvalidArgumentException $e) {
+                Notification::make()->title($e->getMessage())->danger()->send();
+            }
+
+            return;
+        }
+
+        $comment->update(['resolved_at' => now(), 'resolved_by' => auth()->id()]);
+
+        Notification::make()->title('Marked solved.')->success()->send();
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -94,6 +132,45 @@ class CommentsRelationManager extends RelationManager
             ])
             // Oldest first: this is a conversation, and the objection is the top of it.
             ->defaultSort('created_at', 'asc')
+            ->recordActions([
+                /*
+                 * **Mark solved**, on the thread itself — the button an administrator looks for here.
+                 *
+                 * It existed only on Core's own Comments screen, which lists every comment in the company;
+                 * on the payslip, where somebody is actually reading the exchange, there was no way to close
+                 * anything off.
+                 *
+                 * **On the objection it does the whole thing.** Resolving the comment and leaving the payslip
+                 * rejected would look finished and change nothing: the state would still read *rejected* and
+                 * the salary would still be held. So this delegates to `Payslip::resolveObjection()`, which
+                 * resolves this comment, records the decision, releases the payment and tells the employee.
+                 * Two buttons that half-agree is the failure this avoids — `CloseObjectionAction` on the
+                 * pages and this one in the thread reach the same method.
+                 *
+                 * On any other comment it is what it says: this bit of the conversation is dealt with.
+                 */
+                Action::make('resolveComment')
+                    ->label('Mark solved')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (Comment $record): bool => ! $record->isResolved()
+                        && (auth()->user()?->can('resolve', $record) ?? false))
+                    ->disabled(fn (Comment $record): bool => $this->isObjection($record)
+                        && ! $this->getOwnerRecord()->objectionHasReply())
+                    ->tooltip(fn (Comment $record): ?string => $this->isObjection($record)
+                        && ! $this->getOwnerRecord()->objectionHasReply()
+                        ? 'Reply to the objection first.'
+                        : null)
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Comment $record): string => $this->isObjection($record)
+                        ? 'Close the objection and release the salary'
+                        : 'Mark this comment solved')
+                    ->modalDescription(fn (Comment $record): ?string => $this->isObjection($record)
+                        ? 'This is the objection itself. Marking it solved releases the salary for payment '
+                            .'and emails the employee. The objection stays on the record.'
+                        : null)
+                    ->action(fn (Comment $record) => $this->markSolved($record)),
+            ])
             ->headerActions([
                 CreateAction::make()
                     ->label('Reply')

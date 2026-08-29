@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Filament\Resources\Payslips\Pages;
 
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\CloseObjectionAction;
+use App\Modules\Payroll\Filament\Resources\Payslips\Actions\ReturnForReviewAction;
 use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -23,6 +24,7 @@ class EditPayslip extends EditRecord
     {
         return [
             CloseObjectionAction::make(),
+            ReturnForReviewAction::make(),
             DeleteAction::make(),
         ];
     }

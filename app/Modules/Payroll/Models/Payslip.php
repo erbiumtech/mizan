@@ -16,12 +16,14 @@ use App\Modules\Payroll\Services\PayslipService;
 use App\Modules\Payroll\Services\TaxCalculatorService;
 use App\Notifications\PayslipObjectionAnswered;
 use App\Notifications\PayslipRejected;
+use App\Notifications\PayslipReturnedForReview;
 use App\Support\Contracts\AdvanceLedger;
 use App\Support\Contracts\OwnedByUser;
 use App\Support\Contracts\ReimbursableClaims;
 use App\Support\Impersonation;
 use App\Support\PayrollMonth;
 use App\Support\PayslipSettlement;
+use App\Support\TenantTransaction;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
 use Carbon\Carbon;
@@ -248,21 +250,26 @@ class Payslip extends Model implements OwnedByUser
 
         $by = auth()->user();
 
-        $this->update([
-            'employee_review' => self::REVIEW_OVERRIDDEN,
-            // The name is snapshotted beside the id for the reason the on-behalf note gives: `users` is a
-            // landlord table, and this has to still read after that account is renamed or removed.
-            'review_overridden_by' => $by?->getKey(),
-            'review_overridden_by_name' => $by?->name,
-            'review_overridden_at' => now(),
-        ]);
+        // The decision and the resolved comment together, for the reason `recordEmployeeReview()` gives: a
+        // payslip that says released while the thread still shows an open objection is a screen disagreeing
+        // with itself.
+        TenantTransaction::run(function () use ($by): void {
+            $this->update([
+                'employee_review' => self::REVIEW_OVERRIDDEN,
+                // The name is snapshotted beside the id for the reason the on-behalf note gives: `users` is a
+                // landlord table, and this has to still read after that account is renamed or removed.
+                'review_overridden_by' => $by?->getKey(),
+                'review_overridden_by_name' => $by?->name,
+                'review_overridden_at' => now(),
+            ]);
 
-        // The thread says so too. `CommentPolicy` stops a resolved comment being edited, so this also fixes
-        // the wording of the objection as it stood when the decision was taken.
-        $this->objectionComment?->update([
-            'resolved_at' => now(),
-            'resolved_by' => $by?->getKey(),
-        ]);
+            // The thread says so too. `CommentPolicy` stops a resolved comment being edited, so this also
+            // fixes the wording of the objection as it stood when the decision was taken.
+            $this->objectionComment?->update([
+                'resolved_at' => now(),
+                'resolved_by' => $by?->getKey(),
+            ]);
+        });
 
         // The salary payment waiting on this reads its own copy of the review — see CopyReviewOntoPayment,
         // whose docblock asks that any fourth way of setting a review fire this event. This is that fourth
@@ -273,6 +280,73 @@ class Payslip extends Model implements OwnedByUser
         // else: the staff who hold PayslipUpdate were told about the objection and are the ones closing it.
         if ($this->employee?->user) {
             Notification::send($this->employee->user, new PayslipObjectionAnswered($this));
+        }
+
+        return $this;
+    }
+
+    /**
+     * Put the payslip back to the employee, corrected.
+     *
+     * **The other of the two ways to deal with an objection**, and the one that was missing. `resolveObjection()`
+     * says *the payslip was right and here is why*; this one says *you were right, it has been changed, look
+     * again*. Without it, correcting the figures left the payslip stuck on the employee's old rejection —
+     * `recordEmployeeReview()` refuses a second review — so the person who was right about their pay could
+     * never accept the corrected version, and the salary stayed held until somebody overrode a complaint
+     * that had already been met.
+     *
+     * **The review goes back to pending and the thread does not.** Everything said stays where it was said,
+     * and the note explaining what changed is posted to it, so the employee opens the payslip and sees why
+     * they are being asked again. What is cleared is the *decision*: the state, its date, the reason on the
+     * column, and the link to the objection — because the next rejection, if there is one, is about the new
+     * figures and deserves its own.
+     *
+     * The salary goes back to being held, which is right: it is a fresh document awaiting a fresh
+     * acknowledgement.
+     *
+     * @param  string  $note  What changed. Required — "look at it again" with no reason is how a payslip
+     *                        goes round twice.
+     */
+    public function returnForReview(string $note): self
+    {
+        if (! $this->isRejected() && ! $this->isReviewOverridden()) {
+            throw new InvalidArgumentException(
+                'Only a payslip the employee has objected to can be sent back for review. This one is '
+                ."{$this->employee_review}."
+            );
+        }
+
+        if (trim($note) === '') {
+            throw new InvalidArgumentException(
+                'Say what changed. The employee is being asked to look at the same payslip a second time, '
+                .'and a request with no reason is one they cannot act on.'
+            );
+        }
+
+        TenantTransaction::run(function () use ($note): void {
+            if (auth()->check()) {
+                $this->comments()->create(['user_id' => auth()->id(), 'body' => trim($note)]);
+            }
+
+            $this->update([
+                'employee_review' => self::REVIEW_PENDING,
+                'employee_reviewed_at' => null,
+                'employee_rejection_reason' => null,
+                'employee_review_recorded_by' => null,
+                'employee_review_recorded_by_name' => null,
+                'review_objection_comment_id' => null,
+                'review_overridden_by' => null,
+                'review_overridden_by_name' => null,
+                'review_overridden_at' => null,
+            ]);
+        });
+
+        // The payment's copy goes back to pending with it, so a corrected payslip is not released on the
+        // strength of an acknowledgement of the figures it used to carry.
+        PayslipReviewed::dispatch($this);
+
+        if ($this->employee?->user) {
+            Notification::send($this->employee->user, new PayslipReturnedForReview($this, trim($note)));
         }
 
         return $this;
@@ -332,16 +406,26 @@ class Payslip extends Model implements OwnedByUser
         // the ordinary case, where the employee did it themselves.
         $onBehalfOf = app(Impersonation::class)->impersonator();
 
-        $this->update([
-            'employee_review' => $status,
-            'employee_reviewed_at' => now(),
-            'employee_rejection_reason' => $status === self::REVIEW_REJECTED ? $reason : null,
-            'employee_review_recorded_by' => $onBehalfOf?->getKey(),
-            'employee_review_recorded_by_name' => $onBehalfOf?->name,
-            'review_objection_comment_id' => $status === self::REVIEW_REJECTED
-                ? $this->openObjection($reason)?->getKey()
-                : null,
-        ]);
+        /*
+         * The comment and the review land together, or neither does.
+         *
+         * The objection is written into the thread first, because the update needs its id — so a failure on
+         * the update leaves a comment on the payslip that nobody said, attached to a rejection that never
+         * happened. That is not hypothetical: it is what a stale schema produced on a developer machine
+         * before this wrapper existed, and the leftover reads exactly like a real objection.
+         */
+        TenantTransaction::run(function () use ($status, $reason, $onBehalfOf): void {
+            $this->update([
+                'employee_review' => $status,
+                'employee_reviewed_at' => now(),
+                'employee_rejection_reason' => $status === self::REVIEW_REJECTED ? $reason : null,
+                'employee_review_recorded_by' => $onBehalfOf?->getKey(),
+                'employee_review_recorded_by_name' => $onBehalfOf?->name,
+                'review_objection_comment_id' => $status === self::REVIEW_REJECTED
+                    ? $this->openObjection($reason)?->getKey()
+                    : null,
+            ]);
+        });
 
         // Anything holding a copy of this decision updates itself now. Today that is the salary payment,
         // which refuses to be released until the payslip is accepted and reads its own column rather than

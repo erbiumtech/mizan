@@ -71,16 +71,26 @@ return new class extends Migration
      * Narrowing `employee_review` back to three values would mean deciding what to do with every payslip
      * holding the fourth — refuse, or rewrite somebody's payroll history. Dropping these columns is enough to
      * undo this migration; leaving a varchar where an enum was breaks nothing.
+     *
+     * **Each column is dropped only if it is there**, which is not defensive programming for its own sake.
+     * `down()` runs against whatever the database actually holds, and a database that received an earlier
+     * shape of this change — as every developer machine that ran this file before it was rewritten did —
+     * has some of these columns and not others. A rollback that throws on the first missing one leaves the
+     * schema half-undone and the migration still recorded as applied, which is a worse place to be than
+     * either end.
      */
     public function down(): void
     {
-        Schema::table('payslips', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('review_objection_comment_id');
-            $table->dropColumn([
-                'review_overridden_by',
-                'review_overridden_by_name',
-                'review_overridden_at',
-            ]);
-        });
+        if (Schema::hasColumn('payslips', 'review_objection_comment_id')) {
+            Schema::table('payslips', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('review_objection_comment_id');
+            });
+        }
+
+        foreach (['review_override_reply', 'review_overridden_by', 'review_overridden_by_name', 'review_overridden_at'] as $column) {
+            if (Schema::hasColumn('payslips', $column)) {
+                Schema::table('payslips', fn (Blueprint $table) => $table->dropColumn($column));
+            }
+        }
     }
 };
