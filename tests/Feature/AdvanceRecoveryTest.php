@@ -220,6 +220,73 @@ class AdvanceRecoveryTest extends AccountingTestCase
         $this->assertSame(20000.0, $second->fresh()->recoveredAmount());
     }
 
+    /**
+     * An advance handed over in July whose agreement says recovery begins in
+     * September. Nothing comes off until then, and the balance is untouched.
+     */
+    public function test_recovery_does_not_start_before_the_month_it_is_set_to(): void
+    {
+        $advance = $this->advance();
+        $advance->update(['recovery_starts_on' => '2026-09-01']);
+
+        $july = $this->payslip('July');
+
+        $this->assertSame(0.0, (float) $july->fresh()->advances, 'not started yet');
+        $this->assertSame(1500000.0, $advance->fresh()->remainingAmount());
+
+        $september = $this->payslip('September');
+
+        $this->assertSame(60000.0, (float) $september->fresh()->advances);
+        $this->assertSame(1440000.0, $advance->fresh()->remainingAmount());
+    }
+
+    /**
+     * A skip takes nothing and writes nothing off, so the balance is exactly where
+     * it was and the advance runs a month longer.
+     */
+    public function test_a_skipped_month_deducts_nothing_and_writes_nothing_off(): void
+    {
+        $advance = $this->advance();
+        $advance->update(['skipped_months' => ['2026-08']]);
+
+        $this->payslip('July');
+        $august = $this->payslip('August');
+
+        $this->assertSame(0.0, (float) $august->fresh()->advances, 'skipped');
+        $this->assertSame(60000.0, $advance->fresh()->recoveredAmount(), 'July only');
+        $this->assertSame(1440000.0, $advance->fresh()->remainingAmount(), 'unchanged by the skip');
+
+        $september = $this->payslip('September');
+
+        $this->assertSame(60000.0, (float) $september->fresh()->advances, 'and resumes after it');
+    }
+
+    /**
+     * The deduction is calculated from the advances due this month, so booking it
+     * has to skip the same ones — otherwise a paused older advance swallows the
+     * instalment a younger one was deducted for.
+     */
+    public function test_a_paused_advance_does_not_take_a_younger_ones_instalment(): void
+    {
+        $older = Advance::create([
+            'employee_id' => $this->employee->id,
+            'total_amount' => 200000, 'monthly_instalment' => 30000,
+            'started_on' => '2026-05-01', 'status' => Advance::STATUS_ACTIVE,
+            'skipped_months' => ['2026-07'],
+        ]);
+        $younger = Advance::create([
+            'employee_id' => $this->employee->id,
+            'total_amount' => 200000, 'monthly_instalment' => 20000,
+            'started_on' => '2026-06-01', 'status' => Advance::STATUS_ACTIVE,
+        ]);
+
+        $payslip = $this->payslip('July');
+
+        $this->assertSame(20000.0, (float) $payslip->fresh()->advances, 'the younger one only');
+        $this->assertSame(0.0, $older->fresh()->recoveredAmount());
+        $this->assertSame(20000.0, $younger->fresh()->recoveredAmount());
+    }
+
     public function test_a_repayment_made_outside_payroll_is_recorded(): void
     {
         $advance = $this->advance();
