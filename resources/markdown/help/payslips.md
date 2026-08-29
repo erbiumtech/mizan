@@ -83,6 +83,12 @@ administrator does this on the employee's behalf (impersonating them), the
 payslip records that explicitly rather than presenting it as the employee's
 own acknowledgement.
 
+**The reason is shown in the list**, under the red *rejected* badge, shortened to
+fit the row — hover it for the whole sentence. It also travels with the money: the
+salary payment carries it, and the Salary Bank File names it as the reason that
+row is held back, so nobody has to go looking through email to find out what the
+employee said.
+
 ## Roles and permissions
 
 | Action | Permission required |
