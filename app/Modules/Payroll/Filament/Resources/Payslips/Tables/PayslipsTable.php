@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\Payslips\Tables;
 
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\CloseObjectionAction;
+use App\Modules\Payroll\Filament\Resources\Payslips\Actions\ReturnForReviewAction;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipDeliveryService;
 use App\Modules\Payroll\Services\PayslipService;
@@ -224,6 +225,8 @@ class PayslipsTable
                 // and only to whoever may edit one. Defined once and also on the payslip's own View and Edit
                 // pages, because that is where the thread it closes is read — see CloseObjectionAction.
                 CloseObjectionAction::make(),
+                // The other way to deal with an objection: correct the payslip and ask again.
+                ReturnForReviewAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

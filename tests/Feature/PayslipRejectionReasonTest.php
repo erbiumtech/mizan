@@ -10,7 +10,9 @@ use App\Modules\Payroll\Filament\Resources\Payslips\RelationManagers\CommentsRel
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Notifications\PayslipObjectionAnswered;
+use App\Notifications\PayslipReturnedForReview;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -173,6 +175,36 @@ class PayslipRejectionReasonTest extends AccountingTestCase
         $this->assertSame('Overtime for the 14th is missing', $comment->body);
         $this->assertSame(auth()->id(), $comment->user_id);
         $this->assertSame(1, $payslip->comments()->count());
+    }
+
+    /**
+     * A rejection that fails leaves nothing behind — not even the comment.
+     *
+     * The objection has to be written before the payslip can point at it, so a failure on the update used to
+     * leave a comment nobody said, attached to a rejection that never happened. It reads exactly like a real
+     * objection. Provoked here by making the update itself impossible.
+     */
+    public function test_a_failed_rejection_leaves_no_orphan_comment(): void
+    {
+        $payslip = $this->payslip();
+
+        // The update is made impossible at the database, which is the same shape as the schema fault that
+        // produced the leftover: the comment is written, and then the payslip refuses to be.
+        try {
+            DB::statement('CREATE TRIGGER refuse_payslip_update BEFORE UPDATE ON payslips '
+                ."BEGIN SELECT RAISE(ABORT, 'refused'); END");
+
+            $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+            $this->fail('the update was expected to fail');
+        } catch (\Throwable $e) {
+            $this->assertStringContainsString('refused', $e->getMessage());
+        } finally {
+            DB::statement('DROP TRIGGER IF EXISTS refuse_payslip_update');
+        }
+
+        $this->assertSame(0, $payslip->comments()->count(), 'a failed rejection left a comment behind');
+        $this->assertSame(Payslip::REVIEW_PENDING, $payslip->refresh()->employee_review);
     }
 
     /** Accepting opens no thread — there is nothing to discuss. */
@@ -414,6 +446,203 @@ class PayslipRejectionReasonTest extends AccountingTestCase
         $this->reply($payslip, 'Checked — the figure is right.');
 
         $this->assertNull(CommentsRelationManager::getBadge($payslip->refresh(), EditPayslip::class));
+    }
+
+    /**
+     * **Mark solved** in the thread closes the objection — the whole objection, not just the comment.
+     *
+     * The trap this avoids: resolving the comment and leaving the payslip rejected would look finished and
+     * change nothing — the state would still read *rejected* and the salary would still be held. So the
+     * action on the objection comment goes through `resolveObjection()`, the same method the page buttons
+     * call.
+     */
+    public function test_marking_the_objection_solved_closes_it_and_releases_the_salary(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime for the 14th is missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'solving-accountant@test.local'));
+        $this->reply($payslip, 'Checked — the 14th was a public holiday.');
+
+        $this->thread($payslip)
+            ->callAction(TestAction::make('resolveComment')->table($payslip->refresh()->objectionComment));
+
+        $payslip->refresh();
+
+        $this->assertSame(Payslip::REVIEW_OVERRIDDEN, $payslip->employee_review);
+        $this->assertNotNull($payslip->objectionComment->refresh()->resolved_at);
+        $this->assertSame('Accountant', $payslip->review_overridden_by_name);
+    }
+
+    /** Before anybody has replied it is disabled, for the same reason the page button is. */
+    public function test_marking_the_objection_solved_is_disabled_until_somebody_replies(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'early-solver@test.local'));
+
+        $this->thread($payslip)
+            ->assertActionDisabled(TestAction::make('resolveComment')->table($payslip->refresh()->objectionComment));
+
+        $this->assertSame(Payslip::REVIEW_REJECTED, $payslip->refresh()->employee_review);
+    }
+
+    /** An ordinary comment marked solved is just that: the payslip is untouched. */
+    public function test_marking_an_ordinary_comment_solved_changes_nothing_else(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+        $accountant = $this->makeUser('Accountant', 'note-solver@test.local');
+        $this->actingAs($accountant);
+        $this->reply($payslip, 'Asked the site supervisor to confirm the hours.');
+
+        $reply = $payslip->refresh()->latestObjectionReply();
+
+        $this->thread($payslip)
+            ->callAction(TestAction::make('resolveComment')->table($reply));
+
+        $this->assertNotNull($reply->refresh()->resolved_at);
+        $this->assertSame($accountant->getKey(), $reply->resolved_by);
+
+        // Still rejected: closing the objection is a decision about the payslip, not about a note on it.
+        $this->assertSame(Payslip::REVIEW_REJECTED, $payslip->refresh()->employee_review);
+    }
+
+    /** The employee cannot mark anything solved — they hold no `CommentResolve`. */
+    public function test_the_employee_cannot_mark_a_comment_solved(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+        $this->reply($payslip, 'Any update?');
+
+        $this->thread($payslip)
+            ->assertActionHidden(TestAction::make('resolveComment')->table($payslip->refresh()->objectionComment));
+    }
+
+    // ──────────────────────────────────── correcting it instead ──
+
+    /**
+     * The other way to deal with an objection: change the payslip and ask again.
+     *
+     * Without this, correcting the figures left the review stuck on the old rejection — `recordEmployeeReview()`
+     * refuses a second review — so the employee who was right about their own pay could never accept the
+     * corrected version, and the only way to release the salary was to override a complaint that had already
+     * been met.
+     */
+    public function test_a_corrected_payslip_can_be_sent_back_for_review(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime for the 14th is missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'correcting-accountant@test.local'));
+
+        Livewire::test(ListPayslips::class)
+            ->callTableAction('returnForReview', $payslip, ['note' => 'Overtime for the 14th added — net is now 96,400.'])
+            ->assertHasNoTableActionErrors();
+
+        $payslip->refresh();
+
+        $this->assertSame(Payslip::REVIEW_PENDING, $payslip->employee_review);
+        $this->assertNull($payslip->employee_reviewed_at);
+        $this->assertNull($payslip->employee_rejection_reason);
+        $this->assertNull($payslip->review_objection_comment_id);
+        $this->assertTrue($payslip->isPendingReview());
+    }
+
+    /** What changed is said in the thread, beside everything else that was said. */
+    public function test_sending_it_back_posts_the_note_to_the_thread(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime for the 14th is missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'noting-accountant@test.local'));
+        $payslip->refresh()->returnForReview('Overtime for the 14th added.');
+
+        $this->assertSame(2, $payslip->comments()->count());
+        $this->assertSame('Overtime for the 14th added.', $payslip->comments()->latest('id')->first()->body);
+
+        // The objection itself is still there. Nothing said is unsaid by a correction.
+        $this->assertSame('Overtime for the 14th is missing', $payslip->comments()->oldest('id')->first()->body);
+    }
+
+    /** And the employee is asked, in a message that says what changed. */
+    public function test_the_employee_is_asked_to_look_again(): void
+    {
+        Notification::fake();
+
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'asking-accountant@test.local'));
+        $payslip->refresh()->returnForReview('Overtime added.');
+
+        Notification::assertSentTo(
+            $this->employee->user,
+            PayslipReturnedForReview::class,
+            fn (PayslipReturnedForReview $notification): bool => $notification->note === 'Overtime added.',
+        );
+    }
+
+    /** They can then accept the corrected payslip, which they could not do before. */
+    public function test_the_employee_can_accept_the_corrected_payslip(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+        $accountant = $this->makeUser('Accountant', 'reopening-accountant@test.local');
+        $this->actingAs($accountant);
+        $payslip->refresh()->returnForReview('Overtime added.');
+
+        // Back as the employee, on the payslip they objected to.
+        $this->actingAs($this->employee->user);
+
+        Livewire::test(ListPayslips::class)
+            ->callTableAction('acceptPayslip', $payslip->refresh());
+
+        $this->assertSame(Payslip::REVIEW_ACCEPTED, $payslip->refresh()->employee_review);
+    }
+
+    /** It needs a note: "look at it again" with no reason is a second round trip. */
+    public function test_sending_it_back_requires_saying_what_changed(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'silent-corrector@test.local'));
+
+        Livewire::test(ListPayslips::class)
+            ->callTableAction('returnForReview', $payslip, ['note' => ''])
+            ->assertHasTableActionErrors(['note' => ['required']]);
+
+        $this->assertSame(Payslip::REVIEW_REJECTED, $payslip->refresh()->employee_review);
+    }
+
+    /** It is offered on the payslip's own screens too, not only from the list. */
+    public function test_sending_it_back_is_offered_on_the_payslip_pages(): void
+    {
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
+        $this->actingAs($this->makeUser('Accountant', 'pages-accountant@test.local'));
+
+        Livewire::test(ViewPayslip::class, ['record' => $payslip->getRouteKey()])
+            ->assertActionVisible('returnForReview');
+
+        Livewire::test(EditPayslip::class, ['record' => $payslip->getRouteKey()])
+            ->assertActionVisible('returnForReview');
+    }
+
+    /** A payslip nobody objected to is not sent back — there is nothing to send back. */
+    public function test_a_pending_payslip_cannot_be_sent_back(): void
+    {
+        $payslip = $this->payslip();
+
+        $this->actingAs($this->makeUser('Accountant', 'nothing-accountant@test.local'));
+
+        Livewire::test(ListPayslips::class)
+            ->assertTableActionHidden('returnForReview', $payslip);
     }
 
     // ──────────────────────────────────────── the employee's way in ──

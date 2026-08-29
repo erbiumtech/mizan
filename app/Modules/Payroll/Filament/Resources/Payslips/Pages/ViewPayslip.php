@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\Payslips\Pages;
 
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\CloseObjectionAction;
+use App\Modules\Payroll\Filament\Resources\Payslips\Actions\ReturnForReviewAction;
 use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
 use App\Modules\Payroll\Filament\Resources\Payslips\Schemas\PayslipInfolist;
 use Filament\Actions\EditAction;
@@ -45,6 +46,7 @@ class ViewPayslip extends ViewRecord
     {
         return [
             CloseObjectionAction::make(),
+            ReturnForReviewAction::make(),
             EditAction::make(),
         ];
     }

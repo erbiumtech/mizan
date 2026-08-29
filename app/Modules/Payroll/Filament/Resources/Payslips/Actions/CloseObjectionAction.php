@@ -33,7 +33,12 @@ class CloseObjectionAction
     public static function make(): Action
     {
         return Action::make('overrideRejection')
-            ->label('Close objection')
+            // The label carries the reason when the button is disabled. A tooltip is a hover away and a
+            // disabled button with no explanation reads as a broken one — which is exactly how it read to
+            // the first person who marked a comment solved and watched the review stay *Rejected*.
+            ->label(fn (Payslip $record): string => $record->objectionHasReply()
+                ? 'Close objection'
+                : 'Close objection (reply first)')
             ->icon('heroicon-o-check-badge')
             ->color('info')
             ->visible(fn (Payslip $record): bool => $record->isRejected()
