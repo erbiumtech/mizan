@@ -92,6 +92,9 @@ class PaymentReleaseGateTest extends AccountingTestCase
     {
         $this->assertSame(Payslip::REVIEW_ACCEPTED, Payment::REVIEW_ACCEPTED);
         $this->assertSame(Payslip::REVIEW_REJECTED, Payment::REVIEW_REJECTED);
+        // The third value, added when payroll gained a way to answer an objection: the payslip writes it and
+        // this row is a copy, so a mismatch here would hold a released salary back for ever.
+        $this->assertSame(Payslip::REVIEW_OVERRIDDEN, Payment::REVIEW_OVERRIDDEN);
     }
 
     /** Generating a payment for an already-reviewed payslip carries the decision across. */
@@ -141,6 +144,42 @@ class PaymentReleaseGateTest extends AccountingTestCase
         $this->assertFalse($payment->isReleasable());
         $this->assertSame(Payment::BLOCK_REJECTED, $payment->releaseBlockedCategory());
         $this->assertStringContainsString('Overtime is missing', (string) $payment->releaseBlockedReason());
+    }
+
+    /**
+     * And payroll answering the objection releases it again.
+     *
+     * The case the rejection gate had no exit from: `recordEmployeeReview()` refuses a second review, so
+     * before `resolveObjection()` existed an employee who objected to a payslip that turned out to be right
+     * left their own salary unreleasable from every screen in the application. Asserted through the payment
+     * rather than the payslip, because the payment is what the bank file reads and it holds its own copy.
+     */
+    public function test_answering_the_objection_releases_the_payment(): void
+    {
+        $payslip = $this->payslip($this->employee('override@test.local'), null);
+
+        $this->generate();
+
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime is missing');
+
+        $payment = Payment::where('payslip_id', $payslip->getKey())->firstOrFail()->refresh();
+        $this->assertFalse($payment->isReleasable());
+
+        // A reply first: `resolveObjection()` refuses to close an objection nobody has responded to.
+        $payslip->comments()->create(['user_id' => auth()->id(), 'body' => 'Checked the timesheet — the hours are right.']);
+
+        $payslip->refresh()->resolveObjection();
+
+        $payment->refresh();
+
+        $this->assertSame(Payment::REVIEW_OVERRIDDEN, $payment->subject_review);
+        $this->assertTrue($payment->isReleasable(), 'answering the objection did not reach the payment');
+        $this->assertNull($payment->releaseBlockedReason());
+        $this->assertNull($payment->releaseBlockedCategory());
+
+        // The objection itself is still on the payment, which is what a later question about this salary
+        // going out over a complaint would be answered from.
+        $this->assertSame('Overtime is missing', $payment->subject_review_reason);
     }
 
     /**

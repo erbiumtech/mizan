@@ -67,6 +67,11 @@ class Payment extends Model
      * unacknowledged figure is the thing it exists to prevent. Payments with no
      * payslip behind them — a supplier, a petty cash top-up — have nobody to
      * acknowledge them and are releasable as soon as they exist.
+     *
+     * **Or once payroll has answered the objection.** A rejection used to be a dead end for the money: the
+     * payslip refuses a second review, so an employee who objected to a payslip that turned out to be right
+     * left their own salary unreleasable from any screen. `Payslip::resolveObjection()` is the way out — an
+     * objection somebody has replied to, closed on the record — and `overridden` is what it leaves here.
      */
     public function isReleasable(): bool
     {
@@ -89,7 +94,7 @@ class Payment extends Model
         // Null means nothing is waiting: a supplier payment, a rent transfer, and every payment that has
         // no payslip behind it. That is the same thing the old `$payslip === null` branch meant.
         return $this->subject_review === null
-            || $this->subject_review === self::REVIEW_ACCEPTED;
+            || in_array($this->subject_review, [self::REVIEW_ACCEPTED, self::REVIEW_OVERRIDDEN], true);
     }
 
     /**
@@ -137,6 +142,17 @@ class Payment extends Model
     public const REVIEW_ACCEPTED = 'accepted';
 
     public const REVIEW_REJECTED = 'rejected';
+
+    /**
+     * Rejected, then answered by payroll — and releasable again.
+     *
+     * The employee's objection stands on the record; what changed is that somebody holding `PayslipUpdate`
+     * read it, replied in writing and took responsibility for paying anyway. Treated here exactly as an
+     * acceptance is, and named differently for the same reason it is named differently on the payslip: this
+     * salary went out over an objection, and a report that showed it as "accepted" would lose the one fact
+     * anybody would later ask about.
+     */
+    public const REVIEW_OVERRIDDEN = 'overridden';
 
     public const BLOCK_REJECTED = 'rejected';
 

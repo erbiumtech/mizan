@@ -8,6 +8,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Money lent to an employee, recovered from payroll in monthly instalments.
@@ -29,13 +30,15 @@ class Advance extends Model
 
     protected $fillable = [
         'employee_id', 'total_amount', 'monthly_instalment',
-        'started_on', 'status', 'reference', 'notes',
+        'started_on', 'recovery_starts_on', 'skipped_months', 'status', 'reference', 'notes',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
         'monthly_instalment' => 'decimal:2',
         'started_on' => 'date',
+        'recovery_starts_on' => 'date',
+        'skipped_months' => 'array',
     ];
 
     public function employee(): BelongsTo
@@ -80,13 +83,44 @@ class Advance extends Model
     }
 
     /**
+     * Whether this advance is recovered from the payroll month beginning `$periodOn`.
+     *
+     * Two ways it is not: recovery has not started yet — an advance given in August
+     * whose agreement says deductions begin in October — or the month is one somebody
+     * chose to skip. A caller that does not know which month it is asking about gets
+     * `true`, which is how every caller behaved before there was a schedule.
+     *
+     * Compared as `Y-m` rather than as dates: a payroll month is a month, and the two
+     * sides of the comparison are a payslip period and a date somebody picked off a
+     * calendar, which will not agree on the day.
+     */
+    public function recoversIn(?string $periodOn): bool
+    {
+        if ($periodOn === null) {
+            return true;
+        }
+
+        $month = Carbon::parse($periodOn)->format('Y-m');
+
+        if ($this->recovery_starts_on && $month < $this->recovery_starts_on->format('Y-m')) {
+            return false;
+        }
+
+        return ! in_array($month, $this->skipped_months ?? [], true);
+    }
+
+    /**
      * What to deduct this month: the instalment, or whatever is left if that is
      * less. Without the floor the last instalment would over-recover and the
      * employee would be owed money back.
+     *
+     * Nothing at all in a month the schedule does not recover in. Skipping does not
+     * write anything off — the balance is untouched, so the advance simply runs one
+     * month longer.
      */
-    public function instalmentDue(?int $excludingPayslipId = null): float
+    public function instalmentDue(?int $excludingPayslipId = null, ?string $periodOn = null): float
     {
-        if ($this->status !== self::STATUS_ACTIVE) {
+        if ($this->status !== self::STATUS_ACTIVE || ! $this->recoversIn($periodOn)) {
             return 0.0;
         }
 
