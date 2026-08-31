@@ -27,6 +27,25 @@ whatever overrides you entered — editing an existing payslip re-derives the
 whole thing the same way a create does, it does not just patch the one field
 you touched.
 
+### A bonus is paid in one month, and its tax is spread over the rest
+
+Typing a **Bonus** (or overtime) on a payslip pays it in that month only — it
+never appears in another month. Its **tax** is treated differently on purpose:
+the amount is added to the year's income once, and the extra tax is collected
+evenly over the months that are left, rather than all of it in the month the
+bonus was paid.
+
+On a 200,000-a-month salary with a 100,000 bonus in July, that is 10,500 of tax
+a month all year (126,000 in total, which is the tax on 2,500,000) instead of
+27,166.67 in July and less afterwards. The employee keeps 16,666.67 more of the
+bonus in the month they actually receive it, and the total for the year is
+identical.
+
+To pay something **every** month instead, put it on the employee's salary
+settings rather than the payslip — a settings row covers a date range, so it can
+also be limited to a few months. A bonus on the settings *is* treated as monthly
+pay for tax, because that is what putting it there says.
+
 ## What happens automatically on save
 
 None of this needs a separate step — it all follows from saving the payslip:
