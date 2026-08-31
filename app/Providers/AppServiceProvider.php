@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Health\BackupConfigurationCheck;
 use App\Health\DiskSpaceCheck;
+use App\Health\LedgerControlsCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
 use App\Modules\Accounting\Services\CommandInterpreter;
@@ -359,6 +360,16 @@ class AppServiceProvider extends ServiceProvider
 
             // Every company's database. The one the package cannot express — see the class.
             TenantDatabaseCheck::new()->name('Company databases'),
+
+            /*
+             * Do the control accounts agree with the documents behind them — `docs/erpnext-gap-plan.md`
+             * Phase 2. Hourly rather than every minute, because this one sums each company's ledger while
+             * its neighbours here are a PDO connect and a disk stat, and a reconciliation drift found
+             * fifty-nine minutes late is found in time.
+             */
+            LedgerControlsCheck::new()
+                ->name('Control accounts')
+                ->if(fn (): bool => now()->minute === 0),
 
             // Redis carries the queue (QUEUE_CONNECTION=redis) and broadcasting, so when it is
             // down, scheduled work silently stops being done rather than failing loudly.

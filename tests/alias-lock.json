@@ -200,7 +200,9 @@
         "App\\Models\\WipSnapshot": "App\\Modules\\ConstructionCosting\\Models\\WipSnapshot",
         "App\\Models\\Worker": "App\\Modules\\ConstructionCosting\\Models\\Worker",
         "App\\Models\\CommandUtterance": "App\\Modules\\Accounting\\Models\\CommandUtterance",
-        "App\\Models\\TransactionTypeAlias": "App\\Modules\\Accounting\\Models\\TransactionTypeAlias"
+        "App\\Models\\TransactionTypeAlias": "App\\Modules\\Accounting\\Models\\TransactionTypeAlias",
+        "App\\Models\\WithholdingSection": "App\\Modules\\Accounting\\Models\\WithholdingSection",
+        "App\\Models\\WithholdingDeduction": "App\\Modules\\Accounting\\Models\\WithholdingDeduction"
     },
     "resources": {
         "App\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource": "App\\Modules\\Core\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource",
@@ -347,6 +349,7 @@
         "App\\Filament\\Pages\\Modules": "App\\Modules\\Core\\Filament\\Pages\\Modules",
         "App\\Filament\\Pages\\PettyCashBook": "App\\Modules\\Accounting\\Filament\\Pages\\PettyCashBook",
         "App\\Filament\\Pages\\ProfitAndLoss": "App\\Modules\\Accounting\\Filament\\Pages\\ProfitAndLoss",
+        "App\\Filament\\Pages\\ProfitAndLossByDimension": "App\\Modules\\Accounting\\Filament\\Pages\\ProfitAndLossByDimension",
         "App\\Filament\\Pages\\ProgrammeImport": "App\\Modules\\ConstructionField\\Filament\\Pages\\ProgrammeImportPage",
         "App\\Filament\\Pages\\Reports": "App\\Modules\\Core\\Filament\\Pages\\Reports",
         "App\\Filament\\Pages\\ReportDeliveries": "App\\Modules\\Core\\Filament\\Pages\\ReportDeliveries",
@@ -385,8 +388,10 @@
         "App\\Filament\\Pages\\HiringFunnel": "App\\Modules\\Recruitment\\Filament\\Pages\\HiringFunnel",
         "App\\Filament\\Pages\\QuotationConversion": "App\\Modules\\Quotations\\Filament\\Pages\\QuotationConversion",
         "App\\Filament\\Pages\\RevenueByDimension": "App\\Modules\\Invoicing\\Filament\\Pages\\RevenueByDimension",
+        "App\\Filament\\Pages\\RecordReceipt": "App\\Modules\\Invoicing\\Filament\\Pages\\RecordReceipt",
         "App\\Filament\\Pages\\CreditNotesIssued": "App\\Modules\\Invoicing\\Filament\\Pages\\CreditNotesIssued",
-        "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement"
+        "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement",
+        "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement"
     },
     "widgets": {
         "App\\Filament\\Widgets\\StockOnHandOverview": "App\\Modules\\Inventory\\Filament\\Widgets\\StockOnHandOverview",

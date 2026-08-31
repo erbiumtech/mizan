@@ -183,7 +183,9 @@ class InvoiceService
         // The document totals are still re-derived, from the lines' own figures, because the
         // draft is editable: somebody trimming a full credit down to the two lines that were
         // wrong must not have to make the header agree by hand.
-        $invoice->isCreditNote()
+        // `isAdjustment()` rather than `isCreditNote()`: a debit note inherits its bill's tax for exactly the
+        // same reason — Phase 5.
+        $invoice->isAdjustment()
             ? $this->totalFromLines($invoice)
             : $this->applyTaxes($invoice);
 
@@ -203,13 +205,15 @@ class InvoiceService
             $entryLines = $this->translateDocument($invoice, match ($invoice->kind) {
                 Invoice::KIND_SALE => $this->saleEntryLines($invoice, $lines),
                 Invoice::KIND_CREDIT_NOTE => $this->creditNoteEntryLines($invoice, $lines),
+                Invoice::KIND_DEBIT_NOTE => $this->debitNoteEntryLines($invoice, $lines),
                 default => $this->purchaseEntryLines($invoice, $lines),
             });
 
             $entry = $this->postSystemEntry(
                 $invoice->invoice_date->toDateString(),
                 "{$invoice->invoice_number} — {$invoice->contact->name}",
-                $entryLines
+                $entryLines,
+                $invoice,
             );
 
             // A credit note moves no stock, and that is a decision rather than an omission.
@@ -220,7 +224,13 @@ class InvoiceService
             // is not there and hand the valuation engine lots at a made-up cost — wrong in
             // a way nobody notices until a stock count. If goods genuinely return, that is
             // a stock movement somebody records, and it says so.
-            if (! $invoice->isCreditNote()) {
+            //
+            // **A debit note moves no stock either, and the argument is the stronger one there** — Phase 5.
+            // A bill's own issue took goods *in* at a cost; a debit note that reversed the movement would
+            // take them out at the valuation engine's current cost, which after any other receipt is not the
+            // cost they came in at. Returning goods to a supplier is a stock movement somebody records
+            // against the shelf they came off.
+            if (! $invoice->isAdjustment()) {
                 foreach ($lines as $line) {
                     if ($line->product_id) {
                         $this->recordMovement($invoice, $line, $entry);
@@ -261,7 +271,67 @@ class InvoiceService
      * bank advice saying what actually landed is a fact, and the rate table is only an
      * estimate of it.
      */
-    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null): Invoice
+    /**
+     * One receipt settling several invoices — `docs/erpnext-gap-plan.md` Phase 2, item 2.
+     *
+     * ERPNext's Payment Entry is a document with a references table: one payment, many invoices, and
+     * whatever is left over sits as an advance. The lazy form of that is this — **a screen, not a document
+     * type**. Every allocation goes through `recordPayment()`, which is the settlement path that already
+     * exists and is already tested: the same FX treatment, the same realised difference, the same status
+     * transition, the same attribution to the invoice. Nothing new posts anything.
+     *
+     * **What this deliberately does not buy** is money on account with no invoice behind it. The plan says
+     * to wait until somebody has that problem, and it is right to: an unallocated receipt needs somewhere
+     * to sit, which is a table, which is the document type this avoids. So the allocations must add up to
+     * the receipt, and a customer who overpays is refused with a sentence rather than silently left with a
+     * credit nobody can see.
+     *
+     * @param  array<int|string, float>  $allocations  invoice id => amount to settle
+     * @return array<int, Invoice> the invoices as they now stand
+     */
+    public function recordBatchReceipt(float $received, string $date, array $allocations, ?string $reference = null): array
+    {
+        $allocations = array_filter(
+            array_map(fn (mixed $amount): float => round((float) $amount, 2), $allocations),
+            fn (float $amount): bool => $amount > 0,
+        );
+
+        if ($allocations === []) {
+            throw new InvalidArgumentException('Allocate the receipt to at least one invoice.');
+        }
+
+        $allocated = round(array_sum($allocations), 2);
+        $received = round($received, 2);
+
+        // The whole receipt, and no more than the whole receipt. Both directions are refused for the same
+        // reason: the difference has nowhere to go. Under-allocating leaves money on account and
+        // over-allocating invents it, and this application models neither.
+        if (abs($allocated - $received) >= 0.01) {
+            throw new InvalidArgumentException(sprintf(
+                'The allocations come to %s and the receipt is %s. They have to match: this application has '
+                .'nowhere to hold money that is not against an invoice.',
+                number_format($allocated, 2),
+                number_format($received, 2),
+            ));
+        }
+
+        return TenantTransaction::run(function () use ($allocations, $date, $reference): array {
+            $settled = [];
+
+            foreach ($allocations as $invoiceId => $amount) {
+                $invoice = Invoice::query()->whereKey($invoiceId)->firstOrFail();
+
+                // One transaction around the lot, so a receipt that fails on its fourth invoice leaves the
+                // first three unsettled too. Half a receipt recorded is worse than none: the customer's
+                // balance is then wrong in a way that reconciles to nothing.
+                $settled[] = $this->recordPayment($invoice, $amount, $date, null, null, $reference);
+            }
+
+            return $settled;
+        });
+    }
+
+    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null, ?string $reference = null): Invoice
     {
         if (! $invoice->isOpen()) {
             throw new InvalidArgumentException("Only issued or partially paid invoices accept payments (invoice is {$invoice->status}).");
@@ -292,13 +362,24 @@ class InvoiceService
             );
         }
 
+        // The same refusal on the purchase side — Phase 5. A debit note reduces what this company owes and
+        // is settled by paying the supplier less, not by a payment of its own; recording one against the
+        // note would relieve A/P twice for the same claim.
+        if ($invoice->isDebitNote()) {
+            throw new InvalidArgumentException(
+                "Debit note {$invoice->invoice_number} is not paid — it reduces what this supplier is owed, "
+                .'and shows against their balance. Pay the bill less the note, or if they have refunded the '
+                .'money, record that as a receipt into the bank account it arrived in.'
+            );
+        }
+
         if ($amount > $invoice->outstanding() + 0.001) {
             throw new InvalidArgumentException(
                 "Payment {$amount} exceeds outstanding balance {$invoice->outstanding()} on {$invoice->invoice_number}."
             );
         }
 
-        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId) {
+        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId, $reference) {
             $cash = $cashAccountId ?? $this->accountId('1100');
             $paid = round((float) $invoice->amount_paid + $amount, 2);
 
@@ -320,7 +401,19 @@ class InvoiceService
                 $lines[] = $this->realisedLine($invoice, $settlement['difference']);
             }
 
-            $this->postSystemEntry($date, "Payment against {$invoice->invoice_number}", $lines);
+            // The settlement belongs to the invoice it settles: same project, same customer, and the
+            // receipt is the second half of that invoice's story rather than an event of its own.
+            //
+            // The reference, where one is given, is what ties five settlements back to the one transfer
+            // that paid them — `docs/erpnext-gap-plan.md` Phase 2. It is in the memo rather than in a
+            // column because there is no receipt row to put it on: a customer receipt writes a journal
+            // entry and updates the invoice, and nothing else. That ceiling is named in the plan.
+            $this->postSystemEntry(
+                $date,
+                "Payment against {$invoice->invoice_number}".(filled($reference) ? " — {$reference}" : ''),
+                $lines,
+                $invoice,
+            );
 
             $invoice->update([
                 'amount_paid' => $paid,
@@ -540,8 +633,11 @@ class InvoiceService
             throw new InvalidArgumentException(
                 $invoice->isCreditNote()
                     ? 'A credit note cannot be credited. Void it if it was raised in error.'
-                    : 'Only a customer invoice can be credited — a purchase bill is corrected by the '
-                        .'supplier, who issues the credit note to you.'
+                    // Until Phase 5 this said a bill "is corrected by the supplier, who issues the credit
+                    // note to you", which was true of the *tax* and not of the books: what the company owes
+                    // still had to come down. The Debit action is that, and this sentence now points at it.
+                    : 'Only a customer invoice can be credited — a supplier bill is corrected with a debit '
+                        .'note, which is the Debit action on the bill itself.'
             );
         }
 
@@ -635,6 +731,133 @@ class InvoiceService
                 $invoice,
                 InvoiceEvent::CREDITED,
                 "Credit note {$note->invoice_number} raised: {$note->credit_reason}",
+                $total,
+            );
+
+            return $note->refresh();
+        });
+    }
+
+    /**
+     * Raise a debit note against a purchase bill — `docs/erpnext-gap-plan.md` Phase 5.
+     *
+     * The purchase mirror of `creditNote()`, and the answer to a claim against a supplier: goods returned, a
+     * bill that overstated the quantity, a back-charge for work redone. It debits Accounts Payable and
+     * credits back whatever the bill charged, so what the company owes falls by exactly what the bill raised.
+     *
+     * **It creates a draft and stops**, exactly as a credit note does, and `issue()` is what posts. A debit
+     * note nobody has issued has changed no balance and can be deleted.
+     *
+     * **The rate is inherited, never re-fetched**, for the reason the credit note's docblock gives at
+     * length: crediting a foreign bill at today's rate clears a different amount than was booked and leaves
+     * a permanent stub in A/P that looks like an unpaid balance.
+     *
+     * **No FBR window and no Commissioner extension**, which is the one place this is not the mirror. Rule
+     * 22 bounds the adjustment of tax on a supply *this company made and reported*; a supplier's bill is a
+     * document received, and the input-tax adjustment rides on the credit note the supplier issues. Applying
+     * `assertAdjustmentWindowAllows()` here would refuse a bookkeeping correction by citing a rule about
+     * somebody else's document — and would say "output tax" while doing it.
+     *
+     * **Written out rather than shared with `creditNote()`, deliberately.** The two differ in four guards
+     * and every message, and a shared method taking a noun would produce sentences assembled out of
+     * fragments — "there is nothing to {$verb}" — for the one part of this feature a person actually reads.
+     * The arithmetic *is* shared: `creditLines()`, `totalsFromRows()` and the `creditableAmount()` ceiling
+     * are the same in both directions, and those are the parts that could silently disagree.
+     *
+     * @param  string  $reason  Why. Required, and the place to put the supplier's own credit note reference.
+     * @param  array<int, array<string, mixed>>|null  $lines  Explicit lines for a partial debit. Null
+     *                                                        reverses the whole bill.
+     */
+    public function debitNote(Invoice $bill, string $reason, ?array $lines = null): Invoice
+    {
+        if ($bill->kind !== Invoice::KIND_PURCHASE) {
+            throw new InvalidArgumentException(
+                $bill->isDebitNote()
+                    ? 'A debit note cannot be debited. Void it if it was raised in error.'
+                    : 'Only a supplier bill can be debited — a customer invoice is corrected with a credit '
+                        .'note, which is the Credit action on the invoice itself.'
+            );
+        }
+
+        if ($bill->isDraft()) {
+            throw new InvalidArgumentException(
+                "Bill {$bill->invoice_number} is still a draft, so it has posted nothing and there is "
+                .'nothing to debit. Edit or delete the draft instead.'
+            );
+        }
+
+        if ($bill->status === Invoice::STATUS_VOID) {
+            throw new InvalidArgumentException(
+                "Bill {$bill->invoice_number} has been voided, so its posting is already reversed. A debit "
+                .'note on top of it would reverse the same money twice.'
+            );
+        }
+
+        if (trim($reason) === '') {
+            throw new InvalidArgumentException(
+                'A debit note needs a reason. It is what the supplier will ask about, and the only part of '
+                .'the claim the figures cannot show — put their own credit note reference here too.'
+            );
+        }
+
+        // The same ceiling as a credit note's, through the same relation: `credits_invoice_id` means "the
+        // document this one adjusts", so two partial debit notes cannot together exceed the bill.
+        $available = $bill->creditableAmount();
+
+        if ($available <= 0.004) {
+            throw new InvalidArgumentException("Bill {$bill->invoice_number} has already been debited in full.");
+        }
+
+        $rows = $this->creditLines($bill, $lines);
+
+        if ($rows === []) {
+            throw new InvalidArgumentException('A debit note with no lines debits nothing.');
+        }
+
+        ['subtotal' => $subtotal, 'tax_amount' => $tax, 'total' => $total]
+            = $this->totalsFromRows((bool) $bill->tax_inclusive, $rows);
+
+        if ($total > round($available, 2) + 0.004) {
+            throw new InvalidArgumentException(
+                "This debit note comes to {$total}, but only {$available} of bill "
+                ."{$bill->invoice_number} is left to debit."
+            );
+        }
+
+        if ($total <= 0) {
+            throw new InvalidArgumentException('A debit note must debit something. This one comes to nothing.');
+        }
+
+        return TenantTransaction::run(function () use ($bill, $reason, $rows, $subtotal, $tax, $total) {
+            $note = Invoice::create([
+                'kind' => Invoice::KIND_DEBIT_NOTE,
+                'credits_invoice_id' => $bill->getKey(),
+                'credit_reason' => trim($reason),
+                'status' => Invoice::STATUS_DRAFT,
+                'contact_id' => $bill->contact_id,
+                'project_id' => $bill->project_id,
+                'currency_code' => $bill->currency_code,
+                // Inherited, not re-fetched. See the docblock.
+                'exchange_rate' => $bill->exchange_rate,
+                // The tax treatment has to match the bill's, or the reversal of the input tax will not equal
+                // what was charged.
+                'tax_inclusive' => $bill->tax_inclusive,
+                'invoice_date' => now()->toDateString(),
+                'fiscal_year_id' => FiscalYear::where('is_active', true)->value('id'),
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'total' => $total,
+                'memo' => "Debit note against {$bill->invoice_number}",
+            ]);
+
+            foreach ($rows as $row) {
+                $note->lines()->create($row);
+            }
+
+            InvoiceEvent::record(
+                $bill,
+                InvoiceEvent::DEBITED,
+                "Debit note {$note->invoice_number} raised: {$note->credit_reason}",
                 $total,
             );
 
@@ -923,14 +1146,17 @@ class InvoiceService
         $buckets = ['current' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
         $invoices = [];
 
-        // Receivables include credit notes; payables do not, because a credit note in this
-        // schema is always ours against a customer. They are bucketed by their own date and
-        // subtracted rather than added — see `signedOutstanding()`. Leaving them out would
-        // overstate every receivable figure in the application by exactly the credits
-        // outstanding, which is the reading a company chases a customer for money over.
+        // Each side includes its own adjustment note, bucketed by its own date and subtracted rather than
+        // added — see `signedOutstanding()`. Leaving them out would overstate every receivable figure in the
+        // application by exactly the credits outstanding, which is the reading a company chases a customer
+        // for money over; and on the payables side, the reading it pays a supplier over.
+        //
+        // The debit note is Phase 5 of `docs/erpnext-gap-plan.md`, and this line is why it needed no new
+        // report: payables ageing, `outstandingPayables()` and therefore Phase 2's control-account check all
+        // read this one query.
         $kinds = $kind === Invoice::KIND_SALE
             ? [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE]
-            : [$kind];
+            : [$kind, Invoice::KIND_DEBIT_NOTE];
 
         foreach (Invoice::whereIn('kind', $kinds)->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])->with('contact')->get() as $invoice) {
             $days = (int) Carbon::parse($invoice->due_date ?? $invoice->invoice_date)->diffInDays($asOf, false);
@@ -1127,6 +1353,66 @@ class InvoiceService
     }
 
     /**
+     * Debit note: the exact reverse of `purchaseEntryLines()` — `docs/erpnext-gap-plan.md` Phase 5.
+     *
+     * Debit A/P for the total, credit back each line's expense or inventory account, credit back the input
+     * tax. Every leg is the opposite of the bill's and nothing else differs, which is the property that
+     * matters: a full debit note against a bill nets the payable, the cost and the input tax to exactly
+     * zero. That is what makes it a correction rather than a second, differently-shaped transaction about
+     * the same money.
+     *
+     * **It credits the inventory account without moving stock**, and that pairing is deliberate — see the
+     * comment in `issue()`. The bill's own posting debited inventory *and* created lots at a known cost;
+     * reversing the value here without reversing the quantity leaves the two disagreeing until somebody
+     * records the movement. Reversing the quantity automatically would instead consume lots at whatever the
+     * valuation engine's current cost is, which after any other receipt is not the cost these goods came in
+     * at — a made-up cost, silently, which is worse than a gap a stock count finds.
+     *
+     * Worth knowing: nothing currently *notices* that gap. `LedgerControls` holds Receivables and Payables
+     * and no inventory control, so 1300 against the valuation is a third pair somebody could register — and
+     * a returned-goods debit note is the case that would make it worth having.
+     */
+    protected function debitNoteEntryLines(Invoice $invoice, $lines): array
+    {
+        $entryLines = [[
+            'account_id' => $this->accountId('2400'),
+            'debit_amount' => (float) $invoice->total,
+            'description' => $invoice->invoice_number,
+            '_fx' => self::FX_CONTROL,
+        ]];
+
+        foreach ($lines as $line) {
+            // Net of the line's own tax on an inclusive document, for the same reason as the bill: crediting
+            // the gross back to the expense would take the tax out of the cost instead of out of the tax
+            // account, and leave the entry short by exactly the tax.
+            $amount = $invoice->tax_inclusive ? $line->netAmount() : (float) $line->line_total;
+
+            // Mirrored, including the negative case. A negative line on a debit note is a debit against a
+            // debit — retention *not* being reclaimed — so it goes back on the debit side rather than being
+            // posted as a negative credit and dropped by postSystemEntry's filter.
+            $entryLines[] = [
+                'account_id' => $line->product_id
+                    ? ($line->product->inventory_account_id ?? $this->accountId('1300'))
+                    : $this->expenseAccountId($line),
+                $amount < 0 ? 'debit_amount' : 'credit_amount' => abs($amount),
+                'description' => $line->description,
+                '_fx' => self::FX_LINE,
+            ];
+        }
+
+        foreach ($this->taxByAccount($invoice, $lines) as $accountId => $amount) {
+            $entryLines[] = [
+                'account_id' => $accountId,
+                'credit_amount' => $amount,
+                'description' => "Input tax reversed {$invoice->invoice_number}",
+                '_fx' => self::FX_LINE,
+            ];
+        }
+
+        return $entryLines;
+    }
+
+    /**
      * The invoice's tax, split by the account each rate posts to.
      *
      * Grouped rather than lumped onto one account, because two taxes on one
@@ -1306,12 +1592,24 @@ class InvoiceService
         }
     }
 
-    protected function postSystemEntry(string $date, string $memo, array $lines): JournalEntry
+    /**
+     * @param  Invoice|null  $source  what produced this posting — `docs/erpnext-gap-plan.md` Phase 1
+     */
+    protected function postSystemEntry(string $date, string $memo, array $lines, ?Invoice $source = null): JournalEntry
     {
         $entry = $this->journalEntryService->create([
             'entry_date' => $date,
             'entry_type' => 'general',
             'memo' => $memo,
+            /*
+             * Two keys in a header this method already built, and they are the whole of Phase 1's first
+             * item here. An invoice knows its project and its customer, so an entry that records the
+             * invoice knows them too — which is what lets a profit and loss be read by project without a
+             * dimension column on the line. Nullable, so a caller that has no document passes nothing and
+             * nothing changes.
+             */
+            'source_type' => $source === null ? null : $source::class,
+            'source_id' => $source?->getKey(),
         ], array_values(array_filter($lines, fn ($l) => ($l['debit_amount'] ?? 0) > 0 || ($l['credit_amount'] ?? 0) > 0)));
 
         $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);

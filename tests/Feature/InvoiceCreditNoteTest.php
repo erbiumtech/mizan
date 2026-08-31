@@ -447,6 +447,14 @@ class InvoiceCreditNoteTest extends AccountingTestCase
         $this->service->creditNote($invoice->refresh(), 'Again');
     }
 
+    /**
+     * A bill is not credited — and since Phase 5 of `docs/erpnext-gap-plan.md`, the refusal says what is.
+     *
+     * The message used to end "a purchase bill is corrected by the supplier, who issues the credit note to
+     * you", which was true of the *tax* and never true of the books: what the company owed still had to come
+     * down, and the only route was a journal entry typed at Accounts Payable. There is a Debit action now,
+     * and the sentence points at it. The refusal itself is unchanged, which is what this test is for.
+     */
     public function test_it_refuses_to_credit_a_purchase_bill(): void
     {
         $bill = Invoice::create([
@@ -466,7 +474,7 @@ class InvoiceCreditNoteTest extends AccountingTestCase
         $this->service->issue($bill);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/supplier, who issues the credit note to you/');
+        $this->expectExceptionMessageMatches('/corrected with a debit note/');
 
         $this->service->creditNote($bill, 'Overbilled us');
     }

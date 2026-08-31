@@ -45,7 +45,7 @@ class InventoryService
                 ['account_id' => $this->cashAccountId(), 'credit_amount' => $total, 'description' => $product->sku],
             ]);
 
-            return $product->movements()->create([
+            return $this->attribute($entry, $product->movements()->create([
                 'type' => 'purchase',
                 'stock_location_id' => $at?->getKey(),
                 'quantity' => $quantity,
@@ -54,7 +54,7 @@ class InventoryService
                 'movement_date' => $date,
                 'reference' => $reference,
                 'journal_entry_id' => $entry->id,
-            ]);
+            ]));
         });
     }
 
@@ -79,7 +79,7 @@ class InventoryService
                 ['account_id' => $this->inventoryAccountId($product), 'credit_amount' => $cogs, 'description' => "COGS {$product->sku}"],
             ]);
 
-            return $product->movements()->create([
+            return $this->attribute($entry, $product->movements()->create([
                 'type' => 'sale',
                 'stock_location_id' => $at?->getKey(),
                 'quantity' => -$quantity,
@@ -88,7 +88,7 @@ class InventoryService
                 'movement_date' => $date,
                 'reference' => $reference,
                 'journal_entry_id' => $entry->id,
-            ]);
+            ]));
         });
     }
 
@@ -115,7 +115,7 @@ class InventoryService
                     ['account_id' => $this->cogsAccountId($product), 'credit_amount' => $total, 'description' => "Adjustment {$product->sku}"],
                 ]);
 
-                return $product->movements()->create([
+                return $this->attribute($entry, $product->movements()->create([
                     'type' => 'adjustment',
                     'stock_location_id' => $at?->getKey(),
                     'quantity' => $quantity,
@@ -124,7 +124,7 @@ class InventoryService
                     'movement_date' => $date,
                     'reference' => $reference,
                     'journal_entry_id' => $entry->id,
-                ]);
+                ]));
             }
 
             $cost = $this->valuation->costOfSale($product, -$quantity, $at);
@@ -134,7 +134,7 @@ class InventoryService
                 ['account_id' => $this->inventoryAccountId($product), 'credit_amount' => $cost, 'description' => "Write-off {$product->sku}"],
             ]);
 
-            return $product->movements()->create([
+            return $this->attribute($entry, $product->movements()->create([
                 'type' => 'adjustment',
                 'stock_location_id' => $at?->getKey(),
                 'quantity' => $quantity,
@@ -142,8 +142,22 @@ class InventoryService
                 'movement_date' => $date,
                 'reference' => $reference,
                 'journal_entry_id' => $entry->id,
-            ]);
+            ]));
         });
+    }
+
+    /**
+     * Attribute a posting to the movement that caused it — `docs/erpnext-gap-plan.md` Phase 1.
+     *
+     * After the fact rather than in the header, because `stock_movements.journal_entry_id` means the entry
+     * has to exist before the movement does. Inside the caller's transaction, so a movement that fails to
+     * save leaves no entry claiming it.
+     */
+    protected function attribute(JournalEntry $entry, StockMovement $movement): StockMovement
+    {
+        $this->journalEntryService->attributeTo($entry, $movement);
+
+        return $movement;
     }
 
     protected function postSystemEntry(string $date, string $memo, array $lines): JournalEntry

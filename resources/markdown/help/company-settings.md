@@ -71,6 +71,27 @@ against the exact pattern the bank expects (an 8/11-character SWIFT code, a
 since a malformed header otherwise gets discovered only when the bank rejects
 the whole file.
 
+## Chasing overdue invoices
+
+Whether this company emails customers whose invoices are past due, after how many
+days, and how often to chase the same invoice again.
+
+**Off by default, and it stays off until somebody switches it on here.** This is the
+only thing in the application that writes to somebody outside the company, so it is
+not a feature that starts working because a deploy happened.
+
+The threshold is counted from the due date; the repeat interval is counted from the
+last reminder actually sent, per invoice. Each reminder is recorded on the invoice's
+own history. The wording of the letter is not here — it is an Email Template
+(`invoice_overdue`), and the shipped text is sent until you write your own.
+
+There is no interest and no late fee, deliberately: charging for lateness is a
+posting rather than a message, and it needs a rate, a start date and an account
+before it means anything.
+
+Before switching it on, run `php artisan invoicing:send-overdue-reminders --dry-run`
+to see exactly who would be chased.
+
 ## Public Status Page
 
 Publishes the up/down state and uptime of project environments marked "Show

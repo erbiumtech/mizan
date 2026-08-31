@@ -27,9 +27,9 @@ class PayslipService
      * unlicensed, this is 0.0 and payroll carries on with the settings figure exactly as before. See
      * docs/module-packaging-plan.md §11.
      */
-    protected function advanceInstalmentFor($employeeId, ?int $excludingPayslipId = null): float
+    protected function advanceInstalmentFor($employeeId, ?int $excludingPayslipId = null, ?string $periodOn = null): float
     {
-        return app(AdvanceLedger::class)->instalmentFor($employeeId, $excludingPayslipId);
+        return app(AdvanceLedger::class)->instalmentFor($employeeId, $excludingPayslipId, $periodOn);
     }
 
     /**
@@ -138,9 +138,12 @@ class PayslipService
             // amount passed in still wins — a payroll clerk overriding one month
             // is a legitimate correction — and an employee with no advance falls
             // back to their settings exactly as before.
+            // The month is passed because the ledger's answer depends on it: an
+            // advance can start recovering later than it was given, and can skip a
+            // month.
             'advances' => ((float) $advances > 0)
                 ? (float) $advances
-                : ($this->advanceInstalmentFor($employeeId, $payslipId) ?: (float) $setting->advances),
+                : ($this->advanceInstalmentFor($employeeId, $payslipId, $targetDate) ?: (float) $setting->advances),
             'meal_deduction' => ((float) $mealDeduction > 0) ? (float) $mealDeduction : (float) $setting->meal_deduction,
             'esi_health_insurance' => ((float) $esiInsurance > 0) ? (float) $esiInsurance : (float) $setting->esi_health_insurance,
             'bonus' => ((float) $bonus > 0) ? (float) $bonus : (float) ($setting->bonus ?? 0),

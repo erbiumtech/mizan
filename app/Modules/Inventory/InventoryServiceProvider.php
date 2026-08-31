@@ -10,6 +10,7 @@ use App\Modules\Inventory\Policies\ProductPolicy;
 use App\Modules\Inventory\Policies\StockLocationPolicy;
 use App\Modules\Inventory\Policies\StockMovementPolicy;
 use App\Modules\Inventory\Support\InventoryReports;
+use App\Modules\Inventory\Support\OpeningStockCsvImporter;
 use App\Modules\Inventory\Support\ProductCsvImporter;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
@@ -48,6 +49,15 @@ class InventoryServiceProvider extends ServiceProvider
         // Products from a spreadsheet at setup. Core reads the CSV; what a row means is here, because
         // `Product` is this module's — see App\Support\CsvImporters.
         CsvImporters::register('products', ProductCsvImporter::class, 20);
+
+        /*
+         * What was on the shelf on day one — `docs/erpnext-gap-plan.md` Phase 5.
+         *
+         * Sorted after the products (20) and after the opening balances and invoices (30, 40), which is the
+         * order ERPNext recommends and the order the data depends on: a row here needs its product to exist,
+         * and its value is already in 1300 from the trial balance — so this import posts nothing.
+         */
+        CsvImporters::register('opening_stock', OpeningStockCsvImporter::class, 50);
 
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
