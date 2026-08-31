@@ -35,6 +35,27 @@ class InvoiceEvent extends Model
      */
     public const CREDITED = 'credited';
 
+    /**
+     * A debit note was raised against this bill — `docs/erpnext-gap-plan.md` Phase 5.
+     *
+     * Its own event rather than `CREDITED` on the other side of the ledger, because the bill's history is
+     * read by somebody asking what happened to a supplier's charge and "credited" is the wrong verb for
+     * money coming back to us. `color()` needs no arm for it: the default is `warning`, which is what a
+     * correction should look like.
+     */
+    public const DEBITED = 'debited';
+
+    /**
+     * An overdue reminder was emailed to the customer — Phase 5.
+     *
+     * Recorded here rather than in a column on the invoice, and that is what made dunning cheap: the event
+     * log already exists, is already shown on the invoice, and already carries a date. `latest` of these is
+     * how the reminder service knows not to write again tomorrow, so the repeat interval needed no schema at
+     * all — and somebody arguing with a customer about whether they were chased has the answer on the
+     * document.
+     */
+    public const REMINDED = 'reminded';
+
     protected $fillable = ['invoice_id', 'event', 'description', 'amount', 'caused_by'];
 
     protected $casts = ['amount' => 'decimal:2'];

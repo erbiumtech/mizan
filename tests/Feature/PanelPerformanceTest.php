@@ -14,6 +14,7 @@ use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
@@ -125,7 +126,31 @@ class PanelPerformanceTest extends TestCase
     {
         parent::setUp();
 
-        $this->company = Company::factory()->create();
+        /*
+         * **A fixture of fixed length, because one of the budgets below is measured in bytes.**
+         *
+         * `CompanyFactory` names a company from faker and derives its slug from that name, and **the slug is
+         * in every panel URL on the page** — the sidebar and the domain rail together are around a hundred
+         * links. So "Kub Inc" and "Bauch, Lehner and Ziemann" differ by roughly 1.8 KB of rendered HTML, which
+         * is more headroom than the 400 KB employees ceiling has: the same tree measured 397.5 KB and 398.5 KB
+         * on consecutive runs, and a full suite would fail this assertion perhaps one run in three. Found on
+         * 2026-08-28 while checking whether a feature had added bytes to the page; it had not, and the
+         * measurement had never been able to tell.
+         *
+         * The slug stays *unique* — `Str::random(8)` — so each test still gets its own tenant database file.
+         * What is fixed is its length, and the user's name for the same reason: the account menu renders it.
+         *
+         * This is the second time this test's measurement rather than its subject has been the fault; the
+         * `modules()->flush()` below is the first. A byte budget over a fixture that varies in size is not a
+         * ratchet, it is a coin toss with a threshold.
+         */
+        $slug = 'perf-'.Str::lower(Str::random(8));
+
+        $this->company = Company::factory()->create([
+            'name' => 'Performance Test Company',
+            'slug' => $slug,
+            'database' => database_path("tenants/{$slug}.sqlite"),
+        ]);
         $this->seed(PermissionSeeder::class);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
@@ -134,7 +159,7 @@ class PanelPerformanceTest extends TestCase
         // An Administrator rather than a super admin: a super admin short-circuits every gate in
         // Gate::before, which changes what the sidebar evaluates and would measure a path almost
         // nobody uses.
-        $user = User::factory()->create(['status' => 1]);
+        $user = User::factory()->create(['name' => 'Performance Tester', 'status' => 1]);
         $this->company->users()->attach($user->getKey());
         $user->assignRole('Administrator');
 

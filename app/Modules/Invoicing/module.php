@@ -35,6 +35,7 @@ return [
     ],
 
     'pages' => [
+        'App\\Filament\\Pages\\RecordReceipt' => \App\Modules\Invoicing\Filament\Pages\RecordReceipt::class,
         // Revenue by dimension (Phase 3.4) and the credit-note list (3.5).
         'App\\Filament\\Pages\\CreditNotesIssued' => \App\Modules\Invoicing\Filament\Pages\CreditNotesIssued::class,
         'App\\Filament\\Pages\\RevenueByDimension' => \App\Modules\Invoicing\Filament\Pages\RevenueByDimension::class,

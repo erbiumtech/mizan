@@ -35,6 +35,38 @@ month is worse than one dated two days early.
 of 1 and the first entry is the 1st of next month, not three weeks before you
 agreed it.
 
+## Deferring an amount over months <!-- requires: JournalEntryCreate, JournalEntryPost -->
+
+**Defer an amount** is the shortcut for the commonest reason to want a schedule:
+revenue billed now and earned later, or a cost paid now and incurred later. An
+annual subscription invoiced in July is not July's revenue, and an annual licence
+bought in July is not July's cost.
+
+Fill in what it is, the amount, how many months, the first month to recognise, and
+which revenue or expense account it comes out of. Two things happen:
+
+1. **one entry, posted now**, moving the amount out of that account and into
+   *Deferred Revenue* (2500) or *Prepaid Expenses* (1350);
+2. **a monthly schedule in this list**, bringing one month's share back, on the last
+   day of each month, until it is used up.
+
+After that it is an ordinary schedule: it appears in the list, it can be paused, and
+its postings follow the same approval rule as everything else here — so with a
+second approver required, each month's recognition arrives as a draft.
+
+**Whole months only.** A part-month share needs a second arithmetic and a note on
+every report saying which one was used, and a month's share of a licence is what an
+accountant recognises.
+
+**A remainder stays where it was.** 1,000 over three months is 333.33 a month, so
+999.99 is deferred and the last cent is left in the month that billed it — rather
+than stranded in the liability account for ever, which is what deferring the whole
+1,000 would do.
+
+**Correcting one** means deleting the schedule and reversing the entry, then doing
+it again. There is no edit, for the same reason nothing else here has one: the entry
+is posted.
+
 ## The lines have to balance
 
 Debits and credits must be equal, and each line is one or the other, never both.

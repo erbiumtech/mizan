@@ -30,8 +30,12 @@ interface AdvanceLedger
      *
      * `$excludingPayslipId` measures the balance as it stood *before* the payslip being recalculated, so a
      * re-save allocates against the same room the first save saw rather than compounding its own recovery.
+     *
+     * `$periodOn` is any date inside the payroll month being calculated, and is what lets an advance say it
+     * does not start recovering until October or that this month is skipped. Optional, and a caller that
+     * omits it is answered as it always was — every advance recovers, every month.
      */
-    public function instalmentFor(int|string $employeeId, int|string|null $excludingPayslipId = null): float;
+    public function instalmentFor(int|string $employeeId, int|string|null $excludingPayslipId = null, ?string $periodOn = null): float;
 
     /**
      * Book what the payslip deducted against the employee's advances, oldest first.

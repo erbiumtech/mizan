@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting;
 
+use App\Modules\Accounting\Console\Commands\BackfillEntrySources;
 use App\Modules\Accounting\Console\Commands\BackfillPaymentEntriesCommand;
 use App\Modules\Accounting\Console\Commands\RaiseScheduledTransactions;
 use App\Modules\Accounting\Console\Commands\RaiseSubscriptionPayments;
@@ -21,8 +22,11 @@ use App\Modules\Accounting\Filament\Pages\GeneralLedger;
 use App\Modules\Accounting\Filament\Pages\LoansOutstanding;
 use App\Modules\Accounting\Filament\Pages\PettyCashBook;
 use App\Modules\Accounting\Filament\Pages\ProfitAndLoss;
+use App\Modules\Accounting\Filament\Pages\ProfitAndLossByDimension;
 use App\Modules\Accounting\Filament\Pages\TrialBalance;
+use App\Modules\Accounting\Filament\Pages\WithholdingStatement;
 use App\Modules\Accounting\Filament\Settings\CurrencySettingsSection;
+use App\Modules\Accounting\Filament\Settings\LedgerFreezeSettingsSection;
 use App\Modules\Accounting\Filament\Settings\PayrollPostingSettingsSection;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\BankStatement;
@@ -65,16 +69,20 @@ use App\Modules\Accounting\Policies\TransactionTypePolicy;
 use App\Modules\Accounting\Services\FiscalYearClosingService;
 use App\Modules\Accounting\Support\BankReconciliationReports;
 use App\Modules\Accounting\Support\CashCommitmentReports;
+use App\Modules\Accounting\Support\DimensionReports;
 use App\Modules\Accounting\Support\FixedAssetReports;
 use App\Modules\Accounting\Support\LoanReports;
 use App\Modules\Accounting\Support\OpeningBalanceCsvImporter;
 use App\Modules\Accounting\Support\ReportPane;
+use App\Modules\Accounting\Support\WithholdingReports;
 use App\Modules\Core\Models\Bank;
+use App\Modules\Employees\Models\Employee;
 use App\Support\Contracts\FiscalYearCloseCheck;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
 use App\Support\JournalEntryOwners;
+use App\Support\LedgerDimensions;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportPaneRenderer;
@@ -125,10 +133,35 @@ class AccountingServiceProvider extends ServiceProvider
         ReportCatalogue::register('Financial statements', BalanceSheet::class, 'What the company owns, owes and is worth, on a date.');
         ReportCatalogue::register('Financial statements', ProfitAndLoss::class, 'Income less expenses over a period, and the profit that leaves.');
         ReportCatalogue::register('Financial statements', CashFlow::class, 'Where the money actually came from and went, period by period.');
+        ReportCatalogue::register(
+            'Financial statements',
+            ProfitAndLossByDimension::class,
+            'The same profit, split by project or by department — and what could not be attributed.',
+        );
         ReportCatalogue::register('Financial statements', TrialBalance::class, 'Every account with its balance, and the proof that the books add up.');
         ReportCatalogue::register('Financial statements', GeneralLedger::class, 'Every account, every entry against it, opening to closing — what an audit reads.');
         ReportCatalogue::register('Financial statements', BudgetVsActual::class, 'What was planned against what was spent, by account and by month.');
         ReportCatalogue::register('Receivables & payables', ContractorPayments::class, 'What each contractor has been paid, and over what period.');
+        /*
+         * The §165 statement — `docs/erpnext-gap-plan.md` Phase 4, item 4.
+         *
+         * Filed beside the contractor summary rather than under Financial statements: both answer a
+         * question about money paid out to people who are not on the payroll, and somebody reaching for one
+         * is usually reconciling the other.
+         *
+         * `asked['month']` comes from the pane's filter bar — §165 is filed monthly and read for the year,
+         * so the month is a filter and the whole year is a legitimate answer. See `ReportPane::ASKS`.
+         */
+        ReportCatalogue::register(
+            'Receivables & payables',
+            WithholdingStatement::class,
+            'Tax withheld from suppliers under §153: who, which section, and what was deducted.',
+        );
+        ReportRenderers::register(
+            'WithholdingStatement',
+            fn (string $asOf, bool|string $comparison, array $asked): array => app(WithholdingReports::class)
+                ->statement($asOf, is_string($asked['month'] ?? null) ? $asked['month'] : null),
+        );
         ReportCatalogue::register('Ledgers & books', AccountRegister::class, 'One account, every transaction against it, running balance — and edits.');
         ReportCatalogue::register('Ledgers & books', FindTransactions::class, 'Search the whole ledger by account, date, amount or wording.');
         ReportCatalogue::register('Ledgers & books', PettyCashBook::class, 'The cash float: what was spent, what is left, and replenishment.');
@@ -148,6 +181,19 @@ class AccountingServiceProvider extends ServiceProvider
             LoansOutstanding::class,
             'Every loan: what is left, the interest still to come, and whether the accounts agree.',
         );
+        /*
+         * Profit and loss by dimension — `docs/erpnext-gap-plan.md` Phase 1, item 4.
+         *
+         * `asked['dimension']` comes from the pane's own filter bar, which is why `ReportPane::ASKS` names
+         * it: the picker, its options and the URL round-trip are machinery this report gets for free by
+         * declaring what it needs.
+         */
+        ReportRenderers::register(
+            'ProfitAndLossByDimension',
+            fn (string $asOf, bool|string $comparison, array $asked): array => app(DimensionReports::class)
+                ->profitAndLoss($asOf, is_string($asked['dimension'] ?? null) ? $asked['dimension'] : LedgerDimensions::PROJECT),
+        );
+
         ReportRenderers::register(
             'LoansOutstanding',
             fn (string $asOf): array => app(LoanReports::class)->outstanding($asOf),
@@ -225,6 +271,9 @@ class AccountingServiceProvider extends ServiceProvider
         // on that page: it is what every other figure there means.
         SettingsSections::register('accounting.currency', CurrencySettingsSection::class, 10);
         SettingsSections::register('accounting.payroll-posting', PayrollPostingSettingsSection::class, 60);
+        // Closing off a period — `docs/erpnext-gap-plan.md` Phase 3. After the currency and before payroll
+        // posting: it is a decision about the books rather than about a module's own behaviour.
+        SettingsSections::register('accounting.ledger-freeze', LedgerFreezeSettingsSection::class, 20);
 
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
@@ -242,6 +291,27 @@ class AccountingServiceProvider extends ServiceProvider
         JournalEntryOwners::register('a petty cash voucher', PettyCashVoucher::class);
         JournalEntryOwners::register('a fixed asset', FixedAsset::class);
 
+        /*
+         * What Accounting's own documents were for — `docs/erpnext-gap-plan.md` Phase 1.
+         *
+         * A payment knows who it was paid to, and where that is an employee it reaches their department —
+         * the one dimension this application already stores, as free text on `employees.department`. The
+         * gap plan is explicit that this is *not* a `cost_centers` table: a department table earns its
+         * place when somebody needs a hierarchy, a code, or a rename that does not rewrite history.
+         *
+         * A petty cash voucher has a payee in prose and no party record, so it contributes nothing and
+         * reports as unassigned. Stating that by registering nothing would read as an oversight; stating
+         * it here is the difference between "we did not get to it" and "there is nothing there".
+         */
+        LedgerDimensions::register(Payment::class, function (Payment $payment): array {
+            $payable = $payment->payable;
+
+            return [
+                LedgerDimensions::PARTY => $payable?->name,
+                LedgerDimensions::DEPARTMENT => $payable instanceof Employee ? $payable->department : null,
+            ];
+        }, ['payable']);
+
         DashboardStats::register('accounting.pending-entries', fn () => auth()->user()?->can('JournalEntryApprove')
             ? Stat::make(
                 'Journal Entries Awaiting Approval',
@@ -250,6 +320,7 @@ class AccountingServiceProvider extends ServiceProvider
             : null, sort: 20);
 
         $this->commands([
+            BackfillEntrySources::class,
             BackfillPaymentEntriesCommand::class,
             RebuildAssetDepreciationCommand::class,
             RaiseScheduledTransactions::class,

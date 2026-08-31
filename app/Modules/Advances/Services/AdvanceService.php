@@ -32,9 +32,11 @@ class AdvanceService implements AdvanceLedger
      * What payroll should deduct from this employee this month.
      *
      * Zero when there is no active advance, which leaves the existing behaviour
-     * untouched for everybody who has not been lent anything.
+     * untouched for everybody who has not been lent anything — and zero for an
+     * advance whose recovery has not started yet, or whose schedule skips the month
+     * `$periodOn` falls in.
      */
-    public function instalmentFor(int|string $employeeId, int|string|null $excludingPayslipId = null): float
+    public function instalmentFor(int|string $employeeId, int|string|null $excludingPayslipId = null, ?string $periodOn = null): float
     {
         if (! modules()->enabled('advances')) {
             return 0.0;
@@ -48,7 +50,7 @@ class AdvanceService implements AdvanceLedger
 
         return round(
             $this->activeFor((int) $employeeId, $excluding)
-                ->sum(fn (Advance $advance): float => $advance->instalmentDue($excluding)),
+                ->sum(fn (Advance $advance): float => $advance->instalmentDue($excluding, $periodOn)),
             2
         );
     }
@@ -115,12 +117,19 @@ class AdvanceService implements AdvanceLedger
         // Each advance takes its own instalment, oldest first. Allocating purely
         // by what an advance can absorb would let the oldest swallow the whole
         // deduction and pay itself off years early while the others sat untouched.
+        //
+        // An advance not recovering this month takes nothing here, or an older one
+        // that is paused would swallow the instalment a younger one was deducted
+        // for. `effectiveOn` is the payroll month's last day, so it names the same
+        // month the deduction was calculated against.
         foreach ($advances as $advance) {
             if ($remaining <= 0) {
                 break;
             }
 
-            $due = min((float) $advance->monthly_instalment, $room[$advance->getKey()]);
+            $due = $advance->recoversIn($settlement->effectiveOn)
+                ? min((float) $advance->monthly_instalment, $room[$advance->getKey()])
+                : 0.0;
             $take = round(min($remaining, max($due, 0)), 2);
 
             $allocation[$advance->getKey()] = $take;

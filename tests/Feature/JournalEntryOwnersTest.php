@@ -87,38 +87,54 @@ class JournalEntryOwnersTest extends TestCase
     }
 
     /**
-     * The premise the plan's version rested on, tested rather than assumed.
+     * The premise this registry rested on has changed, and the registry survives the change.
      *
-     * §8 Group B says the list is dead because `source_type` is set first. If that were true of all five,
-     * deleting the list would be safe. It is true of one: `DepreciationService` stamps `FixedAsset`, and
-     * `PaymentService`, `InvoiceService` and `PettyCashService` stamp nothing at all — which is why this
-     * became a registry instead of a deletion.
+     * This test used to assert the opposite: that of the five owners only `DepreciationService` stamped
+     * `source_type`, which is why `docs/module-packaging-plan.md` §8 Group B's "delete the list" was
+     * refused. It ended with an instruction — *"If every owner does, that deletion becomes possible after a
+     * backfill — reopen it rather than leaving this test asserting the past."*
      *
-     * Written as a source scan rather than as behaviour because it is a claim about the *codebase*, and
-     * because the alternative — booking a payment and an invoice for real — would assert the same thing
-     * through three services' worth of setup.
+     * `docs/erpnext-gap-plan.md` Phase 1 is that event: every posting path now records what produced it.
+     * So the question is reopened here, and the answer is still **no**, for a reason the original could not
+     * have known:
+     *
+     *  - **Stamping is forward-looking.** Every entry posted from Phase 1 onward carries its source; every
+     *    entry posted before it does not, and `accounting:backfill-entry-sources` is opt-in — it is a
+     *    command somebody runs, not a migration. A company that upgrades and does not run it has years of
+     *    invoice postings with a null source.
+     *  - **The register's guard must hold for those.** `RegisterEntryService::immutableReason()` is what
+     *    stops somebody editing the accounting half of an invoice from the register. Deleting the list
+     *    would make exactly the *historical* entries editable — the ones with the most to lose — and
+     *    nothing would report it.
+     *
+     * So the registry keeps both jobs: it guards entries whose source is null, and it is the list the
+     * backfill walks to fill those in. The two are the same fact from opposite ends.
+     *
+     * Still a source scan, because it is still a claim about the codebase — that every posting path
+     * attributes — rather than about behaviour. The behavioural half, that an entry with no source is
+     * still protected and that the backfill can fill it in from these same owners, is
+     * `LedgerDimensionsTest`, where a database already exists.
      */
-    public function test_only_one_owner_stamps_source_type_which_is_why_the_list_survived(): void
+    public function test_every_owner_now_stamps_its_source_and_the_registry_still_guards_history(): void
     {
-        $stamps = [
+        $attributes = [
             'FixedAsset' => 'app/Modules/Accounting/Services/DepreciationService.php',
             'Payment' => 'app/Modules/Accounting/Services/PaymentService.php',
             'PettyCashVoucher' => 'app/Modules/Accounting/Services/PettyCashService.php',
+            'Invoice' => 'app/Modules/Invoicing/Services/InvoiceService.php',
+            'StockMovement' => 'app/Modules/Inventory/Services/InventoryService.php',
         ];
 
-        $this->assertStringContainsString(
-            "'source_type' => ModuleMap::alias(FixedAsset::class)",
-            file_get_contents(base_path($stamps['FixedAsset'])),
-            'depreciation no longer stamps source_type; the note below is out of date',
-        );
+        foreach ($attributes as $owner => $path) {
+            $source = file_get_contents(base_path($path));
 
-        foreach (['Payment', 'PettyCashVoucher'] as $unstamped) {
-            $this->assertStringNotContainsString(
-                "'source_type' =>",
-                file_get_contents(base_path($stamps[$unstamped])),
-                "{$unstamped} now stamps source_type. If every owner does, §8 Group B's deletion becomes "
-                .'possible after a backfill — reopen it rather than leaving this test asserting the past.',
+            $this->assertTrue(
+                str_contains($source, "'source_type' =>") || str_contains($source, 'attributeTo('),
+                "[{$owner}] no longer attributes its postings. Phase 1 of docs/erpnext-gap-plan.md put a "
+                .'source on every posting path; a path that stops doing it reports as Unassigned in every '
+                .'dimension report, silently.',
             );
         }
+
     }
 }

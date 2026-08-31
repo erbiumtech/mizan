@@ -2,6 +2,8 @@
 
 namespace App\Modules\Payroll\Filament\Resources\Payslips\Tables;
 
+use App\Modules\Payroll\Filament\Resources\Payslips\Actions\CloseObjectionAction;
+use App\Modules\Payroll\Filament\Resources\Payslips\Actions\ReturnForReviewAction;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipDeliveryService;
 use App\Modules\Payroll\Services\PayslipService;
@@ -14,6 +16,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -23,6 +26,7 @@ use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class PayslipsTable
 {
@@ -30,7 +34,10 @@ class PayslipsTable
     {
         return $table
             ->header(view('filament.tables.saved-views-bar'))
-            ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
+            // `comments` because the review column reads the objection's thread — whether anybody has replied,
+            // and what the last one said. Loaded for the page rather than asked per row: the same question
+            // answered row by row is an N+1, which is what `preventLazyLoading` reported the first time.
+            ->modifyQueryUsing(fn ($query) => $query->with(['employee.user', 'comments']))
             ->columns([
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
@@ -125,14 +132,30 @@ class PayslipsTable
                         'pending' => 'warning',
                         'accepted' => 'success',
                         'rejected' => 'danger',
+                        // Answered and released, over an objection that still stands on the record. Not
+                        // green: nobody accepted this payslip, and a green badge would say they had.
+                        'overridden' => 'info',
                         default => 'gray',
                     })
-                    // An acknowledgement entered by somebody signed in as the
-                    // employee reads exactly like the employee's own unless the
-                    // list says otherwise.
-                    ->description(fn (Payslip $record): ?string => $record->reviewWasRecordedOnBehalf()
-                        ? 'on behalf, by '.($record->employee_review_recorded_by_name ?: 'an administrator')
-                        : null)
+                    /*
+                     * **Why it was rejected, under the badge that says it was.**
+                     *
+                     * The reason has been required at the point of rejection since the action existed, and it
+                     * reached the notification email, the payment row and the bank file's blocked-reason
+                     * column — everywhere except the screen the payroll team actually works from. So a
+                     * rejected payslip read as a red badge and a question, and the answer was in somebody's
+                     * inbox.
+                     *
+                     * Truncated rather than wrapped: the column is one of eight on a list read across, and the
+                     * whole sentence is on hover and on the payment it blocks. Sixty characters is enough for
+                     * "overtime for the 14th is missing" and short enough not to reflow the row.
+                     *
+                     * An acknowledgement entered by somebody signed in as the employee reads exactly like the
+                     * employee's own unless the list says otherwise, so that note stays and the two are shown
+                     * together when both apply.
+                     */
+                    ->description(fn (Payslip $record): ?string => self::reviewNote($record))
+                    ->tooltip(fn (Payslip $record): ?string => self::reviewTooltip($record))
                     ->sortable(),
             ])
             ->groups([
@@ -164,14 +187,19 @@ class PayslipsTable
 
                 // Employee acknowledgement of the payslip. A plain column match is
                 // enough: employee_review is NOT NULL with a 'pending' default, so
-                // every row holds one of the three states and there is no missing
+                // every row holds one of the four states and there is no missing
                 // case for the Pending option to also account for.
+                //
+                // "Answered" is its own option rather than folded into Rejected, and that is the question
+                // it exists for: at the end of a run, *which objections are still waiting on somebody* —
+                // which is Rejected on its own, and would be unanswerable if answering one left it there.
                 SelectFilter::make('employee_review')
                     ->label('Employee Review')
                     ->options([
                         Payslip::REVIEW_PENDING => 'Pending',
                         Payslip::REVIEW_ACCEPTED => 'Accepted',
                         Payslip::REVIEW_REJECTED => 'Rejected',
+                        Payslip::REVIEW_OVERRIDDEN => 'Rejected, answered',
                     ]),
 
                 // "Who has not had theirs yet" is the question at the end of a
@@ -184,11 +212,21 @@ class PayslipsTable
                     ->falseLabel('Not sent yet'),
             ])
             ->recordActions([
+                // First, and for the employee it is the only one of the two they will see: Filament asks the
+                // policy, and `PayslipPolicy::view()` allows their own payslip while `update()` does not.
+                // This is how they reach the comment thread — see ViewPayslip.
+                ViewAction::make(),
                 EditAction::make(),
                 self::downloadAction(),
                 self::sendAction(),
                 self::acceptAction(),
                 self::rejectAction(),
+                // Payroll's side of the same conversation: visible only on a payslip somebody has rejected,
+                // and only to whoever may edit one. Defined once and also on the payslip's own View and Edit
+                // pages, because that is where the thread it closes is read — see CloseObjectionAction.
+                CloseObjectionAction::make(),
+                // The other way to deal with an objection: correct the payslip and ask again.
+                ReturnForReviewAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -362,6 +400,55 @@ class PayslipsTable
                     Notification::make()->title($e->getMessage())->danger()->send();
                 }
             });
+    }
+
+    /**
+     * The line under the review badge: the employee's objection, and who entered the review.
+     *
+     * Null for the ordinary cases — pending, and accepted by the employee themselves — so the column stays
+     * one line high for almost every row.
+     */
+    protected static function reviewNote(Payslip $record): ?string
+    {
+        // The objection survives the override — that is the point of the state being called `overridden`
+        // rather than `accepted` — so it is shown for both.
+        $reason = in_array($record->employee_review, [Payslip::REVIEW_REJECTED, Payslip::REVIEW_OVERRIDDEN], true)
+            ? trim((string) $record->employee_rejection_reason)
+            : '';
+
+        $reply = $record->isReviewOverridden()
+            ? trim((string) $record->latestObjectionReply()?->body)
+            : '';
+
+        $note = $record->reviewWasRecordedOnBehalf()
+            ? 'on behalf, by '.($record->employee_review_recorded_by_name ?: 'an administrator')
+            : '';
+
+        return implode(' — ', array_filter([
+            $reason === '' ? null : '"'.Str::limit($reason, 60).'"',
+            $reply === '' ? null : 'answered: '.Str::limit($reply, 60),
+            $note === '' ? null : $note,
+        ])) ?: null;
+    }
+
+    /**
+     * The whole conversation, on hover: what the employee said, and what payroll answered.
+     *
+     * The description above is truncated so the row stays one line; this is where the sentences are read in
+     * full without opening the payslip.
+     */
+    protected static function reviewTooltip(Payslip $record): ?string
+    {
+        $parts = array_filter([
+            filled($record->employee_rejection_reason) && ! $record->isPendingReview()
+                ? 'Employee: '.$record->employee_rejection_reason
+                : null,
+            $record->isReviewOverridden() && filled($record->latestObjectionReply()?->body)
+                ? 'Last reply: '.$record->latestObjectionReply()?->body
+                : null,
+        ]);
+
+        return $parts === [] ? null : implode(' | ', $parts);
     }
 
     // --- AcceptPayslip ---

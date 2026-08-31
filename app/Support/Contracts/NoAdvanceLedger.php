@@ -14,7 +14,7 @@ use App\Support\PayslipSettlement;
  */
 class NoAdvanceLedger implements AdvanceLedger
 {
-    public function instalmentFor(int|string $employeeId, int|string|null $excludingPayslipId = null): float
+    public function instalmentFor(int|string $employeeId, int|string|null $excludingPayslipId = null, ?string $periodOn = null): float
     {
         return 0.0;
     }
