@@ -39,6 +39,9 @@ return [
         // The IBFT bank list. Core for the same reason Holiday is — see the model.
         'App\\Models\\Bank' => \App\Modules\Core\Models\Bank::class,
         'App\\Models\\Setting' => \App\Modules\Core\Models\Setting::class,
+        // One entry in one admin-managed dropdown. Core because the table serves every
+        // module's lists and the screen that edits them sits with Company Settings.
+        'App\\Models\\OptionValue' => \App\Modules\Core\Models\OptionValue::class,
     ],
 
     'resources' => [
@@ -57,6 +60,7 @@ return [
         // Scheduled reports — Phase 8, item 1 of the reports plan.
         'App\\Filament\\Resources\\ReportSchedules\\ReportScheduleResource' => \App\Modules\Core\Filament\Resources\ReportSchedules\ReportScheduleResource::class,
         'App\\Filament\\Resources\\Holidays\\HolidayResource' => \App\Modules\Core\Filament\Resources\Holidays\HolidayResource::class,
+        'App\\Filament\\Resources\\OptionValues\\OptionValueResource' => \App\Modules\Core\Filament\Resources\OptionValues\OptionValueResource::class,
     ],
 
     'widgets' => [

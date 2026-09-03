@@ -2,12 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Core\Models\Bank;
+use App\Modules\Core\Models\User;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
-use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
-use App\Modules\Core\Models\User;
+use Database\Seeders\OptionListSeeder;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -165,6 +166,32 @@ class EmployeeProfileFieldsTest extends AccountingTestCase
         $employee->refresh();
         $this->assertSame('0302-3333333', $employee->secondary_phone);
         $this->assertSame('1992-03-04', $employee->date_of_birth->toDateString());
+    }
+
+    /**
+     * The third answer the column could not hold.
+     *
+     * `employees.gender` was `enum('Male', 'Female')` while the form offered "Other" — storable on SQLite,
+     * where Laravel renders an enum as a varchar, and rejected by MySQL, which is what production runs. The
+     * column is a string now and the options are a list the company edits, so this saves what it offers.
+     */
+    public function test_a_gender_beyond_the_original_two_saves(): void
+    {
+        Gate::before(fn () => true);
+        $this->actingAs($this->makeUser('Administrator', 'admin-gender@test.local'));
+        $this->setCurrentTenant();
+
+        (new OptionListSeeder)->run();
+
+        $employee = $this->completeEmployee('gender@test.local', 'EMP-GENDER');
+
+        Livewire::test(EditEmployee::class, ['record' => $employee->getKey()])
+            ->assertFormFieldExists('gender', fn ($field): bool => array_key_exists('Other', $field->getOptions()))
+            ->fillForm(['gender' => 'Other'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Other', $employee->fresh()->gender);
     }
 
     public function test_a_future_date_of_birth_is_rejected(): void

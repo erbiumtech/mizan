@@ -69,6 +69,27 @@ return [
         'App\\Filament\\Pages\\SafetyIndicators' => \App\Modules\ConstructionQhse\Filament\Pages\SafetyIndicatorsReport::class,
     ],
 
+    /**
+     * What an NCR is *about*, in the words this company's quality plan uses — the column
+     * is a plain string carrying "the company's own words" by its own migration comment,
+     * and it was a free-text box, which is how a report by category gets "Workmanship",
+     * "workmanship" and "Work manship" as three categories.
+     */
+    'option_lists' => [
+        'construction_qhse.ncr_category' => [
+            'label' => 'NCR categories',
+            'help' => 'What the non-conformance is about. Grouping the NCR log by this is only worth reading if the wording is one list.',
+            'values' => [
+                'Workmanship',
+                'Materials',
+                'Documentation',
+                'Dimensional',
+                'Testing',
+                'Other',
+            ],
+        ],
+    ],
+
     'permission_groups' => [
         'ConstructionQhse',
     ],

@@ -95,24 +95,18 @@ class EmployeeForm
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
+                // The three job facts below are lists this company writes for itself,
+                // under Settings -> Dropdown Options. They were literal arrays here,
+                // which made hiring a draughtsman a deploy. The record's own value is
+                // passed so an entry since switched off still shows on the employee who
+                // holds it instead of rendering blank and saving that blank back.
                 Select::make('designation')
-                    ->options([
-                        'Senior Full Stack Developer' => 'Senior Full Stack Developer',
-                        'Full Stack Developer' => 'Full Stack Developer',
-                        'Frontend Developer' => 'Frontend Developer',
-                        'Backend Developer' => 'Backend Developer',
-                        'Secretary' => 'Secretary',
-                        'Cook' => 'Cook',
-                        'Office Boy' => 'Office Boy',
-                    ])
+                    ->options(fn (?Employee $record): array => options('employees.designation', $record?->designation))
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
                 Select::make('department')
-                    ->options([
-                        'IT' => 'IT',
-                        'Office Staff' => 'Office Staff',
-                    ])
+                    ->options(fn (?Employee $record): array => options('employees.department', $record?->department))
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
@@ -122,12 +116,13 @@ class EmployeeForm
                 // a dated history row, which is what makes "were they permanent
                 // in March" answerable — see App\Modules\Employees\Services\JobHistory.
                 //
-                // Options from the model, not spelled again here: two screens
-                // each writing their own list is how Company::TYPE_LABELS came to
-                // exist.
+                // Options from the company's own list, not spelled again here: two
+                // screens each writing their own is how Company::TYPE_LABELS came to
+                // exist. This was Employee::EMPLOYMENT_TYPES, whose four values are now
+                // what the list is seeded with.
                 Select::make('employment_type')
                     ->label('Employment Type')
-                    ->options(Employee::EMPLOYMENT_TYPES)
+                    ->options(fn (?Employee $record): array => options('employees.employment_type', $record?->employment_type))
                     ->placeholder('Not recorded')
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
@@ -273,11 +268,7 @@ class EmployeeForm
 
                 Select::make('gender')
                     ->label('Gender')
-                    ->options([
-                        'Male' => 'Male',
-                        'Female' => 'Female',
-                        'Other' => 'Other',
-                    ]),
+                    ->options(fn (?Employee $record): array => options('employees.gender', $record?->gender)),
 
                 ...CustomFieldsSchema::form(Employee::class),
             ]);

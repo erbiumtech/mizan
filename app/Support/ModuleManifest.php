@@ -87,6 +87,9 @@ class ModuleManifest
             'widgets' => [],
             // Reportable subjects for the report builder — reports-expansion-plan.md Phase 6, item 1.
             'datasets' => [],
+            // The dropdowns whose contents this module lets a company write for itself —
+            // see App\Support\OptionLists.
+            'option_lists' => [],
             'permission_groups' => [],
             'permissions' => [],
             'role_grants' => [],
@@ -123,7 +126,7 @@ class ModuleManifest
                 'plugin' => $manifest['plugin'] ?? null,
             ], fn ($value) => $value !== null);
 
-            foreach (['models', 'resources', 'pages', 'widgets', 'datasets', 'permission_groups'] as $table) {
+            foreach (['models', 'resources', 'pages', 'widgets', 'datasets', 'option_lists', 'permission_groups'] as $table) {
                 if (($manifest[$table] ?? []) !== []) {
                     $merged[$table][$key] = $manifest[$table];
                 }
@@ -234,7 +237,7 @@ class ModuleManifest
             }
         }
 
-        foreach (['models', 'resources', 'pages', 'widgets', 'datasets'] as $table) {
+        foreach (['models', 'resources', 'pages', 'widgets', 'datasets', 'option_lists'] as $table) {
             $owners = [];
 
             foreach ($merged[$table] as $module => $entries) {
