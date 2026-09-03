@@ -87,9 +87,14 @@ class NcrForm
                             ->columnSpanFull()
                             ->helperText('"The cover is 22 mm" is the description; "BS EN 1992 clause 4.4.1, 40 mm minimum" is this. An NCR with only the first is an opinion.'),
 
-                        TextInput::make('category')
-                            ->maxLength(255)
-                            ->helperText('Workmanship, materials, documentation, dimensional.'),
+                        // A list, not a free-text box: the NCR log is read by category,
+                        // and "Workmanship", "workmanship" and "Work manship" are three
+                        // categories with three counts. Edited under Settings ->
+                        // Dropdown Options; an NCR raised before this keeps its wording.
+                        Select::make('category')
+                            ->options(fn (?Ncr $record): array => options('construction_qhse.ncr_category', $record?->category))
+                            ->native(false)
+                            ->helperText('What it is about. Your own list — add to it under Settings, Dropdown Options.'),
 
                         DatePicker::make('raised_on')->native(false)->default(now())->required(),
                     ]),

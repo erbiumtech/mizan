@@ -36,6 +36,7 @@ use Database\Seeders\CurrencySeeder;
 use Database\Seeders\FiscalYearSeeder;
 use Database\Seeders\LeadSourceSeeder;
 use Database\Seeders\LeaveTypeSeeder;
+use Database\Seeders\OptionListSeeder;
 use Database\Seeders\PersonalChartOfAccountsSeeder;
 use Database\Seeders\PersonalTransactionTypeSeeder;
 use Database\Seeders\SalarySlabSeeder;
@@ -67,6 +68,10 @@ $business = [
     // each section applies to is the decision, and it lives on the beneficiary.
     WithholdingSectionSeeder::class,
     TaxScheduleSeeder::class,
+    // The dropdowns a company writes for itself, seeded with the values that used to be
+    // hardcoded in the forms. Mirrors TenantBaselineSeeder::seeders(), which
+    // CompanyProfileTest asserts this list equal to.
+    OptionListSeeder::class,
 ];
 
 // No payroll, so no slabs — the only profile that diverges from the business
@@ -102,6 +107,7 @@ $personal = [
     PersonalTransactionTypeSeeder::class,
     TransactionTypeAliasSeeder::class,
     TaxScheduleSeeder::class,
+    OptionListSeeder::class,
 ];
 
 return [

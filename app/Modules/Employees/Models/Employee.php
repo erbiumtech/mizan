@@ -178,23 +178,15 @@ class Employee extends Model
      */
     public const JOB_FACTS = ['designation', 'department', 'manager_id', 'employment_type'];
 
-    /**
-     * What kinds of employment a company records, as value => label.
-     *
-     * A constant rather than an enum column: an enum change is a table rebuild on
-     * MySQL and unsupported on SQLite, and the list varies by company. Kept here
-     * rather than in the form so the form and any future report agree — the
-     * lesson `Company::TYPE_LABELS` records, where two screens each wrote their
-     * own pair and disagreed.
-     *
-     * @var array<string, string>
+    /*
+     * What kinds of employment a company records was `EMPLOYMENT_TYPES` here — a
+     * constant rather than an enum column, because an enum change is a table rebuild on
+     * MySQL and unsupported on SQLite, "and the list varies by company". It varies by
+     * company, so it is now a list the company writes: `employees.employment_type`,
+     * declared with its shipped values in app/Modules/Employees/module.php and read
+     * through `options()`. Same reasoning, one step further; the reason it was a
+     * constant — one list, not one per screen — is why it is one declaration.
      */
-    public const EMPLOYMENT_TYPES = [
-        'permanent' => 'Permanent',
-        'contract' => 'Contract',
-        'probation' => 'Probation',
-        'intern' => 'Intern',
-    ];
 
     /** Set while JobHistory writes its own denormalised sync back to this row. */
     protected static bool $skipJobHistory = false;

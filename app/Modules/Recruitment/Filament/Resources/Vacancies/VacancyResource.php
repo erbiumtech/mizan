@@ -55,9 +55,24 @@ class VacancyResource extends Resource
             TextInput::make('openings')->numeric()->minValue(1)->default(1)
                 ->helperText('The vacancy closes itself when the last opening is filled.'),
 
-            TextInput::make('department')->maxLength(255),
-            TextInput::make('designation')->maxLength(255),
-            TextInput::make('employment_type')->maxLength(255)->placeholder('Permanent'),
+            // The same three lists the employee record uses, from Settings -> Dropdown
+            // Options. Free text here and a dropdown there is how a vacancy for a
+            // "Backend Developer" hired somebody whose designation read "backend dev" —
+            // HireService copies these onto the employee it creates, so the two screens
+            // have to speak one vocabulary or headcount by department counts them apart.
+            // A vacancy written before this keeps whatever it says.
+            Select::make('department')
+                ->options(fn (?Vacancy $record): array => options('employees.department', $record?->department))
+                ->native(false),
+
+            Select::make('designation')
+                ->options(fn (?Vacancy $record): array => options('employees.designation', $record?->designation))
+                ->native(false),
+
+            Select::make('employment_type')
+                ->options(fn (?Vacancy $record): array => options('employees.employment_type', $record?->employment_type))
+                ->native(false)
+                ->placeholder('Not stated'),
 
             // Guarded: a company hiring its first person has no employee to name.
             Select::make('hiring_manager_employee_id')

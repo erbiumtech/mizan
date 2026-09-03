@@ -11,6 +11,7 @@ use App\Modules\Core\Models\CustomField;
 use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\Holiday;
+use App\Modules\Core\Models\OptionValue;
 use App\Modules\Core\Models\ReportDefinition;
 use App\Modules\Core\Models\ReportSchedule;
 use App\Modules\Core\Models\TableView;
@@ -22,6 +23,7 @@ use App\Modules\Core\Policies\CustomFieldPolicy;
 use App\Modules\Core\Policies\EmailTemplatePolicy;
 use App\Modules\Core\Policies\FiscalYearPolicy;
 use App\Modules\Core\Policies\HolidayPolicy;
+use App\Modules\Core\Policies\OptionValuePolicy;
 use App\Modules\Core\Policies\PermissionPolicy;
 use App\Modules\Core\Policies\ReportSchedulePolicy;
 use App\Modules\Core\Policies\RolePolicy;
@@ -57,6 +59,7 @@ class CoreServiceProvider extends ServiceProvider
         CustomField::class => CustomFieldPolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
         Holiday::class => HolidayPolicy::class,
+        OptionValue::class => OptionValuePolicy::class,
         ReportSchedule::class => ReportSchedulePolicy::class,
         TableView::class => TableViewPolicy::class,
         EmailTemplate::class => EmailTemplatePolicy::class,
