@@ -247,6 +247,32 @@ class PayslipService
         $totalEarningsBase = $data['basic_wage'] + $data['petrol_allowance'] + $data['device_allowance'] + $data['bonus'] + $data['extra_work_hours'];
         $data['total_earnings'] = $totalEarningsBase + $data['medical_allowance'] + $components['earnings'];
 
+        /*
+         * What this month has that the months ahead of it do not — and must not be projected onto them.
+         *
+         * The projection below stands this month in for every month not yet paid, which is right for a
+         * salary and wrong for a bonus: a 100,000 bonus in July would read as a company promising 100,000 a
+         * month, and July's deduction would be a twelfth of a tax bill nobody owes. The *year* came out
+         * right even so — the true-up further down recomputes from what was actually paid and gives the
+         * excess back over the following months — so what this excludes is not an annual error but the
+         * lump: with it gone, the tax on a one-off is spread over the remaining months like everything
+         * else, instead of being taken in the month the bonus was paid.
+         *
+         * **Only the genuinely one-off part.** A bonus or an overtime figure that is on the employee's
+         * *settings* is recurring — the company put it on the package — so only the excess over that counts.
+         * An allowance corrected on this payslip is deliberately left projected: a corrected allowance is
+         * usually the new normal, and treating it as temporary would under-withhold all year.
+         *
+         * Pro-rating is the same shape with the opposite sign — a month of unpaid leave is projected as if
+         * every month were short — and is left alone here. It under-withholds now and trues up later, which
+         * is the direction that does not take somebody's money early.
+         */
+        $oneOffEarnings = round(
+            max(0, $data['bonus'] - (float) ($setting->bonus ?? 0))
+            + max(0, $data['extra_work_hours'] - (float) ($setting->extra_work_hours ?? 0)),
+            2,
+        );
+
         $previousEarningsSum = Payslip::where('employee_id', $employeeId)
             ->where('fiscal_year_id', $fiscalYearId)
             ->where('month', '!=', $month)
@@ -282,7 +308,10 @@ class PayslipService
                     // non-taxable component raised the year's tax through the eleven
                     // months it was projected across, having been correctly excluded
                     // from the one month it was actually paid in.
-                    $sMonthlyTotal = $data['total_earnings'] - $untaxedComponents;
+                    //
+                    // And so does anything one-off — see $oneOffEarnings above. The months ahead are being
+                    // described, and they have no bonus in them.
+                    $sMonthlyTotal = $data['total_earnings'] - $untaxedComponents - $oneOffEarnings;
                 }
 
                 $sStart = Carbon::parse($empSetting->start_date);
@@ -305,7 +334,9 @@ class PayslipService
             $completedMonthsCount = count($completedMonths);
             $remainingMonths = max(0, 12 - ($completedMonthsCount + 1));
             $taxableThisMonth = $data['total_earnings'] - $untaxedComponents;
-            $annualTotalEarnings = $previousEarningsSum + $taxableThisMonth + ($taxableThisMonth * $remainingMonths);
+            // The month itself in full, and the months ahead without its one-off part.
+            $annualTotalEarnings = $previousEarningsSum + $taxableThisMonth
+                + (($taxableThisMonth - $oneOffEarnings) * $remainingMonths);
         }
 
         Log::debug('Corrected Annual Total Earnings: '.$annualTotalEarnings);

@@ -51,8 +51,29 @@ would move what was agreed — an advance balance changes as recoveries post.
 where approving is literally money leaving the company to the person pressing the
 button.
 
+**Reopen** takes an approval back. An approved figure cannot be edited or recalculated,
+so a wrong one is corrected by reopening it to a draft, fixing it, and approving it
+again. It asks for a reason, because it withdraws somebody's agreement to a figure and
+"who took it back, and why" is what gets asked afterwards. The same permission as
+approving, and the same bar: not your own.
+
+**A paid settlement is never reopened.** Approving commits to a figure and posts
+nothing; paying it is money that has left through a payslip or a payment, and a
+settlement put back to draft after that would disagree with the ledger.
+
+## Deleting one built by mistake <!-- requires: SettlementDelete -->
+
+**Delete** removes a settlement built against the wrong person, or for a leaver who
+turned out to be staying — and only while it is a draft. It takes nothing else with it:
+the leave, advances and issued kit it was gathered from are untouched, nothing was
+posted, and it can be built again at any time.
+
+There is one settlement per employee, so this is also how you start over: recalculating
+edits the row that is there rather than replacing it.
+
 ## Roles and permissions
 
 **View**: `SettlementView`. **Build and edit**: `SettlementCreate`, `SettlementUpdate` —
-drafts only. **Approve**: `SettlementApprove`. **Delete**: `SettlementDelete`, drafts
-only. The Employee role holds none of these.
+drafts only. **Approve and reopen**: `SettlementApprove` — never your own, and never a
+paid one. **Delete**: `SettlementDelete`, drafts only. The Employee role holds none of
+these.

@@ -52,6 +52,7 @@ return [
     'role_grants' => [ /* §6a */ ],
 
     'navigation' => ['Employee' => 'people'],   // §6b
+    'option_lists' => [ /* §6c, if any */ ],
 ];
 ```
 
@@ -290,6 +291,46 @@ anything unmapped invisible — nothing throws and no page 404s, the entries are
 simply not drawn. `NavigationDomainsTest` asserts coverage in both directions and
 `ManifestNavigationGuardTest` asserts the two throws.
 
+## 6c. Dropdown options — `option_lists` in the manifest
+
+Any dropdown whose contents are *this company's words* rather than the
+application's — designations, plant categories, NCR categories. Declared with the
+values it ships with; `App\Support\OptionLists` merges the declarations,
+`OptionListSeeder` writes them into each tenant, and the Dropdown Options screen
+(Settings → Company) lets an administrator add and retire entries:
+
+```php
+'option_lists' => [
+    'employees.designation' => [
+        'label' => 'Designations',
+        'help' => 'Job titles. Shown on the employee record and on a vacancy.',
+        'values' => ['Backend Developer', 'Cook'],   // a list: the value is the label
+    ],
+    'employees.employment_type' => [
+        'values' => ['permanent' => 'Permanent'],    // a map: the column stores the key
+    ],
+],
+```
+
+Read it in a form with `options('employees.designation', $record?->designation)`.
+**Always pass the record's own value.** A list is editable, so an entry can be
+retired after rows were saved with it, and a Select whose current value is not
+among its options renders blank and writes that blank back on the next save.
+
+Declared by the module so the screen can hide the lists of a module the company
+has not licensed, and so a duplicate list key across two modules fails at
+manifest-build time like any other duplicate alias.
+
+**Most dropdowns do NOT belong here, and this is the decision to get right.**
+Workflow vocabulary is code: services branch on the value, reports key off it,
+and the column is usually `enum(...)` in the migration — so an entry an
+administrator adds would be ignored by the code and rejected by the database. A
+list qualifies only when all three hold: the column is a plain `string`, nothing
+in `app/` compares the value to a constant, and two companies would genuinely
+write different lists. Reference data with its own screen (lead sources, leave
+types, ticket categories) stays a table of its own; this is for the lists that
+were literal arrays inside a form.
+
 ## 7. Tenant migrations
 
 New tables go in `database/migrations/tenant/`, applied with
@@ -381,6 +422,7 @@ app/Modules/{Name}/module.php    EVERYTHING the module declares about itself:
                                    permission_groups + permissions
                                    role_grants
                                    navigation (+ navigation_items)
+                                   option_lists (the company's own dropdowns)
 config/company_profiles.php      which kinds of company are sold it
 bootstrap/providers.php          list the provider
 

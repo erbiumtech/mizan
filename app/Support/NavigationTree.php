@@ -123,6 +123,9 @@ class NavigationTree
         'Settings' => [
             'Company' => [
                 'Company Settings',
+                // What the company's own dropdowns offer — App\Support\OptionLists. Beside Company
+                // Settings because that is what it is: the same decision, spread over several lists.
+                'Dropdown Options',
                 'Modules',
                 'Custom Fields',
                 'Email Wording',

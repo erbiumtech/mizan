@@ -50,6 +50,10 @@ class TenantBaselineSeeder extends Seeder
             // accounts, which is seeded for a user the first time they open the
             // module.
             TaxScheduleSeeder::class,
+            // What every admin-managed dropdown starts with — the values that used to be
+            // hardcoded in the form. Last because it depends on nothing: the lists are
+            // declared by the modules, not by anything else seeded here.
+            OptionListSeeder::class,
         ];
     }
 
