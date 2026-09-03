@@ -66,6 +66,17 @@ class FinalSettlement extends Model
     }
 
     /**
+     * Approved and not yet settled.
+     *
+     * Deliberately not "anything past draft": `paid` records that a payslip or a payment
+     * has been through, and that is the line reopening must never cross.
+     */
+    public function isApproved(): bool
+    {
+        return $this->status === self::STATUS_APPROVED;
+    }
+
+    /**
      * Everything owed, less everything owed back.
      *
      * Can legitimately be negative: somebody leaving with an unrecovered advance and an

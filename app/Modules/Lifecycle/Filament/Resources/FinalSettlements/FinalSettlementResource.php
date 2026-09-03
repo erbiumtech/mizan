@@ -184,7 +184,74 @@ class FinalSettlementResource extends Resource
                             ->send();
                     }),
 
+                /**
+                 * The way back from an approval that was wrong.
+                 *
+                 * `FinalSettlementBuilder` refuses to rebuild an approved settlement and tells whoever hit
+                 * Recalculate to "reopen it before rebuilding" — advice with nothing behind it until now.
+                 *
+                 * The reason is required because this withdraws somebody's agreement to a figure: the
+                 * change of status is in the audit trail either way, and "who took it back, and why" is the
+                 * question asked afterwards.
+                 */
+                Action::make('reopen')
+                    ->label('Reopen')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalDescription('Puts the settlement back to draft so the figures can be corrected or '
+                        .'recalculated. Nothing was posted when it was approved, so there is nothing to '
+                        .'reverse — but the approval itself is withdrawn and has to be given again.')
+                    ->schema([
+                        Textarea::make('reason')
+                            ->label('Why is it being reopened?')
+                            ->rows(2)
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->visible(fn (FinalSettlement $record): bool => auth()->user()?->can('reopen', $record) ?? false)
+                    ->action(function (FinalSettlement $record, array $data): void {
+                        $approver = $record->approved_by;
+
+                        $record->update([
+                            'status' => FinalSettlement::STATUS_DRAFT,
+                            'approved_by' => null,
+                            'approved_at' => null,
+                        ]);
+
+                        activity('FinalSettlement')
+                            ->performedOn($record)
+                            ->causedBy(auth()->user())
+                            ->event('reopened')
+                            ->withProperties([
+                                'reason' => $data['reason'],
+                                'approved_by' => $approver,
+                                'net_amount' => (float) $record->net_amount,
+                            ])
+                            ->log("Settlement #{$record->id} reopened: {$data['reason']}");
+
+                        Notification::make()->success()
+                            ->title('Back to draft. It needs approving again once the figures are right.')
+                            ->send();
+                    }),
+
                 \Filament\Actions\EditAction::make(),
+
+                /**
+                 * For the one built against the wrong person, or for a leaver who turned out to be staying.
+                 *
+                 * `FinalSettlementBuilder` keys on the employee, so a settlement built by mistake is not
+                 * merely clutter: it is the one row that employee can ever have, and rebuilding it for the
+                 * right date only edits the wrong record rather than replacing it.
+                 *
+                 * Drafts only, which the policy has always said and no screen has ever offered. An approved
+                 * settlement is a figure somebody committed to — if one of those is wrong, it needs a way
+                 * back to draft rather than a delete, and that is a decision nobody has asked for yet.
+                 */
+                \Filament\Actions\DeleteAction::make()
+                    ->modalDescription('Deletes the settlement only. The leave, advances and issued kit it '
+                        .'was gathered from are untouched, and nothing was ever posted — so there is nothing '
+                        .'to reverse. You can build it again at any time.'),
             ]);
     }
 

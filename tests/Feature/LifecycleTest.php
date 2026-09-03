@@ -8,6 +8,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Leave\Models\LeaveEntitlement;
 use App\Modules\Leave\Models\LeaveType;
+use App\Modules\Lifecycle\Filament\Resources\FinalSettlements\Pages\ListFinalSettlements;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use App\Modules\Lifecycle\Models\EmployeeDocument;
 use App\Modules\Lifecycle\Models\FinalSettlement;
@@ -15,8 +16,12 @@ use App\Modules\Lifecycle\Models\IssuedAsset;
 use App\Modules\Lifecycle\Services\ChecklistService;
 use App\Modules\Lifecycle\Services\DocumentExpiryCheck;
 use App\Modules\Lifecycle\Services\FinalSettlementBuilder;
+use Database\Seeders\PermissionSeeder;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
+use Livewire\Livewire;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
@@ -348,6 +353,154 @@ class LifecycleTest extends TestCase
 
         $this->assertTrue($settlement->isOwedToCompany());
         $this->assertSame(-250000.0, $settlement->computedNet());
+    }
+
+    /**
+     * The way back from an approval that was wrong.
+     *
+     * `FinalSettlementBuilder` has told people to "reopen it before rebuilding" since the module shipped and
+     * there was nothing to press, so the last assertion here is the one that matters: after reopening, the
+     * rebuild the message promises actually works.
+     */
+    public function test_an_approved_settlement_can_be_reopened_and_then_rebuilt(): void
+    {
+        $this->allowSettlementApprovals();
+
+        $this->givePackage(200000);
+        $settlement = app(FinalSettlementBuilder::class)->build($this->employee, '2026-08-31');
+        $settlement->update([
+            'status' => FinalSettlement::STATUS_APPROVED,
+            'approved_by' => $this->actor->getKey(),
+            'approved_at' => now(),
+        ]);
+
+        Livewire::test(ListFinalSettlements::class)
+            ->callAction(TestAction::make('reopen')->table($settlement), ['reason' => 'Gratuity was wrong.']);
+
+        $settlement->refresh();
+        $this->assertTrue($settlement->isDraft());
+        // Cleared, or the record would read as approved by somebody while sitting in draft.
+        $this->assertNull($settlement->approved_by);
+        $this->assertNull($settlement->approved_at);
+
+        $this->assertDatabaseHas('activity_log', ['event' => 'reopened']);
+
+        app(FinalSettlementBuilder::class)->build($this->employee, '2026-08-31');
+        $this->assertTrue($settlement->fresh()->isDraft());
+    }
+
+    /** A reason is required: this withdraws somebody's agreement to a figure. */
+    public function test_reopening_without_a_reason_is_refused(): void
+    {
+        $this->allowSettlementApprovals();
+
+        $this->givePackage(200000);
+        $settlement = app(FinalSettlementBuilder::class)->build($this->employee, '2026-08-31');
+        $settlement->update(['status' => FinalSettlement::STATUS_APPROVED]);
+
+        Livewire::test(ListFinalSettlements::class)
+            ->callAction(TestAction::make('reopen')->table($settlement), ['reason' => ''])
+            ->assertHasActionErrors(['reason']);
+
+        $this->assertSame(FinalSettlement::STATUS_APPROVED, $settlement->fresh()->status);
+    }
+
+    /**
+     * Paid is the line reopening never crosses.
+     *
+     * Approved is a commitment; paid is money that has left through a payslip or a payment, and a settlement
+     * put back to draft after that would disagree with the ledger.
+     */
+    public function test_a_paid_settlement_cannot_be_reopened(): void
+    {
+        $this->allowSettlementApprovals();
+
+        $this->givePackage(200000);
+        $settlement = app(FinalSettlementBuilder::class)->build($this->employee, '2026-08-31');
+        $settlement->update(['status' => FinalSettlement::STATUS_PAID]);
+
+        Livewire::test(ListFinalSettlements::class)
+            ->assertActionHidden(TestAction::make('reopen')->table($settlement));
+
+        $this->assertSame(FinalSettlement::STATUS_PAID, $settlement->fresh()->status);
+    }
+
+    /** Reopening your own settlement is the first half of agreeing your own figure. */
+    public function test_nobody_may_reopen_their_own_settlement(): void
+    {
+        $this->allowSettlementApprovals();
+
+        // Linked at creation rather than by a later update: an edit to an employee whose user_id is the
+        // actor is a self-service edit, and self-service edits become a change request instead of a write.
+        $self = Employee::create([
+            'employee_id' => 'EMP-SELF',
+            'name' => 'The approver',
+            'user_id' => $this->actor->getKey(),
+            'gender' => 'Male',
+            'is_active' => true,
+            'date_of_joining' => '2020-06-01',
+        ]);
+
+        $this->givePackage(200000, $self);
+        $settlement = app(FinalSettlementBuilder::class)->build($self, '2026-08-31');
+        $settlement->update(['status' => FinalSettlement::STATUS_APPROVED]);
+
+        Livewire::test(ListFinalSettlements::class)
+            ->assertActionHidden(TestAction::make('reopen')->table($settlement));
+    }
+
+    private function allowSettlementApprovals(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->getKey());
+
+        $this->actor->givePermissionTo(['SettlementView', 'SettlementApprove']);
+    }
+
+    /**
+     * Built against the wrong person, and now removable.
+     *
+     * `FinalSettlementBuilder` keys on the employee, so a settlement built by mistake is the one row that
+     * employee can ever have: rebuilding for the right date edits the wrong record rather than replacing it,
+     * and there was no way out. The policy has allowed this delete since the module shipped — the screen
+     * never offered it — so this asserts the button, which is where the gap was.
+     */
+    public function test_a_draft_settlement_built_by_mistake_can_be_deleted(): void
+    {
+        $this->allowSettlementDeletes();
+
+        $this->givePackage(200000);
+        $settlement = app(FinalSettlementBuilder::class)->build($this->employee, '2026-08-31');
+
+        Livewire::test(ListFinalSettlements::class)
+            ->callAction(TestAction::make('delete')->table($settlement));
+
+        $this->assertSame(0, FinalSettlement::count());
+    }
+
+    /** An approved settlement is a figure somebody committed to, so the button is not offered on it. */
+    public function test_an_approved_settlement_cannot_be_deleted(): void
+    {
+        $this->allowSettlementDeletes();
+
+        $this->givePackage(200000);
+        $settlement = app(FinalSettlementBuilder::class)->build($this->employee, '2026-08-31');
+        $settlement->update(['status' => FinalSettlement::STATUS_APPROVED]);
+
+        Livewire::test(ListFinalSettlements::class)
+            ->assertActionHidden(TestAction::make('delete')->table($settlement));
+
+        $this->assertSame(1, FinalSettlement::count());
+    }
+
+    private function allowSettlementDeletes(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->getKey());
+
+        $this->actor->givePermissionTo(['SettlementView', 'SettlementDelete']);
     }
 
     /** One settlement per employee: a double-clicked button must not make two. */
