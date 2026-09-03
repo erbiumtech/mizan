@@ -21,6 +21,12 @@ use Throwable;
  *         'employees.employment_type' => [
  *             'values' => ['permanent' => 'Permanent'],           // value => label
  *         ],
+ *         // A dropdown edited on its own screen rather than here: a pointer, so the one
+ *         // place an admin looks can still answer for it. See elsewhere().
+ *         'petty_cash.category' => [
+ *             'label' => 'Petty cash categories',
+ *             'managed_by' => 'App\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource',
+ *         ],
  *     ],
  *
  * Declared by the module so the settings screen can hide the lists of a module this
@@ -57,18 +63,109 @@ class OptionLists
     {
         $lists = [];
 
-        foreach (ModuleManifest::all()['option_lists'] ?? [] as $module => $declared) {
-            foreach ($declared as $key => $definition) {
-                $lists[$key] = [
-                    'module' => $module,
-                    'label' => $definition['label'] ?? str($key)->afterLast('.')->headline()->toString(),
-                    'help' => $definition['help'] ?? null,
-                    'defaults' => static::normalise($definition['values'] ?? []),
-                ];
+        foreach (static::declared() as $key => [$module, $definition]) {
+            if (isset($definition['managed_by'])) {
+                continue;
             }
+
+            $lists[$key] = [
+                'module' => $module,
+                'label' => static::labelFor($key, $definition),
+                'help' => $definition['help'] ?? null,
+                'defaults' => static::normalise($definition['values'] ?? []),
+            ];
         }
 
         return $lists;
+    }
+
+    /**
+     * The dropdowns that are edited somewhere else, and where.
+     *
+     * A company's petty cash categories are its transaction types; its leave types are rows with their own
+     * screen. Those were always editable and the complaint was never that they were not — it was that the
+     * one place an admin looks did not account for them. So a module points at the screen instead of
+     * declaring values, and this resolves the pointer to something clickable.
+     *
+     * Judged by the resource's own `canAccess()`, which folds in both the module licence and the
+     * permission: a pointer to a screen this person cannot open is worse than no pointer.
+     *
+     * @return array<string, array{label: string, help: string|null, url: string, resource: string}>
+     */
+    public static function elsewhere(): array
+    {
+        $pointers = [];
+
+        foreach (static::declared() as $key => [$module, $definition]) {
+            $alias = $definition['managed_by'] ?? null;
+
+            if ($alias === null) {
+                continue;
+            }
+
+            $resource = static::resourceFor($alias);
+
+            if ($resource === null) {
+                continue;
+            }
+
+            try {
+                if (! $resource::canAccess()) {
+                    continue;
+                }
+
+                $url = $resource::getUrl('index');
+            } catch (Throwable) {
+                // No panel, no tenant, or a resource without an index route. A pointer we
+                // cannot resolve is left out rather than rendered as a dead link.
+                continue;
+            }
+
+            $pointers[$key] = [
+                'label' => static::labelFor($key, $definition),
+                'help' => $definition['help'] ?? null,
+                'url' => $url,
+                'resource' => $resource,
+            ];
+        }
+
+        return $pointers;
+    }
+
+    /**
+     * Every declared entry, whichever shape it takes: key => [module, definition].
+     *
+     * @return array<string, array{0: string, 1: array<string, mixed>}>
+     */
+    private static function declared(): array
+    {
+        $declared = [];
+
+        foreach (ModuleManifest::all()['option_lists'] ?? [] as $module => $lists) {
+            foreach ($lists as $key => $definition) {
+                $declared[$key] = [$module, $definition];
+            }
+        }
+
+        return $declared;
+    }
+
+    /** The class behind a manifest resource alias, or null when no module declares it. */
+    private static function resourceFor(string $alias): ?string
+    {
+        foreach (ModuleManifest::all()['resources'] ?? [] as $entries) {
+            if (isset($entries[$alias])) {
+                return $entries[$alias];
+            }
+        }
+
+        return null;
+    }
+
+    /** @param  array<string, mixed>  $definition */
+    private static function labelFor(string $key, array $definition): string
+    {
+        return $definition['label'] ?? str($key)->afterLast('.')->headline()->toString();
     }
 
     /**
