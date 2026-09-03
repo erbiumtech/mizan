@@ -131,7 +131,11 @@ class PettyCashBook extends Page
                     ->label('Category')
                     ->options(fn () => $this->categoryTypes()->pluck('name', 'id')->all())
                     ->required()
-                    ->native(false),
+                    ->native(false)
+                    // Says where the list comes from, because nothing else did: a petty cash
+                    // category *is* a transaction type, and somebody wanting to add "Courier"
+                    // had no way of knowing that from this screen.
+                    ->helperText('Cleaning, Fuel, Office Supplies — add your own under Accounting → Transaction Types.'),
                 TextInput::make('amount')
                     ->numeric()
                     ->minValue(0.01)

@@ -52,6 +52,20 @@ return [
         'App\\Reporting\\PayslipComponentDataset' => \App\Modules\Payroll\Reporting\PayslipComponentDataset::class,
     ],
 
+    /**
+     * Where this module's dropdowns are edited — App\Support\OptionLists.
+     *
+     * A pay component is a row: it carries whether it is an earning or a deduction, whether it pro-rates and
+     * which account it posts to. None of that survives being a word in a list.
+     */
+    'option_lists' => [
+        'payroll.pay_component' => [
+            'label' => 'Pay components',
+            'help' => 'The earnings and deductions a payslip can carry — allowances, statutory deductions, loan recoveries.',
+            'managed_by' => 'App\\Filament\\Resources\\PayComponents\\PayComponentResource',
+        ],
+    ],
+
     'permission_groups' => [
         'Payslip',
         'SalarySlab',

@@ -71,6 +71,20 @@ return [
         'App\\Reporting\\OpportunityDataset' => \App\Modules\Crm\Reporting\OpportunityDataset::class,
     ],
 
+    /**
+     * Where this module's dropdowns are edited — App\Support\OptionLists.
+     *
+     * A row rather than a word because win/loss by source is the report worth having, and a table is what
+     * keeps "LinkedIn", "Linkedin" and "linked in" from being three sources with three win rates.
+     */
+    'option_lists' => [
+        'crm.lead_source' => [
+            'label' => 'Lead sources',
+            'help' => 'Where a lead came from. Add your own as you go — an expo, a chamber of commerce, a particular partner.',
+            'managed_by' => 'App\\Filament\\Resources\\LeadSources\\LeadSourceResource',
+        ],
+    ],
+
     'permission_groups' => [
         'Lead',
         'LeadSource',

@@ -326,6 +326,19 @@ class PanelPerformanceTest extends TestCase
      * **125**, and the page to **335.9 KB**. Thirty-five kilobytes, no behaviour changed, and the ceiling
      * did not move. Which is the same answer as 2026-08-24's: what a page repeats fifty times is where its
      * bytes are, and formatting the browser discards is the cheapest kilobyte in the building.
+     *
+     * **The rail's own loop gave way on 2026-09-03, and again the thing that gave was whitespace.** Two new
+     * screens — Dropdown Options and Ticket Categories — added their two navigation entries and put the
+     * employees page at 400.3 KB against 400. Measured before touching anything: the rail was 205 KB of a
+     * 402 KB page, **95 KB of it leading whitespace**, because the flyout's `<li>` was laid out over twelve
+     * lines and the shell repeats it once per screen of every licensed module, on every page. Writing that
+     * loop body and the reports branch's as one line each took the page to **336.9 KB** and the ceiling did
+     * not move — sixty-three kilobytes of headroom from formatting the browser discards, which is the third
+     * time that has been the answer.
+     *
+     * What is still there and is the next place to look: 115 KB of inline SVG, 44 KB of it the *same* rail
+     * icons repeated — `App\Support\Reporting\ReportIcons` is the pattern for collapsing those into a
+     * `<symbol>` sprite when the ceiling is next reached.
      */
     public function test_the_rendered_pages_stay_within_their_size_budget(): void
     {

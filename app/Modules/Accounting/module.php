@@ -101,6 +101,34 @@ return [
         'App\\Reporting\\JournalLineDataset' => \App\Modules\Accounting\Reporting\JournalLineDataset::class,
     ],
 
+    /**
+     * Where this module's dropdowns are edited — App\Support\OptionLists.
+     *
+     * All three are rows with their own screens rather than lists of words, and all three were already
+     * editable. What they gain by being declared is that the one place an admin looks can say so: "where do
+     * I add a petty cash category" had no answer short of knowing that a petty cash category *is* a
+     * transaction type.
+     */
+    'option_lists' => [
+        'accounting.transaction_type' => [
+            'label' => 'Spending categories (petty cash and payments)',
+            'help' => 'The analysis column on a petty cash voucher and on a payment — Cleaning, Fuel, Office Supplies. Each one points at the account it posts to, which is why it is a row rather than a word.',
+            'managed_by' => 'App\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource',
+        ],
+
+        'accounting.currency' => [
+            'label' => 'Currencies',
+            'help' => 'Which currencies you deal in, and their rates. The base currency is set in Company Settings and cannot change once anything is posted.',
+            'managed_by' => 'App\\Filament\\Resources\\Currencies\\CurrencyResource',
+        ],
+
+        'accounting.bank' => [
+            'label' => 'Banks',
+            'help' => 'The IBFT directory the salary and payment files are written against. National reference data — add one only if your bank is genuinely missing.',
+            'managed_by' => 'App\\Filament\\Resources\\Banks\\BankResource',
+        ],
+    ],
+
     'permission_groups' => [
         'Account',
         'Bank',
