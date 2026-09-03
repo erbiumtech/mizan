@@ -316,6 +316,7 @@
         "App\\Filament\\Resources\\StockMovements\\StockMovementResource": "App\\Modules\\Inventory\\Filament\\Resources\\StockMovements\\StockMovementResource",
         "App\\Filament\\Resources\\TaxRates\\TaxRateResource": "App\\Modules\\Invoicing\\Filament\\Resources\\TaxRates\\TaxRateResource",
         "App\\Filament\\Resources\\Tickets\\TicketResource": "App\\Modules\\Support\\Filament\\Resources\\Tickets\\TicketResource",
+        "App\\Filament\\Resources\\TicketCategories\\TicketCategoryResource": "App\\Modules\\Support\\Filament\\Resources\\TicketCategories\\TicketCategoryResource",
         "App\\Filament\\Resources\\TimesheetEntries\\TimesheetEntryResource": "App\\Modules\\Timesheets\\Filament\\Resources\\TimesheetEntries\\TimesheetEntryResource",
         "App\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource": "App\\Modules\\Accounting\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource",
         "App\\Filament\\Resources\\Users\\UserResource": "App\\Modules\\Core\\Filament\\Resources\\Users\\UserResource",

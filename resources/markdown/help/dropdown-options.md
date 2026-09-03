@@ -6,6 +6,19 @@ you: designations, departments, employment types, NCR categories, plant categori
 Each is a list. Adding an entry here makes it appear in that dropdown everywhere it is
 used, immediately, with no deploy and no support call.
 
+## Where the others live
+
+Not every dropdown is a list of words, so not every dropdown is edited here. **Other
+dropdowns** at the top of this screen accounts for all of them:
+
+- **Lists with a screen of their own** — a petty cash category points at the account it
+  posts to, a leave type carries its own day counts, a ticket category carries the time you
+  have promised to answer in. Each keeps its own screen, and that button links straight to
+  it. Petty cash categories are Transaction Types, under Accounting.
+- **Dropdowns that pick a record** — an account, an employee, a customer, a job. Nothing to
+  configure: adding the record adds it to every dropdown that offers them.
+- **Dropdowns that are fixed** — statuses and workflow stages, for the reason below.
+
 ## Which dropdowns are here, and which are not
 
 Only the lists that are genuinely yours. Most dropdowns in the panel are **workflow

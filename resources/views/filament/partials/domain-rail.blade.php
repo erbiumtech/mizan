@@ -96,25 +96,20 @@
                             <div class="fi-domain-flyout-columns">
                                 <div class="fi-domain-flyout-column">
                                     <div class="fi-domain-flyout-group">
-                                        <ul class="fi-domain-flyout-list">
-                                            <li>
-                                                <a href="{{ $reports::getUrl() }}" wire:navigate class="fi-domain-flyout-item">
-                                                    <span class="fi-domain-flyout-item-label">All reports</span>
-                                                    <span class="fi-domain-flyout-item-count">{{ $reports::total() }}</span>
-                                                </a>
-                                            </li>
+                                        {{--
+                                            One line per row, and the indentation is the reason.
 
+                                            Every row here is emitted once per section, and a row laid out over eight
+                                            lines carries some 450 bytes of leading whitespace the browser throws away.
+                                            `PanelPerformanceTest` measured the same thing on the reports hub on
+                                            2026-08-26 and reached the same answer: what a page repeats fifty times is
+                                            where its bytes are. Each anchor is `wire:navigate` because the panel is in
+                                            SPA mode, and carries the count so the flyout says how much is behind it.
+                                        --}}
+                                        <ul class="fi-domain-flyout-list">
+                                            <li><a href="{{ $reports::getUrl() }}" wire:navigate class="fi-domain-flyout-item"><span class="fi-domain-flyout-item-label">All reports</span><span class="fi-domain-flyout-item-count">{{ $reports::total() }}</span></a></li>
                                             @foreach ($reports::sectionCounts() as $section => $count)
-                                                <li>
-                                                    <a
-                                                        href="{{ $reports::getUrl() }}?section={{ urlencode($section) }}"
-                                                        wire:navigate
-                                                        class="fi-domain-flyout-item"
-                                                    >
-                                                        <span class="fi-domain-flyout-item-label">{{ $section }}</span>
-                                                        <span class="fi-domain-flyout-item-count">{{ $count }}</span>
-                                                    </a>
-                                                </li>
+                                                <li><a href="{{ $reports::getUrl() }}?section={{ urlencode($section) }}" wire:navigate class="fi-domain-flyout-item"><span class="fi-domain-flyout-item-label">{{ $section }}</span><span class="fi-domain-flyout-item-count">{{ $count }}</span></a></li>
                                             @endforeach
                                         </ul>
                                     </div>
@@ -130,21 +125,17 @@
                                                 <div class="fi-domain-flyout-group-label">{{ $group->getLabel() }}</div>
                                             @endif
 
+                                            {{--
+                                                One line per item, for the reason the reports branch above gives: this
+                                                is the loop the whole shell repeats most — every screen of every
+                                                licensed module, on every page — and laid out over twelve lines each
+                                                one carried some 700 bytes of indentation. The attributes it used to
+                                                spell out: `wire:navigate` because the panel is in SPA mode, and
+                                                `fi-active` when the item is the screen being viewed.
+                                            --}}
                                             <ul class="fi-domain-flyout-list">
                                                 @foreach (collect($group->getItems()) as $item)
-                                                    <li>
-                                                        <a
-                                                            href="{{ $item->getUrl() }}"
-                                                            wire:navigate
-                                                            @class([
-                                                                'fi-domain-flyout-item',
-                                                                'fi-active' => $item->isActive(),
-                                                            ])
-                                                        >
-                                                            {{ \Filament\Support\generate_icon_html($item->getIcon(), size: \Filament\Support\Enums\IconSize::Small) }}
-                                                            <span class="fi-domain-flyout-item-label">{{ $item->getLabel() }}</span>
-                                                        </a>
-                                                    </li>
+                                                    <li><a href="{{ $item->getUrl() }}" wire:navigate @class(['fi-domain-flyout-item', 'fi-active' => $item->isActive()])>{{ \Filament\Support\generate_icon_html($item->getIcon(), size: \Filament\Support\Enums\IconSize::Small) }}<span class="fi-domain-flyout-item-label">{{ $item->getLabel() }}</span></a></li>
                                                 @endforeach
                                             </ul>
                                         </div>

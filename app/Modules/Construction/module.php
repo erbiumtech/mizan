@@ -66,6 +66,17 @@ return [
      * to separately is eight more rows in every role form for no decision anybody makes separately. Whoever
      * may change a job may change its breakdown and its places.
      */
+    /**
+     * Where this module's dropdowns are edited — App\Support\OptionLists.
+     */
+    'option_lists' => [
+        'construction.cost_code' => [
+            'label' => 'Cost codes',
+            'help' => 'The breakdown every cost on a job is filed under. A row rather than a word: each carries its cost type and its place in the code structure.',
+            'managed_by' => 'App\\Filament\\Resources\\Construction\\CostCodeResource',
+        ],
+    ],
+
     'permission_groups' => [
         'ConstructionJob',
         'ConstructionCostCode',

@@ -11,11 +11,14 @@ use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Core\Models\User;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Support\Filament\Resources\TicketCategories\Pages\ListTicketCategories;
 use App\Modules\Support\Models\Ticket;
 use App\Modules\Support\Models\TicketCategory;
 use App\Modules\Support\Services\TicketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
+use Livewire\Livewire;
 use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
@@ -63,6 +66,40 @@ class CrmSupportAndCampaignTest extends TestCase
     }
 
     // ═══════════════════════════ support ══════════════════════════════════════
+
+    /**
+     * Categories carry the SLA, and until now nothing could edit them.
+     *
+     * The model, its policy and its permissions all shipped; the screen did not. A company was left with
+     * whatever categories its database happened to hold and no way to add the one it needed — which is the
+     * complaint "every dropdown should be editable by the admin" is actually made of.
+     */
+    public function test_a_company_can_add_and_retire_its_own_ticket_categories(): void
+    {
+        Gate::before(fn () => true);
+
+        Livewire::test(ListTicketCategories::class)
+            ->assertSuccessful();
+
+        $category = TicketCategory::create([
+            'name' => 'Billing query',
+            'default_priority' => 'high',
+            'sla_response_minutes' => 30,
+        ]);
+
+        Livewire::test(ListTicketCategories::class)
+            ->assertCanSeeTableRecords([$category])
+            ->assertSee('Billing query');
+
+        // Retiring one keeps the tickets already filed under it — the reason the form says to switch it
+        // off rather than delete.
+        $ticket = $this->makeTicket(['category_id' => $category->getKey()]);
+        $category->update(['is_active' => false]);
+
+        $this->assertSame($category->getKey(), $ticket->fresh()->category_id);
+        $this->assertFalse($category->fresh()->is_active);
+        $this->assertFalse(TicketCategory::active()->whereKey($category->getKey())->exists());
+    }
 
     private function makeTicket(array $attributes = [], ?int $responseSla = 60, ?int $resolutionSla = 480): Ticket
     {

@@ -47,6 +47,21 @@ return [
         'App\\Reporting\\LeaveDayDataset' => \App\Modules\Leave\Reporting\LeaveDayDataset::class,
     ],
 
+    /**
+     * Where this module's dropdowns are edited — App\Support\OptionLists.
+     *
+     * A leave type is a row carrying day counts, accrual and notice, not a word, so it keeps its own screen.
+     * Policy that applies to all of them — when the leave year starts, whether days carry — is in Company
+     * Settings instead.
+     */
+    'option_lists' => [
+        'leave.leave_type' => [
+            'label' => 'Leave types',
+            'help' => 'The kinds of leave your company grants, each with its own days, accrual and notice period.',
+            'managed_by' => 'App\\Filament\\Resources\\LeaveTypes\\LeaveTypeResource',
+        ],
+    ],
+
     'permission_groups' => [
         'LeaveRequest',
         'LeaveType',

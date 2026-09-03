@@ -25,6 +25,9 @@ return [
 
     'resources' => [
         'App\\Filament\\Resources\\Tickets\\TicketResource' => \App\Modules\Support\Filament\Resources\Tickets\TicketResource::class,
+        // The screen this table never had: categories carry the SLA commitments and were editable
+        // by nobody.
+        'App\\Filament\\Resources\\TicketCategories\\TicketCategoryResource' => \App\Modules\Support\Filament\Resources\TicketCategories\TicketCategoryResource::class,
     ],
 
     /**
@@ -44,6 +47,21 @@ return [
     // declared by the module that owns the subject, so it arrives with a module to gate on.
     'datasets' => [
         'App\\Reporting\\TicketDataset' => \App\Modules\Support\Reporting\TicketDataset::class,
+    ],
+
+    /**
+     * Where the ticket dropdowns are edited — App\Support\OptionLists.
+     *
+     * A pointer rather than a list of values: a category is a row carrying an SLA commitment and a default
+     * priority, not a word, so it keeps its own screen. What it gains by being declared here is that the
+     * one place an admin looks for "where do I add a category" can answer for it.
+     */
+    'option_lists' => [
+        'support.ticket_category' => [
+            'label' => 'Ticket categories',
+            'help' => 'The kinds of ticket you take, each with the response and resolution times you have committed to.',
+            'managed_by' => 'App\\Filament\\Resources\\TicketCategories\\TicketCategoryResource',
+        ],
     ],
 
     'permission_groups' => [
