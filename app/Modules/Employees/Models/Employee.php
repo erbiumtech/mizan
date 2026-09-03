@@ -256,10 +256,27 @@ class Employee extends Model
 
         $actor = auth()->user();
 
+        // Whose record this is, as the database has it — NOT as this save would leave it.
+        //
+        // `$this->user_id` is the *pending* value while saving, and reading it here made the column that
+        // decides the answer part of the question. Both directions were wrong:
+        //
+        //  - Linking an existing employee to the actor's own login (`user_id` = me) read as a self-service
+        //    edit. `user_id` is not requestable, so the change was filtered out, `$changes` came out empty,
+        //    and the save was reverted wholesale — the link, and everything else in the same save, silently
+        //    discarded.
+        //  - The mirror: an employee editing their own record and moving `user_id` to somebody else read as
+        //    NOT self-service, so that save applied directly and skipped approval for every other field in
+        //    it.
+        //
+        // The original value is the only one that answers "is this person editing their own record".
+        $ownedBy = $this->getOriginal('user_id');
+
         $selfService = ! static::$skipApprovalRouting
             && $this->exists
             && $actor
-            && $actor->id === $this->user_id
+            && $ownedBy !== null
+            && (int) $ownedBy === (int) $actor->id
             && ! $actor->hasAnyRole(['Administrator', 'Manager', 'CEO']);
 
         if (! $selfService) {
