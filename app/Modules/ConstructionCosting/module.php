@@ -86,6 +86,30 @@ return [
         'App\\Filament\\Pages\\ConstructionCosting\\WipReport' => \App\Modules\ConstructionCosting\Filament\Pages\WipReport::class,
     ],
 
+    /**
+     * What kind of machine a plant item is. A plain string column, described by its own
+     * migration as "Excavator, tower crane, dumper — the company's own words", and every
+     * yard's words are different.
+     */
+    'option_lists' => [
+        'construction_costing.plant_category' => [
+            'label' => 'Plant categories',
+            'help' => 'How the yard groups its machines. Used for reading the plant register and its utilisation, so one spelling per kind.',
+            'values' => [
+                'Excavator',
+                'Tower crane',
+                'Mobile crane',
+                'Dumper',
+                'Loader',
+                'Generator',
+                'Concrete pump',
+                'Scaffolding',
+                'Vehicle',
+                'Other',
+            ],
+        ],
+    ],
+
     'permission_groups' => [
         'ConstructionCost',
     ],

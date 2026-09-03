@@ -39,6 +39,10 @@ class PersonalBaselineSeeder extends Seeder
             // account does not have, so one seeder serves both.
             TransactionTypeAliasSeeder::class,
             TaxScheduleSeeder::class,
+            // The dropdowns a company writes for itself. Seeded here too: a personal
+            // account licenses `employees` (the cook is on it), so it gets designations
+            // and departments like any other tenant.
+            OptionListSeeder::class,
         ];
     }
 

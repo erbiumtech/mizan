@@ -40,9 +40,14 @@ class PlantItemForm
                             ->required()
                             ->maxLength(255),
 
-                        TextInput::make('category')
-                            ->maxLength(255)
-                            ->helperText('Excavator, tower crane, dumper — your own words.'),
+                        // Your own words, kept as one list rather than retyped per item:
+                        // the plant register and its utilisation are read by category,
+                        // and three spellings of "excavator" are three fleets. Edited
+                        // under Settings -> Dropdown Options.
+                        Select::make('category')
+                            ->options(fn (?PlantItem $record): array => options('construction_costing.plant_category', $record?->category))
+                            ->native(false)
+                            ->helperText('Excavator, tower crane, dumper — your own words, added under Settings, Dropdown Options.'),
 
                         TextInput::make('registration')
                             ->maxLength(64)

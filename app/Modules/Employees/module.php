@@ -36,6 +36,69 @@ return [
         'App\\Reporting\\EmployeeDataset' => \App\Modules\Employees\Reporting\EmployeeDataset::class,
     ],
 
+    /**
+     * The three job facts a company writes in its own words — App\Support\OptionLists.
+     *
+     * They were literal arrays in EmployeeForm, so a company hiring its first draughtsman
+     * needed a deploy, and Recruitment asked for the same three as free text: a vacancy
+     * for a "Backend Developer" hired an employee whose designation read "backend dev",
+     * and the headcount-by-department report counted them apart. One list, both screens.
+     *
+     * Safe to make editable, which most of this panel's dropdowns are not: all three are
+     * plain `string` columns and nothing branches on their values — `employment_type`
+     * records what somebody is, and probation is not a rule anything enforces yet.
+     */
+    'option_lists' => [
+        'employees.designation' => [
+            'label' => 'Designations',
+            'help' => 'Job titles. Shown on the employee record, on a vacancy, and carried onto the employee a hire creates.',
+            'values' => [
+                'Senior Full Stack Developer',
+                'Full Stack Developer',
+                'Frontend Developer',
+                'Backend Developer',
+                'Secretary',
+                'Cook',
+                'Office Boy',
+            ],
+        ],
+
+        'employees.department' => [
+            'label' => 'Departments',
+            'help' => 'Also one of the three dimensions the ledger can split a figure by, so keep the wording stable — renaming here relabels, it does not restate what is already posted.',
+            'values' => [
+                'IT',
+                'Office Staff',
+            ],
+        ],
+
+        // The third answer this form has offered since June and the column could not store
+        // on MySQL — see the migration that widened it. A list rather than a fixed three
+        // because no fixed three is right for every company.
+        'employees.gender' => [
+            'label' => 'Genders',
+            'help' => 'How people are recorded. Nothing computes from this: it is printed on the employee record and reported on.',
+            'values' => [
+                'Male',
+                'Female',
+                'Other',
+            ],
+        ],
+
+        'employees.employment_type' => [
+            'label' => 'Employment types',
+            'help' => 'What kind of engagement somebody is on. A change writes a dated job-history row, so "were they permanent in March" stays answerable.',
+            // value => label: the column stores the slug these shipped with, and rows
+            // already carry it.
+            'values' => [
+                'permanent' => 'Permanent',
+                'contract' => 'Contract',
+                'probation' => 'Probation',
+                'intern' => 'Intern',
+            ],
+        ],
+    ],
+
     'permission_groups' => [
         'Employee',
         'EmployeeSetting',

@@ -178,23 +178,15 @@ class Employee extends Model
      */
     public const JOB_FACTS = ['designation', 'department', 'manager_id', 'employment_type'];
 
-    /**
-     * What kinds of employment a company records, as value => label.
-     *
-     * A constant rather than an enum column: an enum change is a table rebuild on
-     * MySQL and unsupported on SQLite, and the list varies by company. Kept here
-     * rather than in the form so the form and any future report agree — the
-     * lesson `Company::TYPE_LABELS` records, where two screens each wrote their
-     * own pair and disagreed.
-     *
-     * @var array<string, string>
+    /*
+     * What kinds of employment a company records was `EMPLOYMENT_TYPES` here — a
+     * constant rather than an enum column, because an enum change is a table rebuild on
+     * MySQL and unsupported on SQLite, "and the list varies by company". It varies by
+     * company, so it is now a list the company writes: `employees.employment_type`,
+     * declared with its shipped values in app/Modules/Employees/module.php and read
+     * through `options()`. Same reasoning, one step further; the reason it was a
+     * constant — one list, not one per screen — is why it is one declaration.
      */
-    public const EMPLOYMENT_TYPES = [
-        'permanent' => 'Permanent',
-        'contract' => 'Contract',
-        'probation' => 'Probation',
-        'intern' => 'Intern',
-    ];
 
     /** Set while JobHistory writes its own denormalised sync back to this row. */
     protected static bool $skipJobHistory = false;
@@ -264,10 +256,27 @@ class Employee extends Model
 
         $actor = auth()->user();
 
+        // Whose record this is, as the database has it — NOT as this save would leave it.
+        //
+        // `$this->user_id` is the *pending* value while saving, and reading it here made the column that
+        // decides the answer part of the question. Both directions were wrong:
+        //
+        //  - Linking an existing employee to the actor's own login (`user_id` = me) read as a self-service
+        //    edit. `user_id` is not requestable, so the change was filtered out, `$changes` came out empty,
+        //    and the save was reverted wholesale — the link, and everything else in the same save, silently
+        //    discarded.
+        //  - The mirror: an employee editing their own record and moving `user_id` to somebody else read as
+        //    NOT self-service, so that save applied directly and skipped approval for every other field in
+        //    it.
+        //
+        // The original value is the only one that answers "is this person editing their own record".
+        $ownedBy = $this->getOriginal('user_id');
+
         $selfService = ! static::$skipApprovalRouting
             && $this->exists
             && $actor
-            && $actor->id === $this->user_id
+            && $ownedBy !== null
+            && (int) $ownedBy === (int) $actor->id
             && ! $actor->hasAnyRole(['Administrator', 'Manager', 'CEO']);
 
         if (! $selfService) {
