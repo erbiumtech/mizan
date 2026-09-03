@@ -227,6 +227,43 @@ class OptionListTest extends TestCase
             ->assertDontSee('Workmanship');
     }
 
+    /**
+     * The screen accounts for the dropdowns it does not itself edit.
+     *
+     * The question that prompted this was "where do I update petty cash categories" — a dropdown that was
+     * always editable, on a screen nobody could be expected to guess: a petty cash category *is* a
+     * transaction type. Not finding it here looked like it could not be changed at all.
+     */
+    public function test_a_dropdown_edited_elsewhere_is_pointed_at_rather_than_missing(): void
+    {
+        $company = Company::factory()->create();
+        $this->setCurrentTenant($this->administratorOf($company));
+        $this->license($company, 'accounting');
+
+        $pointers = OptionLists::elsewhere();
+
+        $this->assertArrayHasKey('accounting.transaction_type', $pointers);
+        $this->assertStringContainsString(
+            'petty cash',
+            strtolower($pointers['accounting.transaction_type']['label'].$pointers['accounting.transaction_type']['help']),
+        );
+        $this->assertStringContainsString('transaction-types', $pointers['accounting.transaction_type']['url']);
+
+        // And a pointer is not an editable list: it must never appear as a choice on the form here, or
+        // somebody would file a transaction type as a word with no account behind it.
+        $this->assertArrayNotHasKey('accounting.transaction_type', OptionLists::all());
+    }
+
+    /** A pointer to a screen this company has not licensed is left out rather than rendered as a dead link. */
+    public function test_a_pointer_is_hidden_when_its_module_is_off(): void
+    {
+        $company = Company::factory()->create();
+        $this->setCurrentTenant($this->administratorOf($company));
+        $this->license($company, 'accounting', false);
+
+        $this->assertArrayNotHasKey('accounting.transaction_type', OptionLists::elsewhere());
+    }
+
     public function test_only_an_administrator_reaches_the_screen(): void
     {
         $user = User::factory()->create();
