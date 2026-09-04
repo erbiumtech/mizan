@@ -5,6 +5,7 @@ namespace App\Modules\Employees\Services;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeJobHistory;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * "What was true about this employee's job on date X."
@@ -113,6 +114,29 @@ class JobHistory
             ->orderByDesc('effective_from')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * Every role the employee has held, oldest first — what an experience letter lists.
+     *
+     * Here rather than a query in the letter service, for the reason `EmployeeJobHistory`'s docblock gives:
+     * reads of that table go through this class so the ordering and the no-history case are decided once.
+     * The same `effective_from`/`id` tie-break as `rowOn()`, so a correction entered after the row it
+     * corrects reads in the same order everywhere.
+     *
+     * **Empty is the ordinary case, not an error.** History is written from the day the feature shipped, so
+     * an employee hired before it has nothing here — a letter falls back to the current designation on the
+     * record, which is what the columns are a projection of.
+     *
+     * @return \Illuminate\Support\Collection<int, EmployeeJobHistory>
+     */
+    public function rolesFor(Employee $employee): Collection
+    {
+        return EmployeeJobHistory::query()
+            ->where('employee_id', $employee->getKey())
+            ->orderBy('effective_from')
+            ->orderBy('id')
+            ->get();
     }
 
     /**

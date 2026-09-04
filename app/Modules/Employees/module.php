@@ -75,6 +75,21 @@ return [
         // The third answer this form has offered since June and the column could not store
         // on MySQL — see the migration that widened it. A list rather than a fixed three
         // because no fixed three is right for every company.
+        // How an experience letter describes somebody's conduct. A list because the wording is the
+        // company's own and the letter is read by a next employer: "satisfactory" and "exemplary" are
+        // different references, and HR should not have to type either into a free-text box.
+        'employees.conduct' => [
+            'label' => 'Conduct wording (experience letters)',
+            'help' => 'Printed as "conduct and performance were found to be …" on an experience letter.',
+            'values' => [
+                'satisfactory',
+                'good',
+                'very good',
+                'excellent',
+                'exemplary',
+            ],
+        ],
+
         'employees.gender' => [
             'label' => 'Genders',
             'help' => 'How people are recorded. Nothing computes from this: it is printed on the employee record and reported on.',
