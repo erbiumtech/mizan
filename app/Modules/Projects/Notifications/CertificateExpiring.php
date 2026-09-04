@@ -3,6 +3,7 @@
 namespace App\Modules\Projects\Notifications;
 
 use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Support\Broadcasting;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,7 +22,7 @@ class CertificateExpiring extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return (array) config('projects.alerts.channels', ['mail']);
+        return Broadcasting::channels((array) config('projects.alerts.channels', ['mail']));
     }
 
     public function toMail(object $notifiable): MailMessage

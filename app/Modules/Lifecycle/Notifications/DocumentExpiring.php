@@ -3,6 +3,7 @@
 namespace App\Modules\Lifecycle\Notifications;
 
 use App\Modules\Lifecycle\Models\EmployeeDocument;
+use App\Support\Broadcasting;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,7 +28,7 @@ class DocumentExpiring extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', 'broadcast'];
+        return Broadcasting::channels(['mail', 'database', 'broadcast']);
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -7,6 +7,7 @@ use App\Filament\Navigation\NavigationSnapshot;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
 use App\Modules\Core\Filament\Pages\Dashboard;
 use App\Modules\Core\Models\Company;
+use App\Support\Broadcasting;
 use App\Support\Modules;
 use App\Support\NavigationTree;
 use App\Support\TenantStorage;
@@ -107,13 +108,7 @@ class AdminPanelProvider extends PanelProvider
      */
     protected static function notificationsPollingInterval(): string
     {
-        $broadcaster = config('broadcasting.default');
-
-        $configured = $broadcaster !== null
-            && $broadcaster !== 'null'
-            && filled(config('filament.broadcasting.echo.key'));
-
-        return $configured ? '300s' : '30s';
+        return Broadcasting::isConfigured() ? '300s' : '30s';
     }
 
     public function panel(Panel $panel): Panel

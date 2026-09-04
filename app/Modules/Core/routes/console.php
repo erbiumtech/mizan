@@ -22,3 +22,17 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command(DeliverScheduledReports::class)
     ->everyFifteenMinutes()
     ->withoutOverlapping();
+
+/**
+ * The audit trail's retention, applied.
+ *
+ * `config/activitylog.php` has said "keep 365 days" since the log was added, and nothing ever ran the
+ * command that enforces it — 6,887 rows after one month of development, and it is a landlord table shared
+ * by every company, so it grows with all of them at once. It is also, since the record-change
+ * notifications, the table the bell hangs off; a table nothing prunes is a query that gets slower forever.
+ *
+ * Nightly, in the quiet hours, and never two at once.
+ */
+Schedule::command('activitylog:clean')
+    ->dailyAt('03:15')
+    ->withoutOverlapping();

@@ -2,7 +2,10 @@
 
 namespace App\Support;
 
+use App\Modules\Core\Models\Company;
+use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 /**
  * The company as it appears at the top of a letter, and who signs at the bottom.
@@ -33,6 +36,33 @@ final class CompanyLetterhead
         'ntn' => 'the company NTN',
         'signatory_name' => 'the name of whoever signs',
     ];
+
+    /**
+     * What to call the company when a document must say *something* — the registered name, else the tenant's
+     * own name, else the application's.
+     *
+     * For documents that print regardless of the letterhead being filled in: a payslip goes out on the first
+     * of the month whether or not anybody has opened Company Settings, and until now it printed one specific
+     * company's name and address as literal text for every tenant on the installation. The tenant's row name
+     * is always there, so no payslip ever names a company it does not belong to. The letters do NOT use this
+     * — they refuse on a blank letterhead, because a certificate a bank reads has to be exactly right.
+     */
+    public static function displayName(): string
+    {
+        $legal = (string) setting('company.legal_name');
+
+        if ($legal !== '') {
+            return $legal;
+        }
+
+        try {
+            $tenant = Company::current() ?? (Filament::getCurrentPanel() !== null ? Filament::getTenant() : null);
+        } catch (Throwable) {
+            $tenant = null;
+        }
+
+        return (string) ($tenant?->name ?: config('app.name'));
+    }
 
     /** @return array<string, string> */
     public static function data(): array

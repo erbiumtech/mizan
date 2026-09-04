@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\User;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
+use App\Support\Broadcasting;
 use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -31,9 +32,9 @@ class PayslipIssued extends Notification implements ShouldQueue
     {
         // Recipients with no user account (personal-email-only staff) are
         // routed on demand and can only ever receive mail.
-        return $notifiable instanceof User
+        return Broadcasting::channels($notifiable instanceof User
             ? ['mail', 'database', 'broadcast']
-            : ['mail'];
+            : ['mail']);
     }
 
     public function toMail(object $notifiable): MailMessage
