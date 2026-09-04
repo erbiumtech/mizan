@@ -336,7 +336,7 @@ class ConstructionPeriodCloseTest extends AccountingTestCase
      * **The clock is stopped, and that is the assertion this test could not make without it.** A cost whose own
      * month is closed lands in the *earliest open* period — `CostLedger::periodFor()` — and with only a closed
      * July on the books that falls through to `CostPeriod::forDate(now())`. So which month the late cost lands
-     * in depends on the day the suite runs: while it was August 2026 the entry landed in August and this test
+     * in depended on the day the suite ran: while it was August 2026 the entry landed in August and this test
      * passed, and from 1 September 2026 it landed in September, leaving August with nothing to post and this
      * test failing on the setup line rather than the assertion. The behaviour was right the whole time; the
      * test was reading the calendar.

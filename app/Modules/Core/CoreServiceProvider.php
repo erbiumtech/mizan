@@ -4,6 +4,7 @@ namespace App\Modules\Core;
 
 use App\Modules\Core\Console\Commands\DeliverScheduledReports;
 use App\Modules\Core\Filament\Pages\ReportDeliveries;
+use App\Modules\Core\Listeners\NotifyRecordAudience;
 use App\Modules\Core\Models\ActivityLog;
 use App\Modules\Core\Models\Comment;
 use App\Modules\Core\Models\Company;
@@ -90,6 +91,16 @@ class CoreServiceProvider extends ServiceProvider
 
         $this->registerBuiltReports();
         $this->registerDeliveryLog();
+
+        /*
+         * The bell's general case: an audited change tells the people whose record it is.
+         *
+         * Hung off the activity row rather than off 157 models, because the audit trail is already the
+         * answer to "what changed, to what, by whom" — see NotifyRecordAudience. `created` on the model
+         * Spatie is configured to write through (config/activitylog.php) is every audited change in the
+         * application, in one place.
+         */
+        ActivityLog::created(fn (ActivityLog $activity) => app(NotifyRecordAudience::class)($activity));
 
         // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the
         // timetable, and a command nobody can invoke by hand is a command nobody can test or re-run after a

@@ -92,6 +92,30 @@ class AdminPanelProvider extends PanelProvider
 
     }
 
+    /**
+     * How often the bell asks, when nothing has pushed to it.
+     *
+     * **Five minutes is the right answer only where a socket exists.** Polling is the fallback for a dropped
+     * Reverb connection, and where Reverb is running the count is already instant — so the interval is
+     * chosen for the case where it is the *only* path. On an installation with no broadcaster configured
+     * (`BROADCAST_CONNECTION=null`, or Reverb never provisioned), five minutes of silence after something
+     * happens does not read as a conservative poll: it reads as a bell that does not work, which is the
+     * report this exists to answer.
+     *
+     * The environment cannot be asked whether Reverb is actually *up* — only whether one is configured at
+     * all. That is the honest half of the question and it is the half that separates the two cases.
+     */
+    protected static function notificationsPollingInterval(): string
+    {
+        $broadcaster = config('broadcasting.default');
+
+        $configured = $broadcaster !== null
+            && $broadcaster !== 'null'
+            && filled(config('filament.broadcasting.echo.key'));
+
+        return $configured ? '300s' : '30s';
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -187,14 +211,14 @@ class AdminPanelProvider extends PanelProvider
             // getGloballySearchableAttributes() — canGloballySearch() does not
             // consult this setting, so the palette still finds records.
             ->globalSearch(false)
-            // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
-            // instantly over Reverb; this is only the fallback for a dropped socket,
-            // so it is five minutes rather than one. At 60s every open tab in the
-            // company made a Livewire round trip a minute for something that had
-            // already arrived — and with SPA navigation on, tabs now stay open for
-            // much longer than they used to.
+            // Bell icon in the topbar, with Filament's own unread count on it. Echo
+            // (config/filament.php) pushes new ones instantly over Reverb; polling is only
+            // the fallback for a dropped socket, so it is five minutes rather than one. At
+            // 60s every open tab in the company made a Livewire round trip a minute for
+            // something that had already arrived — and with SPA navigation on, tabs now stay
+            // open for much longer than they used to.
             ->databaseNotifications()
-            ->databaseNotificationsPolling('300s')
+            ->databaseNotificationsPolling(static::notificationsPollingInterval())
             // Every resource, page and widget now belongs to a module and is
             // registered by that module's plugin — there is no app-level discovery
             // left. Registration is unconditional regardless of licence state; see
