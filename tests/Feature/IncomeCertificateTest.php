@@ -203,6 +203,9 @@ class IncomeCertificateTest extends AccountingTestCase
         // The website is on the footer bar only, so the header does not spend a line repeating it.
         $this->assertSame(1, substr_count($html, 'www.erbium'), 'the website belongs on the bar, once');
 
+        // And the registered office, likewise: on the bar, and not again in the header.
+        $this->assertSame(1, substr_count($html, 'Office 5, Gulberg III, Lahore'), 'the address belongs on the bar, once');
+
         // The bonus must not appear anywhere on a statement of recurring income.
         $this->assertStringNotContainsString('100,000', $html);
     }
