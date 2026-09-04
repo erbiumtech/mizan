@@ -33,7 +33,7 @@
     --}}
     <style>
         p { margin: 0 0 13pt; }
-        h1.to-whom { margin: 14pt 0 11pt; }
+        h1.to-whom { margin: 24pt 0 19pt; }
         .subject { margin-bottom: 12pt; }
         table.details, table.roles { margin: 6pt 0 14pt; }
         table.details th, table.details td,

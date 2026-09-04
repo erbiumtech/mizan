@@ -112,7 +112,9 @@
         font-size: 11.5pt;
         text-align: center;
         text-decoration: underline;
-        margin: 10pt 0 8pt;
+        /* Deliberately generous above and below: it is the line that says what the document is, and it
+           reads as a heading rather than as another paragraph only if it has room to. */
+        margin: 20pt 0 16pt;
         letter-spacing: 0.5pt;
     }
 

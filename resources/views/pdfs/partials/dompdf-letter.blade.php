@@ -18,7 +18,7 @@
 
     .meta { margin-top: 8pt; }
 
-    h1.to-whom { margin: 8pt 0 6pt; }
+    h1.to-whom { margin: 16pt 0 13pt; }
 
     .subject { margin-bottom: 7pt; }
 
