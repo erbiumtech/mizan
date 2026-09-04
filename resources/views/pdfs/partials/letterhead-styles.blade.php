@@ -163,6 +163,11 @@
     .sign .who { font-weight: bold; }
     .seal-image { max-width: 72px; max-height: 58px; margin-bottom: 2pt; }
 
-    /* A qualifying line inside a table of facts — the figures' own small print. */
-    table.details td.note { font-size: 7.5pt; color: #555; line-height: 1.3; }
+    /* A qualifying line inside a table of facts — the figures' own small print, and set like it: small
+       enough to read as a footnote to the two rows above rather than as a third fact of equal weight. */
+    table.details td.note { font-size: 6.5pt; color: #666; line-height: 1.25; padding-top: 2pt; padding-bottom: 2pt; }
+
+    /* The amount spelled out. Smaller than the figure it repeats: the numeral is what a reader checks,
+       the words are what stops it being altered. */
+    .in-words { font-size: 8pt; color: #444; }
 </style>

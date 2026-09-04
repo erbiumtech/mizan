@@ -44,12 +44,10 @@
 
 <h1 class="to-whom">TO WHOM IT MAY CONCERN</h1>
 
+{{-- No name here: the sentence below names the person, in the case their record holds, and the subject
+     line repeating it in capitals said the same thing twice. --}}
 <div class="subject">
     SUBJECT: CERTIFICATE OF EMPLOYMENT, PROFESSION AND SOURCE OF INCOME
-    {{-- `fullName()` rather than the two fields inline: the linked user's name first, the record's own as
-         the fallback for staff with no login. It is what the whole panel labels this person by, and a
-         certificate that disagreed with the screen would be the one nobody trusts. --}}
-    — {{ strtoupper($employee->fullName()) }}
 </div>
 
 @php
@@ -85,11 +83,13 @@
     <tr><th>Employment Status</th><td>{{ $employment_status }}</td></tr>
     <tr>
         <th>Gross Monthly Salary</th>
-        <td>PKR {{ number_format($monthly_gross, 0) }} ({{ $monthly_gross_words }} only)</td>
+        <td>PKR {{ number_format($monthly_gross, 0) }}
+            <span class="in-words">({{ $monthly_gross_words }} only)</span></td>
     </tr>
     <tr>
         <th>Annual Gross Salary</th>
-        <td>PKR {{ number_format($annual_gross, 0) }} ({{ $annual_gross_words }} only)</td>
+        <td>PKR {{ number_format($annual_gross, 0) }}
+            <span class="in-words">({{ $annual_gross_words }} only)</span></td>
     </tr>
     {{-- The caveat sits with the figures it qualifies rather than in a footnote at the foot of the page.
          It reads better here, and it was the block that tipped the letter onto a second page under Dompdf:
@@ -100,15 +100,18 @@
             overtime vary by month and are excluded.
         </td>
     </tr>
-    @if ($employee->bank?->bank_name || $employee->bank_account_no)
+    @if ($employee->bank_short_code || $employee->bank || $employee->bank_account_no)
         <tr>
             <th>Mode of Payment</th>
             {{-- Composed rather than laid out across lines: Blade keeps the newline and the indentation, so
                  the markup version printed "MCB Bank Limited , Account No." with a space before the comma.
                  Last four digits only — the letter proves the salary arrives through a bank, and a full
                  account number on a document that will be photocopied proves nothing more. --}}
+            {{-- The short code, not the bank's full name: "MCB" is what the account is identified by on a
+                 transfer instruction, and it is the same token the salary bank file writes. The employee's
+                 own copy comes first because staff who bank with us carry a short code and no `bank_id`. --}}
             <td>{{ implode(', ', array_filter([
-                'Bank transfer'.($employee->bank?->bank_name ? ' to '.$employee->bank->bank_name : ''),
+                'Bank transfer'.(($bank = $employee->bank_short_code ?: $employee->bank?->bank_short_code ?: $employee->bank?->bank_name) ? ' to '.$bank : ''),
                 $employee->bank_account_no ? 'Account No. ending '.substr($employee->bank_account_no, -4) : null,
             ])) }}</td>
         </tr>

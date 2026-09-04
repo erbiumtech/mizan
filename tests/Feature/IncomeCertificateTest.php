@@ -77,6 +77,7 @@ class IncomeCertificateTest extends AccountingTestCase
             'company.signatory_name' => 'Muzafar Ali',
             'company.registration_no' => '0123456',
             'company.email' => 'hr@erbiumtech.test',
+            'company.website' => 'www.erbiumtech.test',
         ] + $overrides as $key => $value) {
             $settings->set($key, $overrides[$key] ?? $value);
         }
@@ -172,7 +173,7 @@ class IncomeCertificateTest extends AccountingTestCase
         foreach ([
             'ERBIUMTECH (SMC-Private) Limited',
             'TO WHOM IT MAY CONCERN',
-            'MUHAMMAD HAMMAD',
+            'Muhammad Hammad',
             '35201-1234567-1',
             'Abdul Rehman',
             'Backend Developer',
@@ -190,6 +191,17 @@ class IncomeCertificateTest extends AccountingTestCase
         // a document that will be photocopied proves nothing more.
         $this->assertStringContainsString('ending 3334', $html);
         $this->assertStringNotContainsString('0001112223334', $html);
+
+        // The bank's short code rather than its full name — the token a transfer instruction and the salary
+        // bank file both use.
+        $this->assertStringContainsString('Bank transfer to TST', $html);
+        $this->assertStringNotContainsString('Test Bank', $html);
+
+        // The amount in words is set smaller than the figure it repeats.
+        $this->assertStringContainsString('<span class="in-words">(Two Hundred Fifty Thousand only)</span>', $html);
+
+        // The website is on the footer bar only, so the header does not spend a line repeating it.
+        $this->assertSame(1, substr_count($html, 'www.erbium'), 'the website belongs on the bar, once');
 
         // The bonus must not appear anywhere on a statement of recurring income.
         $this->assertStringNotContainsString('100,000', $html);
