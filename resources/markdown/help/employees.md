@@ -50,6 +50,72 @@ automatically reparented to their own manager (or left with no manager) so the
 reporting hierarchy stays connected — nobody is left pointing at a manager who
 no longer exists.
 
+## The income certificate <!-- requires: EmployeeView -->
+
+**Income certificate** on an employee's own page produces the letter a bank, an embassy or a
+landlord asks for: that this person works here, what they are paid, and that the salary comes
+through a bank with tax deducted at source.
+
+**The employee can do this themselves.** Anyone who may already view the record — the person
+themselves, their reporting line, an administrator — can issue it, because the whole reason it
+exists is somebody applying for a visa or a loan on a Sunday.
+
+It asks for three things that are not on the record: what the letter is **for**, the
+**father's/guardian's name** (banks match it against the CNIC), and a line describing the
+**duties**. The address is filled in from the record and can be corrected for one letter.
+
+**The figure is the recurring package** — basic plus the standing allowances, in force on the
+day it is issued. Bonuses and overtime are deliberately excluded: "gross monthly salary" is
+read as *every* month, and a bonus printed there is a promise the company has not made and a
+loan instalment somebody cannot pay. The letter says so in its own footnote.
+
+**It refuses rather than guesses.** No CNIC, no joining date, no designation, no salary package,
+or an unfilled letterhead means no letter — and it names each gap *and the screen that fixes it*.
+A certificate reading "PKR 0", or with a blank where the NTN goes, looks official and is wrong.
+
+**The salary comes from the package, which is not on the employee record.** It is a row of its
+own under **Employees → Employee Settings**: pick the employee and the fiscal year, give it a
+start and end date, then the basic wage and the standing allowances. That is what the certificate
+adds up, and what a payslip pays from — one figure, one place, so the letter and the payslip
+cannot disagree.
+
+Nothing is stored. Each download is rendered from the record as it stands, so a copy already
+given to a bank never disagrees with the salary on file. The account number is printed as its
+last four digits only.
+
+The letterhead itself — registered name, address, NTN, incorporation number, who signs — is set
+once in **Company Settings → Letterhead**.
+
+## The experience letter <!-- requires: EmployeeView -->
+
+**Experience letter** produces the service certificate a next employer asks for: that this
+person worked here, in which roles, for how long, and how their conduct was found.
+
+**It lists every role held**, taken from the job history — somebody who joined as a developer
+and left as a lead gets a letter that says both, which is the thing that makes it worth having.
+An employee hired before that history existed falls back to the designation on the record.
+
+**It reads in the present tense until there is a leaving date.** Somebody job-hunting asks for
+this before they resign, so a letter that assumed they had already gone would be no use to them.
+Once the record has a last working day, the letter is past tense, bounded by that day, and ends
+with the good-wishes line.
+
+**Length of service is whole months**, counted from the joining date. "2 years 11 months" is a
+fact; rounding it up to three years on a document somebody verifies is the small lie that
+discredits the whole letter.
+
+**The salary is off by default.** What an employee earned here follows them into their next
+negotiation, and volunteering it on a letter they hand over is not the company's to do. The
+toggle is there because some employers demand a last-drawn figure, and refusing outright would
+just mean a second trip to HR.
+
+The conduct wording — satisfactory, very good, exemplary — is your own list, under
+**Settings → Dropdown Options**.
+
+Unlike the income certificate, this issues for somebody with **no salary package on file**: it
+states service, not pay, so it has nothing to refuse over. It still needs a joining date, a
+designation and the letterhead.
+
 ## Related tabs
 
 Opening an employee shows two read-only tabs: **Change Requests** (their
