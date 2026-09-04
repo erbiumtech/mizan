@@ -91,6 +91,7 @@ class CompanySettings extends Page
             'petty_cash_float_amount' => setting('petty_cash.float_amount'),
             'reports_negatives_in_parentheses' => (bool) setting('reports.negatives_in_parentheses', false),
             'notifications_record_changes' => (bool) setting('notifications.record_changes', true),
+            ...static::letterheadState(),
             'accounting_require_second_approver' => (bool) setting('accounting.require_second_approver'),
             'ipayments' => static::editableIpayments(),
             'projects_status_page_enabled' => (bool) setting('projects.status_page.enabled', false),
@@ -145,6 +146,7 @@ class CompanySettings extends Page
     protected function sections(): array
     {
         $sections = [
+            12 => [$this->letterheadSection()],
             15 => [$this->reportsSection()],
             16 => [$this->notificationsSection()],
             20 => [$this->pettyCashSection()],
@@ -187,6 +189,88 @@ class CompanySettings extends Page
                         'Accountants read (1,250) rather than -1,250. Off by default, and it never applies '
                         .'to the CSV export — a spreadsheet reads parentheses as text.'
                     ),
+            ]);
+    }
+
+    /**
+     * The letterhead fields, keyed as the form names them.
+     *
+     * @var array<string, string>
+     */
+    private const LETTERHEAD = [
+        'company_legal_name' => 'company.legal_name',
+        'company_address' => 'company.address',
+        'company_phone' => 'company.phone',
+        'company_email' => 'company.email',
+        'company_website' => 'company.website',
+        'company_registration_no' => 'company.registration_no',
+        'company_ntn' => 'company.ntn',
+        'company_signatory_name' => 'company.signatory_name',
+        'company_signatory_title' => 'company.signatory_title',
+    ];
+
+    /** @return array<string, mixed> */
+    protected static function letterheadState(): array
+    {
+        $state = [];
+
+        foreach (self::LETTERHEAD as $field => $key) {
+            $state[$field] = setting($key);
+        }
+
+        return $state;
+    }
+
+    /**
+     * The company as somebody outside it reads it.
+     *
+     * **Nothing held these before.** `companies.name` is what the panel calls this tenant; a bank reading a
+     * salary certificate needs the registered name, the office address and the two numbers it can check the
+     * company against. They are per company and there is no sensible default for somebody else's NTN, so
+     * they are blank until filled in — and `IncomeCertificate` refuses to print a letter while the four it
+     * cannot do without are empty, rather than issuing one with a hole in the letterhead.
+     */
+    protected function letterheadSection(): Section
+    {
+        return Section::make('Letterhead')
+            ->description('The registered details printed on documents that leave the company — the income certificate today, and anything else on company paper.')
+            ->columns(2)
+            ->schema([
+                TextInput::make('company_legal_name')
+                    ->label('Registered name')
+                    ->maxLength(255)
+                    ->placeholder('ERBIUMTECH (SMC-Private) Limited')
+                    ->helperText('As registered, including the suffix. Not the short name the panel uses.'),
+
+                TextInput::make('company_registration_no')
+                    ->label('Incorporation / registration no.')
+                    ->maxLength(64),
+
+                TextInput::make('company_ntn')
+                    ->label('NTN')
+                    ->maxLength(32)
+                    ->helperText('What the FBR and a bank check the company against.'),
+
+                TextInput::make('company_phone')->label('Phone')->maxLength(64),
+
+                TextInput::make('company_email')->label('Email')->email()->maxLength(255),
+
+                TextInput::make('company_website')->label('Website')->maxLength(255),
+
+                TextInput::make('company_address')
+                    ->label('Registered office address')
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+
+                TextInput::make('company_signatory_name')
+                    ->label('Who signs')
+                    ->maxLength(160)
+                    ->helperText('The name printed above the signature line.'),
+
+                TextInput::make('company_signatory_title')
+                    ->label('Their title')
+                    ->maxLength(160)
+                    ->placeholder('Chief Executive Officer'),
             ]);
     }
 
@@ -439,6 +523,10 @@ class CompanySettings extends Page
         $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);
         $settings->set('reports.negatives_in_parentheses', (bool) ($state['reports_negatives_in_parentheses'] ?? false));
         $settings->set('notifications.record_changes', (bool) ($state['notifications_record_changes'] ?? false));
+
+        foreach (self::LETTERHEAD as $field => $key) {
+            $settings->set($key, $state[$field] ?? null);
+        }
         $settings->set('accounting.require_second_approver', (bool) $state['accounting_require_second_approver']);
         // Scalars only: the nested own_bank matching rules are not editable here,
         // and TenantSettings merges them back from config.

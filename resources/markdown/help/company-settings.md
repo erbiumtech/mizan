@@ -13,6 +13,20 @@ still be changed freely until the first journal entry line is ever posted —
 after that it's locked, because changing it would reinterpret every posted
 amount rather than restate it.
 
+## Letterhead
+
+The company as somebody outside it reads it: the **registered name** (with its suffix, not the
+short name the panel uses), the **registered office address**, the **NTN** and the
+**incorporation number**, plus phone, email and website.
+
+Nothing held these before the income certificate needed them — `companies.name` is what this
+panel calls you, which is not what a bank checks you against. They are blank until you fill them
+in, and there is no default, because a letterhead carrying another company's details would be
+worse than a blank one.
+
+**Who signs** is the name printed above the signature line, with their title. The certificate
+refuses to print while the registered name, the address, the NTN or the signatory is empty.
+
 ## Notifications
 
 The bell in the top right carries two kinds of thing.
