@@ -23,6 +23,12 @@
 
     {{-- The payslip's letterhead and its seal, shared by both letters. --}}
     @include('pdfs.partials.letterhead-styles')
+
+    {{-- Dompdf renders taller than Chrome and these letters are sized to one page, so it gets its own
+         spacing. Same convention, same reason as `dompdf-payslip`. --}}
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-letter')
+    @endif
 </head>
 <body>
 <div class="sheet">
@@ -127,8 +133,11 @@
 
 <p>Should you require any verification, please contact the undersigned.</p>
 
+{{-- "Sincerely," stays in the flow with the prose it closes; the signature block below is pinned to the
+     foot of the page, so gluing the two together would drag the sign-off down with it. --}}
+<p class="sincerely">Sincerely,</p>
+
 <div class="sign">
-    <p style="margin-bottom: 4pt;">Sincerely,</p>
 
     {{-- The seal: the same employer signature the payslip carries, so all three documents are signed the
          same way. A letter with the seal on it is one a recipient accepts without chasing a wet signature;

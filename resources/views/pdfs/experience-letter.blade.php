@@ -22,6 +22,29 @@
 
     {{-- The payslip's letterhead and its seal, shared by both letters. --}}
     @include('pdfs.partials.letterhead-styles')
+
+    {{--
+        This letter says less than the income certificate, so it has more page to fill: the same rhythm left
+        five centimetres of nothing above the signature where the certificate left two and a half. The extra
+        air goes here rather than in the shared sheet, which the certificate cannot afford.
+
+        **Before the Dompdf block below, deliberately.** Both are plain element selectors, so the last one
+        wins — which has to be Dompdf's, or this would undo the tightening that keeps it on one page.
+    --}}
+    <style>
+        p { margin: 0 0 13pt; }
+        h1.to-whom { margin: 14pt 0 11pt; }
+        .subject { margin-bottom: 12pt; }
+        table.details, table.roles { margin: 6pt 0 14pt; }
+        table.details th, table.details td,
+        table.roles th, table.roles td { padding: 4pt 7pt; }
+    </style>
+
+    {{-- Dompdf renders taller than Chrome and these letters are sized to one page, so it gets its own
+         spacing. Same convention, same reason as `dompdf-payslip`. --}}
+    @if (($pdfEngine ?? null) === 'dompdf')
+        @include('pdfs.partials.dompdf-letter')
+    @endif
 </head>
 <body>
 <div class="sheet">
@@ -124,8 +147,11 @@
 
 <p>Should you require any verification, please contact the undersigned.</p>
 
+{{-- "Sincerely," stays in the flow with the prose it closes; the signature block below is pinned to the
+     foot of the page, so gluing the two together would drag the sign-off down with it. --}}
+<p class="sincerely">Sincerely,</p>
+
 <div class="sign">
-    <p style="margin-bottom: 4pt;">Sincerely,</p>
 
     {{-- The seal: the same employer signature the payslip carries, so all three documents are signed the
          same way. A letter with the seal on it is one a recipient accepts without chasing a wet signature;
