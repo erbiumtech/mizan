@@ -13,6 +13,31 @@ still be changed freely until the first journal entry line is ever posted —
 after that it's locked, because changing it would reinterpret every posted
 amount rather than restate it.
 
+## Notifications
+
+The bell in the top right carries two kinds of thing.
+
+**The ones that speak for themselves** — a payslip issued, a leave request waiting on you, an
+environment down, a certificate about to expire — always arrive and are not affected by
+anything on this page.
+
+**"A record of yours changed"** is the switch here. On, somebody who owns a record hears when
+anybody *else* changes or deletes it. Owning it means the record names them: it is theirs
+(`user id`), they created it, they asked for it, or — where a screen says so — it is assigned
+to them.
+
+Three things it deliberately does not do:
+
+- **It never tells you about your own edit.** Told that you did what you just did, people
+  learn to ignore the bell, and then it is worth nothing when it carries something real.
+- **It never emails.** A mail per edit is a mailbox nobody reads. This goes to the bell, where
+  the cost of one you did not need is a glance.
+- **It says nothing about a record nobody owns.** Reference data — a category, a rate, a code
+  — names no person, so changing it puts nothing in front of anybody.
+
+New records are not announced either: whoever created it already knows, and an import of five
+thousand rows would otherwise be five thousand notifications.
+
 ## Petty Cash
 
 **Float Amount** is the imprest the petty cash box is restored to on

@@ -330,14 +330,35 @@ class ConstructionPeriodCloseTest extends AccountingTestCase
 
     // ---------------------------------------------------------------- the warnings
 
-    /** Late costs are named on the way out, because the earlier month's total is not what they belong to. */
+    /**
+     * Late costs are named on the way out, because the earlier month's total is not what they belong to.
+     *
+     * **The clock is stopped, and that is the assertion this test could not make without it.** A cost whose own
+     * month is closed lands in the *earliest open* period — `CostLedger::periodFor()` — and with only a closed
+     * July on the books that falls through to `CostPeriod::forDate(now())`. So which month the late cost lands
+     * in depended on the day the suite ran: while it was August 2026 the entry landed in August and this test
+     * passed, and from 1 September 2026 it landed in September, leaving August with nothing to post and this
+     * test failing on the setup line rather than the assertion. The behaviour was right the whole time; the
+     * test was reading the calendar.
+     *
+     * Mid-August is also the scenario the test means: July is signed off at the start of the month, a July
+     * invoice turns up on the 15th, and it is August that has to account for it.
+     */
     public function test_late_cost_is_named_as_a_warning(): void
     {
+        $this->travelTo('2026-08-15 09:00');
+
         $this->nominate();
         // July closes with nothing in it, then a July cost arrives.
         $july = CostPeriod::forDate('2026-07-01');
         $july->update(['status' => CostPeriod::STATUS_CLOSED, 'closed_at' => now()]);
-        $this->burden(20_000, '2026-07-15');
+        $late = $this->burden(20_000, '2026-07-15');
+
+        // Stated rather than assumed. Everything below rests on the late cost landing in August, and when it
+        // did not the failure surfaced three lines later as "nothing to post for August" — which names the
+        // symptom and not the cause.
+        $this->assertSame('2026-08-01', $late->posting_period->toDateString());
+        $this->assertTrue($late->is_late_for_period);
 
         app(ConstructionGlPostingService::class)->post('2026-08-01');
         app(ReconciliationService::class)->run('2026-08-01');
