@@ -212,17 +212,21 @@ class OptionListTest extends TestCase
         $company = Company::factory()->create();
         $this->setCurrentTenant($this->administratorOf($company));
 
-        // A factory company is licensed for everything, and the construction lists sort
-        // ahead of the employee ones — which would put "Cook" on the second page and make
-        // this an assertion about pagination rather than about the screen.
         $this->license($company, 'employees');
         $this->license($company, 'construction_qhse', false);
-        $this->license($company, 'construction_costing', false);
 
         (new OptionListSeeder)->run();
 
+        // Filtered to one list rather than read off the first page. Unfiltered, this asserted on
+        // pagination by accident: every list a module adds pushes the rows it was looking for further
+        // down, and declaring `employees.conduct` — which sorts ahead of `employees.designation` — is
+        // what proved it by moving "Cook" onto page two.
         Livewire::test(ListOptionValues::class)
             ->assertSuccessful()
+            ->filterTable('list', 'employees.designation')
+            ->assertCanSeeTableRecords(
+                OptionValue::where('list', 'employees.designation')->orderBy('sort')->get()
+            )
             ->assertSee('Cook')
             ->assertDontSee('Workmanship');
     }
