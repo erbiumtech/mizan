@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Notifications;
 
 use App\Modules\ConstructionContracts\Models\ComplianceDocument;
+use App\Support\Broadcasting;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +32,7 @@ class ComplianceDocumentExpiring extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', 'broadcast'];
+        return Broadcasting::channels(['mail', 'database', 'broadcast']);
     }
 
     public function toMail(object $notifiable): MailMessage

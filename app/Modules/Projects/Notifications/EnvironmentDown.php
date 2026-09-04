@@ -5,6 +5,7 @@ namespace App\Modules\Projects\Notifications;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
+use App\Support\Broadcasting;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -25,7 +26,7 @@ class EnvironmentDown extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return (array) config('projects.alerts.channels', ['mail']);
+        return Broadcasting::channels((array) config('projects.alerts.channels', ['mail']));
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\Broadcasting;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -41,7 +42,7 @@ class RecordChanged extends Notification implements ShouldQueue
     /** @return array<int, string> */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        return Broadcasting::channels(['database', 'broadcast']);
     }
 
     /** @return array<string, mixed> */

@@ -5,6 +5,7 @@ namespace App\Modules\Core;
 use App\Modules\Core\Console\Commands\DeliverScheduledReports;
 use App\Modules\Core\Filament\Pages\ReportDeliveries;
 use App\Modules\Core\Listeners\NotifyRecordAudience;
+use App\Modules\Core\Listeners\SkipBroadcastWithoutBroadcaster;
 use App\Modules\Core\Models\ActivityLog;
 use App\Modules\Core\Models\Comment;
 use App\Modules\Core\Models\Company;
@@ -35,6 +36,8 @@ use App\Support\Reporting\BuiltReport;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportDeliveryLog;
 use App\Support\Reporting\ReportRenderers;
+use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
@@ -101,6 +104,10 @@ class CoreServiceProvider extends ServiceProvider
          * application, in one place.
          */
         ActivityLog::created(fn (ActivityLog $activity) => app(NotifyRecordAudience::class)($activity));
+
+        // With no broadcaster configured, the broadcast channel is withdrawn from every notification before
+        // it becomes a job that can only fail. See the listener.
+        Event::listen(NotificationSending::class, SkipBroadcastWithoutBroadcaster::class);
 
         // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the
         // timetable, and a command nobody can invoke by hand is a command nobody can test or re-run after a

@@ -3,6 +3,7 @@
 namespace App\Modules\Leave\Notifications;
 
 use App\Modules\Leave\Models\LeaveRequest;
+use App\Support\Broadcasting;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +26,7 @@ class LeaveRequestSubmitted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', 'broadcast'];
+        return Broadcasting::channels(['mail', 'database', 'broadcast']);
     }
 
     public function toMail(object $notifiable): MailMessage

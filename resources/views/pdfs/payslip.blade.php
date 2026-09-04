@@ -334,13 +334,22 @@
                         <div class="bar bar-2"></div>
                         <div class="bar bar-3"></div>
                     </div>
+                    {{-- From Company Settings → Letterhead, with the tenant's own name as the fallback — see
+                         CompanyLetterhead::displayName(). The two-tone "ErbiumTech" wordmark this used to
+                         hardcode was one company's branding printed on every company's payslips; a registered
+                         name cannot be split into two colours by rule, so the accent stays in the bars. The
+                         second line carries the NTN when there is one, where the legal form used to be. --}}
                     <div class="company-text">
-                        <span class="erbium">Erbium</span><span class="tech">Tech</span><br>
-                        <span class="smc">SMC-PRIVATE LIMITED</span>
+                        <span class="erbium">{{ $company_name }}</span><br>
+                        @if ($company['ntn'])
+                            <span class="smc">NTN {{ $company['ntn'] }}</span>
+                        @endif
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="address-top">350/A Khayaban-e-Zafar, Lahore</div>
+                    @if ($company['address'])
+                        <div class="address-top">{{ $company['address'] }}</div>
+                    @endif
                     <div class="title">
                         Pay Slip — {{ $data->month }} {{ $data->fiscalYear ? $data->fiscalYear->name : '' }}
                     </div>
@@ -471,16 +480,24 @@
         </div>
 
         <!-- Footer -->
+        @php
+            $footerContact = array_filter([
+                $company['phone'] ? 'Phone: '.$company['phone'] : null,
+                $company['email'] ?: null,
+                $company['website'] ?: null,
+            ]);
+        @endphp
         <div class="footer">
             <div>
-                <strong>ERBIUMTECH (SMC-PRIVATE) LIMITED.</strong><br>
-                350/A Khayaban-e-Zafar Housing Scheme<br>
-                Pine Avenue Road, 54800 Lahore
+                <strong>{{ strtoupper($company_name) }}</strong>
+                @if ($company['address'])
+                    <br>{{ $company['address'] }}
+                @endif
             </div>
             <div class="footer-right">
-                Phone: +92 302 0606 888<br>
-                info@erbium.tech<br>
-                www.erbium.tech
+                @foreach ($footerContact as $line)
+                    {{ $line }}@if (! $loop->last)<br>@endif
+                @endforeach
             </div>
         </div>
     </div>
