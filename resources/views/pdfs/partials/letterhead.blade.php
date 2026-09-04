@@ -6,7 +6,9 @@
     @param string $title    the document's own title, printed in the payslip's green
 --}}
 @php
-    $contact = array_filter([$company['phone'] ?? null, $company['email'] ?? null, $company['website'] ?? null]);
+    // Phone and email only. The website is on the green footer bar, and printing it twice on one page
+    // spent a line of the header saying nothing new.
+    $contact = array_filter([$company['phone'] ?? null, $company['email'] ?? null]);
     $numbers = array_filter([
         ($company['registration_no'] ?? null) ? 'Incorporation No.: '.$company['registration_no'] : null,
         ($company['ntn'] ?? null) ? 'NTN: '.$company['ntn'] : null,

@@ -74,8 +74,9 @@
 
 <h1 class="to-whom">TO WHOM IT MAY CONCERN</h1>
 
+{{-- No name here: the sentence below names the person, in the case their record holds. --}}
 <div class="subject">
-    SUBJECT: CERTIFICATE OF EXPERIENCE — {{ strtoupper($name) }}
+    SUBJECT: CERTIFICATE OF EXPERIENCE
 </div>
 
 <p>
