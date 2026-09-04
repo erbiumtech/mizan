@@ -90,6 +90,7 @@ class CompanySettings extends Page
         $this->form->fill([
             'petty_cash_float_amount' => setting('petty_cash.float_amount'),
             'reports_negatives_in_parentheses' => (bool) setting('reports.negatives_in_parentheses', false),
+            'notifications_record_changes' => (bool) setting('notifications.record_changes', true),
             'accounting_require_second_approver' => (bool) setting('accounting.require_second_approver'),
             'ipayments' => static::editableIpayments(),
             'projects_status_page_enabled' => (bool) setting('projects.status_page.enabled', false),
@@ -145,6 +146,7 @@ class CompanySettings extends Page
     {
         $sections = [
             15 => [$this->reportsSection()],
+            16 => [$this->notificationsSection()],
             20 => [$this->pettyCashSection()],
             30 => [$this->approvalsSection()],
             40 => [$this->leaveSection()],
@@ -185,6 +187,28 @@ class CompanySettings extends Page
                         'Accountants read (1,250) rather than -1,250. Off by default, and it never applies '
                         .'to the CSV export — a spreadsheet reads parentheses as text.'
                     ),
+            ]);
+    }
+
+    /**
+     * What reaches the bell — `App\Modules\Core\Listeners\NotifyRecordAudience`.
+     *
+     * In Core rather than in a module because it governs every audited record in the application, and
+     * because Core is the one module always licensed: a switch filed behind a module a company has not
+     * bought would be a switch it could not reach.
+     */
+    protected function notificationsSection(): Section
+    {
+        return Section::make('Notifications')
+            ->description('What the bell in the top right tells people about.')
+            ->schema([
+                Toggle::make('notifications_record_changes')
+                    ->label('Tell people when a record of theirs changes')
+                    ->helperText('On, somebody who owns a record — it names them, they created it, or they '
+                        .'asked for it — hears when anybody else changes or deletes it. Never when they '
+                        .'changed it themselves, and never by email: it goes to the bell, where the cost of '
+                        .'one you did not need is a glance. Payslips, leave and expense claims are '
+                        .'unaffected either way; each of those says something better for itself.'),
             ]);
     }
 
@@ -414,6 +438,7 @@ class CompanySettings extends Page
         $settings = app(TenantSettings::class);
         $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);
         $settings->set('reports.negatives_in_parentheses', (bool) ($state['reports_negatives_in_parentheses'] ?? false));
+        $settings->set('notifications.record_changes', (bool) ($state['notifications_record_changes'] ?? false));
         $settings->set('accounting.require_second_approver', (bool) $state['accounting_require_second_approver']);
         // Scalars only: the nested own_bank matching rules are not editable here,
         // and TenantSettings merges them back from config.
