@@ -26,9 +26,9 @@
             @endif
         </td>
         <td class="lh-right">
-            @if ($company['address'])
-                <div class="line">{{ $company['address'] }}</div>
-            @endif
+            {{-- No address here: the green bar at the foot carries it, and a certificate printing the
+                 registered office twice on one page reads as a template nobody finished. Phone and email
+                 stay, because the header is where a reader looks to answer "who sent this". --}}
             @if ($contact)
                 <div class="line">{{ implode('  |  ', $contact) }}</div>
             @endif
