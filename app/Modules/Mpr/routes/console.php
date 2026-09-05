@@ -1,30 +1,26 @@
 <?php
 
+use App\Modules\Core\Models\Company;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 
-// 💡 Laravel 12 ka naya tarika Task Scheduling ke liye
-// Sweeps the temporary MPR comparison exports out of the public disk once they
-// are an hour old.
-Schedule::call(function () {
+// Sweeps the temporary MPR comparison exports off each company's public disk once they are an hour old.
+//
+// Per company, because the scheduler has no tenant of its own and the `public` disk without one is the
+// shared root — which is where the sweep used to look, and where the API used to write. Both now work
+// inside a company (ResolveCompanyFromUser for the API, execute() here), so the files are found where
+// they land. Hourly rather than every minute: a company switch per company per run is not free, and a
+// temp file living two hours instead of one costs nothing.
+Schedule::call(function (): void {
+    Company::query()->each(function (Company $company): void {
+        $company->execute(function (): void {
+            $disk = Storage::disk('public');
 
-    // Mpr folder ki saari files uthayein
-    $files = Storage::disk('public')->files('Mpr');
-    $now = now()->timestamp;
-
-    foreach ($files as $file) {
-        // Sirf Comparison wali temporary files ko target karein
-        if (str_contains($file, '_Comparison_')) {
-
-            // File ka modified time check karein
-            $lastModified = Storage::disk('public')->lastModified($file);
-
-            // Agar file 3600 seconds (1 ghanta) ya us se zyada purani ho chuki hai
-            if ($now - $lastModified >= 3600) {
-                // Toh isay delete kar do
-                Storage::disk('public')->delete($file);
+            foreach ($disk->files('Mpr') as $file) {
+                if (str_contains($file, '_Comparison_') && now()->timestamp - $disk->lastModified($file) >= 3600) {
+                    $disk->delete($file);
+                }
             }
-        }
-    }
-
-})->everyMinute();
+        });
+    });
+})->hourly()->name('mpr:sweep-comparison-exports')->withoutOverlapping();

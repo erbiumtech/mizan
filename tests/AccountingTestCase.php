@@ -12,12 +12,16 @@ use Database\Seeders\RoleSeeder;
 use Database\Seeders\SalarySlabSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 abstract class AccountingTestCase extends TestCase
 {
     use RefreshDatabase;
 
     protected FiscalYear $fiscalYear;
+
+    /** The company API callers made by actingAsApiUser() belong to. */
+    protected ?Company $apiCompany = null;
 
     protected function setUp(): void
     {
@@ -53,6 +57,28 @@ abstract class AccountingTestCase extends TestCase
         if ($company = Filament::getTenant() ?? Company::current()) {
             $user->companies()->syncWithoutDetaching([$company->getKey()]);
         }
+
+        return $user;
+    }
+
+    /**
+     * A Sanctum caller: a user of the given role, member of one company.
+     *
+     * API requests run as the caller's company (ResolveCompanyFromUser), so a user with no membership is
+     * refused before any controller runs. Every caller in a test joins the same company, so a second role
+     * sees what the first one created. Not through Filament's tenant: setTenant() reads the panel's web
+     * guard, which Sanctum::actingAs() never fills.
+     */
+    protected function actingAsApiUser(string $role, string $email): User
+    {
+        $user = $this->makeUser($role, $email);
+
+        // The factory switches every module on for a new company, so nothing to license here.
+        $this->apiCompany ??= Filament::getTenant() ?? Company::factory()->create();
+
+        $user->companies()->syncWithoutDetaching([$this->apiCompany->getKey()]);
+
+        Sanctum::actingAs($user);
 
         return $user;
     }

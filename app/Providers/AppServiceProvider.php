@@ -6,6 +6,7 @@ use App\Health\BackupConfigurationCheck;
 use App\Health\DiskSpaceCheck;
 use App\Health\FailedJobsCheck;
 use App\Health\LedgerControlsCheck;
+use App\Health\PublicStorageLinkCheck;
 use App\Health\RedisPersistenceCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
@@ -402,6 +403,10 @@ class AppServiceProvider extends ServiceProvider
                 ->name('Disk space')
                 ->warnWhenUsedSpaceIsAbovePercentage(70)
                 ->failWhenUsedSpaceIsAbovePercentage(85),
+
+            // And that nothing has linked that volume's uploads into the web root. The suite forbids
+            // `public/storage`; this is the same assertion made on the server, where deploy recipes run.
+            PublicStorageLinkCheck::new()->name('Public storage link'),
 
             // Proof that `schedule:run` is on cron. This application leans on it heavily —
             // payroll posting, leave-year opening, document expiry, quote expiry, compensatory

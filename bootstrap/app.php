@@ -22,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // before `module:` — a licence belongs to a company, so one has to be
             // current before that question can be answered.
             'company' => App\Http\Middleware\ResolveCompanyFromRoute::class,
+            // For the API, whose routes name no company: the caller's membership does. Same
+            // ordering rule — after `auth:sanctum`, before `module:`.
+            'api.company' => App\Http\Middleware\ResolveCompanyFromUser::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
