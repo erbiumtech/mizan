@@ -50,3 +50,25 @@ Schedule::command(ScheduleCheckHeartbeatCommand::class)->everyMinute();
  * notification and PDF in the application quietly stops arriving.
  */
 Schedule::command('health:queue-check-heartbeat')->everyMinute();
+
+/*
+ * The backups themselves.
+ *
+ * Everything for restoring this application existed — spatie/laravel-backup configured, `backup:tenants`
+ * written for the database-per-company shape the package cannot see, BackupsCheck watching the archive
+ * directory — and nothing was on the schedule to *make* one. `backup:list` reported "There are no backups
+ * of this application at all." A monitoring check that fails every night is only useful if the thing it
+ * monitors was ever meant to run.
+ *
+ * Three commands, spread out and never overlapping: clean first so the disk has room, then the landlord
+ * (`companies`, `users`, roles, uploads), then one archive per company. Order matters for the restore,
+ * which needs a landlord archive from the same night as the tenant archive it opens — see
+ * deploy/backups/README.md, and the docblock on App\Backup\TenantBackup.
+ *
+ * `backup:tenants` exits non-zero when any company fails, and that exit code is the only monitoring a stale
+ * *tenant* archive has (config/backup.php explains why), so the scheduler's own failure output must reach
+ * somebody.
+ */
+Schedule::command('backup:clean')->dailyAt('01:00')->withoutOverlapping();
+Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping();
+Schedule::command('backup:tenants')->dailyAt('02:00')->withoutOverlapping();
