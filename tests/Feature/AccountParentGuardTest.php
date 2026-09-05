@@ -8,7 +8,6 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Services\JournalEntryService;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
-use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
@@ -110,7 +109,7 @@ class AccountParentGuardTest extends AccountingTestCase
     {
         $parent = $this->postedAccount();
 
-        Sanctum::actingAs($this->makeUser('Accountant', 'guard-api@test.local'));
+        $this->actingAsApiUser('Accountant', 'guard-api@test.local');
 
         $this->postJson('/api/accounts', [
             'code' => '5101',

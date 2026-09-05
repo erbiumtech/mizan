@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
  * read 403 as "not available for this company".
  */
 Route::prefix('api')
-    ->middleware(['api', 'auth:sanctum', 'module:mpr'])
+    ->middleware(['api', 'auth:sanctum', 'api.company', 'module:mpr'])
     ->group(function () {
         Route::get('/my-mprs', [MprController::class, 'index']);
         Route::get('/my-mprs/comparison', [MprController::class, 'comparison']);

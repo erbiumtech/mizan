@@ -5,7 +5,7 @@ use App\Modules\Accounting\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('api')
-    ->middleware(['api', 'auth:sanctum', 'module:accounting'])
+    ->middleware(['api', 'auth:sanctum', 'api.company', 'module:accounting'])
     ->group(function () {
         Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance']);
         Route::get('/reports/profit-and-loss', [ReportController::class, 'profitAndLoss']);

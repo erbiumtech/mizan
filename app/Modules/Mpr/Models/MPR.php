@@ -24,6 +24,9 @@ class MPR extends Model
         'employee_request',
         'next_mpr_goal',
         'current_month_learning',
+        // Written by the download actions and the API once a report is rendered. Absent here, both
+        // `update(['pdf_path' => …])` calls were silently discarded and every download rendered again.
+        'pdf_path',
     ];
 
     // Data casting for date

@@ -4,17 +4,13 @@ namespace Tests\Feature;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Core\Models\User;
-use Laravel\Sanctum\Sanctum;
 use Tests\AccountingTestCase;
 
 class AccountApiTest extends AccountingTestCase
 {
     private function actingAsRole(string $role): User
     {
-        $user = $this->makeUser($role, strtolower($role).'-api@test.local');
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsApiUser($role, strtolower($role).'-api@test.local');
     }
 
     public function test_index_lists_accounts_with_filters(): void

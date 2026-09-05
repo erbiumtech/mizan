@@ -3,11 +3,22 @@
 namespace App\Modules\Mpr\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Mpr;
+use App\Modules\Mpr\Models\MPR;
 use App\Modules\Mpr\Services\MprPdfService;
+use App\Support\Pdf\PdfDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * The signed-in user's MPRs, for mobile clients.
+ *
+ * Runs inside the caller's company (ResolveCompanyFromUser on the route), which is what puts the `public`
+ * disk under the company's own directory and makes its URL the access-checked `/files/{id}` route. Reports
+ * used to be written with `storage_path('app/public/…')` and linked with `Storage::url()` — the *default*
+ * disk's URL — so every company's PDFs landed in one shared directory and `pdf_url` was `/storage/Mpr/…`:
+ * a path nothing serves unless that directory is linked into the web root, at which point it serves to
+ * anybody who has the guessable name.
+ */
 class MprController extends Controller
 {
     /**
@@ -15,37 +26,15 @@ class MprController extends Controller
      */
     public function index(Request $request)
     {
-        $userName = $request->user()->name;
-
-        $mprs = Mpr::where('user_id', $request->user()->id)
+        $mprs = MPR::where('user_id', $request->user()->id)
             ->orderBy('id', 'desc')
             ->get()
-            ->map(function ($mpr) use ($userName) {
-
-                $cleanName = str_replace([' ', '/', '\\'], '_', $userName);
-                $fileName = 'Mpr/'.$cleanName.'_'.time().'.pdf';
-
-                if (! $mpr->pdf_path || ! Storage::disk('public')->exists($mpr->pdf_path)) {
-                    $pdfService = new MprPdfService;
-                    $result = $pdfService->generateSingleReport($mpr->toArray());
-
-                    if (! Storage::disk('public')->exists('Mpr')) {
-                        Storage::disk('public')->makeDirectory('Mpr');
-                    }
-
-                    $result['pdf']->save(storage_path('app/public/'.$fileName));
-                    $mpr->update(['pdf_path' => $fileName]);
-                } else {
-                    $fileName = $mpr->pdf_path;
-                }
-
-                return [
-                    'id' => $mpr->id,
-                    'title' => $mpr->title,
-                    'remarks' => $mpr->remarks,
-                    'pdf_url' => url(Storage::url($fileName)),
-                ];
-            });
+            ->map(fn (MPR $mpr): array => [
+                'id' => $mpr->id,
+                'title' => $mpr->title,
+                'remarks' => $mpr->remarks,
+                'pdf_url' => $this->singleReportUrl($mpr, $request->user()->name),
+            ]);
 
         return response()->json([
             'success' => true,
@@ -59,28 +48,18 @@ class MprController extends Controller
      */
     public function comparison(Request $request)
     {
-        $userName = $request->user()->name;
-        $cleanName = str_replace([' ', '/', '\\'], '_', $userName);
-
-        $pdfService = new MprPdfService;
-        $result = $pdfService->generateComparisonReport($request->user()->id);
+        $result = (new MprPdfService)->generateComparisonReport($request->user()->id);
 
         if (! $result || $result['empty']) {
             return response()->json(['success' => false, 'message' => 'This user has no MPR Record for comparison'], 400);
         }
 
-        $customFileName = 'Mpr/'.$cleanName.'_Comparison_'.time().'_'.uniqid().'.pdf';
-
-        if (! Storage::disk('public')->exists('Mpr')) {
-            Storage::disk('public')->makeDirectory('Mpr');
-        }
-
-        $result['pdf']->save(storage_path('app/public/'.$customFileName));
+        $fileName = 'Mpr/'.$this->cleanName($request->user()->name).'_Comparison_'.time().'_'.uniqid().'.pdf';
 
         return response()->json([
             'success' => true,
             'message' => 'Comparison report generated successfully',
-            'pdf_url' => url(Storage::url($customFileName)),
+            'pdf_url' => $this->store($fileName, $result['pdf']),
         ], 200);
     }
 
@@ -89,29 +68,10 @@ class MprController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $mpr = Mpr::where('id', $id)->where('user_id', $request->user()->id)->first();
+        $mpr = MPR::where('id', $id)->where('user_id', $request->user()->id)->first();
 
         if (! $mpr) {
             return response()->json(['success' => false, 'message' => 'MPR not found or unauthorized'], 404);
-        }
-
-        $userName = $request->user()->name;
-
-        if ($mpr->pdf_path && Storage::disk('public')->exists($mpr->pdf_path)) {
-            $fileName = $mpr->pdf_path;
-        } else {
-            $pdfService = new MprPdfService;
-            $result = $pdfService->generateSingleReport($mpr->toArray());
-
-            $cleanName = str_replace([' ', '/', '\\'], '_', $userName);
-            $fileName = 'Mpr/'.$cleanName.'_'.time().'.pdf';
-
-            if (! Storage::disk('public')->exists('Mpr')) {
-                Storage::disk('public')->makeDirectory('Mpr');
-            }
-
-            $result['pdf']->save(storage_path('app/public/'.$fileName));
-            $mpr->update(['pdf_path' => $fileName]);
         }
 
         return response()->json([
@@ -120,8 +80,40 @@ class MprController extends Controller
                 'id' => $mpr->id,
                 'title' => $mpr->title,
                 'remarks' => $mpr->remarks,
-                'pdf_url' => url(Storage::url($fileName)),
+                'pdf_url' => $this->singleReportUrl($mpr, $request->user()->name),
             ],
         ], 200);
+    }
+
+    /** The stored single report: rendered on first request, remembered in `pdf_path`, reused after. */
+    private function singleReportUrl(MPR $mpr, string $userName): string
+    {
+        if (! $mpr->pdf_path || ! Storage::disk('public')->exists($mpr->pdf_path)) {
+            $fileName = 'Mpr/'.$this->cleanName($userName).'_'.time().'.pdf';
+
+            $this->store($fileName, (new MprPdfService)->generateSingleReport($mpr->toArray())['pdf']);
+            $mpr->update(['pdf_path' => $fileName]);
+        }
+
+        return $this->urlFor($mpr->pdf_path);
+    }
+
+    /** Through the disk, never a literal path, so the file lands under the current company's root. */
+    private function store(string $fileName, PdfDocument $pdf): string
+    {
+        Storage::disk('public')->put($fileName, $pdf->raw());
+
+        return $this->urlFor($fileName);
+    }
+
+    /** Absolute, because a mobile client resolves nothing relative. */
+    private function urlFor(string $fileName): string
+    {
+        return url(Storage::disk('public')->url($fileName));
+    }
+
+    private function cleanName(string $userName): string
+    {
+        return str_replace([' ', '/', '\\'], '_', $userName);
     }
 }
