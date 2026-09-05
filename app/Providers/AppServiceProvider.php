@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Health\BackupConfigurationCheck;
 use App\Health\DiskSpaceCheck;
+use App\Health\FailedJobsCheck;
 use App\Health\LedgerControlsCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
@@ -44,6 +45,7 @@ use Spatie\Health\Checks\Checks\DatabaseCheck;
 use Spatie\Health\Checks\Checks\DebugModeCheck;
 use Spatie\Health\Checks\Checks\EnvironmentCheck;
 use Spatie\Health\Checks\Checks\HorizonCheck;
+use Spatie\Health\Checks\Checks\QueueCheck;
 use Spatie\Health\Checks\Checks\RedisCheck;
 use Spatie\Health\Checks\Checks\ScheduleCheck;
 use Spatie\Health\Facades\Health;
@@ -419,6 +421,23 @@ class AppServiceProvider extends ServiceProvider
             // ScheduleCheck proves cron fires the dispatcher, this proves something is on the
             // other end to run what it dispatched.
             HorizonCheck::new(),
+
+            /*
+             * Is *anything* consuming the queue — whatever supervises it.
+             *
+             * HorizonCheck above answers for installations that run Horizon. This one answers for every
+             * installation: `health:queue-check-heartbeat` (scheduled every minute in routes/console.php)
+             * pushes a tiny job, and the check fails when that job has not been *processed* recently. It is
+             * the check that would have said, the day the bell was first asked about, that eighteen jobs
+             * were sitting in Redis because no worker had ever run.
+             */
+            QueueCheck::new(),
+
+            // And whether what did run is failing and being left there. The table is otherwise invisible.
+            FailedJobsCheck::new()
+                ->name('Failed jobs')
+                ->warnWhenCountIsAtLeast(1)
+                ->failWhenCountIsAtLeast(25),
         ]);
 
         // Two that are only meaningful in production, and are registered only there.

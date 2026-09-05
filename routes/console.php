@@ -40,3 +40,13 @@ Schedule::command(RunHealthChecksCommand::class)->everyMinute();
  * behind by a killed process would silently stop the heartbeat and report the scheduler dead.
  */
 Schedule::command(ScheduleCheckHeartbeatCommand::class)->everyMinute();
+
+/*
+ * The heartbeat `QueueCheck` reads — the twin of the one above, one step further along.
+ *
+ * ScheduleCheck proves cron fires the dispatcher. This pushes a tiny job every minute and QueueCheck fails
+ * when it has not been *processed* recently, which proves a worker is on the other end consuming what was
+ * dispatched. Without it a dead worker is invisible: the schedule runs, the jobs pile up in Redis, and every
+ * notification and PDF in the application quietly stops arriving.
+ */
+Schedule::command('health:queue-check-heartbeat')->everyMinute();
