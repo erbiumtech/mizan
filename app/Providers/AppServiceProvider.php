@@ -11,6 +11,7 @@ use App\Modules\Accounting\Services\CommandInterpreter;
 use App\Modules\Accounting\Support\LocalPatternModel;
 use App\Modules\Accounting\Support\RegisterCommandResolver;
 use App\Modules\Expenses\Support\ExpenseClaimCommandResolver;
+use App\Multitenancy\RefuseTenantlessTenantAwareJobs;
 use App\Support\Ai\Claude;
 use App\Support\Ai\StructuredModel;
 use App\Support\EmployeeAccess;
@@ -32,6 +33,7 @@ use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Queue\Events\JobQueueing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -327,6 +329,10 @@ class AppServiceProvider extends ServiceProvider
         // Keep spatie/laravel-multitenancy's current tenant in sync with the
         // tenant Filament resolves from the /admin/{company} route.
         Event::listen(TenantSet::class, SyncSpatieTenant::class);
+
+        // A tenant-aware job queued with no tenant is deleted silently by the worker. Refuse it here
+        // instead, where the mistake can be reported to whoever made it. See the listener.
+        Event::listen(JobQueueing::class, RefuseTenantlessTenantAwareJobs::class);
 
         $this->registerHealthChecks();
     }
