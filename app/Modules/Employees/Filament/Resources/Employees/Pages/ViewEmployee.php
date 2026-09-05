@@ -17,7 +17,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Storage;
 
 class ViewEmployee extends ViewRecord
 {
@@ -31,21 +30,29 @@ class ViewEmployee extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            /**
+             * Streamed, and nothing kept.
+             *
+             * This used to write `employees/employee-{id}-{time}.pdf` — CNIC, bank account, salary, address —
+             * onto the company's disk and redirect to it. The route serving that disk checks company
+             * membership, so it was never public; but every colleague could fetch it with the path, the path
+             * was guessable from the id and the clock, and nothing ever deleted one. A document of somebody's
+             * identity that outlives the click that made it is a liability with no owner. The letters were
+             * built to stream from the start; this joins them.
+             */
             Action::make('downloadPdf')
                 ->label('Download PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->action(function (Employee $record) {
-                    $fileName = 'employees/employee-'.$record->id.'-'.time().'.pdf';
+                    $pdf = Pdf::view('pdfs.employee', ['employee' => $record->load('user', 'bank', 'manager.user')])
+                        ->format('a4');
 
-                    Storage::disk('public')->makeDirectory('employees');
-
-                    Pdf::view('pdfs.employee', ['employee' => $record->load('user', 'bank', 'manager.user')])
-                        ->format('a4')
-                        ->save(Storage::disk('public')->path($fileName));
-
-                    Notification::make()->title('PDF generated.')->success()->send();
-
-                    return redirect()->away(Storage::disk('public')->url($fileName));
+                    // `raw()`, not the response's content — see the payslip download for the 0-byte PDF
+                    // that `toResponse()->getContent()` produces under Dompdf.
+                    return response()->streamDownload(
+                        fn () => print ($pdf->raw()),
+                        'employee-'.($record->employee_id ?: $record->getKey()).'.pdf',
+                    );
                 }),
 
             $this->incomeCertificateAction(),
