@@ -3,6 +3,10 @@
 namespace App\Modules\Core\Models;
 
 use App\Traits\Auditable;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
@@ -21,7 +25,7 @@ use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser, HasTenants
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasTenants
 {
     /**
      * Users live in the landlord database. Pin the connection so that when a
@@ -126,6 +130,38 @@ class User extends Authenticatable implements FilamentUser, HasTenants
             ->where('is_super_admin', true)
             ->where('status', 1)
             ->whereKeyNot($this->getKey())
+            ->exists();
+    }
+
+    /**
+     * Whether this account must have a second factor before it may use the panel.
+     *
+     * The accounts that can move money: super admins, and anybody holding Administrator in **any**
+     * company. Asked team-agnostically on purpose — `hasRole()` reads the *current* permission team, and
+     * at the login step there is no company yet, so it would say "no" to every company administrator on
+     * the installation. The join below asks the question the way it is meant: does any row anywhere give
+     * this person that role.
+     *
+     * Everyone else may enrol from their profile; nobody is stopped from adding a factor.
+     */
+    public function mustUseMultiFactorAuthentication(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $registrar = app(PermissionRegistrar::class);
+
+        return \Illuminate\Support\Facades\DB::table(config('permission.table_names.model_has_roles'))
+            ->join(
+                config('permission.table_names.roles'),
+                config('permission.table_names.roles').'.id',
+                '=',
+                config('permission.table_names.model_has_roles').'.'.$registrar->pivotRole,
+            )
+            ->where(config('permission.table_names.model_has_roles').'.model_id', $this->getKey())
+            ->where(config('permission.table_names.model_has_roles').'.model_type', $this->getMorphClass())
+            ->where(config('permission.table_names.roles').'.name', 'Administrator')
             ->exists();
     }
 
@@ -326,6 +362,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     }
 
     use Auditable, HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use InteractsWithAppAuthentication;
+    use InteractsWithAppAuthenticationRecovery;
 
     public function getActivitylogOptions(): LogOptions
     {

@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Modules\Core\CorePlatformPlugin;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
 use App\Modules\Core\Models\User;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -66,6 +67,9 @@ class PlatformPanelProvider extends PanelProvider
             // Its own entrance. The session is shared either way, so this is about the
             // two audiences never seeing each other's front door.
             ->login()
+            // Everyone who can sign in here is a super admin, so the second factor is required of all of
+            // them. Same provider as the admin panel; see AdminPanelProvider for the reasoning.
+            ->multiFactorAuthentication([AppAuthentication::make()->recoverable()], isRequired: true)
             ->profile(EditProfile::class)
             ->brandName('ErbiumTech Platform')
             ->brandLogo(asset('images/logo.png'))
