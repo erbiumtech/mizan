@@ -1,3 +1,15 @@
+@php
+    /*
+     * The letterhead, resolved here rather than handed in.
+     *
+     * PayslipService::renderPdf() is not this view's only renderer: PayslipReviewOnBehalfTest renders it
+     * directly with nothing but `data`, and so may anything else that wants the document without the PDF
+     * engine. A template that depends on its caller to pass the company's name is a template that prints
+     * "Undefined variable" the first time somebody else uses it — which is exactly what happened.
+     */
+    $company ??= \App\Support\CompanyLetterhead::data();
+    $company_name ??= \App\Support\CompanyLetterhead::displayName();
+@endphp
 <!DOCTYPE html>
 <html>
 

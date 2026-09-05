@@ -7,7 +7,6 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\Payslip;
-use App\Support\CompanyLetterhead;
 use App\Support\Contracts\AdvanceLedger;
 use App\Support\Contracts\ReimbursableClaims;
 use App\Support\PayrollMonth;
@@ -552,13 +551,9 @@ class PayslipService
     {
         $payslip->load('employee.user', 'fiscalYear');
 
-        // The letterhead comes from Company Settings, like the income certificate's. The template used to
-        // carry ErbiumTech's name and Lahore address as literal text — for every company on the installation.
-        return Pdf::view('pdfs.payslip', [
-            'data' => $payslip,
-            'company' => CompanyLetterhead::data(),
-            'company_name' => CompanyLetterhead::displayName(),
-        ])
+        // The letterhead is the template's own business — it resolves Company Settings itself, because it is
+        // also rendered directly, without this service, and must not depend on any one caller.
+        return Pdf::view('pdfs.payslip', ['data' => $payslip])
             ->format('a4')
             ->margins(0, 0, 0, 0)
             ->name($this->pdfFilename($payslip));
