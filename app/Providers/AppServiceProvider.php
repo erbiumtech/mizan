@@ -6,6 +6,7 @@ use App\Health\BackupConfigurationCheck;
 use App\Health\DiskSpaceCheck;
 use App\Health\FailedJobsCheck;
 use App\Health\LedgerControlsCheck;
+use App\Health\RedisPersistenceCheck;
 use App\Health\TenantDatabaseCheck;
 use App\Listeners\SyncSpatieTenant;
 use App\Modules\Accounting\Services\CommandInterpreter;
@@ -382,6 +383,12 @@ class AppServiceProvider extends ServiceProvider
             // Redis carries the queue (QUEUE_CONNECTION=redis) and broadcasting, so when it is
             // down, scheduled work silently stops being done rather than failing loudly.
             RedisCheck::new(),
+
+            // And whether what it carries survives a restart. Only where Redis *is* the queue: an
+            // installation on the database driver has nothing here to lose.
+            RedisPersistenceCheck::new()
+                ->name('Redis persistence')
+                ->if(fn (): bool => config('queue.default') === 'redis'),
 
             CacheCheck::new(),
 
