@@ -7,10 +7,13 @@ use App\Filament\Navigation\NavigationSnapshot;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
 use App\Modules\Core\Filament\Pages\Dashboard;
 use App\Modules\Core\Models\Company;
+use App\Modules\Core\Models\User;
 use App\Support\Broadcasting;
 use App\Support\Modules;
 use App\Support\NavigationTree;
 use App\Support\TenantStorage;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -184,6 +187,22 @@ class AdminPanelProvider extends PanelProvider
             // person by Filament's own sidebar store.
             ->sidebarFullyCollapsibleOnDesktop()
             ->login()
+            /*
+             * A second factor, required for the accounts that can move money.
+             *
+             * Authenticator-app codes with recovery codes, enrolled from the profile page. Required —
+             * the panel refuses to proceed until it is set up — for super admins and for anybody holding
+             * Administrator in any company; see User::mustUseMultiFactorAuthentication() for why that is
+             * asked team-agnostically. Optional for everyone else, who may still enrol.
+             */
+            ->multiFactorAuthentication(
+                [AppAuthentication::make()->recoverable()],
+                // No `User $user` parameter, deliberately: Filament evaluates this while the panel boots, with
+                // nobody signed in to inject, and a typed parameter it cannot resolve takes the whole
+                // application down before the login page renders. Read the user when asked instead.
+                isRequired: fn (): bool => (($user = Filament::auth()->user()) instanceof User)
+                    && $user->mustUseMultiFactorAuthentication(),
+            )
             // Self-service password change (user menu → Change Password).
             // Simple layout: the profile route sits outside the tenant prefix.
             ->profile(EditProfile::class)
