@@ -73,6 +73,9 @@ php artisan filament:optimize
 echo "==> Restart workers"
 # Queue workers hold the old code in memory until they are told otherwise.
 php artisan queue:restart
+# Horizon too: it finishes the jobs in flight and exits, and systemd (deploy/horizon/) starts
+# it again on this release. Harmless when Horizon is not running.
+php artisan horizon:terminate || true
 
 echo
 echo "Done. Three things this script deliberately does not do:"

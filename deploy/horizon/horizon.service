@@ -1,0 +1,30 @@
+# Laravel Horizon — the queue workers' supervisor — as a systemd service.
+#
+# Install:
+#     sudo cp deploy/horizon/horizon.service /etc/systemd/system/mpr-horizon.service
+#     sudo systemctl daemon-reload && sudo systemctl enable --now mpr-horizon
+#
+# Adjust WorkingDirectory, User and the php binary to the host. See README.md beside this file.
+
+[Unit]
+Description=Laravel Horizon queue supervisor (mpr)
+After=network.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/mpr
+ExecStart=/usr/bin/php artisan horizon
+Restart=always
+RestartSec=5
+
+# On stop, Horizon gets SIGTERM and finishes the jobs in flight before exiting. The longest a job
+# may run is config/horizon.php's `timeout` (300s), so give it longer than that before systemd
+# kills it — a payslip PDF or a scheduled report cut off half-way is a job that has to be redone.
+KillSignal=SIGTERM
+TimeoutStopSec=360
+
+[Install]
+WantedBy=multi-user.target

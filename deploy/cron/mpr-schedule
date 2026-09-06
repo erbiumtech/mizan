@@ -1,0 +1,19 @@
+# Laravel's scheduler for mpr, as a /etc/cron.d entry.
+#
+# One line drives everything in routes/console.php and every module's routes/console.php:
+# the health heartbeats (every minute — the **Schedule** health check goes red within
+# minutes of this cron stopping), the 01:00–02:00 backup chain, payroll month opening,
+# leave-year opening, document expiry, quote expiry, the MPR export sweep.
+#
+# Install:
+#     sudo cp deploy/cron/mpr-schedule /etc/cron.d/mpr-schedule
+#     sudo chmod 644 /etc/cron.d/mpr-schedule
+#
+# Adjust the path and user to the host (same user as PHP-FPM / Horizon, so files it writes
+# are readable by the app). Verify with `php artisan schedule:list`, and after a couple of
+# minutes with `php artisan health:check` — Schedule should be green.
+#
+# Output goes nowhere on purpose: each command logs to storage/logs/ itself, and a
+# scheduler that is *not* running is detected by the health check, not by reading cron mail.
+
+* * * * * www-data cd /var/www/mpr && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
