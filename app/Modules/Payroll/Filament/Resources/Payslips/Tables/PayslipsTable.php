@@ -5,6 +5,7 @@ namespace App\Modules\Payroll\Filament\Resources\Payslips\Tables;
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\CloseObjectionAction;
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\ReturnForReviewAction;
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Services\AttendanceFigures;
 use App\Modules\Payroll\Services\PayslipDeliveryService;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Support\EmployeeAccess;
@@ -231,6 +232,7 @@ class PayslipsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     self::sendBulkAction(),
+                    self::fillWorkingDaysBulkAction(),
                     DeleteBulkAction::make(),
                     self::acceptBulkAction(),
                     self::rejectBulkAction(),
@@ -270,6 +272,57 @@ class PayslipsTable
                 }
 
                 self::reportOne($record, $result);
+            });
+    }
+
+    /**
+     * Fill in the attendance columns of payslips that never had them.
+     *
+     * For the payslips raised before the month was measured, which carry 0 for working days — "not known".
+     * Each one is written the figures MonthlyPayrollService would write today, and saving recalculates the
+     * money the way every save does. A payslip that already knows its month is skipped, whatever it says,
+     * because what somebody entered outranks a recomputation; a locked run is skipped because the model
+     * refuses to change it.
+     */
+    protected static function fillWorkingDaysBulkAction(): BulkAction
+    {
+        return BulkAction::make('fillWorkingDaysBulk')
+            ->label('Fill in working days')
+            ->icon('heroicon-o-calendar-days')
+            ->requiresConfirmation()
+            ->modalHeading('Fill in working days')
+            ->modalDescription('Payslips showing 0 working days get the month\'s figures — from attendance where it is recorded, otherwise from the calendar, holidays and weekend — and their leave columns. Payslips that already have working days, and any in a signed-off month, are left unchanged.')
+            ->modalSubmitActionLabel('Fill in')
+            ->deselectRecordsAfterCompletion()
+            ->visible(fn (): bool => auth()->user()?->can('PayslipUpdate') ?? false)
+            ->action(function (Collection $records): void {
+                // Fetched by the table without these, and the lazy-load guard is right to object.
+                $records->load(['employee', 'fiscalYear', 'payrollRun']);
+
+                $figures = app(AttendanceFigures::class);
+
+                $filled = 0;
+                $skipped = 0;
+
+                foreach ($records as $record) {
+                    $known = (float) $record->total_working_days > 0;
+                    $locked = $record->payrollRun?->isLocked() ?? false;
+
+                    if ($known || $locked || ! $record->employee || ! $record->fiscalYear) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $record->update($figures->for($record->employee, $record->month, $record->fiscalYear));
+                    $figures->settle($record->employee, $record->month, $record->fiscalYear, $record);
+                    $filled++;
+                }
+
+                Notification::make()->success()
+                    ->title("Filled in {$filled} payslip(s).")
+                    ->body($skipped > 0 ? "{$skipped} already had working days or belong to a signed-off month, and were left unchanged." : null)
+                    ->send();
             });
     }
 

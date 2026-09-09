@@ -7,7 +7,9 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\CreatePayslip;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\EditPayslip;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Modules\Payroll\Models\Payslip;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;
@@ -66,6 +68,63 @@ class PayslipFormAttendancePrefillTest extends AccountingTestCase
                 'lop_days' => 0.0,
                 'leaves_taken' => 0.0,
             ]);
+    }
+
+    public function test_a_payslip_whose_working_days_were_never_known_opens_with_them_filled_in(): void
+    {
+        $payslip = Payslip::create([
+            'employee_id' => $this->employee->id,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'month' => 'August',
+            'basic_wage' => 200000,
+            'net_salary' => 200000,
+        ]);
+
+        $this->assertSame(0.0, (float) $payslip->fresh()->total_working_days, 'raised with the month unknown');
+
+        Livewire::test(EditPayslip::class, ['record' => $payslip->getKey()])
+            ->assertFormSet(['total_working_days' => 21.0, 'paid_days' => 21.0]);
+
+        // Shown, not written: nothing changes until somebody saves.
+        $this->assertSame(0.0, (float) $payslip->fresh()->total_working_days);
+    }
+
+    /**
+     * The month's payslips were raised before the month was measured; one click fills them. A payslip
+     * that already knows its working days is left exactly as it was, whatever the records now say.
+     */
+    public function test_the_bulk_action_fills_unknown_working_days_and_leaves_known_ones_alone(): void
+    {
+        $unknown = Payslip::create([
+            'employee_id' => $this->employee->id,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'month' => 'August',
+            'basic_wage' => 200000,
+            'net_salary' => 200000,
+        ]);
+
+        $known = Payslip::create([
+            'employee_id' => $this->employee->id,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'month' => 'September',
+            'total_working_days' => 26,
+            'paid_days' => 24,
+            'lop_days' => 2,
+            'leaves_taken' => 1,
+            'basic_wage' => 200000,
+            'net_salary' => 200000,
+        ]);
+
+        Livewire::test(ListPayslips::class)
+            ->selectTableRecords([$unknown->getKey(), $known->getKey()])
+            ->callAction(TestAction::make('fillWorkingDaysBulk')->table()->bulk())
+            ->assertNotified();
+
+        $this->assertSame(21.0, (float) $unknown->fresh()->total_working_days);
+        $this->assertSame(21.0, (float) $unknown->fresh()->paid_days);
+
+        $this->assertSame(26.0, (float) $known->fresh()->total_working_days, 'entered figures outrank a recomputation');
+        $this->assertSame(2.0, (float) $known->fresh()->lop_days);
     }
 
     public function test_an_existing_payslip_keeps_the_figures_it_was_given(): void

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Attendance\Models\WorkPattern;
+use App\Modules\Attendance\Models\WorkPatternDay;
 use App\Modules\Attendance\Services\WorkPatternResolver;
 use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Core\Models\FiscalYear;
@@ -174,6 +175,22 @@ class PayrollLeaveColumnsTest extends TestCase
 
         $this->assertSame(25.0, $figures['total_working_days']);
         $this->assertSame(23.0, $figures['paid_days']);
+    }
+
+    /**
+     * Attendance on, but the pattern was saved without its day rows: every day reads as not
+     * worked and the month used to come out at 0. A pattern that says nothing is not an
+     * answer, so the calendar gives the month its length; recorded absences still count.
+     */
+    public function test_a_pattern_with_no_days_falls_through_to_the_calendar(): void
+    {
+        WorkPatternDay::query()->delete();
+        app(WorkPatternResolver::class)->flush();
+
+        $figures = app(AttendanceFigures::class)->for($this->employee, 'August', $this->fiscalYear);
+
+        $this->assertSame(21.0, $figures['total_working_days'], 'the calendar, not the empty pattern');
+        $this->assertSame(21.0, $figures['paid_days']);
     }
 
     // ──────────────────────────────── §10.7 ────────────────────────────────
