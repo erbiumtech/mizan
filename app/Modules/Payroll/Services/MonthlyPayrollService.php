@@ -50,13 +50,12 @@ class MonthlyPayrollService
                 'month' => $month,
                 // Attendance was what payroll could not know. With `leave` and
                 // `attendance` licensed it now can, so these come from the records
-                // rather than from zeros a clerk has to correct — and AttendanceFigures
-                // returns exactly those zeros for a company that has neither module,
-                // which is the behaviour this line always had.
+                // rather than from zeros a clerk has to correct. Without `attendance`
+                // the month is measured from the calendar and the configured weekend
+                // (AttendanceFigures), so the working days are real either way.
                 //
-                // Zeros still mean "not known", and pro-rating still refuses to divide
-                // by them. Filling these in does not by itself change any pay: that
-                // needs payroll.prorate_on_attendance, which is off.
+                // Filling these in does not by itself change any pay: that needs
+                // payroll.prorate_on_attendance, which is off.
                 ...$figures->for($employee, $month, $fiscalYear),
                 ...$this->overtimeFor($figures, $employee, $month, $fiscalYear),
             ]);

@@ -114,12 +114,12 @@ return [
     | Which weekdays the company does not work, as ISO-8601 numbers (1 = Monday,
     | 7 = Sunday).
     |
-    | A stopgap, and labelled as one. Weekends properly belong to work patterns,
-    | which `attendance` owns and which do not exist yet — HolidayCalendar
-    | deliberately has no isWorkingDay() for exactly this reason. The leave-day
-    | generator cannot avoid the question, so it asks here, and this key goes away
-    | when work_patterns land: the generator reads the employee's pattern and falls
-    | back to this only when `attendance` is unlicensed.
+    | The answer for a company without the `attendance` module: work patterns own
+    | weekends where they exist, and everything falls back to this only when they
+    | do not (ConfiguredWeekendCalendar). Two readers: the leave-day generator, for
+    | which days a request consumes, and AttendanceFigures, for how many working
+    | days a payslip says the month had. Edited per company under Company Settings
+    | › Working week.
     |
     | Saturday and Sunday, with a note that six-day weeks are common in this market
     | and such a company sets [7].

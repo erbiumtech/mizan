@@ -4,10 +4,12 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\Attendance\Services\AttendanceCalendar;
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Core\Services\HolidayCalendar;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveDay;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
+use App\Support\Contracts\WorkingDayCalendar;
 use App\Support\PayrollMonth;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -24,16 +26,26 @@ use Illuminate\Support\Collection;
  *  | `leaves_taken`      | approved **paid** leave days consumed         | none          |
  *  | `lop_days`          | **unpaid** absence: loss of pay               | the only one pro-rating may read |
  *  | `paid_days`         | `total_working_days − lop_days`               | the numerator |
- *  | `total_working_days`| working days the pattern expected             | the divisor's basis |
+ *  | `total_working_days`| working days the month had                    | the divisor's basis |
  *
  * Both sources are guarded. Without `leave`, `leaves_taken` stays 0 and unpaid leave
- * contributes nothing. Without `attendance`, `total_working_days` stays 0 — which
- * means "not known", and pro-rating refuses to divide by it. A company with neither
- * gets exactly the zeros MonthlyPayrollService has always raised.
+ * contributes nothing. Without `attendance` there is no work pattern, so the month is
+ * measured from the calendar instead: every day that is not a company holiday and not
+ * one of the configured weekend days (`leave.weekend_days`, the same answer Leave gets
+ * through WorkingDayCalendar). That used to be left at 0 — "not known" — which printed
+ * three zeros on every payslip of a company running payroll without attendance, and
+ * the zeros were read as a broken payslip rather than as a modest statement.
+ *
+ * Nothing about pay changes by itself: pro-rating still needs
+ * `payroll.prorate_on_attendance`, which is off.
  */
 class AttendanceFigures
 {
-    public function __construct(private readonly AttendanceCalendar $calendar) {}
+    public function __construct(
+        private readonly AttendanceCalendar $calendar,
+        private readonly WorkingDayCalendar $workingDays,
+        private readonly HolidayCalendar $holidays,
+    ) {}
 
     /**
      * The four figures for one employee in one payroll month.
@@ -58,12 +70,14 @@ class AttendanceFigures
         $unpaidLeave = (float) $days->where('is_paid', false)->sum('portion');
 
         if (! modules()->enabled('attendance')) {
-            // Leave alone can still say what was taken, but it cannot say how long the
-            // month was — so the divisor stays unknown and nothing pro-rates. That is
-            // the honest state for a company running leave without attendance.
+            // No work pattern to ask, so the calendar answers: the days in the month
+            // that are neither a company holiday nor a configured weekend day. Unpaid
+            // leave is the only loss of pay a company without attendance can record.
+            $expected = $this->calendarWorkingDays($employee, $firstDay, $lastDay);
+
             return [
-                'total_working_days' => 0.0,
-                'paid_days' => 0.0,
+                'total_working_days' => (float) $expected,
+                'paid_days' => max(0.0, $expected - $unpaidLeave),
                 'lop_days' => $unpaidLeave,
                 'leaves_taken' => $paidLeave,
             ];
@@ -82,6 +96,25 @@ class AttendanceFigures
             'lop_days' => $lop,
             'leaves_taken' => $paidLeave,
         ];
+    }
+
+    /**
+     * Working days between two dates by the calendar alone: not a holiday, not a weekend day.
+     *
+     * Through WorkingDayCalendar rather than reading `leave.weekend_days` here, so the
+     * payslip and the leave-day generator can never disagree about which days a week has.
+     */
+    private function calendarWorkingDays(Employee $employee, CarbonInterface $from, CarbonInterface $to): int
+    {
+        $days = 0;
+
+        for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
+            if (! $this->holidays->isHoliday($date) && $this->workingDays->isWorkingDay($employee->getKey(), $date)) {
+                $days++;
+            }
+        }
+
+        return $days;
     }
 
     /**

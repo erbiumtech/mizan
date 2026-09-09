@@ -2,7 +2,10 @@
 
 namespace App\Modules\Payroll\Filament\Resources\Payslips\Schemas;
 
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Services\AttendanceFigures;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
@@ -37,6 +40,14 @@ class PayslipForm
         'total_deductions',
         'net_salary',
     ];
+
+    /**
+     * The four attendance columns, filled from leave and the calendar when a payslip is
+     * created — the same figures MonthlyPayrollService writes. On an existing payslip they
+     * are left alone: what was recorded is the record, and a clerk who corrected it by hand
+     * must not have it recomputed under them by changing an unrelated selector.
+     */
+    protected const ATTENDANCE_KEYS = ['total_working_days', 'paid_days', 'lop_days', 'leaves_taken'];
 
     /**
      * Fields where a figure typed on the payslip silently outranks the
@@ -135,12 +146,14 @@ class PayslipForm
                     ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                 // --- ATTENDANCE (text w/ numeric validation, hidden from index) ---
+                // Pre-filled by recalculate() on create; editable, because the record can be wrong.
                 TextInput::make('total_working_days')
                     ->label('Total Working Days')
                     ->numeric()
                     ->minValue(0)
                     ->required()
-                    ->default(0),
+                    ->default(0)
+                    ->helperText('Filled in from the work pattern — or, without Attendance, the calendar and the company\'s weekend — once employee, month and year are chosen. Correct by hand if the record is wrong.'),
 
                 TextInput::make('paid_days')
                     ->label('Paid Days')
@@ -392,11 +405,15 @@ class PayslipForm
         $fiscalYear = $get('fiscal_year_id');
 
         if (! $employee || ! $month || ! $fiscalYear) {
-            foreach (self::CALCULATED_KEYS as $key) {
+            foreach ([...self::CALCULATED_KEYS, ...($record ? [] : self::ATTENDANCE_KEYS)] as $key) {
                 $set($key, 0);
             }
 
             return;
+        }
+
+        if (! $record) {
+            self::prefillAttendance($employee, $month, $fiscalYear, $set);
         }
 
         $data = app(PayslipService::class)->calculateByParams(
@@ -416,6 +433,21 @@ class PayslipForm
 
         foreach (self::CALCULATED_KEYS as $key) {
             $set($key, ($data && isset($data[$key])) ? $data[$key] : 0);
+        }
+    }
+
+    /** The four attendance figures for a new payslip, from the same source the monthly run uses. */
+    protected static function prefillAttendance(int|string $employeeId, string $month, int|string $fiscalYearId, Set $set): void
+    {
+        $employee = Employee::find($employeeId);
+        $fiscalYear = FiscalYear::find($fiscalYearId);
+
+        if (! $employee || ! $fiscalYear) {
+            return;
+        }
+
+        foreach (app(AttendanceFigures::class)->for($employee, $month, $fiscalYear) as $key => $value) {
+            $set($key, $value);
         }
     }
 }
