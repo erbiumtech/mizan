@@ -52,6 +52,31 @@ Schedule::command(ScheduleCheckHeartbeatCommand::class)->everyMinute();
 Schedule::command('health:queue-check-heartbeat')->everyMinute();
 
 /*
+ * A worker for the database queue, on a host where nothing else supervises one.
+ *
+ * Nineteen notifications in this application implement `ShouldQueue` — every payslip, every leave
+ * decision, every bell notification — so with `QUEUE_CONNECTION=database` and no worker they are
+ * inserted into `jobs` and stay there. Nothing errors and nothing arrives, which is the failure mode
+ * the whole queue-health section above exists to make visible; this is the other half, the thing that
+ * makes the work actually happen.
+ *
+ * **Only for the `database` driver.** Redis installations run Horizon (deploy/horizon/), which
+ * supervises long-lived workers properly and would fight a second one started every minute.
+ *
+ *  - `--stop-when-empty` so an idle minute costs one query rather than a held process.
+ *  - `--max-time=50` so it is always gone before the next minute begins.
+ *  - `runInBackground()` because scheduled commands otherwise run in sequence inside `schedule:run`,
+ *    and a worker holding that for fifty seconds would delay the heartbeats that prove cron is alive.
+ *  - `withoutOverlapping(2)` rather than the default day: a worker killed mid-run must not leave a
+ *    lock that silently stops the queue until somebody clears the cache.
+ */
+Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
+    ->everyMinute()
+    ->runInBackground()
+    ->withoutOverlapping(2)
+    ->when(fn (): bool => config('queue.default') === 'database');
+
+/*
  * The backups themselves.
  *
  * Everything for restoring this application existed — spatie/laravel-backup configured, `backup:tenants`

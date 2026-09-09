@@ -64,6 +64,7 @@ class MailConfigurationCheck extends Check
         ]);
 
         $problems = [];
+        $warnings = [];
 
         foreach ($chain as $mailer) {
             // `is_null`, because that is the test `MailManager::resolve()` applies before throwing the
@@ -84,26 +85,67 @@ class MailConfigurationCheck extends Check
             }
         }
 
-        if ((string) config('mail.from.address') === self::PLACEHOLDER_FROM) {
+        $from = (string) config('mail.from.address');
+
+        if ($from === self::PLACEHOLDER_FROM) {
             $problems[] = 'MAIL_FROM_ADDRESS is still '.self::PLACEHOLDER_FROM
                 .', which SendGrid and Mailgun both refuse to send from';
         }
 
-        // Not a problem, but worth saying out loud: nothing is being delivered.
-        $undelivered = array_intersect($chain, ['log', 'array']);
-
-        if ($problems === []) {
-            return $undelivered === []
-                ? $result->shortSummary(implode(' → ', $chain))->ok('Mail is configured and every mailer in the chain can send.')
-                : $result->shortSummary('not delivering')->warning(
-                    'Mail is being written to the '.implode(' and ', $undelivered).' driver rather than sent. '
-                    .'Nothing reaches anybody, and every send is reported as successful.'
-                );
+        // Nothing is being delivered. Not a failure — somebody may have chosen it — but it must not
+        // read as green, because every send is reported as successful and none of them went.
+        if ($undelivered = array_intersect($chain, ['log', 'array'])) {
+            $warnings[] = 'mail is written to the '.implode(' and ', $undelivered)
+                .' driver rather than sent, so nothing reaches anybody and every send still reports success';
         }
 
-        return $result
-            ->shortSummary('misconfigured')
-            ->failed(ucfirst(implode('; ', $problems)).'.');
+        $warnings = array_merge($warnings, $this->senderDomainWarnings($chain, $from));
+
+        if ($problems !== []) {
+            return $result
+                ->shortSummary('misconfigured')
+                ->failed(ucfirst(implode('; ', array_merge($problems, $warnings))).'.');
+        }
+
+        return $warnings === []
+            ? $result->shortSummary(implode(' → ', $chain))->ok('Mail is configured and every mailer in the chain can send.')
+            : $result->shortSummary('check the sender')->warning(ucfirst(implode('; ', $warnings)).'.');
+    }
+
+    /**
+     * Whether the address being sent *from* is one the provider will actually send *for*.
+     *
+     * Mailgun authenticates a domain and refuses a From outside it; SendGrid checks the address
+     * against a verified Sender Identity. Both rejections arrive per message, at the provider, long
+     * after the configuration looked complete — and `mg.erbium.ch` against a From of
+     * `info@erbium.tech` is two different registrable domains, which is easy to write and hard to
+     * spot. A subdomain of the sending domain is the normal, recommended arrangement and passes.
+     *
+     * A warning rather than a failure: a paid plan or a verified single sender can legitimately
+     * differ, and this check cannot ask the provider which.
+     *
+     * @param  array<int, string>  $chain
+     * @return array<int, string>
+     */
+    private function senderDomainWarnings(array $chain, string $from): array
+    {
+        $fromDomain = strtolower((string) (explode('@', $from)[1] ?? ''));
+        $mailgunDomain = strtolower((string) config('services.mailgun.domain'));
+
+        if (! in_array('mailgun', $chain, true) || blank($fromDomain) || blank($mailgunDomain)) {
+            return [];
+        }
+
+        $related = $fromDomain === $mailgunDomain
+            || str_ends_with($fromDomain, '.'.$mailgunDomain)
+            || str_ends_with($mailgunDomain, '.'.$fromDomain);
+
+        return $related ? [] : [sprintf(
+            'MAIL_FROM_ADDRESS is at %s while Mailgun authenticates %s, which are unrelated domains — '
+            .'Mailgun will refuse the From unless that address is verified for it',
+            $fromDomain,
+            $mailgunDomain,
+        )];
     }
 
     /**

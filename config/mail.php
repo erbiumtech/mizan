@@ -105,8 +105,12 @@ return [
         ],
 
         /*
-         * Production's mailer: SendGrid first, Mailgun when SendGrid fails. In order, and the
+         * Production's mailer: Mailgun first, SendGrid when Mailgun fails. In order, and the
          * order is the decision — the second is only ever tried after the first has thrown.
+         *
+         * Mailgun leads because it is the domain this installation authenticates as, over SMTP;
+         * SendGrid is the standby behind it. The comment in the live `.env` states this order, so
+         * it is stated here in the file that decides it.
          *
          * Deliberately no `log` at the end. A chain that "fails over" to the log delivers
          * nothing and reports success, which for a payslip or a password reset is the worst
@@ -116,8 +120,8 @@ return [
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
-                'sendgrid',
                 'mailgun',
+                'sendgrid',
             ],
         ],
 

@@ -184,8 +184,15 @@ class AppServiceProvider extends ServiceProvider
          * than a bare `true`: the guard throws. A relation nobody exercised in development would take
          * a customer's page down rather than serve it a little slower, which is a worse trade than the
          * one it is here to make. Phase 6 of docs/page-load-performance-plan.md.
+         *
+         * **Named environments rather than `! isProduction()`**, because that phrasing arms the guard
+         * by default and disarms it only on one exact spelling of one word. A live server running
+         * `APP_ENV=prod` — which `isProduction()` does not recognise, since it tests for `production` —
+         * had a throwing N+1 guard in front of paying customers, from a line whose own docblock says
+         * it must never be on there. The safe state is now the default: it is on where somebody chose
+         * it, and anything unrecognised gets production's behaviour.
          */
-        Model::preventLazyLoading(! $this->app->isProduction());
+        Model::preventLazyLoading($this->app->environment('local', 'testing'));
 
         // Landlord (central) migrations always run on the default connection.
         // Tenant migrations live in their own path and are applied per-company
@@ -384,7 +391,17 @@ class AppServiceProvider extends ServiceProvider
 
             // Redis carries the queue (QUEUE_CONNECTION=redis) and broadcasting, so when it is
             // down, scheduled work silently stops being done rather than failing loudly.
-            RedisCheck::new(),
+            //
+            // Only where something actually uses it. An installation on the database queue and the
+            // database cache has no Redis and needs none, and this was a permanent red tile with an
+            // hourly email behind it — which is how a dashboard stops being read, and the reasoning
+            // the two production-only checks at the bottom of this method already follow.
+            RedisCheck::new()->if(fn (): bool => in_array('redis', [
+                config('queue.default'),
+                config('cache.default'),
+                config('session.driver'),
+                config('broadcasting.default'),
+            ], true)),
 
             // And whether what it carries survives a restart. Only where Redis *is* the queue: an
             // installation on the database driver has nothing here to lose.

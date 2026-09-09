@@ -5,10 +5,14 @@ namespace Tests\Feature;
 use App\Health\HorizonCheck;
 use App\Health\MailConfigurationCheck;
 use App\Multitenancy\TenantAwareJobs;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\Model;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;
 use Laravel\Horizon\MasterSupervisor;
 use RuntimeException;
+use Spatie\Health\Checks\Checks\RedisCheck;
 use Spatie\Health\Enums\Status;
+use Spatie\Health\Facades\Health;
 use Spatie\Health\Jobs\HealthQueueJob;
 use Tests\TestCase;
 
@@ -122,7 +126,97 @@ class ProductionLogErrorsTest extends TestCase
         $result = (new MailConfigurationCheck)->run();
 
         $this->assertSame(Status::warning(), $result->status);
-        $this->assertStringContainsString('Nothing reaches anybody', $result->getNotificationMessage());
+        $this->assertStringContainsString('nothing reaches anybody', $result->getNotificationMessage());
+    }
+
+    // ───────────────── 4. what the live .env said about the rest ─────────────────
+
+    /**
+     * `APP_ENV=prod` is not `production`, and the difference armed a guard that throws.
+     *
+     * `Model::preventLazyLoading(! $this->app->isProduction())` reads as "off in production" and is
+     * off only for the exact string `production`. A live server spelled it `prod`, so every N+1 in
+     * the application was a `LazyLoadingViolationException` in front of paying customers — from the
+     * line whose own docblock says it must never be on there. The condition now names the
+     * environments where the guard is wanted, so an unrecognised one gets production's behaviour.
+     */
+    public function test_an_unrecognised_environment_does_not_arm_the_lazy_loading_guard(): void
+    {
+        $this->app['env'] = 'prod';
+
+        $this->assertFalse($this->app->isProduction(), 'the asymmetry the old condition depended on');
+        $this->assertFalse(
+            $this->app->environment('local', 'testing'),
+            'and the new one: anything unrecognised is treated as production, which is the safe direction',
+        );
+
+        // Still armed where it is meant to be, which is the reason to keep it at all.
+        $this->app['env'] = 'testing';
+        $this->assertTrue($this->app->environment('local', 'testing'));
+        $this->assertTrue(Model::preventsLazyLoading());
+    }
+
+    /** Nineteen notifications queue; on the database driver nothing consumes them without this. */
+    public function test_the_database_queue_gets_a_worker_and_a_redis_queue_does_not(): void
+    {
+        $worker = collect(app(Schedule::class)->events())
+            ->first(fn ($event): bool => str_contains($event->command ?? '', 'queue:work'));
+
+        $this->assertNotNull($worker, 'the database queue has no supervisor of its own');
+        $this->assertSame('* * * * *', $worker->expression);
+        $this->assertStringContainsString('--stop-when-empty', $worker->command);
+        $this->assertStringContainsString('--max-time=50', $worker->command);
+
+        config(['queue.default' => 'database']);
+        $this->assertTrue($worker->filtersPass($this->app));
+
+        // Horizon supervises long-lived workers properly and must not be given a rival every minute.
+        config(['queue.default' => 'redis']);
+        $this->assertFalse($worker->filtersPass($this->app));
+    }
+
+    /** A server that uses no Redis should not carry a permanent red tile for it. */
+    public function test_redis_is_only_checked_where_something_uses_it(): void
+    {
+        $check = collect(Health::registeredChecks())
+            ->first(fn ($check): bool => $check instanceof RedisCheck);
+
+        $this->assertNotNull($check);
+
+        config([
+            'queue.default' => 'database',
+            'cache.default' => 'database',
+            'session.driver' => 'file',
+            'broadcasting.default' => 'log',
+        ]);
+        $this->assertFalse($check->shouldRun(), 'nothing here touches Redis');
+
+        config(['cache.default' => 'redis']);
+        $this->assertTrue($check->shouldRun());
+    }
+
+    /**
+     * The From must be an address the provider will send for.
+     *
+     * `info@erbium.tech` against a Mailgun domain of `mg.erbium.ch` is two different registrable
+     * domains — easy to write, and rejected per message at the provider rather than here.
+     */
+    public function test_a_from_address_outside_the_mailgun_domain_is_a_warning(): void
+    {
+        $this->configureChain(['mailgun' => ['domain' => 'mg.erbium.ch', 'secret' => 'key'], 'sendgrid' => 'SG.key']);
+        config(['mail.from.address' => 'info@erbium.tech']);
+
+        $result = (new MailConfigurationCheck)->run();
+
+        $this->assertSame(Status::warning(), $result->status);
+        $this->assertStringContainsString('mg.erbium.ch', $result->getNotificationMessage());
+
+        // A subdomain of the sending domain is the normal arrangement and passes.
+        config(['mail.from.address' => 'info@mg.erbium.ch']);
+        $this->assertSame(Status::ok(), (new MailConfigurationCheck)->run()->status);
+
+        config(['services.mailgun.domain' => 'mg.erbium.ch', 'mail.from.address' => 'info@erbium.ch']);
+        $this->assertSame(Status::ok(), (new MailConfigurationCheck)->run()->status, 'the parent domain is fine');
     }
 
     /** @param  array<string, mixed>  $providers */
