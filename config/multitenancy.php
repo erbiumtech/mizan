@@ -1,16 +1,16 @@
 <?php
 
-use Spatie\Multitenancy\Jobs\TenantAware;
 use Illuminate\Broadcasting\BroadcastEvent;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Mail\SendQueuedMailable;
-use Spatie\Multitenancy\Jobs\NotTenantAware;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Queue\CallQueuedClosure;
 use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
 use Spatie\Multitenancy\Actions\MakeQueueTenantAwareAction;
 use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
 use Spatie\Multitenancy\Actions\MigrateTenantAction;
+use Spatie\Multitenancy\Jobs\NotTenantAware;
+use Spatie\Multitenancy\Jobs\TenantAware;
 use Spatie\Multitenancy\Models\Tenant;
 
 return [
@@ -129,8 +129,19 @@ return [
 
     /*
      * Jobs not tenant aware even if these don't implement the NotTenantAware interface.
+     *
+     * `queues_are_tenant_aware_by_default` is true here, so a package job that knows nothing about
+     * companies is refused by `RefuseTenantlessTenantAwareJobs` when a scheduled command dispatches it
+     * with no tenant current. That is the guard working as intended — the job would otherwise be deleted
+     * by the worker without a trace — and this list is where a job that genuinely serves the
+     * installation rather than a company says so.
+     *
+     * `HealthQueueJob` is the heartbeat `QueueCheck` reads: it writes one cache key to prove a worker is
+     * alive. It was refused once a minute — 800 failures of `health:queue-check-heartbeat` in thirteen
+     * hours on the production log — which left the check that watches the queue unable to run, so a
+     * genuinely dead worker would have looked exactly the same.
      */
     'not_tenant_aware_jobs' => [
-        // ...
+        \Spatie\Health\Jobs\HealthQueueJob::class,
     ],
 ];

@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Health\BackupConfigurationCheck;
 use App\Health\DiskSpaceCheck;
 use App\Health\FailedJobsCheck;
+use App\Health\HorizonCheck;
 use App\Health\LedgerControlsCheck;
+use App\Health\MailConfigurationCheck;
 use App\Health\PublicStorageLinkCheck;
 use App\Health\RedisPersistenceCheck;
 use App\Health\TenantDatabaseCheck;
@@ -46,7 +48,6 @@ use Spatie\Health\Checks\Checks\CacheCheck;
 use Spatie\Health\Checks\Checks\DatabaseCheck;
 use Spatie\Health\Checks\Checks\DebugModeCheck;
 use Spatie\Health\Checks\Checks\EnvironmentCheck;
-use Spatie\Health\Checks\Checks\HorizonCheck;
 use Spatie\Health\Checks\Checks\QueueCheck;
 use Spatie\Health\Checks\Checks\RedisCheck;
 use Spatie\Health\Checks\Checks\ScheduleCheck;
@@ -432,7 +433,11 @@ class AppServiceProvider extends ServiceProvider
             // This is what makes the scheduled work in every module observable end to end —
             // ScheduleCheck proves cron fires the dispatcher, this proves something is on the
             // other end to run what it dispatched.
-            HorizonCheck::new(),
+            //
+            // Ours rather than the package's, and only where Redis carries the queue. The package's
+            // check throws its Redis error straight out of `run()` instead of failing, and an
+            // installation whose queue is not Redis has no Horizon to watch at all — see the class.
+            HorizonCheck::new()->if(fn (): bool => config('queue.default') === 'redis'),
 
             /*
              * Is *anything* consuming the queue — whatever supervises it.
@@ -469,6 +474,12 @@ class AppServiceProvider extends ServiceProvider
                 // Production-only for the same reason as the two above it: a developer's dump never
                 // leaves the machine, so encrypting it is not a finding worth a permanent amber.
                 BackupConfigurationCheck::new()->name('Backup configuration'),
+
+                // And whether an email can leave the building at all: a mailer named in the chain but
+                // not defined, a provider with no credentials, the shipped placeholder still in
+                // MAIL_FROM_ADDRESS. All three were live on one server on the same day, and the first
+                // of them broke the notification that was reporting a different failure.
+                MailConfigurationCheck::new()->name('Mail configuration'),
             ]);
         }
     }

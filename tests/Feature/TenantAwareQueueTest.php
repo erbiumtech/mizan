@@ -13,6 +13,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\DB;
+use Spatie\Health\Checks\Checks\QueueCheck;
+use Spatie\Health\Jobs\HealthQueueJob;
 use Spatie\Multitenancy\Jobs\NotTenantAware;
 use Tests\TestCase;
 
@@ -67,6 +69,20 @@ class TenantAwareQueueTest extends TestCase
     public function test_a_job_that_serves_no_company_is_not_asked_for_one(): void
     {
         dispatch(new LandlordOnlyJob);
+
+        $this->assertSame(1, DB::table('jobs')->count());
+    }
+
+    /**
+     * A package job that serves the installation queues without a tenant — `not_tenant_aware_jobs`.
+     *
+     * The health heartbeat was refused once a minute on production, 800 times in thirteen hours, which
+     * left `QueueCheck` unable to run: the check that would report a dead worker was itself the thing
+     * that could not be dispatched. See ProductionLogErrorsTest.
+     */
+    public function test_a_package_job_on_the_exemption_list_queues_with_no_tenant(): void
+    {
+        dispatch(new HealthQueueJob(new QueueCheck));
 
         $this->assertSame(1, DB::table('jobs')->count());
     }
