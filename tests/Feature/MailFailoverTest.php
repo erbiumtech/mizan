@@ -8,7 +8,7 @@ use Symfony\Component\Mailer\Transport\FailoverTransport;
 use Tests\TestCase;
 
 /**
- * Production mail: SendGrid, then Mailgun, and nothing quieter after them.
+ * Production mail: Mailgun, then SendGrid, and nothing quieter after them.
  *
  * The chain is configuration, so what is pinned is the configuration and that each name in it
  * resolves to the real API transport — a typo in a transport name is otherwise found by the
@@ -27,9 +27,9 @@ class MailFailoverTest extends TestCase
         ]);
     }
 
-    public function test_the_failover_chain_is_sendgrid_then_mailgun_and_nothing_else(): void
+    public function test_the_failover_chain_is_mailgun_then_sendgrid_and_nothing_else(): void
     {
-        $this->assertSame(['sendgrid', 'mailgun'], config('mail.mailers.failover.mailers'));
+        $this->assertSame(['mailgun', 'sendgrid'], config('mail.mailers.failover.mailers'));
     }
 
     public function test_sendgrid_resolves_to_its_api_transport(): void
@@ -55,14 +55,17 @@ class MailFailoverTest extends TestCase
         }
     }
 
-    public function test_the_chain_builds_with_sendgrid_ahead_of_mailgun(): void
+    public function test_the_chain_builds_with_mailgun_ahead_of_sendgrid(): void
     {
+        config(['mail.mailers.mailgun.host' => 'smtp.eu.mailgun.org']);
+
         $transport = Mail::mailer('failover')->getSymfonyTransport();
 
         $this->assertInstanceOf(FailoverTransport::class, $transport);
 
+        // The order is the decision: the second provider is only ever tried after the first has thrown.
         $description = (string) $transport;
-        $this->assertLessThan(strpos($description, 'mailgun'), strpos($description, 'sendgrid'), $description);
+        $this->assertLessThan(strpos($description, 'sendgrid'), strpos($description, 'mailgun'), $description);
         $this->assertStringNotContainsString('log', $description, 'no silent last resort');
     }
 }
