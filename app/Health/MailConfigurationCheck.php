@@ -32,12 +32,25 @@ class MailConfigurationCheck extends Check
     /** What ships in config/mail.php, and what no real provider will send from. */
     public const PLACEHOLDER_FROM = 'hello@example.com';
 
-    /** Credentials each API provider cannot send without, as config key => label. */
-    private const CREDENTIALS = [
+    /**
+     * What each API transport cannot send without, as config key => the variable to set.
+     *
+     * Keyed by **transport**, not by mailer name: `mailgun` is the name of a mailer that may be the
+     * provider's HTTP API or plain SMTP to `smtp.mailgun.org`, and those need entirely different
+     * credentials. Reading the name would have this check demand an API key from a working SMTP relay.
+     */
+    private const API_CREDENTIALS = [
         'sendgrid' => ['services.sendgrid.key' => 'SENDGRID_API_KEY'],
         'mailgun' => ['services.mailgun.domain' => 'MAILGUN_DOMAIN', 'services.mailgun.secret' => 'MAILGUN_SECRET'],
         'postmark' => ['services.postmark.token' => 'POSTMARK_TOKEN'],
         'resend' => ['services.resend.key' => 'RESEND_KEY'],
+    ];
+
+    /** Transports that also accept their credential inline on the mailer, as transport => key. */
+    private const INLINE_CREDENTIAL = [
+        'sendgrid' => 'key',
+        'resend' => 'key',
+        'postmark' => 'token',
     ];
 
     public function run(): Result
@@ -66,10 +79,8 @@ class MailConfigurationCheck extends Check
                 continue;
             }
 
-            foreach (self::CREDENTIALS[$mailer] ?? [] as $key => $label) {
-                if (blank(config($key))) {
-                    $problems[] = "{$mailer} is in the chain with no {$label} set";
-                }
+            foreach ($this->missingCredentials((array) config("mail.mailers.{$mailer}")) as $missing) {
+                $problems[] = "the [{$mailer}] mailer is in the chain with no {$missing}";
             }
         }
 
@@ -93,6 +104,42 @@ class MailConfigurationCheck extends Check
         return $result
             ->shortSummary('misconfigured')
             ->failed(ucfirst(implode('; ', $problems)).'.');
+    }
+
+    /**
+     * What the mailer is missing before it can send, in the words of whoever has to set it.
+     *
+     * SMTP needs somewhere to connect, and a username with no password is a relay that will be
+     * refused rather than one that is open. An API transport needs its credentials, from
+     * config/services.php or — where the transport allows it — inline on the mailer itself.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<int, string>
+     */
+    private function missingCredentials(array $config): array
+    {
+        $transport = (string) ($config['transport'] ?? '');
+
+        if ($transport === 'smtp') {
+            return array_values(array_filter([
+                blank($config['host'] ?? null) ? 'host set' : null,
+                filled($config['username'] ?? null) && blank($config['password'] ?? null)
+                    ? 'password for its username' : null,
+            ]));
+        }
+
+        $missing = [];
+        $inline = self::INLINE_CREDENTIAL[$transport] ?? null;
+
+        foreach (self::API_CREDENTIALS[$transport] ?? [] as $key => $label) {
+            if (filled(config($key)) || ($inline !== null && filled($config[$inline] ?? null))) {
+                continue;
+            }
+
+            $missing[] = "{$label} set";
+        }
+
+        return $missing;
     }
 
     /**

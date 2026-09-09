@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
-use Symfony\Component\Mailer\Bridge\Mailgun\Transport\MailgunHttpTransport;
 use Symfony\Component\Mailer\Bridge\Sendgrid\Transport\SendgridApiTransport;
 use Symfony\Component\Mailer\Transport\FailoverTransport;
 use Tests\TestCase;
@@ -38,13 +37,22 @@ class MailFailoverTest extends TestCase
         $this->assertInstanceOf(SendgridApiTransport::class, Mail::mailer('sendgrid')->getSymfonyTransport());
     }
 
-    public function test_mailgun_resolves_to_its_api_transport(): void
+    /**
+     * Every mailer in the chain resolves, whichever transport it is configured with.
+     *
+     * Not pinned to a transport class, deliberately: the second provider may be reached over its HTTP
+     * API or over SMTP, and that is a deployment choice. What must never happen is the production
+     * failure this file exists for — `Mailer [mailgun] is not defined`, thrown at send time by a chain
+     * naming a mailer nothing defines.
+     */
+    public function test_every_mailer_in_the_chain_resolves(): void
     {
-        $transport = Mail::mailer('mailgun')->getSymfonyTransport();
-
-        // Laravel's factory picks the bridge's HTTP transport (the `mailgun+https` scheme).
-        $this->assertInstanceOf(MailgunHttpTransport::class, $transport);
-        $this->assertStringContainsString('mg.example.test', (string) $transport);
+        foreach (config('mail.mailers.failover.mailers') as $mailer) {
+            $this->assertNotNull(
+                Mail::mailer($mailer)->getSymfonyTransport(),
+                "the [{$mailer}] mailer is named in the failover chain and must be defined",
+            );
+        }
     }
 
     public function test_the_chain_builds_with_sendgrid_ahead_of_mailgun(): void
