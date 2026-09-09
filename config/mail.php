@@ -65,6 +65,28 @@ return [
             'transport' => 'resend',
         ],
 
+        /*
+         * The two providers behind the failover chain below. Both are API transports, not
+         * SMTP: a host that blocks outbound 587 — common on the cheaper VPS plans — still
+         * sends, and a provider outage surfaces as an HTTP error the chain can act on
+         * rather than a connection that hangs to its timeout.
+         *
+         * `sendgrid` is not one of Laravel's built-in transports; MailServiceProvider
+         * registers it from the Symfony bridge. `mailgun` is built in and reads
+         * services.mailgun.
+         */
+        'sendgrid' => [
+            'transport' => 'sendgrid',
+            'key' => env('SENDGRID_API_KEY'),
+        ],
+
+        'mailgun' => [
+            'transport' => 'mailgun',
+            // 'client' => [
+            //     'timeout' => 5,
+            // ],
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
@@ -79,11 +101,20 @@ return [
             'transport' => 'array',
         ],
 
+        /*
+         * Production's mailer: SendGrid first, Mailgun when SendGrid fails. In order, and the
+         * order is the decision — the second is only ever tried after the first has thrown.
+         *
+         * Deliberately no `log` at the end. A chain that "fails over" to the log delivers
+         * nothing and reports success, which for a payslip or a password reset is the worst
+         * shape a failure can take: the sender is told it went. Two real providers down at
+         * once is a loud failure, and loud is right.
+         */
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
-                'smtp',
-                'log',
+                'sendgrid',
+                'mailgun',
             ],
         ],
 

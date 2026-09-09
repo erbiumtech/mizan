@@ -40,4 +40,21 @@ return [
         ],
     ],
 
+    /*
+     * Email delivery — config/mail.php's `sendgrid` and `mailgun` mailers, chained by `failover`.
+     * SendGrid's sender identity must include MAIL_FROM_ADDRESS, and Mailgun's domain must be the
+     * one MAIL_FROM_ADDRESS is under, or each provider rejects the message and the chain moves on.
+     */
+    'sendgrid' => [
+        'key' => env('SENDGRID_API_KEY'),
+    ],
+
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        // api.eu.mailgun.net for a domain created in the EU region.
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
+    ],
+
 ];
