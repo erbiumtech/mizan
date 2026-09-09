@@ -9,7 +9,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveDay;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
-use App\Support\Contracts\WorkingDayCalendar;
+use App\Support\Contracts\ConfiguredWeekendCalendar;
 use App\Support\PayrollMonth;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -28,13 +28,14 @@ use Illuminate\Support\Collection;
  *  | `paid_days`         | `total_working_days − lop_days`               | the numerator |
  *  | `total_working_days`| working days the month had                    | the divisor's basis |
  *
- * Both sources are guarded. Without `leave`, `leaves_taken` stays 0 and unpaid leave
- * contributes nothing. Without `attendance` there is no work pattern, so the month is
- * measured from the calendar instead: every day that is not a company holiday and not
- * one of the configured weekend days (`leave.weekend_days`, the same answer Leave gets
- * through WorkingDayCalendar). That used to be left at 0 — "not known" — which printed
- * three zeros on every payslip of a company running payroll without attendance, and
- * the zeros were read as a broken payslip rather than as a modest statement.
+ * **The month is always measured; attendance refines it where it has something to say.**
+ * `total_working_days` comes from the work pattern when Attendance is on and the pattern
+ * answers — and from the calendar otherwise: the month's days less company holidays and
+ * the configured weekend (`leave.weekend_days`). "Otherwise" covers a company without the
+ * module and a company whose pattern was saved without its seven day rows, which reads
+ * as a week of no working days and used to print 0.00 on every payslip. Recorded absence
+ * is loss of pay only where attendance recorded it; unpaid leave is loss of pay always;
+ * and without `leave` both leave columns stay 0.
  *
  * Nothing about pay changes by itself: pro-rating still needs
  * `payroll.prorate_on_attendance`, which is off.
@@ -43,7 +44,7 @@ class AttendanceFigures
 {
     public function __construct(
         private readonly AttendanceCalendar $calendar,
-        private readonly WorkingDayCalendar $workingDays,
+        private readonly ConfiguredWeekendCalendar $weekend,
         private readonly HolidayCalendar $holidays,
     ) {}
 
@@ -69,30 +70,23 @@ class AttendanceFigures
         $paidLeave = (float) $days->where('is_paid', true)->sum('portion');
         $unpaidLeave = (float) $days->where('is_paid', false)->sum('portion');
 
-        if (! modules()->enabled('attendance')) {
-            // No work pattern to ask, so the calendar answers: the days in the month
-            // that are neither a company holiday nor a configured weekend day. Unpaid
-            // leave is the only loss of pay a company without attendance can record.
-            $expected = $this->calendarWorkingDays($employee, $firstDay, $lastDay);
+        $summary = modules()->enabled('attendance')
+            ? $this->calendar->summarise($employee, $firstDay->year, $firstDay->month)
+            : null;
 
-            return [
-                'total_working_days' => (float) $expected,
-                'paid_days' => max(0.0, $expected - $unpaidLeave),
-                'lop_days' => $unpaidLeave,
-                'leaves_taken' => $paidLeave,
-            ];
-        }
-
-        $summary = $this->calendar->summarise($employee, $firstDay->year, $firstDay->month);
+        // The month's length from the pattern when attendance has one that answers, else
+        // from the calendar. A pattern with no working days at all is not an answer — it
+        // is a pattern saved without its days — so 0 falls through to the calendar too.
+        $expected = $summary?->expectedDays ?: $this->calendarWorkingDays($firstDay, $lastDay);
 
         // Unpaid leave and recorded absence are both loss of pay, and they are
         // different rows: an unpaid leave day is `on_leave` in attendance and is
         // therefore NOT counted in absentDays, so adding them cannot double-count.
-        $lop = $summary->lossOfPayDays() + $unpaidLeave;
+        $lop = ($summary?->lossOfPayDays() ?? 0.0) + $unpaidLeave;
 
         return [
-            'total_working_days' => (float) $summary->expectedDays,
-            'paid_days' => max(0.0, $summary->expectedDays - $lop),
+            'total_working_days' => (float) $expected,
+            'paid_days' => max(0.0, $expected - $lop),
             'lop_days' => $lop,
             'leaves_taken' => $paidLeave,
         ];
@@ -101,15 +95,16 @@ class AttendanceFigures
     /**
      * Working days between two dates by the calendar alone: not a holiday, not a weekend day.
      *
-     * Through WorkingDayCalendar rather than reading `leave.weekend_days` here, so the
-     * payslip and the leave-day generator can never disagree about which days a week has.
+     * The configured weekend directly, not the WorkingDayCalendar binding: with Attendance on
+     * that binding routes to the very pattern that has just answered 0, and the point here is
+     * the fallback. It is the same `leave.weekend_days` the leave-day generator falls back to.
      */
-    private function calendarWorkingDays(Employee $employee, CarbonInterface $from, CarbonInterface $to): int
+    private function calendarWorkingDays(CarbonInterface $from, CarbonInterface $to): int
     {
         $days = 0;
 
         for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
-            if (! $this->holidays->isHoliday($date) && $this->workingDays->isWorkingDay($employee->getKey(), $date)) {
+            if (! $this->holidays->isHoliday($date) && $this->weekend->isWorkingDay(null, $date)) {
                 $days++;
             }
         }
