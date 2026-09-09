@@ -52,7 +52,6 @@ return [
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
-        // api.eu.mailgun.net for a domain created in the EU region.
         'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
         'scheme' => 'https',
     ],
