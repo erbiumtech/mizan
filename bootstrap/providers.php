@@ -40,4 +40,5 @@ return [
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\PlatformPanelProvider::class,
     App\Providers\HorizonServiceProvider::class,
+    App\Providers\MailServiceProvider::class,
 ];
