@@ -21,6 +21,25 @@ two answers for one day is not extra detail, it is a day that gets counted twice
 **Notes** is for the reason, where there is one worth keeping: a factory shutdown,
 a day granted after an election.
 
+## Pakistan public holidays <!-- requires: HolidayCreate -->
+
+**Add Pakistan public holidays** fills a year with the federal list in one go: Kashmir
+Day, Eid ul-Fitr, Pakistan Day, Labour Day, Eid ul-Azha, Youm-e-Takbeer, Ashura,
+Independence Day, Eid Milad-un-Nabi, Iqbal Day and Quaid-e-Azam Day. Pick the year and
+click **Add them**. National days come in marked recurring.
+
+**The moon decides the rest.** For a year the Cabinet Division has already gazetted,
+Eid, Ashura and Eid Milad-un-Nabi are the notified dates. For a later year they are
+astronomical estimates, and their **Notes** say "tentative": when the notification
+comes, or the Ruet-e-Hilal Committee announces a sighting, edit the date. A day that
+coincides with a national day — Eid falling on Pakistan Day — is one row carrying both
+names, because one row per date is the rule above.
+
+**Nothing you entered is touched.** A date already in the list is skipped, name and
+notes as you left them, and the message afterwards says how many were added and how
+many were already there. Bank holidays and the optional denominational holidays are
+not included: neither closes the company.
+
 ## Recurring <!-- requires: HolidayCreate -->
 
 **Recurring** marks a holiday as one to expect again next year. It is a note to
