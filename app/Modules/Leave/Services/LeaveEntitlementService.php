@@ -206,19 +206,50 @@ class LeaveEntitlementService
 
         $full = $this->proratedFirstYear($annual, $joined, $yearStart, $yearEnd);
 
-        if ($type->accrual_method !== LeaveType::ACCRUAL_MONTHLY) {
+        $periods = match ($type->accrual_method) {
+            LeaveType::ACCRUAL_MONTHLY => 12,
+            LeaveType::ACCRUAL_SEMI_MONTHLY => 24,
+            default => null,
+        };
+
+        if ($periods === null) {
             return $full;
         }
 
-        // A twelfth per completed month, capped at the year's own figure so a late
-        // run cannot over-credit. Months are counted from the year start, not the
-        // joining date, because the pro-rating above has already accounted for a
-        // joiner's shorter year.
-        $elapsed = $asOf->lt($yearStart)
-            ? 0
-            : min(12, ($asOf->year - $yearStart->year) * 12 + ($asOf->month - $yearStart->month) + 1);
+        // A twelfth per month, or a twenty-fourth per half-month, capped at the year's
+        // own figure so a late run cannot over-credit. Periods are counted from the
+        // year start, not the joining date, because the pro-rating above has already
+        // accounted for a joiner's shorter year.
+        $elapsed = $this->periodsElapsed($yearStart, $asOf, $periods);
 
-        return $this->roundToHalfDay(min($full, $full * $elapsed / 12));
+        return $this->roundToHalfDay(min($full, $full * $elapsed / $periods));
+    }
+
+    /**
+     * How many accrual periods of the year have begun by a date, the current one included.
+     *
+     * Monthly: the month in progress counts from its first day, which is how it has
+     * always worked — a twelfth arrives on the 1st. Semi-monthly keeps the same shape at
+     * twice the rate: a twenty-fourth arrives on the 1st and another on the 16th, the
+     * half-month boundary LeaveYear already uses for a joiner's first month. A year that
+     * starts mid-month (anniversary basis) is offset by the half it starts in, so its
+     * first period is not counted twice.
+     */
+    private function periodsElapsed(Carbon $yearStart, Carbon $asOf, int $periodsPerYear): int
+    {
+        if ($asOf->lt($yearStart)) {
+            return 0;
+        }
+
+        $months = ($asOf->year - $yearStart->year) * 12 + ($asOf->month - $yearStart->month);
+
+        if ($periodsPerYear === 24) {
+            $half = fn (Carbon $date): int => $date->day >= 16 ? 1 : 0;
+
+            return min(24, $months * 2 + $half($asOf) - $half($yearStart) + 1);
+        }
+
+        return min(12, $months + 1);
     }
 
     /**

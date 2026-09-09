@@ -25,6 +25,9 @@ class LeaveType extends Model
     /** A twelfth of the annual figure per completed month. */
     public const ACCRUAL_MONTHLY = 'monthly_accrual';
 
+    /** A twenty-fourth of the annual figure twice a month, on the 1st and the 16th. */
+    public const ACCRUAL_SEMI_MONTHLY = 'semi_monthly_accrual';
+
     /** Credited on completing twelve months of service — the statutory shape. */
     public const ACCRUAL_ON_COMPLETION = 'on_completion_of_service';
 

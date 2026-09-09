@@ -52,6 +52,7 @@ class LeaveTypeForm
                         ->options([
                             LeaveType::ACCRUAL_ANNUAL_UPFRONT => 'The whole year at once',
                             LeaveType::ACCRUAL_MONTHLY => 'A twelfth each month',
+                            LeaveType::ACCRUAL_SEMI_MONTHLY => 'Twice a month — a twenty-fourth on the 1st and the 16th',
                             LeaveType::ACCRUAL_ON_COMPLETION => 'After twelve months of service',
                             LeaveType::ACCRUAL_COMPENSATORY => 'Earned by working a day off (needs Attendance)',
                             LeaveType::ACCRUAL_UNLIMITED => 'Not counted down',
