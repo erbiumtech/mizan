@@ -9,6 +9,7 @@ use App\Support\SettingsSections;
 use App\Support\TenantSettings;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -96,6 +97,7 @@ class CompanySettings extends Page
             'ipayments' => static::editableIpayments(),
             'projects_status_page_enabled' => (bool) setting('projects.status_page.enabled', false),
             'projects_status_page_token' => setting('projects.status_page.token'),
+            'leave_weekend_days' => array_map('intval', (array) setting('leave.weekend_days', [6, 7])),
             'leave_year_basis' => setting('leave.year_basis'),
             'leave_carry_forward' => (bool) setting('leave.carry_forward'),
             'leave_prorate_first_year' => (bool) setting('leave.prorate_first_year'),
@@ -152,6 +154,7 @@ class CompanySettings extends Page
             20 => [$this->pettyCashSection()],
             30 => [$this->approvalsSection()],
             40 => [$this->leaveSection()],
+            45 => [$this->workingWeekSection()],
             50 => [$this->attendanceAndPaySection()],
             70 => [$this->ipaymentsSection()],
             80 => [$this->statusPageSection()],
@@ -383,6 +386,31 @@ class CompanySettings extends Page
     }
 
     /**
+     * Which weekdays the company does not work, for companies without work patterns.
+     *
+     * With `attendance` licensed, work patterns answer this per employee and the setting is not read, so
+     * the section hides rather than show a control that does nothing. Without it, this is what decides how
+     * many days a leave request consumes and how many working days a payslip says the month had.
+     */
+    protected function workingWeekSection(): Section
+    {
+        return Section::make('Working week')
+            ->description('The days the company does not work. Leave requests skip them, and a payslip\'s working days are the month\'s remaining days less company holidays.')
+            ->visible(fn (): bool => ! modules()->enabled('attendance')
+                && (modules()->enabled('leave') || modules()->enabled('payroll')))
+            ->schema([
+                CheckboxList::make('leave_weekend_days')
+                    ->label('Weekly off days')
+                    ->options([
+                        1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday',
+                        5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
+                    ])
+                    ->columns(4)
+                    ->helperText('Saturday and Sunday as shipped. A six-day week ticks Sunday alone. Public holidays are entered under Holidays and are taken off as well. Applies to leave approved and payslips created from now on; nothing already recorded is restated.'),
+            ]);
+    }
+
+    /**
      * The two switches in this application that can reduce or increase a payslip.
      *
      * Both ship OFF, and the wording here is deliberately blunt about what turning them on does — somebody
@@ -537,6 +565,10 @@ class CompanySettings extends Page
         // Only when the section was actually rendered. Saving these for a company
         // without the module would write leave policy it can never see or change,
         // and the array keys are absent from $state when visible() hid the section.
+        if (array_key_exists('leave_weekend_days', $state)) {
+            $this->saveWorkingWeek($settings, $state);
+        }
+
         if (array_key_exists('leave_year_basis', $state)) {
             $this->saveLeaveSettings($settings, $state);
         }
@@ -602,6 +634,34 @@ class CompanySettings extends Page
                     array_keys($changes),
                     $changes,
                 )));
+        }
+    }
+
+    /**
+     * The weekly off days, recorded when they change for the same reason as the leave policy below:
+     * a payslip that says 26 working days where last month said 22 starts an argument this answers.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function saveWorkingWeek(TenantSettings $settings, array $state): void
+    {
+        $now = array_values(array_unique(array_filter(
+            array_map('intval', (array) ($state['leave_weekend_days'] ?? [])),
+            fn (int $day): bool => $day >= 1 && $day <= 7,
+        )));
+        sort($now);
+
+        $was = array_map('intval', (array) setting('leave.weekend_days', [6, 7]));
+        sort($was);
+
+        $settings->set('leave.weekend_days', $now);
+
+        if ($was !== $now) {
+            activity('CompanySettings')
+                ->causedBy(auth()->user())
+                ->event('working_week_changed')
+                ->withProperties(['leave.weekend_days' => ['from' => $was, 'to' => $now]])
+                ->log('Weekly off days changed');
         }
     }
 

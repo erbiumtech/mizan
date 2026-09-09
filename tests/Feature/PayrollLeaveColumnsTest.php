@@ -6,6 +6,7 @@ use App\Modules\Attendance\Models\WorkPattern;
 use App\Modules\Attendance\Services\WorkPatternResolver;
 use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Core\Models\Holiday;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
@@ -144,6 +145,35 @@ class PayrollLeaveColumnsTest extends TestCase
         app(LeaveRequestService::class)->approve($request, User::factory()->create(['status' => 1]));
 
         return $request->fresh();
+    }
+
+    /**
+     * Without attendance there is no pattern, so the month is measured from the calendar:
+     * its days less company holidays and the configured weekend. Before this the divisor
+     * was left at 0 — "not known" — and every payslip of such a company printed three zeros.
+     */
+    public function test_without_attendance_the_month_is_measured_from_the_calendar_and_the_configured_weekend(): void
+    {
+        $this->setModule('attendance', false);
+
+        // August 2026: 31 days, five Saturdays and five Sundays → 21 weekdays. The 14th is a Friday.
+        Holiday::create(['date' => '2026-08-14', 'name' => 'Independence Day']);
+        $this->approveLeave($this->type(false), '2026-08-03', '2026-08-04'); // Mon, Tue
+
+        $figures = app(AttendanceFigures::class)->for($this->employee, 'August', $this->fiscalYear);
+
+        $this->assertSame(20.0, $figures['total_working_days'], '21 weekdays less one holiday');
+        $this->assertSame(2.0, $figures['lop_days']);
+        $this->assertSame(18.0, $figures['paid_days']);
+        $this->assertSame(0.0, $figures['leaves_taken']);
+
+        // A six-day week: only Sundays off → 26 days, less the same holiday.
+        app(\App\Support\TenantSettings::class)->set('leave.weekend_days', [7]);
+
+        $figures = app(AttendanceFigures::class)->for($this->employee, 'August', $this->fiscalYear);
+
+        $this->assertSame(25.0, $figures['total_working_days']);
+        $this->assertSame(23.0, $figures['paid_days']);
     }
 
     // ──────────────────────────────── §10.7 ────────────────────────────────

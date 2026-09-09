@@ -48,8 +48,8 @@ class AttendanceProration
      *  1. **The company has not switched pro-rating on.** The default, and the whole
      *     safety of phase 3.
      *  2. **`total_working_days` is 0.** That means "not known", not "no working
-     *     days" — it is what MonthlyPayrollService raises for a month nobody has
-     *     entered attendance for, and dividing by it pays nobody.
+     *     days" — a payslip keyed in by hand with the column left blank, or one
+     *     raised before the month was measured — and dividing by it pays nobody.
      *  3. **`lop_days` is 0.** Nothing was lost, so there is nothing to reduce.
      *     Recording a divisor here would be noise on a payslip that was paid in full.
      *  4. **The divisor works out at zero or less.** Defensive, and it is the
