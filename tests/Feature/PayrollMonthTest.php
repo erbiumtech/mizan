@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Core\Models\FiscalYear;
 use App\Support\PayrollMonth;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -65,9 +66,7 @@ class PayrollMonthTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider months
-     */
+    #[DataProvider('months')]
     public function test_a_month_falls_in_the_right_calendar_year(string $start, string $end, string $month, int $expected): void
     {
         $fiscalYear = $this->year($start, $end);

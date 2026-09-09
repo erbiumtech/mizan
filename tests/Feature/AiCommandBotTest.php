@@ -22,6 +22,7 @@ use Database\Seeders\TransactionTypeAliasSeeder;
 use Database\Seeders\TransactionTypeSeeder;
 use InvalidArgumentException;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
 
@@ -332,7 +333,7 @@ class AiCommandBotTest extends AccountingTestCase
 
     // ------------------------------------------------------------------ §3.1: amounts
 
-    /** @dataProvider amounts */
+    #[DataProvider('amounts')]
     public function test_amount_parsing(string $written, float $expected): void
     {
         $this->assertEqualsWithDelta($expected, AmountWords::parse($written), 0.001, $written);
