@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', 'smtp'),
 
     /*
     |--------------------------------------------------------------------------
@@ -81,10 +81,13 @@ return [
         ],
 
         'mailgun' => [
-            'transport' => 'mailgun',
-            // 'client' => [
-            //     'timeout' => 5,
-            // ],
+            'transport' => 'smtp',
+            'host' => env('MAILGUN_SMTP_HOST', 'smtp.mailgun.org'),
+            'port' => env('MAILGUN_SMTP_PORT', 587),
+            'encryption' => env('MAILGUN_SMTP_ENCRYPTION', 'tls'),
+            'username' => env('MAILGUN_SMTP_USERNAME'),
+            'password' => env('MAILGUN_SMTP_PASSWORD'),
+            'timeout' => env('MAILGUN_SMTP_TIMEOUT', 10),
         ],
 
         'sendmail' => [
