@@ -11,6 +11,7 @@ use App\Modules\Accounting\Support\LocalPatternModel;
 use App\Support\Ai\StructuredModel;
 use Database\Seeders\TransactionTypeAliasSeeder;
 use Database\Seeders\TransactionTypeSeeder;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\AccountingTestCase;
 
 /**
@@ -44,7 +45,7 @@ class LocalCommandParserTest extends AccountingTestCase
         return app(CommandInterpreter::class)->interpret($utterance);
     }
 
-    /** @dataProvider commands */
+    #[DataProvider('commands')]
     public function test_it_resolves_a_command(string $utterance, string $direction, float $amount, string $category): void
     {
         $interpretation = $this->interpret($utterance);
