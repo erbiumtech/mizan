@@ -599,6 +599,36 @@ class LeaveTest extends TestCase
         );
     }
 
+    /**
+     * Periodic accrual: a twelfth arrives on the 1st of each month; twice a month, a
+     * twenty-fourth arrives on the 1st and again on the 16th. Both are recomputed from the
+     * year start on every run and capped at the year's figure, so neither can over-credit.
+     */
+    public function test_monthly_and_semi_monthly_accrual_tick_on_the_first_and_the_sixteenth(): void
+    {
+        $monthly = $this->makeType(['code' => 'monthly', 'label' => 'Monthly', 'accrual_method' => LeaveType::ACCRUAL_MONTHLY, 'days_per_year' => 24]);
+        $twice = $this->makeType(['code' => 'twice', 'label' => 'Twice a month', 'accrual_method' => LeaveType::ACCRUAL_SEMI_MONTHLY, 'days_per_year' => 24]);
+
+        $accrued = fn (LeaveType $type, string $asOf): float => (float) app(LeaveEntitlementService::class)
+            ->open($this->employee, $type, $asOf)->accrued_days;
+
+        // Calendar year: on 1 March two months are complete and the third has begun.
+        $this->assertSame(6.0, $accrued($monthly, '2026-03-01'));
+        $this->assertSame(6.0, $accrued($monthly, '2026-03-31'), 'nothing more arrives within the month');
+
+        $this->assertSame(5.0, $accrued($twice, '2026-03-01'), 'four half-months complete, the fifth begun');
+        $this->assertSame(5.0, $accrued($twice, '2026-03-15'), 'the 15th is still the first half');
+        $this->assertSame(6.0, $accrued($twice, '2026-03-16'), 'the 16th starts the second half');
+
+        // Capped at the year: the last period is credited on 16 December and nothing after.
+        $this->assertSame(24.0, $accrued($twice, '2026-12-16'));
+        $this->assertSame(24.0, $accrued($twice, '2026-12-31'));
+
+        // Rounded to the half day the module spends in: 14 / 24 = 0.58 → 0.5 on 1 January.
+        $fourteen = $this->makeType(['code' => 'fourteen', 'label' => 'Fourteen', 'accrual_method' => LeaveType::ACCRUAL_SEMI_MONTHLY, 'days_per_year' => 14]);
+        $this->assertSame(0.5, $accrued($fourteen, '2026-01-01'));
+    }
+
     /** On completion of service: nothing until twelve months are up. */
     public function test_on_completion_accrual_credits_nothing_in_the_first_year(): void
     {

@@ -400,6 +400,7 @@ Two consequences of that answer, both of which shape the defaults:
   both directions are tested (§10.6).
 
 `accrual_method` per type: `annual_upfront`, `monthly_accrual`,
+`semi_monthly_accrual` (a twenty-fourth on the 1st and the 16th),
 `on_completion_of_service`, `unlimited` (sick leave that is not counted down),
 `none` (unpaid).
 

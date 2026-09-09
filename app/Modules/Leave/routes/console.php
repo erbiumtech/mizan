@@ -13,9 +13,10 @@ use Illuminate\Support\Facades\Schedule;
  * run on. A daily idempotent sweep asks "is everybody's current year open" and
  * answers it whenever the answer changes.
  *
- * It also carries the monthly accrual: a type with accrual_method =
- * monthly_accrual earns a twelfth per completed month, which is recomputed rather
- * than incremented, so a missed day costs nothing.
+ * It also carries the periodic accruals: a type with accrual_method =
+ * monthly_accrual earns a twelfth on the 1st of each month, and semi_monthly_accrual
+ * a twenty-fourth on the 1st and the 16th. Both are recomputed rather than
+ * incremented, so a missed day costs nothing.
  *
  * Early, before anybody files leave against a year that has not been opened.
  * TenantAware, and it skips companies with the module switched off.

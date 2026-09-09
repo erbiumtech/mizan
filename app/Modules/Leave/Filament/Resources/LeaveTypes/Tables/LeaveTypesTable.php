@@ -35,6 +35,7 @@ class LeaveTypesTable
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         LeaveType::ACCRUAL_ANNUAL_UPFRONT => 'whole year at once',
                         LeaveType::ACCRUAL_MONTHLY => 'a twelfth monthly',
+                        LeaveType::ACCRUAL_SEMI_MONTHLY => 'a twenty-fourth twice a month',
                         LeaveType::ACCRUAL_ON_COMPLETION => 'after 12 months',
                         LeaveType::ACCRUAL_COMPENSATORY => 'working a day off',
                         LeaveType::ACCRUAL_UNLIMITED => 'not counted',
