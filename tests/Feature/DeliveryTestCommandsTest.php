@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\DeliveryTestLink;
 use App\Support\WhatsApp\WhatsAppDocument;
 use App\Support\WhatsApp\WhatsAppException;
 use App\Support\WhatsApp\WhatsAppSender;
@@ -108,6 +109,47 @@ class DeliveryTestCommandsTest extends TestCase
 
         $this->assertSame('923001234567', $sender->to);
         $this->assertStringStartsWith('%PDF', $sender->bytes, 'the document is a real PDF, as a payslip is');
+
+        // Twilio fetches media rather than receiving it, so a document with no URL cannot be sent
+        // at all — which is what made this command useless for the driver that is in production.
+        $this->assertStringContainsString('/delivery-test/', $sender->url);
+        $this->assertStringNotContainsString('?', $sender->url, 'a query string does not survive a Twilio template');
+    }
+
+    public function test_the_media_url_can_be_overridden_for_a_document_served_elsewhere(): void
+    {
+        config(['pdf.driver' => 'dompdf', 'whatsapp.driver' => 'twilio']);
+
+        $sender = new RecordingWhatsAppSender;
+        $this->app->instance(WhatsAppSender::class, $sender);
+
+        $this->artisan('whatsapp:test', ['to' => '923001234567', '--url' => 'https://example.test/x.pdf'])
+            ->assertSuccessful();
+
+        $this->assertSame('https://example.test/x.pdf', $sender->url);
+    }
+
+    // ─────────────────────── the link the provider fetches ───────────────────────
+
+    public function test_the_signed_link_serves_a_pdf_without_a_session(): void
+    {
+        config(['pdf.driver' => 'dompdf']);
+
+        $response = $this->get(DeliveryTestLink::for());
+
+        $response->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_a_tampered_or_expired_link_is_refused(): void
+    {
+        $valid = DeliveryTestLink::for();
+
+        // One character of the signature changed: the whole point of signing it.
+        $this->get(str_replace('/connection-test.pdf', 'x/connection-test.pdf', $valid))->assertNotFound();
+
+        $this->travel(20)->minutes();
+        $this->get($valid)->assertForbidden();
     }
 
     /** The log driver reports success and sends nothing, which must never read as a pass. */
@@ -143,10 +185,13 @@ class RecordingWhatsAppSender implements WhatsAppSender
 
     public ?string $bytes = null;
 
+    public ?string $url = null;
+
     public function sendDocument(string $to, WhatsAppDocument $document, string $caption): string
     {
         $this->to = $to;
         $this->bytes = $document->bytes();
+        $this->url = $document->hasUrl() ? $document->url() : null;
 
         return 'recorded-1';
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DeliveryTestMediaController;
 use App\Http\Controllers\TenantFileController;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
@@ -21,6 +22,17 @@ Route::get(TenantStorage::URL_PREFIX.'/{company:id}/{path}', [TenantFileControll
     ->where('path', '.*')
     ->middleware(['auth:web,sanctum'])
     ->name('tenant-file');
+
+// The document `whatsapp:test` hands a provider to fetch, so the Twilio driver — which sends media
+// by link rather than by upload — can be tested at all. Signed in the path and short-lived: there is
+// no session here because the reader is Twilio, and the signature is the whole of the authorization.
+// See App\Support\DeliveryTestLink.
+Route::middleware(['web'])
+    ->get('/delivery-test/{expires}/{signature}/{filename}', DeliveryTestMediaController::class)
+    ->whereNumber('expires')
+    ->where('signature', '[a-f0-9]{64}')
+    ->where('filename', '[A-Za-z0-9._-]+')
+    ->name('delivery-test.media');
 
 // The report pages live in app/Modules/Accounting/routes/web.php and the invoice
 // PDF in app/Modules/Invoicing/routes/web.php.
