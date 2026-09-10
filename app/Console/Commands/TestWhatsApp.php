@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\DeliveryTestLink;
 use App\Support\Pdf\Pdf;
 use App\Support\WhatsApp\PhoneNumber;
 use App\Support\WhatsApp\WhatsAppDocument;
@@ -22,12 +23,16 @@ use Throwable;
  *
  * **The `log` driver reports success and sends nothing**, which is correct for development and a trap
  * in production, so this says so in as many words rather than printing a green tick.
+ *
+ * Twilio fetches media by link, so the document is served from a short-lived signed URL
+ * ({@see DeliveryTestLink}) rather than uploaded. That URL is printed, because when Twilio reports
+ * error 11200 the question is always whether it could reach the host, and `curl` answers it.
  */
 class TestWhatsApp extends Command
 {
     protected $signature = 'whatsapp:test
                             {to : The number to message, with or without the country code}
-                            {--url= : A publicly reachable URL for the document, which Twilio needs}';
+                            {--url= : Serve the document from here instead of this application}';
 
     protected $description = 'Send a test document on WhatsApp and report what the provider said';
 
@@ -47,6 +52,7 @@ class TestWhatsApp extends Command
         $this->components->twoColumnDetail('<fg=gray>Driver</>', $driver);
         $this->components->twoColumnDetail('<fg=gray>Sender</>', $sender::class);
         $this->components->twoColumnDetail('<fg=gray>To</>', '+'.$number);
+        $this->components->twoColumnDetail('<fg=gray>Media</>', $this->mediaUrl());
         $this->newLine();
 
         try {
@@ -63,11 +69,10 @@ class TestWhatsApp extends Command
         } catch (WhatsAppException $exception) {
             $this->components->error('The provider refused it.');
             $this->line('  <fg=red>'.$exception->getMessage().'</>');
-
-            if (! $this->option('url') && str_contains($exception->getMessage(), 'link')) {
-                $this->line('  <fg=yellow>Twilio fetches media by link. Pass --url= pointing at any '
-                    .'publicly reachable PDF to test the credentials end to end.</>');
-            }
+            $this->line('  <fg=yellow>If it could not fetch the media, check that link from outside the '
+                .'server: `curl -I "'.$this->mediaUrl().'"`. It must answer 200 with application/pdf, '
+                .'which means APP_URL has to be the public address and the site must not sit behind '
+                .'basic auth or an IP allow-list.</>');
 
             return self::FAILURE;
         }
@@ -88,18 +93,24 @@ class TestWhatsApp extends Command
         return self::SUCCESS;
     }
 
-    /** A small real PDF, rendered the way a payslip is. */
+    /** A small real PDF, rendered the way a payslip is, and reachable the way a payslip is. */
     private function document(): WhatsAppDocument
     {
-        $url = $this->option('url');
-
         return new WhatsAppDocument(
-            filename: 'connection-test.pdf',
+            filename: DeliveryTestLink::FILENAME,
             bytes: fn (): string => Pdf::view('pdfs.delivery-test', [
                 'application' => config('app.name'),
                 'sentAt' => now()->toDayDateTimeString(),
             ])->raw(),
-            url: $url ? fn (): string => (string) $url : null,
+            url: fn (): string => $this->mediaUrl(),
         );
     }
+
+    /** Where the provider is told to collect the document. Signed, and good for fifteen minutes. */
+    private function mediaUrl(): string
+    {
+        return $this->mediaUrl ??= ($this->option('url') ?: DeliveryTestLink::for(15));
+    }
+
+    private ?string $mediaUrl = null;
 }
