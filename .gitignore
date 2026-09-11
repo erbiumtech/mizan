@@ -26,3 +26,7 @@ yarn-error.log
 # Database dumps pulled from production. Payroll data — never in the repo,
 # and this repo is public.
 /db
+
+# RoadRunner, fetched per host by `octane:install`. A 62MB binary whose build is
+# specific to the server OS and architecture, so it does not belong to the source.
+/rr

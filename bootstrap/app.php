@@ -13,6 +13,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        /*
+         * nginx terminates TLS and forwards to Octane over plain HTTP on loopback, so
+         * without this the framework sees an http:// request on 127.0.0.1 and generates
+         * http:// URLs into an https page — assets and Livewire's update endpoint blocked
+         * as mixed content. Under PHP-FPM the question never arose: fastcgi_params carried
+         * HTTPS through, so this is a cost of the proxy, not of Octane itself.
+         *
+         * Loopback only. A wildcard here would let a client set X-Forwarded-Proto itself.
+         */
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+
         // Licensing is enforced per route, not globally: most routes belong to a
         // module, and the ones that do not (login, the panel shell, tenant file
         // downloads) must stay reachable whatever a company has bought.
