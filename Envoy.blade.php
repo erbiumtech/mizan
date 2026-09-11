@@ -44,8 +44,15 @@
     # root-owned until this puts it back to the PHP-FPM user.
     chown -R nginx:nginx {{ $path }}
 
-    # Not optional: deploy/php/opcache.ini sets validate_timestamps=0, so without
-    # this reload PHP keeps serving the code it compiled before the deploy.
+    # Not optional, and now doubly so: deploy/php/opcache.ini sets
+    # validate_timestamps=0, and Octane additionally holds the booted framework in
+    # memory between requests. Without this the workers keep serving the release
+    # before this one no matter what git says. `octane:reload` is graceful — workers
+    # finish their current request before being replaced, so no request is dropped.
+    sudo -u nginx php artisan octane:reload
+
+    # PHP-FPM is no longer in the request path, but is left running so that reverting
+    # the vhost is the only step needed to fall back to it.
     systemctl reload php-fpm
 
     # Workers hold the old code until they are replaced. deploy.sh calls

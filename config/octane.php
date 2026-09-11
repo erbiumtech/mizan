@@ -135,7 +135,21 @@ return [
     ],
 
     'flush' => [
-        //
+        /*
+         * Octane keeps the container alive between requests, so a `singleton` outlives
+         * the request that built it — `scoped` does not, which is why the panel's
+         * NavigationSnapshot and NavigationBadge are already registered that way.
+         *
+         * These three are singletons that cache per tenant, keyed on
+         * `Company::current()`, so they cannot hand one company's data to another. What
+         * they would do is keep serving *stale* data: a settings change or a module
+         * toggle would not be seen until the worker happened to restart. Flushing them
+         * restores exactly the PHP-FPM behaviour for the cost of rebuilding three
+         * objects per request.
+         */
+        App\Support\TenantSettings::class,
+        App\Support\EmployeeAccess::class,
+        App\Support\Modules::class,
     ],
 
     /*
