@@ -22,3 +22,7 @@ yarn-error.log
 /.vscode
 /.zed
 .claude
+
+# Database dumps pulled from production. Payroll data — never in the repo,
+# and this repo is public.
+/db
