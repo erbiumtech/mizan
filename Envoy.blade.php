@@ -25,6 +25,12 @@
     set -e
     cd {{ $path }}
 
+    # The checkout belongs to the PHP-FPM user while this runs as root, and git
+    # refuses a repository it does not own until the exception is explicit. Guarded
+    # rather than plain --add, which appends a duplicate every deploy.
+    git config --global --get-all safe.directory | grep -qx '{{ $path }}' \
+        || git config --global --add safe.directory '{{ $path }}'
+
     # `reset --hard` discards local edits to *tracked* files on the server, which is
     # the point: the server is a checkout, not somewhere to edit. .env, vendor/ and
     # public/build/ are untracked or ignored and survive.
