@@ -27,9 +27,13 @@ class MonthlyPayrollService
      * so a rerun cannot disturb a payslip somebody has since corrected by hand or
      * an employee has already accepted.
      *
+     * @param  array<int, array<string, mixed>>  $overrides  employee id => payslip columns this month is to
+     *                                                       be raised with instead of the package's own —
+     *                                                       what the "Raise the month's payslips" screen
+     *                                                       collects for fuel and meals.
      * @return Collection<int, Payslip> the payslips created by this call
      */
-    public function openMonth(string $month, FiscalYear $fiscalYear): Collection
+    public function openMonth(string $month, FiscalYear $fiscalYear, array $overrides = []): Collection
     {
         $run = \App\Modules\Payroll\Models\PayrollRun::forMonth($month, $fiscalYear);
 
@@ -58,6 +62,14 @@ class MonthlyPayrollService
                 // payroll.prorate_on_attendance, which is off.
                 ...$figures->for($employee, $month, $fiscalYear),
                 ...$this->overtimeFor($figures, $employee, $month, $fiscalYear),
+                // A figure somebody typed for this month, over the one the package says.
+                //
+                // No second calculation and no new meaning: these are the same columns the
+                // payslip form writes, and `PayslipService::calculateByParams()` already
+                // treats a non-zero amount on the payslip as outranking the employee's
+                // settings for that month. Last in the array deliberately — an override is
+                // the answer to "what does this month pay", so it wins.
+                ...($overrides[$employee->id] ?? []),
             ]);
 
             // Claim the leave days this payslip counted, so no later month counts them
