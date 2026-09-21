@@ -8,6 +8,7 @@ use App\Support\CompanyProfiles;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 /**
  * Top-level seeder for a multitenant install.
@@ -32,6 +33,35 @@ class DatabaseSeeder extends Seeder
 
     /** Password given to the seeded admin; dummy data, so intentionally weak. */
     public const string SUPER_ADMIN_PASSWORD = 'password';
+
+    /**
+     * The password to seed the super admin with — and a refusal rather than a weak default in production.
+     *
+     * `password` is the right password for a demo install and a developer's machine: it is in the README,
+     * it is what a new contributor expects, and randomising it there would trade a real convenience for no
+     * security at all. On a production host it is the opposite — a known default credential on a public
+     * address, which `docs/open-source-release-checklist.md` §1.3 names as the thing that *will* be tried.
+     *
+     * So the environment decides, and the one case that cannot be allowed to pass silently is refused.
+     */
+    public static function superAdminPassword(): string
+    {
+        $configured = (string) (config('seeding.admin_password') ?: '');
+
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        if (app()->isProduction()) {
+            throw new RuntimeException(
+                'Refusing to seed the super admin with the demo password on a production host. Set '
+                .'SEED_ADMIN_PASSWORD in .env to a real one, or SEED_ADMIN_EMAIL to an account that '
+                .'already exists so seeding matches it instead of creating one.'
+            );
+        }
+
+        return self::SUPER_ADMIN_PASSWORD;
+    }
 
     public static function superAdminEmail(): string
     {
@@ -105,7 +135,7 @@ class DatabaseSeeder extends Seeder
             ['email' => self::superAdminEmail()],
             [
                 'name' => 'Administrator',
-                'password' => Hash::make(self::SUPER_ADMIN_PASSWORD),
+                'password' => Hash::make(self::superAdminPassword()),
                 'status' => 1,
             ]
         );

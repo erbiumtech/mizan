@@ -15,6 +15,12 @@ return [
     */
     'admin_email' => env('SEED_ADMIN_EMAIL'),
 
+    /*
+     * The seeded super admin's password. Null means the well-known demo one, which
+     * `DatabaseSeeder` refuses to use on a production host — see the guard there.
+     */
+    'admin_password' => env('SEED_ADMIN_PASSWORD'),
+
     'company_name' => env('SEED_COMPANY_NAME'),
 
     'company_slug' => env('SEED_COMPANY_SLUG'),
