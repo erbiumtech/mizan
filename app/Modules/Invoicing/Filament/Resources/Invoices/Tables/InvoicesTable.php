@@ -190,8 +190,32 @@ class InvoicesTable
                 ->label('Issue')
                 ->icon('heroicon-o-paper-airplane')
                 ->requiresConfirmation()
+                // A budget that argues back, and only argues — docs/erpnext-gap-plan.md §4 item 8. The
+                // confirmation says what a supplier's bill would take over budget, and the button still
+                // works: the bill is a fact about money owed, and the ledger must not be kept wrong to
+                // keep a plan right. Sales carry no warning; nobody budgets a ceiling on income.
+                ->modalDescription(fn (Invoice $record): ?string => self::budgetWarning($record))
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoiceIssue') ?? false) && $record->isDraft())
                 ->action(fn (Invoice $record) => self::run(fn (InvoiceService $s) => $s->issue($record), 'Issued')),
+
+            /**
+             * Spread the revenue over the months the lines say the service covers — the gap plan's deferral
+             * generator. Offered only when a line carries service dates and the invoice has not been deferred
+             * yet, so on most invoices the button is simply absent rather than present and refused.
+             */
+            Action::make('defer')
+                ->label('Defer over service period')
+                ->icon('heroicon-o-calendar')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalDescription(fn (Invoice $record): string => self::deferralPreview($record))
+                ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoiceIssue') ?? false)
+                    && ! $record->isDraft()
+                    && $record->status !== Invoice::STATUS_VOID
+                    && ! $record->isAdjustment()
+                    && $record->lines()->whereNotNull('service_from')->whereNotNull('service_to')->exists()
+                    && ! $record->events()->where('event', \App\Modules\Invoicing\Models\InvoiceEvent::DEFERRED)->exists())
+                ->action(fn (Invoice $record) => self::run(fn (InvoiceService $s) => $s->deferOverServicePeriod($record), 'Deferred')),
 
             Action::make('recordPayment')
                 ->label('Record Payment')
@@ -202,7 +226,7 @@ class InvoicesTable
                     && $record->isOpen()
                     && ! $record->isAdjustment())
                 ->schema(self::paymentFields())
-                ->action(fn (array $data, Invoice $record) => self::run(fn (InvoiceService $s) => $s->recordPayment($record, (float) $data['amount'], $data['date'], isset($data['rate']) && $data['rate'] !== '' ? (float) $data['rate'] : null), 'Payment recorded')),
+                ->action(fn (array $data, Invoice $record) => self::run(fn (InvoiceService $s) => self::settle($s, $record, $data), 'Payment recorded')),
 
             Action::make('void')
                 ->label('Void')
@@ -352,7 +376,7 @@ class InvoicesTable
                 ->icon('heroicon-o-banknotes')
                 ->visible(fn (): bool => auth()->user()?->can('InvoicePay') ?? false)
                 ->schema(self::paymentFields())
-                ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InvoiceService $s, Invoice $i) => $s->recordPayment($i, (float) $data['amount'], $data['date'], isset($data['rate']) && $data['rate'] !== '' ? (float) $data['rate'] : null), 'Payment recorded')),
+                ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InvoiceService $s, Invoice $i) => self::settle($s, $i, $data), 'Payment recorded')),
 
             BulkAction::make('voidBulk')
                 ->label('Void')
@@ -369,12 +393,34 @@ class InvoicesTable
      */
     protected static function paymentFields(): array
     {
+        // Sales in the base currency only: a certificate is a PKR document about a PKR liability, and the
+        // supplier side is deducted on the payment at approval — see InvoiceService::recordPayment().
+        $canWithhold = fn (?Invoice $record): bool => $record === null
+            || ($record->isSale() && ! $record->isForeignCurrency());
+
         return [
             DatePicker::make('date')->required()->default(now()->toDateString()),
-            TextInput::make('amount')->numeric()->step(0.01)->required()->minValue(0.01)
+            TextInput::make('amount')
+                ->label('Amount received')
+                ->numeric()->step(0.01)->required()->minValue(0.01)
                 ->helperText(fn (?Invoice $record): ?string => $record?->isForeignCurrency()
                     ? 'In '.$record->currencyCode().', which is what the invoice is billed in.'
-                    : null),
+                    : 'What actually reached the bank. If the customer deducted tax, put that below — the two together settle the invoice.'),
+
+            // The customer's side of §153: a corporate customer pays short and hands over a certificate for
+            // the difference. Typed here from the certificate, not computed from a rate table — the
+            // certificate is the fact, and the rate the customer applied is their business.
+            TextInput::make('withheld')
+                ->label('Tax withheld by the customer')
+                ->numeric()->step(0.01)->minValue(0)->default(0)
+                ->visible($canWithhold)
+                ->helperText('From their deduction certificate. Held in 1260 Advance Income Tax and claimed on the company\'s own return.'),
+
+            TextInput::make('certificate')
+                ->label('Certificate / CPR reference')
+                ->maxLength(60)
+                ->visible($canWithhold)
+                ->helperText('Printed on the Tax Withheld by Customers report, which is what the return is checked against.'),
 
             // A bank advice saying what actually landed is a fact, and the rate table is
             // only an estimate of it — so the fact can be typed in.
@@ -386,6 +432,69 @@ class InvoicesTable
                 ->helperText('Leave blank to use the rate in force on the payment date. The difference from '
                     .'the rate the invoice was raised at is a realised gain or loss.'),
         ];
+    }
+
+    /**
+     * One receipt, from the modal's fields.
+     *
+     * The service settles by `amount`, so the money received and the tax withheld are added before the
+     * call: 92,000 in the bank plus an 8,000 certificate settles a 100,000 invoice.
+     */
+    protected static function settle(InvoiceService $service, Invoice $invoice, array $data): Invoice
+    {
+        $withheld = round((float) ($data['withheld'] ?? 0), 2);
+
+        return $service->recordPayment(
+            $invoice,
+            round((float) $data['amount'] + $withheld, 2),
+            $data['date'],
+            isset($data['rate']) && $data['rate'] !== '' ? (float) $data['rate'] : null,
+            null,
+            null,
+            $withheld,
+            filled($data['certificate'] ?? null) ? (string) $data['certificate'] : null,
+        );
+    }
+
+    /**
+     * What this bill would take over budget, as the Issue confirmation's text — or null for nothing to say.
+     */
+    protected static function budgetWarning(Invoice $invoice): ?string
+    {
+        if ($invoice->kind !== Invoice::KIND_PURCHASE) {
+            return null;
+        }
+
+        $charges = $invoice->lines()->whereNull('product_id')->whereNotNull('account_id')->get()
+            ->map(fn ($line): array => [(int) $line->account_id, $line->netAmount()])
+            ->all();
+
+        $warnings = $charges === []
+            ? []
+            : app(\App\Modules\Accounting\Services\BudgetControl::class)->warningsFor($charges, $invoice->invoice_date->toDateString());
+
+        return $warnings === []
+            ? null
+            : "Over budget if issued:\n\n".implode("\n", $warnings)."\n\nIssue anyway? The bill is what is owed; the budget is what was planned.";
+    }
+
+    /** The lines that would be spread, so the confirmation shows the figures before anything posts. */
+    protected static function deferralPreview(Invoice $invoice): string
+    {
+        $lines = $invoice->lines()->whereNotNull('service_from')->whereNotNull('service_to')->get();
+
+        $rows = $lines->map(fn ($line): string => sprintf(
+            '%s — %s over %d month%s from %s',
+            $line->description,
+            number_format($line->netAmount(), 2),
+            $line->serviceMonths() ?? 0,
+            ($line->serviceMonths() ?? 0) === 1 ? '' : 's',
+            $line->service_from->format('M Y'),
+        ));
+
+        return "Each line moves out of this month and is recognised a month at a time:\n\n"
+            .$rows->implode("\n")
+            ."\n\nOnce per invoice; the schedules appear under Scheduled Transactions.";
     }
 
     /**

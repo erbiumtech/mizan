@@ -61,13 +61,17 @@ class SettingsSectionsTest extends AccountingTestCase
      * coupling on the grounds that "the account map belongs on a Construction settings page", and this registry is
      * what makes that possible. The block is hidden for a company without the module, so the page is unchanged for
      * everybody else.
+     *
+     * **2026-09-21** — `invoicing.credit-control` (76) and `invoicing.statements` (77) joined beside dunning:
+     * `docs/erpnext-gap-plan.md` §4 items 5 and 1. Both are company-wide switches for customer-facing
+     * behaviour, so they sit with the other one — chasing overdue invoices — rather than among the ledger's.
      */
     public function test_the_modules_contribute_their_sections(): void
     {
         $this->assertSame(
             [
                 'accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting',
-                'construction.accounts', 'invoicing.dunning',
+                'construction.accounts', 'invoicing.dunning', 'invoicing.credit-control', 'invoicing.statements',
             ],
             SettingsSections::keys(),
         );

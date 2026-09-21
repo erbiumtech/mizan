@@ -1,8 +1,9 @@
 # What ERPNext's accounting module has that we do not
 
 **Status:** Built. Phases 1–5 landed on 2026-08-28, one commit each; what each one *turned out* to be is
-recorded in §3.1–§3.4, including the six places this analysis was wrong. §4 is still a plan and nothing in it
-is built.
+recorded in §3.1–§3.4, including the six places this analysis was wrong. **§4 items 1, 3 (the remaining
+half), 5 and 8 were built on 2026-09-21** — see §4.1 for what each turned out to be. Items 9–12 stand as
+written: conditional, refused, or waiting for somebody to ask.
 **Created:** 2026-08-28
 **Constraint:** additive only — nothing that works today changes behaviour, and every phase is built out of
 machinery this application already has. §3 says what each one reuses, and lists the four things an earlier
@@ -641,7 +642,8 @@ deleted — the ranking is a record of what was thought worth doing and in what 
 out to be cheaper or differently shaped than its entry says is the useful part of keeping it. **Customer
 statements is now the top of the list**, and item 3 has half of it left.
 
-1. **[2nd pass] Customer statements** — ERPNext's *Process Statement of Accounts*: one PDF per customer,
+1. ~~**[2nd pass] Customer statements**~~ — **built 2026-09-21**, as a service, a PDF, a notification and a
+   monthly command rather than a schedule; see §4.1. ERPNext's *Process Statement of Accounts*: one PDF per customer,
    with their opening balance, their ledger for the period, their closing balance and an optional ageing
    summary, emailed in bulk on a weekly, monthly or quarterly schedule. Every part of that exists here —
    `ReportSchedule`, `ReportDelivery`, `EmailTemplate`, the pane's PDF export, `AccountRegister` as the
@@ -654,15 +656,17 @@ statements is now the top of the list**, and item 3 has half of it left.
    ERPNext's shape confirmed: theirs is the same invoice with `is_return`, not a separate document. What the
    entry above got wrong is that the *window* is not reused — see §3.4.
 3. ~~**Deferred revenue and expense**~~ — **built, Phase 5**, as `DeferralService` over
-   `ScheduledTransaction`: whole months, both directions, and the remainder recognised immediately. **What
-   is still not built is the part this entry named**: the *generator from an invoice line*. Deferring is an
+   `ScheduledTransaction`: whole months, both directions, and the remainder recognised immediately. **The
+   generator from an invoice line followed on 2026-09-21** — `invoice_lines.service_from/to` and
+   `InvoiceService::deferOverServicePeriod()`; see §4.1. What this entry originally named as still missing: Deferring is an
    act somebody performs on an amount, not something an invoice row does by itself, and until service dates
    exist on `invoice_lines` that is the honest shape. That is the remaining half of this item.
 4. ~~**Dunning**~~ — **built, Phase 5**, as the reminder and nothing else: off by default, one message per
    overdue invoice, no interest and no fee. The prediction that it was "cheaper here" held; the prediction
    about *which* machinery made it cheap did not — see §3.4.
-5. **[2nd pass] Credit limits** — a limit per customer, a role that may override it, and an overdue-exposure
-   threshold that blocks new billing. Nothing here has any of it: `contacts` carries payment terms, not a
+5. ~~**[2nd pass] Credit limits**~~ — **built 2026-09-21**, exactly as the entry predicted: a column, a setting
+   and a guard in `InvoiceService::issue()`, plus the permission; see §4.1. A limit per customer, a role that
+   may override it, and an overdue-exposure threshold that blocks new billing. Nothing here has any of it: `contacts` carries payment terms, not a
    limit. Ranked here rather than lower because it is the one control on this list that prevents a loss
    rather than reporting one, and it is a column, a setting and a guard in `InvoiceService`.
 6. ~~**Opening stock**~~ — **built, Phase 5**, as `OpeningStockCsvImporter`: one lot per row, no posting,
@@ -671,7 +675,8 @@ statements is now the top of the list**, and item 3 has half of it left.
    is copied into `csv-import.md` where somebody importing will read it. The property neither this entry nor
    the phase text predicted: because these documents post nothing, **Phase 2's control check is what tells a
    company it entered them right** — see §3.4.
-8. **[2nd pass] Budget control** — ours plans and reports; theirs stops or warns at material request,
+8. ~~**[2nd pass] Budget control**~~ — **built 2026-09-21** as the warn-only half, over supplier bills
+   rather than purchase orders; see §4.1. Ours planned and reported; theirs stops or warns at material request,
    purchase order, actual expense and cumulative expense, annually and per period. A warn-only version over
    purchase orders is the useful half and needs no new table.
 9. **Tax categories, tax rules, item tax templates** — three ERPNext documents, one question: which rate.
@@ -686,6 +691,56 @@ statements is now the top of the list**, and item 3 has half of it left.
 12. **Payment Ledger Entry as its own table** — still refused, on a better-informed reason: it is an
     allocation index rather than a second ledger (§2.2), and what makes it work for them is a party on the
     journal line, which is the actual difference.
+
+## 4.1 What the §4 items turned out to be
+
+Built 2026-09-21, on a request to build "all three and anything from the plan" — the three being customer
+statements, withholding on client receipts and a project margin report, of which only the first was on this
+list. The other two are recorded here because they were built from the same reading and land in the same
+modules.
+
+- **Customer statements (item 1) are not a schedule, and the plan's own Phase 5 correction said why first.**
+  §3.4 found that dunning "is a notification and a command rather than a schedule" because a schedule sends one
+  rendered report to internal recipients. The same is true here, one level up: `CustomerStatement::for()`
+  answers for one customer, `CustomerStatementIssued` attaches the PDF, `invoicing:send-statements` runs on the
+  2nd for the previous month, and `Settings → Customer statements` is off by default. The per-recipient
+  rendering the reports plan refused never had to be built into `ReportSchedule`, because the report was never
+  the right shape for it. **Receipts come from the ledger**, not `InvoiceEvent`: the event is dated when
+  somebody typed it, the entry when the money arrived, and a customer reconciles against the second. The
+  receipts are the credits to 1250 on entries sourced from the customer's sale invoices, less each invoice's
+  own issue entry — which is Phase 1's source link doing a job the plan did not predict for it.
+- **The deferral generator (item 3) is an action, not a side effect of issuing.** Phase 5's reasoning held —
+  deferring is an act somebody performs — so the two dates went on the line and the act stayed a button:
+  "Defer over service period" on an issued invoice, once, guarded by a `DEFERRED` event on the invoice's own
+  history. Months are calendar months touched (15 September to 14 October is two), because that is the only
+  unit the schedule can post. A bill's product lines are skipped: they went to inventory, and stock is not
+  deferred.
+- **Credit limits (item 5) cost what the entry said: a column, a setting, a guard, a permission.** Exposure is
+  what ageing reads — signed base outstanding over open sales and credit notes — plus the invoice being
+  issued. The escape hatch is `InvoiceOverrideCreditLimit` on Manager and above, for Phase 3's reason: without
+  one the first exception forces somebody to raise the limit and remember to lower it, unrecorded.
+- **Budget control (item 8) warns on the supplier's bill, not the purchase order.** ERPNext's control points are
+  purchasing documents; this application's only purchasing document outside construction *is* the bill. So
+  `BudgetControl::warningsFor()` answers "what would be over if this were booked" — month and year, both —
+  and the Issue confirmation on a purchase bill shows the answer. It never refuses: a bill is a fact about
+  money owed, and keeping the ledger wrong to keep a plan right is the wrong trade. No new table, as
+  predicted.
+- **Withholding on client receipts (not on the list) is the mirror of Phase 4, and much smaller.** The
+  supplier side needed a rate table because the company computes the deduction; the customer side needs none,
+  because the customer computed it and the certificate is the fact. So `recordPayment()` gained
+  `$withheld` and `$certificate`, a debit to a new 1260 Advance Income Tax, a `TAX_WITHHELD` event, and the
+  Tax Withheld by Customers report reads the 1260 debits back for the return. Base currency only.
+- **Project margin (not on the list) needed a fifth contract.** Timesheets cannot name `Payslip`, so
+  `App\Support\Contracts\LabourCost` asks what an hour cost and Payroll answers from the payslip that paid
+  for it — `total_earnings` over the work pattern's contracted hours, the same month length `OvertimeRate`
+  uses. Revenue and bills by project are read off `invoices` directly, guarded on the module, as
+  `TimesheetReports` already read `contacts`. Hours with no payslip behind them are counted and stated as
+  uncosted, never priced.
+
+**Deployment.** `php artisan tenants:migrate` for `contacts.credit_limit` and `invoice_lines.service_from/to`,
+then `php artisan tenants:seed-baseline` to give existing companies account 1260 (`recordPayment()` names the
+command if it is missing). Neither changes any figure: with no limit set, no service dates, no withheld amount
+and statements off, every path posts exactly what it posted before.
 
 ## 5. What not to take from ERPNext
 

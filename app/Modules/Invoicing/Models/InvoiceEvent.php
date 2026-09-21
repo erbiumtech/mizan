@@ -56,6 +56,20 @@ class InvoiceEvent extends Model
      */
     public const REMINDED = 'reminded';
 
+    /**
+     * Part of a receipt arrived as a tax deduction certificate rather than as money — the customer's side
+     * of §153. Recorded so the invoice's own history says why the bank shows less than the invoice, and
+     * with the certificate reference in the description, which is what the tax return is checked against.
+     */
+    public const TAX_WITHHELD = 'tax_withheld';
+
+    /**
+     * The invoice's revenue (or a bill's cost) was spread over its lines' service periods. Once per
+     * invoice: `InvoiceService::deferOverServicePeriod()` refuses a second run when this event exists,
+     * which is what stops a double-click deferring the same twelve thousand twice.
+     */
+    public const DEFERRED = 'deferred';
+
     protected $fillable = ['invoice_id', 'event', 'description', 'amount', 'caused_by'];
 
     protected $casts = ['amount' => 'decimal:2'];

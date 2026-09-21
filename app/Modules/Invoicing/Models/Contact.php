@@ -19,12 +19,14 @@ class Contact extends Model
 
     protected $fillable = [
         'name', 'kind', 'email', 'phone', 'address_line_1', 'address_line_2',
-        'ntn', 'cnic', 'bank_id', 'is_active', 'payment_terms_days',
+        'ntn', 'cnic', 'bank_id', 'is_active', 'payment_terms_days', 'credit_limit',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'payment_terms_days' => 'integer',
+        // Null is no limit — see the migration. `InvoiceService::issue()` is the only reader.
+        'credit_limit' => 'decimal:2',
     ];
 
     /**

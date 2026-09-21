@@ -39,6 +39,7 @@ return [
         'App\\Filament\\Pages\\TimesheetUtilisation' => \App\Modules\Timesheets\Filament\Pages\TimesheetUtilisation::class,
         'App\\Filament\\Pages\\PlanVersusActual' => \App\Modules\Timesheets\Filament\Pages\PlanVersusActual::class,
         'App\\Filament\\Pages\\UnbilledWip' => \App\Modules\Timesheets\Filament\Pages\UnbilledWip::class,
+        'App\\Filament\\Pages\\ProjectMargin' => \App\Modules\Timesheets\Filament\Pages\ProjectMargin::class,
     ],
 
     'widgets' => [

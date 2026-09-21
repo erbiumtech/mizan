@@ -4,6 +4,7 @@ namespace App\Modules\Timesheets\Support;
 
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Services\TimesheetService;
+use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportShapes;
 use App\Support\TenantDb;
 use Carbon\Carbon;
@@ -338,5 +339,84 @@ class TimesheetReports
     private function share(float $part, float $whole): string
     {
         return $whole <= 0 ? '—' : number_format($part / $whole * 100, 1).'%';
+    }
+
+    /**
+     * Revenue against the cost of the hours, per project — "are we making money on this client?"
+     *
+     * The figures are `TimesheetService::projectMargin()`'s; this lays them out. Fiscal year to the date
+     * chosen, like the financial statements, because margin is a period figure and the year is the period a
+     * company judges a client over.
+     */
+    public function projectMargin(string $asOf): array
+    {
+        ['from' => $from, 'to' => $to] = ReportPeriod::toDate($asOf);
+
+        $report = app(TimesheetService::class)->projectMargin($from, $to);
+        $customers = $this->customerNames($report['projects']);
+
+        $rows = array_map(function (array $row) use ($customers): array {
+            $project = $row['project'];
+
+            return [
+                (string) $project->name,
+                $row['customer_id'] === null
+                    ? 'Internal'
+                    : ($customers[$row['customer_id']] ?? 'Customer #'.$row['customer_id']),
+                number_format($row['hours'], 1),
+                $row['uncosted_hours'] > 0 ? number_format($row['uncosted_hours'], 1) : '—',
+                $row['labour'] > 0 ? number_format($row['labour'], 0) : '—',
+                $row['other_cost'] > 0 ? number_format($row['other_cost'], 0) : '—',
+                $row['revenue'] != 0 ? number_format($row['revenue'], 0) : '—',
+                number_format($row['margin'], 0),
+                $row['margin_percent'] === null ? '—' : number_format($row['margin_percent'], 1).'%',
+            ];
+        }, $report['projects']);
+
+        $totals = $report['totals'];
+
+        return $this->table(
+            'ProjectMargin',
+            'Project Margin',
+            $this->subtitle("invoiced against hours costed from payroll, {$from} to {$to}"),
+            ['Project', 'Customer', 'Hours', 'Uncosted', 'Labour', 'Other cost', 'Revenue', 'Margin', 'Margin %'],
+            'minmax(0, 1fr) 11rem 6rem 6rem 8rem 8rem 8rem 8rem 6rem',
+            [2, 3, 4, 5, 6, 7, 8],
+            $rows,
+            [
+                ['label' => 'REVENUE', 'value' => $totals['revenue'], 'accent' => false],
+                ['label' => 'LABOUR COST', 'value' => $totals['labour'], 'accent' => false],
+                ['label' => 'MARGIN', 'value' => $totals['margin'], 'accent' => true],
+            ],
+            $this->marginNote($report),
+            $rows === [] ? null : [
+                'Total — '.count($rows).' projects',
+                '',
+                number_format($totals['hours'], 1),
+                $totals['uncosted_hours'] > 0 ? number_format($totals['uncosted_hours'], 1) : '—',
+                number_format($totals['labour'], 0),
+                number_format($totals['other_cost'], 0),
+                number_format($totals['revenue'], 0),
+                number_format($totals['margin'], 0),
+                $totals['revenue'] > 0 ? number_format($totals['margin'] / $totals['revenue'] * 100, 1).'%' : '—',
+            ],
+            'No hours were booked and nothing was invoiced against a project in this period.',
+            wide: true,
+        );
+    }
+
+    private function marginNote(array $report): string
+    {
+        if ($report['projects'] === []) {
+            return 'NOTHING TO SHOW FOR THIS PERIOD';
+        }
+
+        return mb_strtoupper(implode(' · ', array_filter([
+            count($report['projects']).' projects',
+            'labour at what each payslip paid per contracted hour',
+            $report['totals']['uncosted_hours'] > 0
+                ? number_format($report['totals']['uncosted_hours'], 1).' hours have no payslip behind them and are not in the cost'
+                : null,
+        ])));
     }
 }

@@ -6,10 +6,12 @@ use App\Support\Contracts\AdvanceLedger;
 use App\Support\Contracts\BillableTime;
 use App\Support\Contracts\ConfiguredWeekendCalendar;
 use App\Support\Contracts\FiscalYearCloseCheck;
+use App\Support\Contracts\LabourCost;
 use App\Support\Contracts\NeverLocked;
 use App\Support\Contracts\NoAdvanceLedger;
 use App\Support\Contracts\NoBillableTime;
 use App\Support\Contracts\NoFiscalYearClose;
+use App\Support\Contracts\NoLabourCost;
 use App\Support\Contracts\NoReimbursableClaims;
 use App\Support\Contracts\PeriodLock;
 use App\Support\Contracts\ReimbursableClaims;
@@ -51,6 +53,9 @@ class ContractDefaultsServiceProvider extends ServiceProvider
         // With no timesheets module nothing is billed by the hour, which is what a headcount-billed client's
         // invoice already looked like.
         $this->app->bind(BillableTime::class, NoBillableTime::class);
+        // And with no payroll module nothing can say what an hour cost, so the project margin report states
+        // its hours as uncosted rather than pricing them at a guess.
+        $this->app->bind(LabourCost::class, NoLabourCost::class);
 
         // A payslip deducts an advance instalment and reimburses expense claims, and both ledgers live in
         // modules that *require* Payroll — so Payroll asks rather than names. Nothing owed and nothing to
