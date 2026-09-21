@@ -175,6 +175,33 @@ class EmployeeForm
                 DatePicker::make('date_of_joining')
                     ->label('Date of Joining'),
 
+                /*
+                 * When the employment ended.
+                 *
+                 * The column has been on `employees` since §3 of the plan — payroll, the headcount
+                 * report and the experience letter all read it — and there has never been a field to
+                 * write it with: it could only be set by a final settlement, which is a licensed
+                 * module, or by hand in the database. That is the gap this fills.
+                 *
+                 * **It does not deactivate anybody.** `is_active` above is what every query filters
+                 * on and it stays the flag; this records *when* it happened, not *whether* — see the
+                 * migration that added the column. Setting one without the other is a real state (a
+                 * notice period served out), so neither drives the other.
+                 *
+                 * Admin-only, like the job facts above: a date here rewrites the tense of every
+                 * letter the company issues about this person.
+                 */
+                DatePicker::make('left_on')
+                    ->label('Termination / Last Working Day')
+                    ->helperText('The last day of employment. Leave blank while they are still employed. '
+                        .'Once set, the experience letter and the income certificate are written in the past '
+                        .'tense and bounded by this date — the Status above is a separate switch.')
+                    // A leaving date before the joining date is a typo, and it would print a negative
+                    // length of service on a letter somebody verifies.
+                    ->afterOrEqual('date_of_joining')
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly()),
+
                 TextInput::make('nic')
                     ->label('NIC')
                     ->required(),

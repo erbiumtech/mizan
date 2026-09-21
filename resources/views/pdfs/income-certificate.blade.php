@@ -64,14 +64,43 @@
     ]);
 
     $purposeClause = $purpose ? ' for '.rtrim($purpose, '.') : '';
+
+    /*
+     * Tense. Same rule the experience letter follows: `left_on` set means the employment is over, and
+     * every sentence that says otherwise is a false statement on a document a bank acts on.
+     *
+     * Built as strings for the reason given above — `employee@if (...)` mid-sentence does not compile.
+     */
+    $standing = $has_left
+        ? 'was a bona fide employee of '.$company['legal_name'].' until '.$left_on?->format('d F Y')
+        : 'is a bona fide employee of '.$company['legal_name'];
+
+    $detailsLead = $has_left
+        ? 'The details of the employment, as at the last working day, are as follows:'
+        : 'The details of the employment are as follows:';
+
+    $salaryLabel = $has_left ? 'Last Drawn Gross Monthly Salary' : 'Gross Monthly Salary';
+    $annualLabel = $has_left ? 'Last Drawn Annual Gross Salary' : 'Annual Gross Salary';
+
+    $figuresNote = 'Both figures are the recurring monthly package in force on '
+        .($has_left ? 'the last working day' : 'the date of issue')
+        .'. Bonuses and overtime vary by month and are excluded.';
+
+    // The tax paragraph makes a continuing claim about deductions. For somebody who has left, the claim
+    // is about a period that ended: "are made at source" would assert a deduction still being made.
+    $sourceClause = 'We further certify that the above-mentioned salary '
+        .($has_left ? 'was' : 'is').' the employee\'s source of income from this Company, '
+        .($has_left ? 'was' : 'is').' paid through regular banking channels, and that all applicable '
+        .'income tax deductions '.($has_left ? 'were' : 'are').' made at source and deposited with the '
+        .'Federal Board of Revenue in accordance with the Income Tax Ordinance, 2001.';
 @endphp
 
 <p>
     This is to certify that <strong>{{ $employee->fullName() }}</strong>,
-    {{ implode(', ', $identity) }}, is a bona fide employee of {{ $company['legal_name'] }}.
+    {{ implode(', ', $identity) }}, {{ $standing }}.
 </p>
 
-<p>The details of the employment are as follows:</p>
+<p>{{ $detailsLead }}</p>
 
 <table class="details">
     <tr><th>Employee ID</th><td>{{ $employee->employee_id }}</td></tr>
@@ -80,14 +109,17 @@
         <tr><th>Department</th><td>{{ $employee->department }}</td></tr>
     @endif
     <tr><th>Date of Joining</th><td>{{ $employee->date_of_joining?->format('d F Y') }}</td></tr>
+    @if ($has_left)
+        <tr><th>Last Working Day</th><td>{{ $left_on?->format('d F Y') }}</td></tr>
+    @endif
     <tr><th>Employment Status</th><td>{{ $employment_status }}</td></tr>
     <tr>
-        <th>Gross Monthly Salary</th>
+        <th>{{ $salaryLabel }}</th>
         <td>PKR {{ number_format($monthly_gross, 0) }}
             <span class="in-words">({{ $monthly_gross_words }} only)</span></td>
     </tr>
     <tr>
-        <th>Annual Gross Salary</th>
+        <th>{{ $annualLabel }}</th>
         <td>PKR {{ number_format($annual_gross, 0) }}
             <span class="in-words">({{ $annual_gross_words }} only)</span></td>
     </tr>
@@ -95,10 +127,7 @@
          It reads better here, and it was the block that tipped the letter onto a second page under Dompdf:
          page two carried nothing but this line and the green bar. --}}
     <tr>
-        <td colspan="2" class="note">
-            Both figures are the recurring monthly package in force on the date of issue. Bonuses and
-            overtime vary by month and are excluded.
-        </td>
+        <td colspan="2" class="note">{{ $figuresNote }}</td>
     </tr>
     @if ($employee->bank_short_code || $employee->bank || $employee->bank_account_no)
         <tr>
@@ -122,12 +151,7 @@
     <p>The principal duties include {{ rtrim($duties, '.') }}.</p>
 @endif
 
-<p>
-    We further certify that the above-mentioned salary is the employee's source of income from this Company,
-    is paid through regular banking channels, and that all applicable income tax deductions are made at
-    source and deposited with the Federal Board of Revenue in accordance with the Income Tax Ordinance,
-    2001.
-</p>
+<p>{{ $sourceClause }}</p>
 
 <p>
     This certificate is issued upon the request of the employee{{ $purposeClause }} and does not constitute

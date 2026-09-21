@@ -20,6 +20,12 @@ use NumberFormatter;
  * copy kept on disk goes on stating a salary the company has since changed, and the copy is the one the bank
  * has.
  *
+ * **A leaver gets the same letter in the past tense.** A bank still asks for one after somebody has moved
+ * on — the loan was taken against that salary — so `employees.left_on` bounds the letter rather than
+ * blocking it: the figure becomes the package in force on the last working day, and the prose says "was
+ * employed until" instead of "is". Refusing would be the easier rule and the wrong one; printing today's
+ * package for somebody who left in March would be worse than either.
+ *
  * **It refuses rather than guesses.** A certificate is read as a statement of fact by somebody who cannot
  * check it, so every figure on it has to come from a record and not from a default. A blank NTN, a missing
  * joining date or an employee with no salary package on file means no letter — with the gaps named, so the
@@ -70,7 +76,7 @@ class IncomeCertificate
             $missing[] = 'the designation (Employees → edit this employee)';
         }
 
-        if ($this->monthlyGross($employee) === null) {
+        if ($this->monthlyGross($employee, $this->speaksFor($employee)) === null) {
             $missing[] = 'a salary package for this employee (Employee → Employee Settings → New)';
         }
 
@@ -79,11 +85,13 @@ class IncomeCertificate
     }
 
     /**
-     * The recurring monthly gross from the package in force today, or null when there is none.
+     * The recurring monthly gross from the package in force on a given day, or null when there is none.
      *
-     * Today rather than a chosen month, because a certificate speaks in the present tense: "his gross
-     * monthly salary is". The lookup is the payroll one, so the figure on the letter and the figure a
-     * payslip would pay come from the same row.
+     * Defaults to today, because for somebody still employed a certificate speaks in the present tense:
+     * "his gross monthly salary is". A leaver's letter passes their last working day instead — see
+     * `speaksFor()` — and the experience letter passes the same date when it is asked to print a last
+     * drawn figure. The lookup is the payroll one either way, so the figure on the letter and the figure
+     * a payslip would pay come from the same row.
      */
     public function monthlyGross(Employee $employee, ?Carbon $on = null): ?float
     {
@@ -106,6 +114,19 @@ class IncomeCertificate
         }
 
         return $gross > 0 ? round($gross, 2) : null;
+    }
+
+    /**
+     * The day the letter speaks for: the last working day, or today for somebody still employed.
+     *
+     * One method because three things have to agree — which package is quoted, which date the prose
+     * says the employment ran to, and which day `missingFor()` checks for a package. They disagreed
+     * in the first cut: the letter refused to issue for a leaver whose package had since expired,
+     * while the same class was perfectly able to state what that package had been.
+     */
+    public function speaksFor(Employee $employee): Carbon
+    {
+        return $employee->left_on ?? Carbon::today();
     }
 
     /** This letter's reference — deterministic, so a re-issue carries the one the bank already has. */
@@ -145,7 +166,8 @@ class IncomeCertificate
     {
         $employee->loadMissing('user', 'bank');
 
-        $monthly = $this->monthlyGross($employee) ?? 0.0;
+        $speaksFor = $this->speaksFor($employee);
+        $monthly = $this->monthlyGross($employee, $speaksFor) ?? 0.0;
         $annual = round($monthly * 12, 2);
         $issuedOn = Carbon::today();
 
@@ -155,6 +177,11 @@ class IncomeCertificate
             'signatory' => CompanyLetterhead::signatory($input),
             'issued_on' => $issuedOn,
             'reference' => $this->reference($employee, $issuedOn),
+            // The same two keys the experience letter hands its template, and for the same reason:
+            // the tense of every sentence on the page turns on them.
+            'has_left' => $employee->left_on !== null,
+            'left_on' => $employee->left_on,
+            'speaks_for' => $speaksFor,
             'father_name' => (string) ($input['father_name'] ?? ''),
             'residence' => (string) ($input['residence'] ?? trim(implode(', ', array_filter([
                 $employee->address_line_1,
