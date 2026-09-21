@@ -10,6 +10,7 @@ use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Employees\Services\IncomeCertificate;
 use App\Support\TenantSettings;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Tests\AccountingTestCase;
@@ -208,6 +209,72 @@ class IncomeCertificateTest extends AccountingTestCase
 
         // The bonus must not appear anywhere on a statement of recurring income.
         $this->assertStringNotContainsString('100,000', $html);
+    }
+
+    /**
+     * A leaver's certificate, in the past tense and bounded by the last working day.
+     *
+     * A bank asks for one after somebody has moved on — the loan was taken against that salary — so the
+     * letter is issued rather than refused. What it must not do is say "is a bona fide employee" about
+     * somebody who left in March.
+     */
+    public function test_a_leaver_is_certified_in_the_past_tense(): void
+    {
+        $this->package();
+        $this->employee->update(['left_on' => '2026-08-31', 'is_active' => false]);
+
+        $html = app(IncomeCertificate::class)
+            ->renderPdf($this->employee->fresh(), ['purpose' => 'a loan application'])
+            ->html();
+
+        $this->assertStringContainsString('was a bona fide employee', $html);
+        $this->assertStringNotContainsString('is a bona fide employee', $html);
+        $this->assertStringContainsString('until 31 August 2026', $html);
+        $this->assertStringContainsString('Last Working Day', $html);
+        $this->assertStringContainsString('31 August 2026', $html);
+        $this->assertStringContainsString('Last Drawn Gross Monthly Salary', $html);
+
+        // The tax paragraph asserts a continuing deduction. For a period that has ended it must not.
+        $this->assertStringContainsString('deductions were made at source', $html);
+        $this->assertStringNotContainsString('deductions are made at source', $html);
+    }
+
+    /** And a current employee keeps the present tense, with no separation row invented for them. */
+    public function test_a_current_employee_is_certified_in_the_present_tense(): void
+    {
+        $this->package();
+
+        $html = app(IncomeCertificate::class)
+            ->renderPdf($this->employee, ['purpose' => 'a visa application'])
+            ->html();
+
+        $this->assertStringContainsString('is a bona fide employee', $html);
+        $this->assertStringNotContainsString('Last Working Day', $html);
+        $this->assertStringNotContainsString('Last Drawn', $html);
+    }
+
+    /**
+     * The figure is the package in force on the last working day, not today's.
+     *
+     * This is also what stops the letter refusing to issue at all: `missingFor()` asks for a package on
+     * the day the letter speaks for, and a leaver's package has usually expired by the time somebody
+     * asks for the certificate.
+     */
+    public function test_the_figure_is_the_package_in_force_when_they_left(): void
+    {
+        // A package that covered them until the day they left, and nothing after it.
+        $this->package(['start_date' => '2026-07-01', 'end_date' => '2026-08-31']);
+        $this->employee->update(['left_on' => '2026-08-31', 'is_active' => false]);
+
+        $employee = $this->employee->fresh();
+        $certificates = app(IncomeCertificate::class);
+
+        $this->assertSame([], $certificates->missingFor($employee), 'a leaver with a package is not missing one');
+        $this->assertSame(250000.0, $certificates->monthlyGross($employee, $certificates->speaksFor($employee)));
+        $this->assertSame(250000.0, $certificates->data($employee)['monthly_gross']);
+
+        // Today is past the package's end date, so the old behaviour — always today — found nothing.
+        $this->assertNull($certificates->monthlyGross($employee, Carbon::parse('2026-10-15')));
     }
 
     public function test_an_employee_can_download_their_own_certificate(): void

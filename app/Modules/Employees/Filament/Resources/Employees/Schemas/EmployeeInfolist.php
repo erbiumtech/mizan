@@ -49,6 +49,14 @@ class EmployeeInfolist
                     TextEntry::make('designation')->placeholder('—'),
                     TextEntry::make('department')->placeholder('—'),
                     TextEntry::make('is_active')->label('Status')->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive')->badge()->color(fn ($state) => $state ? 'success' : 'gray'),
+                    // Shown only on somebody who has left. A "—" against "Last Working Day" on every
+                    // current employee reads as a missing fact rather than as the normal state.
+                    TextEntry::make('left_on')
+                        ->label('Termination / Last Working Day')
+                        ->date('d-m-Y')
+                        ->badge()
+                        ->color('warning')
+                        ->visible(fn (Employee $record): bool => $record->left_on !== null),
                     TextEntry::make('manager.display_label')->label('Manager')->placeholder('—'),
                 ]),
 
