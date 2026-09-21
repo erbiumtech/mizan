@@ -384,8 +384,10 @@ class RoleGrantsTest extends AccountingTestCase
     private const EXPECTED = [
         'Employee' => 69,
         'Accountant' => 153,
-        'Manager' => 195,
-        'CEO' => 216,
+        // 196 since 2026-09-21: InvoiceOverrideCreditLimit — docs/erpnext-gap-plan.md §4 item 5.
+        'Manager' => 196,
+        // 217 since 2026-09-21: CEO composes on Manager, so InvoiceOverrideCreditLimit reaches here too.
+        'CEO' => 217,
     ];
 
     protected function setUp(): void
