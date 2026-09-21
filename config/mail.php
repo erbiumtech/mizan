@@ -119,9 +119,13 @@ return [
          */
         'failover' => [
             'transport' => 'failover',
+            // In the order the block above states, and the order is the decision: Mailgun is the domain
+            // this installation authenticates as, SendGrid is the standby behind it. These two were the
+            // wrong way round — the comment, the live `.env` and `MailFailoverTest` all said Mailgun first
+            // while the array sent every payslip through SendGrid.
             'mailers' => [
-                'sendgrid',
                 'mailgun',
+                'sendgrid',
             ],
         ],
 

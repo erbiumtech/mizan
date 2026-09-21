@@ -31,3 +31,23 @@ yarn-error.log
 # specific to the server OS and architecture, so it does not belong to the source.
 /rr
 /.cache
+
+# PhpStorm project files, committed once inside the web root — see
+# docs/open-source-release-checklist.md §1.5.
+/public/.idea
+/.idea
+
+# Real people, real salaries, real trading partners.
+#
+# The seeders under database/seeders create dummy data so a fresh install carries none of it; the genuine
+# roster, company, clients and suppliers live in database/seeders/Production and are named explicitly when
+# they are run. That relocation kept them out of `db:seed` but not out of the repository, which is the half
+# that matters for personal data — sixteen people's names, reporting lines and personal email addresses were
+# committed. They stay on disk and out of git. See database/seeders/Production/README.md.
+/database/seeders/Production/*.php
+
+# Bank reference material of uncertain licence: SBP/1LINK/Standard Chartered format documents. The formats
+# they describe are written up in docs/accounting-implementation-plan.md, which is what the code actually
+# needs — §1.4 of the release checklist.
+/docs/IMD CODES IBFT.xlsx
+/docs/ipayments_csv (002).csv

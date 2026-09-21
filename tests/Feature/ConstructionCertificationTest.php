@@ -574,8 +574,12 @@ class ConstructionCertificationTest extends AccountingTestCase
             ->assertSuccessful()
             ->assertSee('STMT-1')
             // 2,000,000 applied, 1,700,000 certified.
-            ->assertSee('2,000,000.00')
-            ->assertSee('1,700,000.00');
+            // The figure only. `->money('PKR')` renders through `Number::currency()`, which is ICU: PKR has
+            // no minor unit in CLDR, so the cell reads "PKR 240,000" — and the space after the code is
+            // U+00A0, which a literal in a test file is not. Asserting the grouped number is the part that
+            // is actually about this screen; the currency formatting is Filament's and is its own business.
+            ->assertSee('2,000,000')
+            ->assertSee('1,700,000');
     }
 
     public function test_the_certificate_register_renders_and_certifies(): void

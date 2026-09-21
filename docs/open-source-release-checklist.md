@@ -1,6 +1,7 @@
 # Open-source release checklist
 
-**Status:** Not ready to publish — section 1 is blocking.
+**Status:** Section 1 is **closed as far as the working tree goes (2026-09-21)** — and *not* as far as git
+history goes, which is what still blocks publishing. See §1.6.
 **Created:** 2026-07-28
 
 Work top to bottom. Section 1 must be finished *before* the repository is ever made
@@ -90,6 +91,33 @@ publish, and rotate it. `APP_KEY` matters especially here: it decrypts sessions 
 `encrypted` cast.
 
 ---
+
+### 1.6 What was done, 2026-09-21
+
+Every item above is out of the working tree. One is not out of the repository, and the difference is the
+whole of what is left.
+
+- **1.1 / 1.2 / 1.3 — the real roster, the real pay figures, the real company.** Already moved once, into
+  `database/seeders/Production/`, which took them out of `db:seed` but left them committed. They are now
+  **untracked and gitignored**, with `database/seeders/Production/README.md` explaining the rule and the
+  shape for anyone writing a replacement. The files stay on the machines that have them — including the app
+  server, where a deploy's `git reset --hard` leaves untracked files alone — so nothing broke.
+- **1.3, the credential.** The seeded address was already `admin@example.test`. The weak password stays for
+  demos and developer machines, where randomising it would trade real convenience for no security, and
+  `DatabaseSeeder::superAdminPassword()` now **refuses it outright on a production host** unless
+  `SEED_ADMIN_PASSWORD` is set. A known default credential that cannot be seeded in production is not a
+  known default credential.
+- **1.4 — the bank reference files.** Untracked rather than relicensed: the licence question is unanswered,
+  and the formats they document are written up in `docs/accounting-implementation-plan.md`, which is what
+  `BankSeeder` and `SalaryBankExportService` actually cite. Nothing reads the files themselves.
+- **1.5 — `public/.idea/*`.** Six PhpStorm files removed from the index and ignored, along with a top-level
+  `/.idea`.
+
+**Still blocking, and it is one thing: the history.** Untracking changes what a future clone contains, not
+what this repository remembers. Sixteen people's names, reporting lines and six personal email addresses are
+in past commits. Publishing means rewriting that history (`git filter-repo`) or starting a fresh repository
+from a squashed initial commit — a decision with a cost, which is why it is stated here rather than taken.
+Until then the exposure is limited to whoever can already read the repo, which is the material improvement.
 
 ## 2. Files GitHub and contributors expect
 
