@@ -6,6 +6,7 @@ use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\Bank;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contact extends Model
 {
@@ -19,7 +20,7 @@ class Contact extends Model
 
     protected $fillable = [
         'name', 'kind', 'email', 'phone', 'address_line_1', 'address_line_2',
-        'ntn', 'cnic', 'bank_id', 'is_active', 'payment_terms_days', 'credit_limit',
+        'ntn', 'cnic', 'bank_id', 'is_active', 'payment_terms_days', 'credit_limit', 'default_tax_rate_id',
     ];
 
     protected $casts = [
@@ -95,6 +96,17 @@ class Contact extends Model
     public function invoices()
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * The rate this party's invoice lines start on — null meaning the company default.
+     *
+     * Read by the line forms only. Nothing recalculates an issued invoice from it: `applyTaxes()` works
+     * from the rate on each line, which is the rate that was actually charged.
+     */
+    public function defaultTaxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'default_tax_rate_id');
     }
 
     public function bank()

@@ -23,6 +23,7 @@ return [
         'App\\Models\\InvoiceEvent' => \App\Modules\Invoicing\Models\InvoiceEvent::class,
         'App\\Models\\ContactPerson' => \App\Modules\Invoicing\Models\ContactPerson::class,
         'App\\Models\\RecurringInvoice' => \App\Modules\Invoicing\Models\RecurringInvoice::class,
+        'App\\Models\\CustomerCredit' => \App\Modules\Invoicing\Models\CustomerCredit::class,
         'App\\Models\\RecurringInvoiceLine' => \App\Modules\Invoicing\Models\RecurringInvoiceLine::class,
         'App\\Models\\FbrSubmission' => \App\Modules\Invoicing\Models\FbrSubmission::class,
     ],

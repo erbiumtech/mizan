@@ -12,6 +12,8 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
+use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Invoicing\Models\CustomerCredit;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceEvent;
 use App\Modules\Invoicing\Models\InvoiceLine;
@@ -289,40 +291,58 @@ class InvoiceService
      * the receipt, and a customer who overpays is refused with a sentence rather than silently left with a
      * credit nobody can see.
      *
+     * **`$holdOnAccount` is what §2.2 deferred, and it changes the refusal rather than removing it.** With it
+     * false — the default, and every existing caller — the allocations must still add up to the receipt, and
+     * they still must for the part being allocated. What it adds is somewhere for the rest to go: a
+     * `CustomerCredit` against 2600, which is a balance the schema can hold and a later invoice can draw on.
+     *
      * @param  array<int|string, float>  $allocations  invoice id => amount to settle
      * @return array<int, Invoice> the invoices as they now stand
      */
-    public function recordBatchReceipt(float $received, string $date, array $allocations, ?string $reference = null): array
+    public function recordBatchReceipt(float $received, string $date, array $allocations, ?string $reference = null, bool $holdOnAccount = false): array
     {
         $allocations = array_filter(
             array_map(fn (mixed $amount): float => round((float) $amount, 2), $allocations),
             fn (float $amount): bool => $amount > 0,
         );
 
-        if ($allocations === []) {
+        if ($allocations === [] && ! $holdOnAccount) {
             throw new InvalidArgumentException('Allocate the receipt to at least one invoice.');
         }
 
         $allocated = round(array_sum($allocations), 2);
         $received = round($received, 2);
+        $remainder = round($received - $allocated, 2);
 
-        // The whole receipt, and no more than the whole receipt. Both directions are refused for the same
-        // reason: the difference has nowhere to go. Under-allocating leaves money on account and
-        // over-allocating invents it, and this application models neither.
-        if (abs($allocated - $received) >= 0.01) {
+        // Over-allocating still invents money, whatever the caller asked for: the allocations cannot come to
+        // more than arrived.
+        if ($remainder < -0.005) {
             throw new InvalidArgumentException(sprintf(
-                'The allocations come to %s and the receipt is %s. They have to match: this application has '
-                .'nowhere to hold money that is not against an invoice.',
+                'The allocations come to %s and only %s was received. A receipt cannot settle more than arrived.',
                 number_format($allocated, 2),
                 number_format($received, 2),
             ));
         }
 
-        return TenantTransaction::run(function () use ($allocations, $date, $reference): array {
+        // Under-allocating is now a choice rather than an error — but only when it was actually chosen. The
+        // message is the one §2.2 wrote, plus the way out that did not exist when it was written.
+        if ($remainder >= 0.01 && ! $holdOnAccount) {
+            throw new InvalidArgumentException(sprintf(
+                'The allocations come to %s and the receipt is %s. Either allocate the remaining %s, or hold '
+                .'it on account for this customer.',
+                number_format($allocated, 2),
+                number_format($received, 2),
+                number_format($remainder, 2),
+            ));
+        }
+
+        return TenantTransaction::run(function () use ($allocations, $date, $reference, $holdOnAccount, $remainder): array {
             $settled = [];
+            $contactId = null;
 
             foreach ($allocations as $invoiceId => $amount) {
                 $invoice = Invoice::query()->whereKey($invoiceId)->firstOrFail();
+                $contactId = $invoice->contact_id;
 
                 // One transaction around the lot, so a receipt that fails on its fourth invoice leaves the
                 // first three unsettled too. Half a receipt recorded is worse than none: the customer's
@@ -330,8 +350,117 @@ class InvoiceService
                 $settled[] = $this->recordPayment($invoice, $amount, $date, null, null, $reference);
             }
 
+            // Inside the same transaction as the settlements: a receipt that is part allocation and part
+            // deposit is one event, and recording half of it is the failure the loop above avoids.
+            if ($holdOnAccount && $remainder >= 0.01) {
+                if ($contactId === null) {
+                    throw new InvalidArgumentException('A receipt held on account has to say which customer it came from.');
+                }
+
+                $this->holdOnAccount(Contact::query()->findOrFail($contactId), $remainder, $date, $reference);
+            }
+
             return $settled;
         });
+    }
+
+    /**
+     * Money received from a customer against no invoice — a deposit, a retainer, an over-payment.
+     *
+     * `docs/erpnext-gap-plan.md` §2.2's deferral, built when somebody had the problem: fixed-price work
+     * billed 40% up front has nowhere to sit otherwise, and the alternatives are a journal entry typed by
+     * hand or an invoice raised for money rather than for work.
+     *
+     * Debit the bank, credit 2600 Customer Advances. It is a liability, not revenue: the company owes the
+     * customer either the work or the money back, and it becomes revenue when an invoice draws on it.
+     */
+    public function holdOnAccount(Contact $contact, float $amount, string $date, ?string $reference = null, ?int $cashAccountId = null): CustomerCredit
+    {
+        $amount = round($amount, 2);
+
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('An amount held on account has to be more than nothing.');
+        }
+
+        return TenantTransaction::run(function () use ($contact, $amount, $date, $reference, $cashAccountId): CustomerCredit {
+            $memo = "On account from {$contact->name}".(filled($reference) ? " — {$reference}" : '');
+
+            $entry = $this->postSystemEntry($date, $memo, [
+                ['account_id' => $cashAccountId ?? $this->accountId('1100'), 'debit_amount' => $amount, 'description' => $memo],
+                ['account_id' => $this->advancesAccountId(), 'credit_amount' => $amount, 'description' => $memo],
+            ]);
+
+            return CustomerCredit::create([
+                'contact_id' => $contact->getKey(),
+                'received_on' => $date,
+                'amount' => $amount,
+                'applied_amount' => 0,
+                'reference' => $reference,
+                'journal_entry_id' => $entry->getKey(),
+            ]);
+        });
+    }
+
+    /**
+     * Put money already held against an invoice.
+     *
+     * **No new posting logic, and that is the whole design.** `recordPayment()` already takes the account the
+     * money comes from, so applying a credit is an ordinary settlement whose "bank" is 2600: the receivable
+     * is relieved, the liability is discharged, and no cash moves because none does. Every guard on that
+     * method — the status check, the overpayment check, the note refusals — applies unchanged.
+     */
+    public function applyCredit(CustomerCredit $credit, Invoice $invoice, float $amount, string $date): Invoice
+    {
+        $amount = round($amount, 2);
+
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('Apply more than nothing, or apply nothing at all.');
+        }
+
+        if ($credit->contact_id !== $invoice->contact_id) {
+            throw new InvalidArgumentException(
+                "That credit belongs to a different customer. Money held for one customer cannot settle another's invoice."
+            );
+        }
+
+        if ($amount > $credit->remaining() + 0.005) {
+            throw new InvalidArgumentException(sprintf(
+                'Only %s is left on that credit, and %s was asked for.',
+                number_format($credit->remaining(), 2),
+                number_format($amount, 2),
+            ));
+        }
+
+        return TenantTransaction::run(function () use ($credit, $invoice, $amount, $date): Invoice {
+            $settled = $this->recordPayment(
+                $invoice,
+                $amount,
+                $date,
+                null,
+                $this->advancesAccountId(),
+                'from credit held '.$credit->received_on?->format('j M Y'),
+            );
+
+            $credit->forceFill(['applied_amount' => round((float) $credit->applied_amount + $amount, 2)])->save();
+
+            return $settled;
+        });
+    }
+
+    /** Where money received against no invoice sits until one draws on it. */
+    protected function advancesAccountId(): int
+    {
+        $id = Account::where('code', '2600')->value('id');
+
+        if (! $id) {
+            throw new InvalidArgumentException(
+                'This company\'s chart of accounts has no Customer Advances account (2600), so there is nowhere '
+                .'to hold money that is not against an invoice. Add it to the chart, or run php artisan '
+                .'tenants:seed-baseline to take the shipped one.'
+            );
+        }
+
+        return (int) $id;
     }
 
     /**

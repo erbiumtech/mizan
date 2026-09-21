@@ -210,7 +210,13 @@ class LedgerControlsTest extends AccountingTestCase
 
                 $this->fail("a receipt of {$received} against 5,000 of invoices was accepted");
             } catch (InvalidArgumentException $e) {
-                $this->assertStringContainsString('nowhere to hold money', $e->getMessage());
+                // Both directions are still refused. Since §2.2's deferral was built the *reason* differs:
+                // over-allocating invents money and always will, while under-allocating now has a way out —
+                // holding the rest on account — which the message names rather than the old flat refusal.
+                $this->assertStringContainsString(
+                    $received > 5_000 ? 'hold it on account' : 'cannot settle more than arrived',
+                    $e->getMessage(),
+                );
             }
         }
 

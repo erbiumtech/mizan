@@ -5,6 +5,7 @@ namespace App\Modules\Invoicing\Filament\Pages;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Invoicing\Models\CustomerCredit;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Services\InvoiceService;
 use BackedEnum;
@@ -135,6 +136,12 @@ class RecordReceipt extends Page
      * invoices until it runs out. Anything else is typed over the top, which is why this fills the boxes
      * rather than posting anything.
      */
+    /** What would be held on account if the receipt were recorded now. */
+    public function remainder(): float
+    {
+        return max(0.0, $this->unallocated());
+    }
+
     public function allocateOldestFirst(): void
     {
         $remaining = round((float) $this->amount, 2);
@@ -159,22 +166,44 @@ class RecordReceipt extends Page
             Notification::make()
                 ->warning()
                 ->title('More than this customer owes')
-                ->body(number_format($remaining, 2).' of the receipt is unallocated. This application has '
-                    .'nowhere to hold money that is not against an invoice, so allocate it or reduce the amount.')
+                ->body(number_format($remaining, 2).' of the receipt is unallocated. Hold it on account for '
+                    .'this customer, or reduce the amount.')
                 ->send();
         }
     }
 
-    /** Settle the invoices, in one transaction, through the path that already posts settlements. */
-    public function record(): void
+    /**
+     * Record it, and hold whatever is not allocated as a credit for this customer.
+     *
+     * The same call with one flag — `docs/erpnext-gap-plan.md` §2.2. A deposit against no invoice at all is
+     * this button with nothing allocated, which is why it does not require the table to have rows.
+     */
+    public function recordHoldingRemainder(): void
     {
+        $this->record(holdOnAccount: true);
+    }
+
+    /** Settle the invoices, in one transaction, through the path that already posts settlements. */
+    public function record(bool $holdOnAccount = false): void
+    {
+        $held = $holdOnAccount ? $this->remainder() : 0.0;
+
         try {
-            $settled = app(InvoiceService::class)->recordBatchReceipt(
-                (float) $this->amount,
-                $this->receivedOn,
-                $this->allocations,
-                filled($this->reference) ? $this->reference : null,
-            );
+            // A deposit with nothing allocated still needs to know whose it is, and on this screen the
+            // customer picker is the only place that says.
+            if ($holdOnAccount && $this->allocations === [] && blank($this->contactId)) {
+                throw new InvalidArgumentException('Choose the customer this money came from.');
+            }
+
+            $settled = $this->allocations === [] && $holdOnAccount
+                ? $this->holdWholeReceipt()
+                : app(InvoiceService::class)->recordBatchReceipt(
+                    (float) $this->amount,
+                    $this->receivedOn,
+                    $this->allocations,
+                    filled($this->reference) ? $this->reference : null,
+                    $holdOnAccount,
+                );
         } catch (InvalidArgumentException $e) {
             Notification::make()->danger()->title($e->getMessage())->send();
 
@@ -183,11 +212,41 @@ class RecordReceipt extends Page
 
         Notification::make()
             ->success()
-            ->title(count($settled).' '.(count($settled) === 1 ? 'invoice' : 'invoices').' settled')
+            ->title($settled === []
+                ? number_format($held, 2).' held on account'
+                : count($settled).' '.(count($settled) === 1 ? 'invoice' : 'invoices').' settled'
+                    .($held >= 0.01 ? ', '.number_format($held, 2).' held on account' : ''))
             ->send();
 
         $this->allocations = [];
         $this->amount = '';
         $this->reference = '';
+    }
+
+    /** @return array<int, \App\Modules\Invoicing\Models\Invoice> nothing settled; the whole receipt is a deposit */
+    private function holdWholeReceipt(): array
+    {
+        app(InvoiceService::class)->holdOnAccount(
+            Contact::query()->findOrFail($this->contactId),
+            (float) $this->amount,
+            $this->receivedOn,
+            filled($this->reference) ? $this->reference : null,
+        );
+
+        return [];
+    }
+
+    /** What this customer is already holding, so the screen can say so before more is added. */
+    public function creditsOnAccount(): float
+    {
+        if (blank($this->contactId)) {
+            return 0.0;
+        }
+
+        return round((float) CustomerCredit::query()
+            ->where('contact_id', $this->contactId)
+            ->available()
+            ->get()
+            ->sum(fn (CustomerCredit $credit): float => $credit->remaining()), 2);
     }
 }

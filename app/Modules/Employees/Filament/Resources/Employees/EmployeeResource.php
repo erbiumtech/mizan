@@ -9,6 +9,7 @@ use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\ChangeRequestsRelationManager;
+use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\JobHistoryRelationManager;
 use App\Modules\Employees\Filament\Resources\Employees\Schemas\EmployeeForm;
 use App\Modules\Employees\Filament\Resources\Employees\Tables\EmployeesTable;
 use App\Modules\Employees\Models\Employee;
@@ -77,6 +78,9 @@ class EmployeeResource extends Resource
     {
         return [
             ChangeRequestsRelationManager::class,
+            // Read-only, and written by the employee form rather than typed — docs/hrms-plan.md, which
+            // records this as the one piece of the job-history feature left unbuilt.
+            JobHistoryRelationManager::class,
             ...ResourceContributions::relationManagersFor(static::class),
         ];
     }

@@ -44,6 +44,18 @@
 
             @if ($invoices->isEmpty())
                 <p class="fi-explorer-empty">This customer has nothing outstanding.</p>
+
+                {{-- A deposit on work not yet billed: the whole receipt is held, because there is no invoice
+                     for any of it to settle. --}}
+                @if ((float) $this->amount >= 0.01)
+                    <div class="fi-receipt-actions">
+                        <button
+                            type="button"
+                            wire:click="recordHoldingRemainder"
+                            class="fi-explorer-open fi-explorer-open-lg"
+                        >Hold {{ number_format((float) $this->amount, 2) }} on account</button>
+                    </div>
+                @endif
             @else
                 <div class="fi-explorer-statement fi-explorer-table">
                     <div class="fi-explorer-statement-head" style="grid-template-columns: minmax(0, 1fr) 8rem 8rem 9rem 9rem">
@@ -92,8 +104,12 @@
                     </div>
 
                     <div class="fi-explorer-statement-foot">
-                        THIS APPLICATION HAS NOWHERE TO HOLD MONEY THAT IS NOT AGAINST AN INVOICE — THE
-                        UNALLOCATED FIGURE HAS TO BE NIL
+                        @if ($this->creditsOnAccount() >= 0.01)
+                            THIS CUSTOMER ALREADY HOLDS {{ number_format($this->creditsOnAccount(), 2) }} ON ACCOUNT —
+                            APPLY IT FROM THE INVOICE ROW · ANYTHING UNALLOCATED HERE IS HELD THE SAME WAY
+                        @else
+                            ANYTHING UNALLOCATED IS HELD ON ACCOUNT FOR THIS CUSTOMER AND APPLIED TO A LATER INVOICE
+                        @endif
                     </div>
                 </div>
 
@@ -104,6 +120,16 @@
                         @disabled(abs($this->unallocated()) >= 0.01 || $this->allocated() < 0.01)
                         class="fi-explorer-open fi-explorer-open-lg"
                     >Record receipt</button>
+
+                    {{-- The way out that §2.2 said would need a table. Shown only when there is a remainder
+                         to hold, so the ordinary receipt still has exactly one button. --}}
+                    @if ($this->remainder() >= 0.01)
+                        <button
+                            type="button"
+                            wire:click="recordHoldingRemainder"
+                            class="fi-explorer-open fi-explorer-open-lg"
+                        >Record, holding {{ number_format($this->remainder(), 2) }} on account</button>
+                    @endif
                 </div>
             @endif
         @endif

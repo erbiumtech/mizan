@@ -3,6 +3,7 @@
 namespace App\Modules\Invoicing\Filament\Resources\Invoices\Tables;
 
 use App\Filament\Support\CustomFieldsSchema;
+use App\Modules\Invoicing\Models\CustomerCredit;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Services\InvoiceService;
 use Filament\Actions\Action;
@@ -12,6 +13,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -227,6 +229,59 @@ class InvoicesTable
                     && ! $record->isAdjustment())
                 ->schema(self::paymentFields())
                 ->action(fn (array $data, Invoice $record) => self::run(fn (InvoiceService $s) => self::settle($s, $record, $data), 'Payment recorded')),
+
+            /**
+             * Settle an invoice from money this customer already paid — docs/erpnext-gap-plan.md §2.2.
+             *
+             * Offered only when they are actually holding something, so on most invoices the button is
+             * absent rather than present and refused. The posting is an ordinary settlement whose account
+             * is 2600 rather than the bank; see InvoiceService::applyCredit().
+             */
+            Action::make('applyCredit')
+                ->label('Apply credit on account')
+                ->icon('heroicon-o-wallet')
+                ->color('gray')
+                ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoicePay') ?? false)
+                    && $record->isOpen()
+                    && ! $record->isAdjustment()
+                    && $record->isSale()
+                    && CustomerCredit::query()->where('contact_id', $record->contact_id)->available()->exists())
+                ->modalDescription(fn (Invoice $record): string => 'This customer is holding '
+                    .number_format(self::creditHeldBy($record), 2).' that no invoice has claimed. No money moves: '
+                    .'the credit is discharged and the invoice settled.')
+                ->modalSubmitActionLabel('Apply')
+                ->schema([
+                    Select::make('credit_id')
+                        ->label('Credit')
+                        ->options(fn (Invoice $record): array => CustomerCredit::query()
+                            ->where('contact_id', $record->contact_id)
+                            ->available()
+                            ->orderBy('received_on')
+                            ->get()
+                            ->mapWithKeys(fn (CustomerCredit $credit): array => [$credit->getKey() => $credit->label()])
+                            ->all())
+                        ->required()
+                        ->live(),
+                    DatePicker::make('date')->required()->default(now()->toDateString()),
+                    TextInput::make('amount')
+                        ->numeric()
+                        ->step(0.01)
+                        ->required()
+                        ->minValue(0.01)
+                        // Whichever is smaller: there is no sense offering more credit than is left, or more
+                        // than the invoice still owes.
+                        ->default(fn (Invoice $record): float => round(min(self::creditHeldBy($record), $record->outstanding()), 2))
+                        ->helperText(fn (Invoice $record): string => number_format($record->outstanding(), 2).' outstanding on this invoice.'),
+                ])
+                ->action(fn (array $data, Invoice $record) => self::run(
+                    fn (InvoiceService $s) => $s->applyCredit(
+                        CustomerCredit::query()->findOrFail($data['credit_id']),
+                        $record,
+                        (float) $data['amount'],
+                        $data['date'],
+                    ),
+                    'Credit applied',
+                )),
 
             Action::make('void')
                 ->label('Void')
@@ -454,6 +509,16 @@ class InvoicesTable
             $withheld,
             filled($data['certificate'] ?? null) ? (string) $data['certificate'] : null,
         );
+    }
+
+    /** What this invoice's customer is holding that no invoice has claimed. */
+    protected static function creditHeldBy(Invoice $invoice): float
+    {
+        return round((float) CustomerCredit::query()
+            ->where('contact_id', $invoice->contact_id)
+            ->available()
+            ->get()
+            ->sum(fn (CustomerCredit $credit): float => $credit->remaining()), 2);
     }
 
     /**
