@@ -336,9 +336,33 @@ class CompanyProvisioner
             return;
         }
 
-        // MySQL / PostgreSQL: create the schema on the landlord connection.
-        DB::connection(config('database.default'))->statement(
-            "CREATE DATABASE IF NOT EXISTS `{$company->database}`"
+        /*
+         * MySQL / PostgreSQL: create the schema on the landlord connection.
+         *
+         * **With the charset stated, because leaving it out means the server's default.** This said only
+         * `CREATE DATABASE IF NOT EXISTS`, so a host whose default is latin1 — which this one is — gave the
+         * tenant a latin1 schema, and every table migrated into it before the default was corrected is
+         * latin1 to this day: 45 of 204 on the live company. The failure that surfaces from it is not a
+         * garbled character, which somebody would notice, but a hard error the first time a query compares
+         * one of those columns to a non-ASCII literal:
+         *
+         *     SQLSTATE[HY000] 3988: Conversion from collation utf8mb4_0900_ai_ci into latin1_swedish_ci
+         *     impossible for parameter
+         *
+         * — which is how `tenants:seed-baseline` came to die on the Urdu transaction-type aliases while
+         * every screen still worked. The connection's own charset is not enough: it governs the session,
+         * not what `CREATE DATABASE` picks, and the columns are stamped at migrate time.
+         *
+         * Postgres takes neither clause in this form, so this is MySQL's alone.
+         */
+        $landlord = config('database.default');
+        $charset = config("database.connections.{$landlord}.charset", 'utf8mb4');
+        $collation = config("database.connections.{$landlord}.collation", 'utf8mb4_unicode_ci');
+
+        DB::connection($landlord)->statement(
+            config("database.connections.{$landlord}.driver") === 'mysql'
+                ? "CREATE DATABASE IF NOT EXISTS `{$company->database}` CHARACTER SET {$charset} COLLATE {$collation}"
+                : "CREATE DATABASE IF NOT EXISTS `{$company->database}`"
         );
     }
 
