@@ -262,6 +262,16 @@ logic, no new table, and the FX and rounding behaviour of settlement stays the o
 tested. What that does *not* buy is money on account with no invoice behind it; that genuinely needs
 somewhere to sit, and it should wait until somebody has the problem.
 
+**[2026-09-21] Somebody had the problem, and it cost one table and no posting logic.** Fixed-price work
+billed 40% up front had nowhere to sit, and the alternatives were a journal entry typed by hand or an
+invoice raised for money rather than for work. `customer_credits` holds whose the money is and how much is
+left; 2600 Customer Advances holds the money. The part this section could not predict is how cheap
+*applying* one turned out to be: `recordPayment()` already takes the account the money comes from, so a
+credit is an ordinary settlement whose bank is 2600 — the receivable relieved, the status transitions, the
+FX rules and the events all unchanged, and still exactly one settlement path. The refusal it replaces is
+narrower rather than gone: over-allocating still invents money, and under-allocating is refused unless the
+caller says to hold the rest.
+
 **[2nd pass] And the reuse this paragraph originally named was wrong.** It proposed tying the batch together
 with `payments.batch_reference`. `payments` is the *outbound* bank-file table — `morphs('payable')` is an
 Employee or a Beneficiary, there is no invoice on it, and `recordPayment()` never creates a row in it: a
@@ -679,7 +689,10 @@ statements is now the top of the list**, and item 3 has half of it left.
    rather than purchase orders; see §4.1. Ours planned and reported; theirs stops or warns at material request,
    purchase order, actual expense and cumulative expense, annually and per period. A warn-only version over
    purchase orders is the useful half and needs no new table.
-9. **Tax categories, tax rules, item tax templates** — three ERPNext documents, one question: which rate.
+9. **Tax categories, tax rules, item tax templates** — *partly answered 2026-09-21: `contacts.default_tax_rate_id`
+   fills the rate on new invoice lines for that party, which is the one shape the condition was actually met
+   in — an exporter whose foreign clients are zero-rated and whose local ones are not. The rule engine below
+   stays unbuilt.* Three ERPNext documents, one question: which rate.
    Now read: a Tax Rule is priority-ordered and specificity-broken, an Item Tax Template overrides the *rate*
    on an existing tax row rather than replacing the template. If the "which rate" question ever gets asked
    here, that split — templates decide accounts, rules decide templates, item templates override rates — is
@@ -737,9 +750,28 @@ modules.
   `TimesheetReports` already read `contacts`. Hours with no payslip behind them are counted and stated as
   uncosted, never priced.
 
-**Deployment.** `php artisan tenants:migrate` for `contacts.credit_limit` and `invoice_lines.service_from/to`,
-then `php artisan tenants:seed-baseline` to give existing companies account 1260 (`recordPayment()` names the
-command if it is missing). Neither changes any figure: with no limit set, no service dates, no withheld amount
+**A second pass, the same day**, took the three items §4 left that were worth building rather than waiting on:
+
+- **Money on account** — §2.2's deferral, above. `customer_credits`, account 2600, a second button on the
+  receipt screen ("Record, holding N on account"), and an *Apply credit on account* action on the invoice
+  row. A deposit against no invoice at all is the same button with nothing allocated.
+- **Job history has a screen** — `docs/hrms-plan.md`'s only unbuilt piece. A read-only relation manager on
+  `ViewEmployee`, which is what that plan asked for in its own words: the rows are written by a change to
+  the employee, never typed, so a form here could only create a history the record disagrees with. A
+  future-dated row is badged as not yet in effect. `recorded_by` is deliberately not shown — it is a
+  landlord user id, and resolving it is a cross-database lookup per row for a fact the audit log has.
+- **A default tax rate per party** — item 9's lazy half, above.
+
+**What is still not built, and why**, so the next reader does not re-derive it: pay links (item 10) need a
+gateway and merchant credentials, finance books (item 11) answer a divergence nobody here has, the payment
+ledger table (item 12) is refused on the design argument in §2.2, and pay calendars — `akaunting-gap-plan.md`
+item 11 — remain gated on nobody being paid other than monthly, which is still true and is a payroll
+re-architecture rather than a feature.
+
+**Deployment.** `php artisan tenants:migrate` for `contacts.credit_limit`, `contacts.default_tax_rate_id`,
+`invoice_lines.service_from/to` and `customer_credits`,
+then `php artisan tenants:seed-baseline` to give existing companies accounts 1260 and 2600 (both call sites
+name the command if the account is missing). Neither changes any figure: with no limit set, no service dates, no withheld amount
 and statements off, every path posts exactly what it posted before.
 
 ## 5. What not to take from ERPNext

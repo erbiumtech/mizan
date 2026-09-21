@@ -91,7 +91,10 @@ class LinesRelationManager extends RelationManager
                     ->get()
                     ->mapWithKeys(fn (TaxRate $rate): array => [$rate->id => $rate->label()])
                     ->all())
-                ->default(fn (): ?int => TaxRate::active()->where('is_default', true)->value('id'))
+                // This party's rate before the company's — §4 item 9. `getOwnerRecord()` is the invoice, so
+                // a line added to an export client's invoice starts zero-rated without anybody choosing.
+                ->default(fn (RelationManager $livewire): ?int => $livewire->getOwnerRecord()->contact?->default_tax_rate_id
+                    ?? TaxRate::active()->where('is_default', true)->value('id'))
                 ->searchable()
                 ->nullable()
                 ->helperText('Leave empty for a line that carries no tax.'),

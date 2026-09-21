@@ -203,7 +203,8 @@
         "App\\Models\\CommandUtterance": "App\\Modules\\Accounting\\Models\\CommandUtterance",
         "App\\Models\\TransactionTypeAlias": "App\\Modules\\Accounting\\Models\\TransactionTypeAlias",
         "App\\Models\\WithholdingSection": "App\\Modules\\Accounting\\Models\\WithholdingSection",
-        "App\\Models\\WithholdingDeduction": "App\\Modules\\Accounting\\Models\\WithholdingDeduction"
+        "App\\Models\\WithholdingDeduction": "App\\Modules\\Accounting\\Models\\WithholdingDeduction",
+        "App\\Models\\CustomerCredit": "App\\Modules\\Invoicing\\Models\\CustomerCredit"
     },
     "resources": {
         "App\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource": "App\\Modules\\Core\\Filament\\Platform\\Resources\\ActivityLogs\\PlatformActivityLogResource",

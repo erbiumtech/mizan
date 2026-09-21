@@ -69,6 +69,10 @@ class ChartOfAccountsSeeder extends Seeder
                 // in July is a liability to deliver eleven more months of it, and recognising the whole
                 // amount on the day of the invoice overstates this year's profit by that much.
                 ['code' => '2500', 'name' => 'Deferred Revenue', 'type' => 'liability', 'description' => 'Billed and not yet earned; recognised a month at a time'],
+                // Money in the bank that is not yet anybody's revenue and settles no invoice: a deposit on a
+                // fixed-price project, a retainer, the remainder of an over-payment. A liability because the
+                // company owes the customer the work or the money back — docs/erpnext-gap-plan.md §2.2.
+                ['code' => '2600', 'name' => 'Customer Advances', 'type' => 'liability', 'description' => 'Received from customers against no invoice; applied to invoices as they are raised'],
             ]],
             ['code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'allow_manual_entry' => false, 'children' => [
                 ['code' => '3100', 'name' => 'Owner Equity', 'type' => 'equity'],

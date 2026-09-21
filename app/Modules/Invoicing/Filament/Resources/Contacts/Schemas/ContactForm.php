@@ -4,6 +4,7 @@ namespace App\Modules\Invoicing\Filament\Resources\Contacts\Schemas;
 
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Invoicing\Models\Contact;
+use App\Modules\Invoicing\Models\TaxRate;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -60,6 +61,23 @@ class ContactForm
                     ->selectablePlaceholder()
                     ->nullable()
                     ->helperText('Fills the due date on their invoices. "None agreed" leaves it blank — which is not the same as due on receipt, and keeps them out of the overdue buckets until somebody decides.'),
+
+                // Which rate their invoice lines start on — the gap plan's §4 item 9, as a column rather
+                // than a rule engine. The case that asks for it is an exporting company: foreign clients
+                // zero-rated, local ones at the standard rate, and somebody changing the picker on every
+                // line of every invoice until they forget once.
+                Select::make('default_tax_rate_id')
+                    ->label('Default tax rate')
+                    ->options(fn (): array => TaxRate::active()
+                        ->orderByDesc('is_default')
+                        ->orderByDesc('rate')
+                        ->get()
+                        ->mapWithKeys(fn (TaxRate $rate): array => [$rate->id => $rate->label()])
+                        ->all())
+                    ->placeholder('The company default')
+                    ->selectablePlaceholder()
+                    ->nullable()
+                    ->helperText('Fills the tax on new invoice lines for this party. It is a starting point — the rate on each line is what is charged, and can still be changed there.'),
 
                 // The one control on the gap plan's list that prevents a loss rather than reporting one.
                 // Checked when a sale is *issued*, against everything the customer already owes.
