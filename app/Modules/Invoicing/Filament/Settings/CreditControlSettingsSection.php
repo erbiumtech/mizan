@@ -36,8 +36,9 @@ class CreditControlSettingsSection implements SettingsSection
                         ->minValue(0)
                         ->maxValue(365)
                         ->suffix('days')
-                        ->required()
-                        ->helperText('0 switches this off. Somebody who may override credit limits can still issue.'),
+                        // Not required: blank and 0 both mean "off", and a required field here made the whole
+                        // settings page unsaveable for a company that never touched this section.
+                        ->helperText('0 or blank switches this off. Somebody who may override credit limits can still issue.'),
                 ]),
         ];
     }

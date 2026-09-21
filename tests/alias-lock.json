@@ -394,7 +394,9 @@
         "App\\Filament\\Pages\\RecordReceipt": "App\\Modules\\Invoicing\\Filament\\Pages\\RecordReceipt",
         "App\\Filament\\Pages\\CreditNotesIssued": "App\\Modules\\Invoicing\\Filament\\Pages\\CreditNotesIssued",
         "App\\Filament\\Pages\\HeadcountMovement": "App\\Modules\\Employees\\Filament\\Pages\\HeadcountMovement",
-        "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement"
+        "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement",
+        "App\\Filament\\Pages\\TaxWithheldByCustomers": "App\\Modules\\Invoicing\\Filament\\Pages\\TaxWithheldByCustomers",
+        "App\\Filament\\Pages\\ProjectMargin": "App\\Modules\\Timesheets\\Filament\\Pages\\ProjectMargin"
     },
     "widgets": {
         "App\\Filament\\Widgets\\StockOnHandOverview": "App\\Modules\\Inventory\\Filament\\Widgets\\StockOnHandOverview",
