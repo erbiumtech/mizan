@@ -42,6 +42,8 @@ class EmailTemplate extends Model
          * act on and a statement of account is a different document (§4, item 1).
          */
         'invoice_overdue' => ['contact_name', 'invoice_number', 'amount', 'due_date', 'days_overdue', 'company'],
+        // The monthly statement of account, PDF attached — docs/erpnext-gap-plan.md §4 item 1.
+        'customer_statement' => ['contact_name', 'period', 'balance', 'company'],
     ];
 
     protected $fillable = ['key', 'subject', 'greeting', 'body', 'action_label', 'closing', 'is_active'];

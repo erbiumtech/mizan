@@ -3,6 +3,7 @@
 namespace App\Modules\Timesheets;
 
 use App\Modules\Timesheets\Filament\Pages\PlanVersusActual;
+use App\Modules\Timesheets\Filament\Pages\ProjectMargin;
 use App\Modules\Timesheets\Filament\Pages\TimesheetUtilisation;
 use App\Modules\Timesheets\Filament\Pages\UnbilledWip;
 use App\Modules\Timesheets\Models\TimesheetEntry;
@@ -77,6 +78,15 @@ class TimesheetsServiceProvider extends ServiceProvider
             UnbilledWip::class,
             'Hours worked, approved, and never invoiced — the revenue still sitting in timesheets.',
         );
+
+        // Revenue against the cost of the hours, per project. Beside Unbilled WIP under Operations: both are
+        // about the money in the timesheets, and the person reading one wants the other.
+        ReportCatalogue::register(
+            'Operations',
+            ProjectMargin::class,
+            'What each project was invoiced against what its hours cost in salary — are we making money on this client?',
+        );
+        ReportRenderers::register('ProjectMargin', fn (string $asOf): array => app(TimesheetReports::class)->projectMargin($asOf));
 
         ReportRenderers::register('UnbilledWip', fn (string $asOf): array => app(TimesheetReports::class)->unbilledWip($asOf));
         ReportRenderers::register('TimesheetUtilisation', fn (string $asOf): array => app(TimesheetReports::class)->utilisation($asOf));

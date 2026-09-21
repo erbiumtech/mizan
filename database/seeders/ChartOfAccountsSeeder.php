@@ -37,6 +37,12 @@ class ChartOfAccountsSeeder extends Seeder
                 ['code' => '1150', 'name' => 'Petty Cash', 'type' => 'asset', 'description' => 'Imprest petty cash box'],
                 ['code' => '1200', 'name' => 'Employee Advances', 'type' => 'asset', 'description' => 'Advances paid to employees, recovered via payroll'],
                 ['code' => '1250', 'name' => 'Accounts Receivable', 'type' => 'asset', 'description' => 'Amounts owed by customers on issued invoices'],
+                // The customer's side of §153. A corporate customer pays an invoice short and hands over a
+                // tax deduction certificate for the rest; that rest is not a loss and not a discount — it is
+                // income tax paid on the company's behalf, and an asset until the company's own return
+                // absorbs it. InvoiceService::recordPayment() debits it; the Tax Withheld by Customers
+                // report reads it back for the return.
+                ['code' => '1260', 'name' => 'Advance Income Tax', 'type' => 'asset', 'description' => 'Income tax withheld by customers on receipts, adjustable against the company\'s own liability'],
                 ['code' => '1300', 'name' => 'Inventory', 'type' => 'asset', 'description' => 'Stock on hand at cost'],
                 // Deferrals — docs/erpnext-gap-plan.md Phase 5. A cost paid in advance is not an expense
                 // yet: an annual licence bought in July is eleven months of next year's costs sitting in

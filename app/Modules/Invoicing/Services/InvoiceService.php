@@ -5,6 +5,7 @@ namespace App\Modules\Invoicing\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\CurrencyRevaluationService;
+use App\Modules\Accounting\Services\DeferralService;
 use App\Modules\Accounting\Services\JournalEntryService;
 use App\Modules\Accounting\Support\Money;
 use App\Modules\Core\Models\FiscalYear;
@@ -201,6 +202,8 @@ class InvoiceService
         // rate, and that rate is what ties the document to the ledger from here on.
         $this->fixRate($invoice);
 
+        $this->assertWithinCredit($invoice);
+
         return TenantTransaction::run(function () use ($invoice, $lines) {
             $entryLines = $this->translateDocument($invoice, match ($invoice->kind) {
                 Invoice::KIND_SALE => $this->saleEntryLines($invoice, $lines),
@@ -331,7 +334,23 @@ class InvoiceService
         });
     }
 
-    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null, ?string $reference = null): Invoice
+    /**
+     * Settle `$amount` of the invoice, of which `$withheld` arrived as a tax deduction certificate.
+     *
+     * The customer's side of §153. A corporate customer paying a 100,000 invoice transfers 92,000 and
+     * hands over a certificate for the 8,000 it deducted and paid to FBR on this company's behalf. The
+     * invoice is settled in full — the customer owes nothing — but only 92,000 reached the bank, and the
+     * 8,000 is an asset (1260 Advance Income Tax) the company's own return absorbs. Before this, that
+     * receipt was either an invoice that never closed or a manual journal per certificate.
+     *
+     * `$amount` is still what the invoice is settled by, so every guard and status transition below is
+     * untouched; `$withheld` only decides how the debit side of the same entry is split. The supplier's
+     * side — what this company withholds when it pays — is `WithholdingService`, and deliberately not this.
+     *
+     * ponytail: base currency only. A certificate is a PKR document about a PKR liability; splitting a
+     * foreign receipt would need a foreign amount on the tax line too, and nobody has asked.
+     */
+    public function recordPayment(Invoice $invoice, float $amount, string $date, ?float $rate = null, ?int $cashAccountId = null, ?string $reference = null, float $withheld = 0.0, ?string $certificate = null): Invoice
     {
         if (! $invoice->isOpen()) {
             throw new InvalidArgumentException("Only issued or partially paid invoices accept payments (invoice is {$invoice->status}).");
@@ -379,15 +398,52 @@ class InvoiceService
             );
         }
 
-        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId, $reference) {
+        $withheld = round($withheld, 2);
+
+        if ($withheld < 0) {
+            throw new InvalidArgumentException('Tax withheld cannot be negative.');
+        }
+
+        if ($withheld > $amount + 0.001) {
+            throw new InvalidArgumentException(sprintf(
+                'The customer cannot have withheld %s from a settlement of %s. The amount is what the invoice '
+                .'is settled by — money received plus tax withheld — so it has to be at least the tax.',
+                number_format($withheld, 2),
+                number_format($amount, 2),
+            ));
+        }
+
+        if ($withheld > 0 && $invoice->kind !== Invoice::KIND_SALE) {
+            throw new InvalidArgumentException(
+                'Tax withheld by a customer is recorded on a sale. What this company withholds when it pays a '
+                .'supplier is deducted on the payment itself, at approval.'
+            );
+        }
+
+        if ($withheld > 0 && $invoice->isForeignCurrency()) {
+            throw new InvalidArgumentException(
+                "{$invoice->invoice_number} is billed in {$invoice->currencyCode()}. Tax withheld by a customer "
+                .'can only be recorded on an invoice in the base currency.'
+            );
+        }
+
+        $advanceTax = $withheld > 0 ? $this->advanceTaxAccountId() : null;
+
+        return TenantTransaction::run(function () use ($invoice, $amount, $date, $rate, $cashAccountId, $reference, $withheld, $certificate, $advanceTax) {
             $cash = $cashAccountId ?? $this->accountId('1100');
             $paid = round((float) $invoice->amount_paid + $amount, 2);
 
             $settlement = $this->settlement($invoice, $amount, $paid, $date, $rate);
 
+            // The receipt's debit side, split: what reached the bank, and what the customer paid to FBR
+            // instead. Both relieve the receivable; only one of them is money. The tax line is filtered
+            // out below when it is zero, so an ordinary receipt posts exactly what it always did.
+            $taxDescription = 'Tax withheld by customer'.(filled($certificate) ? " — cert. {$certificate}" : '');
+
             $lines = $invoice->kind === Invoice::KIND_SALE
                 ? [
-                    ['account_id' => $cash, 'debit_amount' => $settlement['received']] + $this->cashInCurrency($invoice, $cash, $amount, $settlement, 'debit') + ['description' => "Payment {$invoice->invoice_number}"],
+                    ['account_id' => $cash, 'debit_amount' => round($settlement['received'] - $withheld, 2)] + $this->cashInCurrency($invoice, $cash, $amount, $settlement, 'debit') + ['description' => "Payment {$invoice->invoice_number}"],
+                    ['account_id' => $advanceTax ?? $cash, 'debit_amount' => $withheld, 'description' => "{$taxDescription} — {$invoice->invoice_number}"],
                     ['account_id' => $this->accountId('1250'), 'credit_amount' => $settlement['relieved'], 'description' => "Payment {$invoice->invoice_number}"]
                     + $this->clearedInCurrency($invoice, $amount, 'credit'),
                 ]
@@ -435,8 +491,188 @@ class InvoiceService
                 $amount,
             );
 
+            // Its own event, so the invoice's history says why the bank shows less than the settlement, and
+            // carries the certificate reference — the thing the tax return is checked against.
+            if ($withheld > 0) {
+                InvoiceEvent::record(
+                    $invoice,
+                    InvoiceEvent::TAX_WITHHELD,
+                    number_format($withheld, 2).' withheld by the customer on '.$date
+                        .(filled($certificate) ? " — certificate {$certificate}" : ' — no certificate reference given'),
+                    $withheld,
+                );
+            }
+
             return $invoice;
         });
+    }
+
+    /**
+     * Spread this invoice's revenue — or a bill's cost — over the months its lines say the service covers.
+     *
+     * `docs/erpnext-gap-plan.md` §4 item 3, the half Phase 5 left: "the generator from an invoice line".
+     * Phase 5's reasoning stands — deferring is an act somebody performs, not something a row does by
+     * itself — so this is an action on an issued invoice rather than a side effect of issuing one. What
+     * changed is that `invoice_lines.service_from/to` now exist, so the act needs no figures typed: each
+     * dated line becomes one `DeferralService` schedule for its net amount, over its own months, out of
+     * the account the line actually posted to.
+     *
+     * Once per invoice. The `DEFERRED` event is the guard, and it is the invoice's own history rather than a
+     * column because the thing somebody arguing about a month's revenue will open is that history.
+     *
+     * @return array{deferred: float, schedules: int}
+     */
+    public function deferOverServicePeriod(Invoice $invoice): array
+    {
+        if ($invoice->isDraft() || $invoice->status === Invoice::STATUS_VOID) {
+            throw new InvalidArgumentException('Only an issued invoice can be deferred: nothing has been posted to spread yet.');
+        }
+
+        if ($invoice->isAdjustment()) {
+            throw new InvalidArgumentException(
+                'A credit or debit note is not deferred. It corrects a document that was; correct the schedule that '
+                .'document created instead.'
+            );
+        }
+
+        if ($invoice->events()->where('event', InvoiceEvent::DEFERRED)->exists()) {
+            throw new InvalidArgumentException("{$invoice->invoice_number} has already been deferred — see its history.");
+        }
+
+        $lines = $invoice->lines()->with('product')->get()
+            ->filter(fn (InvoiceLine $line): bool => $line->serviceMonths() !== null && $line->netAmount() > 0)
+            // A bill's product lines went to inventory, not to an expense, and stock is not deferred.
+            ->reject(fn (InvoiceLine $line): bool => $invoice->kind === Invoice::KIND_PURCHASE && $line->product_id !== null);
+
+        if ($lines->isEmpty()) {
+            throw new InvalidArgumentException(
+                'No line on this invoice carries a service period. Put "Service from" and "Service to" on the lines '
+                .'that are for a period rather than a delivery, and try again.'
+            );
+        }
+
+        $deferrals = app(DeferralService::class);
+
+        return TenantTransaction::run(function () use ($invoice, $lines, $deferrals): array {
+            $deferred = 0.0;
+
+            foreach ($lines as $line) {
+                $description = "{$invoice->invoice_number} — {$line->description}";
+
+                $result = $invoice->kind === Invoice::KIND_SALE
+                    ? $deferrals->deferRevenue($line->netAmount(), $line->serviceMonths(), $line->service_from->toDateString(), $description, $this->revenueAccountId($line))
+                    : $deferrals->deferExpense($line->netAmount(), $line->serviceMonths(), $line->service_from->toDateString(), $description, $this->expenseAccountId($line));
+
+                $deferred += $result['deferred'] ?? $line->netAmount();
+            }
+
+            InvoiceEvent::record(
+                $invoice,
+                InvoiceEvent::DEFERRED,
+                number_format($deferred, 2).' spread over the service period on '.$lines->count()
+                    .' line'.($lines->count() === 1 ? '' : 's').' — recognised a month at a time by scheduled entries',
+                round($deferred, 2),
+            );
+
+            return ['deferred' => round($deferred, 2), 'schedules' => $lines->count()];
+        });
+    }
+
+    /**
+     * Refuse a sale that would take the customer past what the company is prepared to be owed.
+     *
+     * `docs/erpnext-gap-plan.md` §4 item 5, and "the one control on this list that prevents a loss rather
+     * than reporting one". Two rules, both off until somebody sets them: a limit on the contact, and a
+     * company-wide number of days an invoice may be overdue before new billing to that customer stops.
+     *
+     * Exposure is what ageing reads — every open sale and credit note, signed, in base currency — plus this
+     * invoice. Sales only: a credit note *reduces* exposure and a purchase is somebody else's credit decision.
+     *
+     * The escape hatch is a permission and not a parameter, for the reason Phase 3's ledger freeze gives:
+     * without one the first genuine exception forces somebody to raise the limit, issue, and remember to
+     * put it back, and nothing records that the window was open. `InvoiceOverrideCreditLimit` is granted to
+     * Manager and above, and the refusal names it.
+     */
+    protected function assertWithinCredit(Invoice $invoice): void
+    {
+        if ($invoice->kind !== Invoice::KIND_SALE || auth()->user()?->can('InvoiceOverrideCreditLimit')) {
+            return;
+        }
+
+        $contact = $invoice->contact;
+        $limit = $contact?->credit_limit;
+        $overdueDays = (int) setting('invoicing.credit_block_overdue_days', 0);
+
+        if ($limit === null && $overdueDays <= 0) {
+            return;
+        }
+
+        $open = Invoice::query()
+            ->where('contact_id', $invoice->contact_id)
+            ->whereIn('kind', [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE])
+            ->whereIn('status', [Invoice::STATUS_ISSUED, Invoice::STATUS_PARTIALLY_PAID])
+            ->whereKeyNot($invoice->getKey())
+            ->get();
+
+        if ($limit !== null) {
+            $owed = round((float) $open->sum(fn (Invoice $other): float => $other->signedBaseOutstanding()), 2);
+            $exposure = round($owed + $invoice->baseTotal(), 2);
+
+            if ($exposure > (float) $limit + 0.005) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s already owes %s and this invoice would take that to %s, past their credit limit of %s. '
+                    .'Collect first, raise the limit on the contact, or have somebody who may override credit '
+                    .'limits issue it.',
+                    $contact->name,
+                    number_format($owed, 2),
+                    number_format($exposure, 2),
+                    number_format((float) $limit, 2),
+                ));
+            }
+        }
+
+        if ($overdueDays > 0) {
+            $cutoff = Carbon::parse($invoice->invoice_date)->subDays($overdueDays)->toDateString();
+
+            $stale = $open->first(fn (Invoice $other): bool => $other->kind === Invoice::KIND_SALE
+                && $other->outstanding() > 0.004
+                && $other->due_date !== null
+                && $other->due_date->toDateString() < $cutoff);
+
+            if ($stale) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s is more than %d days overdue on %s (due %s, %s outstanding), so new invoices to %s are '
+                    .'held. Collect it, or have somebody who may override credit limits issue this one.',
+                    $contact->name,
+                    $overdueDays,
+                    $stale->invoice_number,
+                    $stale->due_date->format('d M Y'),
+                    number_format($stale->outstanding(), 2),
+                    $contact->name,
+                ));
+            }
+        }
+    }
+
+    /**
+     * Where tax a customer withheld is held until the company's own return absorbs it.
+     *
+     * Named the way `DeferralService::accountFor()` names its accounts: a company whose chart predates
+     * 1260 gets told what to run, rather than a ModelNotFoundException from three frames down.
+     */
+    protected function advanceTaxAccountId(): int
+    {
+        $id = Account::where('code', '1260')->value('id');
+
+        if (! $id) {
+            throw new InvalidArgumentException(
+                'This company\'s chart of accounts has no Advance Income Tax account (1260), so there is nowhere '
+                .'to put the tax the customer withheld. Add it to the chart, or run php artisan '
+                .'tenants:seed-baseline to take the shipped one.'
+            );
+        }
+
+        return (int) $id;
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
+use App\Modules\Invoicing\Console\Commands\SendCustomerStatements;
 use App\Modules\Invoicing\Console\Commands\SendOverdueReminders;
 use Illuminate\Support\Facades\Schedule;
 
@@ -29,4 +30,10 @@ Schedule::command(RaiseRecurringInvoices::class)
  */
 Schedule::command(SendOverdueReminders::class)
     ->dailyAt('10:00')
+    ->withoutOverlapping();
+
+// Last month's statement to every customer with activity, once the month's receipts have had a day to be
+// recorded. Off until Settings → Customer statements turns it on — the command says so and exits.
+Schedule::command(SendCustomerStatements::class)
+    ->monthlyOn(2, '09:00')
     ->withoutOverlapping();

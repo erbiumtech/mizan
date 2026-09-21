@@ -67,6 +67,13 @@ class PayrollServiceProvider extends ServiceProvider
             \App\Support\Contracts\PeriodLock::class,
             \App\Modules\Payroll\Support\PayrollRunPeriodLock::class,
         );
+
+        // What an hour of somebody's time cost, for the project margin report. Timesheets asks the
+        // contract; the answer is the payslip that paid for the hour — see PayslipLabourCost.
+        $this->app->bind(
+            \App\Support\Contracts\LabourCost::class,
+            \App\Modules\Payroll\Support\PayslipLabourCost::class,
+        );
     }
 
     public function boot(): void

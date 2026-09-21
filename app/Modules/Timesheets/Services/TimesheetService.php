@@ -7,6 +7,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
+use App\Support\Contracts\LabourCost;
 use App\Support\TenantDb;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -460,5 +461,155 @@ class TimesheetService
                 'booked_hours' => round(((int) ($booked[$project->getKey()] ?? 0)) / 60, 2),
             ])
             ->all();
+    }
+
+    /**
+     * What each project earned against what its hours cost — the question a services company asks about
+     * every client and could not answer here.
+     *
+     * Revenue by project existed (`LedgerDimensionReport`, from invoices that carry `project_id`) and hours by
+     * project existed (this module), but labour — most of a software company's cost — landed under the
+     * employee's department, because a payslip knows a person and not a project. This puts the two together:
+     * every hour booked, priced at what that person's payslip paid for an hour that month, asked of the
+     * `LabourCost` contract because this module does not require Payroll.
+     *
+     * **Revenue and other cost are read from the invoices table directly**, guarded on the module: an issued
+     * sale or credit note tagged with the project is revenue, an issued bill tagged with it is direct cost.
+     * Base currency, net of tax, as the ledger has them.
+     *
+     * **Uncosted hours are stated, never priced.** An hour with no payslip behind it — a contractor, a month
+     * payroll has not run, a company without payroll — is counted and shown as uncosted, for the reason
+     * `unbilledWip()` gives about unpriced hours: a figure that silently omits them looks complete and is not.
+     *
+     * @return array{
+     *     projects: array<int, array{project: Project, customer_id: int|string|null, hours: float, uncosted_hours: float, labour: float, other_cost: float, revenue: float, margin: float, margin_percent: float|null}>,
+     *     totals: array{hours: float, uncosted_hours: float, labour: float, other_cost: float, revenue: float, margin: float},
+     *     uncosted: array<int, string>
+     * }
+     */
+    public function projectMargin(string $from, string $to): array
+    {
+        // Grouped by day rather than by month in SQL: month extraction is spelled differently on SQLite and
+        // MySQL, and a year of timesheets is a few thousand day-rows, which PHP groups in no time.
+        $booked = TimesheetEntry::query()
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->selectRaw('project_id, employee_id, date, sum(minutes) as minutes')
+            ->groupBy('project_id', 'employee_id', 'date')
+            ->get();
+
+        $money = $this->projectMoney($from, $to);
+
+        $projectIds = $booked->pluck('project_id')->merge(array_keys($money))->unique()->filter()->all();
+
+        if ($projectIds === []) {
+            return ['projects' => [], 'totals' => ['hours' => 0.0, 'uncosted_hours' => 0.0, 'labour' => 0.0, 'other_cost' => 0.0, 'revenue' => 0.0, 'margin' => 0.0], 'uncosted' => []];
+        }
+
+        $projects = Project::query()->whereKey($projectIds)->get()->keyBy('id');
+        $employees = Employee::query()->whereKey($booked->pluck('employee_id')->unique()->all())->with('user')->get()->keyBy('id');
+        $cost = app(LabourCost::class);
+
+        $rows = [];
+        $uncosted = [];
+
+        foreach ($projects as $project) {
+            $rows[$project->getKey()] = [
+                'project' => $project,
+                'customer_id' => $project->contact_id,
+                'hours' => 0.0,
+                'uncosted_hours' => 0.0,
+                'labour' => 0.0,
+                'other_cost' => round((float) ($money[$project->getKey()]['cost'] ?? 0), 2),
+                'revenue' => round((float) ($money[$project->getKey()]['revenue'] ?? 0), 2),
+            ];
+        }
+
+        foreach ($booked as $day) {
+            if (! isset($rows[$day->project_id])) {
+                continue;
+            }
+
+            $hours = round(((int) $day->minutes) / 60, 2);
+            $rate = $cost->hourlyFor($day->employee_id, Carbon::parse($day->date)->toDateString());
+
+            $rows[$day->project_id]['hours'] += $hours;
+
+            if ($rate === null) {
+                $rows[$day->project_id]['uncosted_hours'] += $hours;
+                $month = Carbon::parse($day->date)->format('M Y');
+                $who = $employees->get($day->employee_id)?->display_label ?? "employee #{$day->employee_id}";
+                $uncosted[$who.'|'.$month] = "{$who} in {$month}: no payslip to cost the hours from.";
+
+                continue;
+            }
+
+            $rows[$day->project_id]['labour'] += round($hours * $rate, 2);
+        }
+
+        $rows = array_values(array_map(function (array $row): array {
+            $row['hours'] = round($row['hours'], 2);
+            $row['uncosted_hours'] = round($row['uncosted_hours'], 2);
+            $row['labour'] = round($row['labour'], 2);
+            $row['margin'] = round($row['revenue'] - $row['labour'] - $row['other_cost'], 2);
+            $row['margin_percent'] = $row['revenue'] > 0 ? round($row['margin'] / $row['revenue'] * 100, 1) : null;
+
+            return $row;
+        }, $rows));
+
+        usort($rows, fn (array $a, array $b): int => $b['revenue'] <=> $a['revenue'] ?: $b['labour'] <=> $a['labour']);
+
+        return [
+            'projects' => $rows,
+            'totals' => [
+                'hours' => round(array_sum(array_column($rows, 'hours')), 2),
+                'uncosted_hours' => round(array_sum(array_column($rows, 'uncosted_hours')), 2),
+                'labour' => round(array_sum(array_column($rows, 'labour')), 2),
+                'other_cost' => round(array_sum(array_column($rows, 'other_cost')), 2),
+                'revenue' => round(array_sum(array_column($rows, 'revenue')), 2),
+                'margin' => round(array_sum(array_column($rows, 'margin')), 2),
+            ],
+            'uncosted' => array_values($uncosted),
+        ];
+    }
+
+    /**
+     * Invoiced revenue and billed cost per project, from the invoices table.
+     *
+     * Read off the table rather than through `Invoice`, because Timesheets does not require Invoicing and
+     * must not import its model — the same reason `TimesheetReports::customerNames()` reads `contacts` this
+     * way. Net of tax and in base currency, which is what the ledger carries for the same documents.
+     *
+     * @return array<int|string, array{revenue: float, cost: float}>
+     */
+    private function projectMoney(string $from, string $to): array
+    {
+        if (! modules()->enabled('invoicing')) {
+            return [];
+        }
+
+        $rows = TenantDb::table('invoices')
+            ->whereNotNull('project_id')
+            ->whereIn('status', ['issued', 'partially_paid', 'paid'])
+            ->whereDate('invoice_date', '>=', $from)
+            ->whereDate('invoice_date', '<=', $to)
+            ->get(['project_id', 'kind', 'subtotal', 'exchange_rate']);
+
+        $money = [];
+
+        foreach ($rows as $row) {
+            $base = round(abs((float) $row->subtotal) * (float) ($row->exchange_rate ?: 1), 2);
+            $money[$row->project_id] ??= ['revenue' => 0.0, 'cost' => 0.0];
+
+            match ($row->kind) {
+                'sale' => $money[$row->project_id]['revenue'] += $base,
+                'credit_note' => $money[$row->project_id]['revenue'] -= $base,
+                'purchase' => $money[$row->project_id]['cost'] += $base,
+                'debit_note' => $money[$row->project_id]['cost'] -= $base,
+                default => null,
+            };
+        }
+
+        return $money;
     }
 }

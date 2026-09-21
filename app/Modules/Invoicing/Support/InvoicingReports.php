@@ -2,8 +2,13 @@
 
 namespace App\Modules\Invoicing\Support;
 
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Services\FbrReconciliation;
 use App\Modules\Invoicing\Services\InvoiceService;
+use App\Support\ModuleMap;
+use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportShapes;
 use Carbon\Carbon;
 
@@ -123,6 +128,88 @@ class InvoicingReports
                 : 'EVERY INVOICE IS ACCOUNTED FOR',
             null,
             'Every issued invoice has been accepted, and FBR has nothing this company has not sent.',
+        );
+    }
+
+    /**
+     * Tax customers withheld on receipts, for the company's own return.
+     *
+     * Read from the ledger — the debits to 1260 Advance Income Tax — rather than from `InvoiceEvent`, because
+     * the figure the return claims has to be the one the trial balance carries, and a list built from the
+     * event log could disagree with it by exactly one receipt somebody recorded twice. The invoice and the
+     * customer are resolved from the entry's source, and the certificate from the line's own description,
+     * which is where `InvoiceService::recordPayment()` writes it.
+     */
+    public function taxWithheldByCustomers(string $asOf): array
+    {
+        ['from' => $from, 'to' => $to] = ReportPeriod::toDate($asOf);
+
+        $account = Account::query()->where('code', '1260')->first();
+
+        $lines = $account === null
+            ? collect()
+            : JournalEntryLine::query()
+                ->where('account_id', $account->getKey())
+                ->where('debit_amount', '>', 0)
+                ->whereHas('journalEntry', fn ($query) => $query
+                    ->where('is_posted', true)
+                    ->whereBetween('entry_date', [$from, $to]))
+                ->with('journalEntry')
+                ->get()
+                ->sortBy(fn (JournalEntryLine $line): string => $line->journalEntry->entry_date->toDateString().'-'.$line->getKey())
+                ->values();
+
+        // The source is stored as an alias, but compared against both spellings: the mutator normalises on
+        // write and nothing here should depend on which one an older row carries.
+        $invoiceTypes = [ModuleMap::alias(Invoice::class), Invoice::class];
+
+        $invoices = Invoice::query()
+            ->whereKey($lines
+                ->filter(fn (JournalEntryLine $line): bool => in_array($line->journalEntry->source_type, $invoiceTypes, true))
+                ->map(fn (JournalEntryLine $line): mixed => $line->journalEntry->source_id)
+                ->unique()
+                ->all())
+            ->with('contact')
+            ->get()
+            ->keyBy('id');
+
+        $rows = $lines->map(function (JournalEntryLine $line) use ($invoices, $invoiceTypes): array {
+            $entry = $line->journalEntry;
+            $invoice = in_array($entry->source_type, $invoiceTypes, true) ? $invoices->get($entry->source_id) : null;
+
+            // "Tax withheld by customer — cert. ABC — INV-1": the reference is the middle part when there
+            // is one, and its absence is stated rather than left blank — a blank cell reads as a gap in
+            // the report, where this is a gap in the record.
+            preg_match('/cert\. (.+?) — /u', (string) $line->description, $match);
+
+            return [
+                $entry->entry_date->format('d M Y'),
+                (string) ($invoice?->contact?->name ?? '—'),
+                (string) ($invoice?->invoice_number ?? '—'),
+                $match[1] ?? 'no certificate',
+                number_format((float) $line->debit_amount, 0),
+            ];
+        })->all();
+
+        $total = round((float) $lines->sum('debit_amount'), 2);
+
+        return $this->table(
+            'TaxWithheldByCustomers',
+            'Tax Withheld by Customers',
+            $this->subtitle("receipts from {$from} to {$to}"),
+            ['Received', 'Customer', 'Invoice', 'Certificate', 'Withheld'],
+            '8rem minmax(0, 1fr) 10rem minmax(0, 12rem) 10rem',
+            [4],
+            $rows,
+            [
+                ['label' => 'WITHHELD', 'value' => $total, 'accent' => true],
+                ['label' => 'CERTIFICATES', 'value' => $lines->count(), 'accent' => false],
+            ],
+            $rows === []
+                ? 'NOTHING WITHHELD IN THIS PERIOD'
+                : mb_strtoupper(count($rows).' receipts · held in 1260 advance income tax · claim against the company\'s own return'),
+            $rows === [] ? null : ['Total — '.count($rows).' receipts', '', '', '', number_format($total, 0)],
+            'No customer has withheld tax on a receipt in this period.',
         );
     }
 }

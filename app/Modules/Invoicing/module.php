@@ -40,6 +40,7 @@ return [
         'App\\Filament\\Pages\\CreditNotesIssued' => \App\Modules\Invoicing\Filament\Pages\CreditNotesIssued::class,
         'App\\Filament\\Pages\\RevenueByDimension' => \App\Modules\Invoicing\Filament\Pages\RevenueByDimension::class,
         'App\\Filament\\Pages\\AgedReceivables' => \App\Modules\Invoicing\Filament\Pages\AgedReceivables::class,
+        'App\\Filament\\Pages\\TaxWithheldByCustomers' => \App\Modules\Invoicing\Filament\Pages\TaxWithheldByCustomers::class,
         'App\\Filament\\Pages\\AgedPayables' => \App\Modules\Invoicing\Filament\Pages\AgedPayables::class,
         'App\\Filament\\Pages\\FbrInvoiceReporting' => \App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting::class,
     ],
@@ -71,6 +72,9 @@ return [
         ['name' => 'InvoiceIssue', 'group' => 'Invoicing'],
         ['name' => 'InvoicePay', 'group' => 'Invoicing'],
         ['name' => 'InvoiceVoid', 'group' => 'Invoicing'],
+        // May issue past a customer's credit limit or overdue block — ERPNext's Credit Controller, as a
+        // permission rather than a role. The refusal names it, so whoever hits it knows who to ask.
+        ['name' => 'InvoiceOverrideCreditLimit', 'group' => 'Invoicing'],
     ],
 
     /**
@@ -95,6 +99,7 @@ return [
         // On top of Accountant.
         'Manager' => [
             'InvoiceVoid',
+            'InvoiceOverrideCreditLimit',
         ],
         // On top of Manager.
         'CEO' => [

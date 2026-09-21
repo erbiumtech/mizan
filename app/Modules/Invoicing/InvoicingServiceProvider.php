@@ -3,13 +3,17 @@
 namespace App\Modules\Invoicing;
 
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
+use App\Modules\Invoicing\Console\Commands\SendCustomerStatements;
 use App\Modules\Invoicing\Console\Commands\SendOverdueReminders;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Filament\Pages\CreditNotesIssued;
 use App\Modules\Invoicing\Filament\Pages\FbrInvoiceReporting;
 use App\Modules\Invoicing\Filament\Pages\RevenueByDimension;
+use App\Modules\Invoicing\Filament\Pages\TaxWithheldByCustomers;
+use App\Modules\Invoicing\Filament\Settings\CreditControlSettingsSection;
 use App\Modules\Invoicing\Filament\Settings\DunningSettingsSection;
+use App\Modules\Invoicing\Filament\Settings\StatementSettingsSection;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
@@ -174,7 +178,7 @@ class InvoicingServiceProvider extends ServiceProvider
          */
         CsvImporters::register('opening_invoices', OpeningInvoiceCsvImporter::class, 45);
 
-        $this->commands([RaiseRecurringInvoices::class, SendOverdueReminders::class]);
+        $this->commands([RaiseRecurringInvoices::class, SendOverdueReminders::class, SendCustomerStatements::class]);
 
         // An invoice's journal entry is the accounting half of the invoice, so the register must refuse
         // to edit it. Registered from here rather than named in Accounting: that naming was an
@@ -196,6 +200,8 @@ class InvoicingServiceProvider extends ServiceProvider
          * is what makes shipping it safe.
          */
         SettingsSections::register('invoicing.dunning', DunningSettingsSection::class, 75);
+        SettingsSections::register('invoicing.credit-control', CreditControlSettingsSection::class, 76);
+        SettingsSections::register('invoicing.statements', StatementSettingsSection::class, 77);
 
         /*
          * What an invoice's postings were for — `docs/erpnext-gap-plan.md` Phase 1.
@@ -217,6 +223,17 @@ class InvoicingServiceProvider extends ServiceProvider
                 fn (string $asOf): array => app(InvoicingReports::class)->ageing($key, $asOf),
             );
         }
+
+        // The customer's side of §153 — what they withheld from receipts, for the company's own return.
+        ReportCatalogue::register(
+            'Statutory reporting',
+            TaxWithheldByCustomers::class,
+            'Tax customers deducted from receipts against a certificate, held as advance tax for the return.',
+        );
+        ReportRenderers::register(
+            'TaxWithheldByCustomers',
+            fn (string $asOf): array => app(InvoicingReports::class)->taxWithheldByCustomers($asOf),
+        );
 
         ReportRenderers::register(
             'FbrInvoiceReporting',

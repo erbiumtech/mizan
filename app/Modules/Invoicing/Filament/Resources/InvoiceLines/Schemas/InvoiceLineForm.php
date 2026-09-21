@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\InvoiceLines\Schemas;
 
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -50,6 +51,19 @@ class InvoiceLineForm
                     ->step(0.01)
                     ->required()
                     ->minValue(0),
+
+                // When the thing on this line is delivered — the other half of the gap plan's deferral item. An
+                // annual licence billed in July is eleven months of next year's revenue, and these two dates are
+                // how the invoice says so; "Defer over service period" on the issued invoice then does the rest.
+                // Blank on every line that is delivered when it is billed, which is most of them.
+                DatePicker::make('service_from')
+                    ->label('Service from')
+                    ->nullable()
+                    ->helperText('Leave blank unless this line is for a period rather than a delivery.'),
+                DatePicker::make('service_to')
+                    ->label('Service to')
+                    ->nullable()
+                    ->afterOrEqual('service_from'),
 
                 Select::make('account_id')
                     ->label('Account Override')

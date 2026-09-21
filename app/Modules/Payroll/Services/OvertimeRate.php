@@ -152,7 +152,7 @@ class OvertimeRate
      * is no pattern to say how long a day is, and inventing eight hours would be a
      * rate derived from an assumption nobody made.
      */
-    private function contractedHoursIn(Employee $employee, \Illuminate\Support\Carbon $firstDay): float
+    public function contractedHoursIn(Employee $employee, \Illuminate\Support\Carbon $firstDay): float
     {
         if (! modules()->enabled('attendance')) {
             return 0.0;
