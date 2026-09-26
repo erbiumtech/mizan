@@ -139,11 +139,19 @@ unnamed holiday is its own support call), `notes` nullable, `is_recurring`
 defaults false. The unique constraint is the index the range scans use; there is
 no second index on `date`.
 
-**Assumption, now stated: the calendar is company-wide.** Multi-site companies in
-Pakistan do observe different local holidays, and this table cannot express that.
-Adding `location_id` after `leave_days` have been generated from the calendar is
-a data migration, not a column — so if a company with sites in more than one
-province is on the roadmap, decide before phase 1, not after.
+**Decided (2026-09-26): the calendar is company-wide, and stays that way until a
+second site exists in the schema.** The question was "decide before phase 1";
+this is the decision. A schema sweep found no employee-bearing site, location or
+branch concept anywhere in the tenant tables — `employees` and
+`employee_job_history` carry none, `stock_locations` is inventory, and
+construction `site_personnel` is a QHSE induction register mostly of
+non-employees. A nullable `holidays.location_id` today would be a foreign key to
+a table that does not exist, filled by no data, checked by a working-day
+resolution nobody can exercise. Multi-site companies in Pakistan do observe
+different local holidays; when an employee-bearing location concept lands in the
+schema, add nullable `location_id` (null = company-wide) *then* — and note it is
+a data migration for already-generated `leave_days`, not just a column, exactly
+as the paragraph below on calendar versioning warns.
 
 *Rejected:* a shared `hr_foundation` module that leave and attendance both
 require. A module whose only purpose is to be depended on is a licence nobody

@@ -2,8 +2,8 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "erbiumtech/mizan",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Mizan — multi-tenant HR, payroll and double-entry accounting for Pakistani businesses (Laravel + Filament).",
+    "keywords": ["laravel", "filament", "payroll", "accounting", "hrms", "multi-tenant", "pakistan"],
     "license": "MIT",
     "require": {
         "php": "^8.4",
