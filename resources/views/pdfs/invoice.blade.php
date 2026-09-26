@@ -16,6 +16,8 @@
         .totals td { border: none; padding: 3px 8px; }
         .totals .grand { font-weight: bold; border-top: 2px solid #222; }
         .status { text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .fbr { margin-top: 10px; }
+        .fbr img { display: block; margin-bottom: 2px; }
     </style>
 
     @if (($pdfEngine ?? null) === 'dompdf')
@@ -56,6 +58,22 @@
                 </div>
             @endif
             <div class="status">{{ str_replace('_', ' ', $invoice->status) }}</div>
+            {{-- The FBR box: only once FBR has accepted the invoice and given it an IRN —
+                 a QR on an unreported invoice would claim a verification that does not exist.
+                 The QR is a server-generated PNG data URI (Dompdf runs no JS), rendered from
+                 the payload STORED at acceptance, so a reprint carries the QR it was reported
+                 with. No payload, or no GD, degrades to the IRN as text. --}}
+            @if ($invoice->fbr_irn)
+                <div class="fbr">
+                    @if ($qr = $invoice->fbrQrDataUri())
+                        <img src="{{ $qr }}" width="84" height="84" alt="FBR verification QR">
+                    @endif
+                    <div class="muted">FBR IRN: {{ $invoice->fbr_irn }}</div>
+                    @if ($invoice->fbr_usin)
+                        <div class="muted">USIN: {{ $invoice->fbr_usin }}</div>
+                    @endif
+                </div>
+            @endif
         </div>
         <div>
             <strong>{{ $invoice->kind === 'purchase' ? 'Supplier' : 'Bill To' }}</strong><br>

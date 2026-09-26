@@ -1,7 +1,10 @@
 # FBR digital invoicing: plan
 
-> **Phases 0, 2 and 3 are built** (19 tests, `FbrDigitalInvoicingTest`).
-> **Nothing transmits anything** — phase 1 is deliberately not built, see §7.
+> **Phases 0, 1, 2, 3 and 5 are built** (`FbrDigitalInvoicingTest`,
+> `FbrSubmissionPipelineTest`). **Nothing transmits anything** — the only
+> driver is the null driver, which records what it would have sent; a real
+> integrator driver is phase 4, still blocked on §9, and `fbr.enabled` stays
+> off by default (phase 6).
 > Module mechanics are in `docs/new-module-checklist.md`; the CRM side that
 > reaches Invoicing is `docs/crms-plan.md` §11 phase 5, which this document
 > unblocks.
@@ -237,12 +240,12 @@ see failing is worse than no submission.
 | Phase | Work | Risk | State |
 |---|---|---|---|
 | **0** | `fbr_status` / IRN / USIN / `fbr_reported_at` / `fbr_qr_payload` columns, `fbr_submissions` table, `not_required` as the default for every existing invoice | none | **built** |
-| **1** | The driver interface + a null driver | low | **deliberately not built — see below** |
+| **1** | The driver interface + a null driver | low | **built** — `submit()` only; `cancel`/`status` wait for an API §9.4 has named |
 | **2** | **The correction rules** — `void()` gains the three-way branch and refuses what FBR would not allow | medium — changes an existing operation | **built**, credit notes included |
 | **3** | Reconciliation report: refused, stuck, accepted-without-IRN, and issued-but-never-reported | low | **built** |
-| **4** | A real integrator driver, per-tenant credentials, FBR registration and testing | **high — external, legal** | blocked on §9 |
-| **5** | Queued submission on issue, with backoff; QR on the PDF | medium | — |
-| **6** | `fbr.enabled` switched on for the pilot, one invoice at a time before the batch | high | — |
+| **4** | A real integrator driver, per-tenant credentials, FBR registration and testing | **high — external, legal** | blocked on §9 — no integrator named (§9.4), no confirmed field list (§9.5) |
+| **5** | Queued submission on issue, with backoff; QR on the PDF | medium | **built** — dispatched only with `fbr.enabled` on; the QR is a server-rendered PNG (Dompdf runs no JS); credit notes are refused with a logged trail (§9.7) |
+| **6** | `fbr.enabled` switched on for the pilot, one invoice at a time before the batch | high | off — needs phase 4 and the §9 answers first; nothing flips the default |
 
 **Why phase 1 was skipped rather than done first.** A driver interface is a
 guess at the shape of an API nobody here has seen. This codebase already has the
@@ -251,6 +254,18 @@ device vendor in a plan whose author has not seen the device is how you get a
 driver nobody can test."* An integrator's API is the same problem with legal
 consequences attached. The interface costs nothing to add once §9.4 is answered,
 and designing it now would mostly generate work to undo.
+
+**Phase 1 has since been built, smaller than §3 sketched it.** The contract is
+`FbrDriver::submit(payload, idempotencyKey): FbrResponse` and nothing else —
+`cancel` and `status` describe calls against the unseen API above, nothing in
+the application invokes either (the within-window flow tells the user to cancel
+in FBR's own system), and a method is free to add when phase 4 defines one. The
+payload is the canonical shape `SubmitInvoiceToFbr` builds from what the
+invoice itself knows; the exact required field list stays §9.5's to confirm,
+and a real driver maps and validates before it transmits. The null driver
+answers "accepted" with an unmistakably synthetic `NULL-…` reference, which is
+what makes the whole pipeline — job, submission log, QR, 72-hour void refusal —
+rehearsable before an integrator exists.
 
 What that leaves is the part that is knowable from inside this repository — the
 schema, the correction rules and the report — and none of it transmits anything.
@@ -271,10 +286,28 @@ having before the failures they describe can happen.
   cannot drift).
 - `FbrReconciliation` + the **FBR Invoice Reporting** page, in the Reports hub
   under a new *Statutory reporting* section.
+- `FbrDriver` / `FbrResponse` / `NullFbrDriver` (`app/Modules/Invoicing/Fbr`),
+  selected per company by `fbr.driver`. An unknown driver name throws rather
+  than falling back to the null driver — "misconfigured" must never read as
+  "reporting".
+- `SubmitInvoiceToFbr` (`app/Modules/Invoicing/Jobs`) — dispatched from
+  `issue()` after the transaction, only for sales and credit notes and only
+  with `fbr.enabled` on. Every driver answer is a submission row; only
+  never-heard-back retries (backoff, same idempotency key, one row per logical
+  submission); retries spent puts the invoice back to `not_required`, where
+  `unreported()` surfaces it immediately. A credit note is refused with a
+  `credit_note_unsupported` row instead of transmitted — §9.7's open question,
+  not phase 5's to guess.
+- The FBR box on the invoice PDF: the stored `fbr_qr_payload` rendered
+  server-side as a PNG data URI (chillerlan/php-qrcode, already installed —
+  it rides in with Filament; Dompdf runs no JS so a JS QR library was never an
+  option). No payload, or no GD extension, degrades to the IRN as text.
 
-**Still missing, and it is a prerequisite for phase 6, not a follow-up:** credit
-notes. §2 explains why — without them the past-window case has no remedy to
-point at, only an error message naming one that does not exist.
+**Still missing, and it is a prerequisite for phase 6, not a follow-up:** phase
+4 — a real integrator driver, per-tenant credentials, and FBR registration —
+plus the §9 answers it is blocked on, and a defined way to transmit credit
+notes (§9.7). Until then the pilot would be reporting into the null driver,
+which is a rehearsal, not compliance.
 
 ## 8. Risks
 

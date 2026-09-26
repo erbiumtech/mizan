@@ -247,9 +247,13 @@ class FbrDigitalInvoicingTest extends AccountingTestCase
 
     public function test_an_issued_invoice_is_a_gap_once_reporting_is_on(): void
     {
-        app(TenantSettings::class)->set('fbr.enabled', true);
-
+        // Issued BEFORE reporting was switched on — the backlog every company
+        // integrating late has, and what `unreported` now means. An invoice
+        // issued while reporting is on goes through the phase 5 pipeline
+        // instead (FbrSubmissionPipelineTest).
         $invoice = $this->issuedInvoice();
+
+        app(TenantSettings::class)->set('fbr.enabled', true);
 
         $reconciliation = app(FbrReconciliation::class);
 
@@ -304,10 +308,10 @@ class FbrDigitalInvoicingTest extends AccountingTestCase
 
     public function test_drafts_and_voids_are_never_findings(): void
     {
-        app(TenantSettings::class)->set('fbr.enabled', true);
-
         // A draft was never issued and a void has been withdrawn. Neither is
-        // something FBR is owed.
+        // something FBR is owed. Issued and voided BEFORE reporting is
+        // switched on — with it on, the phase 5 pipeline would report the
+        // invoice inline and the void would rightly be refused.
         Invoice::create([
             'kind' => Invoice::KIND_SALE,
             'contact_id' => $this->customer->id,
@@ -319,6 +323,8 @@ class FbrDigitalInvoicingTest extends AccountingTestCase
 
         $voided = $this->issuedInvoice();
         $this->service->void($voided);
+
+        app(TenantSettings::class)->set('fbr.enabled', true);
 
         $this->assertSame(0, app(FbrReconciliation::class)->total());
     }

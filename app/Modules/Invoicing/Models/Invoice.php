@@ -11,7 +11,11 @@ use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Projects\Models\Project;
 use App\Support\ModuleMap;
 use App\Traits\Auditable;
+use chillerlan\QRCode\Output\QROutputInterface;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 class Invoice extends Model
 {
@@ -277,6 +281,36 @@ class Invoice extends Model
         $closesAt = $this->fbrCorrectionWindowClosesAt();
 
         return $closesAt !== null && $closesAt->isFuture();
+    }
+
+    /**
+     * The FBR verification QR, as a data URI the PDF can embed — or null when
+     * this invoice was never accepted.
+     *
+     * Rendered from `fbr_qr_payload`, which is STORED at acceptance and never
+     * regenerated (plan §4): a reprint must carry the QR the invoice was
+     * reported with. A server-generated PNG rather than any JS library,
+     * because Dompdf runs no JS — chillerlan/php-qrcode is already installed
+     * (it rides in with Filament) and a PNG data URI renders identically in
+     * both PDF engines.
+     */
+    public function fbrQrDataUri(): ?string
+    {
+        if (blank($this->fbr_qr_payload)) {
+            return null;
+        }
+
+        try {
+            return (new QRCode(new QROptions([
+                'outputType' => QROutputInterface::GDIMAGE_PNG,
+                'scale' => 3,
+            ])))->render($this->fbr_qr_payload);
+        } catch (Throwable) {
+            // ponytail: no GD extension degrades to the IRN printed as text —
+            // the PDF template already falls back. Wire Imagick output here if
+            // a host ever ships PHP without GD.
+            return null;
+        }
     }
 
     public function outstanding(): float

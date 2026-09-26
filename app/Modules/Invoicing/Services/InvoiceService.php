@@ -12,6 +12,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Inventory\Services\InventoryValuationService;
+use App\Modules\Invoicing\Jobs\SubmitInvoiceToFbr;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\CustomerCredit;
 use App\Modules\Invoicing\Models\Invoice;
@@ -206,7 +207,7 @@ class InvoiceService
 
         $this->assertWithinCredit($invoice);
 
-        return TenantTransaction::run(function () use ($invoice, $lines) {
+        $invoice = TenantTransaction::run(function () use ($invoice, $lines) {
             $entryLines = $this->translateDocument($invoice, match ($invoice->kind) {
                 Invoice::KIND_SALE => $this->saleEntryLines($invoice, $lines),
                 Invoice::KIND_CREDIT_NOTE => $this->creditNoteEntryLines($invoice, $lines),
@@ -259,6 +260,21 @@ class InvoiceService
 
             return $invoice;
         });
+
+        // FBR reporting rides on issue, and only when the company reports —
+        // docs/fbr-digital-invoicing-plan.md phase 5. After the transaction, so
+        // a queue worker cannot pick the job up before the invoice it reads is
+        // committed. Sales and credit notes are this company's to report (the
+        // job refuses the credit note, with a trail — §9.7); a purchase bill is
+        // the supplier's, a debit note adjusts one. The ledger does not wait
+        // for FBR (§2): the posting above stands whatever reporting does.
+        if (setting('fbr.enabled', false)
+            && in_array($invoice->kind, [Invoice::KIND_SALE, Invoice::KIND_CREDIT_NOTE], true)) {
+            $invoice->update(['fbr_status' => Invoice::FBR_PENDING]);
+            SubmitInvoiceToFbr::dispatch($invoice->getKey());
+        }
+
+        return $invoice;
     }
 
     /**
