@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can you not do today, and who needs it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: input
+    id: country
+    attributes:
+      label: Which country's rules does this apply to?
+      description: Tax, banking and payroll rules are country-specific. Write "none" if it is country-agnostic.
+    validations:
+      required: true
