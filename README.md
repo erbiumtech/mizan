@@ -1,7 +1,7 @@
 # Mizan
 
 **Multi-tenant HR, payroll and double-entry accounting for Pakistani businesses.**
-Built with Laravel 13, Filament 5 and PHP 8.3.
+Built with Laravel 13, Filament 5 and PHP 8.4.
 
 Most open-source accounting software assumes a US or EU tax and banking model. Mizan
 is built the other way round: FBR salaried tax slabs stored per fiscal year, the SBP
@@ -115,7 +115,7 @@ than a separate bookkeeping exercise.
 
 | | |
 |---|---|
-| PHP | 8.3+ |
+| PHP | 8.4+ |
 | Framework | Laravel 13 |
 | Admin UI | Filament 5 (Livewire 3) |
 | Database | MySQL 8 (landlord + one database per tenant) |
@@ -149,7 +149,7 @@ otherwise apply the tenant schema to the landlord database).
 
 ## Getting started
 
-Requirements: PHP 8.3, Composer, MySQL 8, Node 22+ (for PDF rendering via Chromium).
+Requirements: PHP 8.4, Composer, MySQL 8, Node 22+ (for PDF rendering via Chromium).
 
 ```bash
 git clone https://github.com/<you>/mizan.git && cd mizan

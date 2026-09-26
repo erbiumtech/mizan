@@ -1,0 +1,49 @@
+name: Bug report
+description: Something is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead. Include the error text or a screenshot.
+    validations:
+      required: true
+  - type: input
+    id: php
+    attributes:
+      label: PHP version
+      placeholder: "8.4.x"
+    validations:
+      required: true
+  - type: input
+    id: laravel
+    attributes:
+      label: Laravel version
+      placeholder: from `php artisan --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: context
+    attributes:
+      label: Tenant or landlord?
+      description: Does it happen inside a company (tenant), or on the landlord level (login, company switcher, artisan commands)?
+      options:
+        - Tenant (inside a company)
+        - Landlord
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: background
+    attributes:
+      label: Are the queue worker and scheduler running?
+      description: "`php artisan queue:work` and the `schedule:run` cron. Health checks, notifications and PDFs depend on them."
+      options:
+        - Both running
+        - Only the queue worker
+        - Only the scheduler
+        - Neither
+        - Not sure
+    validations:
+      required: true
