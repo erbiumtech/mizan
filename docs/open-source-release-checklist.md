@@ -144,6 +144,15 @@ Until then the exposure is limited to whoever can already read the repo, which i
 
 ## 3. Repository settings
 
+**Applied 2026-09-26 via the API**, except two: description, topics, wiki/projects off,
+issues + discussions on, private vulnerability reporting, Dependabot alerts, secret scanning
+with push protection, and branch protection on `master` (the actual default branch, not
+`main`): `laravel-tests (8.4)` must pass, one approving review, no force-push, no deletion —
+`enforce_admins` off so the owner's direct pushes keep working until external PRs begin.
+Not done, deliberately: `FUNDING.yml` (only if wanted) and the `v0.1.0` tag — the pending
+§1.6 history rewrite replaces every commit, which would orphan a tag placed now; tag after
+`git filter-repo`.
+
 - **Description** — one line, plus the URL. Do not leave it empty; it's what search shows.
 - **Topics** — `laravel`, `filament`, `php`, `accounting`, `payroll`, `double-entry`,
   `hrms`, `multi-tenant`, `pakistan`, `erp`.
