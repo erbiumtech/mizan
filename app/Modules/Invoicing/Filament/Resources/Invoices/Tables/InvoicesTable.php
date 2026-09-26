@@ -157,6 +157,8 @@ class InvoicesTable
                 Group::make('kind')->label('Kind'),
             ])
             ->filters([
+                ...CustomFieldsSchema::tableFilters(Invoice::class),
+
                 // The half of "jobs" that does the work: pick a project and the
                 // list becomes everything billed against that engagement. Hidden
                 // with the module, so a company without Projects sees no filter

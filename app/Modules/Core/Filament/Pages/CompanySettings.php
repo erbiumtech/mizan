@@ -100,6 +100,7 @@ class CompanySettings extends Page
             'leave_weekend_days' => array_map('intval', (array) setting('leave.weekend_days', [6, 7])),
             'leave_year_basis' => setting('leave.year_basis'),
             'leave_carry_forward' => (bool) setting('leave.carry_forward'),
+            'leave_carry_forward_expiry_months' => (int) setting('leave.carry_forward_expiry_months'),
             'leave_prorate_first_year' => (bool) setting('leave.prorate_first_year'),
             'leave_require_second_approver' => (bool) setting('leave.require_second_approver'),
             'leave_min_notice_enforced' => (bool) setting('leave.min_notice_enforced'),
@@ -360,6 +361,14 @@ class CompanySettings extends Page
                 Toggle::make('leave_carry_forward')
                     ->label('Let unused days carry into the next leave year')
                     ->helperText('Off, unused days lapse at the year end and nothing is paid for them. On, each type carries up to its own "days that may carry forward" cap — a cap of 0 carries nothing even then. Switching this on does not give back days that have already lapsed.'),
+
+                TextInput::make('leave_carry_forward_expiry_months')
+                    ->label('Months carried days stay usable')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->maxValue(12)
+                    ->helperText('0, carried days last the whole year and lapse with it. 3 on a calendar year means "carried days lapse on 31 March": whatever is unused by then is voided, recorded as an adjustment on the entitlement. Applies to leave years opened from now on — a date already stamped on an open year does not move.'),
 
                 Toggle::make('leave_prorate_first_year')
                     ->label('Pro-rate a mid-year joiner\'s first year')
@@ -681,6 +690,7 @@ class CompanySettings extends Page
         $keys = [
             'leave.year_basis' => ['leave_year_basis', 'string'],
             'leave.carry_forward' => ['leave_carry_forward', 'bool'],
+            'leave.carry_forward_expiry_months' => ['leave_carry_forward_expiry_months', 'int'],
             'leave.prorate_first_year' => ['leave_prorate_first_year', 'bool'],
             'leave.require_second_approver' => ['leave_require_second_approver', 'bool'],
             'leave.min_notice_enforced' => ['leave_min_notice_enforced', 'bool'],
@@ -690,8 +700,14 @@ class CompanySettings extends Page
         $changed = [];
 
         foreach ($keys as $key => [$field, $type]) {
-            $was = $type === 'bool' ? (bool) setting($key) : (string) setting($key);
-            $now = $type === 'bool' ? (bool) ($state[$field] ?? false) : (string) ($state[$field] ?? '');
+            $cast = match ($type) {
+                'bool' => fn (mixed $value): bool => (bool) $value,
+                'int' => fn (mixed $value): int => (int) $value,
+                default => fn (mixed $value): string => (string) $value,
+            };
+
+            $was = $cast(setting($key));
+            $now = $cast($state[$field] ?? null);
 
             if ($was !== $now) {
                 $changed[$key] = ['from' => $was, 'to' => $now];

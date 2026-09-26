@@ -29,16 +29,17 @@ class LeaveEntitlement extends Model
     use StoresPlainDates;
 
     /** Stored as plain dates so the window comparisons behave the same on MySQL and SQLite. */
-    protected array $plainDates = ['leave_year_start', 'leave_year_end'];
+    protected array $plainDates = ['leave_year_start', 'leave_year_end', 'carried_in_expires_on'];
 
     protected $fillable = [
         'employee_id', 'leave_type_id', 'leave_year_start', 'leave_year_end',
-        'opening_days', 'accrued_days', 'carried_in_days',
+        'opening_days', 'accrued_days', 'carried_in_days', 'carried_in_expires_on',
     ];
 
     protected $casts = [
         'leave_year_start' => 'date',
         'leave_year_end' => 'date',
+        'carried_in_expires_on' => 'date',
         'opening_days' => 'decimal:1',
         'accrued_days' => 'decimal:1',
         'carried_in_days' => 'decimal:1',

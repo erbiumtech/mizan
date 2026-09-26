@@ -62,3 +62,20 @@ Route::post('/impersonate/stop', function () {
     // that predates this, or one begun outside a panel.
     return redirect($returnUrl ?? \Filament\Facades\Filament::getPanel('admin')->getUrl());
 })->middleware(['web', 'auth'])->name('impersonate.stop');
+
+// Per-user UI preferences — the server-side home the table context menu's off switch
+// waited for (docs/table-context-menu-plan.md Phase 4). An allow-listed key, not a free
+// key-value store: anything with a session can POST here, so the client only gets to set
+// flags this application knows about — the posture DashboardLayout::KEYS takes.
+Route::post('/user/preferences', function (Illuminate\Http\Request $request) {
+    $data = $request->validate([
+        'key' => ['required', 'string', 'in:tableContextMenuDisabled'],
+        'value' => ['required', 'boolean'],
+    ]);
+
+    $user = $request->user();
+    $user->preferences = array_merge((array) $user->preferences, [$data['key'] => $request->boolean('value')]);
+    $user->save();
+
+    return response()->noContent();
+})->middleware(['web', 'auth'])->name('user.preferences');

@@ -799,6 +799,143 @@ class LeaveTest extends TestCase
         $this->assertSame(14.0, (float) LeaveEntitlement::first()->accrued_days);
     }
 
+    // ---------------------------------------------------------------- carry-forward expiry
+
+    /**
+     * §4.1's deferred expiry, now that somebody has asked: "carried days lapse on
+     * 31 March" is leave.carry_forward_expiry_months = 3, stamped on the new year's
+     * entitlement by the roll — from the setting as it stands then, like everything
+     * else the roll writes.
+     */
+    public function test_the_roll_stamps_an_expiry_date_when_the_policy_has_one(): void
+    {
+        $this->set('leave.carry_forward', true);
+        $this->set('leave.carry_forward_expiry_months', 3);
+
+        $type = $this->makeType(['days_per_year' => 14, 'max_carry_forward' => 5]);
+
+        $entitlement = LeaveEntitlement::create([
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $type->id,
+            'leave_year_start' => '2025-01-01',
+            'leave_year_end' => '2025-12-31',
+            'accrued_days' => 14,
+        ]);
+
+        $next = app(LeaveEntitlementService::class)->reset($entitlement);
+
+        $this->assertSame(5.0, (float) $next->carried_in_days);
+        $this->assertSame('2026-03-31', $next->carried_in_expires_on->toDateString());
+    }
+
+    public function test_no_expiry_policy_stamps_no_date(): void
+    {
+        $this->set('leave.carry_forward', true);
+
+        $type = $this->makeType(['days_per_year' => 14, 'max_carry_forward' => 5]);
+
+        $entitlement = LeaveEntitlement::create([
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $type->id,
+            'leave_year_start' => '2025-01-01',
+            'leave_year_end' => '2025-12-31',
+            'accrued_days' => 14,
+        ]);
+
+        $next = app(LeaveEntitlementService::class)->reset($entitlement);
+
+        $this->assertSame(5.0, (float) $next->carried_in_days);
+        $this->assertNull($next->carried_in_expires_on, 'With no expiry policy, carried days lapse with the year, as before.');
+    }
+
+    /**
+     * The lapse itself: what is left of the carried days on the stamped date is
+     * voided as an adjustment ROW — carried_in stays what it was, so "what was I
+     * given" and "what lapsed" both remain answerable — and the sweep is
+     * idempotent because writing the lapse clears the date.
+     */
+    public function test_expired_carried_days_lapse_once_as_an_adjustment(): void
+    {
+        $type = $this->makeType(['days_per_year' => 10, 'max_carry_forward' => 5]);
+
+        $entitlement = LeaveEntitlement::create([
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $type->id,
+            'leave_year_start' => '2026-01-01',
+            'leave_year_end' => '2026-12-31',
+            'accrued_days' => 10,
+            'carried_in_days' => 5,
+            'carried_in_expires_on' => '2026-03-31',
+        ]);
+
+        // Two days taken before the deadline count against the carried balance
+        // first, so only three of the five lapse. Feb 2/3 2026 are Mon–Tue.
+        $request = $this->requestFor($type, '2026-02-02', '2026-02-03');
+        app(LeaveRequestService::class)->approve($request, $this->approver());
+
+        $this->assertSame(1, app(LeaveEntitlementService::class)->lapseExpiredCarriedDays('2026-04-01'));
+
+        $entitlement->refresh();
+        $this->assertNull($entitlement->carried_in_expires_on);
+        $this->assertSame(5.0, (float) $entitlement->carried_in_days, 'The credit stays on the record; the lapse is a row.');
+        $this->assertSame(-3.0, (float) $entitlement->adjustments()->sum('days'));
+
+        // 0 opening + 5 carried + 10 accrued − 3 lapsed − 2 taken = 10.
+        $this->assertSame(10.0, app(LeaveBalance::class)->for($this->employee, $type, '2026-04-01')->remaining());
+
+        // Run again: nothing moves, nobody loses a second set of days.
+        $this->assertSame(0, app(LeaveEntitlementService::class)->lapseExpiredCarriedDays('2026-04-02'));
+        $this->assertSame(1, $entitlement->adjustments()->count());
+    }
+
+    /** "Lapse ON 31 March" means 31 March is still usable — the sweep acts from the day after. */
+    public function test_the_expiry_date_itself_is_still_usable(): void
+    {
+        $type = $this->makeType(['days_per_year' => 10, 'max_carry_forward' => 5]);
+
+        $entitlement = LeaveEntitlement::create([
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $type->id,
+            'leave_year_start' => '2026-01-01',
+            'leave_year_end' => '2026-12-31',
+            'accrued_days' => 10,
+            'carried_in_days' => 5,
+            'carried_in_expires_on' => '2026-03-31',
+        ]);
+
+        $this->assertSame(0, app(LeaveEntitlementService::class)->lapseExpiredCarriedDays('2026-03-31'));
+
+        $entitlement->refresh();
+        $this->assertSame('2026-03-31', $entitlement->carried_in_expires_on->toDateString());
+        $this->assertSame(0, $entitlement->adjustments()->count());
+    }
+
+    /** Carried days all used in time lapse nothing — and the date still closes, once. */
+    public function test_fully_used_carried_days_lapse_nothing(): void
+    {
+        $type = $this->makeType(['days_per_year' => 10, 'max_carry_forward' => 5]);
+
+        $entitlement = LeaveEntitlement::create([
+            'employee_id' => $this->employee->id,
+            'leave_type_id' => $type->id,
+            'leave_year_start' => '2026-01-01',
+            'leave_year_end' => '2026-12-31',
+            'accrued_days' => 10,
+            'carried_in_days' => 2,
+            'carried_in_expires_on' => '2026-03-31',
+        ]);
+
+        $request = $this->requestFor($type, '2026-02-02', '2026-02-03');
+        app(LeaveRequestService::class)->approve($request, $this->approver());
+
+        // Nothing lapsed, so the count is 0 — but the date is spent either way.
+        $this->assertSame(0, app(LeaveEntitlementService::class)->lapseExpiredCarriedDays('2026-04-01'));
+
+        $entitlement->refresh();
+        $this->assertNull($entitlement->carried_in_expires_on);
+        $this->assertSame(0, $entitlement->adjustments()->count());
+    }
+
     // ---------------------------------------------------------------- settings
 
     /**

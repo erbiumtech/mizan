@@ -551,7 +551,11 @@ empty, so every invariant passed over nothing. Discovery now enumerates
 - **MPR imports Employee** (`belongsTo`) but declares no requirement, so it can
   be licensed without Employees. Either declare it or confirm the relation is
   optional at runtime.
-- **The API has no tenant resolution** (`multitenancy.tenant_finder` is null), so
-  route middleware falls back to the caller's company membership and a
-  multi-company user's request is not attributable to one company.
+- **API tenant resolution — resolved.** Every module API group now carries `api.company`
+  (`App\Http\Middleware\ResolveCompanyFromUser`): a single membership resolves itself, several
+  require an `X-Company` header validated against the caller's memberships (403 for a company
+  they are not in, 422 when ambiguous and unnamed), and the company is forgotten when the
+  request ends. `tenant_finder` stays null on purpose — a global finder would also run for web
+  requests, where Filament's own `/admin/{company}` tenancy is the resolver. Covered by
+  `tests/Feature/ApiCompanyResolutionTest`.
 - **Mobile clients** now receive 403 where those endpoints always answered.

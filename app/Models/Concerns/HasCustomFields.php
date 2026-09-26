@@ -5,8 +5,10 @@ namespace App\Models\Concerns;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CustomField;
 use App\Modules\Core\Models\CustomFieldValue;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 
 /**
  * Opt a tenant domain model into per-company custom fields. Values are stored in
@@ -55,8 +57,26 @@ trait HasCustomFields
             ->keyBy(fn (CustomFieldValue $v) => $v->customField?->code);
 
         return $this->customFieldsDataCache = static::customFieldDefinitions()
-            ->mapWithKeys(fn (CustomField $f) => [$f->code => $values->get($f->code)?->value])
+            ->mapWithKeys(fn (CustomField $f) => [$f->code => static::decodeCustomFieldValue($f, $values->get($f->code)?->value)])
             ->all();
+    }
+
+    /**
+     * Decrypt an encrypted field's stored value. A plaintext value written
+     * before the field was flagged encrypted passes through unchanged rather
+     * than erroring the whole record.
+     */
+    protected static function decodeCustomFieldValue(CustomField $field, mixed $value): mixed
+    {
+        if (! $field->is_encrypted || ! is_string($value)) {
+            return $value;
+        }
+
+        try {
+            return json_decode(Crypt::decryptString($value), true);
+        } catch (DecryptException) {
+            return $value;
+        }
     }
 
     /**
@@ -71,6 +91,12 @@ trait HasCustomFields
 
             if (! $field) {
                 continue;
+            }
+
+            // ponytail: encrypted values are opaque ciphertext at rest, so they can't be
+            // filtered or searched; a blind-index column is the upgrade path if ever needed.
+            if ($field->is_encrypted && $value !== null && $value !== '') {
+                $value = Crypt::encryptString(json_encode($value));
             }
 
             $this->customFieldValues()->updateOrCreate(

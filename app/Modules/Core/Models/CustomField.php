@@ -12,17 +12,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class CustomField extends Model
 {
-    public const TYPES = ['text', 'textarea', 'number', 'date', 'boolean', 'select'];
+    public const TYPES = ['text', 'textarea', 'number', 'date', 'boolean', 'select', 'multi_select', 'color', 'rich_text'];
 
     protected $fillable = [
         'model_type', 'code', 'name', 'type', 'options', 'is_required',
         'min', 'max', 'regex', 'help', 'placeholder', 'sort', 'is_active',
+        'visible_when_field', 'visible_when_value', 'is_encrypted',
     ];
 
     protected $casts = [
         'options' => 'array',
         'is_required' => 'boolean',
         'is_active' => 'boolean',
+        'is_encrypted' => 'boolean',
     ];
 
     public function values(): HasMany
@@ -52,5 +54,48 @@ class CustomField extends Model
             ->where('is_active', true)
             ->orderBy('sort')
             ->orderBy('id');
+    }
+
+    /**
+     * CSV header names for this model's custom fields (`cf_<code>`), for the
+     * importers that carry custom-field columns. Prefixed so a code can never
+     * shadow a native column of the import.
+     *
+     * @return array<int, string>
+     */
+    public static function csvColumns(string $modelClass): array
+    {
+        return self::query()->forModel($modelClass)
+            ->pluck('code')
+            ->map(fn (string $code): string => 'cf_'.$code)
+            ->all();
+    }
+
+    /**
+     * [code => value] from a CSV row's `cf_*` cells, ready for `saveCustomFields()`.
+     * Blank cells are skipped, so a re-import never clears a value it didn't carry.
+     *
+     * @param  array<string, string>  $row
+     * @return array<string, mixed>
+     */
+    public static function csvValues(string $modelClass, array $row): array
+    {
+        $values = [];
+
+        foreach (self::query()->forModel($modelClass)->get() as $field) {
+            $raw = $row['cf_'.$field->code] ?? '';
+
+            if ($raw === '') {
+                continue;
+            }
+
+            $values[$field->code] = match ($field->type) {
+                'boolean' => filter_var($raw, FILTER_VALIDATE_BOOLEAN),
+                'multi_select' => array_values(array_filter(array_map('trim', explode('|', $raw)))),
+                default => $raw,
+            };
+        }
+
+        return $values;
     }
 }

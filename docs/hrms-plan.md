@@ -377,12 +377,18 @@ Two consequences of that answer, both of which shape the defaults:
   `0` with it off. A cap of 0 means that type never carries even for a company that
   does — so "which types carry" needs no extra column.
 
-  **What is deliberately still out: expiry.** "Carried days lapse on 31 March"
-  needs its own date column and a scheduled job to void what is left, and it is a
-  different policy from whether days carry at all. The setting promises carry, and
-  carry is what it delivers: carried days join the new year's balance and lapse with
-  it at the next reset. Expiry is an additive column plus a job when somebody asks —
-  it does not change anything built here.
+  ~~**What is deliberately still out: expiry.**~~ **Somebody asked — built**, as
+  the additive column plus a job it was promised to be, changing nothing already
+  here. `leave.carry_forward_expiry_months` (0 = carried days lapse with the year,
+  as before; 3 on a calendar year is "lapse on 31 March") is read once, at the
+  year-end roll, which stamps `carried_in_expires_on` on the new entitlement — a
+  policy change in June cannot move a date a year already began with, the same
+  rule as the window itself. The daily `leave:lapse-carried-days` sweep then voids
+  whatever is left of the carried days (leave taken before the date spends carried
+  days first) as a **leave_adjustments row** and clears the date, which is what
+  makes it idempotent: `carried_in_days` is never rewritten, so what was given and
+  what lapsed both stay on the record. Nothing is paid out — the year-end
+  encashment run stays deliberately unbuilt, per the lapsing paragraph below.
 - **A mid-year joiner is pro-rated in their first year — confirmed.**
   `days_per_year × months_remaining / 12`, rounded to the nearest half day so it
   agrees with the half-day granularity `leave_days.portion` already uses.
@@ -1167,8 +1173,16 @@ Beyond the eight `Module*` tests every module must satisfy:
   cheap half of the win by copying `ExpenseClaim`'s vocabulary verbatim; the
   reusable asset is `SecondApproverRule`, and it is worth generalising when
   `leave` becomes its second caller, not before.
-- **Half-day payroll interaction.** A half day of LOP is 0.5 in `lop_days`, which
-  the divisor handles, but the PDF prints integers today.
-- **Mobile/API.** `/api/my-payslips` and `/api/my-profile` exist; leave balance
-  and apply-for-leave are the obvious next endpoints, and shipping the module
-  without them means HR gets a web-only feature in a phone-first market.
+- ~~**Half-day payroll interaction.**~~ **Settled** — a half day of LOP is 0.5 in
+  `lop_days`, which the divisor always handled, and the payslip PDF now prints the
+  four attendance figures at the half-day granularity the columns hold: 0.5 shows
+  as 0.5 and whole days stay whole (`pdfs/payslip.blade.php`; held by
+  `PayslipPdfFreshnessTest::test_half_day_lop_prints_as_a_half_day`).
+- ~~**Mobile/API.**~~ **Settled** — `GET /api/my-leave-balances` and
+  `POST /api/my-leave-requests` now sit beside `/api/my-payslips`, on the same
+  stack (Sanctum, company from membership, `module:leave`) and scoped the same
+  way: the caller's own employee record, nobody else's. The balance carries every
+  term of the arithmetic, not just the total; filing goes through
+  `LeaveRequestService::submit()`, so the API cannot file what the form would
+  refuse (`LeaveApiTest`). One stated gap: a type that requires a document is
+  refused over JSON until the API accepts an upload.

@@ -494,6 +494,17 @@ Livewire tests cannot right-click, so the plan splits deliberately:
   > must target the usage, not the word**: `window.open(`, `$persist(`. Alongside Phase 2's rule — every
   > test that checks a thing is present should also check that it is right — that is two lessons this
   > feature has produced about tests rather than about code.
+  >
+  > **Phase 4 revisited 2026-09-26 — the off switch is now server-side, per user.** The store this note
+  > waited for has landed, but not as the home: reports Phase 7's `dashboard_layouts` allow-lists widget
+  > arrangement keys by design and is tenant-scoped, while this preference should follow the person across
+  > companies. So the flag lives in a nullable `users.preferences` json column (landlord), written through
+  > an allow-listed `POST /user/preferences` (`routes/web.php`). `localStorage` stays — demoted to the
+  > mirror the gesture-time read consults: the server injects its state as a meta tag (AppServiceProvider's
+  > global HEAD_END hook, next to the asset registration), the script reconciles the mirror at load, and a
+  > device that chose "off" back when localStorage was the only store syncs that choice up exactly once
+  > (server 'unset' + mirror 'off'). Both toggles persist through one exposed function,
+  > `window.tableContextMenuPersist`, so there is exactly one POST implementation.
 - **Phase 5 — Polish.** Grouped sections and separators mirroring `ActionGroup`s, colours for destructive
   items, and a "Copy" section (link, id, the row's primary label) which is the item people ask for once
   the menu exists.

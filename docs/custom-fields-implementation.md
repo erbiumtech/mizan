@@ -89,7 +89,7 @@ The paid Relaticle plugin needs a purchased license + private repo, so we built 
 
 - **Tenant tables** (`database/migrations/tenant/..._create_custom_fields_tables.php`): `custom_fields` (definitions: model_type, code, name, type, options, is_required, help, sort, is_active) + `custom_field_values` (morph to any tenant model, json value). Isolation via the tenant DB — no `tenant_id` column. Applied to existing tenants via `tenants:artisan "migrate --path=database/migrations/tenant --database=tenant --force"`; new companies get them from the provisioner.
 - **Models:** `App\Models\CustomField` + `App\Models\CustomFieldValue` (both extend `TenantModel`). Trait `App\Models\Concerns\HasCustomFields` (morphMany values, `customFieldsData()`, `saveCustomFields()`).
-- **Field types:** text, textarea, number, date, boolean, select — with required + help.
+- **Field types:** text, textarea, number, date, boolean, select, multi_select, color, rich_text — with required + help. Rich text is sanitized on output (Filament's `->html()` runs `Str::sanitizeHtml`) and stripped to plain text in table cells.
 - **Filament integration:** `App\Filament\Support\CustomFieldsSchema::form()` / `::tableColumns()` build components/columns from definitions (form fields under the `custom_fields` state path, `dehydrated(false)`); `App\Filament\Concerns\InteractsWithCustomFields` page trait hydrates + persists values on Create/Edit.
 - **Admin:** `CustomFieldResource` (Settings nav group, Administrator-only) to manage definitions per model type (`MODELS` allow-list).
 - **Rolled out to 6 models:** `Contact`, `Employee`, `Invoice`, `Product`, `Beneficiary`, `FixedAsset` (model trait + form + table columns + Create/Edit page traits + `getEloquentQuery` eager-load).
@@ -98,7 +98,19 @@ The paid Relaticle plugin needs a purchased license + private repo, so we built 
 - **N+1 fixed:** `customFieldsData()` memoized per instance + reuses eager-loaded `customFieldValues.customField`; definitions cached per (model, company) in a real tenant context. Each opted-in resource eager-loads via `getEloquentQuery()->with('customFieldValues.customField')`.
 - **Tests:** `CustomFieldTest` (define+store, Filament create persists, min-length validation enforced, infolist entries build). Suite: 154 passed.
 
-**Still deferred (lower priority / buy):** field encryption, CSV import/export, conditional visibility (show/hide by another field), the long tail of field types (multi-select, file, rich editor, color), table filtering on custom columns, PDF/report inclusion.
+**Shipped 2026-09-26 (the deferred tail):**
+
+- **More field types** — `multi_select` (json array), `color` (ColorPicker), `rich_text` (RichEditor, sanitized on render).
+- **Conditional visibility** — `visible_when_field` + `visible_when_value` on the definition; the dependent component gets `->visible()`, the controlling one `->live()`. Single field=value equality, deliberately no rule engine.
+- **Field encryption** — `is_encrypted` on the definition; `HasCustomFields` encrypts on save and decrypts on read (so forms, tables, infolists and CSV all pass through it). Encrypted fields can't be filtered or searched.
+- **Table filtering** — `CustomFieldsSchema::tableFilters(Model::class)` builds Select/Ternary filters for select/multi_select/boolean fields (`whereJsonContains` on `custom_field_values.value`), wired into all seven tables that show custom-field columns.
+- **CSV import** — the Contact and Product importers accept `cf_<code>` columns (template includes them; multi_select cells use `a|b`; blanks never clear). Migration: `2026_09_26_100000_add_visibility_and_encryption_to_custom_fields`. Tests: `CustomFieldExtrasTest`.
+
+**Still deferred:**
+
+- **File upload type** — skipped on purpose: per-tenant file storage (disk layout, quotas, cleanup on tenant deletion) isn't designed yet, and a field type shouldn't decide it by accident.
+- **CSV export** — no generic entity CSV export path exists in the app to extend (only the import page and specialised bank/FBR files); import-only shipped.
+- **PDF/report inclusion** — this doc names no concrete surface (Phase 6 said only "relevant PDFs/reports"); when one is named, the invoice PDF is the likely first candidate.
 
 **To opt another model in:** add `use HasCustomFields;` to the model, `...CustomFieldsSchema::form(Model::class)` to its form + `...::tableColumns(Model::class)` to its table, `use InteractsWithCustomFields;` on its Create/Edit pages, and add it to `CustomFieldResource::MODELS`.
 

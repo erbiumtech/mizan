@@ -87,6 +87,8 @@ class EmployeesTable
                 ...CustomFieldsSchema::tableColumns(Employee::class),
             ])
             ->filters([
+                ...CustomFieldsSchema::tableFilters(Employee::class),
+
                 SelectFilter::make('employee_name')
                     ->label('Employee Name')
                     ->attribute('id')

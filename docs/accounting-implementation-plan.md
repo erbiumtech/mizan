@@ -114,7 +114,7 @@
   - `indexQuery()` scoping — Employee role sees only payslips where `employee.user_id = auth id`; existing DownloadPayslip action stays available for own slips.
   - **Comments panel** (MorphMany) on the payslip detail page — employee posts a query, Accountant/Manager replies and marks it resolved; unresolved-comment badge on the index.
   - Notifications: staff notified on new employee comment; employee notified on reply/resolution (Laravel notifications, reusing the approval-notification setup).
-  - The existing Sanctum API (`PayslipController`) gains `GET /payslips/{id}/comments` + `POST` for a future employee portal/mobile app — same policy checks.
+  - ~~The existing Sanctum API (`PayslipController`) gains `GET /payslips/{id}/comments` + `POST` for a future employee portal/mobile app — same policy checks.~~ **Built** — both endpoints on `PayslipController`, gated by the same two policies the Filament comments tab answers to (`PayslipPolicy::view` + `CommentPolicy::viewAny`/`create`), so an employee reads and writes only their own payslip's thread and privileged staff any. Oldest first, like the tab. Held by `PayslipCommentsApiTest`.
 - Trial Balance & General Ledger as dashboard card / PDF export via existing `spatie/laravel-pdf`.
 
 ## Phase 8 — Payroll → Ledger Integration

@@ -659,17 +659,13 @@ class TableContextMenuTest extends AccountingTestCase
     }
 
     /**
-     * **The off switch is `localStorage`, and that is a decision rather than a shortcut** — §4.
+     * **The off switch: the server holds the preference, `localStorage` mirrors it** — §4, revisited.
      *
-     * The plan wants the preference to live "with whatever holds user preferences at that point", naming
-     * Phase 7 of `docs/reports-expansion-plan.md` as the obvious home "rather than a second one". That
-     * phase has not landed — there is no `dashboard_layouts` table and no per-user store — so building one
-     * here would create precisely the second store the plan warns against, which Phase 7 would then have
-     * to reconcile with.
-     *
-     * `localStorage` is client state for a client gesture, which is where this application already keeps
-     * the domain rail's open state. Per-device is arguably the better answer too: somebody who wants the
-     * menu off on a shop tablet may well want it on at a desk.
+     * Phase 4 kept the flag in `localStorage` alone because no per-user store existed. `users.preferences`
+     * has since landed, so the server is now the source: its state arrives as a meta tag (AppServiceProvider's
+     * global HEAD_END hook), the script reconciles the mirror at load and migrates an old localStorage-only
+     * choice up once, and both toggles persist through one exposed function. The mirror stays because the
+     * gesture-time read must be synchronous and must survive an unreachable endpoint.
      */
     public function test_the_off_switch_uses_the_client_store_and_the_same_key_as_the_toggle(): void
     {
@@ -692,6 +688,13 @@ class TableContextMenuTest extends AccountingTestCase
 
         // Read per gesture, so a toggle in another tab takes effect on the next right-click.
         $this->assertStringContainsString('isTurnedOff()', $script);
+
+        // The server seam: the script reconciles from the injected meta, POSTs to the allow-listed
+        // endpoint, and exposes the one persist implementation the toggle partial calls.
+        $this->assertStringContainsString('meta[name="table-context-menu-preference"]', $script);
+        $this->assertStringContainsString('window.tableContextMenuPersist = persist', $script);
+        $this->assertStringContainsString('window.tableContextMenuPersist?.(this.off)', $toggle);
+        $this->assertStringNotContainsString('fetch(', $toggle, 'exactly one POST implementation, in the script');
     }
 
     /**

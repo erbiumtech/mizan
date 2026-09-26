@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Slack\SlackMessage;
 
 class EnvironmentDown extends Notification implements ShouldQueue
 {
@@ -84,17 +85,23 @@ class EnvironmentDown extends Notification implements ShouldQueue
     }
 
     /**
-     * Only sent when laravel/slack-notification-channel is installed and
-     * 'slack' is in projects.alerts.channels.
+     * Only reached when SLACK_BOT_USER_OAUTH_TOKEN is configured — Broadcasting::channels()
+     * drops 'slack' from via() otherwise.
+     *
+     * ponytail: one post per recipient, so two managers means two identical posts in the
+     * channel; a single channel-level post needs Notification::route('slack', …) at the
+     * send site instead of per-user delivery.
      */
-    public function toSlack(object $notifiable): string
+    public function toSlack(object $notifiable): SlackMessage
     {
         $project = $this->environment->project;
 
-        return ($this->isReminder ? ':hourglass: Still down' : ':rotating_light: Down')
+        return (new SlackMessage)->text(
+            ($this->isReminder ? ':hourglass: Still down' : ':rotating_light: Down')
             ." — *{$project->name}* {$this->environment->label()}"
             .' (since '.$this->incident->started_at->format('H:i').', '
-            .$this->incident->failure_count.' failed checks)';
+            .$this->incident->failure_count.' failed checks)'
+        );
     }
 
     protected function projectUrl(): string

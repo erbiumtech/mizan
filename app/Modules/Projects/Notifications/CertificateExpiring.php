@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Slack\SlackMessage;
 
 class CertificateExpiring extends Notification implements ShouldQueue
 {
@@ -48,12 +49,14 @@ class CertificateExpiring extends Notification implements ShouldQueue
         return $message;
     }
 
-    public function toSlack(object $notifiable): string
+    public function toSlack(object $notifiable): SlackMessage
     {
         $project = $this->environment->project;
 
-        return ":lock: Certificate for *{$project->name}* {$this->environment->label()}"
-            ." expires in {$this->daysRemaining} day(s)";
+        return (new SlackMessage)->text(
+            ":lock: Certificate for *{$project->name}* {$this->environment->label()}"
+            ." expires in {$this->daysRemaining} day(s)"
+        );
     }
 
     public function toDatabase(object $notifiable): array

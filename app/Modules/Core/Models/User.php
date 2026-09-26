@@ -365,6 +365,19 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     use InteractsWithAppAuthentication;
     use InteractsWithAppAuthenticationRecovery;
 
+    /**
+     * Slack alerts (docs/projects-listing-plan.md §11) post to the installation's default
+     * channel — SLACK_BOT_USER_DEFAULT_CHANNEL. Only reached when the bot token is set,
+     * because Broadcasting::channels() drops 'slack' from every via() without one.
+     *
+     * ponytail: one channel for the whole installation; per-user or per-company routing
+     * means a column here, when somebody asks for it.
+     */
+    public function routeNotificationForSlack(): ?string
+    {
+        return config('services.slack.notifications.channel');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -392,6 +405,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return [
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'preferences' => 'array',
         ];
     }
 }

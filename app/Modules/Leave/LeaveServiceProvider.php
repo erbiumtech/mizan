@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave;
 
+use App\Modules\Leave\Console\Commands\LapseCarriedDays;
 use App\Modules\Leave\Console\Commands\OpenLeaveYear;
 use App\Modules\Leave\Models\LeaveAdjustment;
 use App\Modules\Leave\Models\LeaveDay;
@@ -42,11 +43,12 @@ class LeaveServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
+        $this->loadRoutesFrom(__DIR__.'/routes/api.php');
         $this->loadRoutesFrom(__DIR__.'/routes/console.php');
 
         // Laravel only auto-discovers commands in app/Console/Commands, so a command
         // living in a module has to be registered here or it disappears from artisan
         // — and from the scheduler, silently.
-        $this->commands([OpenLeaveYear::class]);
+        $this->commands([OpenLeaveYear::class, LapseCarriedDays::class]);
     }
 }

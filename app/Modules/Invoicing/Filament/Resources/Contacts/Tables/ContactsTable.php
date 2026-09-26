@@ -49,7 +49,7 @@ class ContactsTable
                 ...CustomFieldsSchema::tableColumns(Contact::class),
             ])
             ->filters([
-                //
+                ...CustomFieldsSchema::tableFilters(Contact::class),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Core\Models\Comment;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
@@ -68,5 +69,78 @@ class PayslipController extends Controller
         abort_if(! $employee || $payslip->employee_id !== $employee->id, 403);
 
         return app(PayslipService::class)->renderPdf($payslip);
+    }
+
+    /**
+     * The conversation on one payslip — accounting-implementation-plan.md Phase 7.
+     *
+     * Gated exactly as the Filament comments tab is: you reach that tab by being
+     * able to view the payslip (PayslipPolicy — your own record or your downline;
+     * privileged staff see all) and the list itself asks CommentPolicy::viewAny.
+     * So an employee reads only their own payslip's thread, by the same two
+     * policies rather than a re-statement of them.
+     *
+     * Oldest first, like the tab: a conversation read newest-first is a
+     * conversation read backwards, and the first row is the objection itself.
+     */
+    public function comments(Request $request, Payslip $payslip)
+    {
+        $user = $request->user();
+
+        abort_unless($user->can('view', $payslip) && $user->can('viewAny', Comment::class), 403);
+
+        $comments = $payslip->comments()
+            ->with('user:id,name')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Comment $comment): array => [
+                'id' => $comment->id,
+                'body' => $comment->body,
+                'user_id' => $comment->user_id,
+                'author' => $comment->user?->name,
+                'parent_id' => $comment->parent_id,
+                'resolved_at' => $comment->resolved_at,
+                'created_at' => $comment->created_at,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'count' => $comments->count(),
+            'data' => $comments,
+        ], 200);
+    }
+
+    /**
+     * Add to the conversation — the reply half of the thread, same gates as the
+     * tab's Reply button: view the payslip, hold CommentCreate.
+     *
+     * The author is whoever is signed in. Not settable from the payload, for the
+     * obvious reason.
+     */
+    public function addComment(Request $request, Payslip $payslip)
+    {
+        $user = $request->user();
+
+        abort_unless($user->can('view', $payslip) && $user->can('create', Comment::class), 403);
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $comment = $payslip->comments()->create([
+            'body' => $data['body'],
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $comment->id,
+                'body' => $comment->body,
+                'user_id' => $comment->user_id,
+                'created_at' => $comment->created_at,
+            ],
+        ], 201);
     }
 }

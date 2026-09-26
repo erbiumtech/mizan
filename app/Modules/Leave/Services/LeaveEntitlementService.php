@@ -5,6 +5,7 @@ namespace App\Modules\Leave\Services;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveEntitlement;
 use App\Modules\Leave\Models\LeaveType;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Carbon;
 
 /**
@@ -127,6 +128,10 @@ class LeaveEntitlementService
         if (! $next->exists) {
             $next->leave_year_end = $end->toDateString();
             $next->carried_in_days = $this->carryFrom($entitlement, $type);
+            // Stamped from the setting as it stands at the roll, like the window
+            // itself: changing the expiry policy in June must not move a date a
+            // year already began with.
+            $next->carried_in_expires_on = $this->carryExpiry((float) $next->carried_in_days, $start);
             $next->accrued_days = $this->accrualFor($employee, $type, $start, $end, $start);
             $next->save();
         }
@@ -265,6 +270,110 @@ class LeaveEntitlementService
         $months = $this->year->monthsRemaining($joined, $yearStart, $yearEnd);
 
         return $this->roundToHalfDay($annual * $months / 12);
+    }
+
+    /**
+     * Void whatever is left of carried days whose expiry date has passed.
+     *
+     * The other half of the expiry policy: the reset stamps the date, and this daily
+     * sweep — the "additive column plus a job" §4.1 promised — lapses what remains.
+     * The lapse is an adjustment ROW, not a rewrite of carried_in_days, for the same
+     * reason adjustments are rows at all: "who took my three days and when" must stay
+     * answerable, and the balance formula already sums adjustments.
+     *
+     * Idempotent the same way the reset is: writing the lapse clears the date, so a
+     * row is swept exactly once and a second run on 1 April changes nothing. Nothing
+     * is paid out here — a lapse pays nobody (§4.1).
+     *
+     * @return int entitlements whose carried days lapsed
+     */
+    public function lapseExpiredCarriedDays(string|Carbon|null $asOf = null): int
+    {
+        $asOf = $asOf ? Carbon::parse($asOf) : now();
+        $lapsed = 0;
+
+        LeaveEntitlement::query()
+            ->whereNotNull('carried_in_expires_on')
+            // "Lapse ON 31 March" means 31 March is still usable; the sweep acts
+            // from the day after.
+            ->whereDate('carried_in_expires_on', '<', $asOf->toDateString())
+            ->with(['employee', 'leaveType'])
+            ->cursor()
+            ->each(function (LeaveEntitlement $entitlement) use (&$lapsed): void {
+                if (! $entitlement->employee || ! $entitlement->leaveType) {
+                    return;
+                }
+
+                if ($this->lapseCarry($entitlement) > 0) {
+                    $lapsed++;
+                }
+            });
+
+        return $lapsed;
+    }
+
+    /** @return float the days voided */
+    private function lapseCarry(LeaveEntitlement $entitlement): float
+    {
+        $expiry = Carbon::parse($entitlement->carried_in_expires_on);
+
+        // Carried days are spent FIRST: leave taken up to the expiry date counts
+        // against the carried balance before anything else credited this year.
+        // That is the conventional reading and the one that lapses least.
+        $used = $this->balance->taken(
+            $entitlement->employee,
+            $entitlement->leaveType,
+            Carbon::parse($entitlement->leave_year_start),
+            $expiry,
+        );
+
+        $lapse = max(0.0, (float) $entitlement->carried_in_days - $used);
+
+        $format = fn (float $days): string => rtrim(rtrim(number_format($days, 1), '0'), '.');
+
+        // Both writes or neither: an adjustment without the cleared date would
+        // lapse the same days again tomorrow.
+        TenantTransaction::run(function () use ($entitlement, $expiry, $lapse, $format): void {
+            if ($lapse > 0) {
+                // made_by stays null — nobody made this, the policy did.
+                $entitlement->adjustments()->create([
+                    'days' => -$lapse,
+                    'reason' => sprintf(
+                        'Carried-forward days lapsed on %s: %s of %s carried day(s) were unused.',
+                        $expiry->format('d M Y'),
+                        $format($lapse),
+                        $format((float) $entitlement->carried_in_days),
+                    ),
+                ]);
+            }
+
+            // Done. Clearing the date is what makes the sweep idempotent;
+            // carried_in_days is deliberately untouched, so "what was I given"
+            // and "what lapsed" both stay on the record.
+            $entitlement->carried_in_expires_on = null;
+            $entitlement->save();
+        });
+
+        return $lapse;
+    }
+
+    /**
+     * When carried days will lapse, or null for "with the year, as before".
+     *
+     * Months after the year start rather than a fixed date, because the leave year
+     * itself may start in January, July or on an anniversary — "31 March" is
+     * 3 months into a calendar year, and the same policy lands on 30 September for
+     * a fiscal one.
+     */
+    private function carryExpiry(float $carried, Carbon $yearStart): ?string
+    {
+        $months = (int) setting('leave.carry_forward_expiry_months');
+
+        if ($carried <= 0 || $months <= 0) {
+            return null;
+        }
+
+        return $yearStart->copy()->addMonthsNoOverflow($months)->subDay()->toDateString();
     }
 
     private function carryFrom(LeaveEntitlement $entitlement, LeaveType $type): float

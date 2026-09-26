@@ -77,8 +77,23 @@ php artisan queue:restart
 # it again on this release. Harmless when Horizon is not running.
 php artisan horizon:terminate || true
 
+echo "==> Reload PHP-FPM"
+# OPcache runs with opcache.validate_timestamps=0 (deploy/php/opcache.ini), so an
+# FPM that is not reloaded keeps serving the release before this one — forever.
+# This used to be a printed reminder at the end of the log, which is not a
+# mitigation. `sudo -n` so an unattended deploy falls through to the instruction
+# instead of hanging on a password prompt.
+if sudo -n systemctl reload php8.3-fpm 2>/dev/null; then
+    echo "    php8.3-fpm reloaded; OPcache now serves this release."
+else
+    echo "    sudo needs a password here, so FPM was NOT reloaded. Until somebody"
+    echo "    runs the following, PHP is still executing the previous release:"
+    echo
+    echo "        sudo systemctl reload php8.3-fpm"
+fi
+
 echo
-echo "Done. Three things this script deliberately does not do:"
+echo "Done. Two things this script deliberately does not do:"
 echo
 echo "  1. Tenant migrations. They run per company and can take a while, so they are"
 echo "     a decision rather than a step — but a release whose tenant schema is behind"
@@ -86,12 +101,7 @@ echo "     fails at the first screen that reads a new table:"
 echo
 echo "         php artisan tenants:migrate"
 echo
-echo "  2. Restart PHP-FPM. If OPcache runs with opcache.validate_timestamps=0 it will"
-echo "     keep serving the release before this one:"
-echo
-echo "         sudo systemctl reload php8.3-fpm"
-echo
-echo "  3. Top up each company's reference data. Migrations create the tables; the rows"
+echo "  2. Top up each company's reference data. Migrations create the tables; the rows"
 echo "     that ship with the application arrive through the baseline seeders, which only"
 echo "     ever add — the withholding sections a supplier deduction reads, and the two"
 echo "     deferral accounts, both landed this way:"
