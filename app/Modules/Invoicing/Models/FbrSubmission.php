@@ -13,11 +13,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * diagnosable — the invoice says "rejected", and the row here says which field
  * FBR objected to, on which attempt, through which integrator.
  *
- * Nothing writes to this yet. There is no integrator driver (see
- * docs/fbr-digital-invoicing-plan.md §3 for why one is not designed against an
- * API nobody here has seen), so the table exists ahead of its writer —
- * deliberately, because the reconciliation report and the void rules are built
- * against this shape and are worth having before transmission starts.
+ * Written by SubmitInvoiceToFbr (phase 5), one row per logical submission: the
+ * unique `idempotency_key` is fixed at dispatch, so a retry updates its row and
+ * bumps `attempt` rather than handing the integrator a key it has already seen.
+ * The only driver is still the null one — nothing transmits anything until
+ * phase 4 (docs/fbr-digital-invoicing-plan.md §3, §9.4).
  */
 class FbrSubmission extends Model
 {

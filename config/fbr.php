@@ -24,12 +24,26 @@ return [
      * threshold — they would carry on issuing invoices, now non-compliant. A
      * licence says "you did not buy this"; compliance is not bought.
      *
-     * Turning this on is the last step of the rollout, not the first. Nothing in
-     * the application transmits anything yet: there is no integrator driver (see
-     * the plan, §3), so this currently only changes what the reconciliation
-     * report considers a gap.
+     * Turning this on is the last step of the rollout, not the first. It makes
+     * every issued sale (and credit note) dispatch a submission job through the
+     * configured driver — and the only driver is the null one, which transmits
+     * nothing and records what it would have sent. So today "on" means the
+     * rehearsal: the pipeline runs, the reconciliation report treats gaps as
+     * gaps, and nothing reaches FBR until a phase 4 driver exists.
      */
     'enabled' => false,
+
+    /**
+     * Which integrator carries the submissions — the driver layer of plan §3.
+     *
+     * Per-company like everything else here, because multiple licensed
+     * integrators are expressly permitted and the vendor is a choice the
+     * company owns and may change. `null` is the only driver that exists:
+     * it transmits nothing and records what it would have sent, which is how
+     * a company rehearses the whole pipeline before its integrator
+     * registration is complete. A real driver is phase 4, blocked on §9.4.
+     */
+    'driver' => 'null',
 
     /**
      * Hours during which a reported invoice may still be cancelled or edited,

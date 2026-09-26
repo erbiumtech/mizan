@@ -5,6 +5,8 @@ namespace App\Modules\Invoicing;
 use App\Modules\Invoicing\Console\Commands\RaiseRecurringInvoices;
 use App\Modules\Invoicing\Console\Commands\SendCustomerStatements;
 use App\Modules\Invoicing\Console\Commands\SendOverdueReminders;
+use App\Modules\Invoicing\Fbr\FbrDriver;
+use App\Modules\Invoicing\Fbr\NullFbrDriver;
 use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Filament\Pages\CreditNotesIssued;
@@ -43,6 +45,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 
 /**
  * Everything the Invoicing module owns that Filament does not discover.
@@ -110,6 +113,27 @@ class InvoicingServiceProvider extends ServiceProvider
             }
 
             return $rows;
+        });
+    }
+
+    public function register(): void
+    {
+        // Resolved per-use rather than as a singleton, because the driver is a
+        // per-company choice (`fbr.driver`, a TenantSettings override) and a
+        // queue worker crosses companies. An unknown name throws rather than
+        // quietly falling back to the null driver: "misconfigured" must never
+        // read as "reporting", or a typo becomes a compliance breach that
+        // looks exactly like a working system.
+        $this->app->bind(FbrDriver::class, function (): FbrDriver {
+            $name = (string) setting('fbr.driver', 'null');
+
+            return match ($name) {
+                NullFbrDriver::NAME => new NullFbrDriver,
+                default => throw new InvalidArgumentException(
+                    "Unknown FBR driver [{$name}] — a real integrator driver is phase 4 of "
+                    .'docs/fbr-digital-invoicing-plan.md and does not exist yet.'
+                ),
+            };
         });
     }
 
