@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Modules\Core\Models\Company;
-use App\Modules\Invoicing\Models\Contact;
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Invoicing\Models\Contact;
 use Database\Seeders\CompanySeeder;
 use Database\Seeders\ContactSeeder;
 use Database\Seeders\DatabaseSeeder;
@@ -62,12 +62,32 @@ class SeederProducesDummyDataTest extends TestCase
         $this->assertSame([], $offenders, "Real data leaked back into the default seeders:\n - ".implode("\n - ", $offenders));
     }
 
-    public function test_the_real_data_is_still_available_under_production(): void
+    /**
+     * The real data is not in the repository at all — which is a stronger statement than the one this test
+     * used to make, and replaces it.
+     *
+     * It used to assert that `Production/RealEmployeeSeeder.php` existed and still contained `@erbium.ch`,
+     * because the fix at the time was to move the real roster out of `db:seed` and keep it beside the dummy
+     * one. That stopped a demo install carrying sixteen people's names and personal addresses; it did not
+     * stop the *repository* carrying them, which for other people's personal data is the half that matters —
+     * see `docs/open-source-release-checklist.md` §1.6.
+     *
+     * So the files are gitignored now, and what this asserts is the arrangement that keeps them out: the
+     * ignore rule, and a tracked README where they were, so the directory does not read as empty by accident.
+     * A machine that has the real data keeps working — the rule only governs what git sees.
+     */
+    public function test_the_real_data_is_not_in_the_repository(): void
     {
-        $real = File::get(database_path('seeders/Production/RealEmployeeSeeder.php'));
+        $this->assertStringContainsString(
+            '/database/seeders/Production/*.php',
+            File::get(base_path('.gitignore')),
+            'the real seeders must stay out of git',
+        );
 
-        $this->assertStringContainsString('@erbium.ch', $real, 'the real roster must be preserved, not deleted');
-        $this->assertStringContainsString('Database\Seeders\Production', $real);
+        $this->assertTrue(
+            File::exists(database_path('seeders/Production/README.md')),
+            'the directory needs the README that says why it looks empty',
+        );
     }
 
     /** Production seeders must not be wired into the default run. */

@@ -35,6 +35,19 @@ from a context that has made one current. Each uses `firstOrCreate`/`updateOrCre
 up rather than duplicating. The dummy equivalents in `database/seeders` are the template: same structure,
 invented names on the reserved `example.test` domain.
 
+## Keep a copy somewhere else
+
+**`git clean -fdx` deletes every file in here.** That is what ignoring them means, and it is not
+hypothetical: these five files went missing from a working tree once already and had to be recovered from
+history. While the history still holds them that recovery is easy —
+
+    git show <commit-before-the-scrub>:database/seeders/Production/RealEmployeeSeeder.php > RealEmployeeSeeder.php
+
+— and the moment that history is rewritten (see below), it is not. Before rewriting anything, put these
+somewhere outside the repository: a password manager attachment, an encrypted archive, the backup that
+already holds the production database. They describe real people, so "somewhere else" should be somewhere
+access-controlled.
+
 ## Still in git history
 
 Untracking removes these from the working tree of future clones, not from the history of this one. If this

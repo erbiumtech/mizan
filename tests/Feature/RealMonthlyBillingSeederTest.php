@@ -10,6 +10,7 @@ use App\Modules\Payroll\Models\Payslip;
 use Database\Seeders\Production\RealEmployeeSeeder;
 use Database\Seeders\Production\RealMonthlyBillingSeeder;
 use Database\Seeders\TransactionTypeSeeder;
+use Illuminate\Support\Facades\File;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
 
@@ -42,6 +43,20 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        /*
+         * This test seeds the real salary sheet and checks the billing run against its own totals, which
+         * makes it the best test of that engine there is and ties it to data the repository deliberately
+         * does not carry: `database/seeders/Production/` is gitignored — see the release checklist §1.6 and
+         * `SeederProducesDummyDataTest`. On a machine that has the files it runs exactly as before; on a
+         * fresh clone it says why it is not running rather than erroring on a missing class.
+         */
+        if (! File::exists(database_path('seeders/Production/RealMonthlyBillingSeeder.php'))) {
+            $this->markTestSkipped(
+                'The real billing data is not in this checkout — database/seeders/Production/ is gitignored, '
+                .'and these figures are checked against the company\'s own salary sheet.'
+            );
+        }
 
         $this->actingAs($this->makeUser('Administrator', 'seeder@test.local'));
         $this->setCurrentTenant();
