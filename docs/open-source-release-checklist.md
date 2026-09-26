@@ -189,6 +189,28 @@ HR, payroll and double-entry accounting for Pakistani businesses (Laravel + Fila
 Fall back to `mizan-hr` if the bare name is taken. Keep `MPR` out of the public name: it
 means nothing to outsiders and collides with dozens of acronyms.
 
+### 5.1 Done, code side (2026-09-26)
+
+- GitHub repo and composer package are `erbiumtech/mizan`; README is titled Mizan with a
+  `mizan` clone URL; `Envoy.blade.php` deploys to `/var/www/mizan`.
+- `.env.example` `APP_NAME=Mizan`, `config/app.php` fallback `'Mizan'` (was the Laravel
+  skeleton default in both), `composer.json` description/keywords set to the line above
+  (was the skeleton boilerplate).
+- **Not renamed, on purpose:** `app/Modules/Mpr` and its `mpr` module key — that is the
+  *Monthly Progress Report* domain module, not the app name; the key is stored in module
+  toggle/permission data, so renaming it is a data migration for no branding gain.
+
+### 5.2 Left manual, because a live deploy references each
+
+- **Production `APP_NAME`** on the VPS — `cache`/`redis`/`horizon` prefixes, the session
+  cookie name and backup names all derive from `Str::slug(env('APP_NAME'))`; changing it
+  logs everyone out, orphans queued horizon jobs and breaks backup-monitor continuity.
+  Change it during a maintenance window, or accept the old value silently.
+- **Database names** (landlord + per-tenant) — referenced by the live `.env`, backup
+  jobs and the tenant registry; renaming is a migration with downtime, not a find-replace.
+- **The local checkout directory `mpr`** — other sessions and tooling depend on the
+  path; a fresh clone of `erbiumtech/mizan` retires it naturally.
+
 ---
 
 ## Suggested order

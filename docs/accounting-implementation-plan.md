@@ -646,6 +646,8 @@ balanced entries and driving inventory movements.
 
 **1 → 2 → 3–5 → 6–7 → 8 → 10 (Accounts API) → 11 (Fixed Assets) → 12 (Bank Reconciliation) → 13 (Financial Reports) → 14 (Bank Directory + Salary Bank File) → 15 (Transaction Types + Company Bank Accounts) → 16 (Account Register) → 17 (GnuCash Import) → 18 (Petty Cash Book) → 19 (Inventory) → 20 (Invoices)**, tests throughout. Roughly 28 new files + edits to `PayslipService`, `PayslipPolicy`, Nova `Payslip` resource, `PermissionSeeder`, `RoleSeeder`, API routes, and two instantiation sites; one vendor package (`spatie/laravel-activitylog`).
 
-## Open decision
+## Open decision — closed 2026-09-26
 
 Seed the 2025-26 tax rates against the currently active `2026-2027` fiscal year, **or** create a separate `2025-2026` fiscal year record for them?
+
+**Separate `2025-2026` record.** Slabs belong to the fiscal year whose Finance Act enacted them: payslips carry `fiscal_year_id`, so a slip recomputed for a 2025-26 month must resolve 2025-26 rates through `TaxCalculatorService::annualTax(..., $fiscalYearId)` — seeding last year's rates onto the active year would make every recomputation of a settled month silently use this year's schedule. This is already built: `FiscalYearSeeder` creates both `2025-2026` and `2026-2027` (the model's `saved` hook stands down all but the last activated, leaving `2026-2027` current), and `SalarySlabSeeder` seeds the six FY 2025-26 slabs from the table above against the `2025-2026` record and the eight Finance Act 2026 slabs against `2026-2027`. `tests/Feature/TaxCalculatorTest.php` pins the 2025-26 figures against that year explicitly.
