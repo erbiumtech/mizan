@@ -115,6 +115,9 @@ class EmployeeAccess
     {
         $childrenByManager = Employee::query()
             ->whereNotNull('manager_id')
+            // Only ids are read here. Employee::$with would otherwise eager-load
+            // users against a select that carries no user_id to match them on.
+            ->without('user')
             ->get(['id', 'manager_id'])
             ->groupBy('manager_id')
             ->map(fn ($rows) => $rows->pluck('id')->map(fn ($id) => (int) $id)->all());

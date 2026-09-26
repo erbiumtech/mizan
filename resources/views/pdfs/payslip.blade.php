@@ -398,18 +398,22 @@
             </div>
 
             <!-- Attendance -->
+            {{-- Days, at the half-day granularity the columns actually hold: a half
+                 day of LOP is 0.5 in lop_days and must print as 0.5, not as an
+                 integer (docs/hrms-plan.md §11). Whole days stay whole — 22, not 22.00. --}}
+            @php($days = fn ($value): string => rtrim(rtrim(number_format((float) ($value ?? 0), 1), '0'), '.'))
             <div class="attendance-box">
                 <div class="att-col">
                     <div class="att-row"><span class="label">Total Working Days</span><span
-                            class="att-box">{{ $data->total_working_days ?? 0 }}</span></div>
+                            class="att-box">{{ $days($data->total_working_days) }}</span></div>
                     <div class="att-row"><span class="label">LOP Days</span><span
-                            class="att-box">{{ $data->lop_days ?? 0 }}</span></div>
+                            class="att-box">{{ $days($data->lop_days) }}</span></div>
                 </div>
                 <div class="att-col">
                     <div class="att-row"><span class="label">Paid Days</span><span
-                            class="att-box">{{ $data->paid_days ?? 0 }}</span></div>
+                            class="att-box">{{ $days($data->paid_days) }}</span></div>
                     <div class="att-row"><span class="label">Leaves Taken</span><span
-                            class="att-box">{{ $data->leaves_taken ?? 0 }}</span></div>
+                            class="att-box">{{ $days($data->leaves_taken) }}</span></div>
                 </div>
             </div>
 

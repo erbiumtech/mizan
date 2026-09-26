@@ -79,7 +79,7 @@ class ProductsTable
                 Group::make('is_active')->label('Active'),
             ])
             ->filters([
-                //
+                ...CustomFieldsSchema::tableFilters(Product::class),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -2,6 +2,7 @@
 
 <div
     class="svb"
+    wire:loading.delay.class="svb-busy"
     x-data="{
         panelOpen: false,
         search: '',
@@ -13,7 +14,7 @@
         <button type="button" wire:click="resetSavedView"
             @class(['svb-tab', 'svb-tab-active' => ! $bar['activeId']])>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
-            <span>Default</span>
+            <span>{{ __('Default') }}</span>
         </button>
 
         @foreach ($bar['favorites'] as $v)
@@ -28,7 +29,7 @@
     {{-- RIGHT: views manager (quick-save "+" is the page header action) --}}
     <div class="svb-actions">
         <div class="svb-pop-wrap" @click.outside="panelOpen = false">
-            <button type="button" title="Views" @click="panelOpen = ! panelOpen; saveOpen = false"
+            <button type="button" title="{{ __('Views') }}" @click="panelOpen = ! panelOpen; saveOpen = false"
                 :class="panelOpen ? 'svb-icon svb-icon-ring' : 'svb-icon svb-icon-active'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M3.75 5.25h16.5M3.75 12h16.5M3.75 18.75h16.5"/></svg>
                 @php($count = count($bar['favorites']) + count($bar['mine']) + count($bar['shared']))
@@ -37,20 +38,20 @@
 
             <div class="svb-panel" x-show="panelOpen" x-cloak x-transition>
                 <div class="svb-panel-head">
-                    <span class="svb-panel-title">Views</span>
+                    <span class="svb-panel-title">{{ __('Views') }}</span>
                     <span class="svb-panel-links">
-                        <button type="button" @click="panelOpen = false; $wire.mountAction('saveView')">Save</button>
-                        <button type="button" wire:click="resetSavedView" @click="panelOpen = false">Reset</button>
+                        <button type="button" @click="panelOpen = false; $wire.mountAction('saveView')">{{ __('Save') }}</button>
+                        <button type="button" wire:click="resetSavedView" @click="panelOpen = false">{{ __('Reset') }}</button>
                     </span>
                 </div>
 
                 <div class="svb-search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M21 21l-4.3-4.3m1.8-4.45a6.25 6.25 0 11-12.5 0 6.25 6.25 0 0112.5 0z"/></svg>
-                    <input type="text" placeholder="Search" x-model="search">
+                    <input type="text" placeholder="{{ __('Search') }}" x-model="search">
                 </div>
 
                 <div class="svb-scroll">
-                    @php($sections = [['User favorites', $bar['favorites'], true], ['User views', $bar['mine'], true], ['Public views', $bar['shared'], false]])
+                    @php($sections = [[__('User favorites'), $bar['favorites'], true], [__('User views'), $bar['mine'], true], [__('Public views'), $bar['shared'], false]])
                     @foreach ($sections as [$label, $rows, $owned])
                         @if (count($rows))
                             <div x-show="{{ \Illuminate\Support\Js::from(collect($rows)->pluck('name')) }}.some(n => match(n))">
@@ -61,10 +62,12 @@
                                         @class(['svb-row', 'svb-row-active' => $bar['activeId'] === $v['id']])>
                                         <svg class="svb-row-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.5l2.2 4.46 4.92.72-3.56 3.47.84 4.9L11.48 15l-4.4 2.31.84-4.9L4.36 8.94l4.92-.72z"/></svg>
                                         <span @class(['svb-row-name', 'svb-row-danger' => ($v['color'] ?? null) === 'danger'])>{{ $v['name'] }}</span>
-                                        @if ($v['is_default'])<span class="svb-dot" title="Default view"></span>@endif
+                                        @if ($v['is_default'])<span class="svb-dot" title="{{ __('Default view') }}"></span>@endif
                                         @if ($v['owned'])
-                                            <button type="button" class="svb-row-btn" title="Set as default" wire:click.stop="setDefaultSavedView({{ $v['id'] }})">★</button>
-                                            <button type="button" class="svb-row-btn" title="Delete" wire:click.stop="deleteSavedView({{ $v['id'] }})">🗑</button>
+                                            <button type="button" class="svb-row-btn" title="{{ __('Move up') }}" wire:click.stop="moveSavedView({{ $v['id'] }}, -1)">↑</button>
+                                            <button type="button" class="svb-row-btn" title="{{ __('Move down') }}" wire:click.stop="moveSavedView({{ $v['id'] }}, 1)">↓</button>
+                                            <button type="button" class="svb-row-btn" title="{{ __('Set as default') }}" wire:click.stop="setDefaultSavedView({{ $v['id'] }})">★</button>
+                                            <button type="button" class="svb-row-btn" title="{{ __('Delete') }}" wire:click.stop="deleteSavedView({{ $v['id'] }})">🗑</button>
                                         @endif
                                     </div>
                                 @endforeach
@@ -73,7 +76,7 @@
                     @endforeach
 
                     @if (count($bar['presets']))
-                        <p class="svb-section">Presets</p>
+                        <p class="svb-section">{{ __('Presets') }}</p>
                         @foreach ($bar['presets'] as $p)
                             <div class="svb-row" x-show="match(@js($p['name']))" wire:click="applyPresetView(@js($p['key']))">
                                 <svg class="svb-row-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
@@ -83,7 +86,7 @@
                     @endif
 
                     @if (! $count && ! count($bar['presets']))
-                        <p class="svb-empty">No saved views yet.</p>
+                        <p class="svb-empty">{{ __('No saved views yet.') }}</p>
                     @endif
                 </div>
             </div>
@@ -92,6 +95,13 @@
 
     <style>
         [x-cloak] { display: none !important; }
+        /* Loading state: while any Livewire request from the page is in flight (wire:loading
+           puts .svb-busy on the bar, which sits in the table header), the table body dims and
+           pulses and stops taking clicks.
+           ponytail: an opacity pulse over the live rows, not per-cell skeleton rows — build
+           real skeletons only if this reads as broken rather than busy. */
+        .fi-ta:has(.svb-busy) .fi-ta-content-ctn { opacity: .5; pointer-events: none; animation: svb-pulse 1.2s ease-in-out .3s infinite; }
+        @keyframes svb-pulse { 50% { opacity: .3; } }
         .svb { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .25rem .25rem .5rem; }
         .svb-tabs { display: inline-flex; align-items: stretch; gap: .25rem; }
         .svb-tab { display: inline-flex; align-items: center; gap: .45rem; padding: .5rem .85rem; border: 0; border-bottom: 2px solid transparent; background: transparent; font-size: .875rem; font-weight: 500; color: #6b7280; cursor: pointer; transition: color .15s, border-color .15s; }

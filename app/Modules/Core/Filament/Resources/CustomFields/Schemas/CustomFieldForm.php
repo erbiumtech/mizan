@@ -20,7 +20,8 @@ class CustomFieldForm
             Select::make('model_type')
                 ->label('Applies to')
                 ->options(CustomFieldResource::modelOptions())
-                ->required(),
+                ->required()
+                ->live(),
 
             TextInput::make('name')
                 ->required()
@@ -35,14 +36,14 @@ class CustomFieldForm
                 ->rule('regex:/^[a-z0-9_]+$/'),
 
             Select::make('type')
-                ->options(collect(CustomField::TYPES)->mapWithKeys(fn ($t) => [$t => ucfirst($t)])->all())
+                ->options(collect(CustomField::TYPES)->mapWithKeys(fn ($t) => [$t => ucfirst(str_replace('_', ' ', $t))])->all())
                 ->default('text')
                 ->required()
                 ->live(),
 
             TagsInput::make('options')
                 ->helperText('Options for a Select field (press Enter after each).')
-                ->visible(fn (callable $get) => $get('type') === 'select'),
+                ->visible(fn (callable $get) => in_array($get('type'), ['select', 'multi_select'], true)),
 
             TextInput::make('min')
                 ->numeric()
@@ -62,6 +63,26 @@ class CustomFieldForm
             TextInput::make('placeholder')
                 ->helperText('Placeholder shown inside the empty input.')
                 ->visible(fn (callable $get) => in_array($get('type'), ['text', 'textarea', 'number', 'date', 'select'], true)),
+
+            Select::make('visible_when_field')
+                ->label('Visible when field')
+                ->options(fn (callable $get, ?CustomField $record) => CustomField::query()
+                    ->where('model_type', $get('model_type'))
+                    ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
+                    ->pluck('name', 'code')
+                    ->all())
+                ->nullable()
+                ->live()
+                ->helperText('Show this field only while another field of the same model has a given value.'),
+
+            TextInput::make('visible_when_value')
+                ->label('Visible when value')
+                ->helperText('The value that reveals this field (for a toggle: 1 or 0).')
+                ->visible(fn (callable $get) => filled($get('visible_when_field'))),
+
+            Toggle::make('is_encrypted')
+                ->label('Encrypted')
+                ->helperText('Stored encrypted at rest. Encrypted fields cannot be filtered or searched.'),
 
             Textarea::make('help')->label('Help text')->nullable(),
 

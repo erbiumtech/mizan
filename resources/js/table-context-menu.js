@@ -60,17 +60,16 @@
     const DROPDOWN_TRIGGER = '.fi-dropdown-trigger'
 
     /**
-     * The off switch — §4, and it is raw `localStorage` on purpose.
+     * The off switch — §4. The server holds the preference; `localStorage` is its local mirror.
      *
-     * `docs/table-context-menu-plan.md` Phase 4 wants the preference to live "with whatever holds user
-     * preferences at that point", and names Phase 7 of `docs/reports-expansion-plan.md` as the obvious
-     * home "rather than a second one". That phase has not landed and there is no per-user store, so
-     * building one here would create exactly the second store the plan warns against — and Phase 7 would
-     * then have to reconcile with it.
+     * Phase 4 wanted the preference to live "with whatever holds user preferences at that point", and at
+     * the time nothing did, so it lived here alone. `users.preferences` has since landed, and the flow is
+     * now: the server injects its state as a meta tag (see AppServiceProvider's HEAD_END hook), this
+     * script mirrors it into `localStorage` at load, and every toggle writes both. The mirror is what the
+     * gesture-time read below consults — synchronous, and correct even when the endpoint is unreachable.
      *
-     * `localStorage` is not that second store. It is client state for a *client gesture*, which is where
-     * this codebase already keeps the domain rail's open state, and per-device is arguably the better
-     * answer anyway: somebody who wants the menu off on a shop tablet may well want it on at a desk.
+     * A server state of 'unset' means the user has never chosen on any device; if this device's old
+     * localStorage-only flag says off, that choice is migrated up once (see reconcile below).
      *
      * **Raw, not Alpine's `$persist`.** `$persist` JSON-encodes, so a boolean written by Alpine reads back
      * as the string `"false"` to anything using `getItem` directly — the rail partial already documents
@@ -101,7 +100,63 @@
         } catch {
             // Nothing to do: the item is a courtesy and the native menu is one Shift away regardless.
         }
+
+        persist(true)
     }
+
+    /**
+     * Write the preference to the server — fire-and-forget.
+     *
+     * The endpoint and CSRF token both come from tags Filament already renders (our own meta, and the
+     * layout's csrf-token meta); missing either means a page outside a panel, where there is nothing to
+     * persist to and the localStorage mirror above has already done the honest half. Failure is
+     * swallowed for the same reason the storage writes swallow theirs: the mirror holds for this
+     * device, and the server copy catches up on the next successful toggle.
+     */
+    const persist = (off) => {
+        const endpoint = document.querySelector('meta[name="table-context-menu-preference"]')?.dataset.endpoint
+        const token = document.querySelector('meta[name="csrf-token"]')?.content
+
+        if (!endpoint || !token) {
+            return
+        }
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify({ key: DISABLED_KEY, value: off }),
+        }).catch(() => {})
+    }
+
+    // Exactly one POST implementation: the user-menu toggle partial calls this instead of
+    // carrying a second copy of the fetch. Defined once per real page load (navigateOnce).
+    window.tableContextMenuPersist = persist
+
+    /*
+     * Reconcile the mirror with the server, once per real page load.
+     *
+     * 'off'/'on' means the user has chosen, somewhere — the server wins and the mirror follows, which is
+     * what makes the preference hold across devices. 'unset' with an old localStorage 'off' is the
+     * migration case: this device chose back when localStorage was the only store, so that choice is
+     * synced up once and becomes the server state. No meta tag means no panel page; leave well alone.
+     */
+    const reconcile = () => {
+        const server = document.querySelector('meta[name="table-context-menu-preference"]')?.content
+
+        try {
+            if (server === 'off') {
+                localStorage.setItem(DISABLED_KEY, 'off')
+            } else if (server === 'on') {
+                localStorage.removeItem(DISABLED_KEY)
+            } else if (server === 'unset' && localStorage.getItem(DISABLED_KEY) === 'off') {
+                persist(true)
+            }
+        } catch {
+            // Private browsing: no mirror to reconcile, and isTurnedOff() already treats that as "on".
+        }
+    }
+
+    reconcile()
 
     /** How long a touch has to rest before it counts as a long-press — §4. */
     const LONG_PRESS_MS = 500

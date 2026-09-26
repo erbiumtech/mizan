@@ -16,6 +16,7 @@
         "laravel/reverb": "^1.11",
         "laravel/sanctum": "^4.0",
         "laravel/scout": "^11.7",
+        "laravel/slack-notification-channel": "^3.10",
         "laravel/tinker": "^3.0",
         "predis/predis": "^3.5",
         "spatie/browsershot": "^5.3",

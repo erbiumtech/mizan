@@ -37,6 +37,18 @@ class TableViewPolicy
         return $this->owns($user, $view) || $user->hasRole('Administrator');
     }
 
+    /**
+     * Share a view with everyone in the company (`is_public`).
+     *
+     * ponytail: a permission gate, not an approval workflow — Administrators hold
+     * it by default and can hand it to trusted roles. Add a review queue (pending
+     * flag + approve action) only if shared-view abuse actually appears.
+     */
+    public function publish(User $user): bool
+    {
+        return $user->hasPermissionTo('TableViewPublish');
+    }
+
     /** Only administrators may pin a view globally for the whole company. */
     public function setGlobal(User $user): bool
     {

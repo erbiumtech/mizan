@@ -70,6 +70,8 @@ class FixedAssetsTable
                 ...CustomFieldsSchema::tableColumns(FixedAsset::class),
             ])
             ->filters([
+                ...CustomFieldsSchema::tableFilters(FixedAsset::class),
+
                 SelectFilter::make('status')
                     ->options([
                         'active' => 'Active',

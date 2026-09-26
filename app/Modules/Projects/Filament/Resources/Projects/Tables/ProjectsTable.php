@@ -98,6 +98,8 @@ class ProjectsTable
                 Group::make('status')->label('Status'),
             ])
             ->filters([
+                ...CustomFieldsSchema::tableFilters(Project::class),
+
                 SelectFilter::make('status')
                     ->options(Project::STATUSES)
                     ->multiple(),

@@ -270,6 +270,11 @@ rendered sidebar link contains `wire:navigate`.
   succeed) or leave `validate_timestamps` at its default and accept the stat calls. Shipping the ini
   file and the reminder together is the one combination that silently serves stale code.
 
+  *Resolved 2026-09-26:* the reload is in the script. `sudo -n systemctl reload php8.3-fpm`, so an
+  unattended deploy cannot hang on a password prompt; only where sudo is not passwordless does it
+  fall back to printing the instruction, now with "PHP is still executing the previous release"
+  spelled out beside it.
+
 ## Results
 
 Measured by `tests/Feature/PanelPerformanceTest.php`, which is also the guard: the budgets in that
@@ -381,8 +386,18 @@ Both close holes in this plan's own measurements rather than making anything fas
   that column; `App\Support\EmployeeOptions::search()` has the same shape for select options. Phase 6's
   `loadMissing` made this legal rather than fatal, which is why it now needs finding by hand.
   The one-line candidate is `protected $with = ['user']` on `Employee`: it fixes all fifteen sites at
-  once, and costs one extra eager load on employee queries that never read a name. Worth measuring
-  against the row-scaling test above, extended to the attendance-days table, before committing to it.
+  once, and costs one extra eager load on employee queries that never read a name.
+
+  *Done 2026-09-26 — the one-liner, plus the two guards it needed.* `Employee::$hidden = ['user']`
+  keeps the now-always-loaded relation out of every `toArray()`: the profile API
+  (`EmployeeController::myProfile`) returns the model directly, and its response must not grow a
+  landlord user record because the panel wanted names eager. And
+  `EmployeeAccess::subtreeEmployeeIds()` opts out with `->without('user')` — it selects only
+  `id, manager_id`, so the eager load would have no `user_id` to match and be a query for nothing.
+  The guard is `tests/Feature/EmployeeUserEagerLoadTest.php`: reading every name over eight
+  employees must cost the same statements as over two (the lazy-loading guard cannot catch this —
+  `fullName()`'s `loadMissing` made the per-row query legal, which is the honest limit Phase 6
+  already recorded).
 - **Nothing measures this in production.** The only observability package installed is
   `barryvdh/laravel-debugbar`, which is dev-only — no Pulse, no APM, no per-request query log. Every
   figure in this document comes from a laptop running sqlite against empty tables, while production is
@@ -395,10 +410,16 @@ Both close holes in this plan's own measurements rather than making anything fas
   is the *cold* column, not the warm one. Either measure real think-time or raise the TTL — a
   pending-approvals count five minutes stale is no more misleading than one a minute stale.
 - Turning hover prefetching on, per above — a judgement about traffic, with the cost now known.
-- Automating the OPcache reset in `deploy/deploy.sh`, per the Risks note. Currently a printed reminder.
-- A test asserting every permission named in `app/` exists in `PermissionSeeder`. Not a performance
-  item, but Phase 0 was blocked by a seeder 96 permissions behind whose only symptom was a 500 on
-  every page.
+- ~~Automating the OPcache reset in `deploy/deploy.sh`, per the Risks note.~~ *Done 2026-09-26:*
+  the script reloads `php8.3-fpm` itself via `sudo -n`, and only where sudo wants a password does it
+  fall back to printing the instruction — the one case a human was ever the right mechanism.
+- ~~A test asserting every permission named in `app/` exists in `PermissionSeeder`.~~ *Done
+  2026-09-26:* `tests/Feature/PermissionsAreSeededTest.php` runs the seeder, then statically scans
+  `app/` for the codebase's one convention — a PascalCase literal passed to
+  `hasPermissionTo()`/`can()`/`hasDirectPermission()` — and fails naming any permission checked but
+  not declared in a module's `module.php` (which is what the seeder writes). Phase 0 was blocked by
+  a seeder 96 permissions behind whose only symptom was a 500 on every page; this is that symptom as
+  a test failure instead.
 - A client-side baseline (Phase 0.4), still never taken: LCP, transferred bytes and scripting time for
   a cold load and a same-session navigation. The goal of this plan is that moving around *feels*
   instant, and that is the only measurement of it.

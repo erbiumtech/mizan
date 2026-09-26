@@ -33,7 +33,9 @@ use Filament\Events\TenantSet;
 use Filament\Resources\Resource;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Table;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -288,6 +290,33 @@ class AppServiceProvider extends ServiceProvider
                     ->navigateOnce(),
             ],
             package: 'app',
+        );
+
+        /*
+         * The off switch's server-side state — `docs/table-context-menu-plan.md` Phase 4, revisited.
+         *
+         * Phase 4 left the preference in localStorage because no per-user store existed; `users.preferences`
+         * now does. The script above stays static, so the state travels as a meta tag: 'off'/'on' when the
+         * user has ever chosen, 'unset' when they have not — three states, because 'unset' is what tells the
+         * script to migrate an old localStorage-only choice up to the server exactly once.
+         *
+         * Registered globally (not per panel) for the same reason the asset is: the script runs in every
+         * panel, and a hook on one panel would leave the other resolving the preference from a stale mirror.
+         * A meta tag rather than an inline script — nothing executes, so §2's listener-stacking concern
+         * cannot apply.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            function (): string {
+                $preferences = (array) (auth()->user()?->preferences ?? []);
+
+                $state = array_key_exists('tableContextMenuDisabled', $preferences)
+                    ? ($preferences['tableContextMenuDisabled'] ? 'off' : 'on')
+                    : 'unset';
+
+                return '<meta name="table-context-menu-preference" content="'.$state
+                    .'" data-endpoint="'.e(route('user.preferences')).'">';
+            },
         );
 
         /*

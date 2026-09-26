@@ -91,6 +91,7 @@ return [
         'Comment',
         'FiscalYear',
         'Holiday',
+        'TableView',
     ],
 
     'permissions' => [
@@ -123,6 +124,9 @@ return [
         ['name' => 'HolidayUpdate', 'group' => 'Holiday'],
         ['name' => 'HolidayDelete', 'group' => 'Holiday'],
         ['name' => 'ActivityLogView', 'group' => 'ActivityLog'],
+        // Share a saved table view with the whole company (TableViewPolicy::publish).
+        // Administrator holds it with everything else; no other seeded role lists it.
+        ['name' => 'TableViewPublish', 'group' => 'TableView'],
         ['name' => 'CommentCreate', 'group' => 'Comment'],
         ['name' => 'CommentView', 'group' => 'Comment'],
         ['name' => 'CommentResolve', 'group' => 'Comment'],

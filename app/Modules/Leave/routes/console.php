@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Leave\Console\Commands\LapseCarriedDays;
 use App\Modules\Leave\Console\Commands\OpenLeaveYear;
 use Illuminate\Support\Facades\Schedule;
 
@@ -23,4 +24,12 @@ use Illuminate\Support\Facades\Schedule;
  */
 Schedule::command(OpenLeaveYear::class)
     ->dailyAt('01:30')
+    ->withoutOverlapping();
+
+// The same daily-idempotent-sweep shape, for the same reasons: "carried days lapse
+// on 31 March" is a different calendar date per year basis, and a once-a-year entry
+// has to fire on the one morning it matters. After the year-open, so a fresh roll's
+// stamped expiry dates are already in place.
+Schedule::command(LapseCarriedDays::class)
+    ->dailyAt('02:00')
     ->withoutOverlapping();

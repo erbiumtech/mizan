@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Support;
 
+use App\Modules\Core\Models\CustomField;
 use App\Modules\Invoicing\Models\Contact;
 use App\Support\Contracts\CsvImporter;
 use Illuminate\Support\Collection;
@@ -26,12 +27,19 @@ class ContactCsvImporter implements CsvImporter
 
     public function columns(): array
     {
-        return ['name', 'kind', 'email', 'phone', 'ntn', 'cnic', 'address'];
+        // Plus this tenant's custom fields, as `cf_<code>` columns (multi_select cells use `a|b`).
+        return array_merge(
+            ['name', 'kind', 'email', 'phone', 'ntn', 'cnic', 'address'],
+            CustomField::csvColumns(Contact::class),
+        );
     }
 
     public function example(): array
     {
-        return ['Erbium AG', 'customer', 'billing@erbium.example', '+41 44 000 0000', '', '', 'Zurich'];
+        return array_merge(
+            ['Erbium AG', 'customer', 'billing@erbium.example', '+41 44 000 0000', '', '', 'Zurich'],
+            array_fill(0, count(CustomField::csvColumns(Contact::class)), ''),
+        );
     }
 
     public function problemWith(array $row): ?string
@@ -49,7 +57,7 @@ class ContactCsvImporter implements CsvImporter
 
         foreach ($rows as $row) {
             // By name, so running the same file twice corrects rather than duplicates.
-            Contact::updateOrCreate(
+            $contact = Contact::updateOrCreate(
                 ['name' => $row['name']],
                 [
                     // Somebody's spreadsheet saying "Client" should not cost them the row.
@@ -64,6 +72,8 @@ class ContactCsvImporter implements CsvImporter
                     'is_active' => true,
                 ],
             );
+
+            $contact->saveCustomFields(CustomField::csvValues(Contact::class, $row));
 
             $imported++;
         }

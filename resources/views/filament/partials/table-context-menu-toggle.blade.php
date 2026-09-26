@@ -14,6 +14,12 @@
     would read back as the string `"false"` to `resources/js/table-context-menu.js`, which uses `getItem`
     directly. Both sides use this key and the literal `'off'`, so there is nothing to disagree about. The
     domain rail partial documents the same seam.
+
+    **The server holds the preference now; localStorage is its mirror.** The script reconciles the mirror
+    from a server-rendered meta tag at load and exposes `window.tableContextMenuPersist`, the one POST
+    implementation — this toggle calls it rather than carrying a second copy of the fetch. The optional
+    chaining is the graceful half: with the script somehow absent, the mirror still flips and this device
+    still behaves.
 --}}
 <div
     x-data="{
@@ -43,7 +49,10 @@
             } catch {
                 // Private browsing. Nothing to store and nothing to say — Shift+right-click is the
                 // escape hatch that needs no storage at all.
+                this.off = ! this.off
             }
+
+            window.tableContextMenuPersist?.(this.off)
         },
     }"
     class="fi-dropdown-list"

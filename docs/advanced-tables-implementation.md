@@ -21,13 +21,13 @@ This is a large plugin (60+ options). This doc scopes a **pragmatic in-house v1*
 | **Quick Save** (one-click save current state) | ✅ | Modal: name + icon + color. |
 | **View Manager** (search/apply/edit/delete/favorite) | ◑ | Simple dropdown/panel in v1; full side-panel later. |
 | **Column & layout** (toggled cols, order) persisted in views | ✅ | Capture Filament table state (toggled columns, order, sort). |
-| **Public / shared views** + approval workflow | ◑ | `is_public` + policy in v1; **approval workflow deferred**. |
+| **Public / shared views** + approval workflow | ◑ | `is_public` + policy in v1; publishing gated by the `TableViewPublish` permission (Phase 6); **approval workflow deferred**. |
 | **Global favorites** (admin-set for everyone) | ◑ | `is_global` set by Administrators; v1 optional. |
 | **Advanced Filter Builder** (OR/AND groups) | ✕ (defer/buy) | Big subsystem; Filament's stock filters cover most needs. |
 | **Advanced Search** (constraints: starts-with, matches, …) | ✕ (defer/buy) | Defer; stock search + our command palette cover discovery. |
-| **Multi-Sort** (sort by multiple columns) | ◑ | Filament v3.2+/v5 supports multi-sort natively; expose + persist. |
-| **Quick Filters** (pinned clickable indicators) | ◑ | Nice-to-have; later. |
-| **Loading skeleton** | ✅ | Cheap; add a table loading overlay. |
+| **Multi-Sort** (sort by multiple columns) | ✕ (defer) | The installed v5 build's `$tableSort` is a single `column:direction` string — no multi-sort plumbing to expose; a UI would need the plumbing first. |
+| **Quick Filters** (pinned clickable indicators) | ✅ | Covered by Filament v5's built-in removable filter-indicator badges above the table; nothing custom built. |
+| **Loading skeleton** | ✅ | Done: `wire:loading` opacity pulse over the table body, via the shared saved-views-bar partial. |
 | **Multi-tenancy / Policies / Dark mode / i18n** | ✅ | We already have all four — must be honored (see §4). |
 
 Legend: ✅ v1 · ◑ partial/later · ✕ defer or buy.
@@ -166,7 +166,7 @@ Rendering the bar: a `SavedViewsBar` Livewire component embedded via the page's 
 - [x] **Phase 3 — Default view.** Per-user, per-company `is_default` auto-applied on `mountHasSavedViews()`; favorites sorted first in the dropdown. (A dedicated always-visible favorites *bar* is deferred to polish; the dropdown covers the function.)
 - [x] **Phase 4 — Preset views.** `presetViews(): array` per List page (name/icon/color/state), merged ahead of user views. Demoed on `Products` ("Name A→Z", "Newest first").
 - [x] **Phase 5 — Sharing & admin.** `is_public` (share with company) + `is_global` (Administrator-only via policy) + `TableViewResource` (Access Control group, `canAccess` = Administrator) to manage/edit/delete all views in the company.
-- [~] **Phase 6 — Polish / stretch.** Loading skeleton, quick filters, dedicated favorites bar, view reordering, i18n, multi-sort UI remain as stretch. (Advanced Filter Builder & Advanced Search stay **out of scope** — defer or buy.)
+- [x] **Phase 6 — Polish / stretch.** Shipped: **loading skeleton** (`wire:loading` opacity pulse over the table body, in the shared bar partial); **quick filters** (Filament v5's built-in filter-indicator badges already cover it — nothing built); **view reordering** (up/down buttons on owned rows in the views panel, persisting the `sort` column); **i18n** (`__()` with inline English defaults on the trait + bar — the app has no lang files, so none added); **publish gate** (`is_public` needs the `TableViewPublish` permission via `TableViewPolicy::publish`, enforced server-side in `saveViewAction` — a permission gate, not an approval workflow; add a review queue if abuse appears). Skipped: **multi-sort UI** (the plumbing stores one `column:direction` string — building multi-sort plumbing is beyond a stretch item); **favorites bar** (stays deferred to polish; the dropdown covers the function). Advanced Filter Builder & Advanced Search stay **out of scope** — defer or buy.
 
 Verified by `TableViewTest` (per-company scoping, policy, Livewire save-captures-state). Rolled out per resource via the trait — no global switch. Suite: 150 passed.
 

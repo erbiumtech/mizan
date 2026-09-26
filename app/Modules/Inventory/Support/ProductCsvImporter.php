@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Support;
 
+use App\Modules\Core\Models\CustomField;
 use App\Modules\Inventory\Models\Product;
 use App\Support\Contracts\CsvImporter;
 use Illuminate\Support\Collection;
@@ -26,12 +27,16 @@ class ProductCsvImporter implements CsvImporter
 
     public function columns(): array
     {
-        return ['sku', 'name', 'unit', 'description'];
+        // Plus this tenant's custom fields, as `cf_<code>` columns (multi_select cells use `a|b`).
+        return array_merge(['sku', 'name', 'unit', 'description'], CustomField::csvColumns(Product::class));
     }
 
     public function example(): array
     {
-        return ['SKU-001', 'Laptop stand', 'pcs', 'Aluminium, adjustable'];
+        return array_merge(
+            ['SKU-001', 'Laptop stand', 'pcs', 'Aluminium, adjustable'],
+            array_fill(0, count(CustomField::csvColumns(Product::class)), ''),
+        );
     }
 
     public function problemWith(array $row): ?string
@@ -49,7 +54,7 @@ class ProductCsvImporter implements CsvImporter
 
         foreach ($rows as $row) {
             // By SKU, so running the same file twice corrects rather than duplicates.
-            Product::updateOrCreate(
+            $product = Product::updateOrCreate(
                 ['sku' => $row['sku']],
                 [
                     'name' => $row['name'],
@@ -58,6 +63,8 @@ class ProductCsvImporter implements CsvImporter
                     'is_active' => true,
                 ],
             );
+
+            $product->saveCustomFields(CustomField::csvValues(Product::class, $row));
 
             $imported++;
         }

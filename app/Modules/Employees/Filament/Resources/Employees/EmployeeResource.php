@@ -9,6 +9,7 @@ use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\ChangeRequestsRelationManager;
+use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\DirectReportsRelationManager;
 use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\JobHistoryRelationManager;
 use App\Modules\Employees\Filament\Resources\Employees\Schemas\EmployeeForm;
 use App\Modules\Employees\Filament\Resources\Employees\Tables\EmployeesTable;
@@ -81,6 +82,9 @@ class EmployeeResource extends Resource
             // Read-only, and written by the employee form rather than typed — docs/hrms-plan.md, which
             // records this as the one piece of the job-history feature left unbuilt.
             JobHistoryRelationManager::class,
+            // Also read-only: the reporting line is assigned on each report's own
+            // form, behind the cycle guard — docs/employee-hierarchy-access-plan.md.
+            DirectReportsRelationManager::class,
             ...ResourceContributions::relationManagersFor(static::class),
         ];
     }

@@ -52,7 +52,7 @@ class BeneficiariesTable
                 ...CustomFieldsSchema::tableColumns(Beneficiary::class),
             ])
             ->filters([
-                //
+                ...CustomFieldsSchema::tableFilters(Beneficiary::class),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -55,12 +55,23 @@ return [
     | limit. A cap of 0 means that type never carries even for a company that does,
     | which is how "annual carries five days, casual carries none" is expressed
     | without a second setting.
-    |
-    | Expiry of carried days ("they lapse on 31 March") is deliberately NOT built
-    | and no toggle claims it is — carried days join the new year's balance and
-    | lapse with it at the next reset.
     */
     'carry_forward' => env('LEAVE_CARRY_FORWARD', false),
+
+    /*
+    | How many months into the new leave year carried days stay usable — "they
+    | lapse on 31 March" is 3 for a calendar year. 0 means they never expire
+    | early: carried days join the new year's balance and lapse with it at the
+    | next reset, which was the only behaviour until somebody asked (§4.1 promised
+    | expiry as "an additive column plus a job when somebody asks").
+    |
+    | Months after the year start rather than a fixed date, because the leave year
+    | itself may start in January, July or on an anniversary. The date is stamped
+    | on the entitlement at the year-end roll (carried_in_expires_on) and the
+    | leave:lapse-carried-days sweep voids what is left as an adjustment row — so
+    | changing this mid-year governs the NEXT roll, never a date already stamped.
+    */
+    'carry_forward_expiry_months' => env('LEAVE_CARRY_FORWARD_EXPIRY_MONTHS', 0),
 
     /*
     | Whether a mid-year joiner gets a pro-rated first year rather than the full

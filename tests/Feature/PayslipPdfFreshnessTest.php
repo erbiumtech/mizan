@@ -87,6 +87,23 @@ class PayslipPdfFreshnessTest extends AccountingTestCase
         $this->assertStringContainsString('5,000.00', $after);
     }
 
+    /**
+     * docs/hrms-plan.md §11: a half day of LOP is 0.5 in `lop_days` and the divisor
+     * handles it — but the PDF printed integers, so half a docked day was invisible
+     * on the one document the employee actually reads.
+     */
+    public function test_half_day_lop_prints_as_a_half_day(): void
+    {
+        $payslip = $this->payslip(attributes: ['lop_days' => 0.5, 'paid_days' => 21.5]);
+
+        $html = $this->service()->renderPdf($payslip)->html();
+
+        $this->assertStringContainsString('att-box">0.5<', $html);
+        $this->assertStringContainsString('att-box">21.5<', $html);
+        // Whole figures stay whole: 22 working days, not 22.0.
+        $this->assertStringContainsString('att-box">22<', $html);
+    }
+
     public function test_the_file_name_names_the_month(): void
     {
         // Without it, every month of a fiscal year was the same file.

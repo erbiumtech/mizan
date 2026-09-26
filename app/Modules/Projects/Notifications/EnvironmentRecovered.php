@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Slack\SlackMessage;
 
 class EnvironmentRecovered extends Notification implements ShouldQueue
 {
@@ -42,12 +43,14 @@ class EnvironmentRecovered extends Notification implements ShouldQueue
             ->line('Failed checks during the incident: '.$this->incident->failure_count.'.');
     }
 
-    public function toSlack(object $notifiable): string
+    public function toSlack(object $notifiable): SlackMessage
     {
         $project = $this->environment->project;
 
-        return ":white_check_mark: Recovered — *{$project->name}* {$this->environment->label()}"
-            .' after '.$this->incident->durationForHumans();
+        return (new SlackMessage)->text(
+            ":white_check_mark: Recovered — *{$project->name}* {$this->environment->label()}"
+            .' after '.$this->incident->durationForHumans()
+        );
     }
 
     public function toDatabase(object $notifiable): array

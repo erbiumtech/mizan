@@ -2,8 +2,8 @@
 
 namespace App\Filament\Concerns;
 
-use App\Support\ModuleMap;
 use App\Modules\Core\Models\TableView;
+use App\Support\ModuleMap;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -127,7 +127,7 @@ trait HasSavedViews
     {
         $name = trim($name);
         if ($name === '') {
-            Notification::make()->title('Please enter a view name.')->danger()->send();
+            Notification::make()->title(__('Please enter a view name.'))->danger()->send();
 
             return;
         }
@@ -141,7 +141,7 @@ trait HasSavedViews
         ]);
 
         $this->activeSavedViewId = $view->getKey();
-        Notification::make()->title('View saved.')->success()->send();
+        Notification::make()->title(__('View saved.'))->success()->send();
     }
 
     /**
@@ -151,18 +151,18 @@ trait HasSavedViews
      */
     public function saveViewAction(): Action
     {
-        $canShare = (bool) auth()->user()?->can('setGlobal', TableView::class);
+        $canShare = (bool) auth()->user()?->can('publish', TableView::class);
 
         return Action::make('saveView')
-            ->label('Save view')
+            ->label(__('Save view'))
             ->icon('heroicon-o-plus')
             ->iconButton()
-            ->tooltip('Save current view')
+            ->tooltip(__('Save current view'))
             ->color('gray')
             ->slideOver()
             ->modalWidth('md')
-            ->modalHeading('Save view')
-            ->modalSubmitActionLabel('Save view')
+            ->modalHeading(__('Save view'))
+            ->modalSubmitActionLabel(__('Save view'))
             ->schema(array_values(array_filter([
                 TextInput::make('name')
                     ->required()
@@ -172,24 +172,24 @@ trait HasSavedViews
                 Select::make('icon')
                     ->native(false)
                     ->options([
-                        'heroicon-o-star' => 'Star',
-                        'heroicon-o-flag' => 'Flag',
-                        'heroicon-o-funnel' => 'Filter',
-                        'heroicon-o-clock' => 'Clock',
-                        'heroicon-o-check-circle' => 'Check',
-                        'heroicon-o-exclamation-triangle' => 'Warning',
-                        'heroicon-o-fire' => 'Fire',
-                        'heroicon-o-truck' => 'Truck',
+                        'heroicon-o-star' => __('Star'),
+                        'heroicon-o-flag' => __('Flag'),
+                        'heroicon-o-funnel' => __('Filter'),
+                        'heroicon-o-clock' => __('Clock'),
+                        'heroicon-o-check-circle' => __('Check'),
+                        'heroicon-o-exclamation-triangle' => __('Warning'),
+                        'heroicon-o-fire' => __('Fire'),
+                        'heroicon-o-truck' => __('Truck'),
                     ]),
 
                 ToggleButtons::make('color')
                     ->inline()
                     ->options([
-                        'success' => 'Green',
-                        'info' => 'Blue',
-                        'warning' => 'Amber',
-                        'danger' => 'Red',
-                        'gray' => 'Gray',
+                        'success' => __('Green'),
+                        'info' => __('Blue'),
+                        'warning' => __('Amber'),
+                        'danger' => __('Red'),
+                        'gray' => __('Gray'),
                     ])
                     ->colors([
                         'success' => 'success',
@@ -200,20 +200,20 @@ trait HasSavedViews
                     ]),
 
                 Toggle::make('is_favorite')
-                    ->label('Add to favorites')
-                    ->helperText('Add this view to your favorites')
+                    ->label(__('Add to favorites'))
+                    ->helperText(__('Add this view to your favorites'))
                     ->default(true),
 
                 Toggle::make('is_default')
-                    ->label('Make default')
-                    ->helperText('Load this view automatically when you open the table'),
+                    ->label(__('Make default'))
+                    ->helperText(__('Load this view automatically when you open the table')),
 
                 $canShare ? Toggle::make('is_public')
-                    ->label('Make public')
-                    ->helperText('Make this view available to everyone in this company') : null,
+                    ->label(__('Make public'))
+                    ->helperText(__('Make this view available to everyone in this company')) : null,
 
                 Placeholder::make('summary')
-                    ->label('View summary')
+                    ->label(__('View summary'))
                     ->content(fn (): HtmlString => new HtmlString($this->viewSummaryHtml())),
             ])))
             ->action(function (array $data): void {
@@ -234,12 +234,14 @@ trait HasSavedViews
                     'color' => $data['color'] ?? null,
                     'is_favorite' => (bool) ($data['is_favorite'] ?? false),
                     'is_default' => (bool) ($data['is_default'] ?? false),
-                    'is_public' => (bool) ($data['is_public'] ?? false),
+                    // Enforced here, not just by hiding the toggle: publishing to the whole
+                    // company needs the TableViewPublish permission (TableViewPolicy::publish).
+                    'is_public' => $user->can('publish', TableView::class) && (bool) ($data['is_public'] ?? false),
                     'state' => $this->captureViewState(),
                 ]);
 
                 $this->activeSavedViewId = $view->getKey();
-                Notification::make()->title('View saved.')->success()->send();
+                Notification::make()->title(__('View saved.'))->success()->send();
             });
     }
 
@@ -249,27 +251,27 @@ trait HasSavedViews
         $chips = [];
 
         if (! empty($this->tableSearch)) {
-            $chips[] = 'Search: '.$this->tableSearch;
+            $chips[] = __('Search').': '.$this->tableSearch;
         }
 
         foreach (($this->tableFilters ?? []) as $name => $state) {
             $values = collect((array) $state)->flatten()->filter(fn ($v) => $v !== null && $v !== '' && $v !== false);
             if ($values->isNotEmpty()) {
-                $chips[] = 'Filter: '.Str::headline($name);
+                $chips[] = __('Filter').': '.Str::headline($name);
             }
         }
 
         if (! empty($this->tableSort)) {
             [$col, $dir] = array_pad(explode(':', (string) $this->tableSort), 2, 'asc');
-            $chips[] = 'Sort: '.Str::headline($col).' '.strtoupper($dir);
+            $chips[] = __('Sort').': '.Str::headline($col).' '.strtoupper($dir);
         }
 
         if (! empty($this->tableGrouping)) {
-            $chips[] = 'Group by: '.Str::headline((string) $this->tableGrouping);
+            $chips[] = __('Group by').': '.Str::headline((string) $this->tableGrouping);
         }
 
         if (empty($chips)) {
-            return '<span style="color:#9ca3af;font-size:.8125rem">No filters, sort or grouping applied — this saves the current column layout.</span>';
+            return '<span style="color:#9ca3af;font-size:.8125rem">'.e(__('No filters, sort or grouping applied — this saves the current column layout.')).'</span>';
         }
 
         $html = '<div style="display:flex;flex-wrap:wrap;gap:.35rem">';
@@ -289,7 +291,64 @@ trait HasSavedViews
                 $this->resetSavedView();
             }
             $view->delete();
-            Notification::make()->title('View deleted.')->success()->send();
+            Notification::make()->title(__('View deleted.'))->success()->send();
+        }
+    }
+
+    /**
+     * Move one of the user's own views one place up or down in the dropdown,
+     * persisting to the `sort` column.
+     *
+     * Reorders within the view's own favorite group, because the dropdown (and
+     * the favorites tabs) list favorites and non-favorites separately — a swap
+     * across that boundary would persist but never show.
+     *
+     * ponytail: up/down buttons swapping neighbours, renumbering the whole group
+     * each move — fine for the handful of views a user keeps; wire up
+     * drag-and-drop if anyone accumulates dozens.
+     */
+    public function moveSavedView(int $id, int $direction): void
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return;
+        }
+
+        $view = TableView::query()
+            ->where('resource', $this->savedViewsKey())
+            ->where('user_id', $user->getKey())
+            ->find($id);
+
+        if (! $view) {
+            return;
+        }
+
+        $siblings = TableView::query()
+            ->where('resource', $this->savedViewsKey())
+            ->where('user_id', $user->getKey())
+            ->where('is_favorite', $view->is_favorite)
+            ->orderBy('sort')
+            ->orderBy('name')
+            ->get()
+            ->values();
+
+        $index = $siblings->search(fn (TableView $v): bool => $v->is($view));
+        $target = $index === false ? -1 : $index + ($direction < 0 ? -1 : 1);
+
+        if ($index === false || $target < 0 || $target >= $siblings->count()) {
+            return;
+        }
+
+        $ordered = $siblings->all();
+        [$ordered[$index], $ordered[$target]] = [$ordered[$target], $ordered[$index]];
+
+        // Renumber the lot: legacy rows all carry sort 0 (ordered by name only),
+        // so a single swap without renumbering would not stick.
+        foreach ($ordered as $i => $sibling) {
+            if ($sibling->sort !== $i) {
+                $sibling->update(['sort' => $i]);
+            }
         }
     }
 
@@ -309,7 +368,7 @@ trait HasSavedViews
 
         if ($view->user_id === $user->getKey()) {
             $view->update(['is_default' => true]);
-            Notification::make()->title('Default view set.')->success()->send();
+            Notification::make()->title(__('Default view set.'))->success()->send();
         }
     }
 
@@ -380,7 +439,7 @@ trait HasSavedViews
                 'name' => $p['name'],
                 'icon' => $p['icon'] ?? null,
             ])->all(),
-            'canShare' => (bool) auth()->user()?->can('setGlobal', TableView::class),
+            'canShare' => (bool) auth()->user()?->can('publish', TableView::class),
         ];
     }
 }

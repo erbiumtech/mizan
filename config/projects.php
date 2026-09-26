@@ -36,8 +36,10 @@ return [
         'reminder_minutes' => (int) env('PROJECT_ALERT_REMINDER_MINUTES', 60),
         'max_reminders' => (int) env('PROJECT_ALERT_MAX_REMINDERS', 3),
 
-        // Channels. 'slack' additionally needs laravel/slack-notification-channel.
-        'channels' => ['mail', 'database', 'broadcast'],
+        // Channels. 'slack' only delivers when SLACK_BOT_USER_OAUTH_TOKEN is set —
+        // Broadcasting::channels() drops it otherwise, so listing it here is inert
+        // until an installation configures the token.
+        'channels' => ['mail', 'database', 'broadcast', 'slack'],
 
         // Used when a project has no primary or secondary manager, so an alert
         // is never silently dropped.

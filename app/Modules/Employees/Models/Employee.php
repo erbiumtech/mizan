@@ -38,6 +38,30 @@ class Employee extends Model
         'notice_served_until' => 'date',
     ];
 
+    /**
+     * The linked user rides along on every employee query.
+     *
+     * `display_label` and `fullName()` read `user`, and they are rendered down
+     * lists in fourteen tables and every employee select — each of which
+     * eager-loaded `employee` but not `employee.user`, so the name cost a query
+     * per row (docs/page-load-performance-plan.md, "Still outstanding").
+     * Loading it here fixes every site at once; `fullName()`'s `loadMissing`
+     * stays as the safety net for models hydrated without a query.
+     *
+     * @var array<int, string>
+     */
+    protected $with = ['user'];
+
+    /**
+     * …but stays out of serialization. Before `$with`, no JSON path included
+     * the relation — `EmployeeController::myProfile()` returns the model
+     * directly — and a landlord user record must not appear in an API response
+     * just because the panel wanted names eager.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = ['user'];
+
     protected static function booted()
     {
         static::saving(function ($employee) {

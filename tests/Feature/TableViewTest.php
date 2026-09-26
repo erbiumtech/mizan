@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\TableView;
 use App\Modules\Core\Models\User;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,5 +80,66 @@ class TableViewTest extends TestCase
         $view = TableView::where('name', 'My search')->firstOrFail();
         $this->assertSame('ACME', $view->state['search']);
         $this->assertTrue($view->is_favorite);
+    }
+
+    public function test_reordering_a_view_persists_to_the_sort_column(): void
+    {
+        Gate::before(fn () => true);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $company = $this->setCurrentTenant();
+        $this->current($company);
+
+        $make = fn (string $name): TableView => TableView::create([
+            'user_id' => $user->id,
+            'resource' => ListPayslips::getResource(),
+            'name' => $name,
+            'state' => [],
+        ]);
+
+        $make('Alpha');
+        $make('Beta');
+        $gamma = $make('Gamma');
+
+        // All rows carry sort 0, so the dropdown falls back to name order:
+        // Alpha, Beta, Gamma. Moving Gamma up swaps it with Beta and renumbers.
+        Livewire::test(ListPayslips::class)
+            ->call('moveSavedView', $gamma->id, -1);
+
+        $this->assertSame(
+            ['Alpha' => 0, 'Gamma' => 1, 'Beta' => 2],
+            TableView::where('user_id', $user->id)->orderBy('sort')->pluck('sort', 'name')
+                ->map(fn ($sort): int => (int) $sort)->all(),
+        );
+    }
+
+    public function test_publishing_a_view_requires_the_publish_permission(): void
+    {
+        // Everything except `publish` is allowed, so the page mounts and the save
+        // action runs while TableViewPolicy::publish (and the TableViewPublish
+        // permission behind it) genuinely decides the publishing outcome.
+        Gate::before(fn ($user, string $ability) => $ability === 'publish' ? null : true);
+
+        $this->seed(PermissionSeeder::class);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $company = $this->setCurrentTenant();
+        $this->current($company);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($company->id);
+
+        Livewire::test(ListPayslips::class)
+            ->callAction('saveView', ['name' => 'Blocked', 'is_public' => true])
+            ->assertHasNoActionErrors();
+
+        $this->assertFalse(TableView::where('name', 'Blocked')->firstOrFail()->is_public);
+
+        $user->givePermissionTo('TableViewPublish');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        Livewire::test(ListPayslips::class)
+            ->callAction('saveView', ['name' => 'Published', 'is_public' => true])
+            ->assertHasNoActionErrors();
+
+        $this->assertTrue(TableView::where('name', 'Published')->firstOrFail()->is_public);
     }
 }
