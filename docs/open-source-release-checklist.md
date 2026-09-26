@@ -113,6 +113,12 @@ whole of what is left.
 - **1.5 — `public/.idea/*`.** Six PhpStorm files removed from the index and ignored, along with a top-level
   `/.idea`.
 
+**One hazard the untracking creates, named here because it has already happened once:** a gitignored file
+is a file `git clean -fdx` removes without asking, and the five real seeders went missing from a working
+tree and had to be recovered with `git show`. That recovery works only while the history still holds them —
+which is exactly what the rewrite below destroys. Copy them somewhere access-controlled *before* rewriting
+anything; `database/seeders/Production/README.md` says the same where somebody will actually read it.
+
 **Still blocking, and it is one thing: the history.** Untracking changes what a future clone contains, not
 what this repository remembers. Sixteen people's names, reporting lines and six personal email addresses are
 in past commits. Publishing means rewriting that history (`git filter-repo`) or starting a fresh repository
