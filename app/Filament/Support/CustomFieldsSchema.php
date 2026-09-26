@@ -222,9 +222,17 @@ class CustomFieldsSchema
             ->reject(fn (CustomField $field) => $field->is_encrypted)
             ->filter(fn (CustomField $field) => in_array($field->type, ['select', 'multi_select', 'boolean'], true))
             ->map(function (CustomField $field) {
+                // multi_select stores an array, so containment is the question; select and
+                // boolean store the bare JSON scalar, where whereJsonContains misses on
+                // SQLite (json_each yields the unquoted text) — exact-match the raw
+                // document instead, which every driver compares as plain text.
                 $match = fn (Builder $query, mixed $value): Builder => $query->whereHas(
                     'customFieldValues',
-                    fn (Builder $q) => $q->where('custom_field_id', $field->getKey())->whereJsonContains('value', $value),
+                    fn (Builder $q) => $q->where('custom_field_id', $field->getKey())->when(
+                        $field->type === 'multi_select',
+                        fn (Builder $q) => $q->whereJsonContains('value', $value),
+                        fn (Builder $q) => $q->where('value', json_encode($value)),
+                    ),
                 );
 
                 if ($field->type === 'boolean') {

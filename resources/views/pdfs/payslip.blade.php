@@ -401,7 +401,12 @@
             {{-- Days, at the half-day granularity the columns actually hold: a half
                  day of LOP is 0.5 in lop_days and must print as 0.5, not as an
                  integer (docs/hrms-plan.md §11). Whole days stay whole — 22, not 22.00. --}}
-            @php($days = fn ($value): string => rtrim(rtrim(number_format((float) ($value ?? 0), 1), '0'), '.'))
+            {{-- A full @php block, not the inline @php(...) form: the inline form has no
+                 @endphp of its own, so Blade's raw-block extraction pairs it with the
+                 footer block's @endphp and swallows everything in between. --}}
+            @php
+                $days = fn ($value): string => rtrim(rtrim(number_format((float) ($value ?? 0), 1), '0'), '.');
+            @endphp
             <div class="attendance-box">
                 <div class="att-col">
                     <div class="att-row"><span class="label">Total Working Days</span><span

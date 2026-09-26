@@ -114,9 +114,15 @@ class PanelPerformanceTest extends TestCase
      * availability filter over it is deliberately *not* memoised, because which subjects a reader may open can
      * change inside the request that changes it.
      */
+    /*
+     * **The employees cold budget moved 31 to 32 on 2026-09-26 for `Employee::$with = ['user']`** — the
+     * sanctioned kind of move: one constant `users` eager query per employees read replaced the per-row
+     * name lookups that `fullName()`'s `loadMissing` used to run (and made legal under the lazy-load
+     * guard). `EmployeeUserEagerLoadTest` pins the flat-per-row-count property that this budget can't.
+     */
     private const BUDGET = [
         'dashboard' => ['cold' => 34, 'warm' => 9],
-        'employees' => ['cold' => 31, 'warm' => 11],
+        'employees' => ['cold' => 32, 'warm' => 11],
         'reports' => ['cold' => 30, 'warm' => 7],
     ];
 

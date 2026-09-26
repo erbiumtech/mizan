@@ -30,6 +30,10 @@ class EmployeeUserEagerLoadTest extends TestCase
     {
         parent::setUp();
 
+        // Filament::setTenant() dispatches TenantSet with the authenticated user;
+        // without one it type-errors on null, so log in before taking the tenant.
+        $this->actingAs(User::factory()->create());
+
         $company = $this->setCurrentTenant();
         app()->instance('currentTenant', $company);
     }
