@@ -761,6 +761,19 @@ modules.
   future-dated row is badged as not yet in effect. `recorded_by` is deliberately not shown — it is a
   landlord user id, and resolving it is a cross-database lookup per row for a fact the audit log has.
 - **A default tax rate per party** — item 9's lazy half, above.
+- **Withholding on the batch receipt screen**, so the two customer-side facts compose: a corporate client
+  settling five invoices with one transfer deducts on each of them. An allocation is what the invoice is
+  *settled* by, so the sum the receipt is checked against became `allocated less withheld` — the only thing
+  withholding changes there, because each deduction still posts through `recordPayment()`.
+
+**And one that was checked and deliberately not built: employer statutory contributions in the project
+margin's labour rate.** `PayslipLabourCost` says in its own docblock that EOBI and social security are a
+real cost of an hour and are left out until somebody asks. Asked, and then measured: the five statutory
+pay components exist and are active on the live company, and `payslip_components` holds **zero** rows for
+any of them — no payslip has ever carried one. Adding them to the rate would have invented a cost the
+company does not incur and understated every project's margin by it, which is the failure mode that
+docblock exists to prevent. The honest version, when payroll does start recording them, is to read what the
+payslip recorded rather than to compute the rate again.
 
 **What is still not built, and why**, so the next reader does not re-derive it: pay links (item 10) need a
 gateway and merchant credentials, finance books (item 11) answer a divergence nobody here has, the payment

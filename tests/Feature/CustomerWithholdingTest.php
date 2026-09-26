@@ -147,6 +147,72 @@ class CustomerWithholdingTest extends AccountingTestCase
         $this->service->recordPayment($bill, 10_000, '2026-08-20', null, null, null, 800);
     }
 
+    /**
+     * One transfer, several invoices, tax deducted on each — the combination the batch screen exists for.
+     *
+     * The invoices clear in full and the bank shows less, so what the receipt is checked against is the
+     * allocations *less* the withholding. Getting that the wrong way round is the mistake this asserts.
+     */
+    public function test_a_batch_receipt_settles_in_full_while_less_money_arrives(): void
+    {
+        $first = $this->issued(100_000);
+        $second = $this->issued(50_000);
+
+        // 92,000 + 46,000 landed; 8,000 and 4,000 came as certificates.
+        $settled = $this->service->recordBatchReceipt(
+            138_000,
+            '2026-08-20',
+            [$first->getKey() => 100_000, $second->getKey() => 50_000],
+            'TT-5150',
+            withheld: [$first->getKey() => 8_000, $second->getKey() => 4_000],
+            certificate: 'CPR-BATCH-1',
+        );
+
+        $this->assertSame(Invoice::STATUS_PAID, $settled[0]->refresh()->status);
+        $this->assertSame(Invoice::STATUS_PAID, $settled[1]->refresh()->status);
+        $this->assertSame(0.0, $this->balance('1250'), 'both receivables cleared in full');
+        $this->assertSame(12_000.0, $this->balance('1260'), 'and the two certificates are one advance-tax balance');
+
+        // Both certificates carry the receipt's reference, which is what the return is checked against.
+        $report = app(InvoicingReports::class)->taxWithheldByCustomers('2026-08-31');
+        $this->assertCount(2, $report['rows']);
+        $this->assertSame(['CPR-BATCH-1', 'CPR-BATCH-1'], array_column($report['rows'], 3));
+    }
+
+    public function test_withholding_more_than_the_invoice_is_settled_by_is_refused(): void
+    {
+        $invoice = $this->issued(10_000);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('More tax was withheld');
+
+        $this->service->recordBatchReceipt(
+            5_000,
+            '2026-08-20',
+            [$invoice->getKey() => 5_000],
+            null,
+            withheld: [$invoice->getKey() => 6_000],
+        );
+    }
+
+    /** Tax against an invoice the receipt is not paying has no settlement to be part of. */
+    public function test_withholding_against_an_unallocated_invoice_is_refused(): void
+    {
+        $paid = $this->issued(10_000);
+        $other = $this->issued(20_000);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not settle');
+
+        $this->service->recordBatchReceipt(
+            10_000,
+            '2026-08-20',
+            [$paid->getKey() => 10_000],
+            null,
+            withheld: [$other->getKey() => 1_000],
+        );
+    }
+
     /** The return is checked against this list, and the list is the ledger. */
     public function test_the_report_lists_each_certificate_from_the_ledger(): void
     {
