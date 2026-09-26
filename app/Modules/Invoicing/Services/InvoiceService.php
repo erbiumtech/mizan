@@ -296,15 +296,54 @@ class InvoiceService
      * they still must for the part being allocated. What it adds is somewhere for the rest to go: a
      * `CustomerCredit` against 2600, which is a balance the schema can hold and a later invoice can draw on.
      *
+     * **`$withheld` is the customer's §153 deduction, per invoice.** A corporate customer settling five
+     * invoices with one transfer deducts tax on each of them and hands over a certificate; the invoice is
+     * cleared in full while less money arrives. So an allocation is what the invoice is *settled* by and the
+     * withheld part of it never reached the bank — which makes the sum that has to match the receipt
+     * `allocated less withheld`, and is the only thing withholding changes here. Every deduction still posts
+     * through `recordPayment()`, which is where 1260 and the certificate wording live.
+     *
      * @param  array<int|string, float>  $allocations  invoice id => amount to settle
+     * @param  array<int|string, float>  $withheld  invoice id => how much of that settlement was a tax certificate
      * @return array<int, Invoice> the invoices as they now stand
      */
-    public function recordBatchReceipt(float $received, string $date, array $allocations, ?string $reference = null, bool $holdOnAccount = false): array
-    {
+    public function recordBatchReceipt(
+        float $received,
+        string $date,
+        array $allocations,
+        ?string $reference = null,
+        bool $holdOnAccount = false,
+        array $withheld = [],
+        ?string $certificate = null,
+    ): array {
         $allocations = array_filter(
             array_map(fn (mixed $amount): float => round((float) $amount, 2), $allocations),
             fn (float $amount): bool => $amount > 0,
         );
+
+        $withheld = array_filter(
+            array_map(fn (mixed $amount): float => round((float) $amount, 2), $withheld),
+            fn (float $amount): bool => $amount > 0,
+        );
+
+        // Tax cannot be withheld from an invoice this receipt is not settling: there would be no settlement
+        // for it to be part of, and `recordPayment()` would refuse it one frame later with less context.
+        foreach ($withheld as $invoiceId => $amount) {
+            if (! array_key_exists($invoiceId, $allocations)) {
+                throw new InvalidArgumentException(
+                    'Tax was withheld against an invoice this receipt does not settle. Allocate to it first, or '
+                    .'clear the withheld figure.'
+                );
+            }
+
+            if ($amount > $allocations[$invoiceId] + 0.005) {
+                throw new InvalidArgumentException(sprintf(
+                    'More tax was withheld (%s) than the invoice is being settled by (%s).',
+                    number_format($amount, 2),
+                    number_format($allocations[$invoiceId], 2),
+                ));
+            }
+        }
 
         if ($allocations === [] && ! $holdOnAccount) {
             throw new InvalidArgumentException('Allocate the receipt to at least one invoice.');
@@ -312,14 +351,19 @@ class InvoiceService
 
         $allocated = round(array_sum($allocations), 2);
         $received = round($received, 2);
-        $remainder = round($received - $allocated, 2);
+
+        // What the bank actually had to show for these settlements. Identical to `$allocated` on the
+        // ordinary receipt, because nothing is withheld on one.
+        $inCash = round($allocated - array_sum($withheld), 2);
+        $remainder = round($received - $inCash, 2);
 
         // Over-allocating still invents money, whatever the caller asked for: the allocations cannot come to
         // more than arrived.
         if ($remainder < -0.005) {
             throw new InvalidArgumentException(sprintf(
-                'The allocations come to %s and only %s was received. A receipt cannot settle more than arrived.',
-                number_format($allocated, 2),
+                'The allocations come to %s in cash and only %s was received. A receipt cannot settle more '
+                .'than arrived.',
+                number_format($inCash, 2),
                 number_format($received, 2),
             ));
         }
@@ -328,15 +372,15 @@ class InvoiceService
         // message is the one §2.2 wrote, plus the way out that did not exist when it was written.
         if ($remainder >= 0.01 && ! $holdOnAccount) {
             throw new InvalidArgumentException(sprintf(
-                'The allocations come to %s and the receipt is %s. Either allocate the remaining %s, or hold '
-                .'it on account for this customer.',
-                number_format($allocated, 2),
+                'The allocations come to %s in cash and the receipt is %s. Either allocate the remaining %s, '
+                .'or hold it on account for this customer.',
+                number_format($inCash, 2),
                 number_format($received, 2),
                 number_format($remainder, 2),
             ));
         }
 
-        return TenantTransaction::run(function () use ($allocations, $date, $reference, $holdOnAccount, $remainder): array {
+        return TenantTransaction::run(function () use ($allocations, $date, $reference, $holdOnAccount, $remainder, $withheld, $certificate): array {
             $settled = [];
             $contactId = null;
 
@@ -347,7 +391,16 @@ class InvoiceService
                 // One transaction around the lot, so a receipt that fails on its fourth invoice leaves the
                 // first three unsettled too. Half a receipt recorded is worse than none: the customer's
                 // balance is then wrong in a way that reconciles to nothing.
-                $settled[] = $this->recordPayment($invoice, $amount, $date, null, null, $reference);
+                $settled[] = $this->recordPayment(
+                    $invoice,
+                    $amount,
+                    $date,
+                    null,
+                    null,
+                    $reference,
+                    $withheld[$invoiceId] ?? 0.0,
+                    $certificate,
+                );
             }
 
             // Inside the same transaction as the settlements: a receipt that is part allocation and part

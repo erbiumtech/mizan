@@ -34,6 +34,12 @@
                 <input type="text" wire:model.blur="reference" placeholder="Bank reference" class="fi-explorer-date-input">
             </label>
 
+            {{-- One reference for the receipt's certificates: a customer deducting on five invoices issues
+                 one document, and it is what the return is checked against. --}}
+            <label class="fi-explorer-date">
+                <span class="fi-sr-only">Certificate reference</span>
+                <input type="text" wire:model.blur="certificate" placeholder="Tax certificate ref." class="fi-explorer-date-input">
+            </label>
             <button type="button" wire:click="allocateOldestFirst" class="fi-explorer-open">Allocate oldest first</button>
         </div>
 
@@ -58,17 +64,18 @@
                 @endif
             @else
                 <div class="fi-explorer-statement fi-explorer-table">
-                    <div class="fi-explorer-statement-head" style="grid-template-columns: minmax(0, 1fr) 8rem 8rem 9rem 9rem">
+                    <div class="fi-explorer-statement-head" style="grid-template-columns: minmax(0, 1fr) 7rem 7rem 9rem 9rem 9rem">
                         <span>Invoice</span>
                         <span>Date</span>
                         <span>Due</span>
                         <span class="fi-num">Outstanding</span>
                         <span class="fi-num">Allocate</span>
+                        <span class="fi-num">Tax withheld</span>
                     </div>
 
                     <div class="fi-explorer-statement-body">
                         @foreach ($invoices as $invoice)
-                            <div class="fi-explorer-line" style="grid-template-columns: minmax(0, 1fr) 8rem 8rem 9rem 9rem" wire:key="inv-{{ $invoice->getKey() }}">
+                            <div class="fi-explorer-line" style="grid-template-columns: minmax(0, 1fr) 7rem 7rem 9rem 9rem 9rem" wire:key="inv-{{ $invoice->getKey() }}">
                                 <span class="fi-explorer-line-label">{{ $invoice->invoice_number }}</span>
                                 <span>{{ $invoice->invoice_date?->format('j M Y') }}</span>
                                 <span>{{ $invoice->due_date?->format('j M Y') ?? '—' }}</span>
@@ -84,6 +91,20 @@
                                         aria-label="Allocate to {{ $invoice->invoice_number }}"
                                     >
                                 </span>
+                                {{-- The part of that allocation the customer kept back against a §153
+                                     certificate. It settles the invoice and never reaches the bank, so it
+                                     comes off what this receipt has to add up to. --}}
+                                <span class="fi-num">
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="{{ $invoice->outstanding() }}"
+                                        wire:model.live.debounce.400ms="withheld.{{ $invoice->getKey() }}"
+                                        class="fi-receipt-input"
+                                        aria-label="Tax withheld on {{ $invoice->invoice_number }}"
+                                    >
+                                </span>
                             </div>
                         @endforeach
 
@@ -92,9 +113,9 @@
                             checked on submit, because a receipt that will be refused should look refusable
                             before somebody presses the button.
                         --}}
-                        <div class="fi-explorer-total fi-explorer-closing" style="grid-template-columns: minmax(0, 1fr) 8rem 8rem 9rem 9rem">
+                        <div class="fi-explorer-total fi-explorer-closing" style="grid-template-columns: minmax(0, 1fr) 7rem 7rem 9rem 9rem 9rem">
                             <span class="fi-explorer-line-label" style="grid-column: span 3">
-                                Allocated {{ number_format($this->allocated(), 2) }} of {{ number_format((float) $this->amount, 2) }}
+                                {{ $this->settlingSummary() }}
                             </span>
                             <span class="fi-num">Unallocated</span>
                             <span @class(['fi-num', 'fi-warn' => abs($this->unallocated()) >= 0.01])>
@@ -109,6 +130,9 @@
                             APPLY IT FROM THE INVOICE ROW · ANYTHING UNALLOCATED HERE IS HELD THE SAME WAY
                         @else
                             ANYTHING UNALLOCATED IS HELD ON ACCOUNT FOR THIS CUSTOMER AND APPLIED TO A LATER INVOICE
+                        @endif
+                        @if ($this->withheldTotal() >= 0.01)
+                            <span>· {{ number_format($this->withheldTotal(), 2) }} WITHHELD GOES TO 1260 ADVANCE INCOME TAX, NOT TO THE BANK</span>
                         @endif
                     </div>
                 </div>

@@ -60,6 +60,12 @@ class RecordReceipt extends Page
     /** @var array<int|string, string> invoice id => the amount typed against it */
     public array $allocations = [];
 
+    /** Invoice id => how much of that allocation arrived as a tax deduction certificate, not as money. */
+    public array $withheld = [];
+
+    /** One reference for the receipt's certificates — a customer deducting on five invoices issues one. */
+    public string $certificate = '';
+
     public function mount(): void
     {
         $this->receivedOn = now()->toDateString();
@@ -124,9 +130,48 @@ class RecordReceipt extends Page
     }
 
     /** What is left of the receipt, which is the figure that has to reach zero. */
+    /** The part of the allocations the customer kept back against a certificate. */
+    public function withheldTotal(): float
+    {
+        return round(array_sum(array_map(fn (mixed $amount): float => (float) $amount, $this->withheld)), 2);
+    }
+
+    /**
+     * What has to have reached the bank for these allocations to be right.
+     *
+     * The figure the receipt is checked against, and the only thing withholding changes on this screen: an
+     * invoice settled by 100,000 with 8,000 withheld took 92,000 out of the transfer.
+     */
+    public function allocatedInCash(): float
+    {
+        return round($this->allocated() - $this->withheldTotal(), 2);
+    }
+
     public function unallocated(): float
     {
-        return round((float) $this->amount - $this->allocated(), 2);
+        return round((float) $this->amount - $this->allocatedInCash(), 2);
+    }
+
+    /**
+     * The sentence under the table, built here rather than in the template.
+     *
+     * Every other figure this screen shows is a method on this class; a sentence with an optional middle is
+     * no different, and assembling it in Blade means either an inline conditional — which does not compile
+     * when its closing directive follows a word character — or a `@php` block, which is logic in a template
+     * by another name.
+     */
+    public function settlingSummary(): string
+    {
+        $parts = ['Settling '.number_format($this->allocated(), 2)];
+
+        if ($this->withheldTotal() >= 0.01) {
+            $parts[] = ', of which '.number_format($this->withheldTotal(), 2).' was withheld — '
+                .number_format($this->allocatedInCash(), 2).' in cash';
+        }
+
+        $parts[] = ' against '.number_format((float) $this->amount, 2).' received';
+
+        return implode('', $parts);
     }
 
     /**
@@ -203,6 +248,8 @@ class RecordReceipt extends Page
                     $this->allocations,
                     filled($this->reference) ? $this->reference : null,
                     $holdOnAccount,
+                    $this->withheld,
+                    filled($this->certificate) ? $this->certificate : null,
                 );
         } catch (InvalidArgumentException $e) {
             Notification::make()->danger()->title($e->getMessage())->send();
@@ -219,8 +266,10 @@ class RecordReceipt extends Page
             ->send();
 
         $this->allocations = [];
+        $this->withheld = [];
         $this->amount = '';
         $this->reference = '';
+        $this->certificate = '';
     }
 
     /** @return array<int, \App\Modules\Invoicing\Models\Invoice> nothing settled; the whole receipt is a deposit */
