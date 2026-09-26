@@ -147,7 +147,9 @@ class LeaveApiTest extends AccountingTestCase
         ])
             ->assertCreated()
             ->assertJsonPath('data.status', LeaveRequest::STATUS_PENDING)
-            ->assertJsonPath('data.days', 2.0);
+            // Whole day counts serialize as JSON integers (2, not 2.0); the
+            // half-day test below pins the fractional case.
+            ->assertJsonPath('data.days', 2);
 
         $filed = LeaveRequest::latest('id')->first();
         $this->assertSame($this->employee->id, $filed->employee_id);
