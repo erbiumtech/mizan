@@ -19,7 +19,7 @@ jobs:
         php: [ '8.4' ]
 
     steps:
-    - uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869e
+    - uses: shivammathur/setup-php@f3d967b8bc6d6fbb17cb0e2ffd56cf304d0290ba
       with:
         php-version: '${{ matrix.php }}'
     - uses: actions/checkout@v4
