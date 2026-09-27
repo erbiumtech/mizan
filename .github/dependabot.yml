@@ -1,13 +1,22 @@
 version: 2
 updates:
+  # Major versions stay manual: the 2026-09-26 auto-merge of activitylog 4→5 and
+  # permission 6→8 broke the app (Auditable trait gone, permission API changes)
+  # and had to be reverted. Majors need a human adapting the code first.
   - package-ecosystem: composer
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

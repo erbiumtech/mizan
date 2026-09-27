@@ -119,11 +119,21 @@ tree and had to be recovered with `git show`. That recovery works only while the
 which is exactly what the rewrite below destroys. Copy them somewhere access-controlled *before* rewriting
 anything; `database/seeders/Production/README.md` says the same where somebody will actually read it.
 
-**Still blocking, and it is one thing: the history.** Untracking changes what a future clone contains, not
-what this repository remembers. Sixteen people's names, reporting lines and six personal email addresses are
-in past commits. Publishing means rewriting that history (`git filter-repo`) or starting a fresh repository
-from a squashed initial commit — a decision with a cost, which is why it is stated here rather than taken.
-Until then the exposure is limited to whoever can already read the repo, which is the material improvement.
+**Rewritten 2026-09-26 with `git filter-repo`, all fourteen branches and three tags force-pushed.**
+The method, so it can be trusted and repeated: markers (every personal email and name field) were
+extracted from the historical blobs of the sensitive files; any marker still in HEAD was classified as
+deliberately kept (owner, company, banks), leaving 44 history-only markers. Ten paths were removed from
+every commit (the five `Production/Real*` seeders, the two bank docs, `public/.idea/`, `public/link.php`,
+a committed `storage/debugbar/` dump) and the 44 markers redacted to `[scrubbed]` in old blobs of the five
+files that still exist. Verified before pushing: **zero marker hits across every blob of every ref**, the
+sensitive paths gone from all history, HEAD's tree byte-identical. Backups (real seeders, pre-rewrite full
+GitHub mirror) live outside the repository in `~/Work/learning/mizan-prerewrite-backup-2026-09-26/`.
+
+**What the rewrite cannot reach, still open:** GitHub retains the old commits through merged-PR refs
+(`refs/pull/*`, e.g. #17) and SHA-addressed caches — only a GitHub Support request ("remove sensitive
+data" / run gc) clears those; any pre-rewrite fork or clone keeps everything; and **1.7 credential
+rotation is unchanged and still required**. Local machines with old clones must
+`git fetch && git reset --hard origin/master`.
 
 ## 2. Files GitHub and contributors expect
 
