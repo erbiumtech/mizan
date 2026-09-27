@@ -334,7 +334,9 @@ adds no second one.
 - **A separate mobile application.** §16's daily log and punch list are Filament pages that work on a
   phone browser, with photo upload and offline tolerance treated as a later question. A native site app
   is a second application with its own release cycle, and `docs/retail-stores-pos-plan.md` §12 already
-  records what offline-first costs when it is real.
+  records what offline-first costs when it is real. *The later question was answered 2026-09-27:
+  offline capture for the field pages is phase O2 of `docs/desktop-mobile-plan.md` §5a — the shared
+  sync engine owns it, not this plan.*
 - **Equipment telematics and fuel cards.** §7 costs plant by hours at a rate. Reading hour meters off a
   telematics API is one integration per manufacturer and belongs to whoever buys it.
 

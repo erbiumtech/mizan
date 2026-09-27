@@ -88,6 +88,10 @@ are confirmed migrated (the same courtesy `docs/modules-plan.md` §risks demande
    (needed the moment Capacitor/native enters). Building the device-token table and the
    notification seam identically for both is cheap; choosing the first transport is not
    reversible-free. *(Gates A3.)*
+5. **Offline-first workflows** — *answered 2026-09-27: all four* (construction field,
+   employee self-service, retail till, MPR field entry), which promotes offline sync
+   from a per-plan afterthought to the platform capability designed in §5a. Order there
+   is by engineering risk, not preference; the till waits on the retail module existing.
 
 ## 3. A-series: API hardening (build first, client-agnostic)
 
@@ -136,6 +140,62 @@ claims from the notification. This is the feature that makes managers install it
 presence/biometrics/FCM-only push. Explicitly not scheduled until the PWA has users
 asking for what it cannot do.
 
+## 5a. O-series: offline-first sync (decided 2026-09-27 — all four workflows)
+
+One engine, four consumers. The design leans on a single load-bearing choice: **every
+offline capture is an append-only document**, so most of "sync" stops being a conflict
+problem and becomes an idempotency problem — which this codebase already knows how to
+hold (the FBR submission job's fixed idempotency key is the in-repo precedent).
+
+**The engine, in six rules:**
+
+1. **Client outbox.** Mutations made offline are recorded locally (IndexedDB in the
+   PWA; SQLite if/when Capacitor enters) as commands: a client-generated ULID, the
+   workflow name, the payload, and `captured_at` device time. Replayed strictly in
+   order when connectivity returns, with backoff.
+2. **Server inbox.** `POST /api/v1/sync/{workflow}` accepts a command batch under the
+   same stack as everything else (`auth:sanctum` + `api.company` + `module:*`). A
+   tenant `sync_commands` table keys on the client ULID: a replayed command returns its
+   original result instead of applying twice. Device clocks are recorded
+   (`captured_at`) but never trusted for ordering — `received_at` server time is
+   canonical.
+3. **Incremental reads.** Per-workflow pull endpoints with an `updated_since` cursor
+   over `updated_at`, tombstones via the soft-deletes the models already carry. No
+   generic changes feed until a workflow demonstrates the cursor is not enough.
+4. **Conflicts, by shape rather than by engine.** Append-only documents (attendance
+   punches, daily-log entries, MPR entries, till sales) cannot conflict — the server
+   assigns canonical ids and duplicates collapse on the ULID. The few mutable documents
+   (a punch-list item's status) carry the `base_version` they were edited from:
+   matching version applies; stale version keeps the server's value and files the
+   client's as a flagged comment for a human — the activity log records both. No
+   CRDTs, no merge UI.
+5. **Blobs ride behind their command.** Photos queue after the command that references
+   them, upload one at a time with their own idempotency key to the tenant-scoped disk
+   (the branding-upload path), capped in size; a document is visibly "syncing, N photos
+   pending" until its blobs land.
+6. **The ledger never hears from a device.** Offline captures land as staged documents;
+   posting happens server-side on sync through the same services online writes use
+   (a till sale stages, then posts through `recordPayment()`/`InventoryService`;
+   attendance recalculates payroll server-side). Double-entry integrity stays behind
+   one door. This rule is not negotiable and is the reason the engine can be simple.
+
+Auth for offline windows: A1's token expiry must leave room for a device that is dark
+for days (site rotations) — device tokens in the 30-day range with refresh-on-sync,
+`X-Company` pinned per device profile, and the module-gate 403 handled as "stop
+syncing, tell the user", per the modules-plan risk note.
+
+**Phases, ordered by engineering risk:**
+
+| Phase | What | Proves / adds | Gate |
+|---|---|---|---|
+| O1 | Engine core + **attendance punches** | Outbox, inbox idempotency, cursor reads — on the simplest append-only shape there is | A1, A2 |
+| O2 | **Construction field**: daily logs, punch lists, inspections, photos | Blob queue, the one mutable-document policy (`base_version`), site-day offline windows | O1 |
+| O3 | **MPR field entry**: compose offline, sync up | First write API for MPRs (today read-only), draft states | O1 |
+| O4 | **Retail till**: offline sales | Staged-sale posting through the ledger door | O1 **and** the retail plan's own phases 1–2 (stores/tills exist) |
+
+Each phase lands with its own feature tests: replay-idempotency, out-of-order delivery,
+the stale-`base_version` conflict trail, and a killed-mid-batch resume.
+
 ## 5. D-series: desktop
 
 **D1 — ships with M1.** The PWA manifest makes the panel installable on Windows/macOS;
@@ -150,8 +210,10 @@ retail plan's own phases, not this document.
 - **Native rewrite of the ERP** — the panel is the product; the companion is a satellite.
 - **NativePHP/Electron** — a local Laravel runtime against database-per-tenant hosting
   is an architecture contradiction, not an option.
-- **Offline-first sync** — no workflow here needs it; the two that might (construction
-  field photos, retail till) are owned by their own plans with their own gates.
+- **Whole-ERP offline replication** — offline-first sync is now designed and phased in
+  §5a, but its scope is the four named capture workflows. Replicating ledgers, payroll,
+  or configuration to devices stays refused: the ledger never hears from a device
+  (§5a rule 6), and everything outside a named capture workflow requires connectivity.
 - **An API for every panel feature** — endpoints follow companion screens, never
   speculation. YAGNI is why the current 15 are all real.
 
@@ -165,7 +227,11 @@ retail plan's own phases, not this document.
 | 3 | M1 PWA + mobile polish | Phase 0 Q1/Q2 |
 | 4 | A3 push seam + M2 delivery | Phase 0 Q4 |
 | 5 | A4 + M3 approvals | Phase 0 Q2 |
-| 6 | M4 Capacitor / D2 Tauri | a named need, in writing |
+| 6 | O1 engine + attendance punches | A1, A2 |
+| 7 | O2 construction field offline | O1 |
+| 8 | O3 MPR offline entry | O1 |
+| 9 | M4 Capacitor / D2 Tauri | a named need, in writing |
+| 10 | O4 retail till offline | O1 + retail plan phases 1–2 |
 
 A1 is the only step with no gate: an unthrottled login issuing immortal all-ability
 tokens for a public codebase does not wait for a mobile strategy.

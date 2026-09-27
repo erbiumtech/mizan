@@ -2,6 +2,10 @@
 
 **Status:** Not started
 **Created:** 2026-08-14
+**Note (2026-09-27):** the till's offline sync transport is no longer this plan's to invent —
+`docs/desktop-mobile-plan.md` §5a phase O4 owns it (shared engine: outbox, idempotent inbox,
+staged sales posting server-side). This plan still owns everything retail: stores, tills, the
+numbering blocks (§12), stock, and when its phases 1–2 exist, O4 unlocks.
 **Covers:** stores and per-store stock (§1–§4), an offline-capable till (§5, §12), compliance (§6),
 consolidated and per-store reporting (§7), scales / prep displays / tables (§8, §9), promotions and
 loyalty (§10), an online storefront (§11)
