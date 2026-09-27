@@ -196,6 +196,43 @@ syncing, tell the user", per the modules-plan risk note.
 Each phase lands with its own feature tests: replay-idempotency, out-of-order delivery,
 the stale-`base_version` conflict trail, and a killed-mid-batch resume.
 
+## 5b. Whole-ERP offline replication: what it would take (asked 2026-09-27, costed here)
+
+The question was asked, so the refusal gets its price tag instead of a shrug. Full
+write-capable replication of this ERP means, concretely:
+
+1. **A second domain runtime.** The rules live in PHP services (`JournalEntryService`,
+   `TaxCalculatorService`, the withholding guards, leave arithmetic). Offline writes run
+   those rules on the device: rewrite them all in a client language and maintain two
+   implementations in lockstep forever, or ship the PHP app per device (the NativePHP
+   route §6 refuses — the product is server-side multi-tenant).
+2. **Bidirectional replication of ~104 tenant tables** — oplog/row versions on every
+   table, tombstones, snapshots + incrementals, migration coordination per replica, and
+   per-device filtered subsets that re-implement the 359-permission model inside sync.
+3. **Distributed accounting semantics** — per-device number blocks for every sequenced
+   document (the retail plan's §12 answer, times everything), balance-dependent checks
+   that stale local data cannot enforce, and financial conflicts resolved by accounting
+   reversal workflows because last-write-wins is wrong by definition for money.
+4. **Validation built twice** — device-side enforcement is advisory on hardware the
+   user controls, so the server re-validates every replayed mutation against the state
+   that held when it was captured.
+5. **Whole tenant databases on personal phones** — payroll included: encryption at
+   rest, remote wipe, MDM, and a multiplication of exactly the exposure the 2026-09-26
+   history rewrite existed to end.
+6. **Permanent ops** — convergence tests, divergent-replica debugging, oplog compaction,
+   device lifecycle. Off-the-shelf local-first engines (PowerSync/ElectricSQL) cover
+   only data movement, for Postgres/SQLite stacks, and none runs PHP domain logic.
+
+That is a multi-year re-architecture — a distributed database plus a portable domain
+layer — and it stays refused. What is NOT refused is the part people usually mean:
+
+**O5 — offline read replica (the middle path, adoptable when M1+O1 exist).** The PWA
+caches read models on device — dashboards, ledgers, contacts, payslips, reports —
+served stale-while-offline and stamped "as of <time>"; every write still goes through
+the §5a outbox. Browsing the whole ERP on a plane, writing only what a named capture
+workflow allows. Rule 6 survives untouched; new offline *writes* are added one named
+workflow at a time, never by replication.
+
 ## 5. D-series: desktop
 
 **D1 — ships with M1.** The PWA manifest makes the panel installable on Windows/macOS;
@@ -231,7 +268,8 @@ retail plan's own phases, not this document.
 | 7 | O2 construction field offline | O1 |
 | 8 | O3 MPR offline entry | O1 |
 | 9 | M4 Capacitor / D2 Tauri | a named need, in writing |
-| 10 | O4 retail till offline | O1 + retail plan phases 1–2 |
+| 10 | O5 offline read replica (§5b) | M1, O1 |
+| 11 | O4 retail till offline | O1 + retail plan phases 1–2 |
 
 A1 is the only step with no gate: an unthrottled login issuing immortal all-ability
 tokens for a public codebase does not wait for a mobile strategy.
