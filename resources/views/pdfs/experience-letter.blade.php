@@ -158,7 +158,9 @@
          same way. A letter with the seal on it is one a recipient accepts without chasing a wet signature;
          guarded on the file existing so an installation without the asset gets a signature line instead of
          a broken image. --}}
-    @if (file_exists(public_path('signatures/employer_signature1.png')))
+    @if ($seal = \App\Support\CompanyLetterhead::signatureDataUri())
+        <img src="{{ $seal }}" class="seal-image" alt="">
+    @elseif (file_exists(public_path('signatures/employer_signature1.png')))
         <img src="{{ public_path('signatures/employer_signature1.png') }}" class="seal-image" alt="">
     @endif
 

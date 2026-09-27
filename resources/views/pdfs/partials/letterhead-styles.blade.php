@@ -20,6 +20,9 @@
     .lh td:first-child { width: 56%; }
     .lh-right { width: 44%; }
 
+    /* The uploaded logo stands where the bars stand, at the same height as the tallest bar. */
+    .lh-logo { height: 36px; }
+
     .lh-bars { white-space: nowrap; }
     .lh-bar { display: inline-block; width: 9px; background-color: #6cbf4a; margin-right: 4px; }
     .lh-bar-1 { height: 18px; }

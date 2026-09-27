@@ -27,6 +27,12 @@
 <body>
     <div class="header">
         <div>
+            {{-- The company logo when one is uploaded, as a data URI — same pattern as the FBR QR
+                 below, because Dompdf fetches no URLs. Fixed height, or a retina PNG prints at its
+                 pixel size. Absent, the header reads exactly as it always has. --}}
+            @if ($logo = \App\Support\CompanyLetterhead::logoDataUri())
+                <img src="{{ $logo }}" alt="" style="height: 40px; margin-bottom: 8px;">
+            @endif
             {{-- A credit note titled "Invoice" is a document that lies about what it is: the
                  customer files it as a bill and pays it. A debit note titled "Bill" is the same
                  mistake on the purchase side — the supplier would file it as a charge to pay. --}}

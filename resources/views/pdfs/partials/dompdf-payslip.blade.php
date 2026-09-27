@@ -40,6 +40,7 @@
     /* --- header: mark + wordmark left, address/title right --- */
     .logo-section { display: inline-block !important; vertical-align: bottom !important; width: 48% !important; }
     .bars { display: inline-block !important; vertical-align: bottom !important; height: 30px !important; margin-right: 8px !important; }
+    .logo-img { display: inline-block !important; vertical-align: bottom !important; margin-right: 8px !important; }
     .bar { display: inline-block !important; vertical-align: bottom !important; margin-right: 2px !important; }
     .company-text { display: inline-block !important; vertical-align: bottom !important; }
     .header-right { display: inline-block !important; vertical-align: bottom !important; width: 50% !important; text-align: right !important; }

@@ -10,6 +10,7 @@ use App\Support\TenantSettings;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -211,6 +212,8 @@ class CompanySettings extends Page
         'company_ntn' => 'company.ntn',
         'company_signatory_name' => 'company.signatory_name',
         'company_signatory_title' => 'company.signatory_title',
+        'company_logo_path' => 'company.logo_path',
+        'company_signature_path' => 'company.signature_path',
     ];
 
     /** @return array<string, mixed> */
@@ -275,6 +278,29 @@ class CompanySettings extends Page
                     ->label('Their title')
                     ->maxLength(160)
                     ->placeholder('Chief Executive Officer'),
+
+                // On the tenant-scoped `public` disk (rerouted per company, served through the
+                // access-checked /files route), same as expense-claim receipts. PNG/JPEG only:
+                // Dompdf embeds those; an SVG would print in the browser and vanish in the PDF.
+                // ponytail: replacing an upload leaves the old file under branding/ — small,
+                // per-tenant, invisible; add deleteUploadedFileUsing if the directory ever matters.
+                FileUpload::make('company_logo_path')
+                    ->label('Logo')
+                    ->disk('public')
+                    ->directory('branding')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/jpeg'])
+                    ->maxSize(2048)
+                    ->helperText('Printed at the top of payslips, invoices and letters, and shown as this company\'s panel brand. Without one, documents carry the company name as text — exactly as before.'),
+
+                FileUpload::make('company_signature_path')
+                    ->label('Signature / stamp')
+                    ->disk('public')
+                    ->directory('branding')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/jpeg'])
+                    ->maxSize(2048)
+                    ->helperText('Printed in the signature block of payslips and both letters. Documents already carry a signature line either way.'),
             ]);
     }
 

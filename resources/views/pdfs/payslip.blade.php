@@ -9,6 +9,10 @@
      */
     $company ??= \App\Support\CompanyLetterhead::data();
     $company_name ??= \App\Support\CompanyLetterhead::displayName();
+    // Data URIs, because Dompdf fetches no URLs (see Invoice::fbrQrDataUri). Null when unset,
+    // and the template falls back to exactly what it printed before.
+    $logoDataUri = \App\Support\CompanyLetterhead::logoDataUri();
+    $signatureDataUri = \App\Support\CompanyLetterhead::signatureDataUri();
 @endphp
 <!DOCTYPE html>
 <html>
@@ -85,6 +89,13 @@
         .bar-3 {
             height: 36px;
             background-color: #388e3c;
+        }
+
+        /* The uploaded logo stands where the bars stand. Fixed height: Dompdf sizes an
+           unstyled img at its pixel dimensions, and a retina export is half the page. */
+        .logo-img {
+            height: 44px;
+            margin-bottom: 4px;
         }
 
         .company-text {
@@ -341,11 +352,16 @@
             <!-- Header -->
             <div class="header">
                 <div class="logo-section">
-                    <div class="bars">
-                        <div class="bar bar-1"></div>
-                        <div class="bar bar-2"></div>
-                        <div class="bar bar-3"></div>
-                    </div>
+                    {{-- The uploaded logo when there is one, the green bars when there is not. --}}
+                    @if ($logoDataUri)
+                        <img src="{{ $logoDataUri }}" class="logo-img" alt="">
+                    @else
+                        <div class="bars">
+                            <div class="bar bar-1"></div>
+                            <div class="bar bar-2"></div>
+                            <div class="bar bar-3"></div>
+                        </div>
+                    @endif
                     {{-- From Company Settings → Letterhead, with the tenant's own name as the fallback — see
                          CompanyLetterhead::displayName(). The two-tone "ErbiumTech" wordmark this used to
                          hardcode was one company's branding printed on every company's payslips; a registered
@@ -481,7 +497,8 @@
             <!-- Signatures -->
             <div class="signatures">
                 <div class="signature-block">
-                    <img src="{{ public_path('signatures/employer_signature1.png') }}" class="sig-image"
+                    {{-- The uploaded signature/stamp when there is one, the shipped asset when not. --}}
+                    <img src="{{ $signatureDataUri ?? public_path('signatures/employer_signature1.png') }}" class="sig-image"
                         alt="Employer Signature">
                     <div class="sig-line">Employer Signature</div>
                 </div>

@@ -17,9 +17,16 @@
 <table class="lh">
     <tr>
         <td>
-            <div class="lh-bars">
-                <span class="lh-bar lh-bar-1"></span><span class="lh-bar lh-bar-2"></span><span class="lh-bar lh-bar-3"></span>
-            </div>
+            {{-- The uploaded logo when there is one, the green bars when there is not. A data URI
+                 (CompanyLetterhead::logoDataUri()), because Dompdf fetches no URLs; fixed height,
+                 because an unstyled retina PNG prints at its pixel size. --}}
+            @if ($lhLogo = \App\Support\CompanyLetterhead::logoDataUri())
+                <img src="{{ $lhLogo }}" class="lh-logo" alt="">
+            @else
+                <div class="lh-bars">
+                    <span class="lh-bar lh-bar-1"></span><span class="lh-bar lh-bar-2"></span><span class="lh-bar lh-bar-3"></span>
+                </div>
+            @endif
             <div class="lh-name">{{ $company['legal_name'] }}</div>
             @if ($numbers)
                 <div class="lh-sub">{{ implode('  |  ', $numbers) }}</div>

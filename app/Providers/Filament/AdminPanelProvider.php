@@ -9,6 +9,7 @@ use App\Modules\Core\Filament\Pages\Dashboard;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use App\Support\Broadcasting;
+use App\Support\CompanyLetterhead;
 use App\Support\Modules;
 use App\Support\NavigationTree;
 use App\Support\TenantStorage;
@@ -206,9 +207,14 @@ class AdminPanelProvider extends PanelProvider
             // Self-service password change (user menu → Change Password).
             // Simple layout: the profile route sits outside the tenant prefix.
             ->profile(EditProfile::class)
-            ->brandName('ErbiumTech')
-            ->brandLogo(asset('images/logo.png'))
-            ->darkModeBrandLogo(asset('images/logo-dark.png'))
+            // Closures, evaluated per request once the tenant middleware has run: the brand is
+            // whichever company is current. No tenant (login page) or nothing uploaded falls back
+            // to the shipped ErbiumTech brand, exactly as before. The logo is a URL rather than a
+            // data URI — this is a browser, and the tenant-scoped `public` disk's url() resolves
+            // to the access-checked /files route.
+            ->brandName(fn (): string => Filament::getTenant()?->name ?? 'ErbiumTech')
+            ->brandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? asset('images/logo.png'))
+            ->darkModeBrandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? asset('images/logo-dark.png'))
             ->brandLogoHeight('3rem')
             ->favicon(asset('images/favicon.png'))
             // Sampled from the ErbiumTech logo: the dark green slash drives the

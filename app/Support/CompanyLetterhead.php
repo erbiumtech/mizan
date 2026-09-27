@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Modules\Core\Models\Company;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -110,6 +111,68 @@ final class CompanyLetterhead
         }
 
         return $missing;
+    }
+
+    /**
+     * The uploaded logo as a data URI, or null when none is set or the file is gone.
+     *
+     * A data URI rather than a path or URL for the same reason `Invoice::fbrQrDataUri()` is one: Dompdf
+     * fetches no URLs, and an embedded image renders identically under both PDF engines. Null, never an
+     * exception — a payslip must print without its logo rather than not print at all.
+     */
+    public static function logoDataUri(): ?string
+    {
+        return self::imageDataUri((string) setting('company.logo_path'));
+    }
+
+    /** The uploaded signature/stamp image, same contract as {@see logoDataUri()}. */
+    public static function signatureDataUri(): ?string
+    {
+        return self::imageDataUri((string) setting('company.signature_path'));
+    }
+
+    /**
+     * The logo as a browser URL — the access-checked `/files/{company}` route the tenant-scoped `public`
+     * disk resolves to. For the panel brand, where a URL is right and a data URI is dead weight in every
+     * page's HTML. Null when unset or missing, so callers can fall back to the shipped logo.
+     */
+    public static function logoUrl(): ?string
+    {
+        $path = (string) setting('company.logo_path');
+
+        try {
+            $disk = Storage::disk('public');
+
+            return $path !== '' && $disk->exists($path) ? $disk->url($path) : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private static function imageDataUri(string $path): ?string
+    {
+        if ($path === '') {
+            return null;
+        }
+
+        try {
+            $disk = Storage::disk('public');
+
+            if (! $disk->exists($path)) {
+                return null;
+            }
+
+            $mime = (string) $disk->mimeType($path);
+
+            // Not an image (or unrecognisable) prints as nothing rather than as a broken tag.
+            if (! str_starts_with($mime, 'image/')) {
+                return null;
+            }
+
+            return 'data:'.$mime.';base64,'.base64_encode((string) $disk->get($path));
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

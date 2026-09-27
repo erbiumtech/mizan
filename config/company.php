@@ -23,6 +23,15 @@ return [
     'ntn' => env('COMPANY_NTN', ''),
 
     /*
+    | Branding uploads, as paths on the tenant-scoped `public` disk (Company
+    | Settings → Letterhead stores them under `branding/`). Not env-backed:
+    | a path into one tenant's storage directory is nothing an installation
+    | default can sensibly point at.
+    */
+    'logo_path' => '',
+    'signature_path' => '',
+
+    /*
     | Who signs. A title rather than a person is the default because the office
     | outlasts whoever holds it, and a certificate signed by a name nobody at the
     | company recognises is a certificate the bank calls about.
