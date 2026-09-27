@@ -18,8 +18,26 @@ than a separate bookkeeping exercise.
 
 ---
 
+## Screenshots
+
+All data shown is the seeded demo dataset (`php artisan db:seed`), captured in a Demo
+Company tenant.
+
+![Account register](docs/screenshots/account-register.png)
+*The account register — GnuCash-style single-screen entry with a Transfer column and running balance.*
+
+| | |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Reports hub](docs/screenshots/reports-hub.png) |
+| *Dashboard: KPI tiles, revenue vs. expenses, and a natural-language transaction bar.* | *The reports hub — 56 reports from financial statements to FBR statutory files.* |
+| ![Payslip](docs/screenshots/payslip.png) | ![Invoices](docs/screenshots/invoices.png) |
+| *A payslip with earnings, deductions and the employee acknowledgement flow.* | *Sales and purchase invoices with per-row payment status.* |
+
+---
+
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Stack](#stack)
 - [Multi-tenancy](#multi-tenancy)
@@ -149,23 +167,34 @@ otherwise apply the tenant schema to the landlord database).
 
 ## Getting started
 
-Requirements: PHP 8.4, Composer, MySQL 8, Node 22+ (for PDF rendering via Chromium).
+Requirements: PHP 8.4, Composer, MySQL 8, Node 22+ (asset build and PDF rendering —
+an older node fails `npm run build` with a cryptic `styleText` SyntaxError, and after
+upgrading node you must delete `node_modules` and reinstall).
 
 ```bash
 git clone https://github.com/<you>/mizan.git && cd mizan
+
+cp .env.example .env              # BEFORE composer install — artisan boots on install
+# then edit .env:
+#  - DB_CONNECTION=mysql plus the DB_* credentials — the landlord database
+#    (say yes when `migrate` offers to create it)
+#  - TENANT_DB_DRIVER=mysql plus the TENANT_DB_* credentials — tenant
+#    databases are created for you, named tenant_<slug>
+#  - BACKUP_NOTIFICATION_EMAIL: set a real address or delete the line;
+#    left empty, `composer install` fails with "is not a valid email address"
+#  - NODE_BINARY, NPM_BINARY (absolute paths, for PDF rendering)
+
 composer install
+php artisan key:generate
 npm install && npm run build
 
-cp .env.example .env
-php artisan key:generate
-# set DB_*, TENANT_DATABASE_CONNECTION=tenant, NODE_BINARY, NPM_BINARY
-
-php artisan migrate --seed        # landlord schema + demo dataset
-php artisan companies:create "Acme Ltd" --owner=you@example.com
+php artisan migrate --seed        # landlord schema + a demo company with demo data
+php artisan companies:create "Acme Ltd" --owner=admin@example.test
 php artisan serve
 ```
 
-Then sign in at `/admin` and pick your company.
+`--owner` must be an existing user — `admin@example.test` is the super admin the
+seeder just created. Then sign in at `/admin` and pick your company.
 
 The demo seeder creates a super admin (`admin@example.test` / `password`) — change it
 before exposing anything. Two background processes are needed for the monitoring
