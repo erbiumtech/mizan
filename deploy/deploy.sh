@@ -32,6 +32,17 @@ echo "==> Front-end assets"
 npm ci
 npm run build
 
+echo "==> Pre-migration backup"
+# Before anything touches a database. The nightly snapshot can be 24 hours stale
+# when a migration goes wrong, and the restore (deploy/backups/README.md) needs a
+# landlord archive from the same moment as the tenant archive it opens — which is
+# exactly what taking both here provides. Databases only: migrations do not touch
+# the uploads, and backup:tenants is --only-db by design. `set -e` makes a failed
+# backup abort the deploy rather than migrate unprotected; the EXIT trap still
+# brings the app back up.
+php artisan backup:run --only-db
+php artisan backup:tenants
+
 echo "==> Database"
 # Landlord only. Each company's own database is migrated by `php artisan tenants:migrate`
 # — see App\Support\TenantMigrations — which is a separate decision from deploying
