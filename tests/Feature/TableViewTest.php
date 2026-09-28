@@ -6,6 +6,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\TableView;
 use App\Modules\Core\Models\User;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Support\ModuleMap;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +81,29 @@ class TableViewTest extends TestCase
         $view = TableView::where('name', 'My search')->firstOrFail();
         $this->assertSame('ACME', $view->state['search']);
         $this->assertTrue($view->is_favorite);
+    }
+
+    public function test_a_default_view_is_applied_on_mount(): void
+    {
+        Gate::before(fn () => true);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $company = $this->setCurrentTenant();
+        $this->current($company);
+
+        TableView::create([
+            'user_id' => $user->id,
+            'resource' => ModuleMap::alias(ListPayslips::getResource()),
+            'name' => 'September',
+            'is_default' => true,
+            'state' => ['search' => 'ACME'],
+        ]);
+
+        // Regression: applying the default view in mount called resetPage(),
+        // which reads the table before Filament initializes it — 500 on load.
+        Livewire::test(ListPayslips::class)
+            ->assertOk()
+            ->assertSet('tableSearch', 'ACME');
     }
 
     public function test_reordering_a_view_persists_to_the_sort_column(): void

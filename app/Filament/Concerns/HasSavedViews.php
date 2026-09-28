@@ -90,7 +90,9 @@ trait HasSavedViews
         $this->tableSort = $state['sort'] ?? null;
         $this->tableGrouping = $state['grouping'] ?? null;
 
-        if (method_exists($this, 'resetPage')) {
+        // isset guards mount: Filament's resetPage() reads $this->table, which
+        // booted() has not initialized yet when the default view applies here.
+        if (method_exists($this, 'resetPage') && isset($this->table)) {
             $this->resetPage();
         }
     }
