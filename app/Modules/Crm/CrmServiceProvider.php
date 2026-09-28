@@ -7,6 +7,7 @@ use App\Modules\Crm\Filament\Pages\RottingDeals;
 use App\Modules\Crm\Filament\Pages\SalesForecast;
 use App\Modules\Crm\Filament\Pages\TargetAttainment;
 use App\Modules\Crm\Filament\Pages\WinLoss;
+use App\Modules\Crm\Filament\Settings\LeadCaptureSettingsSection;
 use App\Modules\Crm\Models\Activity;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadSource;
@@ -30,6 +31,7 @@ use App\Modules\Crm\Policies\SalesTargetPolicy;
 use App\Modules\Crm\Support\CrmReports;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\SettingsSections;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -68,6 +70,10 @@ class CrmServiceProvider extends ServiceProvider
         // The public lead-capture endpoint. Outside the panel, so the panel's tenancy
         // middleware never runs for it — see ResolveLeadCaptureTenant.
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
+
+        // 79: with the other public-endpoint plumbing, directly before the status page
+        // (80), which the CompanySettings comment puts last as "the least consequential".
+        SettingsSections::register('crm.lead-capture', LeadCaptureSettingsSection::class, 79);
     }
 
     /**

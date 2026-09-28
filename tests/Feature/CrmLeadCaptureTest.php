@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Crm\Filament\Settings\LeadCaptureSettingsSection;
 use App\Modules\Crm\Models\Activity;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadSource;
@@ -96,6 +97,35 @@ class CrmLeadCaptureTest extends TestCase
         $this->company->makeCurrent();
 
         return $response;
+    }
+
+    /**
+     * The settings section writes exactly the keys the middleware reads.
+     *
+     * The endpoint shipped with phase 3.5 and these two settings had no writer — the door
+     * existed and no administrator could open it. This is the wiring test: state in the
+     * section's field names, out through save(), read back by the gates and by fill().
+     */
+    public function test_the_settings_section_writes_what_the_gates_read(): void
+    {
+        $section = new LeadCaptureSettingsSection;
+
+        // Absent keys mean the section was hidden (a company without CRM): nothing written.
+        $section->save(['petty_cash_float_amount' => 1]);
+        $this->assertFalse((bool) setting('crm.lead_capture.enabled', false));
+
+        $section->save([
+            'crm_lead_capture_enabled' => true,
+            'crm_lead_capture_token' => self::TOKEN,
+        ]);
+
+        $this->capture()->assertStatus(202);
+        $this->assertSame(1, Lead::count());
+
+        $this->assertSame([
+            'crm_lead_capture_enabled' => true,
+            'crm_lead_capture_token' => self::TOKEN,
+        ], $section->fill());
     }
 
     // ─────────────────────────── §12.15: both gates ───────────────────────────

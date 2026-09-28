@@ -65,6 +65,12 @@ class SettingsSectionsTest extends AccountingTestCase
      * **2026-09-21** — `invoicing.credit-control` (76) and `invoicing.statements` (77) joined beside dunning:
      * `docs/erpnext-gap-plan.md` §4 items 5 and 1. Both are company-wide switches for customer-facing
      * behaviour, so they sit with the other one — chasing overdue invoices — rather than among the ledger's.
+     *
+     * **2026-09-28** — `crm.lead-capture` joined at sort 79, contributed by Crm: the phase 3.5 capture
+     * endpoint read `crm.lead_capture.enabled` and `.token`, but nothing wrote them — the endpoint existed
+     * and no administrator could open it. Directly before the status page (80) because it is the same shape
+     * of thing: a public, token-gated door that opening has to be a deliberate act. Hidden for a company
+     * without the CRM module.
      */
     public function test_the_modules_contribute_their_sections(): void
     {
@@ -72,6 +78,7 @@ class SettingsSectionsTest extends AccountingTestCase
             [
                 'accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting',
                 'construction.accounts', 'invoicing.dunning', 'invoicing.credit-control', 'invoicing.statements',
+                'crm.lead-capture',
             ],
             SettingsSections::keys(),
         );
