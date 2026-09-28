@@ -39,5 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // A no-op until SENTRY_LARAVEL_DSN is set (production only). Everything it
+        // sends passes through App\Support\SentryScrubber first — see config/sentry.php.
+        Sentry\Laravel\Integration::handles($exceptions);
     })->create();
