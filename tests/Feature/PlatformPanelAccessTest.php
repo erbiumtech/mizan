@@ -102,6 +102,24 @@ class PlatformPanelAccessTest extends TestCase
         }
     }
 
+    /**
+     * The two ops pages the platform sidebar links out to. Not under /platform, so the
+     * walk above never visits them — and both show every tenant's data at once (job
+     * payloads, health history), which is exactly what the viewHorizon gate exists for.
+     */
+    public function test_the_ops_pages_are_super_admin_only(): void
+    {
+        $admin = $this->companyAdministrator();
+
+        foreach (['/horizon', '/ops/health'] as $url) {
+            $this->actingAs(User::factory()->create(['is_super_admin' => true]))
+                ->get($url)->assertSuccessful("a super admin should be able to open {$url}");
+
+            $this->actingAs($admin)->get($url)
+                ->assertForbidden("a company administrator must not reach {$url}");
+        }
+    }
+
     public function test_a_company_administrator_may_open_none_of_them(): void
     {
         $admin = $this->companyAdministrator();

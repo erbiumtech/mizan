@@ -37,6 +37,20 @@ Route::middleware(['web'])
 // The report pages live in app/Modules/Accounting/routes/web.php and the invoice
 // PDF in app/Modules/Invoicing/routes/web.php.
 
+// The health checks' results, rendered by spatie/laravel-health's own page — the
+// scheduled `health:check` writes them, this only reads (`?fresh` re-runs on demand).
+// Super admins only, checked directly and NOT via a Gate: AppServiceProvider's
+// Gate::before answers every non-`create` ability with true for a company
+// Administrator, and this page shows every tenant's health at once. Same posture as
+// HorizonServiceProvider::authorization(). Linked from the platform panel's
+// Operations group.
+Route::get('/ops/health', function (Illuminate\Http\Request $request) {
+    abort_unless((bool) $request->user()?->isSuperAdmin(), 403);
+
+    // Container-called: the controller asks for the result store and clock beside the request.
+    return app()->call(Spatie\Health\Http\Controllers\HealthCheckResultsController::class.'@__invoke');
+})->middleware(['web', 'auth'])->name('ops.health');
+
 // Returning from impersonation. A plain route rather than a Livewire action so
 // the way back works from any page in the panel, including one that fails to
 // render — being stuck as somebody else is the failure mode to avoid.

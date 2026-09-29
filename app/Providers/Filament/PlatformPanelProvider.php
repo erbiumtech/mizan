@@ -10,6 +10,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -96,6 +97,26 @@ class PlatformPanelProvider extends PanelProvider
             ])
             ->pages([])
             ->widgets([])
+            /*
+             * The installation's ops dashboards, linked rather than embedded: Horizon ships its
+             * own SPA and spatie/laravel-health its own results page, and both are already the
+             * right tool. Octane, Reverb, Scout and laravel-backup ship no dashboard — their
+             * liveness is what the health page's checks report (HorizonCheck, backups, Redis
+             * persistence, failed jobs, disk, tenant databases). Everyone on this panel is a
+             * super admin, which is also what the viewHorizon gate behind both URLs requires.
+             */
+            ->navigationItems([
+                NavigationItem::make('Queues (Horizon)')
+                    ->url('/horizon', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-queue-list')
+                    ->group('Operations')
+                    ->sort(90),
+                NavigationItem::make('System health')
+                    ->url('/ops/health', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-heart')
+                    ->group('Operations')
+                    ->sort(91),
+            ])
             ->renderHook(
                 PanelsRenderHook::BODY_START,
                 fn (): string => view('filament.partials.impersonation-banner')->render(),
