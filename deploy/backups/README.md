@@ -12,6 +12,16 @@ The health check **Backups** watches the landlord archive's age. A stale *tenant
 archive is not monitored — `backup:tenants` exiting non-zero is the only signal, so
 whatever runs the scheduler must surface its failures (mail on failure, at least).
 
+## The archives are encrypted
+
+`BACKUP_ARCHIVE_PASSWORD` in the production `.env` encrypts every archive with
+AES-256 (both `backup:run` and `backup:tenants`; enabled 2026-09-29 — archives
+from before that date are plain). **A restore is impossible without it, so it must
+exist somewhere that survives the server**: the production `.env` holds the live
+copy, and whoever operates this keeps another in a password manager. The classic
+`unzip` cannot open AES zips whatever password you give it — restore with PHP's
+`ZipArchive::setPassword()` or `7z x -p`.
+
 ## Off the box
 
 An archive on the same disk as the database it backs up survives a bad deploy and
