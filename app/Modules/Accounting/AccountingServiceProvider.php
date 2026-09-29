@@ -139,6 +139,11 @@ class AccountingServiceProvider extends ServiceProvider
             'The same profit, split by project or by department — and what could not be attributed.',
         );
         ReportCatalogue::register('Financial statements', TrialBalance::class, 'Every account with its balance, and the proof that the books add up.');
+        // Beside the statements it derives from, not under Payroll & tax: that section is
+        // deliberately payroll's three filing outputs and vanishes with the payroll module
+        // (ReportsHubTest pins it), while this page is Accounting's own and must not keep
+        // the section alive for a company that never bought payroll.
+        ReportCatalogue::register('Financial statements', \App\Modules\Accounting\Filament\Pages\CorporateReturnPack::class, 'The year\'s corporate return figures: profit, tax adjustments, minimum tax, and the balance to pay.');
         ReportCatalogue::register('Financial statements', GeneralLedger::class, 'Every account, every entry against it, opening to closing — what an audit reads.');
         ReportCatalogue::register('Financial statements', BudgetVsActual::class, 'What was planned against what was spent, by account and by month.');
         ReportCatalogue::register('Receivables & payables', ContractorPayments::class, 'What each contractor has been paid, and over what period.');
