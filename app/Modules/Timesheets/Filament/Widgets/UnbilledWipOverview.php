@@ -8,6 +8,7 @@ use App\Support\Reporting\DashboardWidgets;
 use App\Support\Reporting\ReportFigures;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Str;
 
 /**
  * Billable time recorded and not yet invoiced — `docs/reports-expansion-plan.md` Phase 5.4.
@@ -70,7 +71,7 @@ class UnbilledWipOverview extends StatsOverviewWidget
                     '%s hours across %d %s',
                     ReportFigures::money($wip['hours'] ?? 0, 1),
                     $projects,
-                    $projects === 1 ? 'project' : 'projects',
+                    Str::plural('project', $projects),
                 ))
                 ->color('primary'),
 

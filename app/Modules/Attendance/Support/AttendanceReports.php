@@ -6,6 +6,7 @@ use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Services\AttendanceRegister;
 use App\Support\Reporting\ReportShapes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * The monthly attendance register — `docs/reports-expansion-plan.md` Phase 3.1.
@@ -141,7 +142,7 @@ class AttendanceReports
                 ? $incomplete.' days not marked, counted as worked'
                 : null,
             $disagree > 0
-                ? $disagree.($disagree === 1 ? ' payslip' : ' payslips').' prorated on different paid days'
+                ? $disagree.' '.Str::plural('payslip', $disagree).' prorated on different paid days'
                 : null,
         ])));
     }

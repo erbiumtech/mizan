@@ -220,13 +220,7 @@ class NavigationDomains
         // time the groups exist, so each claim is expanded through it. Keeping the declaration in
         // terms of declared labels is what lets a branch be added to the tree without a second edit
         // here, and what keeps the coverage test comparing like with like.
-        $owned = [];
-
-        foreach ($definition['groups'] as $group) {
-            foreach (NavigationTree::labelsFor($group) as $label) {
-                $owned[] = $label;
-            }
-        }
+        $owned = collect($definition['groups'])->flatMap(NavigationTree::labelsFor(...))->all();
 
         // Hoisted: this resolves a URL per claimed page and each resolution asks canAccess().
         $claimed = self::urlsFor($definition['items']);

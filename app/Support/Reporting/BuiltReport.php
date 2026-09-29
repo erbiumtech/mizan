@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * A saved definition, drawn — `docs/reports-expansion-plan.md` Phase 6, items 4 and 5.
@@ -706,7 +707,7 @@ class BuiltReport
             return null;
         }
 
-        $footer = ['Total — '.number_format($count).' '.($count === 1 ? $unit : $unit.'s')];
+        $footer = ['Total — '.number_format($count).' '.Str::plural($unit, $count)];
 
         for ($index = 1; $index < count($totals); $index++) {
             $footer[] = $totals[$index] === null
@@ -886,7 +887,7 @@ class BuiltReport
             }
         }
 
-        $parts[] = number_format($count).' '.($count === 1 ? $unit : $unit.'s');
+        $parts[] = number_format($count).' '.Str::plural($unit, $count);
 
         return mb_strtoupper(implode(' · ', $parts));
     }

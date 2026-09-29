@@ -2,6 +2,8 @@
 
 namespace App\Modules\ConstructionCosting\Support;
 
+use Illuminate\Support\Str;
+
 /**
  * One line-pair of a summary journal — `docs/construction-management-plan.md` §4.1's "per period per (GL account × cost
  * type)".
@@ -42,6 +44,6 @@ readonly class PostingLine
     {
         return $this->purposeLabel
             .($this->costType ? ' — '.ucfirst($this->costType) : '')
-            .' ('.$this->entryCount().' job cost entr'.($this->entryCount() === 1 ? 'y' : 'ies').')';
+            .' ('.$this->entryCount().' job cost '.Str::plural('entry', $this->entryCount()).')';
     }
 }

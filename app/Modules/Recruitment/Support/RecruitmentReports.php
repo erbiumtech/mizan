@@ -8,6 +8,7 @@ use App\Modules\Recruitment\Models\Vacancy;
 use App\Support\Reporting\ReportShapes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * The hiring funnel — `docs/reports-expansion-plan.md` Phase 3.2.
@@ -271,7 +272,7 @@ class RecruitmentReports
                 ? 'offers taken '.number_format($accepted / $answered * 100, 0).'% of those answered'
                 : 'no offer has been answered yet',
             $withdrawn > 0
-                ? $withdrawn.($withdrawn === 1 ? ' applicant' : ' applicants').' withdrew, not counted as rejected'
+                ? $withdrawn.' '.Str::plural('applicant', $withdrawn).' withdrew, not counted as rejected'
                 : null,
         ])));
     }

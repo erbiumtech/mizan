@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Support;
 
 use App\Modules\ConstructionCosting\Models\CostBatch;
+use Illuminate\Support\Str;
 
 /**
  * What one accrual pass raised, and what it could not — `docs/construction-management-plan.md` §4.5.
@@ -40,8 +41,8 @@ readonly class AccrualResult
         $parts = [];
 
         $parts[] = $this->raisedSomething()
-            ? $this->label.': '.number_format($this->total, 2).' across '.$this->entryCount.' entr'
-                .($this->entryCount === 1 ? 'y' : 'ies').'.'
+            ? $this->label.': '.number_format($this->total, 2).' across '.$this->entryCount.' '
+                .Str::plural('entry', $this->entryCount).'.'
             : $this->label.': nothing outstanding.';
 
         foreach ($this->skipped as $sentence) {

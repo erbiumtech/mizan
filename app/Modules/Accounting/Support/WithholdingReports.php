@@ -7,6 +7,7 @@ use App\Support\Reporting\ReportFigures;
 use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportShapes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * The §165 statement, as the pane draws it — `docs/erpnext-gap-plan.md` Phase 4, item 4.
@@ -59,7 +60,7 @@ class WithholdingReports
             ],
             $this->note($report),
             $rows === [] ? null : [
-                'Total — '.$totals['count'].' '.($totals['count'] === 1 ? 'deduction' : 'deductions'),
+                'Total — '.$totals['count'].' '.Str::plural('deduction', $totals['count']),
                 '', '', '',
                 ReportFigures::money($totals['taxable']),
                 '',
@@ -131,11 +132,11 @@ class WithholdingReports
         return mb_strtoupper(sprintf(
             '%d %s, %d %s, %d %s — %d at the non-filer rate',
             $totals['count'],
-            $totals['count'] === 1 ? 'deduction' : 'deductions',
+            Str::plural('deduction', $totals['count']),
             $totals['payees'],
-            $totals['payees'] === 1 ? 'payee' : 'payees',
+            Str::plural('payee', $totals['payees']),
             $sections,
-            $sections === 1 ? 'section' : 'sections',
+            Str::plural('section', $sections),
             $totals['non_filers'],
         ));
     }

@@ -9,7 +9,7 @@ use App\Support\CompanyLetterhead;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
 use Illuminate\Support\Carbon;
-use NumberFormatter;
+use Illuminate\Support\Number;
 
 /**
  * "This person works here and this is what we pay them" — as a letter somebody outside the company can act
@@ -200,17 +200,16 @@ class IncomeCertificate
     /**
      * "PKR 250,000 (two hundred fifty thousand only)" — the words half.
      *
-     * `NumberFormatter::SPELLOUT` from intl rather than a converter of our own: a hand-written one is fifty
-     * lines that have to be right about eleven, nineteen and a hundred and one, and the extension is already
-     * installed. Paisa are dropped rather than spelled — a salary certificate states rupees, and "and
-     * thirty-seven hundredths" on a letter to an embassy reads as a mistake.
+     * `Number::spell()` — Laravel's wrapper over intl's `NumberFormatter::SPELLOUT` — rather than a
+     * converter of our own: a hand-written one is fifty lines that have to be right about eleven, nineteen
+     * and a hundred and one, and the extension is already installed. Paisa are dropped rather than spelled —
+     * a salary certificate states rupees, and "and thirty-seven hundredths" on a letter to an embassy reads
+     * as a mistake.
      */
     public function words(float $amount): string
     {
         $rupees = (int) round($amount);
 
-        $formatter = new NumberFormatter('en', NumberFormatter::SPELLOUT);
-
-        return str((string) $formatter->format($rupees))->replace('-', ' ')->squish()->title()->value();
+        return str(Number::spell($rupees, locale: 'en'))->replace('-', ' ')->squish()->title()->value();
     }
 }

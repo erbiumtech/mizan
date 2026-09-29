@@ -150,9 +150,10 @@ class DashboardPeriod
      */
     private static function ordered(string $from, string $to): array
     {
-        return Carbon::parse($from)->lte(Carbon::parse($to))
-            ? ['from' => Carbon::parse($from)->toDateString(), 'to' => Carbon::parse($to)->toDateString()]
-            : ['from' => Carbon::parse($to)->toDateString(), 'to' => Carbon::parse($from)->toDateString()];
+        $a = Carbon::parse($from);
+        $b = Carbon::parse($to);
+
+        return ['from' => $a->min($b)->toDateString(), 'to' => $a->max($b)->toDateString()];
     }
 
     /**

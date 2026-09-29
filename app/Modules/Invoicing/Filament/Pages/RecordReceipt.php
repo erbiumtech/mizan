@@ -11,6 +11,7 @@ use App\Modules\Invoicing\Services\InvoiceService;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Livewire\Attributes\Url;
 use UnitEnum;
@@ -261,7 +262,7 @@ class RecordReceipt extends Page
             ->success()
             ->title($settled === []
                 ? number_format($held, 2).' held on account'
-                : count($settled).' '.(count($settled) === 1 ? 'invoice' : 'invoices').' settled'
+                : count($settled).' '.Str::plural('invoice', count($settled)).' settled'
                     .($held >= 0.01 ? ', '.number_format($held, 2).' held on account' : ''))
             ->send();
 

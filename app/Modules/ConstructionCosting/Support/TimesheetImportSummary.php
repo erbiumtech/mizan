@@ -2,6 +2,8 @@
 
 namespace App\Modules\ConstructionCosting\Support;
 
+use Illuminate\Support\Str;
+
 /**
  * What an import of timesheet entries did, and what it would not touch — `docs/construction-management-plan.md` §7.1.
  *
@@ -42,7 +44,7 @@ final readonly class TimesheetImportSummary
 
         $parts = [
             ($this->previewOnly ? 'Would import ' : 'Imported ').$this->imported.' as draft site '
-                .($this->imported === 1 ? 'sheet' : 'sheets'),
+                .Str::plural('sheet', $this->imported),
         ];
 
         if ($this->alreadyImported > 0) {

@@ -13,6 +13,7 @@ use App\Modules\ConstructionCosting\Support\CloseCheck;
 use App\Modules\ConstructionCosting\Support\CloseChecklist;
 use App\Support\TenantDb;
 use App\Support\TenantTransaction;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -282,7 +283,7 @@ class PeriodCloseService
         return CloseCheck::blocks(
             'pending',
             'Cost is still awaiting the general ledger',
-            $count.' entr'.($count === 1 ? 'y' : 'ies').' worth '.number_format($amount, 2).'. Posting refuses to '
+            $count.' '.Str::plural('entry', $count).' worth '.number_format($amount, 2).'. Posting refuses to '
             .'reach a closed month, so closing now orphans them from the accounts for good.'
             .($missing === [] ? ' Post the period from Cost periods.' : ' First nominate: '.implode(', ', $missing).'.'),
         );
@@ -377,7 +378,7 @@ class PeriodCloseService
         return CloseCheck::warns(
             'late_costs',
             'Cost arrived after the month it belonged to',
-            $count.' entr'.($count === 1 ? 'y' : 'ies').' worth '.number_format((float) $late->sum('amount'), 2)
+            $count.' '.Str::plural('entry', $count).' worth '.number_format((float) $late->sum('amount'), 2)
             .' was incurred in an earlier month that had already closed, so it landed here with its own date kept. '
             .'That is the design, not an error — but the earlier month\'s total is not what this cost belongs to.',
         );

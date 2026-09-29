@@ -132,9 +132,7 @@ class ModuleManifest
                 }
             }
 
-            foreach ($manifest['permissions'] ?? [] as $permission) {
-                $merged['permissions'][] = $permission;
-            }
+            array_push($merged['permissions'], ...($manifest['permissions'] ?? []));
 
             foreach ($manifest['role_grants'] ?? [] as $role => $names) {
                 $merged['role_grants'][$role] = array_merge($merged['role_grants'][$role] ?? [], $names);

@@ -7,6 +7,7 @@ use App\Support\LedgerDimensions;
 use App\Support\Reporting\ReportFigures;
 use App\Support\Reporting\ReportShapes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * Profit and loss by dimension, as the pane draws it — `docs/erpnext-gap-plan.md` Phase 1, item 4.
@@ -51,7 +52,7 @@ class DimensionReports
             ],
             $this->note($report),
             $rows === [] ? null : [
-                'Total — '.count($rows).' '.(count($rows) === 1 ? 'row' : 'rows'),
+                'Total — '.count($rows).' '.Str::plural('row', count($rows)),
                 ReportFigures::money($report['totals']['income']),
                 ReportFigures::money($report['totals']['expense']),
                 ReportFigures::money($report['totals']['profit']),

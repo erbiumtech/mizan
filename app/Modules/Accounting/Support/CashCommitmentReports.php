@@ -170,15 +170,8 @@ class CashCommitmentReports
      */
     private static function monthsBetween(string $from, string $to): array
     {
-        $months = [];
-        $cursor = Carbon::parse($from)->startOfMonth();
-        $end = Carbon::parse($to)->startOfMonth();
-
-        while ($cursor->lessThanOrEqualTo($end)) {
-            $months[] = $cursor->copy();
-            $cursor = $cursor->addMonth();
-        }
-
-        return $months;
+        return Carbon::parse($from)->startOfMonth()
+            ->monthsUntil(Carbon::parse($to)->startOfMonth())
+            ->toArray();
     }
 }

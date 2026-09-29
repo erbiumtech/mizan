@@ -2,6 +2,8 @@
 
 namespace App\Modules\ConstructionCosting\Support;
 
+use Illuminate\Support\Str;
+
 /**
  * What a period would post, and what it would leave behind — `docs/construction-management-plan.md` §4.1.
  *
@@ -68,11 +70,11 @@ readonly class PostingPlan
 
         if ($this->hasSomethingToPost()) {
             $parts[] = number_format($this->total, 2).' across '.count($this->lines).' journal line(s) from '
-                .$this->entryCount.' cost entr'.($this->entryCount === 1 ? 'y' : 'ies').'.';
+                .$this->entryCount.' cost '.Str::plural('entry', $this->entryCount).'.';
         }
 
         foreach ($this->skipped as $reason) {
-            $parts[] = $reason['reason'].' '.$reason['count'].' entr'.($reason['count'] === 1 ? 'y' : 'ies')
+            $parts[] = $reason['reason'].' '.$reason['count'].' '.Str::plural('entry', $reason['count'])
                 .' worth '.number_format($reason['amount'], 2).' stay pending.';
         }
 
