@@ -95,6 +95,79 @@ class TaxSummary extends Page
     {
         return [
             HelpAction::make('tax-summary', 'Tax Summary: Help'),
+
+            /*
+             * The employee's copy of what this page shows: the certificate of tax
+             * deducted they attach to their own return. Lives here rather than on the
+             * employee's page because the data is payroll's — Employees importing
+             * Payslip would buy back a module edge — and because this screen already
+             * has the right year selected. Same source, same filter, same figures as
+             * the table below it; see WithholdingCertificate for why that is the rule.
+             */
+            Action::make('withholdingCertificate')
+                ->label('Withholding certificate')
+                ->icon('heroicon-o-document-check')
+                ->color('gray')
+                ->schema([
+                    Select::make('employee_id')
+                        ->label('Employee')
+                        ->required()
+                        ->native(false)
+                        ->searchable()
+                        // Only people this year's statement actually names — a
+                        // certificate of nothing deducted certifies nothing.
+                        ->options(function (): array {
+                            $fiscalYearId = $this->data['fiscal_year_id'] ?? null;
+
+                            return \App\Modules\Payroll\Models\Payslip::query()
+                                ->with('employee.user')
+                                ->where('withholding_tax', '>', 0)
+                                ->when($fiscalYearId, fn ($query) => $query->where('fiscal_year_id', $fiscalYearId))
+                                ->get()
+                                ->mapWithKeys(fn ($payslip): array => [
+                                    $payslip->employee_id => $payslip->employee?->user?->name
+                                        ?? $payslip->employee?->name
+                                        ?? "Employee #{$payslip->employee_id}",
+                                ])
+                                ->sort()
+                                ->all();
+                        }),
+                ])
+                ->modalHeading('Certificate of tax deducted from salary')
+                ->modalDescription('Rendered fresh from the payslips as they stand — the same rows and the '
+                    .'same figures as this page, so the certificate can never disagree with the statement.')
+                ->modalSubmitActionLabel('Download')
+                ->action(function (array $data) {
+                    $year = \App\Modules\Core\Models\FiscalYear::find($this->data['fiscal_year_id'] ?? null);
+                    $employee = \App\Modules\Employees\Models\Employee::find($data['employee_id'] ?? null);
+
+                    if (! $year || ! $employee) {
+                        return null;
+                    }
+
+                    $certificates = app(\App\Modules\Payroll\Services\WithholdingCertificate::class);
+
+                    if (($missing = $certificates->missingFor($employee, $year)) !== []) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('The certificate is missing facts it cannot invent')
+                            ->body('Add '.implode('; ', $missing).'.')
+                            ->persistent()
+                            ->send();
+
+                        return null;
+                    }
+
+                    $pdf = $certificates->renderPdf($employee, $year);
+
+                    // `raw()`, not the response's content — see the payslip download
+                    // for the 0-byte PDF this avoids.
+                    return response()->streamDownload(
+                        fn () => print ($pdf->raw()),
+                        $pdf->getName(),
+                        ['Content-Type' => 'application/pdf'],
+                    );
+                }),
             Action::make('pdf')
                 ->label('Download PDF')
                 ->icon('heroicon-o-arrow-down-tray')

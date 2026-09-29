@@ -63,6 +63,28 @@ class PayrollMonth
             : Carbon::parse($fiscalYear->end_date)->year;
     }
 
+    /**
+     * Month name => position in the fiscal year (July => 0 in a July–June year).
+     *
+     * A payroll table read down the page is read in the order the months were
+     * paid, and alphabetical is the bug. Shared by the tax summary and the
+     * withholding certificate so the two can never disagree on what "in order"
+     * means for the same fiscal year.
+     *
+     * @return array<string, int>
+     */
+    public static function fiscalOrder(?FiscalYear $fiscalYear): array
+    {
+        $start = $fiscalYear?->start_date?->copy() ?? now()->startOfYear();
+        $order = [];
+
+        for ($i = 0; $i < 12; $i++) {
+            $order[$start->copy()->addMonths($i)->format('F')] = $i;
+        }
+
+        return $order;
+    }
+
     public static function firstDay(string $month, ?FiscalYear $fiscalYear, int $fallbackYear = 2026): Carbon
     {
         $year = self::yearFor($month, $fiscalYear, $fallbackYear);

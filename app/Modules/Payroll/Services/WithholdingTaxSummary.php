@@ -89,7 +89,7 @@ class WithholdingTaxSummary
      */
     private function byMonth(Collection $payslips, ?FiscalYear $fiscalYear): array
     {
-        $order = $this->monthOrder($fiscalYear);
+        $order = \App\Support\PayrollMonth::fiscalOrder($fiscalYear);
 
         return $payslips
             ->groupBy('month')
@@ -102,18 +102,5 @@ class WithholdingTaxSummary
             ->sortBy(fn (array $row): int => $order[$row['month']] ?? 99)
             ->values()
             ->all();
-    }
-
-    /** @return array<string, int> month name => position in the fiscal year */
-    private function monthOrder(?FiscalYear $fiscalYear): array
-    {
-        $start = $fiscalYear?->start_date?->copy() ?? now()->startOfYear();
-        $order = [];
-
-        for ($i = 0; $i < 12; $i++) {
-            $order[$start->copy()->addMonths($i)->format('F')] = $i;
-        }
-
-        return $order;
     }
 }
