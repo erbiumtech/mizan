@@ -9,8 +9,8 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\PersonalFinance\Models\PersonalTaxProfile;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
 use App\Modules\PersonalFinance\Services\PersonalTaxService;
-use Filament\Facades\Filament;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
@@ -71,34 +71,9 @@ class TaxEstimate extends Page
     public function mount(): void
     {
         $this->form->fill([
-            'fiscal_year_id' => $this->defaultFiscalYearId(),
+            // Open on a year this can actually work out — see TaxSchedule::defaultYearId().
+            'fiscal_year_id' => TaxSchedule::defaultYearId(),
         ]);
-    }
-
-    /**
-     * Open on a year this can actually work out.
-     *
-     * Not simply FiscalYear::current(): rates are seeded per year, and the
-     * active year is routinely the one whose Finance Act has not been enacted
-     * yet — so defaulting to it greets everybody with "no brackets for this
-     * year" instead of an estimate. Prefer the active year when it has rates,
-     * otherwise the most recent year that does.
-     *
-     * Picking a year with no rates is still allowed; it just has to be a choice
-     * somebody made rather than where the screen dumps them.
-     */
-    private function defaultFiscalYearId(): ?int
-    {
-        $current = FiscalYear::current();
-
-        if ($current && TaxSchedule::where('fiscal_year_id', $current->id)->exists()) {
-            return $current->id;
-        }
-
-        return FiscalYear::query()
-            ->whereIn('id', TaxSchedule::select('fiscal_year_id'))
-            ->orderByDesc('start_date')
-            ->value('id') ?? $current?->id;
     }
 
     public function form(Schema $schema): Schema

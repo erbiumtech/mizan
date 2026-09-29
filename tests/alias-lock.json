@@ -360,6 +360,7 @@
         "App\\Filament\\Pages\\SafetyIndicators": "App\\Modules\\ConstructionQhse\\Filament\\Pages\\SafetyIndicatorsReport",
         "App\\Filament\\Pages\\SalaryBankFile": "App\\Modules\\Payroll\\Filament\\Pages\\SalaryBankFile",
         "App\\Filament\\Pages\\TaxEstimate": "App\\Modules\\PersonalFinance\\Filament\\Pages\\TaxEstimate",
+        "App\\Filament\\Pages\\ReturnPack": "App\\Modules\\PersonalFinance\\Filament\\Pages\\ReturnPack",
         "App\\Filament\\Pages\\TaxSummary": "App\\Modules\\Payroll\\Filament\\Pages\\TaxSummary",
         "App\\Filament\\Pages\\TrialBalance": "App\\Modules\\Accounting\\Filament\\Pages\\TrialBalance",
         "App\\Filament\\Pages\\UserManual": "App\\Modules\\Core\\Filament\\Pages\\UserManual",

@@ -36,6 +36,11 @@ class PersonalChartOfAccountsSeeder extends Seeder
         ['1400', 'Property', 'asset'],
         ['1450', 'Vehicles', 'asset'],
         ['1500', 'Investments', 'asset'],
+        // Tax withheld at source and advance tax paid — an asset, because until
+        // the return settles it is a claim against the year's liability. The
+        // personal return pack reads this account's in-year movement as "tax
+        // already paid", the figure IRIS nets against tax chargeable.
+        ['1600', 'Advance & Withheld Tax', 'asset'],
 
         // What you owe.
         ['2000', 'Loans', 'liability'],

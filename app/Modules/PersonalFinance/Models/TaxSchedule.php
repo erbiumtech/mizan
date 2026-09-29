@@ -58,6 +58,32 @@ class TaxSchedule extends Model
         return $this->max_amount === null;
     }
 
+    /**
+     * The year a tax screen should open on: the active year when its rates are
+     * seeded, otherwise the most recent year that has any.
+     *
+     * Not simply FiscalYear::current(): rates are seeded per year, and the
+     * active year is routinely the one whose Finance Act has not been enacted
+     * yet — so defaulting to it greets everybody with "no brackets for this
+     * year" instead of a figure. Picking a rate-less year stays possible; it
+     * just has to be a choice somebody made rather than where the screen dumps
+     * them. Lives here because the question is entirely about which years have
+     * schedules; TaxEstimate and the return pack both open on its answer.
+     */
+    public static function defaultYearId(): ?int
+    {
+        $current = FiscalYear::current();
+
+        if ($current && static::where('fiscal_year_id', $current->id)->exists()) {
+            return $current->id;
+        }
+
+        return FiscalYear::query()
+            ->whereIn('id', static::select('fiscal_year_id'))
+            ->orderByDesc('start_date')
+            ->value('id') ?? $current?->id;
+    }
+
     /** How this bracket reads on screen, e.g. "Over 600,000 up to 1,200,000 — 1%". */
     public function label(): string
     {
