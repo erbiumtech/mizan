@@ -44,12 +44,17 @@ php artisan backup:run --only-db
 php artisan backup:tenants
 
 echo "==> Database"
-# Landlord only. Each company's own database is migrated by `php artisan tenants:migrate`
-# — see App\Support\TenantMigrations — which is a separate decision from deploying
-# code, because it runs per company and can take a while. It is printed again at the
-# end of this script, because a release whose tenant schema is behind fails at the
-# first screen that reads a new table rather than here.
+# Landlord first, then every company — see App\Support\TenantMigrations. Tenant
+# migrations used to be "a decision rather than a step" because they run per company
+# and can take a while; what that bought in practice was a release whose tenant schema
+# was behind, failing at the first screen that reads a new table, twice. The backup
+# above covers both databases, so migrating both here is what the snapshot is for.
+# (tenants:migrate takes no --force and never prompts — run it bare.)
+#
+# ponytail: fine at a handful of tenants; when a fleet makes this the slow step,
+# split it back out into a post-deploy step with its own window.
 php artisan migrate --force
+php artisan tenants:migrate
 
 echo "==> Permissions and roles"
 # **Not optional, and idempotent.** A module declares its permissions in its own
@@ -104,15 +109,9 @@ else
 fi
 
 echo
-echo "Done. Two things this script deliberately does not do:"
+echo "Done. One thing this script deliberately does not do:"
 echo
-echo "  1. Tenant migrations. They run per company and can take a while, so they are"
-echo "     a decision rather than a step — but a release whose tenant schema is behind"
-echo "     fails at the first screen that reads a new table:"
-echo
-echo "         php artisan tenants:migrate"
-echo
-echo "  2. Top up each company's reference data. Migrations create the tables; the rows"
+echo "  -  Top up each company's reference data. Migrations create the tables; the rows"
 echo "     that ship with the application arrive through the baseline seeders, which only"
 echo "     ever add — the withholding sections a supplier deduction reads, and the two"
 echo "     deferral accounts, both landed this way:"
