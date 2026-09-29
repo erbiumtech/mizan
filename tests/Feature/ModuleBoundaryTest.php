@@ -219,12 +219,12 @@ class ModuleBoundaryTest extends TestCase
 
         // Debt.
         // Accounting reaches Inventory, Invoicing and Payroll no longer. Four registries and one shared
-        // namespace did it: DashboardStats, JournalEntryOwners, ReportRenderers, PaymentGenerators, and
+        // namespace did it: DashboardStats, JournalEntryOwners, ReportRenderers, the RaisingMonthlyPayments event, and
         // App\Support\Banking for the file writer, the month pickers and the fiscal-month arithmetic.
         // Employees is what remains — see below.
         'accounting' => ['employees'],
         // Core is not here any more, and that is the entry this whole exercise was for. All seven of §9's
-        // files are inverted: the comment policy asks OwnedByUser, the user page announces UserCreated, the
+        // files are inverted: the comment policy duck-types isOwnedBy, the user page announces UserCreated, the
         // custom-fields screen reads CustomFieldSubjects, the fiscal-years table asks FiscalYearCloseCheck,
         // the Reports hub reads ReportCatalogue and ReportPaneRenderer, the CSV importer reads CsvImporters,
         // and Company Settings receives its currency and payroll-posting sections through SettingsSections.

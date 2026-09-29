@@ -72,7 +72,7 @@ class InvoicingServiceProvider extends ServiceProvider
      * The report lives in Accounting and this is Invoicing's data, so it is *registered* rather than
      * imported: `docs/module-packaging-plan.md` §8 spent a phase removing `accounting -> invoicing`, and
      * one column of one report is not a reason to buy the edge back. See `App\Support\CashCommitments`,
-     * which follows `PaymentGenerators` — the caller asks and each module answers for itself.
+     * which follows the same inversion — the caller asks and each module answers for itself.
      *
      * **Money coming in**, which is why the report has two totals. Every other source registered against
      * that registry is money leaving.

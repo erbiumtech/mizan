@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Model;
  * candidate is wrong: in Accounting it re-creates the `accounting -> invoicing` and `accounting -> payroll`
  * edges that `docs/module-packaging-plan.md` spent four registries removing, and in `App\Support` it
  * breaks the rule that shared code names no module. So the direction inverts, exactly as
- * `JournalEntryOwners`, `DashboardStats`, `ReportRenderers` and `PaymentGenerators` already do: each
+ * `JournalEntryOwners`, `DashboardStats`, `ReportRenderers` and `CsvImporters` already do: each
  * module says how to read *its own* documents, from its own service provider, and a module that is not
  * installed contributes nothing and resolves to nothing.
  *

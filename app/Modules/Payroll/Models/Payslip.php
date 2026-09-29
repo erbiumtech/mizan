@@ -18,7 +18,6 @@ use App\Notifications\PayslipObjectionAnswered;
 use App\Notifications\PayslipRejected;
 use App\Notifications\PayslipReturnedForReview;
 use App\Support\Contracts\AdvanceLedger;
-use App\Support\Contracts\OwnedByUser;
 use App\Support\Contracts\ReimbursableClaims;
 use App\Support\Impersonation;
 use App\Support\PayrollMonth;
@@ -30,7 +29,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
-class Payslip extends Model implements OwnedByUser
+class Payslip extends Model
 {
     use Auditable, HasComments;
 
@@ -452,8 +451,8 @@ class Payslip extends Model implements OwnedByUser
     /**
      * Whose payslip this is.
      *
-     * Answers App\Support\Contracts\OwnedByUser, which is how `CommentPolicy` lets an employee read the
-     * comments on their own payslip without Core's policy knowing what a payslip is.
+     * Answers `CommentPolicy`, which duck-types on this method — how an employee reads the comments on
+     * their own payslip without Core's policy knowing what a payslip is.
      */
     public function isOwnedBy(User $user): bool
     {

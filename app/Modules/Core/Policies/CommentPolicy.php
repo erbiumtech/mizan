@@ -4,7 +4,6 @@ namespace App\Modules\Core\Policies;
 
 use App\Modules\Core\Models\Comment;
 use App\Modules\Core\Models\User;
-use App\Support\Contracts\OwnedByUser;
 
 class CommentPolicy
 {
@@ -57,9 +56,13 @@ class CommentPolicy
         // Asked of the model, not decided here.
         //
         // This was `$commentable instanceof Payslip`, which made Core's comment policy depend on Payroll
-        // for one question (docs/module-packaging-plan.md §9). Any commentable model may now answer it, so
-        // the self-service visibility a payslip had is available to an expense claim or a leave request by
-        // implementing one method.
-        return $commentable instanceof OwnedByUser && $commentable->isOwnedBy($user);
+        // for one question (docs/module-packaging-plan.md §9). Any commentable model may answer it by
+        // declaring `isOwnedBy(User): bool` — duck-typed so Core owns no contract for it — and the
+        // self-service visibility a payslip has is available to an expense claim or a leave request by
+        // implementing that one method. Saying "this is yours" grants nothing by itself: the policy
+        // still requires the permission; ownership only widens what "own rows" means.
+        return $commentable !== null
+            && method_exists($commentable, 'isOwnedBy')
+            && $commentable->isOwnedBy($user);
     }
 }

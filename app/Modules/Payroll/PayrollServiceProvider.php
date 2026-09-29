@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll;
 
+use App\Events\RaisingMonthlyPayments;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
 use App\Modules\Employees\Models\EmployeeSetting;
@@ -17,6 +18,7 @@ use App\Modules\Payroll\Filament\Pages\SalaryBankFile;
 use App\Modules\Payroll\Filament\Pages\TaxSummary;
 use App\Modules\Payroll\Filament\RelationManagers\EmployeeSettingComponentsRelationManager;
 use App\Modules\Payroll\Listeners\CopyReviewOntoPayment;
+use App\Modules\Payroll\Listeners\RaiseSalaryPayments;
 use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
 use App\Modules\Payroll\Models\PayComponent;
@@ -28,10 +30,8 @@ use App\Modules\Payroll\Policies\PayComponentPolicy;
 use App\Modules\Payroll\Policies\PayrollRunPolicy;
 use App\Modules\Payroll\Policies\PayslipPolicy;
 use App\Modules\Payroll\Policies\SalarySlabPolicy;
-use App\Modules\Payroll\Services\SalaryPaymentGenerator;
 use App\Modules\Payroll\Support\PayrollReports;
 use App\Support\LedgerDimensions;
-use App\Support\PaymentGenerators;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
@@ -102,13 +102,10 @@ class PayrollServiceProvider extends ServiceProvider
         // App\Modules\Payroll\Listeners\CopyReviewOntoPayment.
         Event::listen(PayslipReviewed::class, CopyReviewOntoPayment::class);
 
-        // The month's salary payables, raised when either bank-file page is opened. Registered rather than
-        // called by name, because the caller is in Accounting and naming this from there was the last
-        // `accounting -> payroll` edge. See App\Support\PaymentGenerators.
-        PaymentGenerators::register(
-            'salary',
-            fn (string $month, $fiscalYear): int => app(SalaryPaymentGenerator::class)->generate($month, $fiscalYear),
-        );
+        // The month's salary payables, raised when either bank-file page is opened. Listened for rather
+        // than called by name, because the caller is in Accounting and naming this from there was the last
+        // `accounting -> payroll` edge. See App\Events\RaisingMonthlyPayments.
+        Event::listen(RaisingMonthlyPayments::class, RaiseSalaryPayments::class);
 
         // A payment's link to the payslip it pays, contributed rather than declared — Accounting keeps the
         // `payslip_id` column and stops naming a Payslip. Same mechanism as the Projects tab in phase 7.

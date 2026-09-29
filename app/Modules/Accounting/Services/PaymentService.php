@@ -19,7 +19,7 @@ class PaymentService
      *
      * It read payslips, priced a salary from one, and copied the payslip's review state onto the payment —
      * all payroll's business, filed here because the row it writes is a Payment. Accounting still triggers
-     * it, through App\Support\PaymentGenerators, so the bank payment file still raises the month's
+     * it, through the App\Events\RaisingMonthlyPayments event, so the bank payment file still raises the month's
      * payables when it is opened. See docs/module-packaging-plan.md §8 Group C.
      */
     /**

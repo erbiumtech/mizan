@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Pages;
 
+use App\Events\RaisingMonthlyPayments;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Concerns\VoidsPaymentBatches;
@@ -11,7 +12,6 @@ use App\Modules\Accounting\Services\BankPaymentExportService;
 use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Core\Models\FiscalYear;
 use App\Support\Banking\SelectsSalaryMonth;
-use App\Support\PaymentGenerators;
 use App\Support\PayrollMonth;
 use BackedEnum;
 use Carbon\Carbon;
@@ -100,9 +100,9 @@ class BankPaymentFile extends Page
 
         // Raise whatever the installed modules can raise for this month — today that is Payroll's
         // salaries. Asking rather than naming is what removed the last accounting -> payroll edge; see
-        // App\Support\PaymentGenerators.
+        // App\Events\RaisingMonthlyPayments.
         if ($month) {
-            PaymentGenerators::raise($month, $fiscalYear, $typeCode ?: null);
+            RaisingMonthlyPayments::dispatch($month, $fiscalYear, $typeCode ?: null);
         }
 
         return Payment::with(['payable', 'transactionType', 'companyBankAccount.bank', 'payslip'])

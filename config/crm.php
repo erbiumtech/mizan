@@ -35,13 +35,4 @@ return [
         'per_minute_per_ip' => env('CRM_LEAD_CAPTURE_PER_MINUTE_PER_IP', 5),
     ],
 
-    /*
-    | Default days without movement before a deal is reported as rotting.
-    |
-    | A fallback only: the real figure is `pipeline_stages.rot_after_days`, because a long
-    | qualification stage and a short negotiation stage have different patience. This is what
-    | a company gets before it has thought about that.
-    */
-    'default_rot_after_days' => env('CRM_DEFAULT_ROT_AFTER_DAYS', 30),
-
 ];

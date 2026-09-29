@@ -8,7 +8,6 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\ContactPerson;
 use App\Modules\Projects\Models\Project;
-use App\Support\Contracts\NotifiesOnChange;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * well as late. It is the same position §4.2 takes on overtime caps and §6 on minimum wage:
  * report it, do not quietly adjust around it.
  */
-class Ticket extends Model implements NotifiesOnChange
+class Ticket extends Model
 {
     use Auditable;
 
@@ -110,7 +109,8 @@ class Ticket extends Model implements NotifiesOnChange
      * The generic rule in `App\Support\RecordAudience` would find `created_by` on its own and stop there —
      * it reads user columns only, and an assignee is an *employee*. Following that to the person's login
      * needs the Employees model, which shared code may not import and this module may. That is the whole
-     * reason the contract exists; see `App\Support\Contracts\NotifiesOnChange`.
+     * reason this method exists: RecordAudience duck-types on `changeAudience()` and lets the answer
+     * override its columns.
      *
      * @return array<int, int|null>
      */

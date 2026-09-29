@@ -18,7 +18,7 @@ use RuntimeException;
  * code filed on the wrong side of a boundary: it reads payslips, it decides what a salary is worth, and it
  * knows that a payslip's review state travels onto the payment. All three are payroll's business.
  * Accounting still *triggers* it — the bank payment file raises the month's payables when it is opened —
- * but through `App\Support\PaymentGenerators` rather than by naming this class. See
+ * but by dispatching `App\Events\RaisingMonthlyPayments` rather than by naming this class. See
  * docs/module-packaging-plan.md §8 Group C.
  *
  * Payroll depending on Accounting is the acceptable direction: Payroll already posts its journal entries

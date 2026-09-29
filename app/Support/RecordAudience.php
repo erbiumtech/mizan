@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Support\Contracts\NotifiesOnChange;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -16,9 +15,12 @@ use Illuminate\Database\Eloquent\Model;
  * somebody decided that person owns the row.
  *
  * Only columns holding a **landlord user id** are read. An `assignee_employee_id` points
- * at a module's Employee, which shared code may not follow — that is what
- * `App\Support\Contracts\NotifiesOnChange` is for, and a model implementing it overrides
- * everything here.
+ * at a module's Employee, which shared code may not follow — so a model that knows its own
+ * audience declares `changeAudience(): iterable` (user ids, or models as a last resort:
+ * a model pulled here is a query per audited write) and that answer overrides everything
+ * here. Duck-typed on purpose: one method, and the module answers for itself without a
+ * contract Core has to own. Returning an empty audience is how a model that already sends
+ * its own notification says so, and reads as a decision rather than an omission.
  *
  * **Whoever made the change never hears about it.** Told that they did what they just
  * did, a person learns to ignore the bell, and then it is worth nothing when it carries
@@ -44,7 +46,7 @@ final class RecordAudience
      */
     public static function for(?Model $subject, ?int $causerId, array $fallback = []): array
     {
-        $ids = $subject instanceof NotifiesOnChange
+        $ids = $subject && method_exists($subject, 'changeAudience')
             ? self::idsFrom($subject->changeAudience())
             : self::fromColumns($subject, $fallback);
 

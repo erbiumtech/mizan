@@ -15,7 +15,7 @@ use Closure;
  * **So the report asks rather than imports.** `ReportPane` used to import `InvoiceService` and
  * `FbrReconciliation`, and `docs/module-packaging-plan.md` §8 spent that whole phase removing exactly this
  * edge. Reintroducing `accounting -> invoicing` for one column of one report would undo it, and
- * `ModuleBoundaryTest`'s tangled-module budget is nought. The precedent is `PaymentGenerators`: the caller
+ * `ModuleBoundaryTest`'s tangled-module budget is nought. The precedent is `JournalEntryOwners`: the caller
  * asks, and each module registers what it knows.
  *
  * A source is asked for a window and returns rows. Nothing registered means nothing committed, which is
