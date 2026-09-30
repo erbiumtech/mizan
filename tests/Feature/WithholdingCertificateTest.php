@@ -17,6 +17,8 @@ use Tests\AccountingTestCase;
  */
 class WithholdingCertificateTest extends AccountingTestCase
 {
+    use \Tests\Concerns\InteractsWithTenant;
+
     private Employee $employee;
 
     protected function setUp(): void
@@ -90,6 +92,38 @@ class WithholdingCertificateTest extends AccountingTestCase
         ]);
         $missing = $service->missingFor($nothingWithheld, $this->fiscalYear);
         $this->assertTrue(collect($missing)->contains(fn (string $m): bool => str_contains($m, 'certifies nothing')));
+    }
+
+    public function test_an_employee_downloads_their_own_certificate_from_the_payslips_page(): void
+    {
+        \Illuminate\Support\Facades\Gate::before(fn () => true);
+
+        // Sign in as the person the fixture's payslips belong to: the action is
+        // self-only — the employee comes from the session, never from input.
+        $this->actingAs($this->employee->user);
+        $this->setCurrentTenant();
+
+        // The letterhead facts the certificate refuses to issue without.
+        $settings = app(\App\Support\TenantSettings::class);
+        foreach (\App\Support\CompanyLetterhead::REQUIRED as $key => $label) {
+            $settings->set("company.{$key}", 'Test '.$key);
+        }
+
+        \Livewire\Livewire::test(\App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips::class)
+            ->assertActionVisible('myWithholdingCertificate')
+            ->callAction('myWithholdingCertificate', ['fiscal_year_id' => $this->fiscalYear->id])
+            ->assertFileDownloaded();
+    }
+
+    public function test_a_user_who_is_not_an_employee_does_not_see_the_action(): void
+    {
+        \Illuminate\Support\Facades\Gate::before(fn () => true);
+
+        $this->actingAs($this->makeUser('Administrator', 'no-employee-record@test.local'));
+        $this->setCurrentTenant();
+
+        \Livewire\Livewire::test(\App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips::class)
+            ->assertActionHidden('myWithholdingCertificate');
     }
 
     public function test_a_different_year_certifies_nothing(): void

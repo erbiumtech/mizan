@@ -34,10 +34,85 @@ class ListPayslips extends ListRecords
     {
         return [
             HelpAction::make('payslips', 'Payslips: Help'),
+            $this->myWithholdingCertificateAction(),
             $this->openMonthAction(),
             CreateAction::make(),
             $this->saveViewAction(),
         ];
+    }
+
+    /**
+     * The employee's own certificate of tax deducted, self-served.
+     *
+     * The admin path is the Tax Summary page, which can issue anyone's; this one
+     * is strictly the signed-in person's — the employee is resolved from the
+     * session, never from input, so holding PayslipView (which every Employee
+     * role does) is enough and shows nobody else's pay. Visible only to somebody
+     * who IS an employee here with tax actually withheld: an action that could
+     * only ever answer "nothing to certify" is clutter, not a feature.
+     */
+    protected function myWithholdingCertificateAction(): Action
+    {
+        $employee = fn (): ?Employee => Employee::where('user_id', auth()->id())->first();
+
+        return Action::make('myWithholdingCertificate')
+            ->label('My withholding certificate')
+            ->icon('heroicon-o-document-check')
+            ->color('gray')
+            ->visible(fn (): bool => ($me = $employee()) !== null
+                && Payslip::where('employee_id', $me->getKey())->where('withholding_tax', '>', 0)->exists())
+            ->modalHeading('Certificate of tax deducted from your salary')
+            ->modalDescription('For your own income tax return. Rendered fresh from your payslips — the same '
+                .'figures your employer files with FBR.')
+            ->modalSubmitActionLabel('Download')
+            ->schema([
+                Select::make('fiscal_year_id')
+                    ->label('Tax year')
+                    ->required()
+                    ->native(false)
+                    // Only years in which tax was actually deducted from this person.
+                    ->options(function () use ($employee): array {
+                        $me = $employee();
+
+                        return $me ? FiscalYear::whereIn(
+                            'id',
+                            Payslip::where('employee_id', $me->getKey())
+                                ->where('withholding_tax', '>', 0)
+                                ->select('fiscal_year_id'),
+                        )->orderByDesc('start_date')->pluck('name', 'id')->all() : [];
+                    }),
+            ])
+            ->action(function (array $data) use ($employee) {
+                $me = $employee();
+                $year = FiscalYear::find($data['fiscal_year_id'] ?? null);
+
+                if (! $me || ! $year) {
+                    return null;
+                }
+
+                $certificates = app(\App\Modules\Payroll\Services\WithholdingCertificate::class);
+
+                if (($missing = $certificates->missingFor($me, $year)) !== []) {
+                    Notification::make()
+                        ->danger()
+                        ->title('The certificate is missing facts it cannot invent')
+                        ->body('Ask your administrator to add '.implode('; ', $missing).'.')
+                        ->persistent()
+                        ->send();
+
+                    return null;
+                }
+
+                $pdf = $certificates->renderPdf($me, $year);
+
+                // raw(), not the response's content — see the payslip download
+                // for the 0-byte PDF this avoids.
+                return response()->streamDownload(
+                    fn () => print ($pdf->raw()),
+                    $pdf->getName(),
+                    ['Content-Type' => 'application/pdf'],
+                );
+            });
     }
 
     /**
