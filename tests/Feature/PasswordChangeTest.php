@@ -40,7 +40,7 @@ class PasswordChangeTest extends TestCase
 
         $this->get('/admin/profile')
             ->assertSuccessful()
-            ->assertSee('Change Password');
+            ->assertSee('My Profile');
     }
 
     public function test_employee_can_change_their_own_password(): void
@@ -85,21 +85,49 @@ class PasswordChangeTest extends TestCase
         $this->assertTrue(Hash::check('old-password', $user->refresh()->password));
     }
 
-    public function test_name_and_email_cannot_be_changed_from_the_profile_page(): void
+    public function test_a_user_without_an_employee_record_can_update_their_name(): void
     {
+        // The role-Employee fixture has no employee *record*, so no approval flow
+        // owns their name — it is theirs to change. Email stays read-only regardless.
         $user = $this->employee();
 
+        // Current password confirms identity for any profile change — cheap, and
+        // it means a stolen session cannot rename the account either.
         Livewire::test(EditProfile::class)
-            ->set('data.name', 'Hacked Name')
+            ->set('data.name', 'New Name')
             ->set('data.email', 'hacked@test.local')
             ->set('data.currentPassword', 'old-password')
-            ->set('data.password', 'new-password-123')
-            ->set('data.passwordConfirmation', 'new-password-123')
             ->call('save')
             ->assertHasNoErrors();
 
         $user->refresh();
-        $this->assertSame('Employee', $user->name);
+        $this->assertSame('New Name', $user->name);
         $this->assertSame('employee-password@test.local', $user->email);
+    }
+
+    public function test_a_linked_employees_name_is_read_only(): void
+    {
+        $user = $this->employee();
+        $company = \Filament\Facades\Filament::getTenant() ?? \App\Modules\Core\Models\Company::current();
+
+        \App\Modules\Core\Models\CompanyModule::updateOrCreate(
+            ['company_id' => $company->getKey(), 'module' => 'employees'],
+            ['licensed' => true, 'enabled' => true],
+        );
+        modules()->flush();
+
+        \App\Modules\Employees\Models\Employee::create([
+            'user_id' => $user->id, 'name' => 'Employee', 'employee_id' => 'EMP-PROFILE-1',
+            'phone' => '0300-0000000', 'gender' => 'Male', 'is_active' => 1,
+        ]);
+
+        // The field is disabled and not dehydrated, so a submitted name is ignored:
+        // the change has to go through the employee record's approval flow.
+        Livewire::test(EditProfile::class)
+            ->set('data.name', 'Bypassed Approval')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Employee', $user->refresh()->name);
     }
 }
