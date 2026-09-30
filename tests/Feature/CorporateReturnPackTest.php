@@ -14,6 +14,8 @@ use Tests\AccountingTestCase;
  */
 class CorporateReturnPackTest extends AccountingTestCase
 {
+    use \Tests\Concerns\InteractsWithTenant;
+
     /** A posted entry moving $amount from $creditCode to $debitCode inside the year. */
     private function book(string $debitCode, string $creditCode, float $amount): void
     {
@@ -103,6 +105,37 @@ class CorporateReturnPackTest extends AccountingTestCase
 
         // And build() with no override reads the stored one.
         $this->assertSame(15_000.0, $this->pack()['adjustments_total']);
+    }
+
+    public function test_the_save_action_persists_what_the_form_shows(): void
+    {
+        \Illuminate\Support\Facades\Gate::before(fn () => true);
+
+        $company = Company::factory()->create();
+        $user = \App\Modules\Core\Models\User::factory()->create(['status' => 1]);
+        $company->users()->attach($user->getKey());
+        $this->actingAs($user);
+        $this->setCurrentTenant($company);
+
+        // fillForm rather than raw ->set(): it routes through Filament's own field
+        // and repeater hydration, so the state reaching the action is shaped the
+        // way a real browser shapes it — the raw form of this test passed while
+        // the real page failed to persist, which is exactly the gap.
+        \Livewire\Livewire::test(\App\Modules\Accounting\Filament\Pages\CorporateReturnPack::class)
+            ->fillForm([
+                'fiscal_year_id' => $this->fiscalYear->id,
+                'tax_rate' => 20,
+                'adjustments' => [
+                    ['label' => 'Inadmissible fines', 'amount' => '15000'],
+                ],
+            ])
+            ->callAction('save')
+            ->assertNotified();
+
+        $worksheet = app(CorporateReturnPack::class)->worksheet($this->fiscalYear->id);
+
+        $this->assertSame(20.0, $worksheet['tax_rate']);
+        $this->assertSame([['label' => 'Inadmissible fines', 'amount' => 15_000.0]], $worksheet['adjustments']);
     }
 
     public function test_the_page_is_for_business_accounts_only(): void
