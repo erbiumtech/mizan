@@ -140,8 +140,15 @@ return [
      * alive. It was refused once a minute — 800 failures of `health:queue-check-heartbeat` in thirteen
      * hours on the production log — which left the check that watches the queue unable to run, so a
      * genuinely dead worker would have looked exactly the same.
+     *
+     * The password-reset notification serves an identity, not a company, and is sent from the public
+     * reset page where no tenant is current — so it is refused for the same structural reason and belongs
+     * here for the same reason. A person may not even have a company yet (a super admin), and reset is
+     * about who you are, not which company you are in. Listed as the unwrapped notification, because
+     * `TenantAwareJobs` judges a `SendQueuedNotifications` job by the notification inside it.
      */
     'not_tenant_aware_jobs' => [
         \Spatie\Health\Jobs\HealthQueueJob::class,
+        \Filament\Auth\Notifications\ResetPassword::class,
     ],
 ];

@@ -88,6 +88,23 @@ class TenantAwareQueueTest extends TestCase
     }
 
     /**
+     * The password-reset notification is sent from the public reset page with no
+     * tenant current — a person resetting their password may not even have a
+     * company. Before the exemption it was refused at dispatch and the reset form
+     * 500'd; the notification is on the list precisely so it queues tenantless.
+     */
+    public function test_the_password_reset_notification_queues_with_no_tenant(): void
+    {
+        $wrapped = new SendQueuedNotifications(
+            new \App\Modules\Core\Models\User,
+            new \Filament\Auth\Notifications\ResetPassword('token'),
+            ['database'],
+        );
+
+        $this->assertFalse(TenantAwareJobs::requiresTenant($wrapped));
+    }
+
+    /**
      * The rule restates the package's, so it is pinned to the same answers for every queueable shape here.
      * If the package changes its rule, this is what says so.
      */
