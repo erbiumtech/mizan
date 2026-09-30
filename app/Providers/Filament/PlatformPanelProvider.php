@@ -68,6 +68,9 @@ class PlatformPanelProvider extends PanelProvider
             // Its own entrance. The session is shared either way, so this is about the
             // two audiences never seeing each other's front door.
             ->login()
+            // Super admins reset from their own front door too — same broker, same
+            // landlord token table as the admin panel. See AdminPanelProvider.
+            ->passwordReset()
             // Everyone who can sign in here is a super admin, so the second factor is required of all of
             // them. Same provider as the admin panel; see AdminPanelProvider for the reasoning.
             ->multiFactorAuthentication([AppAuthentication::make()->recoverable()], isRequired: true)

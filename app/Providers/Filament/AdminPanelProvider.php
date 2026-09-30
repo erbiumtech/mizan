@@ -188,6 +188,13 @@ class AdminPanelProvider extends PanelProvider
             // person by Filament's own sidebar store.
             ->sidebarFullyCollapsibleOnDesktop()
             ->login()
+            // "Forgot password?" on the login page, for every role that signs in here —
+            // Employee through Administrator. Emails a signed reset link (the mailer
+            // configured in config/mail.php), and the token lives in the landlord
+            // password_reset_tokens table beside the users it identifies. MFA is
+            // untouched: a reset changes the password, the second factor is still
+            // demanded at the next login, so this opens no bypass.
+            ->passwordReset()
             /*
              * A second factor, required for the accounts that can move money.
              *

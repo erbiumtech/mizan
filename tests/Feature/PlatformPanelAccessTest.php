@@ -46,8 +46,13 @@ class PlatformPanelAccessTest extends TestCase
             // Routes with a record parameter need a record; covered separately below.
             // The login page is the front door and is reachable by design — an
             // authenticated user is redirected off it, which the tests below check
-            // lands somewhere that is itself refused.
-            if (str_contains($uri, '{') || str_ends_with($uri, '/login')) {
+            // lands somewhere that is itself refused. The password-reset pages are
+            // the same kind of public, guest-only front door: an authenticated user
+            // is redirected off them rather than let in, so they are not part of the
+            // "authenticated panel surface" this walk guards.
+            if (str_contains($uri, '{')
+                || str_ends_with($uri, '/login')
+                || str_contains($uri, '/password-reset/')) {
                 continue;
             }
 
