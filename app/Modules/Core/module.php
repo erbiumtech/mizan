@@ -66,6 +66,8 @@ return [
     'widgets' => [
         // Belongs to no module and every module contributes to it — see App\\Support\\DashboardStats.
         'App\\Filament\\Widgets\\OperationsOverview' => \App\Modules\Core\Filament\Widgets\OperationsOverview::class,
+        // Installation health, super-admin-only — the dashboard glance at /ops/health.
+        'App\\Filament\\Widgets\\HealthOverview' => \App\Modules\Core\Filament\Widgets\HealthOverview::class,
     ],
 
     'pages' => [
