@@ -134,24 +134,8 @@ class CorporateReturnPack extends Page
                 ->label('Save worksheet')
                 ->icon('heroicon-o-check')
                 ->action(function (): void {
-                    $yearId = $this->data['fiscal_year_id'] ?? null;
-
-                    // Tracer for the prod-only silent non-persistence: what state the
-                    // action actually receives, and what the row holds right after the
-                    // write. Remove once the panel save is proven on the server.
-                    logger()->error('TRACER corporate-return save: received', [
-                        'year' => $yearId,
-                        'data_keys' => array_keys($this->data ?? []),
-                        'adjustments' => $this->data['adjustments'] ?? 'ABSENT',
-                    ]);
-
-                    if ($yearId) {
+                    if ($yearId = $this->data['fiscal_year_id'] ?? null) {
                         app(PackService::class)->saveWorksheet((int) $yearId, $this->data);
-
-                        logger()->error('TRACER corporate-return save: row after write', [
-                            'row' => setting("corporate_return.{$yearId}", 'NO ROW'),
-                        ]);
-
                         Notification::make()->success()->title('Worksheet saved for this year.')->send();
                     }
                 }),
