@@ -1,5 +1,6 @@
 {{-- Dompdf renders this too, so: tables and inline styles only, no flexbox or grid.
-     Same constraint every pdfs.* template lives under — see the payslip template. --}}
+     Shaped section by section on a real IRIS 114(1) print, codes included, so
+     transcription is code-by-code rather than a hunt. --}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,73 +14,74 @@
         th { text-align: left; font-size: 9px; text-transform: uppercase; color: #6b7280; padding: 4px 6px; border-bottom: 1px solid #d1d5db; }
         td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; }
         .num { text-align: right; white-space: nowrap; }
+        .code { color: #6b7280; white-space: nowrap; }
         .total td { font-weight: bold; border-top: 1px solid #9ca3af; border-bottom: none; }
         .muted { color: #6b7280; }
         .warn { color: #b45309; }
+        .indent { padding-left: 18px; color: #6b7280; }
         .fine { font-size: 9px; color: #6b7280; margin-top: 16px; }
     </style>
 </head>
 <body>
-    <h1>Personal tax return pack — {{ $pack['year']->name }}</h1>
+    <h1>114(1) return pack — {{ $pack['year']->name }}</h1>
     <p class="muted">
         FBR Tax Year {{ $pack['year']->end_date->format('Y') }} ·
+        period {{ $pack['year']->start_date->format('d-M-Y') }} – {{ $pack['year']->end_date->format('d-M-Y') }} ·
         prepared {{ now()->format('d M Y') }} · figures from posted entries only ·
         for entry into IRIS — this document has not been filed
     </p>
 
-    <h2>Income and tax — the 114(1) figures</h2>
+    <h2>Income by head</h2>
     <table>
         <thead>
             <tr>
-                <th>Head of income</th>
-                <th class="num">Gross</th>
-                <th class="num">Allowance</th>
-                <th class="num">Taxable</th>
-                <th class="num">Tax</th>
-                <th class="num">Surcharge</th>
+                <th>Description</th>
+                <th>Code</th>
+                <th class="num">Total income</th>
+                <th class="num">Subject to final tax</th>
+                <th class="num">Subject to exemption</th>
+                <th class="num">Subject to normal tax</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($pack['income']['regimes'] as $row)
+            @foreach ($pack['heads'] as $head)
                 <tr>
-                    <td>{{ $row['label'] }}</td>
-                    <td class="num">{{ number_format($row['income'], 2) }}</td>
-                    <td class="num muted">{{ ($row['allowance'] ?? 0) > 0 ? '(' . number_format($row['allowance'], 2) . ')' : '—' }}</td>
-                    <td class="num">{{ number_format($row['taxable'], 2) }}</td>
-                    <td class="num">{{ number_format($row['tax'], 2) }}</td>
-                    <td class="num">{{ ($row['surcharge'] ?? 0) > 0 ? number_format($row['surcharge'], 2) : '—' }}</td>
+                    <td>{{ $head['label'] }}</td>
+                    <td class="code">{{ $head['code'] }}</td>
+                    <td class="num">{{ number_format($head['total'], 2) }}</td>
+                    <td class="num">{{ number_format($head['final'], 2) }}</td>
+                    <td class="num muted">{{ number_format($head['exempt'], 2) }}</td>
+                    <td class="num">{{ number_format($head['normal'], 2) }}</td>
                 </tr>
             @endforeach
-            <tr class="total">
-                <td>Tax chargeable</td>
-                <td class="num">{{ number_format($pack['income']['total_income'], 2) }}</td>
-                <td></td><td></td>
-                <td class="num" colspan="2">{{ number_format($pack['income']['total_payable'], 2) }}</td>
-            </tr>
-            <tr>
-                <td>Tax already paid or withheld (account 1600)</td>
-                <td></td><td></td><td></td>
-                <td class="num" colspan="2">({{ number_format($pack['tax_paid'], 2) }})</td>
-            </tr>
-            <tr class="total">
-                <td>{{ $pack['balance'] >= 0 ? 'Payable with the return' : 'Refundable' }}</td>
-                <td></td><td></td><td></td>
-                <td class="num" colspan="2">{{ number_format(abs($pack['balance']), 2) }}</td>
-            </tr>
         </tbody>
     </table>
     @if ($pack['income']['unclassified'] > 0)
         <p class="warn">
-            PKR {{ number_format($pack['income']['unclassified'], 2) }} of income has no “Taxed as” setting and is
-            not assessed above. It is included in the reconciliation below. Classify it before filing.
+            PKR {{ number_format($pack['income']['unclassified'], 2) }} of income has no “Taxed as” setting and
+            is not assessed above; it is included in the reconciliation. Classify it before filing.
         </p>
     @endif
 
-    <h2>Wealth statement — assets and liabilities</h2>
+    <h2>Computations</h2>
+    <table>
+        <tbody>
+            @foreach ($pack['computations'] as $row)
+                <tr @if (in_array($row['code'], ['9200', '9203'], true)) class="total" @endif>
+                    <td>{{ $row['label'] }}</td>
+                    <td class="code">{{ $row['code'] }}</td>
+                    <td class="num">{{ number_format($row['amount'], 2) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <h2>Wealth statement</h2>
     <table>
         <thead>
             <tr>
                 <th>Account</th>
+                <th>IRIS code</th>
                 <th class="num">Opening</th>
                 <th class="num">Closing</th>
             </tr>
@@ -87,10 +89,11 @@
         <tbody>
             @foreach (['assets' => 'Assets', 'liabilities' => 'Liabilities'] as $side => $label)
                 @if ($pack['wealth'][$side] !== [])
-                    <tr><td colspan="3" class="muted" style="text-transform: uppercase; font-size: 9px;">{{ $label }}</td></tr>
+                    <tr><td colspan="4" class="muted" style="text-transform: uppercase; font-size: 9px;">{{ $label }}</td></tr>
                     @foreach ($pack['wealth'][$side] as $row)
                         <tr>
                             <td>{{ $row['code'] }} — {{ $row['name'] }}</td>
+                            <td class="code">{{ $row['iris_code'] }} {{ $row['iris_label'] }}</td>
                             <td class="num">{{ number_format($row['opening'], 2) }}</td>
                             <td class="num">{{ number_format($row['closing'], 2) }}</td>
                         </tr>
@@ -99,6 +102,7 @@
             @endforeach
             <tr class="total">
                 <td>Net assets</td>
+                <td class="code">703001</td>
                 <td class="num">{{ number_format($pack['wealth']['opening_net'], 2) }}</td>
                 <td class="num">{{ number_format($pack['wealth']['closing_net'], 2) }}</td>
             </tr>
@@ -106,25 +110,24 @@
     </table>
 
     <h2>Reconciliation of net assets</h2>
-    @php($rec = $pack['reconciliation'])
     <table>
         <tbody>
-            <tr><td>Net assets at the start of the year</td><td class="num">{{ number_format($rec['opening_net'], 2) }}</td></tr>
-            <tr><td>Add: income recorded this year</td><td class="num">{{ number_format($rec['inflows'], 2) }}</td></tr>
-            <tr><td>Less: personal expenses this year</td><td class="num">({{ number_format($rec['expenses'], 2) }})</td></tr>
-            <tr><td>Net assets that should result</td><td class="num">{{ number_format($rec['expected_closing'], 2) }}</td></tr>
-            <tr><td>Net assets the books actually show</td><td class="num">{{ number_format($rec['actual_closing'], 2) }}</td></tr>
-            <tr class="total">
-                <td>Unexplained difference</td>
-                <td class="num {{ abs($rec['unexplained']) >= 0.005 ? 'warn' : '' }}">{{ number_format($rec['unexplained'], 2) }}</td>
-            </tr>
+            @foreach ($pack['reconciliation'] as $row)
+                <tr @if ($row['code'] === '703000') class="total" @endif>
+                    <td @if (in_array($row['code'], ['7031', '7033', '7089'], true)) class="indent" @endif>{{ $row['label'] }}</td>
+                    <td class="code">{{ $row['code'] }}</td>
+                    <td class="num @if ($row['code'] === '703000' && abs($row['amount']) >= 0.005) warn @endif">{{ number_format($row['amount'], 2) }}</td>
+                </tr>
+            @endforeach
         </tbody>
     </table>
 
     <p class="fine">
-        Prepared from this account's own books; not tax advice and not a filed return. Credits, receipted
-        deductions and holding-period capital gains rates are outside what the ledger can know. Enter the
-        figures at iris.fbr.gov.pk, or hand this document to your tax practitioner.
+        Prepared from this account's own books; not tax advice and not a filed return. Withholding (9201) is
+        the movement of account 1600 — IRIS itemises it by section (149, 151, 236…) and this pack shows the
+        one total. Credits, receipted deductions, holding-period capital gains rates and exempt income are
+        outside what the ledger can know. Enter the figures at iris.fbr.gov.pk against the codes shown, or
+        hand this document to your tax practitioner.
     </p>
 </body>
 </html>

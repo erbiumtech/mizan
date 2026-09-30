@@ -21,10 +21,12 @@ use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
 /**
- * The personal return pack: the 114(1) figures, tax already paid, and the wealth
- * statement's reconciliation — over the tenant's real ledger, like the estimate
- * it builds on. The salary arithmetic is pinned by PersonalTaxServiceTest; what
- * is asserted here is the assembly around it.
+ * The personal return pack, in IRIS's own shape: the four-column income heads,
+ * the 9000-series computations, the coded wealth statement and its 703-series
+ * reconciliation — modelled on a real 114(1) print. The bracket arithmetic is
+ * pinned by PersonalTaxServiceTest; what is asserted here is the assembly, and
+ * above all the final/normal split: final-regime income must never join taxable
+ * income (9100), and its tax must land in Fixed/Final (920100).
  */
 class PersonalReturnPackTest extends TestCase
 {
@@ -58,6 +60,12 @@ class PersonalReturnPackTest extends TestCase
         return app(PersonalReturnPack::class)->build($this->year->id);
     }
 
+    /** One coded row out of a coded list — the shape every IRIS block shares. */
+    private function line(array $rows, string $code): array
+    {
+        return collect($rows)->firstWhere('code', $code) ?? $this->fail("no row with code {$code}");
+    }
+
     /** A posted entry moving $amount from $creditCode to $debitCode inside the year. */
     private function book(string $debitCode, string $creditCode, float $amount, string $date = '2025-09-15'): void
     {
@@ -76,20 +84,46 @@ class PersonalReturnPackTest extends TestCase
         app(JournalEntryService::class)->post($entry);
     }
 
-    public function test_the_pack_nets_withheld_tax_against_the_liability(): void
+    /**
+     * The shape of the return this was modelled on: a small salary under the
+     * exempt threshold beside a large export-of-services income. IRIS taxes the
+     * export at a flat final 1% and keeps it out of taxable income entirely —
+     * the return's own draft shows taxable income (9100) as the salary alone.
+     */
+    public function test_final_regime_income_stays_out_of_taxable_income(): void
     {
-        $this->book('1100', '4000', 1_000_000); // salary into the bank
+        $this->book('1100', '4000', 390_500);      // salary — below the threshold, slabs owe nothing
+        $this->book('1100', '4500', 14_176_283);   // export of services — final, 1%
+
+        $pack = $this->pack();
+
+        $this->assertSame(14_566_783.0, $this->line($pack['computations'], '9000')['amount']);
+        $this->assertSame(390_500.0, $this->line($pack['computations'], '9100')['amount']);
+        $this->assertSame(141_762.83, $this->line($pack['computations'], '920100')['amount']);
+        $this->assertSame(141_762.83, $this->line($pack['computations'], '9200')['amount']);
+
+        // The heads print the way the return prints them: export inside head 3000's
+        // final column, salary inside head 1000's normal column.
+        $business = $this->line($pack['heads'], '3000');
+        $this->assertSame(14_176_283.0, $business['final']);
+        $this->assertSame(0.0, $business['normal']);
+        $this->assertSame(390_500.0, $this->line($pack['heads'], '1000')['normal']);
+    }
+
+    public function test_withholding_nets_against_the_chargeable_tax(): void
+    {
+        $this->book('1100', '4000', 1_000_000); // salary: slabs owe 4,000
         $this->book('1600', '1100', 2_500);     // employer's withholding, recorded as the asset it is
 
         $pack = $this->pack();
 
-        // 1% of (1,000,000 - 600,000) — the same figure PersonalTaxServiceTest pins.
-        $this->assertSame(4000.0, $pack['income']['total_payable']);
-        $this->assertSame(2500.0, $pack['tax_paid']);
-        $this->assertSame(1500.0, $pack['balance']);
+        $this->assertSame(4_000.0, $pack['tax_chargeable']);
+        $this->assertSame(2_500.0, $this->line($pack['computations'], '9201')['amount']);
+        $this->assertSame('Admitted Income Tax', $this->line($pack['computations'], '9203')['label']);
+        $this->assertSame(1_500.0, $pack['balance']);
     }
 
-    public function test_the_wealth_statement_reconciles_when_every_flow_is_booked(): void
+    public function test_the_wealth_statement_reconciles_and_carries_iris_codes(): void
     {
         $this->book('1100', '4000', 1_000_000); // income
         $this->book('5100', '1100', 200_000);   // groceries
@@ -100,12 +134,18 @@ class PersonalReturnPackTest extends TestCase
         $this->assertSame(0.0, $pack['wealth']['opening_net']);
         // 797,500 in the bank + 2,500 claimable withholding.
         $this->assertSame(800_000.0, $pack['wealth']['closing_net']);
-        $this->assertSame(1_000_000.0, $pack['reconciliation']['inflows']);
-        $this->assertSame(200_000.0, $pack['reconciliation']['expenses']);
-        $this->assertSame(0.0, $pack['reconciliation']['unexplained']);
+
+        // Each row beside the IRIS 7000-code it declares under.
+        $rows = collect($pack['wealth']['assets']);
+        $this->assertSame('7006', $rows->firstWhere('code', '1100')['iris_code']);
+        $this->assertSame('7015', $rows->firstWhere('code', '1600')['iris_code']);
+
+        $this->assertSame(1_000_000.0, $this->line($pack['reconciliation'], '7049')['amount']);
+        $this->assertSame(200_000.0, $this->line($pack['reconciliation'], '7089')['amount']);
+        $this->assertSame(0.0, $this->line($pack['reconciliation'], '703000')['amount']);
     }
 
-    public function test_wealth_arriving_outside_income_shows_as_unexplained(): void
+    public function test_wealth_arriving_outside_income_shows_as_unreconciled(): void
     {
         $this->book('1100', '4000', 1_000_000);
         // Money into the bank against equity — a gift, or an opening balance set
@@ -113,16 +153,17 @@ class PersonalReturnPackTest extends TestCase
         // reconciliation must refuse to absorb.
         $this->book('1100', '3300', 50_000);
 
-        $this->assertSame(50_000.0, $this->pack()['reconciliation']['unexplained']);
+        $this->assertSame(50_000.0, $this->line($this->pack()['reconciliation'], '703000')['amount']);
+        $this->assertSame(50_000.0, $this->pack()['unreconciled']);
     }
 
-    public function test_the_page_renders_on_a_personal_account_and_downloads_nothing_broken(): void
+    public function test_the_page_renders_on_a_personal_account(): void
     {
         $this->book('1100', '4000', 1_000_000);
 
         Livewire::test(ReturnPack::class)
             ->assertOk()
-            ->assertSee('Payable with the return');
+            ->assertSee('Admitted income tax');
     }
 
     public function test_the_page_is_refused_on_a_business_account(): void

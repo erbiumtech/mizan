@@ -30,6 +30,8 @@ class TaxSchedule extends Model
 
     public const REGIME_CAPITAL_GAINS = TaxRegimes::CAPITAL_GAINS;
 
+    public const REGIME_EXPORT_SERVICES = TaxRegimes::EXPORT_SERVICES;
+
     public const REGIMES = TaxRegimes::ALL;
 
     protected $fillable = [

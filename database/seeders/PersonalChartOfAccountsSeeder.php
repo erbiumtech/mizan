@@ -56,6 +56,9 @@ class PersonalChartOfAccountsSeeder extends Seeder
         ['4100', 'Business Income', 'income', TaxRegimes::BUSINESS],
         ['4200', 'Rental Income', 'income', TaxRegimes::RENTAL],
         ['4300', 'Profit on Investments', 'income', TaxRegimes::CAPITAL_GAINS],
+        // Final-regime income (s.154A): the bank withholds 1% on the remittance and
+        // that is the whole charge — the return pack prints it in the Final column.
+        ['4500', 'Export / IT Services', 'income', TaxRegimes::EXPORT_SERVICES],
         ['4900', 'Other Income', 'income'],
 
         // What goes out.

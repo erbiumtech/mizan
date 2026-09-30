@@ -109,6 +109,22 @@ class TaxScheduleSeeder extends Seeder
         ['min_amount' => 0, 'max_amount' => null, 'fixed_tax' => 0, 'percentage' => 15],
     ];
 
+    /**
+     * Export of services under s.154A: 1% of the gross, withheld by the bank on
+     * the remittance, FINAL — the income never joins taxable income and the 1%
+     * is the whole charge, which is why TaxRegimes lists this regime as final
+     * and an IRIS return prints it in the "Subject to Final Tax" column.
+     *
+     * PSEB-registered IT exporters pay 0.25% instead; that is a fact about the
+     * taxpayer the ledger cannot know, so the mainstream 1% is seeded and the
+     * row is data — correct it for the year if the registration exists.
+     *
+     * @var array<int, array<string, mixed>>
+     */
+    private const EXPORT_SERVICES_BRACKETS = [
+        ['min_amount' => 0, 'max_amount' => null, 'fixed_tax' => 0, 'percentage' => 1],
+    ];
+
     public function run(): void
     {
         $this->seedYear('2025-2026', [
@@ -125,6 +141,7 @@ class TaxScheduleSeeder extends Seeder
             TaxSchedule::REGIME_BUSINESS => self::BUSINESS_BRACKETS,
             TaxSchedule::REGIME_RENTAL => self::RENTAL_BRACKETS,
             TaxSchedule::REGIME_CAPITAL_GAINS => self::CAPITAL_GAINS_BRACKETS,
+            TaxSchedule::REGIME_EXPORT_SERVICES => self::EXPORT_SERVICES_BRACKETS,
         ]);
 
         // Section 4AB, tax year 2026: 9% of the tax for salaried, 10% for
@@ -158,6 +175,7 @@ class TaxScheduleSeeder extends Seeder
             TaxSchedule::REGIME_BUSINESS => self::BUSINESS_BRACKETS,
             TaxSchedule::REGIME_RENTAL => self::RENTAL_BRACKETS,
             TaxSchedule::REGIME_CAPITAL_GAINS => self::CAPITAL_GAINS_BRACKETS,
+            TaxSchedule::REGIME_EXPORT_SERVICES => self::EXPORT_SERVICES_BRACKETS,
         ]);
 
         // Tax year 2027: NO surcharge rows at all. Section 4AB is abolished
