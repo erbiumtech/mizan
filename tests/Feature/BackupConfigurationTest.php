@@ -96,6 +96,24 @@ class BackupConfigurationTest extends TestCase
         $this->assertSame('landlord-', config('backup.backup.destination.filename_prefix'));
     }
 
+    /**
+     * Backups default to the local disk and the monitor watches the same set, so
+     * adding an off-box copy is `BACKUP_DISKS=local,s3` and nothing more. Pinned
+     * because a typo that silently dropped a disk from the write set — or from the
+     * monitor — would leave a backup gap that looks exactly like a working one.
+     */
+    public function test_backup_disks_default_to_local_and_the_monitor_tracks_them(): void
+    {
+        $this->assertSame(['local'], config('backup.backup.destination.disks'));
+        $this->assertSame(
+            config('backup.backup.destination.disks'),
+            config('backup.monitor_backups.0.disks'),
+            'the monitor must watch exactly the disks the backup writes to',
+        );
+
+        $this->assertSame(['local', 's3'], array_map('trim', explode(',', 'local, s3')));
+    }
+
     // ------------------------------------------------------------- the tenants
 
     public function test_a_company_gets_a_connection_pointed_at_its_own_database(): void

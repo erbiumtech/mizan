@@ -214,15 +214,28 @@ return [
 
             /*
              * The disk names on which the backups will be stored.
+             *
+             * Env-driven so an off-box copy is a `.env` line, not a deploy: set
+             * `BACKUP_DISKS=local,s3` and the S3-compatible credentials on the `s3`
+             * disk (config/filesystems.php — it carries `endpoint` and
+             * `use_path_style_endpoint`, so Backblaze B2, Wasabi, DigitalOcean
+             * Spaces or MinIO work, not only AWS). Until then it is `local`, and
+             * `deploy/backups/README.md` states the risk that leaves: an archive on
+             * the same disk as the database it protects survives a bad deploy and
+             * not a dead disk.
              */
-            'disks' => [
-                'local',
-            ],
+            'disks' => array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'local'))),
 
             /*
-             * Determines whether to allow backups to continue when some targets fail instead of failing completely.
+             * Whether a backup that fails to reach ONE disk still writes to the
+             * others. Off by default (a single-disk install wants to know its one
+             * backup failed), but the right choice once a remote disk is added:
+             * a transient network blip to S3 must not throw away the local archive
+             * too — the monitor below watches each disk's age, so a silently stale
+             * remote is still surfaced. Turn on with `BACKUP_CONTINUE_ON_FAILURE=true`
+             * in the same change that adds the remote disk.
              */
-            'continue_on_failure' => false,
+            'continue_on_failure' => (bool) env('BACKUP_CONTINUE_ON_FAILURE', false),
         ],
 
         /*
@@ -376,7 +389,10 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => ['local'],
+            // The same disks the backup writes to — so the health check watches the
+            // off-box copy's age too the moment one is added, and a remote that
+            // silently stops receiving archives goes red rather than unnoticed.
+            'disks' => array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'local'))),
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,

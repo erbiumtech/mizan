@@ -25,9 +25,28 @@ copy, and whoever operates this keeps another in a password manager. The classic
 ## Off the box
 
 An archive on the same disk as the database it backs up survives a bad deploy and
-not a dead disk. Add a remote disk (S3-compatible works) to
-`config/backup.php` → `destination.disks` and `monitor_backups[].disks`. Until
-then the backup is a convenience, not a safeguard, and this file should say so.
+not a dead disk. The destination is env-driven now, so an off-box copy is a `.env`
+change rather than a code one:
+
+```
+BACKUP_DISKS=local,s3
+BACKUP_CONTINUE_ON_FAILURE=true      # a blip to the remote must not lose the local archive
+AWS_ACCESS_KEY_ID=…
+AWS_SECRET_ACCESS_KEY=…
+AWS_BUCKET=…
+AWS_ENDPOINT=https://…              # any S3-compatible host: Backblaze B2, Wasabi, Spaces, MinIO
+AWS_DEFAULT_REGION=…
+```
+
+Then `config:cache` + reload (config is cached on deploy). Both `backup:run` and
+`backup:tenants` write to every disk in `BACKUP_DISKS`, and the health check
+watches each disk's age — so a remote that silently stops receiving archives goes
+red rather than unnoticed. Until a remote disk is set, the backup is a convenience,
+not a safeguard, and this file says so.
+
+The archives are AES-encrypted (BACKUP_ARCHIVE_PASSWORD), so the copy on remote
+storage is unreadable without the password kept off the server — which is what
+makes an off-box copy safe to hold with a third party.
 
 ## The restore drill — do it before you need it
 
