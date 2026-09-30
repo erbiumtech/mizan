@@ -425,6 +425,7 @@
         "App\\Filament\\Widgets\\MyProjectsOverview": "App\\Modules\\Projects\\Filament\\Widgets\\MyProjectsOverview",
         "App\\Filament\\Widgets\\OperationsOverview": "App\\Modules\\Core\\Filament\\Widgets\\OperationsOverview",
         "App\\Filament\\Widgets\\PayrollByEmployeeChart": "App\\Modules\\Payroll\\Filament\\Widgets\\PayrollByEmployeeChart",
+        "App\\Filament\\Widgets\\SalaryTaxCalculator": "App\\Modules\\Payroll\\Filament\\Widgets\\SalaryTaxCalculator",
         "App\\Filament\\Widgets\\ReceivablesPayablesOverview": "App\\Modules\\Invoicing\\Filament\\Widgets\\ReceivablesPayablesOverview"
     },
     "datasets": {

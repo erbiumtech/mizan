@@ -43,6 +43,7 @@ return [
 
     'widgets' => [
         'App\\Filament\\Widgets\\PayrollByEmployeeChart' => \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
+        'App\\Filament\\Widgets\\SalaryTaxCalculator' => \App\Modules\Payroll\Filament\Widgets\SalaryTaxCalculator::class,
     ],
 
     // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
