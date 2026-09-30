@@ -106,6 +106,18 @@ class CorporateReturnPack extends Page
                     ->numeric()
                     ->live(onBlur: true),
 
+                TextInput::make('brought_forward_loss')
+                    ->label('Brought-forward loss')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->helperText('Prior-year business loss to set against this year\'s taxable income; reduces it, not below zero.'),
+
+                TextInput::make('super_tax')
+                    ->label('Super tax (s.4C), amount')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->helperText('An amount, not a rate — its slabs move yearly. Your practitioner computes it; it adds on top of the tax due.'),
+
                 Repeater::make('adjustments')
                     ->label('Tax adjustments to accounting profit')
                     ->columnSpanFull()

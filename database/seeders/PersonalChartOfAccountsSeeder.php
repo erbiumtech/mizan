@@ -41,6 +41,13 @@ class PersonalChartOfAccountsSeeder extends Seeder
         // personal return pack reads this account's in-year movement as "tax
         // already paid", the figure IRIS nets against tax chargeable.
         ['1600', 'Advance & Withheld Tax', 'asset'],
+        // Withholding by IRIS section, for the return pack's per-section breakdown.
+        // Post tax withheld to the section it fell under; anything general stays on
+        // 1600. All of these are summed for the total creditable tax (IRIS 9201).
+        ['1601', 'Tax Withheld — Salary (s.149)', 'asset'],
+        ['1602', 'Tax Withheld — Profit on Debt (s.151)', 'asset'],
+        ['1603', 'Tax Withheld — Property, sale/purchase (s.236C / 236K)', 'asset'],
+        ['1604', 'Tax Withheld — Cash withdrawal & remittance (s.231AB / 236Y)', 'asset'],
 
         // What you owe.
         ['2000', 'Loans', 'liability'],

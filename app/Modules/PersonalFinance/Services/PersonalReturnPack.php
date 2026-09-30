@@ -26,8 +26,25 @@ use App\Support\TaxRegimes;
  */
 class PersonalReturnPack
 {
-    /** The chart code the seeder gives the withheld/advance tax asset. */
+    /** The chart code the seeder gives the general withheld/advance tax asset. */
     public const TAX_PAID_ACCOUNT_CODE = '1600';
+
+    /**
+     * The withholding accounts and the IRIS section each declares under — 1600 the
+     * general one, 1601-1604 the sections a Pakistani individual most often meets.
+     * All are summed for the total creditable tax (9201); a filer who wants IRIS's
+     * per-section breakdown posts to the section account, and one who does not keeps
+     * using 1600 and sees a single line.
+     *
+     * @var array<string, string>
+     */
+    private const WITHHOLDING_SECTIONS = [
+        '1600' => 'General / unspecified',
+        '1601' => 'Salary (s.149)',
+        '1602' => 'Profit on debt (s.151)',
+        '1603' => 'Property, sale/purchase (s.236C / 236K)',
+        '1604' => 'Cash withdrawal & remittance (s.231AB / 236Y)',
+    ];
 
     /**
      * Which IRIS head each regime's income declares under, and the head's label —
@@ -73,7 +90,8 @@ class PersonalReturnPack
 
         $income = $this->tax->estimate($fiscalYearId);
         $heads = $this->heads($income['regimes']);
-        $taxPaid = $this->taxPaidIn($fiscalYearId);
+        $withholding = $this->withholdingBySection($fiscalYearId);
+        $taxPaid = round(array_sum(array_column($withholding, 'tax')), 2);
         $wealth = $this->wealthStatement($year);
         $expenses = $this->expensesIn($fiscalYearId);
 
@@ -103,6 +121,9 @@ class PersonalReturnPack
                 ['code' => '9201', 'label' => 'Withholding Income Tax', 'amount' => $taxPaid, 'final' => null, 'normal' => null],
                 ['code' => '9203', 'label' => $chargeable - $taxPaid >= 0 ? 'Admitted Income Tax' : 'Refundable Income Tax', 'amount' => round(abs($chargeable - $taxPaid), 2), 'final' => null, 'normal' => null],
             ],
+
+            // The one 9201 total broken out the way IRIS itemises it — by section.
+            'withholding_by_section' => $withholding,
 
             'tax_chargeable' => $chargeable,
             'normal_tax' => $normalTax,
@@ -164,26 +185,40 @@ class PersonalReturnPack
     }
 
     /**
-     * Tax withheld or paid in advance during the year: the in-year debits of the
-     * 1600 account, net of corrections. Reads the code the seeder writes; an
-     * account somebody deleted simply reports zero paid, which understates
-     * nothing the books know about.
+     * Tax withheld or paid in advance during the year, by IRIS section — the
+     * in-year movement of each withholding account, net of corrections. Sections
+     * with no movement are dropped; an account a filer never created simply does
+     * not appear, which understates nothing the books know about.
+     *
+     * @return array<int, array{code: string, section: string, tax: float}>
      */
-    private function taxPaidIn(int $fiscalYearId): float
+    private function withholdingBySection(int $fiscalYearId): array
     {
-        $account = Account::query()->where('code', self::TAX_PAID_ACCOUNT_CODE)->first();
+        $rows = [];
 
-        if (! $account) {
-            return 0.0;
+        foreach (self::WITHHOLDING_SECTIONS as $code => $section) {
+            // PHP casts numeric-string array keys to int, so restore the string code.
+            $code = (string) $code;
+            $account = Account::query()->where('code', $code)->first();
+
+            if (! $account) {
+                continue;
+            }
+
+            $lines = JournalEntryLine::query()
+                ->where('account_id', $account->id)
+                ->whereHas('journalEntry', fn ($query) => $query
+                    ->where('is_posted', true)
+                    ->where('fiscal_year_id', $fiscalYearId));
+
+            $tax = round((float) (clone $lines)->sum('debit_amount') - (float) $lines->sum('credit_amount'), 2);
+
+            if (abs($tax) >= 0.005) {
+                $rows[] = ['code' => $code, 'section' => $section, 'tax' => $tax];
+            }
         }
 
-        $lines = JournalEntryLine::query()
-            ->where('account_id', $account->id)
-            ->whereHas('journalEntry', fn ($query) => $query
-                ->where('is_posted', true)
-                ->where('fiscal_year_id', $fiscalYearId));
-
-        return round((float) (clone $lines)->sum('debit_amount') - (float) $lines->sum('credit_amount'), 2);
+        return $rows;
     }
 
     /**

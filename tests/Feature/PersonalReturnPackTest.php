@@ -123,6 +123,27 @@ class PersonalReturnPackTest extends TestCase
         $this->assertSame(1_500.0, $pack['balance']);
     }
 
+    public function test_withholding_is_itemised_by_section_and_summed_to_9201(): void
+    {
+        $this->book('1100', '4000', 3_000_000); // salary
+        // Withholding across three sections, recorded to their section accounts.
+        $this->book('1601', '1100', 300_000);   // salary, s.149
+        $this->book('1602', '1100', 5_000);     // profit on debt, s.151
+        $this->book('1603', '1100', 120_000);   // property, s.236C
+
+        $pack = $this->pack();
+
+        // Each section appears once, general (1600) is absent (no movement), and the
+        // three sum to the 9201 total.
+        $codes = array_column($pack['withholding_by_section'], 'code');
+        $this->assertSame(['1601', '1602', '1603'], $codes);
+        $this->assertSame(425_000.0, $pack['tax_paid']);
+        $this->assertSame(425_000.0, $this->line($pack['computations'], '9201')['amount']);
+
+        // A filer using only the general 1600 still gets a single line and the same total.
+        $this->assertStringContainsString('Salary', collect($pack['withholding_by_section'])->firstWhere('code', '1601')['section']);
+    }
+
     public function test_the_wealth_statement_reconciles_and_carries_iris_codes(): void
     {
         $this->book('1100', '4000', 1_000_000); // income

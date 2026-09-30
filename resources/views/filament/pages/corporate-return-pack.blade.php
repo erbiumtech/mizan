@@ -57,6 +57,12 @@
                                 </td>
                             </tr>
                         @endforeach
+                        @if ($pack['loss_applied'] > 0)
+                            <tr class="border-b border-gray-200 dark:border-white/10">
+                                <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Less: brought-forward loss set off</td>
+                                <td class="px-3 py-2 text-right tabular-nums text-gray-600 dark:text-gray-300">({{ number_format($pack['loss_applied'], 2) }})</td>
+                            </tr>
+                        @endif
                         <tr class="border-b border-gray-200 dark:border-white/10">
                             <td class="px-3 py-2 font-medium text-gray-950 dark:text-white">Taxable income</td>
                             <td class="px-3 py-2 text-right font-medium tabular-nums text-gray-950 dark:text-white">{{ number_format($pack['taxable_income'], 2) }}</td>
@@ -70,7 +76,20 @@
                             <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($pack['minimum_tax'], 2) }}</td>
                         </tr>
                         <tr class="border-b border-gray-200 dark:border-white/10">
-                            <td class="px-3 py-2 font-semibold text-gray-950 dark:text-white">Tax due — the greater applies</td>
+                            <td class="px-3 py-2 text-gray-700 dark:text-gray-200">
+                                Tax on income — the greater of normal and minimum
+                                @if ($pack['super_tax'] > 0), before super tax @endif
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format(max($pack['normal_tax'], $pack['minimum_tax']), 2) }}</td>
+                        </tr>
+                        @if ($pack['super_tax'] > 0)
+                            <tr class="border-b border-gray-200 dark:border-white/10">
+                                <td class="px-3 py-2 text-gray-700 dark:text-gray-200">Add: super tax (s.4C)</td>
+                                <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($pack['super_tax'], 2) }}</td>
+                            </tr>
+                        @endif
+                        <tr class="border-b border-gray-200 dark:border-white/10">
+                            <td class="px-3 py-2 font-semibold text-gray-950 dark:text-white">Tax due</td>
                             <td class="px-3 py-2 text-right font-semibold tabular-nums text-gray-950 dark:text-white">{{ number_format($pack['tax_due'], 2) }}</td>
                         </tr>
                         <tr class="border-b border-gray-200 dark:border-white/10">

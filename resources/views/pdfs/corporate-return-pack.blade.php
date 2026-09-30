@@ -39,10 +39,17 @@
                     <td class="num muted">{{ $adjustment['amount'] < 0 ? '(' . number_format(abs($adjustment['amount']), 2) . ')' : number_format($adjustment['amount'], 2) }}</td>
                 </tr>
             @endforeach
+            @if ($pack['loss_applied'] > 0)
+                <tr><td class="muted">Less: brought-forward loss set off</td><td class="num muted">({{ number_format($pack['loss_applied'], 2) }})</td></tr>
+            @endif
             <tr class="total"><td>Taxable income</td><td class="num">{{ number_format($pack['taxable_income'], 2) }}</td></tr>
             <tr><td>Normal tax at {{ rtrim(rtrim(number_format($pack['worksheet']['tax_rate'], 2), '0'), '.') }}%</td><td class="num">{{ number_format($pack['normal_tax'], 2) }}</td></tr>
             <tr><td>Minimum tax at {{ rtrim(rtrim(number_format($pack['worksheet']['minimum_tax_rate'], 2), '0'), '.') }}% of turnover (s.113)</td><td class="num">{{ number_format($pack['minimum_tax'], 2) }}</td></tr>
-            <tr class="total"><td>Tax due — {{ $pack['basis'] === 'minimum' ? 'minimum tax applies' : 'normal tax applies' }}</td><td class="num">{{ number_format($pack['tax_due'], 2) }}</td></tr>
+            <tr><td>Tax on income — {{ $pack['basis'] === 'minimum' ? 'minimum applies' : 'normal applies' }}</td><td class="num">{{ number_format(max($pack['normal_tax'], $pack['minimum_tax']), 2) }}</td></tr>
+            @if ($pack['super_tax'] > 0)
+                <tr><td>Add: super tax (s.4C)</td><td class="num">{{ number_format($pack['super_tax'], 2) }}</td></tr>
+            @endif
+            <tr class="total"><td>Tax due</td><td class="num">{{ number_format($pack['tax_due'], 2) }}</td></tr>
             <tr><td>Less: advance income tax suffered (account 1260)</td><td class="num">({{ number_format($pack['tax_paid'], 2) }})</td></tr>
             <tr class="total"><td>{{ $pack['balance'] >= 0 ? 'Payable with the return' : 'Refundable / carry forward' }}</td><td class="num">{{ number_format(abs($pack['balance']), 2) }}</td></tr>
         </tbody>

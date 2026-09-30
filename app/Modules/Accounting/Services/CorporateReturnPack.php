@@ -71,6 +71,14 @@ class CorporateReturnPack
         return [
             'tax_rate' => (float) ($worksheet['tax_rate'] ?? self::DEFAULT_TAX_RATE),
             'minimum_tax_rate' => (float) ($worksheet['minimum_tax_rate'] ?? self::DEFAULT_MINIMUM_TAX_RATE),
+            // Brought-forward business loss set against this year's taxable income.
+            // A prior-year figure the ledger cannot know, so it is entered here;
+            // floored at zero because a negative "loss" would be income by the back door.
+            'brought_forward_loss' => round(max(0, (float) ($worksheet['brought_forward_loss'] ?? 0)), 2),
+            // Super tax (s.4C) as an AMOUNT, not a rate: its slabs move every Finance
+            // Act and start above most companies' income, so the practitioner computes
+            // it and enters the figure rather than the pack guessing a bracket table.
+            'super_tax' => round(max(0, (float) ($worksheet['super_tax'] ?? 0)), 2),
             'adjustments' => array_values(array_filter(
                 array_map(fn (array $row): array => [
                     'label' => trim((string) ($row['label'] ?? '')),
@@ -96,16 +104,25 @@ class CorporateReturnPack
         $worksheet = $worksheet !== null ? $this->normalized($worksheet) : $this->worksheet($fiscalYearId);
 
         $adjustmentsTotal = round(array_sum(array_column($worksheet['adjustments'], 'amount')), 2);
-        $taxableIncome = round($pnl['net_profit'] + $adjustmentsTotal, 2);
+        $incomeAfterAdjustments = round($pnl['net_profit'] + $adjustmentsTotal, 2);
+
+        // Brought-forward loss set against this year's income — never more than the
+        // income itself (a loss cannot be created, only absorbed), and never taking
+        // taxable income below zero.
+        $lossApplied = round(min(max(0, $incomeAfterAdjustments), $worksheet['brought_forward_loss']), 2);
+        $taxableIncome = round(max(0, $incomeAfterAdjustments - $lossApplied), 2);
 
         // Turnover for s.113 is the year's revenue; a negative income total is a
         // bookkeeping artefact, not negative turnover.
         $turnover = round(max(0, $pnl['income']['total']), 2);
 
-        $normalTax = round(max(0, $taxableIncome) * $worksheet['tax_rate'] / 100, 2);
+        $normalTax = round($taxableIncome * $worksheet['tax_rate'] / 100, 2);
         $minimumTax = round($turnover * $worksheet['minimum_tax_rate'] / 100, 2);
 
-        $taxDue = max($normalTax, $minimumTax);
+        // Super tax (s.4C) is a separate charge ON TOP of whichever base applies,
+        // not an alternative to it — so it is added after the greater-of comparison.
+        $superTax = $worksheet['super_tax'];
+        $taxDue = round(max($normalTax, $minimumTax) + $superTax, 2);
         $taxPaid = $this->taxPaidIn($fiscalYearId);
 
         return [
@@ -113,12 +130,17 @@ class CorporateReturnPack
             'pnl' => $pnl,
             'worksheet' => $worksheet,
             'adjustments_total' => $adjustmentsTotal,
+            'income_after_adjustments' => $incomeAfterAdjustments,
+            'brought_forward_loss' => $worksheet['brought_forward_loss'],
+            'loss_applied' => $lossApplied,
             'taxable_income' => $taxableIncome,
             'turnover' => $turnover,
             'normal_tax' => $normalTax,
             'minimum_tax' => $minimumTax,
+            'super_tax' => $superTax,
             // Which computation IRIS will apply — named, because "the bigger
-            // number won" is the sentence an accountant checks first.
+            // number won" is the sentence an accountant checks first. Super tax
+            // rides on top of whichever this is.
             'basis' => $minimumTax > $normalTax ? 'minimum' : 'normal',
             'tax_due' => $taxDue,
             'tax_paid' => $taxPaid,

@@ -85,6 +85,39 @@ class CorporateReturnPackTest extends AccountingTestCase
         $this->assertSame(round($pack['tax_due'] - 90_000, 2), $pack['balance']);
     }
 
+    public function test_a_brought_forward_loss_reduces_taxable_income_but_not_below_zero(): void
+    {
+        $this->book('1100', '4100', 10_000_000);
+        $this->book('5100', '1100', 4_000_000); // accounting profit 6,000,000
+
+        // A 2m brought-forward loss: taxable income drops to 4m, normal tax 29% of 4m.
+        $pack = $this->pack(['tax_rate' => 29, 'minimum_tax_rate' => 1.25, 'brought_forward_loss' => 2_000_000]);
+        $this->assertSame(2_000_000.0, $pack['loss_applied']);
+        $this->assertSame(4_000_000.0, $pack['taxable_income']);
+        $this->assertSame(1_160_000.0, $pack['normal_tax']);
+
+        // A loss larger than the income absorbs only what there is — taxable income floors at zero,
+        // and minimum tax then wins.
+        $pack = $this->pack(['tax_rate' => 29, 'minimum_tax_rate' => 1.25, 'brought_forward_loss' => 9_000_000]);
+        $this->assertSame(6_000_000.0, $pack['loss_applied']);
+        $this->assertSame(0.0, $pack['taxable_income']);
+        $this->assertSame(0.0, $pack['normal_tax']);
+        $this->assertSame('minimum', $pack['basis']);
+    }
+
+    public function test_super_tax_adds_on_top_of_the_greater_base(): void
+    {
+        $this->book('1100', '4100', 10_000_000);
+        $this->book('5100', '1100', 4_000_000);
+
+        $pack = $this->pack(['tax_rate' => 29, 'minimum_tax_rate' => 1.25, 'super_tax' => 150_000]);
+
+        // 29% of 6m = 1,740,000 base, plus 150,000 super tax on top.
+        $this->assertSame(1_740_000.0, $pack['normal_tax']);
+        $this->assertSame(150_000.0, $pack['super_tax']);
+        $this->assertSame(1_890_000.0, $pack['tax_due']);
+    }
+
     public function test_the_worksheet_survives_a_round_trip_and_drops_empty_rows(): void
     {
         $service = app(CorporateReturnPack::class);

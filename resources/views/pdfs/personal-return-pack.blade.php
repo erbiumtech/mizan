@@ -76,6 +76,25 @@
         </tbody>
     </table>
 
+    @if ($pack['withholding_by_section'] !== [])
+        <h2>Withholding by section (9201 breakdown)</h2>
+        <table>
+            <thead>
+                <tr><th>Section</th><th>Account</th><th class="num">Tax withheld</th></tr>
+            </thead>
+            <tbody>
+                @foreach ($pack['withholding_by_section'] as $row)
+                    <tr>
+                        <td>{{ $row['section'] }}</td>
+                        <td class="code">{{ $row['code'] }}</td>
+                        <td class="num">{{ number_format($row['tax'], 2) }}</td>
+                    </tr>
+                @endforeach
+                <tr class="total"><td>Total (9201)</td><td></td><td class="num">{{ number_format($pack['tax_paid'], 2) }}</td></tr>
+            </tbody>
+        </table>
+    @endif
+
     <h2>Wealth statement</h2>
     <table>
         <thead>
@@ -124,8 +143,9 @@
 
     <p class="fine">
         Prepared from this account's own books; not tax advice and not a filed return. Withholding (9201) is
-        the movement of account 1600 — IRIS itemises it by section (149, 151, 236…) and this pack shows the
-        one total. Credits, receipted deductions, holding-period capital gains rates and exempt income are
+        the movement of the tax-withheld accounts (1600, and 1601–1604 by section) — post to a section account
+        for the per-section breakdown above; anything general stays on 1600.
+        Credits, receipted deductions, holding-period capital gains rates and exempt income are
         outside what the ledger can know. Enter the figures at iris.fbr.gov.pk against the codes shown, or
         hand this document to your tax practitioner.
     </p>

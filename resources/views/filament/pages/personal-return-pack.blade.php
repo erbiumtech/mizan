@@ -102,6 +102,36 @@
             </div>
         </x-filament::section>
 
+        @if ($pack['withholding_by_section'] !== [])
+            <x-filament::section heading="Withholding by section" description="The 9201 total broken out the way IRIS itemises it.">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase dark:border-white/10 dark:text-gray-400">
+                                <th class="px-3 py-2 font-medium">Section</th>
+                                <th class="px-3 py-2 font-medium">Account</th>
+                                <th class="px-3 py-2 text-right font-medium">Tax withheld</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($pack['withholding_by_section'] as $row)
+                                <tr class="border-b border-gray-200 last:border-0 dark:border-white/10">
+                                    <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $row['section'] }}</td>
+                                    <td class="px-3 py-2 tabular-nums text-gray-500 dark:text-gray-400">{{ $row['code'] }}</td>
+                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($row['tax'], 2) }}</td>
+                                </tr>
+                            @endforeach
+                            <tr>
+                                <td class="px-3 py-2 font-semibold text-gray-950 dark:text-white">Total (9201)</td>
+                                <td></td>
+                                <td class="px-3 py-2 text-right font-semibold tabular-nums text-gray-950 dark:text-white">{{ number_format($pack['tax_paid'], 2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </x-filament::section>
+        @endif
+
         <x-filament::section heading="How the slab tax was worked out" collapsible collapsed>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -200,7 +230,7 @@
         </p>
         <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
             <li>FBR has no filing API: enter these figures at iris.fbr.gov.pk against the codes shown, or hand the PDF to your tax practitioner.</li>
-            <li>Withholding (9201) is the in-year movement of account 1600 — record what banks and employers withhold there, or 9203 overstates what you owe. IRIS itemises withholding by section (149, 151, 236…); this pack shows the one total.</li>
+            <li>Withholding (9201) is the in-year movement of the tax-withheld accounts (1600, and 1601–1604 by section) — record what banks and employers withhold there, or 9203 overstates what you owe. Post to the section account (1601–1604) to see the per-section breakdown IRIS itemises; anything general stays on 1600.</li>
             <li>Everything the tax estimate does not know — credits, receipted deductions, holding-period capital gains rates, exempt income — this pack does not know either. The Exemption column is zeros until an exempt regime exists.</li>
         </ul>
     </x-filament::section>
