@@ -105,12 +105,17 @@ return [
         ],
 
         /*
-         * Production's mailer: Mailgun first, SendGrid when Mailgun fails. In order, and the
+         * Production's mailer: SendGrid first, Mailgun when SendGrid fails. In order, and the
          * order is the decision — the second is only ever tried after the first has thrown.
          *
-         * Mailgun leads because it is the domain this installation authenticates as, over SMTP;
-         * SendGrid is the standby behind it. The comment in the live `.env` states this order, so
-         * it is stated here in the file that decides it.
+         * SendGrid leads because it is the leg that actually authenticates and delivers: Mailgun
+         * led once, on the reasoning that it sends as this installation's own domain (`mg.erbium.ch`,
+         * SPF/DKIM aligned), but its SMTP credentials on prod fail 535, so every send failed Mailgun
+         * first and fell through to SendGrid anyway — a per-send error logged on the happy path and a
+         * "primary" that never delivered. Until the Mailgun SMTP credentials are fixed (postmaster user
+         * + SMTP password, not the API key), the working provider leads and Mailgun is the standby.
+         * For SendGrid to be domain-aligned rather than sending unauthenticated, its own DKIM/CNAME
+         * records for erbium.tech should be set up in the SendGrid dashboard.
          *
          * Deliberately no `log` at the end. A chain that "fails over" to the log delivers
          * nothing and reports success, which for a payslip or a password reset is the worst
@@ -119,13 +124,11 @@ return [
          */
         'failover' => [
             'transport' => 'failover',
-            // In the order the block above states, and the order is the decision: Mailgun is the domain
-            // this installation authenticates as, SendGrid is the standby behind it. These two were the
-            // wrong way round — the comment, the live `.env` and `MailFailoverTest` all said Mailgun first
-            // while the array sent every payslip through SendGrid.
+            // SendGrid first (it works), Mailgun as the standby (its SMTP auth needs fixing to be a
+            // real fallback). Reversed from Mailgun-first on 2026-09-30 — see the comment above.
             'mailers' => [
-                'mailgun',
                 'sendgrid',
+                'mailgun',
             ],
         ],
 
