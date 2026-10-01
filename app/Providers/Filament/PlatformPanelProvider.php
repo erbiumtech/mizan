@@ -73,7 +73,14 @@ class PlatformPanelProvider extends PanelProvider
             ->passwordReset()
             // Everyone who can sign in here is a super admin, so the second factor is required of all of
             // them. Same provider as the admin panel; see AdminPanelProvider for the reasoning.
-            ->multiFactorAuthentication([AppAuthentication::make()->recoverable()], isRequired: true)
+            // Required of every super admin — except in local/testing, where a developer
+            // should not be forced to enrol an authenticator app to reach the panel. The
+            // guard is the environment, not an env flag, so prod can never drop it by a
+            // mis-set variable. Same reasoning as the admin panel. See AdminPanelProvider.
+            ->multiFactorAuthentication(
+                [AppAuthentication::make()->recoverable()],
+                isRequired: fn (): bool => ! app()->environment('local', 'testing'),
+            )
             ->profile(EditProfile::class)
             ->brandName('ErbiumTech Platform')
             ->brandLogo(asset('images/logo.png'))

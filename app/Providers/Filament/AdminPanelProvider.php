@@ -202,13 +202,21 @@ class AdminPanelProvider extends PanelProvider
              * the panel refuses to proceed until it is set up — for super admins and for anybody holding
              * Administrator in any company; see User::mustUseMultiFactorAuthentication() for why that is
              * asked team-agnostically. Optional for everyone else, who may still enrol.
+             *
+             * **Enrolment is not forced in `local` or `testing`.** A developer should not have to set up an
+             * authenticator app to open the panel on their machine, and the suite should not be dragged
+             * through the setup flow. Staging and production still enforce it — the guard is on the
+             * environment, not an env flag, so there is nothing to misset that would drop the second factor
+             * on prod. A user who has enrolled is still challenged at login everywhere; this only governs
+             * whether an un-enrolled one is forced to set up.
              */
             ->multiFactorAuthentication(
                 [AppAuthentication::make()->recoverable()],
                 // No `User $user` parameter, deliberately: Filament evaluates this while the panel boots, with
                 // nobody signed in to inject, and a typed parameter it cannot resolve takes the whole
                 // application down before the login page renders. Read the user when asked instead.
-                isRequired: fn (): bool => (($user = Filament::auth()->user()) instanceof User)
+                isRequired: fn (): bool => ! app()->environment('local', 'testing')
+                    && (($user = Filament::auth()->user()) instanceof User)
                     && $user->mustUseMultiFactorAuthentication(),
             )
             // Self-service password change (user menu → Change Password).

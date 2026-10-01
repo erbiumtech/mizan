@@ -24,6 +24,20 @@ class MultiFactorAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_enrolment_is_not_forced_in_local_and_testing(): void
+    {
+        // The requirement is gated on the environment: production enforces it, local
+        // and testing (this run) do not — so a super admin with no secret is not
+        // dragged to the setup page just to open the panel on a dev machine.
+        foreach (['admin', 'platform'] as $panel) {
+            $required = (bool) value(Filament::getPanel($panel)->isMultiFactorAuthenticationRequired());
+            $this->assertFalse($required, "[{$panel}] forces MFA enrolment in testing");
+        }
+
+        // The factor is still offered — not forced is not the same as not available.
+        $this->assertTrue(Filament::getPanel('platform')->hasMultiFactorAuthentication());
+    }
+
     public function test_both_panels_offer_an_authenticator_app_with_recovery_codes(): void
     {
         foreach (['admin', 'platform'] as $panel) {
