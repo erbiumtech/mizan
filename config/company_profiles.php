@@ -241,6 +241,21 @@ return [
         'seeders' => $businessWithLeave,
     ],
 
+    // A non-profit's operations — the books, staff and programmes. Deliberately
+    // only that: there is no non-profit tax treatment yet (the exemption, the nil
+    // return, the s.113 carve-out are legal-entity-plan phase 5, gated on the
+    // advisor's §7 answers). So the profile sets a company up to operate; it does
+    // not make it exempt. The description says so, because an operator who read
+    // "NGO" as "exempt" and relied on the ordinary-company return pack would be
+    // the silent failure §8 of the plan warns about.
+    'ngo' => [
+        'label' => 'Non-profit / NGO',
+        'description' => 'A charity, trust or NGO: donor and grant funds through the books, staff on payroll, and programmes run as projects with their expense claims. Sets up operations only — the non-profit tax exemption and nil return are not built yet, so until then the return pack taxes it as an ordinary company. Do not rely on it for an exempt entity\'s filing.',
+        'type' => Company::TYPE_BUSINESS,
+        'modules' => ['accounting', 'invoicing', 'employees', 'payroll', 'attendance', 'leave', 'projects', 'expenses', 'crm'],
+        'seeders' => $businessWithLeave,
+    ],
+
     'bookkeeping' => [
         'label' => 'Bookkeeping Only',
         'description' => 'The books and the invoices, nothing else. No employees, so no payroll and no salary slabs.',
