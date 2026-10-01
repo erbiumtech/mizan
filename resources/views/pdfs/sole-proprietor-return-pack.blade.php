@@ -1,10 +1,11 @@
 {{-- Dompdf renders this too: tables and inline styles only. The accountant's
-     working paper for a sole proprietor's business-income head. --}}
+     working paper for a slab-taxed business (sole proprietor or AOP). --}}
+@php($isAop = ($pack['entity'] ?? null) === \App\Modules\Core\Models\Company::LEGAL_AOP)
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Sole proprietor return pack {{ $pack['year']->name }}</title>
+    <title>{{ $pack['entity_label'] ?? 'Sole Proprietor' }} return pack {{ $pack['year']->name }}</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1f2937; margin: 28px; }
         h1 { font-size: 16px; margin: 0 0 2px; }
@@ -18,10 +19,10 @@
     </style>
 </head>
 <body>
-    <h1>Sole proprietor return pack — {{ $pack['year']->name }}</h1>
+    <h1>{{ $pack['entity_label'] ?? 'Sole Proprietor' }} return pack — {{ $pack['year']->name }}</h1>
     <p class="muted">
         FBR Tax Year {{ $pack['year']->end_date->format('Y') }} · prepared {{ now()->format('d M Y') }} ·
-        business profit on the individual slabs · for entry into IRIS — not filed
+        business profit on the {{ $isAop ? 'non-salaried/AOP' : 'individual' }} slabs · for entry into IRIS — not filed
     </p>
 
     <h2>From accounting profit to tax due</h2>
@@ -46,8 +47,14 @@
     </table>
 
     <p class="fine">
-        A sole proprietor files an individual return (114(1)); this is the business-income head, taxed on the
-        owner's individual slabs. Salary, rental or other personal income is entered alongside it on the return.
+        @if ($isAop)
+            An AOP/partnership files its own return; its profit is taxed on the non-salaried/AOP slab schedule.
+            Each partner's share is then excluded in the partner's own hands — it has already borne tax at the
+            AOP, so it is not taxed twice.
+        @else
+            A sole proprietor files an individual return (114(1)); this is the business-income head, taxed on the
+            owner's individual slabs. Salary, rental or other personal income is entered alongside it on the return.
+        @endif
         Minimum tax (s.113) applies the greater of the slab tax and the turnover rate, but only above the
         threshold on the worksheet — confirm that figure, as it moves between Finance Acts. The
         adjustments are hand-kept; advance tax is the movement of account 1260. Not tax advice, not a filed

@@ -5,9 +5,11 @@ namespace App\Modules\PersonalFinance\Services;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Services\FinancialReportService;
+use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Support\TaxRegimes;
 use App\Support\TenantSettings;
+use Filament\Facades\Filament;
 
 /**
  * The return pack for a sole proprietor: a business keeping full business books,
@@ -113,8 +115,17 @@ class SoleProprietorReturnPack
         $taxDue = round(max($slabTax, $minimumTax), 2);
         $taxPaid = $this->taxPaidIn($fiscalYearId);
 
+        // Which slab-taxed entity this is, for the title and filing footnote the
+        // PDF renders standalone (it has no page to ask). The computation above is
+        // identical for both; only the wording differs. Default sole proprietor
+        // when no tenant is current — a safe label, never a wrong figure.
+        $company = Filament::getTenant() ?? Company::current();
+        $isAop = (bool) $company?->isAop();
+
         return [
             'year' => $year,
+            'entity' => $isAop ? Company::LEGAL_AOP : Company::LEGAL_SOLE_PROPRIETOR,
+            'entity_label' => $isAop ? 'Partnership / AOP' : 'Sole Proprietor',
             'pnl' => $pnl,
             'worksheet' => $worksheet,
             'adjustments_total' => $adjustmentsTotal,

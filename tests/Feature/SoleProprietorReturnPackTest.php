@@ -126,6 +126,32 @@ class SoleProprietorReturnPackTest extends AccountingTestCase
         $this->assertFalse(\App\Modules\Accounting\Filament\Pages\CorporateReturnPack::canAccess());
     }
 
+    public function test_an_aop_is_routed_here_on_the_same_schedule_and_labelled_as_one(): void
+    {
+        \Illuminate\Support\Facades\Gate::before(fn () => true);
+
+        $company = Company::factory()->create(['type' => Company::TYPE_BUSINESS, 'legal_entity' => Company::LEGAL_AOP]);
+        $user = User::factory()->create(['status' => 1]);
+        $company->users()->attach($user->getKey());
+        $this->actingAs($user);
+        $this->setCurrentTenant($company);
+
+        // An AOP opens the same pack, away from the corporate one.
+        $this->assertTrue(Page::canAccess());
+        $this->assertFalse(\App\Modules\Accounting\Filament\Pages\CorporateReturnPack::canAccess());
+
+        // Same books as the sole-proprietor case → same tax, because an AOP files
+        // on the same non-salaried/AOP schedule. Only the label differs.
+        $this->book('1100', '4100', 5_000_000);
+        $this->book('5100', '1100', 3_000_000); // net profit 2,000,000
+
+        $pack = app(SoleProprietorReturnPack::class)->build($this->fiscalYear->id);
+
+        $this->assertSame(290_000.0, $pack['tax_due']);
+        $this->assertSame(Company::LEGAL_AOP, $pack['entity']);
+        $this->assertSame('Partnership / AOP', $pack['entity_label']);
+    }
+
     public function test_an_ordinary_company_sees_the_corporate_pack_not_this_one(): void
     {
         \Illuminate\Support\Facades\Gate::before(fn () => true);

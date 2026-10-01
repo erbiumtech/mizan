@@ -53,11 +53,11 @@ class CorporateReturnPack extends Page
         }
 
         // The mirror of the personal pack's guard, for the mirrored reason — plus
-        // the sole proprietor, who is a business but files on individual slabs and
-        // opens the Sole Proprietor pack instead, not this corporate one.
+        // the slab-taxed businesses (sole proprietor, AOP), which file on the
+        // individual/AOP slabs and open that pack instead, not this corporate one.
         $company = Filament::getTenant() ?? Company::current();
 
-        if (($company?->isPersonal() ?? true) || ($company?->isSoleProprietor() ?? false)) {
+        if (($company?->isPersonal() ?? true) || ($company?->isSlabTaxedBusiness() ?? false)) {
             return false;
         }
 

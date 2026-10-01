@@ -91,7 +91,11 @@
     <x-filament::section>
         <p class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">Prepared for filing, not filed</p>
         <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
-            <li>A sole proprietor files an individual return (114(1)); this is the business-income head, taxed on your individual slabs. Any salary, rental or other personal income is entered on the return alongside it.</li>
+            @if (($pack['entity'] ?? null) === \App\Modules\Core\Models\Company::LEGAL_AOP)
+                <li>An AOP/partnership files its own return; its profit is taxed on the non-salaried/AOP slab schedule. Each partner's share is then excluded in the partner's own hands (it has already borne tax at the AOP), so it is not taxed twice.</li>
+            @else
+                <li>A sole proprietor files an individual return (114(1)); this is the business-income head, taxed on your individual slabs. Any salary, rental or other personal income is entered on the return alongside it.</li>
+            @endif
             <li>Minimum tax (s.113) applies the greater of the slab tax and {{ rtrim(rtrim(number_format($pack['worksheet']['minimum_tax_rate'] ?? 1.25, 2), '0'), '.') }}% of turnover, but only once turnover reaches the threshold on the worksheet — confirm that figure with your practitioner, as it has moved between Finance Acts.</li>
             <li>The adjustments are yours to keep true — tax vs accounting depreciation, inadmissible expenses, exempt income. Advance tax is the in-year movement of account 1260.</li>
         </ul>

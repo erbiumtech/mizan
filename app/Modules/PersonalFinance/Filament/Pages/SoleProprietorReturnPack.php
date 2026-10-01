@@ -19,9 +19,11 @@ use Filament\Schemas\Schema;
 use UnitEnum;
 
 /**
- * A sole proprietor's return: business profit taxed on the owner's individual
- * slabs. Shown only for a business-type company marked a sole proprietor — a
- * company proper opens the Corporate pack instead, which excludes this entity.
+ * The slab-business return: business profit taxed on the individual/AOP slab
+ * schedule rather than a company rate. Serves both entities on that schedule —
+ * a sole proprietor and an AOP/partnership — since the arithmetic is identical;
+ * only the title and one filing footnote differ. A company proper opens the
+ * Corporate pack instead, which excludes both of these entities.
  */
 class SoleProprietorReturnPack extends Page
 {
@@ -33,8 +35,6 @@ class SoleProprietorReturnPack extends Page
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $title = 'Sole Proprietor Return Pack';
-
     protected static ?int $navigationSort = 7;
 
     public ?array $data = [];
@@ -45,16 +45,33 @@ class SoleProprietorReturnPack extends Page
             return false;
         }
 
-        // A business that is a sole proprietor — the one entity whose business
-        // profit is the owner's individual income. Not a personal account (that
-        // is the ordinary Return Pack), not a company (that is the Corporate one).
+        // A business taxed on the individual/AOP slabs — a sole proprietor or an
+        // AOP. Not a personal account (that is the ordinary Return Pack), not a
+        // company (that is the Corporate one).
         $company = Filament::getTenant() ?? Company::current();
 
-        if (! $company || $company->isPersonal() || ! $company->isSoleProprietor()) {
+        if (! $company || $company->isPersonal() || ! $company->isSlabTaxedBusiness()) {
             return false;
         }
 
         return auth()->user()?->can('ReportView') ?? false;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->entityLabel().' Return Pack';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        $company = Filament::getTenant() ?? Company::current();
+
+        return ($company?->slabBusinessLabel() ?? 'Sole Proprietor').' Return Pack';
+    }
+
+    private function entityLabel(): string
+    {
+        return (Filament::getTenant() ?? Company::current())?->slabBusinessLabel() ?? 'Sole Proprietor';
     }
 
     public function mount(): void

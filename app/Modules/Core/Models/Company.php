@@ -39,6 +39,8 @@ class Company extends SpatieTenant
 
     public const LEGAL_SOLE_PROPRIETOR = 'sole_proprietor';
 
+    public const LEGAL_AOP = 'aop';
+
     public const LEGAL_COMPANY = 'company';
 
     public const LEGAL_SMALL_COMPANY = 'small_company';
@@ -47,6 +49,7 @@ class Company extends SpatieTenant
     public const LEGAL_ENTITY_LABELS = [
         self::LEGAL_INDIVIDUAL => 'Individual',
         self::LEGAL_SOLE_PROPRIETOR => 'Sole proprietor (business taxed on individual slabs)',
+        self::LEGAL_AOP => 'Partnership / AOP (non-salaried slab schedule)',
         self::LEGAL_COMPANY => 'Company',
         self::LEGAL_SMALL_COMPANY => 'Small company (s.2(59A) reduced rate)',
     ];
@@ -160,6 +163,34 @@ class Company extends SpatieTenant
     public function isSoleProprietor(): bool
     {
         return $this->legalEntity() === self::LEGAL_SOLE_PROPRIETOR;
+    }
+
+    /**
+     * An association of persons / partnership: a business whose profit is taxed
+     * on the non-salaried/AOP slab schedule — the same schedule as a sole
+     * proprietor's business income, which is why both open the same pack.
+     */
+    public function isAop(): bool
+    {
+        return $this->legalEntity() === self::LEGAL_AOP;
+    }
+
+    /**
+     * A business whose profit files on the individual/AOP slab schedule rather
+     * than a company flat rate — a sole proprietor or an AOP. Both open the
+     * slab-business return pack; an ordinary company or small company opens the
+     * corporate one. The single predicate both packs gate on, so a new slab
+     * entity is added in one place, not scattered across every canAccess().
+     */
+    public function isSlabTaxedBusiness(): bool
+    {
+        return $this->isSoleProprietor() || $this->isAop();
+    }
+
+    /** Short name for the slab-business return pack this entity opens. */
+    public function slabBusinessLabel(): string
+    {
+        return $this->isAop() ? 'Partnership / AOP' : 'Sole Proprietor';
     }
 
     /**
