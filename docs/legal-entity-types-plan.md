@@ -1,15 +1,22 @@
 # Legal entity types: taxing a partnership, a sole proprietor and a non-profit correctly
 
-> **Not built — this is a plan from an assessment.** Nothing here has been
-> written; the phasing in §6 is the proposal. The company-profile mechanism it
-> builds on is `docs/company-profiles-plan.md` (built), and the two return packs
-> it extends are the Corporate and Personal packs (built, see
-> `CorporateReturnPackTest`, `PersonalReturnPackTest`).
+> **Status: seven of nine phases built; two gated on the advisor.** Phases
+> 1–4, 6, 7 and 9 are built — the `legal_entity` dimension, the sole-proprietor
+> and AOP routing, the individual/AOP s.113 minimum tax, the commission/s.233
+> account, the small-company rate, and the platform form. See
+> `SoleProprietorReturnPackTest`, `CorporateReturnPackTest`,
+> `PersonalReturnPackTest`, `PersonalTaxServiceTest` and `CompanyProfileTest`.
+> **Phase 5 (non-profit) and phase 8 (LLP) are deliberately not built** — each
+> needs a §7 answer and building either blind would ship a wrong rate as
+> authoritative. The per-phase state is in §6.
 >
-> **The tax treatments below are researched, not authoritative.** Every rate,
-> schedule and exemption is for a tax advisor to confirm before a company relies
-> on it — getting an AOP's rate or an NPO's exemption wrong is worse than the
-> honest binary the application has today. §7 lists exactly what to confirm.
+> **The tax treatments below are researched, not authoritative.** The phases
+> already built proceeded on researched values pending the advisor's
+> confirmation (§7 Q1, Q2, Q4, Q5, Q6); every rate, schedule and exemption is
+> still for a tax advisor to confirm before a company relies on it — getting an
+> AOP's rate or an NPO's exemption wrong is worse than the honest binary the
+> application had. §7 lists exactly what to confirm; Q3 and Q7 are what remain
+> blocking.
 
 ## 1. The problem: one field is doing two jobs
 
@@ -56,12 +63,12 @@ head 3000). So the arithmetic a partnership and a sole proprietor need is presen
 
 ## 3. The headline entities, and where each lands today
 
-| Entity | Modules it needs | Correct tax | Today |
+| Entity | Modules it needs | Correct tax | Now |
 |---|---|---|---|
-| **Sole proprietorship** | business (invoicing, inventory) | individual slabs on business income | tax engine is the *personal* pack, which cannot license business modules — split-brained |
-| **Partnership / AOP** | business | the non-salaried/AOP slab schedule (seeded) | `business` type → corporate pack → 29% flat — **wrong basis** |
-| **Non-profit / NPO** | bookkeeping | exempt (s.2(36)/100C), s.113 carve-outs | corporate pack → 29% + minimum on an exempt entity — **unsupported** |
-| **Commission shop / agent** | business | ordinary business income; withholding s.233 | income supported; s.233 lands on the general 1600 account, not a labelled section — **mostly works** |
+| **Sole proprietorship** | business (invoicing, inventory) | individual slabs on business income | **built (phase 2)** — a `sole_proprietor` business routes to the slab-business pack (business modules + individual tax) |
+| **Partnership / AOP** | business | the non-salaried/AOP slab schedule (seeded) | **built (phase 4)** — an `aop` business opens the same slab-business pack, with its own label and filing note |
+| **Non-profit / NPO** | bookkeeping | exempt (s.2(36)/100C), s.113 carve-outs | **not built (phase 5)** — corporate pack → 29% + minimum on an exempt entity; an `ngo` *profile* exists but sets up operations only, not exemption |
+| **Commission shop / agent** | business | ordinary business income; withholding s.233 | **built (phase 6)** — a `commission` income regime (business head, slab-taxed) and s.233 withholding itemised on account `1605` |
 
 ## 4. The decision: a `legal_entity` dimension, separate from `profile`
 
@@ -130,16 +137,18 @@ profile switch should not pretend to cover.
 
 ## 5. Schema
 
-- `companies.legal_entity` — string, nullable, indexed; null reads as the
-  type-derived default (`company` for business, `individual` for personal) so no
-  backfill is required and the column can ship dark.
-- `companies.tax_exempt_ref` / `tax_exempt_approved_on` — the NPO's approval under
-  s.2(36)/100C, recorded the way `invoices.commissioner_approval_ref` already
-  records a sales-tax permission: printed on the return pack, relied on only when
-  present, logged.
+- `companies.legal_entity` — **built.** String, nullable, indexed; null reads as
+  the type-derived default (`company` for business, `individual` for personal) so
+  no backfill was required and the column shipped dark.
+- `companies.tax_exempt_ref` / `tax_exempt_approved_on` — **not built (phase 5).**
+  The NPO's approval under s.2(36)/100C, to be recorded the way
+  `invoices.commissioner_approval_ref` already records a sales-tax permission:
+  printed on the return pack, relied on only when present, logged.
 - A **s.233 commission** withholding section account (`1605`) beside the
-  `1601–1604` already seeded, and a `commission` income regime label — the minor
-  commission-shop gap.
+  `1601–1604`, and a `commission` income regime label — **built (phase 6).** The
+  regime declares under the business head and is slab-taxed; it has no schedule of
+  its own but is a declared borrower of the business schedule
+  (`TaxRegimes::SCHEDULE_ALIASES`). Income account `4400` carries it.
 
 ## 6. Phasing
 
@@ -148,20 +157,25 @@ as authoritative is worse than the current honest two-case model.
 
 | Phase | Work | Risk | State |
 |---|---|---|---|
-| **1** | `legal_entity` column + accessor, defaulting to the type-derived value; no behaviour change | none | not built |
-| **2** | **Sole proprietor** — route a `sole_proprietor` business-type company to the Personal engine for its return pack, so business modules and individual tax coexist | medium — crosses the module/tax split for the first time | not built |
-| **3** | **s.113 minimum tax for individuals/AOPs** in the Personal engine, since phase 2 now files real business turnover through it | medium — changes an existing computation | not built |
-| **4** | **Partnership / AOP** — a return pack variant on the non-salaried schedule (the schedule exists; this routes to it) | medium | not built |
-| **5** | **Non-profit** — the exemption fields, a nil/annotated return, the s.113 carve-out | medium — legal, needs §7 answers | not built |
-| **6** | **Commission** — the `1605` s.233 account and the income-regime label | low | not built |
-| **7** | **Small company** — a `small_company` value that defaults the Corporate pack's rate to the s.2(59A) reduced rate; qualification stays the operator's to assert | low — the rate is already a field | not built |
-| **8** | **LLP** — route `llp` to whichever engine §7 confirms (AOP schedule or company) | low once confirmed | not built, needs §7 answers |
-| **9** | Platform panel: `legal_entity` on the company form, and the return pack each entity opens | low | not built |
+| **1** | `legal_entity` column + accessor, defaulting to the type-derived value; no behaviour change | none | **built** |
+| **2** | **Sole proprietor** — route a `sole_proprietor` business-type company to the Personal engine for its return pack, so business modules and individual tax coexist | medium — crosses the module/tax split for the first time | **built** — `SoleProprietorReturnPack` (service + page), gated on `Company::isSoleProprietor()` |
+| **3** | **s.113 minimum tax for individuals/AOPs** in the Personal engine, since phase 2 now files real business turnover through it | medium — changes an existing computation | **built** — greater-of slab vs turnover minimum in the sole-proprietor pack, threshold a worksheet field |
+| **4** | **Partnership / AOP** — a return pack variant on the non-salaried schedule (the schedule exists; this routes to it) | medium | **built** — `aop` shares the sole-proprietor engine (same schedule) via `Company::isSlabTaxedBusiness()`, with its own label/footnote |
+| **5** | **Non-profit** — the exemption fields, a nil/annotated return, the s.113 carve-out | medium — legal, needs §7 answers | **not built — blocked on §7 Q3** (an `ngo` profile exists for operations, no tax treatment) |
+| **6** | **Commission** — the `1605` s.233 account and the income-regime label | low | **built** — `commission` regime (business head, slab-taxed, borrows the business schedule), `1605`/`4400` seeded |
+| **7** | **Small company** — a `small_company` value that defaults the Corporate pack's rate to the s.2(59A) reduced rate; qualification stays the operator's to assert | low — the rate is already a field | **built** — `Company::isSmallCompany()` defaults the worksheet to the reduced rate |
+| **8** | **LLP** — route `llp` to whichever engine §7 confirms (AOP schedule or company) | low once confirmed | **not built — blocked on §7 Q7** |
+| **9** | Platform panel: `legal_entity` on the company form, and the return pack each entity opens | low | **built** — the field is on `CompanyForm` (business only); each entity's `canAccess()` opens the right pack |
 
 Phases 2–8 are independent once phase 1 lands — build only the entities a real
-customer needs, in any order.
+customer needs, in any order. The two left (5, 8) are each held by one §7
+answer, not by effort.
 
-## 7. What to confirm before building — for the tax advisor
+## 7. What to confirm — for the tax advisor
+
+**Q3 and Q7 still block phases 5 and 8 — they must be answered before those are
+built. Q1, Q2, Q4, Q5 and Q6 were proceeded on using researched values and now
+need confirming against the live figures, not awaiting an answer to start.**
 
 1. **AOP rates.** Is `BUSINESS_BRACKETS` (the non-salaried/AOP schedule) the
    current, correct table for a partnership for the tax year in question, and does
