@@ -6,6 +6,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use App\Support\CompanyProfiles;
 use App\Support\Modules;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -87,9 +88,25 @@ class CompanyForm
                 ->label('Legal / tax entity')
                 ->options(Company::LEGAL_ENTITY_LABELS)
                 ->placeholder('Company (default)')
+                ->live()
                 ->visible(fn (Get $get, ?Company $record): bool => ($record?->type ?? $get('type')) !== Company::TYPE_PERSONAL)
                 ->helperText('Decides how the return pack taxes this company. A small company (s.2(59A)) '
-                    .'opens the pack at the reduced rate; qualification is yours to assert. Blank = ordinary company.'),
+                    .'opens the pack at the reduced rate; an LLP is taxed as a company; a non-profit is '
+                    .'exempt subject to approval. Qualification is yours to assert. Blank = ordinary company.'),
+
+            // The NPO's approval, shown only for a non-profit. The return pack prints
+            // these and relies on them only when present; the s.100C credit that
+            // would use them is not computed yet. See docs/legal-entity-types-plan.md.
+            TextInput::make('tax_exempt_ref')
+                ->label('Tax-exemption approval reference')
+                ->placeholder('e.g. the s.2(36) approval / exemption certificate number')
+                ->visible(fn (Get $get): bool => $get('legal_entity') === Company::LEGAL_NON_PROFIT)
+                ->helperText('The Commissioner\'s approval under s.2(36). Recorded and printed; the exemption is relied on only when present.'),
+
+            DatePicker::make('tax_exempt_approved_on')
+                ->label('Approved on')
+                ->native(false)
+                ->visible(fn (Get $get): bool => $get('legal_entity') === Company::LEGAL_NON_PROFIT),
 
             // Only asked on create — the assigned user becomes this company's
             // Administrator (attached + given the Administrator role in its team).

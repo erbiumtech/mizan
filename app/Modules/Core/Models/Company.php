@@ -45,6 +45,25 @@ class Company extends SpatieTenant
 
     public const LEGAL_SMALL_COMPANY = 'small_company';
 
+    /**
+     * A Limited Liability Partnership (LLP Act 2017). A body corporate, so the
+     * Income Tax Ordinance's definition of "company" (s.80) catches it: taxed as
+     * a company, at the corporate rate, NOT on the AOP slabs — it opens the
+     * Corporate pack. Its own value rather than folded into `company` so an
+     * operator can record what the entity actually is. See §7 Q7 of the plan;
+     * researched, advisor to confirm.
+     */
+    public const LEGAL_LLP = 'llp';
+
+    /**
+     * An approved non-profit (s.2(36)). The exemption is a 100% tax credit under
+     * s.100C with conditions, plus a s.113 minimum-tax carve-out — not a blanket
+     * exemption, and the return is still filed. Only the scaffolding is built:
+     * the approval fields below and the Corporate pack's notice. The credit math
+     * is §7 Q3, held for the advisor (the one with real legal exposure).
+     */
+    public const LEGAL_NON_PROFIT = 'non_profit';
+
     /** @var array<string, string> the legal entities an operator may pick, label by value */
     public const LEGAL_ENTITY_LABELS = [
         self::LEGAL_INDIVIDUAL => 'Individual',
@@ -52,6 +71,8 @@ class Company extends SpatieTenant
         self::LEGAL_AOP => 'Partnership / AOP (non-salaried slab schedule)',
         self::LEGAL_COMPANY => 'Company',
         self::LEGAL_SMALL_COMPANY => 'Small company (s.2(59A) reduced rate)',
+        self::LEGAL_LLP => 'Limited Liability Partnership (taxed as a company)',
+        self::LEGAL_NON_PROFIT => 'Non-profit / NGO (approved u/s 2(36))',
     ];
 
     protected $fillable = [
@@ -60,12 +81,15 @@ class Company extends SpatieTenant
         'type',
         'profile',
         'legal_entity',
+        'tax_exempt_ref',
+        'tax_exempt_approved_on',
         'database',
         'status',
     ];
 
     protected $casts = [
         'status' => 'integer',
+        'tax_exempt_approved_on' => 'date',
     ];
 
     public function getRouteKeyName(): string
@@ -153,6 +177,21 @@ class Company extends SpatieTenant
     public function isSmallCompany(): bool
     {
         return $this->legalEntity() === self::LEGAL_SMALL_COMPANY;
+    }
+
+    /**
+     * A Limited Liability Partnership — a body corporate taxed as a company, so
+     * it opens the Corporate pack, not the AOP/slab one. See the constant.
+     */
+    public function isLlp(): bool
+    {
+        return $this->legalEntity() === self::LEGAL_LLP;
+    }
+
+    /** An approved non-profit (s.2(36)). See the constant for what is and is not built. */
+    public function isNonProfit(): bool
+    {
+        return $this->legalEntity() === self::LEGAL_NON_PROFIT;
     }
 
     /**

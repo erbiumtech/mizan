@@ -133,6 +133,48 @@ class CorporateReturnPackTest extends AccountingTestCase
         $this->assertSame(25.0, app(CorporateReturnPack::class)->build($this->fiscalYear->id, ['tax_rate' => 25])['worksheet']['tax_rate']);
     }
 
+    public function test_an_llp_is_taxed_at_the_full_company_rate_not_the_small_one(): void
+    {
+        $this->book('1100', '4100', 10_000_000);
+        $this->book('5100', '1100', 4_000_000); // accounting profit 6,000,000
+
+        $user = \App\Modules\Core\Models\User::factory()->create(['status' => 1]);
+        $this->actingAs($user);
+        $company = $this->setCurrentTenant();
+
+        $company->update(['legal_entity' => \App\Modules\Core\Models\Company::LEGAL_LLP]);
+        \Filament\Facades\Filament::setTenant($company->fresh());
+
+        // A body corporate taxed as a company: the ordinary 29% default, not the
+        // small-company 20%. The operator still asserts small-company status
+        // separately if the LLP qualifies, by editing the rate.
+        $this->assertTrue($company->fresh()->isLlp());
+        $this->assertFalse($company->fresh()->isSmallCompany());
+        $this->assertSame(29.0, app(CorporateReturnPack::class)->worksheet($this->fiscalYear->id)['tax_rate']);
+        $this->assertSame(1_740_000.0, $this->pack()['normal_tax']); // 29% of 6m
+    }
+
+    public function test_a_non_profit_records_its_approval_and_computes_ordinary_figures_for_now(): void
+    {
+        $company = \App\Modules\Core\Models\Company::factory()->create([
+            'type' => 'business',
+            'legal_entity' => \App\Modules\Core\Models\Company::LEGAL_NON_PROFIT,
+            'tax_exempt_ref' => 'NPO-2024-001',
+            'tax_exempt_approved_on' => '2024-07-01',
+        ]);
+
+        // The approval round-trips and is typed.
+        $fresh = $company->fresh();
+        $this->assertTrue($fresh->isNonProfit());
+        $this->assertSame('NPO-2024-001', $fresh->tax_exempt_ref);
+        $this->assertSame('2024-07-01', $fresh->tax_exempt_approved_on->toDateString());
+
+        // Scaffolding only: the s.100C credit and s.113 carve-out are not applied,
+        // so the pack still computes the ordinary-company position. The pack's
+        // notice is what tells the reader those figures are not the NPO's tax.
+        $this->assertFalse($fresh->isSmallCompany());
+    }
+
     public function test_legal_entity_falls_back_to_the_type_when_unset(): void
     {
         $business = \App\Modules\Core\Models\Company::factory()->create(['type' => 'business', 'legal_entity' => null]);

@@ -165,4 +165,24 @@ class SoleProprietorReturnPackTest extends AccountingTestCase
         $this->assertFalse(Page::canAccess());
         $this->assertTrue(\App\Modules\Accounting\Filament\Pages\CorporateReturnPack::canAccess());
     }
+
+    public function test_an_llp_and_a_non_profit_open_the_corporate_pack_not_this_one(): void
+    {
+        // Both are taxed as a company (an LLP is a body corporate; a non-profit
+        // computes corporate figures then takes a credit), so neither is a
+        // slab-taxed business — they open the Corporate pack, not this one.
+        \Illuminate\Support\Facades\Gate::before(fn () => true);
+
+        foreach ([Company::LEGAL_LLP, Company::LEGAL_NON_PROFIT] as $entity) {
+            $company = Company::factory()->create(['type' => Company::TYPE_BUSINESS, 'legal_entity' => $entity]);
+            $user = User::factory()->create(['status' => 1]);
+            $company->users()->attach($user->getKey());
+            $this->actingAs($user);
+            $this->setCurrentTenant($company);
+
+            $this->assertFalse($company->isSlabTaxedBusiness(), "[{$entity}] should not be slab-taxed");
+            $this->assertFalse(Page::canAccess(), "[{$entity}] should not open the slab-business pack");
+            $this->assertTrue(\App\Modules\Accounting\Filament\Pages\CorporateReturnPack::canAccess(), "[{$entity}] should open the corporate pack");
+        }
+    }
 }

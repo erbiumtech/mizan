@@ -39,12 +39,18 @@ class CreateCompany extends CreateRecord
             profile: $data['profile'] ?? null,
         );
 
-        // Set after provisioning rather than passed into it — legal_entity touches
-        // no seeding (it only picks a tax engine later), so it is a plain column
-        // write, not part of the tenant's construction. Blank stays null, which
-        // reads as the entity the type implies.
-        if (! empty($data['legal_entity'])) {
-            $company->update(['legal_entity' => $data['legal_entity']]);
+        // Set after provisioning rather than passed into it — these touch no
+        // seeding (legal_entity only picks a tax engine later; the exemption
+        // fields are reference data), so they are plain column writes, not part of
+        // the tenant's construction. Blank legal_entity stays null, which reads as
+        // the entity the type implies.
+        $classification = array_filter(
+            ['legal_entity', 'tax_exempt_ref', 'tax_exempt_approved_on'],
+            fn (string $key): bool => ! empty($data[$key]),
+        );
+
+        if ($classification !== []) {
+            $company->update(array_intersect_key($data, array_flip($classification)));
         }
 
         return $company;

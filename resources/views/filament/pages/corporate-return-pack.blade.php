@@ -1,6 +1,33 @@
 @php($pack = $this->getPack())
+@php($company = \Filament\Facades\Filament::getTenant() ?? \App\Modules\Core\Models\Company::current())
 
 <x-filament-panels::page>
+    @if ($company?->isNonProfit())
+        {{-- Phase 5 scaffolding: an approved NPO is not taxed on these figures. The
+             s.100C 100% credit and the s.113 carve-out are not computed yet, so the
+             statement below is the ordinary-company position, shown for reference and
+             explicitly NOT the NPO's filing position — the §8 "minimum tax on the
+             exempt" trap, headed off by saying so rather than by hiding the numbers. --}}
+        <x-filament::section>
+            <div class="rounded-lg border border-warning-300 bg-warning-50 p-4 text-sm dark:border-warning-500/30 dark:bg-warning-500/10">
+                <p class="font-semibold text-warning-800 dark:text-warning-300">Approved non-profit — the figures below are not this entity's tax.</p>
+                <p class="mt-2 text-warning-700 dark:text-warning-200/80">
+                    An approved NPO takes a 100% tax credit under s.100C (conditions apply) and is carved out of the
+                    s.113 minimum tax. This pack does <strong>not</strong> yet apply the credit or the carve-out — it
+                    shows the ordinary-company computation for reference only. Do not file these figures as the NPO's
+                    liability; confirm the exemption with your practitioner.
+                </p>
+                <p class="mt-2 text-xs text-warning-700 dark:text-warning-200/70">
+                    @if ($company->tax_exempt_ref)
+                        Approval: <strong>{{ $company->tax_exempt_ref }}</strong>@if ($company->tax_exempt_approved_on), approved {{ $company->tax_exempt_approved_on->format('d M Y') }}@endif.
+                    @else
+                        No s.2(36) approval reference recorded — add it on the company's profile.
+                    @endif
+                </p>
+            </div>
+        </x-filament::section>
+    @endif
+
     <x-filament::section heading="Worksheet" description="The statement below always computes from what this form shows — Save keeps it for the year.">
         {{ $this->form }}
     </x-filament::section>
