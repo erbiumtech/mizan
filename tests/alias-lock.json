@@ -362,6 +362,7 @@
         "App\\Filament\\Pages\\TaxEstimate": "App\\Modules\\PersonalFinance\\Filament\\Pages\\TaxEstimate",
         "App\\Filament\\Pages\\ReturnPack": "App\\Modules\\PersonalFinance\\Filament\\Pages\\ReturnPack",
         "App\\Filament\\Pages\\CorporateReturnPack": "App\\Modules\\Accounting\\Filament\\Pages\\CorporateReturnPack",
+        "App\\Filament\\Pages\\SoleProprietorReturnPack": "App\\Modules\\PersonalFinance\\Filament\\Pages\\SoleProprietorReturnPack",
         "App\\Filament\\Pages\\TaxSummary": "App\\Modules\\Payroll\\Filament\\Pages\\TaxSummary",
         "App\\Filament\\Pages\\TrialBalance": "App\\Modules\\Accounting\\Filament\\Pages\\TrialBalance",
         "App\\Filament\\Pages\\UserManual": "App\\Modules\\Core\\Filament\\Pages\\UserManual",

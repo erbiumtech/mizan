@@ -32,6 +32,7 @@ return [
     'pages' => [
         'App\\Filament\\Pages\\TaxEstimate' => \App\Modules\PersonalFinance\Filament\Pages\TaxEstimate::class,
         'App\\Filament\\Pages\\ReturnPack' => \App\Modules\PersonalFinance\Filament\Pages\ReturnPack::class,
+        'App\\Filament\\Pages\\SoleProprietorReturnPack' => \App\Modules\PersonalFinance\Filament\Pages\SoleProprietorReturnPack::class,
     ],
 
     'permission_groups' => [

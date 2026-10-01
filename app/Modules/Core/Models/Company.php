@@ -37,6 +37,8 @@ class Company extends SpatieTenant
      */
     public const LEGAL_INDIVIDUAL = 'individual';
 
+    public const LEGAL_SOLE_PROPRIETOR = 'sole_proprietor';
+
     public const LEGAL_COMPANY = 'company';
 
     public const LEGAL_SMALL_COMPANY = 'small_company';
@@ -44,6 +46,7 @@ class Company extends SpatieTenant
     /** @var array<string, string> the legal entities an operator may pick, label by value */
     public const LEGAL_ENTITY_LABELS = [
         self::LEGAL_INDIVIDUAL => 'Individual',
+        self::LEGAL_SOLE_PROPRIETOR => 'Sole proprietor (business taxed on individual slabs)',
         self::LEGAL_COMPANY => 'Company',
         self::LEGAL_SMALL_COMPANY => 'Small company (s.2(59A) reduced rate)',
     ];
@@ -147,6 +150,16 @@ class Company extends SpatieTenant
     public function isSmallCompany(): bool
     {
         return $this->legalEntity() === self::LEGAL_SMALL_COMPANY;
+    }
+
+    /**
+     * A sole proprietor: a business (business modules, business chart) whose
+     * profit is taxed on the owner's individual slabs rather than a company rate.
+     * The return pack it opens is the sole-proprietor pack, not the corporate one.
+     */
+    public function isSoleProprietor(): bool
+    {
+        return $this->legalEntity() === self::LEGAL_SOLE_PROPRIETOR;
     }
 
     /**
