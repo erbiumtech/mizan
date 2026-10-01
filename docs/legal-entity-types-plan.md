@@ -177,6 +177,29 @@ Phases 2–8 are independent once phase 1 lands — build only the entities a re
 customer needs, in any order. The only part left is phase 5's s.100C credit
 math, held on §7 Q3 — everything else, phase 8 included, is built.
 
+### Verified on production (2026-10-01)
+
+The built entities were exercised on the live server through the real
+`CompanyProvisioner` and return-pack services — a throwaway tenant provisioned,
+checked, and dropped (`tenant:drop`), against the actual MySQL schema and the
+migrated columns, not just the test suite:
+
+- **LLP** — provisioned, set `llp`, booked a 6,000,000 profit on 10,000,000
+  turnover. Opened the **Corporate pack at 29%** (not the small-company 20%):
+  normal tax 1,740,000, s.113 minimum 125,000, normal basis wins — a company's
+  treatment, not the AOP slabs. `isLlp` true, `isSlabTaxedBusiness` false.
+- **Non-profit** — set `non_profit` with an approval reference and date. The
+  columns persisted and typed; the Corporate pack computed the **ordinary**
+  figures (29%, the s.100C credit deliberately not applied) and the
+  "these figures are not the NPO's tax" notice rendered (entity + reference
+  present). Exactly the scaffolding behaviour intended.
+- The `tax_exempt_ref` / `tax_exempt_approved_on` columns were confirmed present
+  on production's `companies` table after the deploy's landlord migration.
+
+(The six company profiles added alongside this work were likewise provisioned
+and dropped on production; that is `docs/company-profiles-plan.md`'s territory,
+not this one's.)
+
 ## 7. What to confirm — for the tax advisor
 
 **Q3 is the one still blocking: phase 5's s.100C credit math is not built until
