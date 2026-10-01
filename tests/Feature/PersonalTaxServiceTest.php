@@ -8,8 +8,8 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
-use App\Modules\PersonalFinance\Models\TaxSurcharge;
 use App\Modules\PersonalFinance\Services\PersonalTaxService;
+use App\Support\TaxRegimes;
 use Database\Seeders\FiscalYearSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PersonalChartOfAccountsSeeder;
@@ -148,12 +148,16 @@ class PersonalTaxServiceTest extends TestCase
         // The gap this closes: the Tax Estimate used to open on the active year
         // and find nothing, because only 2025-2026 was seeded. Somebody's first
         // visit was an error message on a feature that had never worked.
+        //
+        // Only the schedule-bearing regimes — a borrower like commission has no
+        // schedule of its own (it is assessed on the business one), so demanding
+        // a `commission` schedule here would be wrong.
         $missing = [];
 
         foreach (['2025-2026', '2026-2027'] as $yearName) {
             $year = FiscalYear::where('name', $yearName)->firstOrFail();
 
-            foreach (array_keys(TaxSchedule::REGIMES) as $regime) {
+            foreach (TaxRegimes::scheduled() as $regime) {
                 $exists = TaxSchedule::where('fiscal_year_id', $year->id)
                     ->where('regime', $regime)
                     ->exists();

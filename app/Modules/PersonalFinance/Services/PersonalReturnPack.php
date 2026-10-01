@@ -44,6 +44,7 @@ class PersonalReturnPack
         '1602' => 'Profit on debt (s.151)',
         '1603' => 'Property, sale/purchase (s.236C / 236K)',
         '1604' => 'Cash withdrawal & remittance (s.231AB / 236Y)',
+        '1605' => 'Commission / brokerage (s.233)',
     ];
 
     /**
@@ -58,6 +59,10 @@ class PersonalReturnPack
         TaxRegimes::SALARIED => ['code' => '1000', 'label' => 'Income from Salary'],
         TaxRegimes::RENTAL => ['code' => '2000', 'label' => 'Income / (Loss) from Property'],
         TaxRegimes::BUSINESS => ['code' => '3000', 'label' => 'Income / (Loss) from Business'],
+        // Commission is business income: same head, same normal column (it is not
+        // final), so it joins taxable income and is slab-taxed. Only its s.233
+        // withholding is tracked separately, on account 1605.
+        TaxRegimes::COMMISSION => ['code' => '3000', 'label' => 'Income / (Loss) from Business'],
         TaxRegimes::EXPORT_SERVICES => ['code' => '3000', 'label' => 'Income / (Loss) from Business'],
         TaxRegimes::CAPITAL_GAINS => ['code' => '4000', 'label' => 'Gains / (Loss) from Capital Assets'],
     ];

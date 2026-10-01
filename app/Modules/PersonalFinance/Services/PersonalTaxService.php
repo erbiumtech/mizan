@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\PersonalFinance\Models\TaxSchedule;
 use App\Modules\PersonalFinance\Models\TaxSurcharge;
+use App\Support\TaxRegimes;
 use RuntimeException;
 
 /**
@@ -106,9 +107,15 @@ class PersonalTaxService
             ];
         }
 
+        // Most regimes are assessed on their own schedule; a borrower (commission,
+        // which is ordinary business income) resolves to the schedule it shares.
+        // It stays a distinct regime everywhere else — its own income head, its
+        // own s.233 withholding — only the schedule and surcharge are the shared.
+        $scheduleRegime = TaxRegimes::scheduleRegime($regime);
+
         $bracket = TaxSchedule::query()
             ->where('fiscal_year_id', $fiscalYearId)
-            ->where('regime', $regime)
+            ->where('regime', $scheduleRegime)
             ->where('min_amount', '<', $taxable)
             ->where(function ($query) use ($taxable) {
                 $query->where('max_amount', '>=', $taxable)->orWhereNull('max_amount');
@@ -124,7 +131,7 @@ class PersonalTaxService
             throw new RuntimeException(sprintf(
                 'No %s tax bracket covers %s for that year. Either the schedule is not '
                 .'seeded, or its top bracket has an upper bound and this income is above it.',
-                TaxSchedule::REGIMES[$regime] ?? $regime,
+                TaxSchedule::REGIMES[$scheduleRegime] ?? $scheduleRegime,
                 number_format($taxable, 2),
             ));
         }
@@ -138,7 +145,7 @@ class PersonalTaxService
         // threshold. Absent for a year and regime where it does not apply — the
         // 2026 Act withdrew it for salaried individuals — so no row means none.
         $surcharge = TaxSurcharge::where('fiscal_year_id', $fiscalYearId)
-            ->where('regime', $regime)
+            ->where('regime', $scheduleRegime)
             ->first();
 
         $surchargeAmount = $surcharge?->amountOn($taxable, $tax) ?? 0.0;
@@ -182,7 +189,10 @@ class PersonalTaxService
 
             $regimes[] = [
                 'regime' => $regime,
-                'label' => TaxSchedule::REGIMES[$regime] ?? $regime,
+                // Schedule labels first (what the slabs are named), then the full
+                // regime label — so commission, which borrows the business slabs
+                // and has no schedule label of its own, still reads properly.
+                'label' => TaxSchedule::REGIMES[$regime] ?? TaxRegimes::label($regime),
                 // Gross and taxable are both shown, because for rental they
                 // differ and a reader has to see why the tax is not on the rent.
                 'income' => $amount,

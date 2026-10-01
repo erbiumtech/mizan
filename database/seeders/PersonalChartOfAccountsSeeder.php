@@ -48,6 +48,7 @@ class PersonalChartOfAccountsSeeder extends Seeder
         ['1602', 'Tax Withheld — Profit on Debt (s.151)', 'asset'],
         ['1603', 'Tax Withheld — Property, sale/purchase (s.236C / 236K)', 'asset'],
         ['1604', 'Tax Withheld — Cash withdrawal & remittance (s.231AB / 236Y)', 'asset'],
+        ['1605', 'Tax Withheld — Commission / brokerage (s.233)', 'asset'],
 
         // What you owe.
         ['2000', 'Loans', 'liability'],
@@ -61,6 +62,9 @@ class PersonalChartOfAccountsSeeder extends Seeder
         // What comes in.
         ['4000', 'Salary', 'income', TaxRegimes::SALARIED],
         ['4100', 'Business Income', 'income', TaxRegimes::BUSINESS],
+        // Commission / brokerage: business income taxed on the slabs; its s.233
+        // withholding posts to 1605 so the return itemises it.
+        ['4400', 'Commission / Brokerage Income', 'income', TaxRegimes::COMMISSION],
         ['4200', 'Rental Income', 'income', TaxRegimes::RENTAL],
         ['4300', 'Profit on Investments', 'income', TaxRegimes::CAPITAL_GAINS],
         // Final-regime income (s.154A): the bank withholds 1% on the remittance and

@@ -144,6 +144,27 @@ class PersonalReturnPackTest extends TestCase
         $this->assertStringContainsString('Salary', collect($pack['withholding_by_section'])->firstWhere('code', '1601')['section']);
     }
 
+    public function test_commission_is_ordinary_business_income_with_its_s233_withholding_itemised(): void
+    {
+        $this->book('1100', '4400', 2_000_000); // commission / brokerage income
+        $this->book('1605', '1100', 200_000);   // s.233 withholding suffered
+
+        $pack = $this->pack();
+
+        // Ordinary business income: it sits in head 3000's normal column (not the
+        // final one) and joins taxable income (9100) — slab-taxed, not a block apart.
+        $business = $this->line($pack['heads'], '3000');
+        $this->assertSame(2_000_000.0, $business['normal']);
+        $this->assertSame(0.0, $business['final']);
+        $this->assertSame(2_000_000.0, $this->line($pack['computations'], '9100')['amount']);
+
+        // Its s.233 withholding is itemised under 1605, labelled, and summed into 9201.
+        $this->assertContains('1605', array_column($pack['withholding_by_section'], 'code'));
+        $this->assertStringContainsString('s.233', collect($pack['withholding_by_section'])->firstWhere('code', '1605')['section']);
+        $this->assertSame(200_000.0, $pack['tax_paid']);
+        $this->assertSame(200_000.0, $this->line($pack['computations'], '9201')['amount']);
+    }
+
     public function test_the_wealth_statement_reconciles_and_carries_iris_codes(): void
     {
         $this->book('1100', '4000', 1_000_000); // income
