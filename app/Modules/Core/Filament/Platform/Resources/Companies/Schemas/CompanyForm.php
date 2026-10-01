@@ -76,6 +76,21 @@ class CompanyForm
                     $record !== null,
                 )),
 
+            // The legal/tax entity, which decides the return pack's tax engine —
+            // separate from the type (the chart switch) and the profile (modules).
+            // Editable after creation, unlike the type: reclassifying for tax
+            // touches no books. Blank reads as the entity the type implies, so a
+            // company left unset keeps today's treatment. Only offered for a
+            // business — a personal account is always an individual. See
+            // docs/legal-entity-types-plan.md.
+            Select::make('legal_entity')
+                ->label('Legal / tax entity')
+                ->options(Company::LEGAL_ENTITY_LABELS)
+                ->placeholder('Company (default)')
+                ->visible(fn (Get $get, ?Company $record): bool => ($record?->type ?? $get('type')) !== Company::TYPE_PERSONAL)
+                ->helperText('Decides how the return pack taxes this company. A small company (s.2(59A)) '
+                    .'opens the pack at the reduced rate; qualification is yours to assert. Blank = ordinary company.'),
+
             // Only asked on create — the assigned user becomes this company's
             // Administrator (attached + given the Administrator role in its team).
             Select::make('admin_user_id')

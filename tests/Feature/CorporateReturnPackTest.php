@@ -105,6 +105,45 @@ class CorporateReturnPackTest extends AccountingTestCase
         $this->assertSame('minimum', $pack['basis']);
     }
 
+    public function test_a_small_company_opens_the_pack_at_the_reduced_rate(): void
+    {
+        $this->book('1100', '4100', 10_000_000);
+        $this->book('5100', '1100', 4_000_000); // accounting profit 6,000,000
+
+        // A current company for defaultTaxRate() to read — the ledger stays on the
+        // shared connection, so marking this one small changes only the rate.
+        $user = \App\Modules\Core\Models\User::factory()->create(['status' => 1]);
+        $this->actingAs($user);
+        $company = $this->setCurrentTenant();
+
+        // An ordinary company (the default) opens at 29%.
+        $this->assertSame(29.0, app(CorporateReturnPack::class)->worksheet($this->fiscalYear->id)['tax_rate']);
+        $this->assertSame(1_740_000.0, $this->pack()['normal_tax']); // 29% of 6m
+
+        // Mark it a small company — the default rate drops to 20%, and a worksheet
+        // with no saved rate computes at it.
+        $company->update(['legal_entity' => \App\Modules\Core\Models\Company::LEGAL_SMALL_COMPANY]);
+        \Filament\Facades\Filament::setTenant($company->fresh());
+
+        $this->assertTrue($company->fresh()->isSmallCompany());
+        $this->assertSame(20.0, app(CorporateReturnPack::class)->worksheet($this->fiscalYear->id)['tax_rate']);
+        $this->assertSame(1_200_000.0, $this->pack()['normal_tax']); // 20% of 6m
+
+        // Still only a DEFAULT: a saved rate wins over the entity's default.
+        $this->assertSame(25.0, app(CorporateReturnPack::class)->build($this->fiscalYear->id, ['tax_rate' => 25])['worksheet']['tax_rate']);
+    }
+
+    public function test_legal_entity_falls_back_to_the_type_when_unset(): void
+    {
+        $business = \App\Modules\Core\Models\Company::factory()->create(['type' => 'business', 'legal_entity' => null]);
+        $personal = \App\Modules\Core\Models\Company::factory()->create(['type' => 'personal', 'legal_entity' => null]);
+
+        // Null reads as the entity the type implies — today's behaviour, unchanged.
+        $this->assertSame('company', $business->legalEntity());
+        $this->assertSame('individual', $personal->legalEntity());
+        $this->assertFalse($business->isSmallCompany());
+    }
+
     public function test_super_tax_adds_on_top_of_the_greater_base(): void
     {
         $this->book('1100', '4100', 10_000_000);

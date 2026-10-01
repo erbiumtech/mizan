@@ -24,7 +24,7 @@ class CreateCompany extends CreateRecord
     {
         $admin = User::findOrFail($data['admin_user_id']);
 
-        return app(CompanyProvisioner::class)->provision(
+        $company = app(CompanyProvisioner::class)->provision(
             name: $data['name'],
             creator: $admin,
             // Passed through, not defaulted. The provisioner has accepted a type
@@ -38,5 +38,15 @@ class CreateCompany extends CreateRecord
             // alone and is licensed by hand.
             profile: $data['profile'] ?? null,
         );
+
+        // Set after provisioning rather than passed into it — legal_entity touches
+        // no seeding (it only picks a tax engine later), so it is a plain column
+        // write, not part of the tenant's construction. Blank stays null, which
+        // reads as the entity the type implies.
+        if (! empty($data['legal_entity'])) {
+            $company->update(['legal_entity' => $data['legal_entity']]);
+        }
+
+        return $company;
     }
 }

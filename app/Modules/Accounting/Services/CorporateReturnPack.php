@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Support\TenantSettings;
 
@@ -31,6 +32,9 @@ class CorporateReturnPack
 {
     /** Corporate rate, editable per year on the worksheet — Finance Act 2025 value. */
     public const DEFAULT_TAX_RATE = 29.0;
+
+    /** Small company rate (s.2(59A)) — the default when the entity is a small company. */
+    public const SMALL_COMPANY_TAX_RATE = 20.0;
 
     /** Section 113 minimum tax on turnover, editable the same way. */
     public const DEFAULT_MINIMUM_TAX_RATE = 1.25;
@@ -66,10 +70,22 @@ class CorporateReturnPack
      * @param  array<string, mixed>  $worksheet
      * @return array{tax_rate: float, minimum_tax_rate: float, adjustments: array<int, array{label: string, amount: float}>}
      */
+    /**
+     * The rate a worksheet with no stored rate opens on — the small-company rate
+     * when the current entity is one, the ordinary corporate rate otherwise. Only
+     * a DEFAULT: the operator still edits it, and a saved worksheet carries its own.
+     */
+    public function defaultTaxRate(): float
+    {
+        $company = \Filament\Facades\Filament::getTenant() ?? Company::current();
+
+        return $company?->isSmallCompany() ? self::SMALL_COMPANY_TAX_RATE : self::DEFAULT_TAX_RATE;
+    }
+
     private function normalized(array $worksheet): array
     {
         return [
-            'tax_rate' => (float) ($worksheet['tax_rate'] ?? self::DEFAULT_TAX_RATE),
+            'tax_rate' => (float) ($worksheet['tax_rate'] ?? $this->defaultTaxRate()),
             'minimum_tax_rate' => (float) ($worksheet['minimum_tax_rate'] ?? self::DEFAULT_MINIMUM_TAX_RATE),
             // Brought-forward business loss set against this year's taxable income.
             // A prior-year figure the ledger cannot know, so it is entered here;

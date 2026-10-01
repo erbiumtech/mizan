@@ -24,11 +24,36 @@ class Company extends SpatieTenant
 
     public const TYPE_PERSONAL = 'personal';
 
+    /**
+     * The legal/tax entity, separate from `type` (the chart switch) and `profile`
+     * (the module preset) — it decides which tax engine the return pack uses.
+     * See docs/legal-entity-types-plan.md. Null means "derive from type", so an
+     * existing company that never sets it behaves exactly as before: a business
+     * is a `company`, a personal account an `individual`.
+     *
+     * Only the values with distinct tax behaviour are defined as the phases that
+     * need them land. `small_company` is the first beyond the two derived
+     * defaults: a company taxed at the s.2(59A) reduced rate.
+     */
+    public const LEGAL_INDIVIDUAL = 'individual';
+
+    public const LEGAL_COMPANY = 'company';
+
+    public const LEGAL_SMALL_COMPANY = 'small_company';
+
+    /** @var array<string, string> the legal entities an operator may pick, label by value */
+    public const LEGAL_ENTITY_LABELS = [
+        self::LEGAL_INDIVIDUAL => 'Individual',
+        self::LEGAL_COMPANY => 'Company',
+        self::LEGAL_SMALL_COMPANY => 'Small company (s.2(59A) reduced rate)',
+    ];
+
     protected $fillable = [
         'name',
         'slug',
         'type',
         'profile',
+        'legal_entity',
         'database',
         'status',
     ];
@@ -107,6 +132,21 @@ class Company extends SpatieTenant
     public function isPersonal(): bool
     {
         return $this->type === self::TYPE_PERSONAL;
+    }
+
+    /**
+     * The legal/tax entity, falling back to the one `type` implies when unset —
+     * so a stored value overrides, and its absence reproduces today's behaviour.
+     */
+    public function legalEntity(): string
+    {
+        return $this->legal_entity ?: ($this->isPersonal() ? self::LEGAL_INDIVIDUAL : self::LEGAL_COMPANY);
+    }
+
+    /** A company taxed at the s.2(59A) small-company reduced rate. */
+    public function isSmallCompany(): bool
+    {
+        return $this->legalEntity() === self::LEGAL_SMALL_COMPANY;
     }
 
     /**
