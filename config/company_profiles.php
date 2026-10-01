@@ -128,6 +128,19 @@ return [
         'seeders' => $businessWithLeave,
     ],
 
+    // The one-person business that keeps full books but is taxed on the
+    // individual slabs — the sole-proprietor / AOP work of the legal-entity plan.
+    // It licenses personal_finance so the slab-business return pack is available;
+    // the operator still picks the legal entity (Sole Proprietor) on the same
+    // form. No payroll — one person draws from the business, they are not on it.
+    'freelancer' => [
+        'label' => 'Freelancer / Sole Proprietor',
+        'description' => 'One person billing clients and keeping full business books, taxed on the individual slabs. Invoices, quotations and a client pipeline; no payroll. Set the legal entity to Sole Proprietor for the individual-slab return pack.',
+        'type' => Company::TYPE_BUSINESS,
+        'modules' => ['accounting', 'invoicing', 'quotations', 'crm', 'personal_finance'],
+        'seeders' => $bookkeepingSeeders,
+    ],
+
     'software_house' => [
         'label' => 'Software House / Agency',
         'description' => 'Project delivery with environment health and certificate tracking. Services without the advances.',
@@ -186,6 +199,45 @@ return [
         'description' => 'Trading plus the expense claims a production floor generates.',
         'type' => Company::TYPE_BUSINESS,
         'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'expenses', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment', 'quotations', 'campaigns'],
+        'seeders' => $businessWithLeave,
+    ],
+
+    // Counter retail, distinct from Trading's wholesale/distribution slant: stock
+    // sold over the counter, shift staff, and the promotions a shop runs.
+    'retail' => [
+        'label' => 'Retail / Shop',
+        'description' => 'A shop selling over the counter: stock valued through the ledger, invoices, staff on payroll and attendance, a customer list and the promotions run against it.',
+        'type' => Company::TYPE_BUSINESS,
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'crm', 'campaigns'],
+        'seeders' => $businessWithLeave,
+    ],
+
+    // Food service: perishable stock and shift staff, without the marketing
+    // campaigns a shop runs — a kitchen's customers walk in.
+    'restaurant' => [
+        'label' => 'Restaurant / Café',
+        'description' => 'Food service: ingredient stock through the ledger, table and counter invoices, and shift staff on payroll and attendance.',
+        'type' => Company::TYPE_BUSINESS,
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'crm'],
+        'seeders' => $businessWithLeave,
+    ],
+
+    // A clinic or practice: patients billed, medical supplies carried as stock,
+    // staff on payroll. Like retail without the promotions.
+    'healthcare' => [
+        'label' => 'Clinic / Healthcare',
+        'description' => 'A clinic or practice: patient billing, medical supplies carried as stock, and staff on payroll, attendance and leave.',
+        'type' => Company::TYPE_BUSINESS,
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'crm'],
+        'seeders' => $businessWithLeave,
+    ],
+
+    // A school or academy: fees billed, staff on payroll — no stock to carry.
+    'education' => [
+        'label' => 'School / Academy',
+        'description' => 'A school, academy or training institute: fees billed as invoices, teaching and admin staff on payroll, attendance and leave, and a register of students and parents.',
+        'type' => Company::TYPE_BUSINESS,
+        'modules' => ['accounting', 'invoicing', 'employees', 'payroll', 'attendance', 'leave', 'crm'],
         'seeders' => $businessWithLeave,
     ],
 
