@@ -76,6 +76,41 @@ class SoleProprietorReturnPackTest extends AccountingTestCase
         $this->assertSame(290_000.0, $pack['tax_due']);
     }
 
+    public function test_minimum_tax_binds_only_above_the_turnover_threshold(): void
+    {
+        // Turnover 5,000,000, net profit 2,000,000 — well below the 100m default
+        // threshold, so s.113 does not apply and the slab tax (290,000) stands.
+        $this->book('1100', '4100', 5_000_000);
+        $this->book('5100', '1100', 3_000_000);
+
+        $pack = app(SoleProprietorReturnPack::class)->build($this->fiscalYear->id);
+        $this->assertSame(0.0, $pack['minimum_tax']);
+        $this->assertSame('slab', $pack['basis']);
+        $this->assertSame(290_000.0, $pack['tax_due']);
+
+        // Drop the threshold below this turnover: 1.25% of 5,000,000 = 62,500, still
+        // less than the slab tax, so slab still governs — the greater-of holds.
+        $pack = app(SoleProprietorReturnPack::class)->build($this->fiscalYear->id, ['minimum_tax_threshold' => 1_000_000]);
+        $this->assertSame(62_500.0, $pack['minimum_tax']);
+        $this->assertSame('slab', $pack['basis']);
+        $this->assertSame(290_000.0, $pack['tax_due']);
+    }
+
+    public function test_minimum_tax_wins_when_it_is_the_greater(): void
+    {
+        // A thin-margin year: huge turnover, tiny profit — minimum tax on turnover
+        // exceeds the slab tax, so it governs, exactly as it does for a company.
+        $this->book('1100', '4100', 40_000_000);
+        $this->book('5100', '1100', 39_800_000); // net profit 200,000 → slab tax 0 (under 600k)
+
+        $pack = app(SoleProprietorReturnPack::class)->build($this->fiscalYear->id, ['minimum_tax_threshold' => 10_000_000]);
+
+        $this->assertSame(0.0, $pack['slab_tax']);          // 200k is under the taxable threshold
+        $this->assertSame(500_000.0, $pack['minimum_tax']); // 1.25% of 40,000,000
+        $this->assertSame('minimum', $pack['basis']);
+        $this->assertSame(500_000.0, $pack['tax_due']);
+    }
+
     public function test_a_sole_proprietor_is_routed_here_and_away_from_the_corporate_pack(): void
     {
         \Illuminate\Support\Facades\Gate::before(fn () => true);

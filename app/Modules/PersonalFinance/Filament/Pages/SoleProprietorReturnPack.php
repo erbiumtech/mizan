@@ -88,6 +88,18 @@ class SoleProprietorReturnPack extends Page
                     })
                     ->helperText('July to June; FBR names it for the year it ends in.'),
 
+                TextInput::make('minimum_tax_rate')
+                    ->label('Minimum tax rate % (s.113, on turnover)')
+                    ->numeric()
+                    ->live(onBlur: true),
+
+                TextInput::make('minimum_tax_threshold')
+                    ->label('Minimum tax turnover threshold')
+                    ->numeric()
+                    ->live(onBlur: true)
+                    ->helperText('s.113 binds an individual/AOP only at or above this turnover (a company has no threshold). '
+                        .'Confirm the current figure with your practitioner.'),
+
                 Repeater::make('adjustments')
                     ->label('Tax adjustments to accounting profit')
                     ->columnSpanFull()

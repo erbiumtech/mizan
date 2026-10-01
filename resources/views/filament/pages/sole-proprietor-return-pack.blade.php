@@ -55,20 +55,23 @@
                             <td class="px-3 py-2 font-medium text-gray-950 dark:text-white">Taxable income</td>
                             <td class="px-3 py-2 text-right font-medium tabular-nums text-gray-950 dark:text-white">{{ number_format($pack['taxable_income'], 2) }}</td>
                         </tr>
-                        <tr class="border-b border-gray-200 dark:border-white/10">
+                        <tr class="border-b border-gray-200 dark:border-white/10 {{ $pack['basis'] === 'slab' ? 'font-semibold' : '' }}">
                             <td class="px-3 py-2 text-gray-700 dark:text-gray-200">
-                                Tax on individual slabs{{ $pack['tax']['bracket'] ? ' — ' . $pack['tax']['bracket']->label() : '' }}
+                                Tax on individual slabs{{ $pack['tax']['bracket'] ? ' — ' . $pack['tax']['bracket']->label() : '' }}{{ ($pack['tax']['surcharge'] ?? 0) > 0 ? ' (incl. surcharge)' : '' }}
                             </td>
-                            <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($pack['tax']['tax'], 2) }}</td>
+                            <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($pack['slab_tax'], 2) }}</td>
                         </tr>
-                        @if (($pack['tax']['surcharge'] ?? 0) > 0)
-                            <tr class="border-b border-gray-200 dark:border-white/10">
-                                <td class="px-3 py-2 text-gray-700 dark:text-gray-200">Add: surcharge</td>
-                                <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($pack['tax']['surcharge'], 2) }}</td>
-                            </tr>
-                        @endif
+                        <tr class="border-b border-gray-200 dark:border-white/10 {{ $pack['basis'] === 'minimum' ? 'font-semibold' : '' }}">
+                            <td class="px-3 py-2 text-gray-700 dark:text-gray-200">
+                                Minimum tax at {{ rtrim(rtrim(number_format($pack['worksheet']['minimum_tax_rate'], 2), '0'), '.') }}% of turnover (s.113)
+                                @if ($pack['minimum_tax'] == 0 && $pack['turnover'] < $pack['worksheet']['minimum_tax_threshold'])
+                                    <span class="text-xs text-gray-400">— turnover below the threshold, does not apply</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($pack['minimum_tax'], 2) }}</td>
+                        </tr>
                         <tr class="border-b border-gray-200 dark:border-white/10">
-                            <td class="px-3 py-2 font-semibold text-gray-950 dark:text-white">Tax due</td>
+                            <td class="px-3 py-2 font-semibold text-gray-950 dark:text-white">Tax due — the greater applies</td>
                             <td class="px-3 py-2 text-right font-semibold tabular-nums text-gray-950 dark:text-white">{{ number_format($pack['tax_due'], 2) }}</td>
                         </tr>
                         <tr class="border-b border-gray-200 dark:border-white/10">
@@ -89,7 +92,7 @@
         <p class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">Prepared for filing, not filed</p>
         <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
             <li>A sole proprietor files an individual return (114(1)); this is the business-income head, taxed on your individual slabs. Any salary, rental or other personal income is entered on the return alongside it.</li>
-            <li>Minimum tax (s.113) for individuals is not yet computed here — a high-turnover year may owe it; confirm with your practitioner.</li>
+            <li>Minimum tax (s.113) applies the greater of the slab tax and {{ rtrim(rtrim(number_format($pack['worksheet']['minimum_tax_rate'] ?? 1.25, 2), '0'), '.') }}% of turnover, but only once turnover reaches the threshold on the worksheet — confirm that figure with your practitioner, as it has moved between Finance Acts.</li>
             <li>The adjustments are yours to keep true — tax vs accounting depreciation, inadmissible expenses, exempt income. Advance tax is the in-year movement of account 1260.</li>
         </ul>
     </x-filament::section>

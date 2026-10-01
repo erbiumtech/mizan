@@ -37,11 +37,9 @@
                 </tr>
             @endforeach
             <tr class="total"><td>Taxable income</td><td class="num">{{ number_format($pack['taxable_income'], 2) }}</td></tr>
-            <tr><td>Tax on individual slabs{{ $pack['tax']['bracket'] ? ' — ' . $pack['tax']['bracket']->label() : '' }}</td><td class="num">{{ number_format($pack['tax']['tax'], 2) }}</td></tr>
-            @if (($pack['tax']['surcharge'] ?? 0) > 0)
-                <tr><td>Add: surcharge</td><td class="num">{{ number_format($pack['tax']['surcharge'], 2) }}</td></tr>
-            @endif
-            <tr class="total"><td>Tax due</td><td class="num">{{ number_format($pack['tax_due'], 2) }}</td></tr>
+            <tr><td>Tax on individual slabs{{ $pack['tax']['bracket'] ? ' — ' . $pack['tax']['bracket']->label() : '' }}{{ ($pack['tax']['surcharge'] ?? 0) > 0 ? ' (incl. surcharge)' : '' }}</td><td class="num">{{ number_format($pack['slab_tax'], 2) }}</td></tr>
+            <tr><td>Minimum tax at {{ rtrim(rtrim(number_format($pack['worksheet']['minimum_tax_rate'], 2), '0'), '.') }}% of turnover (s.113){{ $pack['minimum_tax'] == 0 && $pack['turnover'] < $pack['worksheet']['minimum_tax_threshold'] ? ' — below threshold' : '' }}</td><td class="num">{{ number_format($pack['minimum_tax'], 2) }}</td></tr>
+            <tr class="total"><td>Tax due — {{ $pack['basis'] === 'minimum' ? 'minimum applies' : 'slab applies' }}</td><td class="num">{{ number_format($pack['tax_due'], 2) }}</td></tr>
             <tr><td>Less: advance income tax suffered (account 1260)</td><td class="num">({{ number_format($pack['tax_paid'], 2) }})</td></tr>
             <tr class="total"><td>{{ $pack['balance'] >= 0 ? 'Payable with the return' : 'Refundable' }}</td><td class="num">{{ number_format(abs($pack['balance']), 2) }}</td></tr>
         </tbody>
@@ -50,7 +48,8 @@
     <p class="fine">
         A sole proprietor files an individual return (114(1)); this is the business-income head, taxed on the
         owner's individual slabs. Salary, rental or other personal income is entered alongside it on the return.
-        Minimum tax (s.113) for individuals is not computed here — a high-turnover year may owe it. The
+        Minimum tax (s.113) applies the greater of the slab tax and the turnover rate, but only above the
+        threshold on the worksheet — confirm that figure, as it moves between Finance Acts. The
         adjustments are hand-kept; advance tax is the movement of account 1260. Not tax advice, not a filed
         return — enter the figures at iris.fbr.gov.pk or hand this to your practitioner.
     </p>

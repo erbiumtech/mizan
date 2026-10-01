@@ -20,12 +20,12 @@ use App\Support\TenantSettings;
  * reads the P&L from `FinancialReportService` the Corporate pack uses — the
  * dependency runs the allowed direction, and the slab formula is not copied.
  *
- * Structurally the Corporate pack with one line changed: accounting profit →
+ * Structurally the Corporate pack with the tax basis changed: accounting profit →
  * tax adjustments → taxable income, then **slab tax on the individual business
- * schedule** rather than a flat rate and s.113 minimum. (s.113 minimum tax for
- * individuals and AOPs is docs/legal-entity-types-plan.md phase 3; until it
- * lands a high-turnover sole proprietor is taxed on profit alone, which the page
- * states.)
+ * schedule** rather than a flat rate, and the greater of that and **s.113 minimum
+ * tax on turnover** — which, for an individual or AOP, binds only once turnover
+ * reaches the threshold (a company has no such threshold). The threshold is the
+ * figure that moves between Finance Acts, so it is a worksheet field, not a constant.
  *
  * The assessment of a sole proprietor's business income on the individual
  * schedule is the standard treatment and is §7 Q4 of the plan — confirm with the
@@ -35,6 +35,17 @@ class SoleProprietorReturnPack
 {
     /** The business chart's advance/withheld income-tax asset — tax already paid. */
     public const TAX_PAID_ACCOUNT_CODE = '1260';
+
+    /** Section 113 minimum tax on turnover — the same 1.25% a company pays. */
+    public const DEFAULT_MINIMUM_TAX_RATE = 1.25;
+
+    /**
+     * The turnover at or above which s.113 binds an INDIVIDUAL or AOP — unlike a
+     * company, which it binds at any turnover. Researched at Rs 100,000,000; the
+     * figure has moved between Finance Acts, so it is a worksheet field the
+     * practitioner confirms, not a constant. See docs/legal-entity-types-plan.md §7.
+     */
+    public const DEFAULT_MINIMUM_TAX_THRESHOLD = 100_000_000.0;
 
     public function __construct(
         private FinancialReportService $statements,
@@ -62,6 +73,8 @@ class SoleProprietorReturnPack
     private function normalized(array $worksheet): array
     {
         return [
+            'minimum_tax_rate' => (float) ($worksheet['minimum_tax_rate'] ?? self::DEFAULT_MINIMUM_TAX_RATE),
+            'minimum_tax_threshold' => round(max(0, (float) ($worksheet['minimum_tax_threshold'] ?? self::DEFAULT_MINIMUM_TAX_THRESHOLD)), 2),
             'adjustments' => array_values(array_filter(
                 array_map(fn (array $row): array => [
                     'label' => trim((string) ($row['label'] ?? '')),
@@ -87,7 +100,17 @@ class SoleProprietorReturnPack
         // Slab tax on the individual business schedule — the one line that makes
         // this not the corporate pack. taxFor carries the bracket and surcharge.
         $taxResult = $this->tax->taxFor($taxableIncome, TaxRegimes::BUSINESS, $fiscalYearId);
-        $taxDue = round($taxResult['total'], 2);
+        $slabTax = round($taxResult['total'], 2);
+
+        // Section 113 minimum tax on turnover — but only once turnover reaches the
+        // threshold that binds an individual/AOP, unlike a company which it binds at
+        // any turnover. Below the threshold it is zero and the slab tax stands.
+        $turnover = round(max(0, $pnl['income']['total']), 2);
+        $minimumTax = $turnover >= $worksheet['minimum_tax_threshold']
+            ? round($turnover * $worksheet['minimum_tax_rate'] / 100, 2)
+            : 0.0;
+
+        $taxDue = round(max($slabTax, $minimumTax), 2);
         $taxPaid = $this->taxPaidIn($fiscalYearId);
 
         return [
@@ -97,6 +120,12 @@ class SoleProprietorReturnPack
             'adjustments_total' => $adjustmentsTotal,
             'taxable_income' => $taxableIncome,
             'tax' => $taxResult,
+            'slab_tax' => $slabTax,
+            'turnover' => $turnover,
+            'minimum_tax' => $minimumTax,
+            // Which governs — named, like the corporate pack, because "the bigger
+            // number won" is the sentence an accountant checks first.
+            'basis' => $minimumTax > $slabTax ? 'minimum' : 'slab',
             'tax_due' => $taxDue,
             'tax_paid' => $taxPaid,
             // Positive: pay with the return. Negative: refundable.
