@@ -106,7 +106,7 @@ class LifecycleReports
             $rows[] = [
                 (string) ($item->employee?->display_label ?? 'Employee #'.$item->employee_id)
                     .($left ? ' · LEFT' : ''),
-                (string) str($item->asset_kind)->replace('_', ' ')->title().' · '.$item->description,
+                IssuedAsset::kindLabel($item->asset_kind).' · '.$item->description,
                 (string) ($item->serial_no ?: '—'),
                 (string) $item->issued_on->toDateString(),
                 number_format((int) $item->issued_on->diffInDays($date)),

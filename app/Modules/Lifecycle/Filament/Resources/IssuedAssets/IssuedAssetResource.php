@@ -78,10 +78,7 @@ class IssuedAssetResource extends Resource
 
             Select::make('asset_kind')
                 ->label('Kind')
-                ->options(array_combine(IssuedAsset::KINDS, array_map(
-                    fn (string $kind): string => ucfirst(str_replace('_', ' ', $kind)),
-                    IssuedAsset::KINDS,
-                )))
+                ->options(IssuedAsset::kindOptions())
                 ->required(),
 
             TextInput::make('description')->required()->maxLength(255),
@@ -118,7 +115,8 @@ class IssuedAssetResource extends Resource
                 TextColumn::make('description')->searchable()
                     ->description(fn (IssuedAsset $record): ?string => $record->serial_no),
 
-                TextColumn::make('asset_kind')->label('Kind')->badge()->color('gray'),
+                TextColumn::make('asset_kind')->label('Kind')->badge()->color('gray')
+                    ->formatStateUsing(fn (string $state): string => IssuedAsset::kindLabel($state)),
 
                 TextColumn::make('issued_on')->date('d M Y')->sortable(),
 

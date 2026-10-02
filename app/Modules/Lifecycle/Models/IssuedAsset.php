@@ -39,6 +39,27 @@ class IssuedAsset extends Model
         'other',
     ];
 
+    /**
+     * Labels the default slug title-casing gets wrong — acronyms that should stay
+     * upper-case rather than become "Sim" / "Ups". Everything else reads fine from
+     * the slug, so only the exceptions are listed.
+     *
+     * @var array<string, string>
+     */
+    public const KIND_LABELS = ['sim' => 'SIM', 'ups' => 'UPS'];
+
+    /** How a kind reads on screen: the acronym override, else the slug title-cased. */
+    public static function kindLabel(string $kind): string
+    {
+        return self::KIND_LABELS[$kind] ?? ucfirst(str_replace('_', ' ', $kind));
+    }
+
+    /** @return array<string, string> value => label, for a select */
+    public static function kindOptions(): array
+    {
+        return array_combine(self::KINDS, array_map(self::kindLabel(...), self::KINDS));
+    }
+
     protected $fillable = [
         'employee_id', 'asset_kind', 'description', 'serial_no', 'fixed_asset_id',
         'issued_on', 'returned_on', 'condition_note', 'value',
