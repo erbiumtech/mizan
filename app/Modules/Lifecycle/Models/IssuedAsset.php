@@ -24,8 +24,20 @@ class IssuedAsset extends Model
 
     protected array $plainDates = ['issued_on', 'returned_on'];
 
-    /** @var array<int, string> */
-    public const KINDS = ['laptop', 'phone', 'sim', 'vehicle', 'access_card', 'other'];
+    /**
+     * The kit a company issues. A plain string column, not an enum, so this list
+     * is the only place kinds live — add to it and the form offers the new value
+     * (labelled by ucfirst(str_replace('_', ' '))), existing rows untouched.
+     * `other` stays last, the catch-all for anything not worth its own entry.
+     *
+     * @var array<int, string>
+     */
+    public const KINDS = [
+        'laptop', 'phone', 'sim', 'vehicle', 'access_card',
+        'monitor', 'keyboard', 'mouse', 'headphone', 'webcam',
+        'docking_station', 'ups', 'charger', 'computer_table',
+        'other',
+    ];
 
     protected $fillable = [
         'employee_id', 'asset_kind', 'description', 'serial_no', 'fixed_asset_id',
