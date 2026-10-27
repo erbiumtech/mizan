@@ -69,8 +69,12 @@ class PayComponentRecorder
             if ($component->is_column_backed) {
                 $column = self::COLUMN_FOR[$component->code] ?? null;
 
+                // Phase 5 (docs/payslip-component-input-plan.md): the amount comes from what this save's
+                // calculation produced (`Payslip::$computedAmounts`), not from the column it was about to be
+                // read from — the step that lets the column be dropped. The compute sets it earlier in the same
+                // save; it is absent only on a save that ran no calculation, and then the column is the fallback.
                 $amounts[$component->getKey()] = $column
-                    ? round((float) ($payslip->{$column} ?? 0), 2)
+                    ? round((float) (($payslip->computedAmounts ?? [])[$column] ?? $payslip->{$column} ?? 0), 2)
                     : 0.0;
 
                 continue;

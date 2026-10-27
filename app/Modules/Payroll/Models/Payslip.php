@@ -95,6 +95,18 @@ class Payslip extends Model
      */
     public ?array $typedOverrides = null;
 
+    /**
+     * The figures this save's calculation produced, keyed by column — Phase 5.
+     *
+     * A plain property, never persisted: the compute sets it, and `PayComponentRecorder` writes the component
+     * projection from it rather than re-reading the columns, so the projection no longer depends on a column
+     * that is about to be dropped. Null on a save that ran no calculation (a review-only change), where the
+     * recorder is skipped too; it then falls back to the columns. See docs/payslip-component-input-plan.md.
+     *
+     * @var array<string, float|int|null>|null
+     */
+    public ?array $computedAmounts = null;
+
     /** Has the employee been sent this payslip? See PayslipDeliveryService. */
     public function wasSent(): bool
     {
@@ -674,6 +686,12 @@ class Payslip extends Model
                 $payslip->overtime_minutes = $calculatedData['overtime_minutes'] ?? null;
                 $payslip->overtime_hourly_rate = $calculatedData['overtime_hourly_rate'] ?? null;
                 $payslip->overtime_multiplier = $calculatedData['overtime_multiplier'] ?? null;
+
+                // Phase 5 (docs/payslip-component-input-plan.md): the figures this calculation produced, kept
+                // on the instance so PayComponentRecorder writes the projection from them rather than re-reading
+                // the columns it just wrote. The recorder runs later in this same save; the compute and the
+                // recorder are skipped together on a review-only change, so when the recorder runs this is set.
+                $payslip->computedAmounts = $calculatedData;
             }
         };
 

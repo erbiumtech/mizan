@@ -130,18 +130,22 @@ last. `PayslipReadersUseComponentsTest` drifts a component below the model and s
 (Gotcha banked: the PDF's `$comp` is resolved in the view's top `@php` block — a `@php` block between `<tr>`
 and `<td>` silently drops the earnings cell.)
 
-**The destructive finale — not started, and not to be run blind.** Three things still read a column, and then
-the columns can go:
+**The recorder decoupling (built 2026-10-27).** `PayComponentRecorder` built the projection by reading the
+columns (`COLUMN_FOR`); it now reads `Payslip::$computedAmounts`, the figures the save's calculation produced,
+which the compute stashes on the instance before the recorder's `saved` hook runs. Transparent today
+(`computedAmounts` equals the columns the same compute wrote), and the step that lets the column be dropped —
+nothing but the fallback now reads a column to build the projection. It falls back to the column when no
+calculation ran (a review-only save, where the recorder is skipped anyway). `PayComponentRecorderSourceTest`
+drives the recorder with a `computedAmounts` that disagrees with the column to show it follows the calculation.
 
-1. The recorder builds the projection *from* the columns (`PayComponentRecorder::COLUMN_FOR`). It must take the
-   computed amounts from the calculation instead — the `$calculatedData` the save hook already produces, handed
-   to it the way `typedOverrides` is. It only runs on figure-changing saves (review-only is skipped), so the
-   fresh amounts are always available.
-2. The save hook's override fallback `typedOverridesOf` reads the eight input columns when no writer set the
+**The destructive finale — still not started, and not to be run blind.** Two things still read a column, and
+then the columns can go:
+
+1. The save hook's override fallback `typedOverridesOf` reads the eight input columns when no writer set the
    transient — an arbitrary re-save, and every direct `Payslip::create([... override columns ...])`, which is
    how much of the test suite builds a payslip. Those must move to the store/transient first; it is a broad,
    entrenched change.
-3. Only then can the calculation stop writing the input columns, and only then do they drop — the eight input
+2. Only then can the calculation stop writing the input columns, and only then do they drop — the eight input
    columns first, then the computed ones (`net_salary`, the totals), one migration per group,
    `payroll:verify-components` green at each step.
 
