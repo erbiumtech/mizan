@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is designed below — its one outward-facing piece, the form writing the store, is left for a session with the admin UI in view. Phase 5 is designed and not started.
+**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4's form change — the payslip form writes the store, not the columns — is built 2026-10-27; the monthly run and the API still feed overrides as columns and remain to be moved (below). Phase 5 is designed and not started.
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -81,29 +81,30 @@ override were identical. The backfill writes input rows only and never re-saves 
 split exactly as issued and reports the count as a note. Re-saving those months would restate the split,
 which is a separate decision about settled payroll, not part of this phase.
 
-### Phase 4 — The columns stop being read as input (designed 2026-10-27, not started)
+### Phase 4 — The form writes the store, not the columns (form built 2026-10-27)
 
-The goal: nothing reads an input column to *drive* the calculation. After it, the eight input columns are
-written as output and read by no one but the output consumers (PDF, reports, billing, ledger), which Phase 5
-then moves off them before dropping them. Tracing it end to end found three things worth writing down before
-touching code.
+The goal: nothing reads an input column to *drive* the calculation. The clerk's form was the first and
+riskiest writer and is done; the monthly run and the API still pass overrides as columns, so the columns stay
+readable for them until those two move too (below).
 
-**The form must write the store, and that is the outward-facing part.** Today the editable fields are
-`TextInput::make('device_allowance')` and the rest, bound to the payslip columns; the clerk's figure lands in
-the column and the save hook reads it back as the typed input. For the column to stop being an input, the
-field's value has to go to `payslip_component_inputs` instead. The low-risk shape is to keep each field
-showing the computed column (so the screen is unchanged) but mark it `dehydrated(false)` and route the typed
-value to the store from the page's save lifecycle, before the model computes — the store write that the Phase
-3 hook does today, moved ahead of the column. It is drivable from `Livewire::test` on `EditPayslip` /
-`CreatePayslip` (the way `PayslipOverrideWarningTest` already drives the form), but it changes the clerk's
-primary payroll screen, so it is the one piece to do with a person able to look at the real admin UI — the
-failure mode is a silently dropped override, which no green test fully rules out.
+**The form (built).** The eight editable fields still show the computed figure, so the screen is unchanged,
+but on save the pages (`EditPayslip`, `CreatePayslip`) split the typed overrides out of the form data so they
+never write a column (`RoutesTypedOverridesToStore`), and hand them to the model as a transient
+`Payslip::$typedOverrides`. The save hook syncs the store from that transient rather than from the columns,
+and the columns are written only as output by the calculation. One wrinkle the implementation had to handle: a
+change to *only* an override leaves no input column dirty, so Eloquent would skip the update and never
+recompute — `EditPayslip` forces the save when an override actually changed, and only then, so an
+open-and-save with nothing changed stays a no-op and never restates a settled month's tax.
+`PayslipFormWritesStoreTest` drives the real Livewire pages to pin all four: edit writes the store and
+recomputes, clearing removes the row, an untouched save against a changed setting recomputes nothing, and
+create stores the override off the column.
 
-**The create path needs an id before it can source from the store.** On an update the store is synced before
-the figures are computed, so the compute can read overrides from the store alone. On a create the payslip has
-no id until it is inserted, so the store is empty when `creating` computes — the typed map is still needed
-there. Sourcing the compute purely from the store therefore means inserting a bare row first, then syncing and
-computing, which restructures the save flow; it is not a one-line change and must not regress the create path.
+**What remains in Phase 4.** The monthly run (`MonthlyPayrollService`, `Payslip::create([... columns ...])`)
+and the API still supply overrides as columns; the save hook reads them through `typedOverridesOf` when no
+writer set the transient. Moving those two to set `typedOverrides` (or to write the store directly) is what
+finally stops the input columns being read at all — the precondition for dropping them. The create path's
+chicken-and-egg (no id until insert) is already solved for the form by the transient, which the `created` hook
+syncs once the row exists; the same transient works for the other writers.
 
 **Advances and expense reimbursement are not a blocker.** The worry was that a store-sourced compute would
 lose the "reuse the instalment on re-save" behaviour the column gives for free. It does not:

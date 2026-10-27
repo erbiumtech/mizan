@@ -82,6 +82,19 @@ class Payslip extends Model
         'sent_at' => 'datetime',
     ];
 
+    /**
+     * The typed per-month overrides a writer is supplying this save, keyed by component — Phase 4.
+     *
+     * A plain property, not an attribute: it is never persisted and never read from a column. When the
+     * payslip form saves, it sets this from the fields and leaves the columns out of the save, so the typed
+     * input reaches the store (the save hook syncs it) without passing through a column. Null means "no writer
+     * supplied overrides this save", and the hook falls back to reading the columns — the path the monthly run
+     * and the API still take. See docs/payslip-component-input-plan.md Phase 4.
+     *
+     * @var array<string, float|int|string|null>|null
+     */
+    public ?array $typedOverrides = null;
+
     /** Has the employee been sent this payslip? See PayslipDeliveryService. */
     public function wasSent(): bool
     {
@@ -589,9 +602,11 @@ class Payslip extends Model
 
             $service = app(PayslipService::class);
 
-            // The typed input and the month's recorded facts. Captured here, before the figures below
-            // overwrite these columns with output — the inputs must not be read back from their own results.
-            $typed = $service->typedOverridesOf($payslip);
+            // The typed input and the month's recorded facts. The overrides come from the writer when one
+            // supplied them (the form, Phase 4), otherwise from the columns (the monthly run, the API).
+            // Captured here, before the figures below overwrite these columns with output — the inputs must
+            // not be read back from their own results.
+            $typed = $payslip->typedOverrides ?? $service->typedOverridesOf($payslip);
             $attendance = $service->attendanceOf($payslip);
 
             // Phase 3 (docs/payslip-component-input-plan.md): the genuine per-month overrides are reconciled
@@ -657,7 +672,8 @@ class Payslip extends Model
             }
 
             $service = app(PayslipService::class);
-            $service->syncInputStore($payslip, $service->typedOverridesOf($payslip), $service->attendanceOf($payslip));
+            $typed = $payslip->typedOverrides ?? $service->typedOverridesOf($payslip);
+            $service->syncInputStore($payslip, $typed, $service->attendanceOf($payslip));
         });
 
         $syncTax = function ($payslip) {

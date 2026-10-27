@@ -5,17 +5,48 @@ namespace App\Modules\Payroll\Filament\Resources\Payslips\Pages;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\CloseObjectionAction;
 use App\Modules\Payroll\Filament\Resources\Payslips\Actions\ReturnForReviewAction;
+use App\Modules\Payroll\Filament\Resources\Payslips\Pages\Concerns\RoutesTypedOverridesToStore;
 use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\AttendanceFigures;
+use App\Modules\Payroll\Services\PayslipService;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditPayslip extends EditRecord
 {
     use RedirectsToIndex;
+    use RoutesTypedOverridesToStore;
 
     protected static string $resource = PayslipResource::class;
+
+    /**
+     * The typed overrides go to the input store, not the columns — docs/payslip-component-input-plan.md Phase 4.
+     */
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        [$overrides, $data] = $this->splitTypedOverrides($data);
+
+        $record->typedOverrides = $overrides;
+        $record->fill($data);
+
+        // A change to only an override leaves no input column dirty for Eloquent to notice, so the save — and
+        // the recalculation in its hook — would be skipped. Force it when an override actually changed, and
+        // only then, so an open-and-save with nothing changed stays a no-op and never restates a settled
+        // month's withholding-tax split.
+        $overrideChanged = collect(PayslipService::OVERRIDE_KEYS)->contains(
+            fn (string $key): bool => round((float) ($overrides[$key] ?? 0), 2) !== round((float) $record->getOriginal($key), 2)
+        );
+
+        if ($overrideChanged && ! $record->isDirty()) {
+            $record->updated_at = $record->freshTimestamp();
+        }
+
+        $record->save();
+
+        return $record;
+    }
 
     /**
      * And here too, because this is the other end of the same job: somebody opens the payslip an employee
