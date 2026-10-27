@@ -498,6 +498,24 @@ class Payslip extends Model
     }
 
     /**
+     * What this payslip paid, component code => amount — docs/payslip-component-input-plan.md Phase 5.
+     *
+     * The projection `PayComponentRecorder` wrote, as a map the output readers (the PDF, the ledger) read in
+     * place of the columns, so there is one source for what a payslip paid rather than two that can disagree.
+     * A code with no row paid nothing, so a lookup falls back to 0. One query; call it once and reuse.
+     *
+     * @return array<string, float>
+     */
+    public function componentAmounts(): array
+    {
+        return $this->components()
+            ->with('component:id,code')
+            ->get()
+            ->mapWithKeys(fn (PayslipComponent $row): array => [(string) $row->component?->code => (float) $row->amount])
+            ->all();
+    }
+
+    /**
      * The typed per-month overrides — docs/payslip-component-input-plan.md Phase 2. The *input* to the
      * calculation; `components()` is the output it produces.
      */

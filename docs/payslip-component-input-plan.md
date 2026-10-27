@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is built 2026-10-27: the payslip form and the monthly run both write the store, not the columns, and there is no API writer. The only input-column read left is the save hook's fallback for an arbitrary re-save, which Phase 5 points at the store before dropping the columns. Phase 5 is designed and not started.
+**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is built 2026-10-27: the payslip form and the monthly run both write the store, not the columns, and there is no API writer. Phase 5's reader migration is built 2026-10-27 — the ledger and the PDF now read the component projection (the register and billing already did). The destructive finale (decouple the recorder from the columns, move the save-hook override fallback and direct creates off the columns, then drop the columns, staged and rehearsed) is not started — see Phase 5 below.
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -118,15 +118,37 @@ lose the "reuse the instalment on re-save" behaviour the column gives for free. 
 `syncInputStore` already stores a drifted advance or claim (column ≠ the ledger/claims answer now), so a
 store-sourced compute reproduces exactly what the column did. No special handling.
 
-### Phase 5 — Migrate the readers, then drop the columns (not started)
+### Phase 5 — The output readers read the projection (readers built 2026-10-27)
 
-The readers of the input columns that remain are `PayrollPostingService` (the ledger entry) and
-`resources/views/pdfs/payslip.blade.php` (the PDF); the billing statement already reads components. **Move
-them as a set, not one at a time** — the columns and `payslip_components` are equal today
-(`payroll:verify-components` is clean) but can drift on a raw correction, and a half-migrated reader set would
-have the ledger and the PDF disagree on a corrected payslip. Once nothing but the output projection reads a
-column, drop the eight input columns, then the computed ones, one migration per group,
-`payroll:verify-components` green at each step.
+**The readers (built).** The payroll register and the billing statement already read `payslip_components`;
+this moved the last two, `PayrollPostingService` (the ledger entry) and `resources/views/pdfs/payslip.blade.php`
+(the PDF), onto it, through one accessor, `Payslip::componentAmounts()` (component code => amount). So what a
+payslip paid has one source. Safe because the recorder writes the projection from the columns earlier in the
+same save (its `saved` hook runs before the ledger's), so at post time the two agree and the entry balances
+exactly as before; `net_salary` is a total, not a component, so it stays a column until the computed ones go
+last. `PayslipReadersUseComponentsTest` drifts a component below the model and shows each reader followed it.
+(Gotcha banked: the PDF's `$comp` is resolved in the view's top `@php` block — a `@php` block between `<tr>`
+and `<td>` silently drops the earnings cell.)
+
+**The destructive finale — not started, and not to be run blind.** Three things still read a column, and then
+the columns can go:
+
+1. The recorder builds the projection *from* the columns (`PayComponentRecorder::COLUMN_FOR`). It must take the
+   computed amounts from the calculation instead — the `$calculatedData` the save hook already produces, handed
+   to it the way `typedOverrides` is. It only runs on figure-changing saves (review-only is skipped), so the
+   fresh amounts are always available.
+2. The save hook's override fallback `typedOverridesOf` reads the eight input columns when no writer set the
+   transient — an arbitrary re-save, and every direct `Payslip::create([... override columns ...])`, which is
+   how much of the test suite builds a payslip. Those must move to the store/transient first; it is a broad,
+   entrenched change.
+3. Only then can the calculation stop writing the input columns, and only then do they drop — the eight input
+   columns first, then the computed ones (`net_salary`, the totals), one migration per group,
+   `payroll:verify-components` green at each step.
+
+**Dropping production payroll columns is irreversible.** The data is recoverable from the projection, but the
+migration above touches the balanced ledger and many tests, and a schema drop cannot be undone without a
+restore. Run it staged, rehearsed on a copy first (the method used for the latin1 repair), with a backup and
+`payroll:verify-components` gating each group — not as one blind pass.
 
 ## Order and stop conditions
 

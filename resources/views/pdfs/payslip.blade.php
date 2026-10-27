@@ -13,6 +13,10 @@
     // and the template falls back to exactly what it printed before.
     $logoDataUri = \App\Support\CompanyLetterhead::logoDataUri();
     $signatureDataUri = \App\Support\CompanyLetterhead::signatureDataUri();
+    // What the payslip paid, component code => amount (docs/payslip-component-input-plan.md Phase 5). The
+    // line items below read this projection, not the columns, so there is one source for what a payslip paid.
+    // Resolved up here, not in the salary table: a @php block between <tr> and <td> drops the earnings cell.
+    $comp = $data->componentAmounts();
 @endphp
 <!DOCTYPE html>
 <html>
@@ -445,32 +449,33 @@
                     <th>Deductions</th>
                 </tr>
                 <tr>
+                    {{-- The line items come from $comp, the component projection resolved at the top of this view, not the columns (docs/payslip-component-input-plan.md Phase 5). Totals below stay columns until the computed ones are retired last. --}}
                     <td>
                         <div class="line-item"><span>Basic
-                                Wage</span><span>{{ number_format($data->basic_wage, 2) }}</span></div>
+                                Wage</span><span>{{ number_format($comp['basic_wage'] ?? 0, 2) }}</span></div>
                         <div class="line-item"><span>Medical
-                                Allowances</span><span>{{ number_format($data->medical_allowance, 2) }}</span></div>
+                                Allowances</span><span>{{ number_format($comp['medical_allowance'] ?? 0, 2) }}</span></div>
                         <div class="line-item"><span>Device
-                                Allowances</span><span>{{ number_format($data->device_allowance, 2) }}</span></div>
+                                Allowances</span><span>{{ number_format($comp['device_allowance'] ?? 0, 2) }}</span></div>
                         <div class="line-item"><span>Petrol
-                                Allowances</span><span>{{ number_format($data->petrol_allowance, 2) }}</span></div>
+                                Allowances</span><span>{{ number_format($comp['petrol_allowance'] ?? 0, 2) }}</span></div>
                         <div class="line-item"><span>Extra Work
-                                Hours</span><span>{{ number_format($data->extra_work_hours, 2) }}</span></div>
-                        <div class="line-item"><span>Bonus</span><span>{{ number_format($data->bonus, 2) }}</span>
+                                Hours</span><span>{{ number_format($comp['extra_work_hours'] ?? 0, 2) }}</span></div>
+                        <div class="line-item"><span>Bonus</span><span>{{ number_format($comp['bonus'] ?? 0, 2) }}</span>
                         </div>
                         <div class="line-item"><span>Expense
-                                Reimbursement</span><span>{{ number_format($data->expense_reimbursement, 2) }}</span></div>
+                                Reimbursement</span><span>{{ number_format($comp['expense_reimbursement'] ?? 0, 2) }}</span></div>
                     </td>
                     <td>
                         <div class="line-item"><span>Withholding
-                                Tax</span><span>{{ number_format($data->withholding_tax, 2) }}</span></div>
+                                Tax</span><span>{{ number_format($comp['withholding_tax'] ?? 0, 2) }}</span></div>
                         <div class="line-item">
-                            <span>Advances</span><span>{{ number_format($data->advances, 2) }}</span>
+                            <span>Advances</span><span>{{ number_format($comp['advances'] ?? 0, 2) }}</span>
                         </div>
                         <div class="line-item"><span>Meal
-                                Deduction</span><span>{{ number_format($data->meal_deduction, 2) }}</span></div>
+                                Deduction</span><span>{{ number_format($comp['meal_deduction'] ?? 0, 2) }}</span></div>
                         <div class="line-item"><span>ESI / Health
-                                Insurance</span><span>{{ number_format($data->esi_health_insurance, 2) }}</span></div>
+                                Insurance</span><span>{{ number_format($comp['esi_health_insurance'] ?? 0, 2) }}</span></div>
                     </td>
                 </tr>
                 <tr>

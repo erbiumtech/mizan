@@ -58,20 +58,27 @@ class PayrollPostingService
      */
     protected function writeEntry(Payslip $payslip): ?JournalEntry
     {
+        // The column-backed figures come from the component projection, not the columns — docs/payslip-component-input-plan.md Phase 5.
+        // The recorder writes the projection from the columns earlier in this same save (its `saved` hook runs
+        // before this one), so at post time the two agree and the entry balances exactly as before; the
+        // projection is simply now the single source of what the payslip paid. `net_salary` is a total, not a
+        // component, so it stays a column read until the computed columns are retired last.
+        $amounts = $payslip->componentAmounts();
+
         $debits = [
-            'basic_wage' => (float) $payslip->basic_wage,
-            'medical_allowance' => (float) $payslip->medical_allowance,
-            'petrol_allowance' => (float) $payslip->petrol_allowance,
-            'device_allowance' => (float) $payslip->device_allowance,
-            'bonus_overtime' => (float) $payslip->bonus + (float) $payslip->extra_work_hours,
-            'expense_reimbursement' => (float) $payslip->expense_reimbursement,
+            'basic_wage' => $amounts['basic_wage'] ?? 0.0,
+            'medical_allowance' => $amounts['medical_allowance'] ?? 0.0,
+            'petrol_allowance' => $amounts['petrol_allowance'] ?? 0.0,
+            'device_allowance' => $amounts['device_allowance'] ?? 0.0,
+            'bonus_overtime' => ($amounts['bonus'] ?? 0.0) + ($amounts['extra_work_hours'] ?? 0.0),
+            'expense_reimbursement' => $amounts['expense_reimbursement'] ?? 0.0,
         ];
 
         $credits = [
-            'tax_payable' => (float) $payslip->withholding_tax,
-            'esi_payable' => (float) $payslip->esi_health_insurance,
-            'employee_advances' => (float) $payslip->advances,
-            'meal_recovery' => (float) $payslip->meal_deduction,
+            'tax_payable' => $amounts['withholding_tax'] ?? 0.0,
+            'esi_payable' => $amounts['esi_health_insurance'] ?? 0.0,
+            'employee_advances' => $amounts['advances'] ?? 0.0,
+            'meal_recovery' => $amounts['meal_deduction'] ?? 0.0,
             'salaries_payable' => (float) $payslip->net_salary,
         ];
 
