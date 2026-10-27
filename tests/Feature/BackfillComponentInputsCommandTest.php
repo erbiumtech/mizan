@@ -10,6 +10,7 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Models\PayslipComponentInput;
 use App\Modules\Payroll\Services\PayslipService;
 use Illuminate\Console\OutputStyle;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
@@ -104,7 +105,7 @@ class BackfillComponentInputsCommandTest extends AccountingTestCase
 
         $this->assertSame(0, $code);
         $this->assertStringContainsString('1 override row(s)', $output);
-        $this->assertStringContainsString('no figure moves', $output);
+        $this->assertStringContainsString('the store changes no figure', $output);
         $this->assertSame(0, PayslipComponentInput::count(), 'the dry run rolled back');
     }
 
@@ -126,6 +127,26 @@ class BackfillComponentInputsCommandTest extends AccountingTestCase
         // The gate: the issued figures are untouched.
         $this->assertSame($net, (float) $payslip->fresh()->net_salary);
         $this->assertSame(7000.0, (float) $payslip->fresh()->device_allowance);
+    }
+
+    /**
+     * A column that disagrees with a fresh recompute — an early month's withholding-tax split, drifted once
+     * the year filled in — is noted, not a reason to abort. The backfill writes input rows and leaves the
+     * column as issued, so it must still store the override.
+     */
+    public function test_a_stale_column_is_noted_not_a_reason_to_abort(): void
+    {
+        $payslip = $this->issuedPayslip();
+
+        // Behind the model, the way the real drift arose: the stored tax no longer matches a recompute.
+        DB::table('payslips')->where('id', $payslip->id)
+            ->update(['withholding_tax' => (float) $payslip->withholding_tax + 1234.56]);
+
+        [$code, $output] = $this->runBackfill(apply: true);
+
+        $this->assertSame(0, $code, 'a stale column does not abort the backfill');
+        $this->assertStringContainsString('redistribute', $output);
+        $this->assertSame(1, PayslipComponentInput::count(), 'the override was still stored');
     }
 
     public function test_an_empty_payroll_is_not_a_pass(): void

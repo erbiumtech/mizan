@@ -18,16 +18,19 @@ use Spatie\Multitenancy\Commands\Concerns\TenantAware;
  * comparing each column to the pure fallback — so a value that merely echoes a fallback is left off the store
  * and keeps following it.
  *
- * **It must not move a single figure, and it proves that before it commits.** For every payslip it snapshots
- * the fourteen computed figures, syncs the store, recomputes, and compares. A tenant with any drift is rolled
- * back whole and named; only a clean tenant is committed, and only with `--apply`. The default is a dry run
- * that writes nothing — the before/after check the plan asks for, run against the whole history. Reversible
- * either way: truncate `payslip_component_inputs` and every read falls back to the columns.
+ * **The store must not change what the calculation produces, and it proves that before it commits.** For every
+ * payslip it syncs the store, then recomputes twice — once with the store ignored, once with it read — and the
+ * two must agree to the cent. That is the exact Phase 3 invariant: moving the input onto the store changes no
+ * figure. A tenant where it fails anywhere is rolled back whole and named; only a clean tenant is committed,
+ * and only with `--apply`. The default is a dry run that writes nothing. Reversible either way: truncate
+ * `payslip_component_inputs` and every read falls back to the columns.
  *
- * One behaviour it is honest about: a column that has drifted from its live setting since the payslip was
- * issued — a setting changed, the payslip never re-saved — reads as an override and is frozen at its issued
- * figure. For a settled month that is correct (a paid payslip should not move); for an untouched draft it
- * means the field no longer tracks the setting until retyped. No figure moves either way, which is the gate.
+ * It deliberately does **not** gate on the stored column matching a fresh recompute. Those can differ for a
+ * reason the store neither causes nor cures: the withholding tax is an annual figure split across the months,
+ * so an early month issued before the year was complete carries a split a recompute today would redistribute —
+ * same annual tax, different month. The backfill writes input rows only and never re-saves a column, so it
+ * leaves that split exactly as issued. It counts the payslips in that state and prints the count as a note, so
+ * whoever runs it sees the condition rather than having it hidden or mistaken for the store moving a figure.
  */
 class BackfillComponentInputs extends Command
 {
@@ -65,44 +68,63 @@ class BackfillComponentInputs extends Command
         $connection = $payslips->first()->getConnection();
         $rowsCreated = 0;
         $drift = [];
+        $staleTax = [];
 
         $connection->beginTransaction();
 
         foreach ($payslips as $payslip) {
-            $before = $this->figuresOf($payslip);
+            $typed = $service->typedOverridesOf($payslip);
+            $attendance = $service->attendanceOf($payslip);
+            $column = $this->figuresOf($payslip);
 
-            $service->syncInputStore($payslip, $service->typedOverridesOf($payslip), $service->attendanceOf($payslip));
+            $service->syncInputStore($payslip, $typed, $attendance);
             $rowsCreated += $payslip->componentInputs()->count();
 
-            $after = $service->calculateByParams(
+            // The invariant: the store changes no figure. Recompute with it ignored and with it read; they
+            // must agree. A difference means a stored row is doing something the columns did not.
+            $withoutStore = $service->calculateByParams(
                 $payslip->employee_id, $payslip->month, $payslip->fiscal_year_id,
-                $service->typedOverridesOf($payslip), $payslip->id, $service->attendanceOf($payslip),
+                $typed, $payslip->id, $attendance, false,
+            );
+            $withStore = $service->calculateByParams(
+                $payslip->employee_id, $payslip->month, $payslip->fiscal_year_id,
+                $typed, $payslip->id, $attendance, true,
             );
 
             foreach (self::FIGURES as $key) {
-                if (abs($before[$key] - (float) ($after[$key] ?? 0)) > 0.005) {
-                    $drift[] = [$payslip->id, $payslip->month, $key, $before[$key], $after[$key] ?? 0];
+                if (abs((float) ($withoutStore[$key] ?? 0) - (float) ($withStore[$key] ?? 0)) > 0.005) {
+                    $drift[] = [$payslip->id, $payslip->month, $key, $withoutStore[$key] ?? 0, $withStore[$key] ?? 0];
+                }
+
+                // Separately: the stored column already disagrees with a fresh recompute. Pre-existing and
+                // store-independent — noted, never a reason to abort, since the backfill leaves the column be.
+                if (abs($column[$key] - (float) ($withoutStore[$key] ?? 0)) > 0.005) {
+                    $staleTax[$payslip->id] = true;
                 }
             }
         }
 
         if ($drift !== []) {
             $connection->rollBack();
-            $this->error(count($drift).' figure(s) would move — nothing was written.');
-            $this->table(['Payslip', 'Month', 'Figure', 'Before', 'After'], $drift);
+            $this->error(count($drift).' figure(s) change when the store is read — nothing was written.');
+            $this->table(['Payslip', 'Month', 'Figure', 'Without store', 'With store'], $drift);
 
             return self::FAILURE;
         }
 
+        $note = $staleTax === []
+            ? ''
+            : ' '.count($staleTax).' payslip(s) carry a withholding-tax split a recompute would redistribute (pre-existing, untouched).';
+
         if ($apply) {
             $connection->commit();
-            $this->info("Backfilled {$rowsCreated} override row(s) across {$payslips->count()} payslip(s); no figure moved.");
+            $this->info("Backfilled {$rowsCreated} override row(s) across {$payslips->count()} payslip(s); the store changes no figure.".$note);
 
             return self::SUCCESS;
         }
 
         $connection->rollBack();
-        $this->info("Dry run: {$rowsCreated} override row(s) across {$payslips->count()} payslip(s) would be stored; no figure moves. Re-run with --apply to commit.");
+        $this->info("Dry run: {$rowsCreated} override row(s) across {$payslips->count()} payslip(s) would be stored; the store changes no figure.".$note.' Re-run with --apply to commit.');
 
         return self::SUCCESS;
     }

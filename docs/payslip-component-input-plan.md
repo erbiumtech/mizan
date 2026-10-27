@@ -65,18 +65,21 @@ Putting the sync in the model hook rather than rewiring the Filament form covers
 monthly bulk run in one place — every writer of a payslip. The columns are still written as output, so every
 reader that has not moved yet is unaffected.
 
-The existing 88 payslips are backfilled by `php artisan payroll:backfill-component-inputs --tenant=N --apply`.
-**It must not move a single figure, and it proves that before it commits:** for each payslip it snapshots the
-fourteen computed figures, syncs the store, recomputes, and compares, rolling the whole tenant back on any
-drift. Without `--apply` it is a dry run that writes nothing — the before/after equality check the plan asked
-for, over the whole history. Reversible either way: truncate `payslip_component_inputs` and every read falls
-back to the columns.
+The existing payslips are backfilled by `php artisan payroll:backfill-component-inputs --tenant=N --apply`.
+**The store must not change what the calculation produces, and it proves that before it commits:** for each
+payslip it syncs the store, then recomputes twice — once with the store ignored, once with it read — and the
+two must agree to the cent. That is the exact invariant: moving the input onto the store changes no figure.
+Any disagreement rolls the whole tenant back. Without `--apply` it is a dry run that writes nothing.
+Reversible either way: truncate `payslip_component_inputs` and every read falls back to the columns.
 
-One honest limit: a column that has drifted from its live setting since the payslip was issued — a setting
-changed, the payslip never re-saved — reads as an override and is frozen at its issued figure. For a settled
-month that is correct; for an untouched draft the field stops tracking the setting until it is retyped. No
-figure moves either way, which is the gate, and the storing-only-genuine-overrides rule keeps the frozen set
-to the fields that actually differ rather than all eight.
+It deliberately does **not** gate on the stored column matching a fresh recompute, because those legitimately
+differ for a reason the store neither causes nor cures. The withholding tax is an annual figure split across
+the months, so a month issued before the year was complete carries a split a recompute today would
+redistribute — the same annual tax, a different month. On the production company 17 of 88 payslips were in
+that state, all early months, drifting by 75 to 6,500 rupees of tax timing; earnings, allowances and every
+override were identical. The backfill writes input rows only and never re-saves a column, so it leaves that
+split exactly as issued and reports the count as a note. Re-saving those months would restate the split,
+which is a separate decision about settled payroll, not part of this phase.
 
 ### Phase 4 — Components are the source, columns are derived output (not started)
 
