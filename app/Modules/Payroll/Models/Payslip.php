@@ -484,6 +484,15 @@ class Payslip extends Model
         return $this->hasMany(PayslipComponent::class);
     }
 
+    /**
+     * The typed per-month overrides — docs/payslip-component-input-plan.md Phase 2. The *input* to the
+     * calculation; `components()` is the output it produces.
+     */
+    public function componentInputs()
+    {
+        return $this->hasMany(PayslipComponentInput::class);
+    }
+
     public function journalEntries()
     {
         return $this->morphMany(JournalEntry::class, 'source');

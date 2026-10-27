@@ -133,6 +133,22 @@ class PayslipService
     ];
 
     /**
+     * The typed overrides stored against a payslip, keyed by component code — Phase 2.
+     *
+     * @return array<string, float> code => amount, only for the overridable (column-backed) components
+     */
+    private function overridesFromStore(int $payslipId): array
+    {
+        return \App\Modules\Payroll\Models\PayslipComponentInput::query()
+            ->where('payslip_id', $payslipId)
+            ->with('component:id,code')
+            ->get()
+            ->mapWithKeys(fn ($input): array => [(string) $input->component?->code => (float) $input->amount])
+            ->only(self::OVERRIDE_KEYS)
+            ->all();
+    }
+
+    /**
      * @param  array<string, float|int|string|null>  $overrides  keyed by OVERRIDE_KEYS; a positive value is
      *                                                           this month's typed amount, anything else falls
      *                                                           back to the setting (or the ledger/claims)
@@ -150,6 +166,21 @@ class PayslipService
         $mealDeduction = $overrides['meal_deduction'] ?? null;
         $esiInsurance = $overrides['esi_health_insurance'] ?? null;
         $expenseReimbursement = $overrides['expense_reimbursement'] ?? null;
+
+        // Phase 2 (docs/payslip-component-input-plan.md): a typed override on the per-payslip input store
+        // wins over the map passed in, which still comes from columns. The store is empty today, so this is
+        // a no-op; it is the seam a later phase fills, moving the input off the columns.
+        if ($payslipId) {
+            $stored = $this->overridesFromStore($payslipId);
+            $bonus = $stored['bonus'] ?? $bonus;
+            $extraWorkHours = $stored['extra_work_hours'] ?? $extraWorkHours;
+            $deviceAllowance = $stored['device_allowance'] ?? $deviceAllowance;
+            $petrolAllowance = $stored['petrol_allowance'] ?? $petrolAllowance;
+            $advances = $stored['advances'] ?? $advances;
+            $mealDeduction = $stored['meal_deduction'] ?? $mealDeduction;
+            $esiInsurance = $stored['esi_health_insurance'] ?? $esiInsurance;
+            $expenseReimbursement = $stored['expense_reimbursement'] ?? $expenseReimbursement;
+        }
 
         $fiscalYear = FiscalYear::find($fiscalYearId);
 

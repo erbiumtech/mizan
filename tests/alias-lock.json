@@ -131,6 +131,7 @@
         "App\\Models\\PayrollRun": "App\\Modules\\Payroll\\Models\\PayrollRun",
         "App\\Models\\Payslip": "App\\Modules\\Payroll\\Models\\Payslip",
         "App\\Models\\PayslipComponent": "App\\Modules\\Payroll\\Models\\PayslipComponent",
+        "App\\Models\\PayslipComponentInput": "App\\Modules\\Payroll\\Models\\PayslipComponentInput",
         "App\\Models\\Permit": "App\\Modules\\ConstructionQhse\\Models\\Permit",
         "App\\Models\\PersonalTaxProfile": "App\\Modules\\PersonalFinance\\Models\\PersonalTaxProfile",
         "App\\Models\\PettyCashVoucher": "App\\Modules\\Accounting\\Models\\PettyCashVoucher",

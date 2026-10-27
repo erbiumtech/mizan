@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phase 1 (the override map) built 2026-10-27. Phases 2 to 5 are designed below and not started.
+**Status:** Phases 1 (the override map) and 2 (the input store, dual-read) built 2026-10-27. Phases 3 to 5 are designed below and not started.
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -43,7 +43,7 @@ same map from the same values. **No value changes**, and the override set is now
 fill from somewhere other than columns. `PayslipCalculationSeamTest` pins that the map and the old
 positional form produce identical figures.
 
-### Phase 2 — A per-payslip input store, dual-read (not started)
+### Phase 2 — A per-payslip input store, dual-read (built 2026-10-27)
 
 A `payslip_component_inputs` table (`payslip_id`, `pay_component_id`, `amount`), holding the typed override
 for a month. `calculateByParams()` reads an override from the store when a row exists, otherwise from the

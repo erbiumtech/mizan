@@ -18,6 +18,7 @@ return [
     'models' => [
         'App\\Models\\PayrollRun' => \App\Modules\Payroll\Models\PayrollRun::class,
         'App\\Models\\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
+        'App\\Models\\PayslipComponentInput' => \App\Modules\Payroll\Models\PayslipComponentInput::class,
         'App\\Models\\EmployeeSettingComponent' => \App\Modules\Payroll\Models\EmployeeSettingComponent::class,
         'App\\Models\\PayslipComponent' => \App\Modules\Payroll\Models\PayslipComponent::class,
         'App\\Models\\Payslip' => \App\Modules\Payroll\Models\Payslip::class,
