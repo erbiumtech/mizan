@@ -7,6 +7,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\PayrollMonth;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 /**
@@ -48,7 +49,9 @@ class MonthlyPayrollService
         $figures = app(AttendanceFigures::class);
 
         foreach ($this->employeesDueAPayslip($month, $fiscalYear) as $employee) {
-            $payslip = Payslip::create([
+            $employeeOverrides = $overrides[$employee->id] ?? [];
+
+            $payslip = new Payslip([
                 'employee_id' => $employee->id,
                 'fiscal_year_id' => $fiscalYear->id,
                 'month' => $month,
@@ -62,15 +65,17 @@ class MonthlyPayrollService
                 // payroll.prorate_on_attendance, which is off.
                 ...$figures->for($employee, $month, $fiscalYear),
                 ...$this->overtimeFor($figures, $employee, $month, $fiscalYear),
-                // A figure somebody typed for this month, over the one the package says.
-                //
-                // No second calculation and no new meaning: these are the same columns the
-                // payslip form writes, and `PayslipService::calculateByParams()` already
-                // treats a non-zero amount on the payslip as outranking the employee's
-                // settings for that month. Last in the array deliberately — an override is
-                // the answer to "what does this month pay", so it wins.
-                ...($overrides[$employee->id] ?? []),
+                // Any non-override column a caller passes still goes straight on. The screen collects only
+                // fuel and meals, both overrides, so today this is empty — the overrides are set below.
+                ...Arr::except($employeeOverrides, PayslipService::OVERRIDE_KEYS),
             ]);
+
+            // A figure somebody typed for this month, over the one the package says — handed to the model as
+            // the input store's content, not written as a column (docs/payslip-component-input-plan.md Phase
+            // 4). The save hook syncs the store from it, and the calculation still treats a typed amount as
+            // outranking the settings, exactly as before — the form takes the same path.
+            $payslip->typedOverrides = Arr::only($employeeOverrides, PayslipService::OVERRIDE_KEYS);
+            $payslip->save();
 
             // Claim the leave days this payslip counted, so no later month counts them
             // again — and so leave approved for a month that is already signed off lands

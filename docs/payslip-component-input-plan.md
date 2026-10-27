@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4's form change — the payslip form writes the store, not the columns — is built 2026-10-27; the monthly run and the API still feed overrides as columns and remain to be moved (below). Phase 5 is designed and not started.
+**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is built 2026-10-27: the payslip form and the monthly run both write the store, not the columns, and there is no API writer. The only input-column read left is the save hook's fallback for an arbitrary re-save, which Phase 5 points at the store before dropping the columns. Phase 5 is designed and not started.
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -81,11 +81,12 @@ override were identical. The backfill writes input rows only and never re-saves 
 split exactly as issued and reports the count as a note. Re-saving those months would restate the split,
 which is a separate decision about settled payroll, not part of this phase.
 
-### Phase 4 — The form writes the store, not the columns (form built 2026-10-27)
+### Phase 4 — The writers stop writing the columns (built 2026-10-27)
 
-The goal: nothing reads an input column to *drive* the calculation. The clerk's form was the first and
-riskiest writer and is done; the monthly run and the API still pass overrides as columns, so the columns stay
-readable for them until those two move too (below).
+The goal: nothing writes an input column to *drive* the calculation. The clerk's form was the first and
+riskiest writer; the monthly run was the other. Both now hand their overrides to the store. The API turned out
+not to write payslips at all. What is left is one *read*, the save hook's column fallback, which Phase 5 moves
+to the store before the columns go.
 
 **The form (built).** The eight editable fields still show the computed figure, so the screen is unchanged,
 but on save the pages (`EditPayslip`, `CreatePayslip`) split the typed overrides out of the form data so they
@@ -99,12 +100,18 @@ open-and-save with nothing changed stays a no-op and never restates a settled mo
 recomputes, clearing removes the row, an untouched save against a changed setting recomputes nothing, and
 create stores the override off the column.
 
-**What remains in Phase 4.** The monthly run (`MonthlyPayrollService`, `Payslip::create([... columns ...])`)
-and the API still supply overrides as columns; the save hook reads them through `typedOverridesOf` when no
-writer set the transient. Moving those two to set `typedOverrides` (or to write the store directly) is what
-finally stops the input columns being read at all — the precondition for dropping them. The create path's
-chicken-and-egg (no id until insert) is already solved for the form by the transient, which the `created` hook
-syncs once the row exists; the same transient works for the other writers.
+**The monthly run (built 2026-10-27).** `MonthlyPayrollService::openMonth` now splits the typed overrides out
+of the `Payslip` it raises and sets them as `typedOverrides`, the same path the form takes; only non-override
+columns (none, today — the screen collects fuel and meals, both overrides) still go on the create.
+`PayrollBulkOverridesTest` pins that the fuel and meal a clerk types reach `payslip_component_inputs`, and the
+existing tests still hold that the output columns and totals move with them.
+
+**There is no API writer.** The payslip API is read-only (`PayslipController`: list own payslips, PDF,
+comments); nothing over HTTP creates or edits a payslip, so there was never an API override path to move. The
+only remaining reader of an input column as *input* is `typedOverridesOf`, the fallback the save hook uses
+when no writer set the transient — an arbitrary re-save of an existing payslip. It reads the columns today;
+Phase 5 points it at the store once the columns are about to go, which is the last step before they can be
+dropped.
 
 **Advances and expense reimbursement are not a blocker.** The worry was that a store-sourced compute would
 lose the "reuse the instalment on re-save" behaviour the column gives for free. It does not:

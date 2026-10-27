@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
+use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\MonthlyPayrollService;
 use Filament\Actions\Testing\TestAction;
@@ -137,6 +138,35 @@ class PayrollBulkOverridesTest extends AccountingTestCase
         $this->assertGreaterThan(0, $extraTax, 'a fuel allowance is taxable pay');
         $this->assertEquals(1000 + $extraTax, $overridden->total_deductions - $untouched->total_deductions);
         $this->assertEquals(6000 - (1000 + $extraTax), $overridden->net_salary - $untouched->net_salary);
+    }
+
+    /**
+     * The override reaches the input store, not the column — docs/payslip-component-input-plan.md Phase 4.
+     *
+     * The monthly run hands the typed overrides to the model the same way the form does, so they land in
+     * `payslip_component_inputs`; the column is written only as the calculation's output.
+     */
+    public function test_the_override_is_written_to_the_input_store(): void
+    {
+        foreach (['petrol_allowance' => PayComponent::KIND_EARNING, 'meal_deduction' => PayComponent::KIND_DEDUCTION] as $code => $kind) {
+            PayComponent::firstOrCreate(
+                ['code' => $code],
+                ['label' => ucfirst(str_replace('_', ' ', $code)), 'kind' => $kind, 'is_column_backed' => true],
+            );
+        }
+
+        app(MonthlyPayrollService::class)->openMonth('August', $this->fiscalYear, [
+            $this->ali->id => ['petrol_allowance' => 9000, 'meal_deduction' => 1500],
+        ]);
+
+        $stored = $this->payslipFor($this->ali)->componentInputs()->with('component:id,code')->get()
+            ->mapWithKeys(fn ($input): array => [(string) $input->component?->code => (float) $input->amount]);
+
+        $this->assertSame(9000.0, $stored['petrol_allowance'] ?? null, 'the typed fuel is in the store');
+        $this->assertSame(1500.0, $stored['meal_deduction'] ?? null, 'and the typed meal charge');
+
+        // The employee nobody typed over is on the package, so nothing is an override and the store is empty.
+        $this->assertSame(0, $this->payslipFor($this->sara)->componentInputs()->count());
     }
 
     /** Nothing passed is the behaviour the scheduler has always had. */
