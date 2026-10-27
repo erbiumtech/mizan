@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built 2026-10-27. Phases 4 and 5 are designed below and not started.
+**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is designed below — its one outward-facing piece, the form writing the store, is left for a session with the admin UI in view. Phase 5 is designed and not started.
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -81,17 +81,44 @@ override were identical. The backfill writes input rows only and never re-saves 
 split exactly as issued and reports the count as a note. Re-saving those months would restate the split,
 which is a separate decision about settled payroll, not part of this phase.
 
-### Phase 4 — Components are the source, columns are derived output (not started)
+### Phase 4 — The columns stop being read as input (designed 2026-10-27, not started)
 
-`calculateByParams()` sources every override from the store; the columns are written as computed output
-only, for the PDF, the reports and the billing statement until each is moved to read components. The form
-no longer edits columns. The eight input columns are now write-only copies.
+The goal: nothing reads an input column to *drive* the calculation. After it, the eight input columns are
+written as output and read by no one but the output consumers (PDF, reports, billing, ledger), which Phase 5
+then moves off them before dropping them. Tracing it end to end found three things worth writing down before
+touching code.
 
-### Phase 5 — Drop the columns (not started)
+**The form must write the store, and that is the outward-facing part.** Today the editable fields are
+`TextInput::make('device_allowance')` and the rest, bound to the payslip columns; the clerk's figure lands in
+the column and the save hook reads it back as the typed input. For the column to stop being an input, the
+field's value has to go to `payslip_component_inputs` instead. The low-risk shape is to keep each field
+showing the computed column (so the screen is unchanged) but mark it `dehydrated(false)` and route the typed
+value to the store from the page's save lifecycle, before the model computes — the store write that the Phase
+3 hook does today, moved ahead of the column. It is drivable from `Livewire::test` on `EditPayslip` /
+`CreatePayslip` (the way `PayslipOverrideWarningTest` already drives the form), but it changes the clerk's
+primary payroll screen, so it is the one piece to do with a person able to look at the real admin UI — the
+failure mode is a silently dropped override, which no green test fully rules out.
 
-Once every reader (payslip PDF, `PayslipService::componentTotals`, the payroll register, the billing
-statement, the ledger posting) reads components rather than columns, drop the eight input columns, then the
-computed ones, one migration per group, `payroll:verify-components` green at each step.
+**The create path needs an id before it can source from the store.** On an update the store is synced before
+the figures are computed, so the compute can read overrides from the store alone. On a create the payslip has
+no id until it is inserted, so the store is empty when `creating` computes — the typed map is still needed
+there. Sourcing the compute purely from the store therefore means inserting a bare row first, then syncing and
+computing, which restructures the save flow; it is not a one-line change and must not regress the create path.
+
+**Advances and expense reimbursement are not a blocker.** The worry was that a store-sourced compute would
+lose the "reuse the instalment on re-save" behaviour the column gives for free. It does not:
+`syncInputStore` already stores a drifted advance or claim (column ≠ the ledger/claims answer now), so a
+store-sourced compute reproduces exactly what the column did. No special handling.
+
+### Phase 5 — Migrate the readers, then drop the columns (not started)
+
+The readers of the input columns that remain are `PayrollPostingService` (the ledger entry) and
+`resources/views/pdfs/payslip.blade.php` (the PDF); the billing statement already reads components. **Move
+them as a set, not one at a time** — the columns and `payslip_components` are equal today
+(`payroll:verify-components` is clean) but can drift on a raw correction, and a half-migrated reader set would
+have the ledger and the PDF disagree on a corrected payslip. Once nothing but the output projection reads a
+column, drop the eight input columns, then the computed ones, one migration per group,
+`payroll:verify-components` green at each step.
 
 ## Order and stop conditions
 
