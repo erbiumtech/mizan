@@ -123,7 +123,9 @@ class CompanyBrandingTest extends AccountingTestCase
 
         $this->assertStringNotContainsString('data:image', $payslip);
         $this->assertStringContainsString('<div class="bars">', $payslip);
-        $this->assertStringContainsString($this->tenant->name, $payslip);
+        // Escaped, because the template prints it through Blade: a faker company name with an apostrophe
+        // ("O'Reilly Inc") renders as "O&#039;Reilly Inc", and asserting the raw name flaked on that seed.
+        $this->assertStringContainsString(e($this->tenant->name), $payslip);
 
         $this->assertStringNotContainsString('data:image', $this->invoiceHtml());
     }

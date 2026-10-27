@@ -589,35 +589,31 @@ class Payslip extends Model
 
             $service = app(PayslipService::class);
 
+            // The typed input and the month's recorded facts. Captured here, before the figures below
+            // overwrite these columns with output — the inputs must not be read back from their own results.
+            $typed = $service->typedOverridesOf($payslip);
+            $attendance = $service->attendanceOf($payslip);
+
+            // Phase 3 (docs/payslip-component-input-plan.md): the genuine per-month overrides are reconciled
+            // onto the input store BEFORE the figures are computed, so a value changed this save wins over the
+            // row a previous save left — calculateByParams reads the store first. Only on update: a creating
+            // payslip has no id yet to hang rows from, so the created hook below syncs it once it exists.
+            if ($payslip->exists) {
+                $service->syncInputStore($payslip, $typed, $attendance);
+            }
+
             $calculatedData = $service->calculateByParams(
                 $payslip->employee_id,
                 $payslip->month,
                 $payslip->fiscal_year_id,
-                [
-                    'bonus' => $payslip->bonus,
-                    'extra_work_hours' => $payslip->extra_work_hours,
-                    'device_allowance' => $payslip->device_allowance,
-                    'petrol_allowance' => $payslip->petrol_allowance,
-                    'advances' => $payslip->advances,
-                    'meal_deduction' => $payslip->meal_deduction,
-                    'esi_health_insurance' => $payslip->esi_health_insurance,
-                    'expense_reimbursement' => $payslip->expense_reimbursement,
-                ],
+                $typed,
                 $payslip->id,
                 // Phase 3/3a. What the payslip knows about the month: the pro-rating
                 // inputs, and whatever it has already recorded about how it was
                 // calculated. Passing the recorded values is what stops a settled
                 // month moving when a company later changes the divisor — this hook
                 // re-runs on EVERY save, including a clerk fixing a typo.
-                [
-                    'total_working_days' => $payslip->total_working_days,
-                    'lop_days' => $payslip->lop_days,
-                    'proration_divisor' => $payslip->proration_divisor,
-                    'proration_basis_days' => $payslip->proration_basis_days,
-                    'overtime_minutes' => $payslip->overtime_minutes,
-                    'overtime_hourly_rate' => $payslip->overtime_hourly_rate,
-                    'overtime_multiplier' => $payslip->overtime_multiplier,
-                ]
+                $attendance
             );
 
             if ($calculatedData) {
@@ -650,6 +646,19 @@ class Payslip extends Model
 
         static::creating($calculate);
         static::updating($calculate);
+
+        // Phase 3: a creating payslip had no id for the store rows to hang from, so its typed overrides move
+        // onto the store here, once it exists. The figures were already computed from the same typed values
+        // above and the store was empty then, so this changes no figure — it only records which of them were
+        // genuine per-month overrides rather than the setting, the ledger or the claims showing through.
+        static::created(function ($payslip) {
+            if (static::isReviewOnlyChange($payslip->getChanges())) {
+                return;
+            }
+
+            $service = app(PayslipService::class);
+            $service->syncInputStore($payslip, $service->typedOverridesOf($payslip), $service->attendanceOf($payslip));
+        });
 
         $syncTax = function ($payslip) {
             self::calculateAndStoreAnnualTax($payslip->employee_id, $payslip->fiscal_year_id);

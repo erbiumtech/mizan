@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Payment;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Payroll\Console\Commands\BackfillComponentInputs;
 use App\Modules\Payroll\Console\Commands\CheckPayrollAccounts;
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
 use App\Modules\Payroll\Console\Commands\PostPendingPayrollEntries;
@@ -168,6 +169,7 @@ class PayrollServiceProvider extends ServiceProvider
         // so a moved command has to be registered here or it disappears
         // from artisan — and from the scheduler, silently.
         $this->commands([
+            BackfillComponentInputs::class,
             CheckPayrollAccounts::class,
             OpenPayrollMonth::class,
             PostPendingPayrollEntries::class,

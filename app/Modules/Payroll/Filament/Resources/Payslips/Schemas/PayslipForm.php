@@ -388,6 +388,10 @@ class PayslipForm
                 $employee, $month, $fiscalYear,
                 [],
                 $record?->getKey(),
+                null,
+                // The pure fallback — what each field would hold if cleared — so the "Overrides X" hint names
+                // the setting, the ledger or the claims, not the stored override echoing itself back.
+                false,
             ) ?: [];
         }
 
@@ -430,7 +434,12 @@ class PayslipForm
                 'esi_health_insurance' => (float) ($get('esi_health_insurance') ?? 0),
                 'expense_reimbursement' => (float) ($get('expense_reimbursement') ?? 0),
             ],
-            $record?->getKey()
+            $record?->getKey(),
+            null,
+            // The preview computes from the fields on screen, so it must not read the stored override back —
+            // a value the clerk is changing right now would otherwise be overruled by the row a past save
+            // left. The save reconciles the store from these same fields first, so the two agree.
+            false,
         );
 
         foreach (self::CALCULATED_KEYS as $key) {

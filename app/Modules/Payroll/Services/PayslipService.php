@@ -6,7 +6,9 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
+use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Models\PayslipComponentInput;
 use App\Support\Contracts\AdvanceLedger;
 use App\Support\Contracts\ReimbursableClaims;
 use App\Support\PayrollMonth;
@@ -139,13 +141,105 @@ class PayslipService
      */
     private function overridesFromStore(int $payslipId): array
     {
-        return \App\Modules\Payroll\Models\PayslipComponentInput::query()
+        return PayslipComponentInput::query()
             ->where('payslip_id', $payslipId)
             ->with('component:id,code')
             ->get()
             ->mapWithKeys(fn ($input): array => [(string) $input->component?->code => (float) $input->amount])
             ->only(self::OVERRIDE_KEYS)
             ->all();
+    }
+
+    /**
+     * This payslip's eight typed overrides, keyed by component — the input map the save hook and the backfill
+     * both build. The values are the columns today; Phase 3 moves the genuine ones onto the store.
+     *
+     * @return array<string, float|int|null>
+     */
+    public function typedOverridesOf(Payslip $payslip): array
+    {
+        return [
+            'bonus' => $payslip->bonus,
+            'extra_work_hours' => $payslip->extra_work_hours,
+            'device_allowance' => $payslip->device_allowance,
+            'petrol_allowance' => $payslip->petrol_allowance,
+            'advances' => $payslip->advances,
+            'meal_deduction' => $payslip->meal_deduction,
+            'esi_health_insurance' => $payslip->esi_health_insurance,
+            'expense_reimbursement' => $payslip->expense_reimbursement,
+        ];
+    }
+
+    /**
+     * What a payslip already knows about its month — the pro-rating and overtime inputs calculateByParams
+     * reproduces rather than re-derives. Mirrors the map the save hook has always passed.
+     *
+     * @return array<string, mixed>
+     */
+    public function attendanceOf(Payslip $payslip): array
+    {
+        return [
+            'total_working_days' => $payslip->total_working_days,
+            'lop_days' => $payslip->lop_days,
+            'proration_divisor' => $payslip->proration_divisor,
+            'proration_basis_days' => $payslip->proration_basis_days,
+            'overtime_minutes' => $payslip->overtime_minutes,
+            'overtime_hourly_rate' => $payslip->overtime_hourly_rate,
+            'overtime_multiplier' => $payslip->overtime_multiplier,
+        ];
+    }
+
+    /**
+     * Make the input store hold exactly this payslip's genuine per-month overrides — docs/payslip-component-input-plan.md Phase 3.
+     *
+     * A "genuine override" is a positive typed figure the fallback would not have produced: the clerk's 7,000
+     * device allowance when the setting pays 5,000, not the 5,000 that merely echoes the setting, and not an
+     * advance instalment the ledger decides or a reimbursement the claims add up. Those are left off the store
+     * so they keep following the setting, the ledger and the claims — the store is the typed input, never a
+     * frozen copy of a value meant to stay live.
+     *
+     * Rebuilt from scratch each call (clear, then re-detect against the pure fallback), so it is idempotent and
+     * leaves no stale row to win over a figure the clerk has since changed — calculateByParams reads the store
+     * before the map. The caller must pass the typed values as they were BEFORE the columns are overwritten
+     * with output, and the payslip must already exist (a row needs a payslip id to hang from).
+     *
+     * @param  array<string, float|int|string|null>  $typed  keyed by OVERRIDE_KEYS — the form's input
+     * @param  array<string, mixed>|null  $attendance
+     */
+    public function syncInputStore(Payslip $payslip, array $typed, ?array $attendance = null): void
+    {
+        if (! $payslip->exists) {
+            return;
+        }
+
+        // The pure fallback — no typed overrides, and the store ignored (`withStore: false`) — so a row is
+        // created only where the figure is one no setting, ledger or claim would have produced.
+        // ponytail: one extra calculateByParams per payroll save; correctness over a query batch on a write,
+        // and it reuses the real fallback logic rather than reimplementing eight fallbacks here.
+        $fallback = $this->calculateByParams(
+            $payslip->employee_id, $payslip->month, $payslip->fiscal_year_id,
+            [], $payslip->id, $attendance, false,
+        );
+
+        $payslip->componentInputs()->delete();
+
+        $componentIds = PayComponent::whereIn('code', self::OVERRIDE_KEYS)->pluck('id', 'code');
+
+        $rows = [];
+
+        foreach (self::OVERRIDE_KEYS as $key) {
+            $amount = round((float) ($typed[$key] ?? 0), 2);
+
+            // Positive, because calculateByParams falls back on anything that is not; and different from the
+            // fallback, because a figure that only echoes it is not an override and must stay free to follow it.
+            if ($amount > 0 && abs($amount - (float) ($fallback[$key] ?? 0)) > 0.005 && isset($componentIds[$key])) {
+                $rows[] = ['pay_component_id' => $componentIds[$key], 'amount' => $amount];
+            }
+        }
+
+        if ($rows !== []) {
+            $payslip->componentInputs()->createMany($rows);
+        }
     }
 
     /**
@@ -156,7 +250,8 @@ class PayslipService
     public function calculateByParams(
         $employeeId, $month, $fiscalYearId,
         array $overrides = [],
-        ?int $payslipId = null, ?array $attendance = null
+        ?int $payslipId = null, ?array $attendance = null,
+        bool $withStore = true
     ) {
         $bonus = $overrides['bonus'] ?? null;
         $extraWorkHours = $overrides['extra_work_hours'] ?? null;
@@ -167,10 +262,12 @@ class PayslipService
         $esiInsurance = $overrides['esi_health_insurance'] ?? null;
         $expenseReimbursement = $overrides['expense_reimbursement'] ?? null;
 
-        // Phase 2 (docs/payslip-component-input-plan.md): a typed override on the per-payslip input store
-        // wins over the map passed in, which still comes from columns. The store is empty today, so this is
-        // a no-op; it is the seam a later phase fills, moving the input off the columns.
-        if ($payslipId) {
+        // Phase 2 and 3 (docs/payslip-component-input-plan.md): a typed override on the per-payslip input
+        // store wins over the map passed in. `$withStore` is false where the caller wants the *pure fallback*
+        // — what a figure would be with nothing overridden: the form's "Overrides X" hint and its live
+        // preview, which compute from the fields on screen, and syncInputStore deciding what is genuinely an
+        // override. Everywhere the store is the input (a save, the backfill's check) it is left true.
+        if ($payslipId && $withStore) {
             $stored = $this->overridesFromStore($payslipId);
             $bonus = $stored['bonus'] ?? $bonus;
             $extraWorkHours = $stored['extra_work_hours'] ?? $extraWorkHours;

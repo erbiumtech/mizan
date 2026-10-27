@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phases 1 (the override map) and 2 (the input store, dual-read) built 2026-10-27. Phases 3 to 5 are designed below and not started.
+**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built 2026-10-27. Phases 4 and 5 are designed below and not started.
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -51,13 +51,32 @@ map it is passed (which still comes from the columns). The store starts empty, s
 the gate stays green. The recorder is untouched — it still writes the output projection. Reversible: drop
 the table and the read falls back entirely to columns.
 
-### Phase 3 — Backfill, and the form writes the store (not started)
+### Phase 3 — The store becomes the input, backfilled (built 2026-10-27)
 
-Backfill the store from the existing column values for every editable payslip, behind
-`payroll:verify-components` run before and after. The payslip form writes the typed overrides to the store
-instead of to the columns. The store is now the input source; the columns are still written as output for
-the readers that have not moved yet. **This is the phase where net pay could move if the backfill is
-wrong** — guarded by a per-payslip before/after equality check over the whole history, not just the gate.
+The save hook now moves the typed overrides onto the store. `PayslipService::syncInputStore()` runs on
+every payslip save — before the figures are computed on an update, in the `created` hook on an insert — and
+rebuilds the store from scratch: it clears the rows, computes the pure fallback (no overrides, empty store),
+and keeps a row only where the typed figure is one no setting, ledger or claim would have produced. So a
+genuine override moves to the store and keeps winning; a figure that merely echoes a fallback is left off and
+keeps following it. The order matters and is the subtle part — the sync happens **before** the compute reads
+the store, or a row a previous save left would win over the figure the clerk just changed.
+
+Putting the sync in the model hook rather than rewiring the Filament form covers the form, the API and the
+monthly bulk run in one place — every writer of a payslip. The columns are still written as output, so every
+reader that has not moved yet is unaffected.
+
+The existing 88 payslips are backfilled by `php artisan payroll:backfill-component-inputs --tenant=N --apply`.
+**It must not move a single figure, and it proves that before it commits:** for each payslip it snapshots the
+fourteen computed figures, syncs the store, recomputes, and compares, rolling the whole tenant back on any
+drift. Without `--apply` it is a dry run that writes nothing — the before/after equality check the plan asked
+for, over the whole history. Reversible either way: truncate `payslip_component_inputs` and every read falls
+back to the columns.
+
+One honest limit: a column that has drifted from its live setting since the payslip was issued — a setting
+changed, the payslip never re-saved — reads as an override and is frozen at its issued figure. For a settled
+month that is correct; for an untouched draft the field stops tracking the setting until it is retyped. No
+figure moves either way, which is the gate, and the storing-only-genuine-overrides rule keeps the frozen set
+to the fields that actually differ rather than all eight.
 
 ### Phase 4 — Components are the source, columns are derived output (not started)
 
@@ -73,7 +92,9 @@ computed ones, one migration per group, `payroll:verify-components` green at eac
 
 ## Order and stop conditions
 
-Phases 1 and 2 are additive and safe. Phase 3 is the hinge — do not start it on a company whose
-`payroll:verify-components` is not clean, and run it inside a window with a fresh backup. Phases 4 and 5
-only begin once nothing but the output projection reads a column. Any phase can ship on its own; the
-columns stay until Phase 5, so a half-finished migration is a working system, not a broken one.
+Phases 1 and 2 were additive and safe. Phase 3 was the hinge: the code shipped reversibly, and the backfill
+per company is run with `payroll:backfill-component-inputs --apply`, which refuses to commit a tenant whose
+figures would move — so it is run only on a clean `payroll:verify-components`, and still inside a window with
+a fresh backup. Phases 4 and 5 only begin once nothing but the output projection reads a column. Any phase can
+ship on its own; the columns stay until Phase 5, so a half-finished migration is a working system, not a
+broken one.

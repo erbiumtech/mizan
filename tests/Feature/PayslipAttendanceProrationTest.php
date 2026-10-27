@@ -228,7 +228,7 @@ class PayslipAttendanceProrationTest extends AccountingTestCase
      * this method means new to how pay is calculated.
      */
     private const CALCULATION_INPUTS = [
-        'employeeId', 'month', 'fiscalYearId', 'overrides', 'payslipId', 'attendance',
+        'employeeId', 'month', 'fiscalYearId', 'overrides', 'payslipId', 'attendance', 'withStore',
     ];
 
     public function test_the_calculation_takes_no_input_it_does_not_take_today(): void
