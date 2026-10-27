@@ -164,7 +164,7 @@ class AdvanceRecoveryTest extends AccountingTestCase
 
         $asItself = $service->calculateByParams(
             $this->employee->id, 'July', $this->fiscalYear->id,
-            null, null, null, null, null, null, null, null, $payslip->id,
+            [], $payslip->id,
         );
         $this->assertSame(60000.0, (float) $asItself['advances'], 'the payslip keeps its own instalment');
 

@@ -386,7 +386,7 @@ class PayslipForm
         if (! isset($cache[$key])) {
             $cache[$key] = app(PayslipService::class)->calculateByParams(
                 $employee, $month, $fiscalYear,
-                0, 0, 0, 0, 0, 0, 0, 0,
+                [],
                 $record?->getKey(),
             ) ?: [];
         }
@@ -420,14 +420,16 @@ class PayslipForm
             $employee,
             $month,
             $fiscalYear,
-            (float) ($get('bonus') ?? 0),
-            (float) ($get('extra_work_hours') ?? 0),
-            (float) ($get('device_allowance') ?? 0),
-            (float) ($get('petrol_allowance') ?? 0),
-            (float) ($get('advances') ?? 0),
-            (float) ($get('meal_deduction') ?? 0),
-            (float) ($get('esi_health_insurance') ?? 0),
-            (float) ($get('expense_reimbursement') ?? 0),
+            [
+                'bonus' => (float) ($get('bonus') ?? 0),
+                'extra_work_hours' => (float) ($get('extra_work_hours') ?? 0),
+                'device_allowance' => (float) ($get('device_allowance') ?? 0),
+                'petrol_allowance' => (float) ($get('petrol_allowance') ?? 0),
+                'advances' => (float) ($get('advances') ?? 0),
+                'meal_deduction' => (float) ($get('meal_deduction') ?? 0),
+                'esi_health_insurance' => (float) ($get('esi_health_insurance') ?? 0),
+                'expense_reimbursement' => (float) ($get('expense_reimbursement') ?? 0),
+            ],
             $record?->getKey()
         );
 

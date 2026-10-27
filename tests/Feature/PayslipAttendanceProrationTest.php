@@ -217,18 +217,18 @@ class PayslipAttendanceProrationTest extends AccountingTestCase
     /**
      * Every input the payroll calculation takes, in order.
      *
-     * `attendance` was added by phase 3, and deliberately as ONE array rather than the
-     * seven scalars it carries: seven more positional parameters on a method that
-     * already had eleven would be seven chances to pass them in the wrong order, and
-     * the failure would be a wrong payslip rather than a type error.
+     * `attendance` was added by phase 3 as ONE array rather than the seven scalars it carries, and the
+     * eight per-month overrides were collapsed into ONE `overrides` map by the column-retirement Phase 1
+     * (docs/payslip-component-input-plan.md) for the same reason: positional scalars on a method with many
+     * of them are chances to pass them in the wrong order, and the failure is a wrong payslip, not a type
+     * error. A new override is a key in that map; a new *input* is a new parameter, which is what this
+     * guards.
      *
      * The guard still does its job. Anything else appearing here is new, and new to
      * this method means new to how pay is calculated.
      */
     private const CALCULATION_INPUTS = [
-        'employeeId', 'month', 'fiscalYearId', 'bonus', 'extraWorkHours',
-        'deviceAllowance', 'petrolAllowance', 'advances', 'mealDeduction',
-        'esiInsurance', 'expenseReimbursement', 'payslipId', 'attendance',
+        'employeeId', 'month', 'fiscalYearId', 'overrides', 'payslipId', 'attendance',
     ];
 
     public function test_the_calculation_takes_no_input_it_does_not_take_today(): void

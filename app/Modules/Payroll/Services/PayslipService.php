@@ -121,11 +121,36 @@ class PayslipService
      *
      * @param  array<string, mixed>|null  $attendance
      */
+    /**
+     * The eight per-month input overrides, keyed by component — docs/payslip-component-input-plan.md Phase 1.
+     *
+     * A map rather than eight positional parameters because the set has to become fillable from somewhere
+     * other than columns (Phase 2); the keys are the column names the values still land in today.
+     */
+    public const OVERRIDE_KEYS = [
+        'bonus', 'extra_work_hours', 'device_allowance', 'petrol_allowance',
+        'advances', 'meal_deduction', 'esi_health_insurance', 'expense_reimbursement',
+    ];
+
+    /**
+     * @param  array<string, float|int|string|null>  $overrides  keyed by OVERRIDE_KEYS; a positive value is
+     *                                                           this month's typed amount, anything else falls
+     *                                                           back to the setting (or the ledger/claims)
+     */
     public function calculateByParams(
-        $employeeId, $month, $fiscalYearId, $bonus = null, $extraWorkHours = null,
-        $deviceAllowance = null, $petrolAllowance = null, $advances = null, $mealDeduction = null, $esiInsurance = null, $expenseReimbursement = null,
+        $employeeId, $month, $fiscalYearId,
+        array $overrides = [],
         ?int $payslipId = null, ?array $attendance = null
     ) {
+        $bonus = $overrides['bonus'] ?? null;
+        $extraWorkHours = $overrides['extra_work_hours'] ?? null;
+        $deviceAllowance = $overrides['device_allowance'] ?? null;
+        $petrolAllowance = $overrides['petrol_allowance'] ?? null;
+        $advances = $overrides['advances'] ?? null;
+        $mealDeduction = $overrides['meal_deduction'] ?? null;
+        $esiInsurance = $overrides['esi_health_insurance'] ?? null;
+        $expenseReimbursement = $overrides['expense_reimbursement'] ?? null;
+
         $fiscalYear = FiscalYear::find($fiscalYearId);
 
         $targetDate = PayrollMonth::firstDay($month, $fiscalYear)->toDateString();
