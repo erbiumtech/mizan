@@ -371,6 +371,76 @@ class Modules
         $this->flush();
     }
 
+    /**
+     * License modules to a company — these and everything they require — without
+     * touching anything else.
+     *
+     * `enabled` is never written here. A grant with no choice recorded (NULL)
+     * already reads as on (see load()), and an explicit false is the company's
+     * own decision, which has to survive a plan change exactly as it survives a
+     * revoke on the platform panel. Nothing is revoked: a module licensed outside
+     * the set was a deliberate sale. Logged per module the way the platform
+     * panel logs its grants, so the audit trail reads the same whoever granted.
+     *
+     * @param  array<int, string>  $modules
+     */
+    public function grant(int|string $companyId, array $modules): void
+    {
+        $wanted = [];
+
+        foreach ($modules as $module) {
+            $wanted[$module] = true;
+
+            foreach ($this->allRequirements($module) as $required) {
+                $wanted[$required] = true;
+            }
+        }
+
+        $company = Company::find($companyId);
+
+        foreach (array_keys($wanted) as $module) {
+            if (! in_array($module, static::names(), true) || static::isLocked($module)) {
+                continue;
+            }
+
+            $row = CompanyModule::firstOrNew(['company_id' => $companyId, 'module' => $module]);
+
+            if ((bool) $row->licensed) {
+                continue;
+            }
+
+            $row->licensed = true;
+            $row->save();
+
+            if ($company) {
+                activity()
+                    ->performedOn($company)
+                    ->withProperties(['module' => $module, 'licensed' => true])
+                    ->log('Granted the '.static::label($module).' module licence');
+            }
+        }
+
+        $this->flush();
+    }
+
+    /**
+     * Everything a module requires, transitively. The graph is acyclic
+     * (ModuleCoverageTest), so this terminates.
+     *
+     * @return array<int, string>
+     */
+    protected function allRequirements(string $module): array
+    {
+        $all = [];
+
+        foreach (static::requirements($module) as $required) {
+            $all[] = $required;
+            $all = array_merge($all, $this->allRequirements($required));
+        }
+
+        return array_values(array_unique($all));
+    }
+
     public function flush(): void
     {
         $this->cache = [];

@@ -5,7 +5,7 @@ namespace App\Multitenancy;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use App\Support\CompanyProfiles;
-use App\Support\Modules;
+use App\Support\Plans;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -29,6 +29,11 @@ class CompanyProvisioner
      *                                Null keeps the pre-profile behaviour exactly:
      *                                registry defaults, or PERSONAL_DEFAULTS for a
      *                                personal account.
+     * @param  string|null  $plan  A key from config/plans.php. What the customer
+     *                             pays for: the starting licences are the
+     *                             profile's list intersected with the plan's.
+     *                             Null means no plan — licensed by hand, as every
+     *                             company before plans existed.
      */
     public function provision(
         string $name,
@@ -37,12 +42,20 @@ class CompanyProvisioner
         bool $seedBaseline = true,
         string $type = Company::TYPE_BUSINESS,
         ?string $profile = null,
+        ?string $plan = null,
     ): Company {
         // Rejected before anything is written. A trading profile on a personal
         // account would seed the business chart into a household, which is the
         // one combination `type` exists to prevent — and it would be discovered
         // months later as "why does my personal account have salary slabs".
         $profile = $this->assertProfileMatchesType($profile, $type);
+
+        // Same posture for an unknown plan: refused, not ignored, or the company
+        // would start with the profile's whole list while the caller believed
+        // it had asked for a tier.
+        if ($plan !== null) {
+            Plans::assertExists($plan);
+        }
 
         $connection = $this->tenantConnectionName();
 
@@ -66,6 +79,7 @@ class CompanyProvisioner
             'slug' => $slug,
             'type' => $type,
             'profile' => $profile,
+            'plan' => $plan,
             'database' => $database,
             'status' => 1,
         ]);
@@ -76,12 +90,12 @@ class CompanyProvisioner
         // which cascades them away.
         modules()->seedDefaults(
             $company->getKey(),
-            // The profile's preset if there is one. Otherwise the pre-profile
-            // rule, unchanged: a personal account starts with a ledger, staff
-            // records and the tax estimate (PERSONAL_DEFAULTS), and a business
-            // gets Core alone from the registry defaults.
-            CompanyProfiles::modules($profile)
-                ?? ($company->isPersonal() ? Modules::PERSONAL_DEFAULTS : null),
+            // The profile's preset if there is one, intersected with the plan if
+            // there is one. Otherwise the pre-profile rule, unchanged: a personal
+            // account starts with a ledger, staff records and the tax estimate
+            // (PERSONAL_DEFAULTS), and a business gets Core alone from the
+            // registry defaults. Plans::licencesFor() holds all three answers.
+            Plans::licencesFor($profile, $type, $plan),
         );
 
         // Only tear down a database this call brought into existence.

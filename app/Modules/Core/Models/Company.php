@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Models;
 
 use App\Support\CompanyProfiles;
+use App\Support\Plans;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Multitenancy\Models\Tenant as SpatieTenant;
@@ -85,11 +86,24 @@ class Company extends SpatieTenant
         'tax_exempt_approved_on',
         'database',
         'status',
+        // The commercial record — docs/saas-launch-plan.md §4. All nullable; a
+        // company with none of them set is licensed by hand and billed by nobody.
+        'plan',
+        'trial_ends_at',
+        'billing_contact_id',
+        'billing_currency',
+        'seats',
+        'seats_counted_at',
+        'suspended_reason',
+        'domain',
     ];
 
     protected $casts = [
         'status' => 'integer',
         'tax_exempt_approved_on' => 'date',
+        'trial_ends_at' => 'datetime',
+        'seats' => 'integer',
+        'seats_counted_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -162,6 +176,34 @@ class Company extends SpatieTenant
     public function isPersonal(): bool
     {
         return $this->type === self::TYPE_PERSONAL;
+    }
+
+    public function hasPlan(): bool
+    {
+        return $this->plan !== null;
+    }
+
+    /**
+     * Move the company onto a plan: record it, and license what the plan sells
+     * within what the profile recommends — the union with what is already
+     * licensed, never the difference.
+     *
+     * A grant, not a reset. A module licensed outside the plan was a deliberate
+     * sale and survives; a module the company switched off stays off, because
+     * Modules::grant() never writes `enabled`. Nothing is revoked here: taking a
+     * module away is a super admin's act on the platform panel, where the
+     * consequences are listed before the click. docs/saas-launch-plan.md §3.
+     */
+    public function changePlan(string $plan): void
+    {
+        Plans::assertExists($plan);
+
+        $this->forceFill(['plan' => $plan])->save();
+
+        modules()->grant(
+            $this->getKey(),
+            Plans::licencesFor($this->profile, $this->type, $plan) ?? [],
+        );
     }
 
     /**
