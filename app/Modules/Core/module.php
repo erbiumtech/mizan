@@ -28,6 +28,7 @@ return [
         // because the schedule may name any module's report, and the hub they are named from is here.
         'App\\Models\\ReportSchedule' => \App\Modules\Core\Models\ReportSchedule::class,
         'App\\Models\\ReportDelivery' => \App\Modules\Core\Models\ReportDelivery::class,
+        'App\\Models\\Signup' => \App\Modules\Core\Models\Signup::class,
         // How one person, or the company, has arranged the dashboard — Phase 7 of the reports plan.
         'App\\Models\\DashboardLayout' => \App\Modules\Core\Models\DashboardLayout::class,
         'App\\Models\\CustomField' => \App\Modules\Core\Models\CustomField::class,

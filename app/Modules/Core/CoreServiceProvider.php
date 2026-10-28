@@ -95,6 +95,10 @@ class CoreServiceProvider extends ServiceProvider
         $this->registerBuiltReports();
         $this->registerDeliveryLog();
 
+        // The signup door — docs/saas-launch-plan.md §5. Core's, because a company
+        // and its first user are Core's; loaded the way every module loads its own.
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
+
         /*
          * The bell's general case: an audited change tells the people whose record it is.
          *

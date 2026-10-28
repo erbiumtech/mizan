@@ -47,6 +47,10 @@ return [
     // stores it, and that is all it knows.
     'trial' => ['plan' => 'growth', 'days' => 14],
 
+    // The signup door (plan §5): submissions per minute per address before the
+    // form answers silently, and how long the confirmation link stays valid.
+    'signup' => ['per_minute' => 5, 'link_hours' => 24],
+
     'plans' => [
 
         'starter' => [

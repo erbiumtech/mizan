@@ -203,6 +203,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', fn (Request $request): Limit => Limit::perMinute(5)
             ->by(Str::lower((string) $request->input('email')).'|'.$request->ip()));
 
+        // The signup verification link. The form itself is throttled silently inside
+        // SignupController, where a 429 would tell a bot how to pace itself.
+        RateLimiter::for('signup', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
+
         /*
          * Lazy loading is an error everywhere except production.
          *

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Core\Jobs\ProvisionCompany;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use App\Multitenancy\TenantAwareJobs;
@@ -69,6 +70,17 @@ class TenantAwareQueueTest extends TestCase
     public function test_a_job_that_serves_no_company_is_not_asked_for_one(): void
     {
         dispatch(new LandlordOnlyJob);
+
+        $this->assertSame(1, DB::table('jobs')->count());
+    }
+
+    /**
+     * The signup door's provisioning job — docs/saas-launch-plan.md §5. There is no
+     * company when it is queued, because making one is what it does.
+     */
+    public function test_the_signup_provisioning_job_queues_with_no_tenant(): void
+    {
+        dispatch(new ProvisionCompany(1));
 
         $this->assertSame(1, DB::table('jobs')->count());
     }
