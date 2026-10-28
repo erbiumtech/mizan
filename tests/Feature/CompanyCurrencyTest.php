@@ -152,11 +152,13 @@ class CompanyCurrencyTest extends AccountingTestCase
 
     public function test_an_unused_currency_can_be_removed(): void
     {
-        $usd = Currency::create(['code' => 'USD', 'name' => 'US Dollar']);
+        // GBP rather than USD: the seeder ships USD now (the platform bills foreign
+        // customers in it), and a seeded row is not the "unused currency" this is about.
+        $gbp = Currency::create(['code' => 'GBP', 'name' => 'Pound Sterling']);
 
-        $usd->delete();
+        $gbp->delete();
 
-        $this->assertDatabaseMissing('currencies', ['code' => 'USD']);
+        $this->assertDatabaseMissing('currencies', ['code' => 'GBP']);
     }
 
     /**

@@ -74,6 +74,8 @@ class RecurringInvoiceService
             'fiscal_year_id' => FiscalYear::containing($invoiceDate->toDateString())?->getKey(),
             'recurring_invoice_id' => $agreement->getKey(),
             'period' => $period->toDateString(),
+            // Null is the base currency, on the agreement as on the invoice.
+            'currency_code' => $agreement->currency_code,
             'tax_inclusive' => $agreement->tax_inclusive,
             'memo' => $agreement->memo ?: $agreement->description.' — '.$period->format('F Y'),
             'subtotal' => 0,

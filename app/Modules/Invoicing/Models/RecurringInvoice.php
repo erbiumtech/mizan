@@ -19,15 +19,20 @@ class RecurringInvoice extends Model
     protected $fillable = [
         'contact_id', 'kind', 'description', 'memo', 'day_of_month', 'due_days',
         'tax_inclusive', 'starts_on', 'ends_on', 'is_active', 'notes',
+        // docs/saas-launch-plan.md §3.1 and §6: a cadence, a currency, and whether
+        // a job may issue the raised draft unseen.
+        'every_months', 'currency_code', 'auto_issue',
     ];
 
     protected $casts = [
         'day_of_month' => 'integer',
+        'every_months' => 'integer',
         'due_days' => 'integer',
         'tax_inclusive' => 'boolean',
         'starts_on' => 'date',
         'ends_on' => 'date',
         'is_active' => 'boolean',
+        'auto_issue' => 'boolean',
     ];
 
     protected $attributes = [
@@ -72,8 +77,16 @@ class RecurringInvoice extends Model
         }
 
         $month = $period->copy()->startOfMonth();
+        $start = $this->starts_on->copy()->startOfMonth();
 
-        if ($this->starts_on->copy()->startOfMonth()->greaterThan($month)) {
+        if ($start->greaterThan($month)) {
+            return false;
+        }
+
+        // A quarterly or yearly agreement runs in the months that are a whole number
+        // of cadences from its start, and bills the cadence in advance: the first
+        // invoice is for the first month and covers what follows it.
+        if (($this->every_months ?? 1) > 1 && $start->diffInMonths($month) % $this->every_months !== 0) {
             return false;
         }
 

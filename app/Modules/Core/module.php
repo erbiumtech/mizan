@@ -81,6 +81,8 @@ return [
         'App\\Filament\\Pages\\ReportDeliveries' => \App\Modules\Core\Filament\Pages\ReportDeliveries::class,
         'App\\Filament\\Pages\\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
         'App\\Filament\\Pages\\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
+        // What the company pays for — docs/saas-launch-plan.md §6. Landlord columns on a tenant page.
+        'App\\Filament\\Pages\\Subscription' => \App\Modules\Core\Filament\Pages\Subscription::class,
         'App\\Filament\\Pages\\Modules' => \App\Modules\Core\Filament\Pages\Modules::class,
         'App\\Filament\\Pages\\CsvImport' => \App\Modules\Core\Filament\Pages\CsvImport::class,
         'App\\Filament\\Pages\\Auth\\EditProfile' => \App\Modules\Core\Filament\Pages\Auth\EditProfile::class,

@@ -25,6 +25,13 @@ class CurrencySeeder extends Seeder
             ['name' => 'Euro', 'symbol' => '€', 'decimals' => 2, 'is_base' => false, 'is_active' => true],
         );
 
-        $this->command?->info('Seeded PKR (base) and EUR. Record a rate before posting anything in EUR.');
+        // The platform bills foreign customers in USD or EUR (docs/saas-launch-plan.md
+        // §3.1), and the operator tenant's chart is this one.
+        Currency::updateOrCreate(
+            ['code' => 'USD'],
+            ['name' => 'US Dollar', 'symbol' => '$', 'decimals' => 2, 'is_base' => false, 'is_active' => true],
+        );
+
+        $this->command?->info('Seeded PKR (base), EUR and USD. Record a rate before posting anything in a foreign currency.');
     }
 }

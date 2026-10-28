@@ -130,3 +130,16 @@ Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
 Schedule::command('backup:clean')->dailyAt('01:00')->withoutOverlapping();
 Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping();
 Schedule::command('backup:tenants')->dailyAt('02:00')->withoutOverlapping();
+
+/*
+ * The platform's own billing — docs/saas-launch-plan.md §6. Installation-level,
+ * like the backups above: not licensed, not per-company, not something a tenant
+ * can switch off. All three exit quietly when SAAS_OPERATOR_COMPANY is unset.
+ *
+ * The order on the 1st is load-bearing: the meter writes each agreement's
+ * quantity at 02:00, the invoicing module raises the drafts at 03:00
+ * (app/Modules/Invoicing/routes/console.php), and the issuer sends them at 04:00.
+ */
+Schedule::command('billing:meter')->monthlyOn(1, '02:00')->withoutOverlapping();
+Schedule::command('billing:issue')->monthlyOn(1, '04:00')->withoutOverlapping();
+Schedule::command('billing:enforce')->dailyAt('05:00')->withoutOverlapping();
