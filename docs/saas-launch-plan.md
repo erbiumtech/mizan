@@ -19,7 +19,12 @@
 > **Added the same day, on the owner's instruction:** a rule builder for badges and tasks (§8.9)
 > — the first draft's "three classes, not a language" survives as the reason the builder is a
 > form over two registries rather than an expression language — and multi-language support
-> (§8.10), which is on nobody's feature page and is the one item here that is not parity.
+> (§8.10), which is on nobody's feature page and is the one item here that is not parity. And
+> the document locale is both per company and per document kind, and a device identifies an
+> employee by its own `device_pin`, never by the employee code — both decided the same day. So
+> are the prices: PKR, USD and EUR lists with a ten-seat minimum, in §3.1, every figure a
+> proposal the owner changes in one file. And the subscription invoices issue themselves (§6),
+> which narrows the invoicing module's "a person issues" rule by exactly one flag.
 
 **Created:** 2026-10-28
 **Covers:** the scorecard against Operentra (§1), what the product is sold as (§2), tiers as
@@ -124,18 +129,26 @@ may be licensed. They are different axes and must stay so — a software house o
 restaurant on Starter are the same plan and different profiles.
 
 ```php
-// config/plans.php — module keys exactly as the manifests name them
+// config/plans.php — module keys exactly as the manifests name them; prices per active employee per month
 'starter'  => ['label' => 'HR',
-               'modules' => ['employees', 'leave', 'attendance', 'lifecycle', 'mpr']],
+               'modules' => ['employees', 'leave', 'attendance', 'lifecycle', 'mpr'],
+               'prices'  => ['PKR' => 400, 'USD' => 3, 'EUR' => 3]],
 'growth'   => ['label' => 'HR and payroll',
                'modules' => /* starter + */ ['payroll', 'advances', 'expenses', 'recruitment',
-                                             'performance', 'projects', 'timesheets', 'devices']],
+                                             'performance', 'projects', 'timesheets', 'devices'],
+               'prices'  => ['PKR' => 800, 'USD' => 6, 'EUR' => 6]],
 'business' => ['label' => 'HR, payroll and books',
                'modules' => /* growth + */  ['accounting', 'invoicing', 'quotations', 'inventory',
                                              'crm', 'campaigns', 'support', 'billing'],
+               'prices'  => ['PKR' => 1400, 'USD' => 10, 'EUR' => 10],
                'custom_domain' => true],
-// add-ons, priced separately, Business only because of what they require:
-//   construction (+ its four children)   personal_finance
+'minimum_seats' => 10,
+'trial'         => ['plan' => 'growth', 'days' => 14],
+// add-ons, flat per company per month, Business only because of what they require:
+'add_ons' => [
+    'construction'     => ['prices' => ['PKR' => 15000, 'USD' => 100, 'EUR' => 100]],   // + its four children
+    'personal_finance' => ['prices' => ['PKR' => 1000,  'USD' => 8,   'EUR' => 8]],     // a personal account has no seats
+],
 ```
 
 Where the §8 items land: the merit ledger, tasks, daily reports and badges are `performance`
@@ -144,8 +157,7 @@ endpoint is a new `devices` module requiring `attendance` (Growth — Operentra'
 biometrics too); locations are Core (every plan); a custom domain is a plan flag, not a module,
 because it licenses nothing in the panel.
 
-Each plan also carries `price_per_seat` (PKR, monthly), `minimum_seats`, and the one plan a trial
-starts on carries `trial_days`. Prices are blank in this document — §12.
+The numbers are §3.1's. `Plans::price($plan, $currency)` is the one reader.
 
 **Two invariants, both already asserted for profiles and extended to plans by the same kind of
 test.** `CompanyProfileTest` asserts a profile's module list is closed under `requires` and that
@@ -186,6 +198,65 @@ finishes reading.
 irreversible axis from the commercial one; a plan is a third axis, commercial and reversible, and
 collapsing it into either of the other two repeats the mistake that document undid.
 
+### 3.1 Prices and the minimum
+
+Three currencies, three lists, one file. **Every figure here is a proposal that lives in
+`config/plans.php`; changing a price is editing a line, and git is the price history.**
+
+| Plan | PKR / employee / month | USD | EUR | Floor at the minimum (10 seats) |
+|---|---|---|---|---|
+| Starter | 400 | 3 | 3 | PKR 4,000 · $30 · €30 |
+| Growth | 800 | 6 | 6 | PKR 8,000 · $60 · €60 |
+| Business | 1,400 | 10 | 10 | PKR 14,000 · $100 · €100 |
+| Construction add-on | 15,000 flat | 100 flat | 100 flat | per company per month |
+| Personal finance add-on | 1,000 flat | 8 flat | 8 flat | per account per month; a personal account has no seats |
+
+How the numbers were chosen, so the next person can re-choose them:
+
+- **USD sits on Operentra for Starter and Growth and a dollar above their Enterprise for
+  Business.** $3 and $6 are their list and the comparison a buyer will make; $10 against their
+  $9 is the ledger, which their Enterprise does not carry. EUR is the same figure as USD — one
+  less number to maintain, and the few-percent difference is noise against a quarterly invoice.
+- **PKR is a list price, not a conversion.** PKR 400 is roughly half what $3 converts to at the
+  rate, and that is deliberate: a purchasing-power list for the home market, reviewed once a
+  year on the same calendar as the salary slabs — the Finance Act — and **never indexed to the
+  exchange rate**. A rupee invoice that moves with the dollar is a support call every month.
+- **Ten seats, every plan, every currency, because the floor prices the account, not the
+  seat.** A three-person firm pays as ten; that is what a minimum is for, and it keeps the
+  smallest invoice worth the minute a person spends issuing it (§6). Five is the lever if trials
+  from very small firms stall, and it is one number in the file.
+- **Flat add-ons** because construction is job-centric and personal finance has no employees —
+  a per-seat price on either would be a price on the wrong thing.
+- **Tax is excluded everywhere.** The invoice carries whatever the operator's accountant sets
+  on `tax_rates` for that customer — provincial sales tax on services for a Pakistani customer,
+  the export treatment for a foreign one. The plan prices nothing with tax in it.
+
+**Currency is fixed at subscription and decided by the billing address.** A Pakistani address
+is billed in PKR; any other picks USD or EUR once. Changing currency afterwards is a new
+agreement through support, because an agreement's currency is the invoice's currency and the
+ledger has already posted the old ones. `companies.billing_currency` (§4) records the choice.
+
+**USD and EUR customers are billed quarterly, in advance.** A SWIFT transfer costs the payer
+twenty to forty dollars, which on a $30 invoice is absurd and on a $90 one still insulting;
+quarterly is the smallest cadence a bank transfer does not dominate, and it stays until a card
+gateway (§13) exists. PKR customers pay monthly by IBFT, where the transfer is free. Two small
+additions to a model that today assumes monthly in the base currency: `recurring_invoices`
+gains `every_months` (default 1; `coversPeriod()` adds a modulo on the months since
+`starts_on`) and `currency_code` (nullable — the base), copied onto each raised draft, which
+already carries `currency_code` and `exchange_rate`. `USD` joins `CurrencySeeder`, which seeds
+only PKR and EUR today.
+
+**The meter sets quantity; it never touches the price.** `unit_price` on the agreement is what
+the customer was promised at subscription. A list-price change in `config/plans.php` applies to
+new agreements at once and to existing ones only when a person edits the agreement after
+notice. `quantity = max(seats, minimum_seats) × every_months`, and the line description says so:
+"12 active employees × 3 months, counted 2027-01-01".
+
+**The books need nothing new.** A USD invoice posts at its invoice-date `exchange_rate`; open
+receivables are restated through `CurrencyRevaluation`, which already exists for exactly this;
+the bank's conversion on receipt lands as the FX gain or loss the ledger already books. The
+operator needs a foreign-currency account to receive into, which is a bank visit, not code.
+
 ## 4. The commercial record on `companies`
 
 Landlord columns, all nullable, so every existing company — the operator's own included — is
@@ -198,6 +269,7 @@ companies   + plan                 string, nullable      a key in config/plans.p
             + seats                unsignedInteger, nullable
             + seats_counted_at     datetime, nullable
             + suspended_reason     string, nullable      trial_expired | overdue | null = by hand
+            + billing_currency     char(3), nullable     PKR | USD | EUR, fixed at subscription  (§3.1)
             + domain               string, nullable, unique, lowercase               (§8.8)
 ```
 
@@ -272,23 +344,52 @@ landlord job that visits tenants without becoming one (it is deliberately not `T
 
 **Subscribing.** A *Subscription* page in Core, company Administrator only. Landlord data, so not
 a `SettingsSections` entry. It shows plan, seats, trial end and the operator's billing address;
-its one action is *Subscribe*, taking a billing email and address. That creates, in the operator
-tenant, a `Contact` for the customer and a monthly `RecurringInvoice` with one sale line —
-"Mizan {plan}, per active employee", `unit_price = price_per_seat`, `quantity = max(seats,
-minimum_seats)` — writes `billing_contact_id`, and clears `trial_ends_at`. The customer pays by
-bank transfer against the invoice, which is how Pakistani SMEs pay for software; the operator's
-bank details are already on its invoice template.
+its one action is *Subscribe*, taking a billing email and address — the address decides the
+currency (§3.1): PKR for Pakistan, USD or EUR by choice elsewhere. That creates, in the operator
+tenant, a `Contact` for the customer and a `RecurringInvoice` in that currency — monthly for
+PKR, `every_months = 3` for USD and EUR — with one sale line, "Mizan {plan}, per active
+employee", `unit_price = Plans::price($plan, $currency)`, `quantity = max(seats, minimum_seats)
+× every_months` — writes `billing_contact_id` and `billing_currency`, and clears
+`trial_ends_at`. The customer pays by bank transfer against the invoice — IBFT in Pakistan,
+SWIFT elsewhere — which is how businesses pay for software when nobody has given them a card
+form; the operator's bank details are already on its invoice template.
 
 **`billing:meter`, monthly on the 1st at 02:00, before the 03:00 raise.** For every company with
 a `billing_contact_id`: step into its tenant, count `employees` where `is_active`, write
 `seats` / `seats_counted_at`; step into the operator's tenant and set the agreement line's
-`quantity` to `max(seats, minimum_seats)` with the count and date in the description.
+`quantity` to `max(seats, minimum_seats) × every_months` with the count and date in the
+description — and nothing else on the line: the price is the customer's, §3.1.
 `RecurringInvoiceService::generateFor()` raises the draft an hour later as it does for every other
-agreement, and **a person issues it** — that service's own rule ("a decision somebody makes after
-looking at it"), kept. At ten customers, issuing ten drafts on the 1st is a minute's work.
-`ponytail:` auto-issue when the count makes it a morning. One active sale agreement per billing
-contact is the convention; the meter refuses and reports a contact with zero or two rather than
-guessing.
+agreement. One active sale agreement per billing contact is the convention; the meter refuses
+and reports a contact with zero or two rather than guessing.
+
+**`billing:issue`, monthly on the 1st at 04:00, after the raise.** The invoicing module's rule is
+that a draft reaches the ledger when a person issues it "after looking at it", and that rule
+stays for every company and every agreement but one kind: an agreement with `auto_issue = true`,
+a new boolean on `recurring_invoices`, default false, set by the Subscribe action and by nothing
+else. The job steps into the operator tenant, finds that morning's drafts raised from
+`auto_issue` agreements, and calls `InvoiceService::issue()` on each — the same method a
+person's click calls, so whatever issuing does for a person (the number, the posting, the FBR
+submission where configured) it does here — then hands the invoice to `InvoiceDeliveryService`,
+which emails the PDF to the billing contact as it does for any issued invoice.
+
+Three guards, because an invoice sent unseen is a customer's first sight of a mistake:
+
+1. **A count that jumped is held, not issued.** If `seats` moved by more than
+   `billing.issue_hold_ratio` (default a half) against the previous count, the draft stays a
+   draft and the operator is notified with both numbers. A hiring spree is real sometimes; a
+   folding bug is real sometimes; a person can tell in a minute and nobody receives a wrong
+   invoice.
+2. **A company suspended by hand is not invoiced.** `suspended_reason = null` with `status = 0`
+   means a person decided something about this customer; the draft is held for them. A company
+   suspended for overdue payment *is* invoiced — stopping the invoices is how a debt stops
+   growing on paper while it keeps growing in fact.
+3. **One failure does not stop the rest.** `issue()` throwing for one draft — a missing tax
+   rate, a closed fiscal year — is logged and reported, the job continues, and exits non-zero:
+   `BackupTenants`' rule, for the same reason.
+
+`RecurringInvoiceService` itself does not change: it raises drafts for everyone, as now, and
+`auto_issue` is read by one job in one place.
 
 Only active employees count, as Operentra does it, and `is_active` is the flag every payroll
 query already reads. No daily proration: the count on the 1st is the month's count. `ponytail:`
@@ -649,6 +750,13 @@ device_punches       id, serial_no, device_pin, punched_at, status_code, verify_
 employees            + device_pin   string, nullable, unique — the numeric user id the device knows them by
 ```
 
+**`device_pin` is its own column, decided.** The device's user id is numeric and short;
+`employees.employee_id` is a string like `EMP-001`, renumberable through
+`EmployeeCodeRenumbering`, and printed on every document. Tying the two would make a device
+enrolment a reason not to renumber, and a renumbering a reason every punch stops folding. The
+PIN is entered once, on the employee, beside the device section's *unmapped* list that shows
+which PINs are punching with nobody to belong to.
+
 The table is landlord-side for the same reason the signup door is: the device identifies itself
 by serial in the query string and sends no header, so the serial is how the tenant is found,
 before any tenant is current — `ResolveLeadCaptureTenant`'s job, by serial instead of slug. A
@@ -786,10 +894,23 @@ properties — `margin-left`, `text-align: left`, `float` — and rewritten to l
 The dashboard widgets, the account register and the comparison statements are the screens to
 check by eye, because a running balance that reads right-to-left is a different number.
 
-**Documents are a company decision, not a user one.** `settings('documents.locale')`, default
-`en`, decides the language of payslips, letters, invoices and cheques — because the reader of a
-payslip is often a bank, of a letter a next employer, of an invoice the FBR, and most of them
-read English. Urdu documents render **on the Chromium engine only**: Dompdf does not shape
+**Documents are a company decision, not a user one — per company, and per document kind.**
+`settings('documents.locale')`, default `en`, is the company's document language;
+`settings('documents.locale.{kind}')` overrides it for one kind, and a kind with no override
+follows the company. Resolution is kind → company → `en`, and `Pdf::view()` resolves it once per
+document from the kind the template declares. The kinds are the documents that leave the
+company: `payslip`, `letter` (the income certificate, experience, offer, appointment and custom
+letters together — one reader, one language), `invoice` (with quotations, credit notes and
+statements), `cheque`, and `report` for a scheduled report delivery. Decided for the factory
+case: Urdu payslips for the floor and English letters for the bank are two settings, not a
+support call. The Company Settings section is one default select and one select per kind, each
+offering *Follow company default* or a language, so the common case stays one choice.
+
+A report somebody exports for themselves follows their own UI locale, not the document locale —
+it is for the person exporting it, which is the line between a screen and a document. The
+reader of a payslip is often a bank, of a letter a next employer, of an invoice the FBR, and
+most of them read English, which is why `en` stays the default at every level. Urdu documents
+render **on the Chromium engine only**: Dompdf does not shape
 Arabic-script text, so joined letters come out as disjointed glyphs — the same engine gap the
 per-engine payslip partials exist for. `Pdf::view()` therefore refuses the dompdf fallback for
 an RTL document locale with a message that says why, rather than printing something a bank
@@ -828,7 +949,7 @@ What already works, and what is still a person's job:
 |---|---|---|---|
 | 0 | `config/plans.php`, the seven `companies` columns, a `Plans` support class, the profile ∩ plan intersection in the provisioner, the plan tests | — | S |
 | 1 | Signup: the four routes, `email_verified_at` + `MustVerifyEmail`, `ProvisionCompany` job, spam gates | 0 | M |
-| 2 | Subscription page, `billing:meter`, `billing:enforce`, `config/saas.php`, the operator-tenant contact and agreement | 0 | M |
+| 2 | Subscription page, `billing:meter`, `billing:enforce`, `config/saas.php`, the operator-tenant contact and agreement; `every_months`, `currency_code` and `auto_issue` on the agreement, `billing:issue` with its three guards, USD in `CurrencySeeder` | 0 | M |
 | 3 | §7.1 clock-in, §7.2 letters, §7.3 hire → checklist | — | S each |
 | 4 | §9 export command and demo-seeder guard; README correction | — | S |
 | 5 | §7.4 careers, §7.5 QR, §7.6 announcements, §7.7 sign-in log, §7.8 import preset, §7.10 increment record | — | S–M each |
@@ -840,7 +961,7 @@ What already works, and what is still a person's job:
 | 11 | §8.7 the `devices` module, the push endpoints, the folding job | 6 | M |
 | 12 | §8.8 custom domains: the column, the host middleware, the TLS front | 2 | M, plus ops |
 | 13 | §8.9 rule builder: the two registries, the evaluator, the Repeater form with preview, the three seeded badge rules; §8.2's rule assignee and §7.6's rule audience switch to it | 7, 8 | M |
-| 14 | §8.10 multi-language: locale resolution, the module-by-module sweep with `TranslationCoverageTest`, `lang/ur.json`, the RTL audit, the document-locale guard | — | L |
+| 14 | §8.10 multi-language: locale resolution, the module-by-module sweep with `TranslationCoverageTest`, `lang/ur.json`, the RTL audit, the document locale per company and per kind with its engine guard | — | L |
 
 Phases 0–4 are launch. 3 and 4 have no dependency on 0–2 and can run alongside them. 5 is the
 first weeks after launch; 6 before 10 and 11 because both stand on locations; 7 before 8 because
@@ -858,8 +979,9 @@ the late-mark points — ships off.
 One feature test per concern, named for the sentence it asserts:
 
 - `PlanTest` — every plan is closed under `requires`; every non-core module is sold by some plan
-  or add-on; `starter ⊂ growth ⊂ business`; a company with `plan = null` is licensed exactly as
-  `CompanyProvisioningTest` already says.
+  or add-on; `starter ⊂ growth ⊂ business`; every plan and add-on prices every currency the file
+  lists; a company with `plan = null` is licensed exactly as `CompanyProvisioningTest` already
+  says.
 - `PlanIntersectionTest` — a restaurant on Starter is licensed `profile ∩ starter`, is
   recommended `inventory`, and cannot switch it on; upgrading to Business licenses it without
   touching anything the company had switched off.
@@ -867,8 +989,15 @@ One feature test per concern, named for the sentence it asserts:
   dispatches `ProvisionCompany`; the job is `NotTenantAware` (`TenantAwareQueueTest` gains the
   shape); an existing email is refused and attaches nothing (the audit's finding 1, at the new
   door); a throttled POST answers exactly like a successful one.
-- `BillingMeterTest` — counts only `is_active` employees; applies `minimum_seats`; writes the
-  count and date into the line description; refuses a contact with zero or two agreements.
+- `BillingMeterTest` — counts only `is_active` employees; applies `minimum_seats`; multiplies by
+  `every_months`; writes the count and date into the line description; never rewrites
+  `unit_price`; refuses a contact with zero or two agreements. A Pakistani address subscribes in
+  PKR monthly and cannot pick USD; a foreign one picks USD or EUR and is quarterly.
+- `BillingIssueTest` — only `auto_issue` drafts are issued; every other company's drafts are
+  untouched; issuing goes through `InvoiceService::issue()` and the delivery goes out; a seat
+  count that jumped past the ratio is held with a notification; a hand-suspended company's draft
+  is held; an overdue-suspended company's is issued; one throwing draft is reported and the rest
+  still issue; the Subscribe action sets the flag and nothing else can.
 - `BillingEnforceTest` — the three rules of §6, and the one that matters most: a hand-suspended
   company is never reactivated by the job.
 - `SecurityHardeningTest` gains: a suspended company's API token fails; the signup door cannot
@@ -915,40 +1044,35 @@ One feature test per concern, named for the sentence it asserts:
 - `RtlDocumentTest` — an RTL document locale on the Chromium engine renders; on the dompdf
   fallback it refuses with the message, never a PDF; `AmountWords::write()` spells a lakh-and-crore
   amount in Urdu and still round-trips in English.
+- `DocumentLocaleTest` — a kind override wins over the company default; a kind without one
+  follows the company; nothing set is `en`; a self-exported report follows the user's locale and
+  ignores both; the engine guard reads the resolved locale of that document, not the company's.
 
 ## 12. Decisions still open
 
-1. **PKR prices and the minimum.** Operentra's $3 / $6 / $9 and ten seats are the reference,
-   not the answer. Blank in `config/plans.php` until decided.
-2. **Which plan a trial starts on.** Operentra trials Growth. Trialling Business instead shows
+1. **Which plan a trial starts on.** Operentra trials Growth. Trialling Business instead shows
    the ledger, which is the thing nobody else has — at the cost of a customer who then chooses
    Growth losing screens they saw.
-3. **Demo data in a trial.** The demo seeders exist. A trial with sample payslips and a trial
+2. **Demo data in a trial.** The demo seeders exist. A trial with sample payslips and a trial
    balance shows the product; a trial with the customer's own first employee is the one they
    keep. Not seeded by default; a *load sample data* action is a small follow-up if trials stall.
-4. **Self-serve downgrade.** Not offered at launch; support does it in the platform panel.
+3. **Self-serve downgrade.** Not offered at launch; support does it in the platform panel.
    Revisit on the first request.
-5. **Where the marketing site lives.** `docs/company-website-plan.md` already asks whether a
+4. **Where the marketing site lives.** `docs/company-website-plan.md` already asks whether a
    public site belongs in this codebase. Signup does; the pages around it need not.
-6. **Data residency.** One sentence, decided before the pricing page is written.
-7. **When the employee sees the verdict (§8.3).** After the manager acts, as written — or at
+5. **Data residency.** One sentence, decided before the pricing page is written.
+6. **When the employee sees the verdict (§8.3).** After the manager acts, as written — or at
    once, which is faster feedback and also a model's opinion of a person delivered with nobody
    between. The first is the default until a company asks for the second.
-8. **The penalty component (§8.2).** Off by default, as written. Whether the Growth tier's
+7. **The penalty component (§8.2).** Off by default, as written. Whether the Growth tier's
    onboarding should even mention it, or leave it for a company that goes looking, is a product
    call.
-9. **TLS front for custom domains (§8.8).** Caddy on demand, or certbot with a sync command.
+8. **TLS front for custom domains (§8.8).** Caddy on demand, or certbot with a sync command.
    Caddy is recommended for the reason given there; it is also a new process on the VPS.
-10. **Device PIN versus employee code (§8.7).** A separate `device_pin` as written, because
-    the device's user id is numeric and `employees.employee_id` is a string like `EMP-001`.
-    If every customer turns out to enrol by code, the column can default from it.
-11. **Languages after Urdu (§8.10).** Arabic opens the Gulf; Sindhi and Pashto are
+9. **Languages after Urdu (§8.10).** Arabic opens the Gulf; Sindhi and Pashto are
     Filament-less and would need the chrome translated too. None until Urdu has shipped and
     been read by a customer.
-12. **Document locale per company or per document kind (§8.10).** Per company as written. A
-    factory may want Urdu payslips and English bank letters; that is a second setting keyed by
-    document kind, when a company asks.
-13. **Eastern Arabic numerals.** Western digits as written; a user preference if anybody asks,
+10. **Eastern Arabic numerals.** Western digits as written; a user preference if anybody asks,
     never on a document a bank reads.
 
 ## 13. What not to build
@@ -957,12 +1081,11 @@ Deferred for a business reason, each with the trigger that reopens it:
 
 - **A card gateway, Cashier, or any subscription model beside the invoicing module.** §4. The
   trigger is a customer who cannot pay by transfer.
-- **Annual billing.** The same agreement raised yearly with the quantity fixed at subscription;
-  whether the agreement model carries a yearly cadence or needs one is part of that item, when a
-  customer asks for it.
+- **Annual billing.** `every_months = 12` with the quantity fixed at subscription, at ten
+  months' price for twelve — Operentra's sixth off. The cadence column from §3.1 makes it a
+  price line, not a feature; it waits for the first customer who asks.
 - **Daily seat proration.** The 1st-of-month count, until a customer's hiring pattern makes it
   unfair.
-- **Automatic issue of the subscription invoices**, until the morning it takes a morning.
 - **Automatic deletion of a suspended tenant.** A person runs `tenant:drop`, after the export.
 - **Pay grades and contract documents.** The two rows §1 still leaves open. A pay grade is a
   named band `employee_settings` could reference; a contract is a document with a renewal date
