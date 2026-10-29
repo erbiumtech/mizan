@@ -115,6 +115,7 @@ class CompanySettings extends Page
             'payroll_pay_overtime' => (bool) setting('payroll.pay_overtime'),
             'attendance_overtime_multiplier' => setting('attendance.overtime_multiplier'),
             'attendance_retention_months' => setting('attendance.retention_months'),
+            'attendance_geofence_mode' => setting('attendance.geofence_mode', config('attendance.geofence_mode', 'off')),
             ...SettingsSections::fill(),
         ]);
     }
@@ -509,6 +510,16 @@ class CompanySettings extends Page
                     ->numeric()
                     ->minValue(1)
                     ->helperText('Daily rows are pruned after this. It is the only table here that grows with usage rather than headcount, so it is cleaned up automatically — three years covers a payroll dispute, and longer has never been asked for.'),
+
+                Select::make('attendance_geofence_mode')
+                    ->label('Geofence')
+                    ->options([
+                        'off' => 'Off — record the location, judge nothing',
+                        'flag' => 'Flag — mark a punch made outside the employee\'s location',
+                        'refuse' => 'Refuse — a punch outside the location is not accepted',
+                    ])
+                    ->default('off')
+                    ->helperText('Applies to employees whose location (Settings → Locations) has a radius. Start on Flag: a phone\'s first fix is often a hundred metres out, and a refused punch at nine is a support call at one minute past.'),
             ]);
     }
 
@@ -670,6 +681,7 @@ class CompanySettings extends Page
         $settings->set('payroll.proration_divisor', $state['payroll_proration_divisor'] ?? 'working_days');
         $settings->set('attendance.overtime_multiplier', (float) ($state['attendance_overtime_multiplier'] ?? 2.0));
         $settings->set('attendance.retention_months', (int) ($state['attendance_retention_months'] ?? 36));
+        $settings->set('attendance.geofence_mode', in_array($state['attendance_geofence_mode'] ?? 'off', ['off', 'flag', 'refuse'], true) ? $state['attendance_geofence_mode'] : 'off');
 
         if ($changes !== []) {
             activity('CompanySettings')

@@ -129,6 +129,10 @@ class NavigationTree
                 // Settings because that is what it is: the same decision, spread over several lists.
                 'Dropdown Options',
                 'Modules',
+                // What the company pays for — plan §6. Beside Modules: what it has bought.
+                'Subscription',
+                // Branches — plan §7.9. Beside Company Settings: where the company is.
+                'Locations',
                 'Custom Fields',
                 'Email Wording',
                 // What the application sends without being asked — reports-expansion-plan.md Phase 8. Beside

@@ -42,12 +42,12 @@ class Subscription extends Page
         return auth()->user()?->isAdministrator() ?? false;
     }
 
-    /** No plan, no page: a company licensed by hand has nothing here to read or do. */
-    public static function shouldRegisterNavigation(): bool
-    {
-        return static::canAccess() && (static::company()?->hasPlan() ?? false);
-    }
-
+    /**
+     * Shown to every company, plan or not: the export (plan §9) is every
+     * company's, and a company licensed by hand reads "licensed by hand" here
+     * rather than finding no page. Hiding it also tripped ReportsHubTest, which
+     * treats every page off the sidebar as a report.
+     */
     public static function company(): ?Company
     {
         $tenant = Filament::getTenant();

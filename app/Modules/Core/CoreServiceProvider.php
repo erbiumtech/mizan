@@ -20,6 +20,7 @@ use App\Modules\Core\Models\ReportDefinition;
 use App\Modules\Core\Models\ReportSchedule;
 use App\Modules\Core\Models\TableView;
 use App\Modules\Core\Models\User;
+use App\Modules\Core\Models\WorkLocation;
 use App\Modules\Core\Policies\ActivityLogPolicy;
 use App\Modules\Core\Policies\CommentPolicy;
 use App\Modules\Core\Policies\CompanyPolicy;
@@ -33,18 +34,19 @@ use App\Modules\Core\Policies\ReportSchedulePolicy;
 use App\Modules\Core\Policies\RolePolicy;
 use App\Modules\Core\Policies\TableViewPolicy;
 use App\Modules\Core\Policies\UserPolicy;
+use App\Modules\Core\Policies\WorkLocationPolicy;
 use App\Modules\Core\Services\HolidayCalendar;
 use App\Support\Reporting\BuiltReport;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportDeliveryLog;
-use App\Support\SettingsSections;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\SettingsSections;
 use App\Support\TenantExport;
 use App\Support\TenantFileAccess;
-use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -72,6 +74,7 @@ class CoreServiceProvider extends ServiceProvider
         CustomField::class => CustomFieldPolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
         Holiday::class => HolidayPolicy::class,
+        WorkLocation::class => WorkLocationPolicy::class,
         OptionValue::class => OptionValuePolicy::class,
         ReportSchedule::class => ReportSchedulePolicy::class,
         TableView::class => TableViewPolicy::class,

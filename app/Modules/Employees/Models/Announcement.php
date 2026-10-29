@@ -24,6 +24,9 @@ class Announcement extends Model
 
     public const AUDIENCE_DEPARTMENT = 'department';
 
+    /** One site's people — plan §7.9. `audience_value` is the location id. */
+    public const AUDIENCE_LOCATION = 'location';
+
     protected $fillable = [
         'title', 'body', 'pinned', 'audience_kind', 'audience_value', 'published_at', 'expires_at', 'created_by',
     ];
@@ -53,13 +56,16 @@ class Announcement extends Model
     /** Aimed at this person: everyone, or their department. */
     public function scopeForUser(Builder $query, User $user): Builder
     {
-        $department = Employee::query()->where('user_id', $user->getKey())->value('department');
+        $employee = Employee::query()->where('user_id', $user->getKey())->first(['department', 'location_id']);
 
         return $query->where(fn (Builder $q) => $q
             ->where('audience_kind', self::AUDIENCE_ALL)
             ->orWhere(fn (Builder $d) => $d
                 ->where('audience_kind', self::AUDIENCE_DEPARTMENT)
-                ->where('audience_value', $department ?? '')));
+                ->where('audience_value', $employee?->department ?? ''))
+            ->orWhere(fn (Builder $l) => $l
+                ->where('audience_kind', self::AUDIENCE_LOCATION)
+                ->where('audience_value', (string) ($employee?->location_id ?? ''))));
     }
 
     public function isPublished(): bool
@@ -69,9 +75,11 @@ class Announcement extends Model
 
     public function audienceLabel(): string
     {
-        return $this->audience_kind === self::AUDIENCE_DEPARTMENT
-            ? (string) $this->audience_value
-            : 'Everyone';
+        return match ($this->audience_kind) {
+            self::AUDIENCE_DEPARTMENT => (string) $this->audience_value,
+            self::AUDIENCE_LOCATION => (string) (\App\Modules\Core\Models\WorkLocation::query()->whereKey($this->audience_value)->value('name') ?? 'A location'),
+            default => 'Everyone',
+        };
     }
 
     /**
@@ -86,6 +94,10 @@ class Announcement extends Model
 
         if ($this->audience_kind === self::AUDIENCE_DEPARTMENT) {
             $employees->where('department', (string) $this->audience_value);
+        }
+
+        if ($this->audience_kind === self::AUDIENCE_LOCATION) {
+            $employees->where('location_id', (int) $this->audience_value);
         }
 
         return User::query()
@@ -105,8 +117,8 @@ class Announcement extends Model
             throw new InvalidArgumentException('This announcement is already published.');
         }
 
-        if ($this->audience_kind === self::AUDIENCE_DEPARTMENT && blank($this->audience_value)) {
-            throw new InvalidArgumentException('Pick the department this is for, or aim it at everyone.');
+        if ($this->audience_kind !== self::AUDIENCE_ALL && blank($this->audience_value)) {
+            throw new InvalidArgumentException('Pick the department or location this is for, or aim it at everyone.');
         }
 
         $this->forceFill(['published_at' => now(), 'created_by' => $this->created_by ?? $by?->getKey()])->save();

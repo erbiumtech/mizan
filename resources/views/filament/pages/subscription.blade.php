@@ -14,6 +14,8 @@
                         Subscribed, billed in {{ $s['currency'] }}
                     @elseif($s['trialEndsAt'])
                         Trial until {{ $s['trialEndsAt'] }}
+                    @elseif($s['plan'] === 'No plan')
+                        Licensed by hand; nothing to subscribe to
                     @else
                         Not subscribed
                     @endif

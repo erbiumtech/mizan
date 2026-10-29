@@ -101,6 +101,13 @@ class AttendanceDaysTable
             ])
             ->defaultSort('date', 'desc')
             ->filters([
+                SelectFilter::make('location')
+                    ->label('Location')
+                    ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereHas('employee', fn ($q) => $q->where('location_id', $data['value']))
+                        : $query),
+
                 SelectFilter::make('status')->options([
                     AttendanceDay::STATUS_PRESENT => 'Present',
                     AttendanceDay::STATUS_ABSENT => 'Absent',

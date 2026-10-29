@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\Employees\Schemas;
 
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Core\Models\User;
+use App\Modules\Core\Models\WorkLocation;
 use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
@@ -107,6 +108,16 @@ class EmployeeForm
 
                 Select::make('department')
                     ->options(fn (?Employee $record): array => options('employees.department', $record?->department))
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly()),
+
+                // Where they work — plan §7.9. A job fact like the two above, so the
+                // same gate; the site's holidays and its geofence follow from it.
+                Select::make('location_id')
+                    ->label('Location')
+                    ->options(fn (): array => WorkLocation::options())
+                    ->placeholder('Not recorded')
+                    ->nullable()
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 

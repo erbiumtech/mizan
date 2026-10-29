@@ -77,7 +77,7 @@ class AttendanceFigures
         // The month's length from the pattern when attendance has one that answers, else
         // from the calendar. A pattern with no working days at all is not an answer — it
         // is a pattern saved without its days — so 0 falls through to the calendar too.
-        $expected = $summary?->expectedDays ?: $this->calendarWorkingDays($firstDay, $lastDay);
+        $expected = $summary?->expectedDays ?: $this->calendarWorkingDays($firstDay, $lastDay, $employee->location_id);
 
         // Unpaid leave and recorded absence are both loss of pay, and they are
         // different rows: an unpaid leave day is `on_leave` in attendance and is
@@ -99,12 +99,12 @@ class AttendanceFigures
      * that binding routes to the very pattern that has just answered 0, and the point here is
      * the fallback. It is the same `leave.weekend_days` the leave-day generator falls back to.
      */
-    private function calendarWorkingDays(CarbonInterface $from, CarbonInterface $to): int
+    private function calendarWorkingDays(CarbonInterface $from, CarbonInterface $to, ?int $locationId = null): int
     {
         $days = 0;
 
         for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
-            if (! $this->holidays->isHoliday($date) && $this->weekend->isWorkingDay(null, $date)) {
+            if (! $this->holidays->isHoliday($date, $locationId) && $this->weekend->isWorkingDay(null, $date)) {
                 $days++;
             }
         }

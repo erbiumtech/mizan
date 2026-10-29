@@ -92,6 +92,10 @@ class EmployeesTable
             ->filters([
                 ...CustomFieldsSchema::tableFilters(Employee::class),
 
+                SelectFilter::make('location_id')
+                    ->label('Location')
+                    ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options()),
+
                 SelectFilter::make('employee_name')
                     ->label('Employee Name')
                     ->attribute('id')

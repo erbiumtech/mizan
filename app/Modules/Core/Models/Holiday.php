@@ -17,7 +17,18 @@ class Holiday extends Model
 {
     use Auditable;
 
-    protected $fillable = ['date', 'name', 'is_recurring', 'notes'];
+    protected $fillable = ['date', 'name', 'location_id', 'is_recurring', 'notes'];
+
+    /** The site this holiday is local to; null is company-wide — plan §7.9. */
+    public function location(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(WorkLocation::class);
+    }
+
+    public function appliesTo(?int $locationId): bool
+    {
+        return $this->location_id === null || (int) $this->location_id === (int) $locationId;
+    }
 
     protected $casts = [
         'date' => 'date',

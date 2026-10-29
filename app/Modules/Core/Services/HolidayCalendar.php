@@ -54,9 +54,16 @@ class HolidayCalendar
      */
     protected array $dates = [];
 
-    public function isHoliday(string|CarbonInterface $date): bool
+    /**
+     * Is this a holiday — company-wide, or local to the location asked about?
+     *
+     * A holiday with no location applies everywhere; one with a location applies
+     * there alone. A caller passing nothing gets the company-wide set, which is
+     * every call that existed before locations did — plan §7.9.
+     */
+    public function isHoliday(string|CarbonInterface $date, ?int $locationId = null): bool
     {
-        return isset($this->dateSet()[$this->normalise($date)]);
+        return isset($this->dateSet($locationId)[$this->normalise($date)]);
     }
 
     /**
@@ -67,12 +74,13 @@ class HolidayCalendar
      *
      * @return Collection<int, Holiday>
      */
-    public function between(string|CarbonInterface $from, string|CarbonInterface $to): Collection
+    public function between(string|CarbonInterface $from, string|CarbonInterface $to, ?int $locationId = null): Collection
     {
         [$from, $to] = [$this->normalise($from), $this->normalise($to)];
 
         return $this->all()
-            ->filter(fn (Holiday $holiday): bool => $holiday->date->toDateString() >= $from
+            ->filter(fn (Holiday $holiday): bool => $holiday->appliesTo($locationId)
+                && $holiday->date->toDateString() >= $from
                 && $holiday->date->toDateString() <= $to)
             ->values();
     }
@@ -86,9 +94,9 @@ class HolidayCalendar
      *
      * @return array<int, string>
      */
-    public function datesBetween(string|CarbonInterface $from, string|CarbonInterface $to): array
+    public function datesBetween(string|CarbonInterface $from, string|CarbonInterface $to, ?int $locationId = null): array
     {
-        return $this->between($from, $to)
+        return $this->between($from, $to, $locationId)
             ->map(fn (Holiday $holiday): string => $holiday->date->toDateString())
             ->all();
     }
@@ -116,18 +124,25 @@ class HolidayCalendar
         return $this->cache[$tenantKey];
     }
 
-    /** @return array<string, true> */
-    protected function dateSet(): array
+    /**
+     * The date set for a location (or the company-wide one), per tenant. Keyed
+     * by location as well, for the same reason as by tenant: one instance answers
+     * for everybody.
+     *
+     * @return array<string, true>
+     */
+    protected function dateSet(?int $locationId = null): array
     {
-        $tenantKey = $this->tenantKey();
+        $key = $this->tenantKey().':'.($locationId ?? 'all');
 
-        if (! array_key_exists($tenantKey, $this->dates)) {
-            $this->dates[$tenantKey] = $this->all()
+        if (! array_key_exists($key, $this->dates)) {
+            $this->dates[$key] = $this->all()
+                ->filter(fn (Holiday $holiday): bool => $holiday->appliesTo($locationId))
                 ->mapWithKeys(fn (Holiday $holiday): array => [$holiday->date->toDateString() => true])
                 ->all();
         }
 
-        return $this->dates[$tenantKey];
+        return $this->dates[$key];
     }
 
     /** @return Collection<int, Holiday> */

@@ -69,7 +69,7 @@ class AttendanceDay extends Model
         'worked_minutes', 'overtime_minutes', 'late_minutes', 'source', 'note',
         'leave_request_id',
         // Where a self-service punch was made (plan §7.1). Recorded, not judged.
-        'latitude', 'longitude', 'accuracy_m',
+        'latitude', 'longitude', 'accuracy_m', 'outside_geofence',
     ];
 
     protected $casts = [
@@ -82,6 +82,7 @@ class AttendanceDay extends Model
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'accuracy_m' => 'integer',
+        'outside_geofence' => 'boolean',
     ];
 
     protected $attributes = [

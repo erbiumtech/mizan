@@ -70,4 +70,15 @@ return [
     */
     'comp_off_expiry_days' => env('ATTENDANCE_COMP_OFF_EXPIRY_DAYS', 90),
 
+    /*
+    | What a self-service punch outside the employee's location fence gets —
+    | docs/saas-launch-plan.md §7.9. `off`: coordinates are recorded and nothing
+    | judges them. `flag`: the day is marked outside_geofence and shown as such.
+    | `refuse`: the punch is refused and the regularization request is the way
+    | in. Off as shipped, like every pay-affecting switch here; `flag` is the mode
+    | to start on, because a phone's first fix is often a hundred metres out.
+    | Only read for employees whose location carries a radius.
+    */
+    'geofence_mode' => env('ATTENDANCE_GEOFENCE_MODE', 'off'),
+
 ];

@@ -37,6 +37,8 @@ return [
         'App\\Models\\Comment' => \App\Modules\Core\Models\Comment::class,
         'App\\Models\\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
         'App\\Models\\Holiday' => \App\Modules\Core\Models\Holiday::class,
+        // Branches — docs/saas-launch-plan.md §7.9. Core for the reason Holiday is.
+        'App\\Models\\WorkLocation' => \App\Modules\Core\Models\WorkLocation::class,
         // The IBFT bank list. Core for the same reason Holiday is — see the model.
         'App\\Models\\Bank' => \App\Modules\Core\Models\Bank::class,
         'App\\Models\\Setting' => \App\Modules\Core\Models\Setting::class,
@@ -61,6 +63,7 @@ return [
         // Scheduled reports — Phase 8, item 1 of the reports plan.
         'App\\Filament\\Resources\\ReportSchedules\\ReportScheduleResource' => \App\Modules\Core\Filament\Resources\ReportSchedules\ReportScheduleResource::class,
         'App\\Filament\\Resources\\Holidays\\HolidayResource' => \App\Modules\Core\Filament\Resources\Holidays\HolidayResource::class,
+        'App\\Filament\\Resources\\Locations\\WorkLocationResource' => \App\Modules\Core\Filament\Resources\WorkLocations\WorkLocationResource::class,
         'App\\Filament\\Resources\\OptionValues\\OptionValueResource' => \App\Modules\Core\Filament\Resources\OptionValues\OptionValueResource::class,
     ],
 
@@ -96,6 +99,7 @@ return [
         'Comment',
         'FiscalYear',
         'Holiday',
+        'WorkLocation',
         'TableView',
     ],
 
@@ -128,6 +132,11 @@ return [
         ['name' => 'HolidayView', 'group' => 'Holiday'],
         ['name' => 'HolidayUpdate', 'group' => 'Holiday'],
         ['name' => 'HolidayDelete', 'group' => 'Holiday'],
+        // Branches — plan §7.9.
+        ['name' => 'WorkLocationView', 'group' => 'WorkLocation'],
+        ['name' => 'WorkLocationCreate', 'group' => 'WorkLocation'],
+        ['name' => 'WorkLocationUpdate', 'group' => 'WorkLocation'],
+        ['name' => 'WorkLocationDelete', 'group' => 'WorkLocation'],
         ['name' => 'ActivityLogView', 'group' => 'ActivityLog'],
         // Share a saved table view with the whole company (TableViewPolicy::publish).
         // Administrator holds it with everything else; no other seeded role lists it.

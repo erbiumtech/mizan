@@ -20,7 +20,7 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id', 'name', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
-        'is_active', 'designation', 'department', 'employment_type',
+        'is_active', 'designation', 'department', 'location_id', 'employment_type',
         // What this employee's time bills at, when the project does not say. Nullable
         // and unused by any company that bills by headcount rather than by the hour.
         'hourly_rate',
@@ -51,6 +51,12 @@ class Employee extends Model
      * @var array<int, string>
      */
     protected $with = ['user'];
+
+    /** The site this employee works at, if one is recorded — plan §7.9. */
+    public function location(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Core\Models\WorkLocation::class);
+    }
 
     /**
      * …but stays out of serialization. Before `$with`, no JSON path included

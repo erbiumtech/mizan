@@ -47,7 +47,7 @@ class AttendanceCalendar
             ->get()
             ->keyBy(fn (AttendanceDay $day): string => $day->date->toDateString());
 
-        $holidays = array_flip($this->holidays->datesBetween($start, $end));
+        $holidays = array_flip($this->holidays->datesBetween($start, $end, $employee->location_id));
 
         $expected = 0;
         $worked = 0.0;
@@ -129,7 +129,7 @@ class AttendanceCalendar
             ->map(fn ($date) => Carbon::parse($date)->toDateString())
             ->flip();
 
-        $holidays = array_flip($this->holidays->datesBetween($start, $end));
+        $holidays = array_flip($this->holidays->datesBetween($start, $end, $employee->location_id));
         $leaveDays = $this->leaveDaysFor($employee, $start, $end);
         $created = 0;
 

@@ -159,6 +159,23 @@ class AttendanceRecorder
             );
         }
 
+        // The fence — plan §7.9. Judged only when the employee's location has a
+        // radius and the company has switched judging on; refused or flagged,
+        // never silently moved. No reading at all cannot be inside a fence.
+        $outside = $this->outsideGeofence($employee, $position);
+
+        if ($outside === true && $this->geofenceMode() === 'refuse') {
+            $location = $employee->location;
+            $where = $position !== null && $location
+                ? number_format($location->distanceTo((float) $position['latitude'], (float) $position['longitude'])).' m from '.$location->name
+                : 'with no location reading';
+
+            throw new InvalidArgumentException(
+                "Clocking in needs you at {$location?->name}: this punch was made {$where}. "
+                .'Clock in from the site, or file a regularization request.'
+            );
+        }
+
         $day = $existing?->check_in_at
             ? $this->record(
                 $employee,
@@ -179,7 +196,47 @@ class AttendanceRecorder
             ])->save();
         }
 
+        // Flag mode marks the day; a later punch inside the fence does not unmark
+        // it, because the morning's reading is the one that was outside.
+        if ($outside === true && $this->geofenceMode() === 'flag' && ! $day->outside_geofence) {
+            $day->forceFill(['outside_geofence' => true])->save();
+        }
+
         return $day->refresh();
+    }
+
+    public function geofenceMode(): string
+    {
+        $mode = (string) setting('attendance.geofence_mode', config('attendance.geofence_mode', 'off'));
+
+        return in_array($mode, ['flag', 'refuse'], true) ? $mode : 'off';
+    }
+
+    /**
+     * Outside the employee's fence? Null when nothing judges: mode off, no
+     * location, or a location with no radius. True for a reading outside it, and
+     * for no reading at all — a punch that cannot show where it was made is not
+     * inside anything.
+     *
+     * @param  array{latitude: float|string, longitude: float|string}|null  $position
+     */
+    public function outsideGeofence(Employee $employee, ?array $position): ?bool
+    {
+        if ($this->geofenceMode() === 'off') {
+            return null;
+        }
+
+        $location = $employee->location;
+
+        if ($location === null || ! $location->hasGeofence()) {
+            return null;
+        }
+
+        if ($position === null) {
+            return true;
+        }
+
+        return ! $location->contains((float) $position['latitude'], (float) $position['longitude']);
     }
 
     /**

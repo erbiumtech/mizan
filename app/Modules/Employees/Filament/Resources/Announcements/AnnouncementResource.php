@@ -59,6 +59,7 @@ class AnnouncementResource extends Resource
                 ->options([
                     Announcement::AUDIENCE_ALL => 'Everyone',
                     Announcement::AUDIENCE_DEPARTMENT => 'One department',
+                    Announcement::AUDIENCE_LOCATION => 'One location',
                 ])
                 ->default(Announcement::AUDIENCE_ALL)
                 ->required()
@@ -68,6 +69,11 @@ class AnnouncementResource extends Resource
                 ->options(fn (?Announcement $record): array => options('employees.department', $record?->audience_value))
                 ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_DEPARTMENT)
                 ->required(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_DEPARTMENT),
+            Select::make('audience_value')
+                ->label('Location')
+                ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())
+                ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_LOCATION)
+                ->required(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_LOCATION),
             Toggle::make('pinned')
                 ->helperText('Pinned announcements stay at the top of the dashboard while they last.'),
             DatePicker::make('expires_at')

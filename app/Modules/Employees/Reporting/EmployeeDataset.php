@@ -70,6 +70,7 @@ class EmployeeDataset extends Dataset
             DatasetColumn::make('employee_id', 'Staff number', groupable: false),
             DatasetColumn::make('designation', 'Designation'),
             DatasetColumn::make('department', 'Department'),
+            DatasetColumn::make('location.name', 'Location'),
             DatasetColumn::make('employment_type', 'Employment type'),
             DatasetColumn::make('is_active', 'Active', DatasetColumn::BOOLEAN),
             DatasetColumn::make('gender', 'Gender'),
@@ -113,6 +114,7 @@ class EmployeeDataset extends Dataset
             DatasetFilter::dateRange('joined', 'Joined between', 'date_of_joining'),
             DatasetFilter::dateRange('left', 'Left between', 'left_on'),
             DatasetFilter::flag('active', 'Currently employed', 'is_active'),
+            DatasetFilter::select('location', 'Location', 'location_id', fn (): array => \App\Modules\Core\Models\WorkLocation::options()),
             DatasetFilter::select(
                 'department',
                 'Department',

@@ -3,11 +3,13 @@
 namespace App\Modules\Core\Filament\Resources\Holidays\Tables;
 
 use App\Modules\Core\Models\Holiday;
+use App\Modules\Core\Models\WorkLocation;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
@@ -32,6 +34,11 @@ class HolidaysTable
                     ->label('Name')
                     ->searchable(),
 
+                TextColumn::make('location.name')
+                    ->label('Location')
+                    ->placeholder('Company-wide')
+                    ->sortable(),
+
                 IconColumn::make('is_recurring')
                     ->label('Recurring')
                     ->boolean(),
@@ -44,6 +51,9 @@ class HolidaysTable
             ->filters([
                 TernaryFilter::make('is_recurring')
                     ->label('Recurring'),
+                SelectFilter::make('location_id')
+                    ->label('Location')
+                    ->options(fn (): array => WorkLocation::options()),
             ])
             ->recordActions([
                 EditAction::make(),

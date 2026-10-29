@@ -2,7 +2,9 @@
 
 namespace App\Modules\Core\Filament\Resources\Holidays\Schemas;
 
+use App\Modules\Core\Models\WorkLocation;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -26,6 +28,15 @@ class HolidayForm
                 TextInput::make('name')
                     ->label('Name')
                     ->required(),
+
+                // Company-wide unless a site is named — plan §7.9. Leave days
+                // already generated are not recomputed when one is added.
+                Select::make('location_id')
+                    ->label('Location')
+                    ->options(fn (): array => WorkLocation::options())
+                    ->placeholder('Company-wide')
+                    ->nullable()
+                    ->helperText('Leave blank for every site. A local holiday counts only for employees at that location.'),
 
                 Toggle::make('is_recurring')
                     ->label('Recurring')

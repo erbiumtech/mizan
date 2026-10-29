@@ -115,7 +115,9 @@ class LeaveDayGenerator
      */
     private function consumedDates(Carbon $from, Carbon $to, ?Employee $employee = null): array
     {
-        $holidays = array_flip($this->holidays->datesBetween($from, $to));
+        // The employee's own site's calendar — plan §7.9. Days already generated
+        // are never recomputed when a local holiday is added later (§4.1).
+        $holidays = array_flip($this->holidays->datesBetween($from, $to, $employee?->location_id));
         // Which days are worked is a question, and Attendance answers it properly
         // when installed — which is what config/leave.php promised when it called
         // leave.weekend_days a stopgap. Asking a contract rather than reaching for
