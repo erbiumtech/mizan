@@ -5,6 +5,7 @@ namespace App\Modules\Performance\Filament\Resources\RecurringTasks;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Core\Models\WorkLocation;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Rules\RuleForm;
 use App\Modules\Performance\Filament\Resources\RecurringTasks\Pages\CreateRecurringTask;
 use App\Modules\Performance\Filament\Resources\RecurringTasks\Pages\EditRecurringTask;
 use App\Modules\Performance\Filament\Resources\RecurringTasks\Pages\ListRecurringTasks;
@@ -18,6 +19,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -68,6 +70,7 @@ class RecurringTaskResource extends Resource
                             RecurringTask::ASSIGNEE_EMPLOYEE => 'One employee',
                             RecurringTask::ASSIGNEE_DEPARTMENT => 'A department',
                             RecurringTask::ASSIGNEE_LOCATION => 'A location',
+                            RecurringTask::ASSIGNEE_RULE => 'By rule',
                         ])
                         ->default(RecurringTask::ASSIGNEE_ALL)
                         ->required()
@@ -89,6 +92,10 @@ class RecurringTaskResource extends Resource
                         ->options(fn (): array => WorkLocation::options())
                         ->visible(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_LOCATION)
                         ->required(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_LOCATION),
+                    // Who, by rule — docs/saas-launch-plan.md §8.9. Resolved on every roll, so a new hire the rule matches is in tomorrow.
+                    Group::make(RuleForm::schema('assignee_rule'))
+                        ->visible(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_RULE)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
             Section::make('When')

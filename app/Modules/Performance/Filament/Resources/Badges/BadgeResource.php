@@ -3,6 +3,7 @@
 namespace App\Modules\Performance\Filament\Resources\Badges;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Modules\Employees\Rules\RuleForm;
 use App\Modules\Performance\Filament\Resources\Badges\Pages\CreateBadge;
 use App\Modules\Performance\Filament\Resources\Badges\Pages\EditBadge;
 use App\Modules\Performance\Filament\Resources\Badges\Pages\ListBadges;
@@ -13,6 +14,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -43,6 +45,12 @@ class BadgeResource extends Resource
             TextInput::make('icon')->maxLength(60)->placeholder('heroicon-o-star')->helperText('A Heroicon name, optional.'),
             TextInput::make('points')->numeric()->minValue(0)->maxValue(100)->default(5)->helperText('Credited to the merit ledger on every award.'),
             Toggle::make('is_active')->default(true),
+
+            // Who earns it on their own — docs/saas-launch-plan.md §8.9. Empty means awarded by hand only.
+            Section::make('Earned by rule')
+                ->description('Awarded automatically, once, to anyone the rule matches on the morning run. Leave it empty for a badge somebody gives.')
+                ->schema(RuleForm::schema('rule'))
+                ->columnSpanFull(),
         ]);
     }
 

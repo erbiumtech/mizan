@@ -7,6 +7,7 @@ use App\Modules\Employees\Filament\Resources\Announcements\Pages\CreateAnnouncem
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\EditAnnouncement;
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\ListAnnouncements;
 use App\Modules\Employees\Models\Announcement;
+use App\Modules\Employees\Rules\RuleForm;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -18,6 +19,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -60,6 +62,7 @@ class AnnouncementResource extends Resource
                     Announcement::AUDIENCE_ALL => 'Everyone',
                     Announcement::AUDIENCE_DEPARTMENT => 'One department',
                     Announcement::AUDIENCE_LOCATION => 'One location',
+                    Announcement::AUDIENCE_RULE => 'By rule',
                 ])
                 ->default(Announcement::AUDIENCE_ALL)
                 ->required()
@@ -74,6 +77,10 @@ class AnnouncementResource extends Resource
                 ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())
                 ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_LOCATION)
                 ->required(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_LOCATION),
+            // The audience by rule — docs/saas-launch-plan.md §8.9. Judged when it is published.
+            Group::make(RuleForm::schema('audience_rule'))
+                ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_RULE)
+                ->columnSpanFull(),
             Toggle::make('pinned')
                 ->helperText('Pinned announcements stay at the top of the dashboard while they last.'),
             DatePicker::make('expires_at')

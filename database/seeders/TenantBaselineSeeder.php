@@ -54,6 +54,9 @@ class TenantBaselineSeeder extends Seeder
             // hardcoded in the form. Last because it depends on nothing: the lists are
             // declared by the modules, not by anything else seeded here.
             OptionListSeeder::class,
+            // The three badges with rules — docs/saas-launch-plan.md §8.9. Nothing happens
+            // until the company licenses Performance; the rows merely wait.
+            BadgeSeeder::class,
         ];
     }
 

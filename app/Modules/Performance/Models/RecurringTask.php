@@ -4,8 +4,11 @@ namespace App\Modules\Performance\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Rules\Rule;
+use App\Modules\Employees\Rules\RuleEvaluator;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -49,7 +52,6 @@ class RecurringTask extends Model
     ];
 
     protected $casts = [
-        'assignee_rule' => 'array',
         'due_weekday' => 'integer',
         'due_day_of_month' => 'integer',
         'working_days_only' => 'boolean',
@@ -101,15 +103,28 @@ class RecurringTask extends Model
      *
      * @return Collection<int, Employee>
      */
+    /** Sanitised against the registries — docs/saas-launch-plan.md §8.9. */
+    protected function assigneeRule(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value): ?array => ($rule = Rule::from(is_string($value) ? json_decode($value, true) : $value))->isEmpty() ? null : $rule->toArray(),
+            set: fn (mixed $value): ?string => ($rule = Rule::from($value))->isEmpty() ? null : json_encode($rule->toArray()),
+        );
+    }
+
     public function assignees(): Collection
     {
+        // By rule — docs/saas-launch-plan.md §8.9: the evaluator, and nothing else, decides.
+        if ($this->assignee_kind === self::ASSIGNEE_RULE) {
+            return app(RuleEvaluator::class)->matching($this->assignee_rule);
+        }
+
         $employees = Employee::query()->where('is_active', true);
 
         match ($this->assignee_kind) {
             self::ASSIGNEE_EMPLOYEE => $employees->whereKey((int) $this->assignee_ref),
             self::ASSIGNEE_DEPARTMENT => $employees->where('department', (string) $this->assignee_ref),
             self::ASSIGNEE_LOCATION => $employees->where('location_id', (int) $this->assignee_ref),
-            self::ASSIGNEE_RULE => $employees->whereRaw('1 = 0'),
             default => null,
         };
 

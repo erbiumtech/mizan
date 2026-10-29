@@ -81,7 +81,9 @@ class MeritEntry extends Model
 
     public function scopeBetween(Builder $query, string $from, string $to): Builder
     {
-        return $query->whereBetween('occurred_on', [$from, $to]);
+        // whereDate on both ends: the date cast stores midnight, and a plain between
+        // against 'YYYY-MM-DD' would drop the last day of the window.
+        return $query->whereDate('occurred_on', '>=', $from)->whereDate('occurred_on', '<=', $to);
     }
 
     public function scopeForEmployee(Builder $query, Employee|int $employee): Builder

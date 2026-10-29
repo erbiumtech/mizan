@@ -47,6 +47,9 @@ class LeaveServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
+        // leave.unplanned_days for the rule builder — docs/saas-launch-plan.md §8.9.
+        \App\Modules\Employees\Rules\RuleRegistry::registerMetric(new \App\Modules\Leave\Rules\UnplannedLeaveDays);
+
         // leave-requests/ files stream only to the employee's own reporting line — security audit finding 10.
         TenantFileAccess::register(function (User $user, Company $company, string $path): ?bool {
             if (! str_starts_with($path, 'leave-requests/')) {

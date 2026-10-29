@@ -5,6 +5,7 @@ namespace App\Modules\Performance;
 use App\Modules\Employees\Events\LateMarkRecorded;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Performance\Console\Commands\AwardBadges;
 use App\Modules\Performance\Console\Commands\RollTasks;
 use App\Modules\Performance\Console\Commands\SettleTaskPenalties;
 use App\Modules\Performance\Filament\Pages\MeritLedgerReport;
@@ -68,6 +69,11 @@ class PerformanceServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
+        // reports.*, tasks.*, merit.balance for the rule builder — docs/saas-launch-plan.md §8.9.
+        foreach (\App\Modules\Performance\Rules\PerformanceMetrics::all() as $metric) {
+            \App\Modules\Employees\Rules\RuleRegistry::registerMetric($metric);
+        }
+
         $this->registerReports();
 
         // A late mark as evidence — plan §8.1, zero points as shipped. Attendance
@@ -80,7 +86,7 @@ class PerformanceServiceProvider extends ServiceProvider
 
         // Recurring tasks — plan §8.2: the phone's list, and the two commands.
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');
-        $this->commands([RollTasks::class, SettleTaskPenalties::class]);
+        $this->commands([RollTasks::class, SettleTaskPenalties::class, AwardBadges::class]);
     }
 
     /**

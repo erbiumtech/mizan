@@ -14,8 +14,10 @@ use App\Modules\Attendance\Policies\AttendanceRegularizationPolicy;
 use App\Modules\Attendance\Policies\EmployeeWorkPatternPolicy;
 use App\Modules\Attendance\Policies\WorkPatternDayPolicy;
 use App\Modules\Attendance\Policies\WorkPatternPolicy;
+use App\Modules\Attendance\Rules\AttendanceMetrics;
 use App\Modules\Attendance\Services\WorkPatternResolver;
 use App\Modules\Attendance\Support\AttendanceReports;
+use App\Modules\Employees\Rules\RuleRegistry;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use Illuminate\Support\Facades\Gate;
@@ -64,6 +66,12 @@ class AttendanceServiceProvider extends ServiceProvider
         }
 
         $this->commands([AccrueCompensatoryOff::class]);
+
+        // attendance.* for the rule builder — docs/saas-launch-plan.md §8.9. Registered by the
+        // module that owns the table, so a rule can only name what is there to read.
+        foreach (AttendanceMetrics::all() as $metric) {
+            RuleRegistry::registerMetric($metric);
+        }
 
         // The phone's clock-in — plan §7.1. Loaded the way Leave loads its own.
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');

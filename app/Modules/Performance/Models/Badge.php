@@ -3,8 +3,10 @@
 namespace App\Modules\Performance\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\Employees\Rules\Rule;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -19,9 +21,22 @@ class Badge extends Model
 
     protected $casts = [
         'points' => 'integer',
-        'rule' => 'array',
         'is_active' => 'boolean',
     ];
+
+    /** Sanitised against the registries on the way in and out — docs/saas-launch-plan.md §8.9. */
+    protected function rule(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value): ?array => ($rule = Rule::from(is_string($value) ? json_decode($value, true) : $value))->isEmpty() ? null : $rule->toArray(),
+            set: fn (mixed $value): ?string => ($rule = Rule::from($value))->isEmpty() ? null : json_encode($rule->toArray()),
+        );
+    }
+
+    public function hasRule(): bool
+    {
+        return $this->rule !== null;
+    }
 
     public function awards(): HasMany
     {
