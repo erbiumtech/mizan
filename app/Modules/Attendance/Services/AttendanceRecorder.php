@@ -134,6 +134,55 @@ class AttendanceRecorder
     }
 
     /**
+     * The employee's own punch, now — docs/saas-launch-plan.md §7.1.
+     *
+     * The first punch of the day is the check-in, the second the check-out, and a
+     * third is refused: the regularization request is the way to correct a day,
+     * and this must not become a way to overwrite one. Goes through record(), so
+     * lateness and overtime are derived exactly as for an imported day.
+     *
+     * The position is the device's reading at that moment, kept with the day and
+     * judged by nothing. A clock-out keeps the clock-in's reading unless the day
+     * has none yet. Null is an honest answer: a refused or absent fix is still a
+     * punch.
+     *
+     * @param  array{latitude: float|string, longitude: float|string, accuracy_m?: int|string|null}|null  $position
+     */
+    public function clock(Employee $employee, ?array $position = null, string $source = AttendanceDay::SOURCE_SELF_SERVICE): AttendanceDay
+    {
+        $now = Carbon::now();
+        $existing = AttendanceDay::forDate($employee->getKey(), $now->copy()->startOfDay());
+
+        if ($existing?->check_in_at && $existing->check_out_at) {
+            throw new InvalidArgumentException(
+                'Already clocked in and out today. To correct the times, file a regularization request.'
+            );
+        }
+
+        $day = $existing?->check_in_at
+            ? $this->record(
+                $employee,
+                $now,
+                $existing->status === AttendanceDay::STATUS_NOT_MARKED ? AttendanceDay::STATUS_PRESENT : $existing->status,
+                $existing->check_in_at->format('H:i:s'),
+                $now->format('H:i:s'),
+                $source,
+                $existing->note,
+            )
+            : $this->record($employee, $now, AttendanceDay::STATUS_PRESENT, $now->format('H:i:s'), null, $source);
+
+        if ($position !== null && $day->latitude === null) {
+            $day->forceFill([
+                'latitude' => (float) $position['latitude'],
+                'longitude' => (float) $position['longitude'],
+                'accuracy_m' => isset($position['accuracy_m']) ? (int) $position['accuracy_m'] : null,
+            ])->save();
+        }
+
+        return $day->refresh();
+    }
+
+    /**
      * Run every check record() would run, and write nothing.
      *
      * What makes the importer's dry run a real dry run. Without it the preview would

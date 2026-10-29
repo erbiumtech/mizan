@@ -7,15 +7,18 @@ use App\Modules\Attendance\Filament\Resources\AttendanceDays\AttendanceDayResour
 use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Services\AttendanceCalendar;
 use App\Modules\Attendance\Services\AttendanceImport;
+use App\Modules\Attendance\Services\AttendanceRecorder;
 use App\Modules\Employees\Models\Employee;
 use App\Support\EmployeeAccess;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\ViewField;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 
 class ListAttendanceDays extends ListRecords
 {
@@ -25,6 +28,8 @@ class ListAttendanceDays extends ListRecords
     {
         return [
             HelpAction::make('attendance', 'Attendance: Help'),
+
+            $this->clockAction(),
 
             /**
              * Open a month for filling in.
@@ -129,5 +134,54 @@ class ListAttendanceDays extends ListRecords
 
             CreateAction::make()->label('Record a day'),
         ];
+    }
+
+    /**
+     * The employee's own punch — docs/saas-launch-plan.md §7.1.
+     *
+     * "Clock in" until today has a check-in, "Clock out" until it has a check-out,
+     * absent after that: the regularization request is the way to correct a day.
+     * For whoever is signed in, about themselves only — it needs no Attendance
+     * permission beyond reaching this page, which every member of staff may.
+     * The modal's one field reads the browser's location while it is open, and
+     * submitting without one is allowed: the time is the fact, the place is a note.
+     */
+    private function clockAction(): Action
+    {
+        $employee = fn (): ?Employee => Employee::query()->where('user_id', auth()->id())->first();
+        $today = fn (): ?AttendanceDay => ($e = $employee()) ? AttendanceDay::forDate($e->getKey(), now()->startOfDay()) : null;
+
+        return Action::make('clock')
+            ->label(fn (): string => $today()?->check_in_at ? 'Clock out' : 'Clock in')
+            ->icon('heroicon-o-clock')
+            ->color('primary')
+            ->visible(fn (): bool => $employee() !== null && ! ($today()?->check_in_at && $today()?->check_out_at))
+            ->modalHeading(fn (): string => ($today()?->check_in_at ? 'Clock out' : 'Clock in').' — '.now()->format('l j F, H:i'))
+            ->modalSubmitActionLabel(fn (): string => $today()?->check_in_at ? 'Clock out' : 'Clock in')
+            ->modalWidth('md')
+            ->schema([
+                ViewField::make('position')
+                    ->label('Location')
+                    ->view('filament.forms.geolocation')
+                    ->dehydrated(),
+            ])
+            ->action(function (array $data) use ($employee): void {
+                $position = is_array($data['position'] ?? null) && isset($data['position']['latitude'], $data['position']['longitude'])
+                    ? $data['position']
+                    : null;
+
+                try {
+                    $day = app(AttendanceRecorder::class)->clock($employee(), $position);
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()
+                    ->title($day->check_out_at ? 'Clocked out at '.$day->check_out_at->format('H:i') : 'Clocked in at '.$day->check_in_at->format('H:i'))
+                    ->body($position ? 'Location recorded.' : 'No location was recorded.')
+                    ->send();
+            });
     }
 }

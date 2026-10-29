@@ -64,6 +64,9 @@ class AttendanceServiceProvider extends ServiceProvider
         }
 
         $this->commands([AccrueCompensatoryOff::class]);
+
+        // The phone's clock-in — plan §7.1. Loaded the way Leave loads its own.
+        $this->loadRoutesFrom(__DIR__.'/routes/api.php');
     }
 
     /**

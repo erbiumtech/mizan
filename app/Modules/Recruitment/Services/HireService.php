@@ -4,6 +4,7 @@ namespace App\Modules\Recruitment\Services;
 
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Events\EmployeeJoined;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Models\EmployeeSettingComponent;
@@ -122,6 +123,10 @@ class HireService
                 ->event('hired')
                 ->withProperties(['employee_id' => $employee->getKey()])
                 ->log("Offer accepted — {$applicant->name} hired as employee {$employee->employee_id}");
+
+            // Announced, not acted on: Lifecycle starts the onboarding checklist in
+            // answer, and a company without Lifecycle hears nothing — plan §7.3.
+            EmployeeJoined::dispatch($employee);
 
             return $employee->refresh();
         });

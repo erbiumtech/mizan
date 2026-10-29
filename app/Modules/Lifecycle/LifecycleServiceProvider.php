@@ -4,12 +4,14 @@ namespace App\Modules\Lifecycle;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Events\EmployeeJoined;
 use App\Modules\Lifecycle\Console\Commands\CheckDocumentExpiry;
 use App\Modules\Lifecycle\Filament\Pages\AssetsInHand;
 use App\Modules\Lifecycle\Filament\Pages\ChecklistProgress;
 use App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring;
 use App\Modules\Lifecycle\Filament\Pages\FinalSettlementsReport;
 use App\Modules\Lifecycle\Filament\Pages\LeaveLiability;
+use App\Modules\Lifecycle\Listeners\StartOnboardingForNewEmployee;
 use App\Modules\Lifecycle\Models\ChecklistItem;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use App\Modules\Lifecycle\Models\EmployeeChecklist;
@@ -31,6 +33,7 @@ use App\Support\EmployeeAccess;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\TenantFileAccess;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,6 +56,11 @@ class LifecycleServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        // Hire starts the onboarding checklist — plan §7.3. Recruitment announces the
+        // joiner; this module decides what that means, exactly as Employees answers
+        // Core's UserCreated.
+        Event::listen(EmployeeJoined::class, StartOnboardingForNewEmployee::class);
 
         // employee-documents/ files stream only to the employee's own reporting line — security audit finding 10.
         TenantFileAccess::register(function (User $user, Company $company, string $path): ?bool {

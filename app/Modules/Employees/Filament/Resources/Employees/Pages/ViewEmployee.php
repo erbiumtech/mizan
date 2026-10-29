@@ -5,6 +5,7 @@ namespace App\Modules\Employees\Filament\Resources\Employees\Pages;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Filament\Resources\Employees\Schemas\EmployeeInfolist;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Services\AppointmentLetter;
 use App\Modules\Employees\Services\CustomLetter;
 use App\Modules\Employees\Services\ExperienceLetter;
 use App\Modules\Employees\Services\IncomeCertificate;
@@ -58,12 +59,59 @@ class ViewEmployee extends ViewRecord
 
             $this->incomeCertificateAction(),
 
+            $this->appointmentLetterAction(),
+
             $this->experienceLetterAction(),
 
             $this->customLetterAction(),
 
             EditAction::make(),
         ];
+    }
+
+    /**
+     * The terms, for the person who has just joined — plan §7.2. The income certificate's facts and
+     * position, for a different reader.
+     */
+    protected function appointmentLetterAction(): Action
+    {
+        return Action::make('appointmentLetter')
+            ->label('Appointment letter')
+            ->icon('heroicon-o-document-check')
+            ->color('gray')
+            ->visible(fn (Employee $record): bool => auth()->user()?->can('view', $record) ?? false)
+            ->schema([
+                TextInput::make('probation_months')
+                    ->label('Probation (months)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(12)
+                    ->default(3)
+                    ->helperText('Zero prints no probation clause.'),
+            ])
+            ->modalSubmitActionLabel('Download')
+            ->action(function (Employee $record, array $data) {
+                $letters = app(AppointmentLetter::class);
+                $missing = $letters->missingFor($record);
+
+                if ($missing !== []) {
+                    Notification::make()
+                        ->danger()
+                        ->title('The letter is missing facts it cannot invent')
+                        ->body('Add '.implode('; ', $missing).'.')
+                        ->persistent()
+                        ->send();
+
+                    return null;
+                }
+
+                $pdf = $letters->renderPdf($record, $data);
+
+                return response()->streamDownload(
+                    fn () => print ($pdf->raw()),
+                    $letters->filename($record),
+                );
+            });
     }
 
     /**
