@@ -104,11 +104,36 @@ class ResourceContributions
         return array_values(array_map(fn (Closure $factory) => $factory(), self::$bulkActions[$resource] ?? []));
     }
 
+    /**
+     * Header actions one module contributes to another module's page — the first is "Award badge" on the
+     * employee view (docs/saas-launch-plan.md §8.4): the page is Employees', the badge is Performance's,
+     * and Performance requires Employees, so the reference has to run the other way.
+     *
+     * @var array<class-string, array<string, Closure(): mixed>>
+     */
+    private static array $headerActions = [];
+
+    /**
+     * @param  class-string  $page  the Filament page whose header gets the action
+     * @param  Closure(): mixed  $factory  builds a fresh Action each time the page renders
+     */
+    public static function addHeaderAction(string $page, string $name, Closure $factory): void
+    {
+        self::$headerActions[$page][$name] = $factory;
+    }
+
+    /** @return array<int, mixed> */
+    public static function headerActionsFor(string $page): array
+    {
+        return array_values(array_map(fn (Closure $factory) => $factory(), self::$headerActions[$page] ?? []));
+    }
+
     /** For tests that need to assert what a resource looks like without contributions. */
     public static function flush(): void
     {
         self::$relationManagers = [];
         self::$recordActions = [];
         self::$bulkActions = [];
+        self::$headerActions = [];
     }
 }

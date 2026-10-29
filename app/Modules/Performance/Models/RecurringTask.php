@@ -41,8 +41,10 @@ class RecurringTask extends Model
     /** The daily report (plan §8.3) is a task of this kind; nothing else may use it. */
     public const KIND_DAILY_REPORT = 'daily_report';
 
+    public const KIND_TASK = 'task';
+
     protected $fillable = [
-        'title', 'description', 'assignee_kind', 'assignee_ref', 'assignee_rule', 'cadence', 'due_time',
+        'title', 'kind', 'description', 'assignee_kind', 'assignee_ref', 'assignee_rule', 'cadence', 'due_time',
         'due_weekday', 'due_day_of_month', 'working_days_only', 'grace_hours', 'penalty_points', 'penalty_amount', 'is_active',
     ];
 
@@ -58,6 +60,7 @@ class RecurringTask extends Model
     ];
 
     protected $attributes = [
+        'kind' => self::KIND_TASK,
         'assignee_kind' => self::ASSIGNEE_ALL,
         'cadence' => self::CADENCE_DAILY,
         'due_time' => '17:00:00',

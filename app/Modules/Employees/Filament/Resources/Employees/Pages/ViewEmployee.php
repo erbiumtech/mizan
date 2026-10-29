@@ -10,6 +10,7 @@ use App\Modules\Employees\Services\CustomLetter;
 use App\Modules\Employees\Services\ExperienceLetter;
 use App\Modules\Employees\Services\IncomeCertificate;
 use App\Support\Pdf\Pdf;
+use App\Support\ResourceContributions;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -60,6 +61,10 @@ class ViewEmployee extends ViewRecord
             $this->incomeCertificateAction(),
 
             $this->appointmentLetterAction(),
+
+            // What other modules add here — the first is Performance's "Award badge" (plan §8.4).
+            // Offered as a slot rather than named, so this page never learns who fills it.
+            ...ResourceContributions::headerActionsFor(static::class),
 
             $this->experienceLetterAction(),
 

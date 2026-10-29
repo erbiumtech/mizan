@@ -50,6 +50,14 @@ class RecurringTaskResource extends Resource
     {
         return $schema->components([
             TextInput::make('title')->required()->maxLength(160),
+            Select::make('kind')
+                ->options([
+                    RecurringTask::KIND_TASK => 'A task — done when the person marks it done',
+                    RecurringTask::KIND_DAILY_REPORT => 'The daily report — done when the person files one for the day',
+                ])
+                ->default(RecurringTask::KIND_TASK)
+                ->required()
+                ->helperText('One daily-report task per audience is enough: filing a report completes it, and a missed one is a missed report.'),
             Textarea::make('description')->rows(3)->columnSpanFull(),
             Section::make('Who')
                 ->schema([

@@ -29,6 +29,13 @@ return [
     */
     'merit' => [
         'late_mark_points' => 0,
+        // What accepting a daily-report verdict writes, by verdict — §8.3. The
+        // model never writes these; a manager's accept does.
+        'report_points' => [
+            'substantive' => 2,
+            'thin' => 0,
+            'off_topic' => -1,
+        ],
     ],
 
     /*

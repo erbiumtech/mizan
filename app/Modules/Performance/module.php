@@ -29,6 +29,10 @@ return [
         'App\\Models\\MeritEntry' => \App\Modules\Performance\Models\MeritEntry::class,
         'App\\Models\\RecurringTask' => \App\Modules\Performance\Models\RecurringTask::class,
         'App\\Models\\TaskOccurrence' => \App\Modules\Performance\Models\TaskOccurrence::class,
+        // Daily reports and badges — §8.3, §8.4.
+        'App\\Models\\DailyReport' => \App\Modules\Performance\Models\DailyReport::class,
+        'App\\Models\\Badge' => \App\Modules\Performance\Models\Badge::class,
+        'App\\Models\\EmployeeBadge' => \App\Modules\Performance\Models\EmployeeBadge::class,
     ],
 
     'resources' => [
@@ -39,6 +43,11 @@ return [
         'App\\Filament\\Resources\\RecurringTasks\\RecurringTaskResource' => \App\Modules\Performance\Filament\Resources\RecurringTasks\RecurringTaskResource::class,
         'App\\Filament\\Resources\\TaskOccurrences\\TaskOccurrenceResource' => \App\Modules\Performance\Filament\Resources\TaskOccurrences\TaskOccurrenceResource::class,
         'App\\Filament\\Resources\\MeritEntries\\MeritEntryResource' => \App\Modules\Performance\Filament\Resources\MeritEntries\MeritEntryResource::class,
+        'App\\Filament\\Resources\\DailyReports\\DailyReportResource' => \App\Modules\Performance\Filament\Resources\DailyReports\DailyReportResource::class,
+        'App\\Filament\\Resources\\Badges\\BadgeResource' => \App\Modules\Performance\Filament\Resources\Badges\BadgeResource::class,
+    ],
+    'widgets' => [
+        'App\\Filament\\Widgets\\BadgesOverview' => \App\Modules\Performance\Filament\Widgets\BadgesOverview::class,
     ],
 
     'pages' => [
@@ -50,6 +59,8 @@ return [
         'Review',
         'Task',
         'Merit',
+        'DailyReport',
+        'Badge',
     ],
 
     'permissions' => [
@@ -68,6 +79,14 @@ return [
         ['name' => 'TaskDelete', 'group' => 'Task'],
         ['name' => 'TaskExcuse', 'group' => 'Task'],
         ['name' => 'MeritView', 'group' => 'Merit'],
+        // Daily reports and badges — §8.3, §8.4. ReportDecide and BadgeAward write the ledger.
+        ['name' => 'DailyReportView', 'group' => 'DailyReport'],
+        ['name' => 'DailyReportDecide', 'group' => 'DailyReport'],
+        ['name' => 'BadgeView', 'group' => 'Badge'],
+        ['name' => 'BadgeCreate', 'group' => 'Badge'],
+        ['name' => 'BadgeUpdate', 'group' => 'Badge'],
+        ['name' => 'BadgeDelete', 'group' => 'Badge'],
+        ['name' => 'BadgeAward', 'group' => 'Badge'],
     ],
     'role_grants' => [
         // Every member of staff sees their own tasks and their own ledger; the
@@ -75,6 +94,7 @@ return [
         'Employee' => [
             'TaskView',
             'MeritView',
+            'DailyReportView',
         ],
         'Manager' => [
             'TaskView',
@@ -82,6 +102,10 @@ return [
             'TaskUpdate',
             'TaskExcuse',
             'MeritView',
+            'DailyReportView',
+            'DailyReportDecide',
+            'BadgeView',
+            'BadgeAward',
         ],
     ],
 
