@@ -43,6 +43,9 @@ class LeaveServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // An activated employee's leave year — docs/saas-launch-plan.md §14.2.
+        \Illuminate\Support\Facades\Event::listen(\App\Modules\Employees\Events\EmployeeActivated::class, \App\Modules\Leave\Listeners\OpenLeaveYearForActivatedEmployee::class);
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

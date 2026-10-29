@@ -14,6 +14,15 @@ class ListEmployees extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            // Grid or list — docs/saas-launch-plan.md §14.2.
+            \Filament\Actions\Action::make('toggleLayout')
+                ->label(fn (): string => session('employees.layout') === 'grid' ? 'List' : 'Grid')
+                ->icon(fn (): string => session('employees.layout') === 'grid' ? 'heroicon-o-list-bullet' : 'heroicon-o-squares-2x2')
+                ->color('gray')
+                ->action(function (): void {
+                    session(['employees.layout' => session('employees.layout') === 'grid' ? 'list' : 'grid']);
+                    $this->resetTable();
+                }),
             HelpAction::make('employees', 'Employees: Help'),
             CreateAction::make(),
         ];

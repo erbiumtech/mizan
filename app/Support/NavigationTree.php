@@ -48,6 +48,10 @@ class NavigationTree
                 'Employees',
                 'Employee Change Requests',
                 'Employee Settings',
+                // The record's depth — docs/saas-launch-plan.md §14.2.
+                'Probations',
+                'Transfers',
+                'Promotions',
                 // What the company tells its people — plan §7.6.
                 'Announcements',
             ],
@@ -151,6 +155,11 @@ class NavigationTree
                 'Pay Components',
                 'Salary Structures',
                 'Salary Slabs',
+            ],
+            // Departments and designations as rows — docs/saas-launch-plan.md §14.2.
+            'People setup' => [
+                'Departments',
+                'Designations',
             ],
             'Calendar & currency' => [
                 'Fiscal Years',

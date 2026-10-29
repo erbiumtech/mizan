@@ -32,13 +32,15 @@ class DropTenantDatabaseCommandTest extends TestCase
         return $path;
     }
 
+    // Every call passes --without-export: since docs/saas-launch-plan.md §9 (Phase 4) the command refuses a
+    // company that has never been exported, and these fixtures have no export to point at.
     public function test_it_drops_the_database_and_the_company_row(): void
     {
         $company = Company::factory()->create(['slug' => 'acme-co']);
         $path = $this->stubDatabase('acme-co');
         $company->update(['database' => $path]);
 
-        $this->artisan('tenant:drop', ['tenant' => 'acme-co', '--force' => true])
+        $this->artisan('tenant:drop', ['tenant' => 'acme-co', '--force' => true, '--without-export' => true])
             ->assertSuccessful();
 
         $this->assertFalse(File::exists($path));
@@ -51,7 +53,7 @@ class DropTenantDatabaseCommandTest extends TestCase
         $path = $this->stubDatabase('keep-co');
         $company->update(['database' => $path]);
 
-        $this->artisan('tenant:drop', ['tenant' => 'keep-co', '--force' => true, '--keep-company' => true])
+        $this->artisan('tenant:drop', ['tenant' => 'keep-co', '--force' => true, '--keep-company' => true, '--without-export' => true])
             ->assertSuccessful();
 
         $this->assertFalse(File::exists($path));
@@ -63,7 +65,7 @@ class DropTenantDatabaseCommandTest extends TestCase
     {
         $path = $this->stubDatabase('orphan-co');
 
-        $this->artisan('tenant:drop', ['tenant' => $path, '--force' => true])
+        $this->artisan('tenant:drop', ['tenant' => $path, '--force' => true, '--without-export' => true])
             ->assertSuccessful();
 
         $this->assertFalse(File::exists($path));
@@ -88,7 +90,7 @@ class DropTenantDatabaseCommandTest extends TestCase
         $path = $this->stubDatabase('safe-co');
         $company->update(['database' => $path]);
 
-        $this->artisan('tenant:drop', ['tenant' => 'safe-co'])
+        $this->artisan('tenant:drop', ['tenant' => 'safe-co', '--without-export' => true])
             ->expectsConfirmation('This permanently deletes the data. Continue?', 'no')
             ->assertSuccessful();
 

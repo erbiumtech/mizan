@@ -7,13 +7,16 @@ use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Filament\Support\IncomeCertificatesBulkAction;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Services\EmployeeMoves;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use App\Support\ResourceContributions;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -89,8 +92,16 @@ class EmployeesTable
 
                 ...CustomFieldsSchema::tableColumns(Employee::class),
             ])
+            // A grid of cards or the list — docs/saas-launch-plan.md §14.2; the choice is kept for the session.
+            ->contentGrid(fn (): ?array => session('employees.layout') === 'grid' ? ['md' => 2, 'xl' => 3] : null)
             ->filters([
                 ...CustomFieldsSchema::tableFilters(Employee::class),
+
+                // The directory's own two — docs/saas-launch-plan.md §14.2.
+                SelectFilter::make('department')
+                    ->options(fn (): array => options('employees.department')),
+                SelectFilter::make('status')
+                    ->options(Employee::STATUSES),
 
                 SelectFilter::make('location_id')
                     ->label('Location')
@@ -140,6 +151,7 @@ class EmployeesTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    static::activateBulkAction(),
                     // Certificates for many at once — docs/bexio-gap-plan.md Phase 5, item 18. The income
                     // certificate is this module's; the tax certificate is Payroll's and arrives from there.
                     IncomeCertificatesBulkAction::make(),
@@ -157,5 +169,41 @@ class EmployeesTable
         return app(EmployeeAccess::class)
             ->scopeAccessibleEmployees($query, auth()->user())
             ->get();
+    }
+
+    /**
+     * Switch on, give a login, open the leave year — docs/saas-launch-plan.md §14.2. For the rows an
+     * import brought in without a user; the invitation goes to the personal email.
+     */
+    protected static function activateBulkAction(): BulkAction
+    {
+        return BulkAction::make('activateEmployees')
+            ->label('Activate')
+            ->icon('heroicon-o-bolt')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalDescription('Each selected employee is made active, given a login invited from their personal email if they have none, and their leave year opened.')
+            ->visible(fn (): bool => auth()->user()?->can('EmployeeUpdate') ?? false)
+            ->deselectRecordsAfterCompletion()
+            ->action(function (Collection $records): void {
+                $invited = 0;
+                $problems = [];
+
+                foreach ($records as $employee) {
+                    $result = app(EmployeeMoves::class)->activate($employee, auth()->user());
+                    $invited += (int) $result['invited'];
+
+                    if ($result['problem'] !== null) {
+                        $problems[] = $employee->display_label.': '.$result['problem'];
+                    }
+                }
+
+                Notification::make()
+                    ->title($records->count().' activated, '.$invited.' invited.')
+                    ->body($problems === [] ? null : implode('; ', $problems))
+                    ->{$problems === [] ? 'success' : 'warning'}()
+                    ->persistent($problems !== [])
+                    ->send();
+            });
     }
 }

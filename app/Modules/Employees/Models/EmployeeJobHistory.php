@@ -33,7 +33,7 @@ class EmployeeJobHistory extends Model
 
     protected $fillable = [
         'employee_id', 'effective_from', 'designation', 'department',
-        'manager_id', 'employment_type', 'reason', 'recorded_by',
+        'manager_id', 'employment_type', 'location_id', 'kind', 'reason', 'recorded_by',
     ];
 
     protected $casts = [
@@ -61,6 +61,17 @@ class EmployeeJobHistory extends Model
         $this->attributes['effective_from'] = $value === null
             ? null
             : Carbon::parse($value)->toDateString();
+    }
+
+    public const KIND_TRANSFER = 'transfer';
+
+    public const KIND_PROMOTION = 'promotion';
+
+    public const KIND_REHIRE = 'rehire';
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Core\Models\WorkLocation::class, 'location_id');
     }
 
     public function employee(): BelongsTo

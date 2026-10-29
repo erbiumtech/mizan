@@ -66,6 +66,11 @@ class ViewEmployee extends ViewRecord
             // Offered as a slot rather than named, so this page never learns who fills it.
             ...ResourceContributions::headerActionsFor(static::class),
 
+            // The dated moves — docs/saas-launch-plan.md §14.2.
+            $this->transferAction(),
+            $this->promotionAction(),
+            $this->rehireAction(),
+
             $this->experienceLetterAction(),
 
             $this->customLetterAction(),
@@ -341,6 +346,71 @@ class ViewEmployee extends ViewRecord
                     fn () => print ($pdf->raw()),
                     $certificates->filename($record),
                 );
+            });
+    }
+
+    protected function transferAction(): Action
+    {
+        return Action::make('recordTransfer')
+            ->label('Record a transfer')
+            ->icon('heroicon-o-arrows-right-left')
+            ->color('gray')
+            ->visible(fn (Employee $record): bool => $record->is_active && (auth()->user()?->can('EmployeeUpdate') ?? false))
+            ->schema([
+                \Filament\Forms\Components\Select::make('department')->options(fn (): array => options('employees.department'))->nullable(),
+                \Filament\Forms\Components\Select::make('location_id')->label('Location')->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())->nullable(),
+                \Filament\Forms\Components\Select::make('manager_id')->label('Manager')
+                    ->options(fn (Employee $record): array => Employee::query()->where('is_active', true)->whereKeyNot($record->getKey())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
+                    ->searchable()->nullable(),
+                \Filament\Forms\Components\DatePicker::make('effective_from')->native(false)->default(now())->required(),
+                \Filament\Forms\Components\TextInput::make('reason')->maxLength(190),
+            ])
+            ->action(function (Employee $record, array $data): void {
+                try {
+                    app(\App\Modules\Employees\Services\EmployeeMoves::class)->transfer($record, $data, $data['effective_from'], $data['reason'] ?? null);
+                } catch (\InvalidArgumentException $e) {
+                    \Filament\Notifications\Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return;
+                }
+
+                \Filament\Notifications\Notification::make()->success()->title('Transfer recorded.')->send();
+            });
+    }
+
+    protected function promotionAction(): Action
+    {
+        return Action::make('recordPromotion')
+            ->label('Record a promotion')
+            ->icon('heroicon-o-arrow-trending-up')
+            ->color('gray')
+            ->visible(fn (Employee $record): bool => $record->is_active && (auth()->user()?->can('EmployeeUpdate') ?? false))
+            ->schema([
+                \Filament\Forms\Components\Select::make('designation')->options(fn (): array => options('employees.designation'))->required(),
+                \Filament\Forms\Components\DatePicker::make('effective_from')->native(false)->default(now())->required(),
+                \Filament\Forms\Components\TextInput::make('reason')->maxLength(190),
+            ])
+            ->action(function (Employee $record, array $data): void {
+                app(\App\Modules\Employees\Services\EmployeeMoves::class)->promote($record, $data['designation'], $data['effective_from'], $data['reason'] ?? null);
+                \Filament\Notifications\Notification::make()->success()->title('Promotion recorded.')->send();
+            });
+    }
+
+    protected function rehireAction(): Action
+    {
+        return Action::make('rehire')
+            ->label('Rehire')
+            ->icon('heroicon-o-arrow-path')
+            ->color('success')
+            ->visible(fn (Employee $record): bool => ! $record->is_active && (auth()->user()?->can('EmployeeUpdate') ?? false))
+            ->modalDescription('Reopens the record as a new spell of employment. The old one stays in the job history.')
+            ->schema([
+                \Filament\Forms\Components\DatePicker::make('joined_on')->label('Rejoined on')->native(false)->default(now())->required(),
+                \Filament\Forms\Components\TextInput::make('reason')->maxLength(190),
+            ])
+            ->action(function (Employee $record, array $data): void {
+                app(\App\Modules\Employees\Services\EmployeeMoves::class)->rehire($record, $data['joined_on'], $data['reason'] ?? null);
+                \Filament\Notifications\Notification::make()->success()->title($record->fresh()->display_label.' is back on the books.')->send();
             });
     }
 }

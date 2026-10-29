@@ -20,6 +20,10 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id', 'name', 'manager_id', 'employee_id', 'phone', 'secondary_phone', 'personal_email', 'gender',
+        // The record's depth — docs/saas-launch-plan.md §14.2. `status` derives `is_active`, never replaces it.
+        'status', 'father_name', 'ntn', 'nationality', 'marital_status',
+        'emergency_contact_name', 'emergency_contact_relation', 'emergency_contact_phone',
+        'current_address', 'permanent_address', 'photo_path', 'probation_ends_on', 'confirmed_on',
         // The numeric user id a biometric device knows them by — docs/saas-launch-plan.md §8.7. Its own
         // column: the employee code is renumbered and printed, the PIN is enrolled once on the device.
         'device_pin',
@@ -33,6 +37,10 @@ class Employee extends Model
     ];
 
     protected $casts = [
+        'current_address' => 'array',
+        'permanent_address' => 'array',
+        'probation_ends_on' => 'date',
+        'confirmed_on' => 'date',
         'date_of_joining' => 'date',
         'date_of_birth' => 'date',
         // When they left, if they have. Not a substitute for `is_active`, which
@@ -71,8 +79,58 @@ class Employee extends Model
      */
     protected $hidden = ['user'];
 
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_ON_LEAVE = 'on_leave';
+
+    public const STATUS_SUSPENDED = 'suspended';
+
+    public const STATUS_RESIGNED = 'resigned';
+
+    public const STATUS_TERMINATED = 'terminated';
+
+    public const STATUS_RETIRED = 'retired';
+
+    public const STATUSES = [
+        self::STATUS_ACTIVE => 'Active',
+        self::STATUS_ON_LEAVE => 'On leave',
+        self::STATUS_SUSPENDED => 'Suspended',
+        self::STATUS_RESIGNED => 'Resigned',
+        self::STATUS_TERMINATED => 'Terminated',
+        self::STATUS_RETIRED => 'Retired',
+    ];
+
+    /** The statuses under which the person is still on the books — `is_active` is true for exactly these. */
+    public const WORKING_STATUSES = [self::STATUS_ACTIVE, self::STATUS_ON_LEAVE];
+
+    public const MARITAL_STATUSES = ['single' => 'Single', 'married' => 'Married', 'widowed' => 'Widowed', 'divorced' => 'Divorced'];
+
     protected static function booted()
     {
+        /*
+         * `is_active` keeps its meaning — docs/saas-launch-plan.md §14.2. Whichever of the two a
+         * writer sets, the other follows: a status chosen on the form derives the flag every scope
+         * reads; a flag flipped by an older form or a settlement keeps the status honest.
+         */
+        static::saving(function (Employee $employee): void {
+            if ($employee->status === null && ! $employee->isDirty('status')) {
+                // Nothing said about the status: a record written by an older form. The flag it did
+                // set is the truth, and the status is made to say the same thing.
+                $employee->status = (bool) ($employee->is_active ?? true) ? self::STATUS_ACTIVE : self::STATUS_RESIGNED;
+                $employee->is_active = $employee->is_active ?? true;
+            } elseif ($employee->isDirty('status')) {
+                $employee->is_active = in_array($employee->status, self::WORKING_STATUSES, true);
+            } elseif ($employee->isDirty('is_active')) {
+                $working = in_array($employee->status, self::WORKING_STATUSES, true);
+
+                if ((bool) $employee->is_active && ! $working) {
+                    $employee->status = self::STATUS_ACTIVE;
+                } elseif (! $employee->is_active && $working) {
+                    $employee->status = self::STATUS_RESIGNED;
+                }
+            }
+        });
+
         static::saving(function ($employee) {
             /*
              * The two code columns are a copy of the chosen directory bank, kept beside the
@@ -209,7 +267,22 @@ class Employee extends Model
      *
      * @var array<int, string>
      */
-    public const JOB_FACTS = ['designation', 'department', 'manager_id', 'employment_type'];
+    public const JOB_FACTS = ['designation', 'department', 'manager_id', 'employment_type', 'location_id'];
+
+    public function isOnProbation(?\Illuminate\Support\Carbon $on = null): bool
+    {
+        return $this->probation_ends_on !== null && $this->confirmed_on === null;
+    }
+
+    public function probationOverdue(?\Illuminate\Support\Carbon $on = null): bool
+    {
+        return $this->isOnProbation() && $this->probation_ends_on->lt(($on ?? now())->startOfDay());
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status] ?? ucfirst((string) $this->status);
+    }
 
     /*
      * What kinds of employment a company records was `EMPLOYMENT_TYPES` here — a

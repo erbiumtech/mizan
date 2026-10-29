@@ -135,3 +135,19 @@ the Projects resource — not edited from here.
 - The Employees module must be enabled for the company, or this list and every
   employee-owned record (Employee Settings, Advances, Expense Claims,
   Projects' team tab) disappears with it.
+
+## Status, probation and the rest of the record
+
+**Status** is one of active, on leave, suspended, resigned, terminated or
+retired; it decides whether the person is on the books for every list and
+run. Father's name, NTN, nationality, marital status, an emergency contact,
+two structured addresses and a photo live on the record; a person changes
+their own contact details through a change request, like everything else.
+**Probation ends** puts them on the Probations list until confirmed.
+
+## Importing and activating
+
+**CSV Import → Employees** brings a spreadsheet in, previewed first, without
+logins. Select the rows in the directory and **Activate**: each gets an
+invitation to their personal email, an active status, and their leave year.
+The **Grid** button shows the directory as cards.

@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Modules\Employees\Filament\Pages;
+
+use App\Filament\Support\HelpAction;
+use App\Modules\Employees\Models\EmployeeJobHistory;
+use BackedEnum;
+use Filament\Pages\Page;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
+
+/** The dated promotions, over the job history — docs/saas-launch-plan.md §14.2. Recorded from the employee's page. */
+class Promotions extends Page implements HasTable
+{
+    use InteractsWithTable;
+
+    protected string $view = 'filament.pages.simple-table';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Employee';
+
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-trending-up';
+
+    protected static ?string $title = 'Promotions';
+
+    protected static ?int $navigationSort = 9;
+
+    public static function canAccess(): bool
+    {
+        return modules()->enabled('employees') && (auth()->user()?->can('EmployeeView') ?? false);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(fn (): Builder => EmployeeJobHistory::query()->with(['employee.user', 'manager.user', 'location'])->where('kind', 'promotion'))
+            ->defaultSort('effective_from', 'desc')
+            ->columns([
+                TextColumn::make('effective_from')->date('d M Y')->label('Effective')->sortable(),
+                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('designation')->placeholder('—'),
+                TextColumn::make('department')->placeholder('—'),
+                TextColumn::make('location.name')->label('Location')->placeholder('—'),
+                TextColumn::make('manager.display_label')->label('Manager')->placeholder('—'),
+                TextColumn::make('reason')->limit(50)->placeholder('—'),
+            ]);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [HelpAction::make('transfers-and-promotions', 'Promotions: Help')];
+    }
+}

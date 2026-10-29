@@ -32,6 +32,9 @@ class CsvImportTest extends AccountingTestCase
 
     private const PRODUCTS = 'products';
 
+    /** The directory from a spreadsheet — docs/saas-launch-plan.md §14.2, at 15. */
+    private const EMPLOYEES = 'employees';
+
     private const OPENING_BALANCES = 'opening_balances';
 
     private const COST_CODES = 'construction_cost_codes';
@@ -323,7 +326,7 @@ class CsvImportTest extends AccountingTestCase
         // behind them — so they come after it, which is also the order ERPNext recommends.
         $this->assertSame(
             [
-                self::CONTACTS, self::PRODUCTS, self::OPENING_BALANCES, self::COST_CODES,
+                self::CONTACTS, self::EMPLOYEES, self::PRODUCTS, self::OPENING_BALANCES, self::COST_CODES,
                 self::OPENING_INVOICES, self::OPENING_STOCK, self::SALARY_HISTORY,
             ],
             CsvImporters::keys(),

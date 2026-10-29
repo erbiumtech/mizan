@@ -16,9 +16,13 @@ use App\Modules\Employees\Policies\AnnouncementPolicy;
 use App\Modules\Employees\Policies\EmployeeChangeRequestPolicy;
 use App\Modules\Employees\Policies\EmployeePolicy;
 use App\Modules\Employees\Policies\EmployeeSettingPolicy;
+use App\Modules\Employees\Services\AppointmentLetter;
+use App\Modules\Employees\Services\ExperienceLetter;
+use App\Modules\Employees\Services\IncomeCertificate;
 use App\Modules\Employees\Support\HeadcountReports;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
+use App\Support\DocumentVerification;
 use App\Support\EmployeeAccess;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
@@ -26,10 +30,6 @@ use App\Support\Reporting\ReportRenderers;
 use App\Support\TenantFileAccess;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Event;
-use App\Support\DocumentVerification;
-use App\Modules\Employees\Services\IncomeCertificate;
-use App\Modules\Employees\Services\ExperienceLetter;
-use App\Modules\Employees\Services\AppointmentLetter;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -50,11 +50,16 @@ class EmployeesServiceProvider extends ServiceProvider
         EmployeeChangeRequest::class => EmployeeChangeRequestPolicy::class,
         Employee::class => EmployeePolicy::class,
         EmployeeSetting::class => EmployeeSettingPolicy::class,
+        \App\Modules\Employees\Models\Department::class => \App\Modules\Employees\Policies\DepartmentPolicy::class,
+        \App\Modules\Employees\Models\Designation::class => \App\Modules\Employees\Policies\DesignationPolicy::class,
     ];
 
     public function boot(): void
     {
         $this->registerReports();
+
+        // Employees from a spreadsheet — docs/saas-launch-plan.md §14.2.
+        \App\Support\CsvImporters::register('employees', \App\Modules\Employees\Support\EmployeeCsvImporter::class, 15);
 
         // The records of this module that may carry custom fields. Registered by alias, which is what
         // `custom_fields.model_type` stores — see App\Support\CustomFieldSubjects.

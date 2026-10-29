@@ -11,6 +11,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
@@ -101,9 +102,11 @@ class EmployeeForm
                     ->email()
                     ->maxLength(255),
 
-                Select::make('is_active')
+                // Six statuses, one flag — docs/saas-launch-plan.md §14.2. The model derives `is_active`.
+                Select::make('status')
                     ->label('Status')
-                    ->options([1 => 'Active', 0 => 'Inactive'])
+                    ->options(Employee::STATUSES)
+                    ->default(Employee::STATUS_ACTIVE)
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
@@ -197,6 +200,18 @@ class EmployeeForm
                 DatePicker::make('date_of_joining')
                     ->label('Date of Joining'),
 
+                DatePicker::make('probation_ends_on')
+                    ->label('Probation ends')
+                    ->afterOrEqual('date_of_joining')
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly())
+                    ->helperText('Listed under Probations until confirmed.'),
+
+                DatePicker::make('confirmed_on')
+                    ->label('Confirmed on')
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly()),
+
                 /*
                  * When the employment ended.
                  *
@@ -227,6 +242,45 @@ class EmployeeForm
                 TextInput::make('nic')
                     ->label('NIC')
                     ->required(),
+
+                // The record's depth — docs/saas-launch-plan.md §14.2. Contact details, like the phone
+                // and address below, are the person's own to change; the approval queue takes them.
+                TextInput::make('father_name')->label("Father's name")->maxLength(120),
+                TextInput::make('ntn')->label('NTN')->maxLength(20),
+                TextInput::make('nationality')->maxLength(60)->default('Pakistani'),
+                Select::make('marital_status')->options(Employee::MARITAL_STATUSES)->nullable(),
+                FileUpload::make('photo_path')
+                    ->label('Photo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('employee-photos')
+                    ->maxSize(2048)
+                    ->imageResizeTargetWidth('600'),
+                Fieldset::make('Emergency contact')
+                    ->columns(3)
+                    ->schema([
+                        TextInput::make('emergency_contact_name')->label('Name')->maxLength(120),
+                        TextInput::make('emergency_contact_relation')->label('Relation')->maxLength(40)->placeholder('Spouse, brother, …'),
+                        TextInput::make('emergency_contact_phone')->label('Phone')->maxLength(40),
+                    ]),
+                Fieldset::make('Current address')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('current_address.line_1')->label('Line 1')->maxLength(190),
+                        TextInput::make('current_address.line_2')->label('Line 2')->maxLength(190),
+                        TextInput::make('current_address.city')->label('City')->maxLength(80),
+                        TextInput::make('current_address.province')->label('Province')->maxLength(80),
+                        TextInput::make('current_address.postal_code')->label('Postal code')->maxLength(20),
+                    ]),
+                Fieldset::make('Permanent address')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('permanent_address.line_1')->label('Line 1')->maxLength(190),
+                        TextInput::make('permanent_address.line_2')->label('Line 2')->maxLength(190),
+                        TextInput::make('permanent_address.city')->label('City')->maxLength(80),
+                        TextInput::make('permanent_address.province')->label('Province')->maxLength(80),
+                        TextInput::make('permanent_address.postal_code')->label('Postal code')->maxLength(20),
+                    ]),
 
                 FileUpload::make('nic_front')
                     ->label('NIC (Front)')

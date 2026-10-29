@@ -15,6 +15,8 @@ return [
 
     'models' => [
         'App\\Models\\EmployeeJobHistory' => \App\Modules\Employees\Models\EmployeeJobHistory::class,
+        'App\\Models\\Department' => \App\Modules\Employees\Models\Department::class,
+        'App\\Models\\Designation' => \App\Modules\Employees\Models\Designation::class,
         'App\\Models\\Employee' => \App\Modules\Employees\Models\Employee::class,
         'App\\Models\\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
         'App\\Models\\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
@@ -24,6 +26,8 @@ return [
 
     'resources' => [
         'App\\Filament\\Resources\\Employees\\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
+        'App\\Filament\\Resources\\Departments\\DepartmentResource' => \App\Modules\Employees\Filament\Resources\Departments\DepartmentResource::class,
+        'App\\Filament\\Resources\\Designations\\DesignationResource' => \App\Modules\Employees\Filament\Resources\Designations\DesignationResource::class,
         'App\\Filament\\Resources\\EmployeeChangeRequests\\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
         'App\\Filament\\Resources\\EmployeeSettings\\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
         'App\\Filament\\Resources\\Announcements\\AnnouncementResource' => \App\Modules\Employees\Filament\Resources\Announcements\AnnouncementResource::class,
@@ -173,11 +177,16 @@ return [
     /** The headcount report (Phase 3.6). A page: a report is a question, not rows to edit. */
     'pages' => [
         'App\\Filament\\Pages\\HeadcountMovement' => \App\Modules\Employees\Filament\Pages\HeadcountMovement::class,
+        'App\\Filament\\Pages\\Probations' => \App\Modules\Employees\Filament\Pages\Probations::class,
+        'App\\Filament\\Pages\\Transfers' => \App\Modules\Employees\Filament\Pages\Transfers::class,
+        'App\\Filament\\Pages\\Promotions' => \App\Modules\Employees\Filament\Pages\Promotions::class,
     ],
 
     'navigation' => [
         // The report declares the Reports group, as every report page in this application does.
         'Reports' => 'reports',
         'Employee' => 'people',
+        // Departments and designations as rows — docs/saas-launch-plan.md §14.2.
+        'Settings' => 'admin',
     ],
 ];

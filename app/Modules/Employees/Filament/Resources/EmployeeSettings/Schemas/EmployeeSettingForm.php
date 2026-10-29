@@ -2,6 +2,8 @@
 
 namespace App\Modules\Employees\Filament\Resources\EmployeeSettings\Schemas;
 
+use App\Modules\Employees\Models\Designation;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
@@ -9,6 +11,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -84,7 +87,22 @@ class EmployeeSettingForm
                     ->label('Basic Wage')
                     ->numeric()
                     ->step(0.01)
-                    ->default(0),
+                    ->default(0)
+                    ->live(onBlur: true),
+
+                // The designation's pay grade — docs/saas-launch-plan.md §14.2. Warns, never blocks.
+                Placeholder::make('pay_grade')
+                    ->label('Pay grade')
+                    ->content(function (Get $get): string {
+                        $employee = $get('employee_id') ? Employee::query()->find($get('employee_id')) : null;
+                        $designation = $employee?->designation ? Designation::query()->where('name', $employee->designation)->first() : null;
+
+                        if ($designation === null || ! $designation->hasPayGrade()) {
+                            return 'No grade set for this designation.';
+                        }
+
+                        return $designation->payGradeWarning((float) $get('basic_wage')) ?? 'Within the '.$designation->name.' grade.';
+                    }),
 
                 TextInput::make('medical_allowance')
                     ->label('Medical Allowance')

@@ -160,6 +160,7 @@ class JobHistory
         array $attributes,
         string|Carbon $effectiveFrom,
         ?string $reason = null,
+        ?string $kind = null,
     ): EmployeeJobHistory {
         $effectiveFrom = $this->asDate($effectiveFrom);
 
@@ -195,6 +196,8 @@ class JobHistory
             'employee_id' => $employee->getKey(),
             'effective_from' => $effectiveFrom,
             'reason' => $reason,
+            // transfer, promotion, rehire — docs/saas-launch-plan.md §14.2 — or null for a plain change.
+            'kind' => $kind,
             // A landlord user id (`users` is a shared table), nullable so a
             // system-initiated change is not attributed to whoever happened to be
             // signed in when a queue worker ran.
@@ -254,7 +257,7 @@ class JobHistory
     }
 
     /** Job facts a history row snapshots. */
-    private const TRACKED = ['designation', 'department', 'manager_id', 'employment_type'];
+    private const TRACKED = ['designation', 'department', 'manager_id', 'employment_type', 'location_id'];
 
     /**
      * The subset of TRACKED that `employees` also carries, and so the subset the
@@ -264,7 +267,7 @@ class JobHistory
      * counterpart. Before that this list was three and every history row stored a
      * null `employment_type`, because there was nothing to snapshot it from.
      */
-    private const DENORMALISED = ['designation', 'department', 'manager_id', 'employment_type'];
+    private const DENORMALISED = ['designation', 'department', 'manager_id', 'employment_type', 'location_id'];
 
     /**
      * Copies the row onto `employees`, but only when it is the newest one.
