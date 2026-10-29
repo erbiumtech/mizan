@@ -11,8 +11,8 @@ double-entry ledger, so the trial balance is a consequence of running payroll ra
 than a separate bookkeeping exercise.
 
 > **Project status: works in production for one company, but young.** It runs the
-> payroll and books of the company that built it. The API is not versioned, there is
-> no upgrade path between releases yet, and the Pakistan-specific pieces (tax slabs,
+> payroll and books of the company that built it. The API is versioned under `/api/v1`,
+> but there is no upgrade path between releases yet, and the Pakistan-specific pieces (tax slabs,
 > bank file format) need a maintainer's attention every Finance Act. Read
 > [Security model](#security-model) before deploying it for anyone else.
 

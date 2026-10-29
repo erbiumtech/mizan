@@ -39,6 +39,18 @@
         </dl>
     </x-filament::section>
 
+    <x-filament::section heading="Your data">
+        <p class="text-sm">
+            @if($s['export'])
+                Latest export: <a class="underline" href="{{ $s['export']['url'] }}">{{ basename($s['export']['path']) }}</a>,
+                made {{ $s['export']['at'] }}, {{ $s['export']['bytes'] >= 1048576 ? round($s['export']['bytes'] / 1048576, 1).' MB' : round($s['export']['bytes'] / 1024).' KB' }}.
+                Administrators of this company can download it; it does not expire.
+            @else
+                No export yet. "Export my data" above builds one: the whole database as SQL and every uploaded file, in one archive you keep.
+            @endif
+        </p>
+    </x-filament::section>
+
     <x-filament::section heading="How billing works">
         <p class="text-sm">
             Only active employees count, as of the 1st of each month. Invoices are emailed to the billing address and paid by bank transfer

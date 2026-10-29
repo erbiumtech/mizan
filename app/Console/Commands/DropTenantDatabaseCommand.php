@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Modules\Core\Models\Company;
 use App\Multitenancy\CompanyProvisioner;
+use App\Support\TenantExport;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -24,6 +25,7 @@ class DropTenantDatabaseCommand extends Command
     protected $signature = 'tenant:drop
         {tenant : Company slug, or the raw tenant database name}
         {--keep-company : Drop the database but leave the landlord company row}
+        {--without-export : Drop even though the company has never been exported}
         {--force : Skip the confirmation prompt}';
 
     protected $description = 'Drop a tenant database (and its company row), e.g. one left behind by a failed provision.';
@@ -54,6 +56,22 @@ class DropTenantDatabaseCommand extends Command
             }
 
             return self::SUCCESS;
+        }
+
+        // The 90-day promise (docs/saas-launch-plan.md §9): a customer's data leaves
+        // in an archive before it leaves for good. An orphan database has no company
+        // and so nobody to promise it to.
+        if ($company && ! $this->option('without-export')) {
+            $latest = app(TenantExport::class)->latest($company);
+
+            if ($latest === null) {
+                $this->error("{$company->name} has never been exported. Run `tenant:export {$company->slug}` first, "
+                    .'or pass --without-export if this data is genuinely not wanted.');
+
+                return self::FAILURE;
+            }
+
+            $this->line("Last export: <fg=yellow>{$latest['path']}</> ({$latest['created_at']->toDayDateTimeString()})");
         }
 
         $this->line("About to drop tenant database: <fg=yellow>{$database}</>");

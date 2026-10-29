@@ -36,6 +36,8 @@ use App\Support\Reporting\BuiltReport;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportDeliveryLog;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\TenantExport;
+use App\Support\TenantFileAccess;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -43,6 +45,7 @@ use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Everything the Core module owns that Filament does not discover.
@@ -98,6 +101,25 @@ class CoreServiceProvider extends ServiceProvider
         // The signup door — docs/saas-launch-plan.md §5. Core's, because a company
         // and its first user are Core's; loaded the way every module loads its own.
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
+
+        // A company's data export (plan §9) streams only to its Administrators. The
+        // role is per company, and the file route sets no team, so it is asked
+        // against the company in the URL and the previous team is put back.
+        TenantFileAccess::register(function (User $user, Company $company, string $path): ?bool {
+            if (! str_starts_with($path, TenantExport::PREFIX)) {
+                return null;
+            }
+
+            $registrar = app(PermissionRegistrar::class);
+            $previous = $registrar->getPermissionsTeamId();
+            $registrar->setPermissionsTeamId($company->getKey());
+
+            try {
+                return $user->isAdministrator();
+            } finally {
+                $registrar->setPermissionsTeamId($previous);
+            }
+        });
 
         /*
          * The bell's general case: an audited change tells the people whose record it is.

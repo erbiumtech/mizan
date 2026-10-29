@@ -150,6 +150,17 @@ class DatabaseSeeder extends Seeder
 
         Schema::enableForeignKeyConstraints();
 
+        // Demo companies and demo data never land on a production host — security
+        // audit 2026-10-26, finding 14, now that a production host has a public
+        // signup form on it (docs/saas-launch-plan.md §9). The landlord half above
+        // still runs, with the real password superAdminPassword() insists on, so a
+        // first install seeds its super admin and nothing it would have to delete.
+        if (app()->isProduction()) {
+            $this->command?->warn('Production host: the super admin and permissions were seeded; demo companies and demo data were not.');
+
+            return;
+        }
+
         foreach ($this->companies($admin) as $company) {
             $this->seedTenant($company, $admin);
         }

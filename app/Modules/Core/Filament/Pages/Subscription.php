@@ -2,9 +2,11 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Modules\Core\Jobs\ExportTenant;
 use App\Modules\Core\Models\Company;
 use App\Support\Plans;
 use App\Support\Subscriptions;
+use App\Support\TenantExport;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -72,6 +74,20 @@ class Subscription extends Page
             'operator' => app(Subscriptions::class)->isConfigured()
                 ? app(Subscriptions::class)->operator()->name
                 : null,
+            'export' => $company ? $this->latestExport($company) : null,
+        ];
+    }
+
+    /** @return array{path: string, at: string, url: string, bytes: int}|null */
+    private function latestExport(Company $company): ?array
+    {
+        $latest = app(TenantExport::class)->latest($company);
+
+        return $latest === null ? null : [
+            'path' => $latest['path'],
+            'at' => $latest['created_at']->toDayDateTimeString(),
+            'url' => app(TenantExport::class)->url($company, $latest['path']),
+            'bytes' => $latest['bytes'],
         ];
     }
 
@@ -81,6 +97,26 @@ class Subscription extends Page
         $foreign = array_values(array_diff(Plans::currencies(), [(string) config('saas.home_currency', 'PKR')]));
 
         return [
+            /**
+             * The 90-day promise — plan §9. Everything, as one archive, in the
+             * company's own storage; the person who asked is emailed the link.
+             */
+            Action::make('export')
+                ->label('Export my data')
+                ->icon('heroicon-o-archive-box-arrow-down')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Export all company data')
+                ->modalDescription('The whole database as SQL and every uploaded file, in one archive. It takes a few minutes; you will get an email with the link, and the archive appears on this page.')
+                ->modalSubmitActionLabel('Start the export')
+                ->action(function (): void {
+                    ExportTenant::dispatch((int) static::company()->getKey(), (int) auth()->id());
+
+                    Notification::make()->success()
+                        ->title('Export started')
+                        ->body('You will get an email when it is ready.')
+                        ->send();
+                }),
             Action::make('subscribe')
                 ->label('Subscribe')
                 ->icon('heroicon-o-credit-card')
