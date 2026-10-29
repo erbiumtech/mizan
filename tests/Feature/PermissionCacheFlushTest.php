@@ -186,13 +186,18 @@ class PermissionCacheFlushTest extends TestCase
         $missing = [];
 
         foreach (glob(base_path('app/Modules/*/Policies/*.php')) as $file) {
-            preg_match_all(
-                '/(?:hasPermissionTo|checkPermissionTo|can)\(\s*[\'"]([A-Za-z]+)[\'"]/',
-                file_get_contents($file),
-                $matches,
-            );
+            $source = file_get_contents($file);
 
-            foreach ($matches[1] as $permission) {
+            /*
+             * `can('X')` with nothing after it is a permission check. `can('view', $model)`
+             * is a policy delegation — a rating asking its review whether it may be seen —
+             * and the first argument there is an ability, not a permission. Matching both
+             * reported every delegating policy as broken.
+             */
+            preg_match_all('/(?:hasPermissionTo|checkPermissionTo)\(\s*[\'"]([A-Za-z]+)[\'"]/', $source, $direct);
+            preg_match_all('/\bcan\(\s*[\'"]([A-Za-z]+)[\'"]\s*\)/', $source, $viaGate);
+
+            foreach ([...$direct[1], ...$viaGate[1]] as $permission) {
                 if (! in_array($permission, $known, true)) {
                     $missing[] = basename($file).' → '.$permission;
                 }

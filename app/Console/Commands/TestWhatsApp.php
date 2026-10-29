@@ -77,7 +77,12 @@ class TestWhatsApp extends Command
             return self::FAILURE;
         }
 
-        if ($sender::class === \App\Support\WhatsApp\LogWhatsAppSender::class) {
+        // Through the logging decorator, which wraps whichever driver the environment
+        // chose (docs/saas-launch-plan.md §14.7). The question here is which driver is
+        // underneath, not whether the message was recorded.
+        $driverUsed = $sender instanceof \App\Support\WhatsApp\LoggingWhatsAppSender ? $sender->inner() : $sender;
+
+        if ($driverUsed::class === \App\Support\WhatsApp\LogWhatsAppSender::class) {
             $this->components->warn('Nothing was sent. WHATSAPP_DRIVER is "'.$driver.'", which writes to the '
                 .'log and reports success — including when payroll sends a real payslip.');
             $this->line('  <fg=gray>Set WHATSAPP_DRIVER=twilio with TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and '

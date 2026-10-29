@@ -36,6 +36,24 @@ class ModuleGatingTest extends TestCase
      * Core is always available (it holds the Modules page, Users and Roles), so
      * there is no "disabled" state to assert for it.
      */
+    /**
+     * Modules that are deliberately not a screen.
+     *
+     * A module is usually a part of the panel, and one with nothing reachable is
+     * normally a mistake — a resource left out of the manifest, a page gated on a
+     * permission nobody holds. These are the exception: an integration whose whole
+     * surface is a webhook and a block on Company Settings, which is reached by
+     * being configured rather than by being opened.
+     *
+     * @var array<int, string>
+     */
+    private const NO_PANEL_SURFACES = [
+        // Attendance devices call in to a webhook; the company sets them up under
+        // Company Settings. There is nothing to list that the device itself is not
+        // the authority on — docs/saas-launch-plan.md §8.4.
+        'devices',
+    ];
+
     private function gatedModules(): array
     {
         return array_values(array_filter(Modules::names(), fn (string $m) => ! Modules::isLocked($m)));
@@ -127,7 +145,17 @@ class ModuleGatingTest extends TestCase
         foreach ($this->gatedModules() as $module) {
             $this->setModule($company, $module, true);
 
-            $accessible = array_filter($this->classesOf($module), fn (string $c) => $this->isAccessible($c));
+            $classes = $this->classesOf($module);
+
+            if ($classes === []) {
+                $this->assertContains($module, self::NO_PANEL_SURFACES,
+                    "Module [{$module}] declares no resource, page or widget. If that is deliberate — a module "
+                    .'that is an integration rather than a screen — name it in NO_PANEL_SURFACES with the reason.');
+
+                continue;
+            }
+
+            $accessible = array_filter($classes, fn (string $c) => $this->isAccessible($c));
 
             $this->assertNotEmpty(
                 $accessible,

@@ -382,14 +382,22 @@ class RoleGrantsTest extends AccountingTestCase
      * @var array<string, int>
      */
     private const EXPECTED = [
-        'Employee' => 69,
-        'Accountant' => 153,
+        /*
+         * Re-pinned 2026-10-29, after the depth phases of docs/saas-launch-plan.md §14 (phases 15-22)
+         * added their permissions and their grants: pay structures and the run, the employee record,
+         * expenses and advances, leave and attendance, contracts and separations, reviews and
+         * interviews, and letters. The figures below are what the module manifests now declare.
+         *
+         * Manager and CEO move by more than the others because both compose on the role beneath them.
+         */
+        'Employee' => 73,
+        'Accountant' => 160,
         // 196 since 2026-09-21: InvoiceOverrideCreditLimit — docs/erpnext-gap-plan.md §4 item 5.
         // 197 since 2026-10-26: ConstructionDocumentRestrictedView, beside Publish — construction plan §15.2.
-        'Manager' => 197,
+        'Manager' => 219,
         // 217 since 2026-09-21: CEO composes on Manager, so InvoiceOverrideCreditLimit reaches here too;
         // 218 since 2026-10-26 for the same reason.
-        'CEO' => 218,
+        'CEO' => 240,
     ];
 
     protected function setUp(): void
@@ -418,9 +426,15 @@ class RoleGrantsTest extends AccountingTestCase
 
     public function test_every_role_holds_exactly_the_permissions_it_is_meant_to(): void
     {
-        foreach (self::EXPECTED as $role => $count) {
-            $this->assertCount($count, $this->permissionsOf($role), "{$role} changed size");
+        // All four at once rather than one assertion each: a change to the grants usually
+        // moves several roles together, and stopping at the first one hides the rest.
+        $actual = [];
+
+        foreach (array_keys(self::EXPECTED) as $role) {
+            $actual[$role] = count($this->permissionsOf($role));
         }
+
+        $this->assertSame(self::EXPECTED, $actual, 'the seeded roles changed size');
     }
 
     /** Administrator is defined as "everything", so it needs no declarations and never goes stale. */

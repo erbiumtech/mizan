@@ -5,7 +5,7 @@ monthly return — assigned to a person, a designation or a department. Each
 cadence produces an occurrence with a due date, and a missed occurrence can
 carry a penalty in merit points or in pay.
 
-## Setting one up <!-- requires: RecurringTaskCreate -->
+## Setting one up <!-- requires: TaskCreate -->
 
 Click **New**. Choose the **kind**, the **cadence**, who it is assigned to,
 and what happens when it is missed. Occurrences are rolled out by the nightly

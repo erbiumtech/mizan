@@ -26,6 +26,13 @@ class PerformancePlugin implements Plugin
             in: __DIR__.'/Filament/Pages',
             for: __NAMESPACE__.'\Filament\Pages',
         );
+
+        // Badges on the dashboard — plan §8.1. Without this the widget file exists and the
+        // panel has never heard of it, which is a dashboard tile nobody can ever see.
+        $panel->discoverWidgets(
+            in: __DIR__.'/Filament/Widgets',
+            for: __NAMESPACE__.'\Filament\Widgets',
+        );
     }
 
     public function boot(Panel $panel): void

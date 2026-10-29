@@ -70,7 +70,7 @@ class EmployeeDataset extends Dataset
             DatasetColumn::make('employee_id', 'Staff number', groupable: false),
             DatasetColumn::make('designation', 'Designation'),
             DatasetColumn::make('department', 'Department'),
-            DatasetColumn::make('location.name', 'Location'),
+            DatasetColumn::related('location', 'Location', 'location.name', groupBy: 'location_id'),
             DatasetColumn::make('employment_type', 'Employment type'),
             DatasetColumn::make('is_active', 'Active', DatasetColumn::BOOLEAN),
             DatasetColumn::make('gender', 'Gender'),

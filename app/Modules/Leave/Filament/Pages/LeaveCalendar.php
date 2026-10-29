@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveDay;
@@ -15,6 +16,8 @@ use UnitEnum;
 /** A month grid over LeaveDay — docs/saas-launch-plan.md §14.4. Who is out when, at a glance. */
 class LeaveCalendar extends Page
 {
+    use BelongsToModule;
+
     protected string $view = 'filament.pages.leave-calendar';
 
     protected static string|UnitEnum|null $navigationGroup = 'Employee';
@@ -29,7 +32,7 @@ class LeaveCalendar extends Page
 
     public static function canAccess(): bool
     {
-        return modules()->enabled('leave') && (auth()->user()?->can('LeaveRequestView') ?? false);
+        return static::moduleIsAvailable() && (auth()->user()?->can('LeaveRequestView') ?? false);
     }
 
     public function mount(): void

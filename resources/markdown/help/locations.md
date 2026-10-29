@@ -4,7 +4,7 @@ The places the company works from: a head office, a factory, a site office.
 An employee belongs to one, and a location carries its own holiday calendar
 and, optionally, a geofence for clocking in.
 
-## Adding one <!-- requires: LocationCreate -->
+## Adding one <!-- requires: WorkLocationCreate -->
 
 Click **New**. Name it and, if attendance is clocked from a phone, enter the
 **latitude**, **longitude** and a **radius** in metres. A clock-in from outside

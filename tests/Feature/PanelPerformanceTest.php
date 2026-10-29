@@ -120,9 +120,27 @@ class PanelPerformanceTest extends TestCase
      * name lookups that `fullName()`'s `loadMissing` used to run (and made legal under the lazy-load
      * guard). `EmployeeUserEagerLoadTest` pins the flat-per-row-count property that this budget can't.
      */
+    /*
+     * **Both cold budgets moved on 2026-10-29 — dashboard 34 to 39, employees 32 to 37 — and every one of
+     * the added queries is a sidebar badge count.** The depth phases of docs/saas-launch-plan.md §14 added
+     * screens that carry a pending figure beside their name: probations overdue, attendance corrections
+     * waiting, overtime requests, change requests, letter requests, expiring employee documents. Filament
+     * evaluates a badge as a value rather than a closure while it builds the navigation, so each one runs
+     * on every page of the panel whether or not its branch is open.
+     *
+     * That is the sanctioned kind of move rather than the kind this file usually fixes instead: the count
+     * is the feature, and the thing that *can* be reduced already is — `App\Support\NavigationBadge`
+     * memoises each one for a minute, which is why the warm budgets did not move at all and why the
+     * second-page test measures 9 and 11 against these 39 and 37. Cold is the first page after a minute's
+     * silence, and a count that nobody has asked for in a minute has to be asked for once.
+     *
+     * The next place to look, if this moves again: the counts are nineteen separate `select count(*)`
+     * statements against nineteen tables on one connection, and a badge registry that collected them into
+     * one round trip per request would turn the whole band into a handful.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 34, 'warm' => 9],
-        'employees' => ['cold' => 32, 'warm' => 11],
+        'dashboard' => ['cold' => 39, 'warm' => 9],
+        'employees' => ['cold' => 37, 'warm' => 11],
         'reports' => ['cold' => 30, 'warm' => 7],
     ];
 

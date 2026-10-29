@@ -2,6 +2,7 @@
 
 namespace App\Modules\Lifecycle\Filament\Resources\Separations\Pages;
 
+use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Lifecycle\Filament\Resources\Separations\SeparationResource;
 use App\Modules\Lifecycle\Services\Separations;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CreateSeparation extends CreateRecord
 {
+    use RedirectsToIndex;
+
     protected static string $resource = SeparationResource::class;
 
     /** Through the service, so the clearance list is built with the record — docs/saas-launch-plan.md §14.5. */

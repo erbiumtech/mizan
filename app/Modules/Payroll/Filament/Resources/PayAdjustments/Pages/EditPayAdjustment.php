@@ -2,12 +2,15 @@
 
 namespace App\Modules\Payroll\Filament\Resources\PayAdjustments\Pages;
 
+use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Payroll\Filament\Resources\PayAdjustments\PayAdjustmentResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPayAdjustment extends EditRecord
 {
+    use RedirectsToIndex;
+
     protected static string $resource = PayAdjustmentResource::class;
 
     protected function getHeaderActions(): array

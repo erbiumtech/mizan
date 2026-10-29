@@ -36,4 +36,16 @@ class TenantDb
     {
         return DB::connection(TenantTransaction::connectionName());
     }
+
+    /**
+     * Whether a tenant table exists.
+     *
+     * `Schema::hasTable()` asks the default connection for the same reason `DB::table()`
+     * queries it, and a form that checks the landlord for a tenant table concludes the
+     * module is not installed on every company that has it.
+     */
+    public static function hasTable(string $table): bool
+    {
+        return static::connection()->getSchemaBuilder()->hasTable($table);
+    }
 }

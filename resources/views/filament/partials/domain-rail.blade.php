@@ -53,6 +53,8 @@
             <img src="{{ filament()->getBrandLogo() }}" alt="" class="fi-domain-rail-brand-logo">
         </a>
 
+        @php($iconSprite = app(\App\Support\IconSprite::class))
+
         <ul class="fi-domain-rail-items">
             @foreach ($railDomains as $domain)
                 <li class="fi-domain-rail-slot">
@@ -135,7 +137,7 @@
                                             --}}
                                             <ul class="fi-domain-flyout-list">
                                                 @foreach (collect($group->getItems()) as $item)
-                                                    <li><a href="{{ $item->getUrl() }}" wire:navigate @class(['fi-domain-flyout-item', 'fi-active' => $item->isActive()])>{{ \Filament\Support\generate_icon_html($item->getIcon(), size: \Filament\Support\Enums\IconSize::Small) }}<span class="fi-domain-flyout-item-label">{{ $item->getLabel() }}</span></a></li>
+                                                    <li><a href="{{ $item->getUrl() }}" wire:navigate @class(['fi-domain-flyout-item', 'fi-active' => $item->isActive()])>{{ $iconSprite->use($item->getIcon()) }}<span class="fi-domain-flyout-item-label">{{ $item->getLabel() }}</span></a></li>
                                                 @endforeach
                                             </ul>
                                         </div>
@@ -148,5 +150,8 @@
                 </li>
             @endforeach
         </ul>
+
+        {{-- Every flyout icon, once. See App\Support\IconSprite for the measurement behind it. --}}
+        {{ $iconSprite->sprite() }}
     </nav>
 @endif

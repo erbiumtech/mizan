@@ -2,6 +2,7 @@
 
 namespace App\Modules\Lifecycle\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Lifecycle\Models\EmployeeChecklistItem;
 use App\Modules\Lifecycle\Services\ChecklistService;
@@ -20,6 +21,7 @@ use UnitEnum;
 /** The tick-and-waive screen — docs/saas-launch-plan.md §14.5: every open checklist item, overdue first. */
 class OpenChecklistItems extends Page implements HasTable
 {
+    use BelongsToModule;
     use InteractsWithTable;
 
     protected string $view = 'filament.pages.simple-table';
@@ -34,7 +36,7 @@ class OpenChecklistItems extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return modules()->enabled('lifecycle') && (auth()->user()?->can('ChecklistUpdate') ?? false);
+        return static::moduleIsAvailable() && (auth()->user()?->can('ChecklistUpdate') ?? false);
     }
 
     public function table(Table $table): Table

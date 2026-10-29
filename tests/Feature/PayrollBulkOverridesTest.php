@@ -49,6 +49,9 @@ class PayrollBulkOverridesTest extends AccountingTestCase
             'gender' => 'Male',
             'is_active' => true,
             'date_of_joining' => '2020-01-01',
+            // An account number, because the pre-flight blocks the run without one when the
+            // company pays by bank (§14.1) and the screen below goes through the pre-flight.
+            'bank_account_no' => '000'.substr($code, -1).'1234567',
         ]);
 
         EmployeeSetting::create([
@@ -87,6 +90,10 @@ class PayrollBulkOverridesTest extends AccountingTestCase
             ->callAction(TestAction::make('openMonth'), [
                 'month' => 'August',
                 'fiscal_year_id' => $this->fiscalYear->id,
+                // The pre-flight warns that no attendance is marked for the month
+                // (docs/saas-launch-plan.md §14.1) and will not raise anything until
+                // somebody says they have read it. Nothing here is a blocker.
+                'acknowledge' => true,
                 'employees' => $this->rows(9000, 1500),
             ]);
 

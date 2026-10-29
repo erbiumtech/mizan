@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Employees\Models\EmployeeJobHistory;
 use BackedEnum;
@@ -16,6 +17,7 @@ use UnitEnum;
 /** The dated promotions, over the job history — docs/saas-launch-plan.md §14.2. Recorded from the employee's page. */
 class Promotions extends Page implements HasTable
 {
+    use BelongsToModule;
     use InteractsWithTable;
 
     protected string $view = 'filament.pages.simple-table';
@@ -30,7 +32,7 @@ class Promotions extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return modules()->enabled('employees') && (auth()->user()?->can('EmployeeView') ?? false);
+        return static::moduleIsAvailable() && (auth()->user()?->can('EmployeeView') ?? false);
     }
 
     public function table(Table $table): Table

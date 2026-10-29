@@ -23,7 +23,9 @@ class AnnouncementsOverview extends Widget
 
     public ?string $periodTo = null;
 
-    protected static ?int $sort = DashboardWidgets::HEADLINE + 1;
+    // HEADLINE + 2: above the bands because an announcement is read once and then not
+    // looked for, and below HealthOverview at +1, which is about the system being up.
+    protected static ?int $sort = DashboardWidgets::HEADLINE + 2;
 
     protected static bool $isLazy = true;
 

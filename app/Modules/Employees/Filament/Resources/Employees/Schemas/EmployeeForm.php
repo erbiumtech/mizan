@@ -204,7 +204,9 @@ class EmployeeForm
                 // Leave's table by name, so this form names no Leave class.
                 Select::make('leave_group_id')
                     ->label('Leave group')
-                    ->options(fn (): array => \Illuminate\Support\Facades\Schema::hasTable('leave_groups') ? \Illuminate\Support\Facades\DB::table('leave_groups')->orderBy('name')->pluck('name', 'id')->all() : [])
+                    // TenantDb, not DB: the table is per company, and the default connection is the
+                    // landlord database in production even though they are the same under test.
+                    ->options(fn (): array => \App\Support\TenantDb::hasTable('leave_groups') ? \App\Support\TenantDb::table('leave_groups')->orderBy('name')->pluck('name', 'id')->all() : [])
                     ->placeholder('Default group')
                     ->nullable()
                     ->visible(fn (): bool => modules()->enabled('leave'))

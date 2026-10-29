@@ -19,7 +19,9 @@ class BadgesOverview extends Widget
 
     public ?string $periodTo = null;
 
-    protected static ?int $sort = DashboardWidgets::PEOPLE + 5;
+    // +6 rather than +5: the tax calculator holds +5, and two widgets on the same sort
+    // fall back to discovery order, which is what the band numbers exist to replace.
+    protected static ?int $sort = DashboardWidgets::PEOPLE + 6;
 
     protected static bool $isLazy = true;
 

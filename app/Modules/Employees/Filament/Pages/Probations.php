@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Pages;
 
+use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Services\EmployeeMoves;
@@ -20,6 +21,7 @@ use UnitEnum;
 /** Who is on probation, overdue first — docs/saas-launch-plan.md §14.2. */
 class Probations extends Page implements HasTable
 {
+    use BelongsToModule;
     use InteractsWithTable;
 
     protected string $view = 'filament.pages.simple-table';
@@ -34,7 +36,7 @@ class Probations extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return modules()->enabled('employees') && (auth()->user()?->can('EmployeeUpdate') ?? false);
+        return static::moduleIsAvailable() && (auth()->user()?->can('EmployeeUpdate') ?? false);
     }
 
     public static function getNavigationBadge(): ?string

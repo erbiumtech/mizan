@@ -172,7 +172,7 @@ return [
         // which would drag a software-delivery module with environment health checks into a contractor's
         // licence set, and §18.1 already has timesheets as *guarded* — importing timesheet entries as labour
         // records — rather than profiled. Site sheets are the primary labour path anyway (§7).
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts', 'construction_field', 'construction_qhse'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'devices', 'leave', 'lifecycle', 'crm', 'quotations', 'construction', 'construction_costing', 'construction_contracts', 'construction_field', 'construction_qhse'],
         // The construction accounts on top of the business baseline (§18.2): a separate seeder rather than a dozen
         // rows added to every bookkeeping company's chart, which is what the profile mechanism is for.
         'seeders' => [...$businessWithLeave, ConstructionAccountsSeeder::class],
@@ -182,7 +182,7 @@ return [
         'label' => 'Staffing / Outsourcing',
         'description' => 'Staff placed with clients and billed on at full cost: client billing, advances and expense claims.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'billing', 'advances', 'expenses', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment'],
+        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'billing', 'advances', 'expenses', 'leave', 'crm', 'attendance', 'devices', 'lifecycle', 'recruitment'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -190,7 +190,7 @@ return [
         'label' => 'Trading / Distribution',
         'description' => 'Buying and selling goods: stock movements valued through the ledger, invoices and payroll.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment', 'quotations', 'campaigns'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'leave', 'crm', 'attendance', 'devices', 'lifecycle', 'recruitment', 'quotations', 'campaigns'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -198,7 +198,7 @@ return [
         'label' => 'Manufacturing',
         'description' => 'Trading plus the expense claims a production floor generates.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'expenses', 'leave', 'crm', 'attendance', 'lifecycle', 'recruitment', 'quotations', 'campaigns'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'expenses', 'leave', 'crm', 'attendance', 'devices', 'lifecycle', 'recruitment', 'quotations', 'campaigns'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -208,7 +208,7 @@ return [
         'label' => 'Retail / Shop',
         'description' => 'A shop selling over the counter: stock valued through the ledger, invoices, staff on payroll and attendance, a customer list and the promotions run against it.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'crm', 'campaigns'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'devices', 'leave', 'crm', 'campaigns'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -218,7 +218,7 @@ return [
         'label' => 'Restaurant / Café',
         'description' => 'Food service: ingredient stock through the ledger, table and counter invoices, and shift staff on payroll and attendance.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'crm'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'devices', 'leave', 'crm'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -228,7 +228,7 @@ return [
         'label' => 'Clinic / Healthcare',
         'description' => 'A clinic or practice: patient billing, medical supplies carried as stock, and staff on payroll, attendance and leave.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'leave', 'crm'],
+        'modules' => ['accounting', 'invoicing', 'inventory', 'employees', 'payroll', 'attendance', 'devices', 'leave', 'crm'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -237,7 +237,7 @@ return [
         'label' => 'School / Academy',
         'description' => 'A school, academy or training institute: fees billed as invoices, teaching and admin staff on payroll, attendance and leave, and a register of students and parents.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'employees', 'payroll', 'attendance', 'leave', 'crm'],
+        'modules' => ['accounting', 'invoicing', 'employees', 'payroll', 'attendance', 'devices', 'leave', 'crm'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -252,7 +252,7 @@ return [
         'label' => 'Non-profit / NGO',
         'description' => 'A charity, trust or NGO: donor and grant funds through the books, staff on payroll, and programmes run as projects with their expense claims. Sets up operations only — the non-profit tax exemption and nil return are not built yet, so until then the return pack taxes it as an ordinary company. Do not rely on it for an exempt entity\'s filing.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'invoicing', 'employees', 'payroll', 'attendance', 'leave', 'projects', 'expenses', 'crm'],
+        'modules' => ['accounting', 'invoicing', 'employees', 'payroll', 'attendance', 'devices', 'leave', 'projects', 'expenses', 'crm'],
         'seeders' => $businessWithLeave,
     ],
 

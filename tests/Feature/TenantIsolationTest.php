@@ -54,8 +54,13 @@ class TenantIsolationTest extends TestCase
         \App\Modules\Core\Models\ActivityLog::class,   // shared table, company_id stamped on write and scoped on read
         \App\Modules\Core\Models\Company::class,       // the tenant record itself — nothing to be scoped to yet
         \App\Modules\Core\Models\CompanyModule::class, // licensing: which company bought what
+        \App\Modules\Core\Models\Signup::class,        // a signup exists before the company it will create does
         \App\Modules\Core\Models\TableView::class,     // per-user view preferences, company-scoped by its global scope
         \App\Modules\Core\Models\User::class,          // identity and membership across companies
+        // A device posts to a webhook with no tenant current, and the row is what says which company
+        // it belongs to — ResolveDeviceTenant reads it to make that company current. It carries
+        // `company_id` and is scoped on read.
+        \App\Modules\Devices\Models\AttendanceDevice::class,
     ];
 
     public function test_every_model_is_deliberately_tenant_or_landlord(): void
