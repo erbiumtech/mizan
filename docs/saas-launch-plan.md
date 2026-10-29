@@ -30,7 +30,7 @@
 **Covers:** the scorecard against Operentra (§1), what the product is sold as (§2), tiers as
 licence presets (§3), the commercial record (§4), self-serve signup (§5), metering and invoicing
 through the operator's own books (§6), the HR gaps to close first (§7), the rest of their list
-plus the rule builder and languages (§8), operating it (§9), phases (§10), tests (§11), open decisions (§12), what not to build (§13).
+plus the rule builder and languages (§8), operating it (§9), phases (§10), tests (§11), open decisions (§12), what not to build (§13), depth parity with their signed-in product (§14).
 
 Four findings shape everything below, and the second is what makes the commercial half small.
 
@@ -106,6 +106,7 @@ Walked through 2026-10-29 in a trial workspace: every admin and portal screen (1
 from the app's own router), then again after entering six employees, a month's attendance,
 leave, a loan, an expense claim, an appraisal cycle, a separation and an October payroll. The
 feature page undersells the product; these exist behind the login and on neither list above.
+The full feature-by-feature check is `docs/operentra-gap-analysis.md`; §14 schedules it.
 
 | Area | Theirs | Here |
 |---|---|---|
@@ -999,6 +1000,17 @@ What already works, and what is still a person's job:
 | 12 | §8.8 custom domains: the column, the host middleware, the TLS front | 2 | M, plus ops |
 | 13 | §8.9 rule builder: the two registries, the evaluator, the Repeater form with preview, the three seeded badge rules; §8.2's rule assignee and §7.6's rule audience switch to it | 7, 8 | M |
 | 14 | §8.10 multi-language: locale resolution, the module-by-module sweep with `TranslationCoverageTest`, `lang/ur.json`, the RTL audit, the document locale per company and per kind with its engine guard | — | L |
+| 15 | §14.1 run approval, pre-flight and staleness; structures; bonus and adjustment records; salary-history import; bulk download, reminders, rounding, pay day | — | L |
+| 16 | §14.1 bank-file designer; provident-fund ledger | 15 | M |
+| 17 | §14.2 the employee record: fields and status, departments, designations and pay grades as rows, directory filters, import, bulk activate, probation, transfers, promotions, rehire | — | L |
+| 18 | §14.3 expense lines and the two-step chain; advance types, applications, schedules, reports | — | M |
+| 19 | §14.4 leave groups, eligibility, calendar, encashment; overtime requests, pattern fields and assignment, reminders, swaps; holiday types and import | 17 | L |
+| 20 | §14.5 contracts, onboarding item kinds, separations and clearance, the login grace | 16, 17 | L |
+| 21 | §14.6 competency templates and self review; interviews | — | M |
+| 22 | §14.7 letter and document templates, event letters, letter requests, email coverage, notification preferences, the message log | 14 | M |
+| 23 | §14.8 required documents, phone and address codes, the gate, subject access and erasure, the backup button | 17, 22 | M |
+| 24 | §14.9 API keys, webhooks, user and role administration, the run buttons, plan change, held seats | — | M |
+| 25 | §14.10 Brand Studio, sales report and scorecards, field-visit depth, announcements, assets, reports, company details | 6, 7 | M–L |
 
 Phases 0–4 are launch. 3 and 4 have no dependency on 0–2 and can run alongside them. 5 is the
 first weeks after launch; 6 before 10 and 11 because both stand on locations; 7 before 8 because
@@ -1010,6 +1022,14 @@ the table. Every phase
 ships behind nothing: a company with `plan = null` behaves exactly as today, which is what the
 first test in §11 pins, and every pay-affecting switch — the geofence, the penalty component,
 the late-mark points — ships off.
+
+Phases 15–25 are §14: the depth behind the rows that 0–14 closed. 15 and 17 come first because the
+payroll run and the employee record are the two screens a buyer works in during the first week.
+The edges: 16 after 15 (the designer formats the run's file), 19 after 17 (leave groups attach
+to the record), 20 after 16 and 17 (clearance reads the PF ledger; separation and probation live
+on the record), 22 after 14 (a template carries a locale), 23 after 17 and 22 (the codes verify
+the record's phone and address, and the address code is a letter), 25 after 6 and 7 (visits
+stand on locations, scorecards on the merit ledger). The rest stand alone.
 
 ## 11. Tests
 
@@ -1125,10 +1145,8 @@ Deferred for a business reason, each with the trigger that reopens it:
 - **Daily seat proration.** The 1st-of-month count, until a customer's hiring pattern makes it
   unfair.
 - **Automatic deletion of a suspended tenant.** A person runs `tenant:drop`, after the export.
-- **Pay grades and contract documents.** The two rows §1 still leaves open. A pay grade is a
-  named band `employee_settings` could reference; a contract is a document with a renewal date
-  `employee_documents` could carry. Both are a column and a report when a customer describes
-  the report they want; neither is on their page in a form worth guessing at.
+- ~~**Pay grades and contract documents.**~~ Moved to §14.2 and §14.5 on 2026-10-29, when the
+  signed-in walkthrough showed both as full screens rather than a form worth guessing at.
 - **An expression language for rules.** §8.9 is a form over two registries; the moment a rule
   needs a formula, that is a metric class, not a parser.
 - **The model writing the ledger on its own.** §8.3's rule, not a deferral.
@@ -1143,3 +1161,184 @@ Deferred for a business reason, each with the trigger that reopens it:
 - **A browser-side translation editor.** `lang/ur.json` in the repository is the translation
   memory, reviewed like code; a Crowdin-shaped screen is a product for a team of translators
   this does not have.
+- **The GitHub and WHMCS feeds, and the identity matching behind them.** Built for Operentra's
+  own staff — a hosting company scoring its developers and support desk. The trigger is a
+  customer whose work lives in either; `merit_entries.source_type` is where it would land.
+- **AppSumo codes, coupons and an affiliate programme.** Sales channels, not features. The
+  trigger is a decision to sell through one; a coupon is then a discount line on the
+  subscription invoice (§6).
+- **Marketing from the operator console** — email journeys, broadcasts and social posts to
+  tenants. The trigger is more tenants than a person can write to.
+- **Managing users, fingerprints, backups and commands on a device.** §8.7 answers every command
+  poll with none, deliberately. The trigger is a customer for whom enrolling at the device
+  itself is not enough.
+
+## 14. Depth parity: what the signed-in walkthrough found
+
+`docs/operentra-gap-analysis.md` checked the 199 features behind their login against the code:
+38 here as fully, 107 narrower, 54 missing. §7 and §8 closed the rows of their *feature page*;
+this section closes the depth, as Phases 15–25 (§10). The rule is §8's: the smallest thing that
+is honestly the feature, on machinery already here, with the rule that keeps it from doing harm.
+Four gaps are already designed elsewhere — a second language (§8.10), badges evaluated in bulk
+(§8.9's evaluator), custom domains (§8.8), live devices (§8.7) — and four are deferred in §13.
+
+### 14.1 The payroll run and the pay structure
+
+**One rule: a run never charges a day nobody has marked without saying so.** Theirs did (§1.1).
+
+- **An approved state.** `PayrollRun` is `open` → `locked`. Add `approved` between them, with its
+  own permission beside `PayrollRunLock`; *send back* returns an approved run to open.
+- **A pre-flight.** A `PayrollPreflight` service before payslips are raised: blockers (no
+  package; bank-paid with no account) refuse the run, warnings (unmarked days in the period,
+  listed by employee; a run before month-end) are shown and acknowledged.
+- **Staleness.** The run keeps the latest change it read among attendance, leave, claims,
+  advances and the payslip component inputs; its page warns when any input is newer.
+- **Structures.** A salary-structure template — components as a share of gross or a fixed
+  amount — that fills an employee's package from one gross figure. A form helper: the itemised
+  package stays the payroll input.
+- **Bonus and adjustment records.** Dated one-off lines per employee per month, written to the
+  payslip component input store, not typed onto the payslip.
+- **Salary-history import.** `CsvImporters::register('salary-history', …)`: past months as
+  imported, locked payslips, previewed first, revertible by batch.
+- Bulk payslip download (a ZIP, as the certificate bulk download already is), acknowledgement
+  reminders (at most three, then silence), rounding and pay day in Company Settings.
+- **A bank-file designer.** `IPaymentsFileWriter` becomes one seeded format of a
+  `BankFileFormat` per company bank account — header, row and trailer templates over
+  placeholders. A designed format is previewed against the real run before it can be downloaded.
+- **A provident-fund ledger.** `provident_fund_entries`, append-only per employee — opening,
+  contribution at lock from `StatutoryContributions`, profit, withdrawal — the merit ledger's
+  shape (§8.1) for money. The final settlement reads it.
+
+### 14.2 The employee record
+
+**One rule: `is_active` keeps its meaning.** Every scope in the codebase reads it; a new
+`status` (active, on leave, suspended, resigned, terminated, retired) sits beside it and derives
+it, so nothing that filters on it changes.
+
+- Father's name, NTN, nationality, marital status; an emergency contact with a name and a
+  relation; current and permanent addresses as two structured blocks; a photo, changed through
+  `EmployeeChangeRequest` like every other self-service edit.
+- **Departments and designations become rows** — parent, code and head; level and pay grade —
+  migrated from their option lists, with the ledger's department dimension reading the new
+  table. **Pay grades** (§13 deferred them) are a min–max band on the designation that warns,
+  never blocks, when a package falls outside it.
+- Directory filters by department and status, and a grid layout.
+- `CsvImporters::register('employees', …)` with the dry run the attendance importer has; a bulk
+  *Activate* that creates and invites each employee's user and opens their leave year.
+- Probation end and confirmation dates; a Probations list, overdue first, with *Confirm*.
+- Transfers and promotions: `EmployeeJobHistory` already dates department and designation
+  changes. Add location, two list pages over it, and *Record a transfer / promotion* actions
+  that write the dated change. Rehire reopens a leaver and keeps the old spell in the history.
+
+### 14.3 Expenses and advances
+
+- **Claims get lines** — date, category, amount, receipt — and a draft state. Approval becomes
+  the manager, then HR, on `LeaveApprovalChain`'s pattern. Reimbursement through payroll stays
+  as it is. A category is the company's own list, each mapped to the transaction type it posts
+  as, so the ledger does not move.
+- **Advances get types** (maximum amount, maximum instalments, interest, active limit), an
+  employee application with approval, an instalment schedule, pause and resume (skipped months
+  exist), and the schedule, defaulters and disbursements reports.
+
+### 14.4 Leave, attendance and holidays
+
+**One rule: approved overtime reaches the payslip, or the request says why it did not.** Theirs
+approved three hours and paid none (§1.1).
+
+- **Leave groups**: bundles of leave types assigned to employees. The default group is every
+  active type, which is today's behaviour.
+- **Eligibility**: gender, minimum service, employment types, maximum consecutive days, a
+  document after N days; a colour and a pay percent per type. Umrah and marriage leave seeded,
+  and a service minimum on Hajj — seeded figures a company edits.
+- A leave calendar (a month grid over `LeaveDay`); encashment outside separation as a request
+  that debits the balance and adds a payslip input.
+- **Overtime requests** with approval, feeding payroll; a break and a grace per work pattern; an
+  assignment screen over `employee_work_patterns`, which is dated and already read by
+  `WorkPatternResolver`; *mark all present* for a date; the import template as a download;
+  missing-punch reminders (off by default); rest-day swaps resolved by the resolver.
+- Holidays get a type, a recurring rollover, a calendar grid and a CSV importer.
+
+### 14.5 Contracts and the employee lifecycle
+
+- **Contracts** (§13 deferred them): `employment_contracts` — type, number, dates, gross,
+  probation, draft / active / ended — rendered from a template, carrying the QR of
+  `DocumentVerification`, accepted by the employee in the panel (time and IP, as a payslip
+  acknowledgement is), with witnesses, an IP disclosure, and the signed scan as an
+  `EmployeeDocument`. The expiring report reads it.
+- **Onboarding** starts for every new employee, not only a Recruitment hire. Checklist items
+  gain a kind — manual, link, auto-check — and auto-check items close from the records (user
+  created, package in effect, contract active, asset issued). A tick-and-waive screen.
+- **Separations** become a record — type, notice date, last working day — with a clearance
+  list: auto items from assets, advances and the PF ledger (§14.1), manual items with waive.
+  The settlement preview reads it, and the employee's login closes a configurable number of
+  days after the last working day.
+
+### 14.6 Appraisals and interviews
+
+- Review templates with weighted competencies (summing to 100), rated per competency by the
+  employee and the manager; the rating scale a company setting; *Change reviewer*; finalize with
+  an increment as a percentage or an amount, and a promotion recommendation. Both still write
+  nothing until approved — `docs/hrms-plan.md` §4.5.
+- Interviews: *Schedule* on an application, interviewers as users, a feedback form for each,
+  the outcome moving the stage.
+
+### 14.7 Letters, templates and notifications
+
+- **Letter templates** become company-editable records per kind with placeholders, rendered by
+  the engines that render them now, with a locale once §8.10 lands. Letters issue themselves on
+  the events they record — increment, promotion, transfer, confirmation — and employees request
+  the rest through an HR queue.
+- **Payslip and certificate templates** are a choice of layout and header and footer text, not
+  free HTML, so the per-engine overrides keep working.
+- Email templates cover every mail the app sends, with a preview and a test send; notification
+  preferences per category per user; one `message_log` of every mail and WhatsApp message —
+  channel, recipient, purpose, status.
+
+### 14.8 Verification and privacy
+
+**One rule: the gate never blocks for a check the company cannot perform.** If WhatsApp is not
+configured, phone verification is off, whatever the setting says.
+
+- Required documents per kind (mandatory flag, formats, size), a verify-and-reject queue over
+  the existing `verified_at`, and the compliance report.
+- The primary phone and the emergency contact verified by a WhatsApp code through
+  `WhatsAppSender`; the address by a code printed on a letter (§14.7) and typed back.
+- A company setting naming which checks are required, and the gate that enforces them.
+- **Subject access and erasure** per employee: an export scoped from `TenantExport`; erasure
+  anonymises the person and **never deletes a posted record** — payslips and ledger entries are
+  kept for the statutory period.
+- A *Back up now* button over `TenantBackup`, with the snapshot list.
+
+### 14.9 The platform
+
+- **API keys** on a screen over Sanctum tokens, with abilities as scopes (today there is one,
+  `api`), last use and revoke.
+- **Outgoing webhooks**: endpoints, event types from the domain events, HMAC-signed, retried on
+  the queue, with a delivery log.
+- Users: last login from `LogAuthenticationEvent` (which then records the company, so a tenant
+  sees its own sign-ins), resend the invitation, reset 2FA. Roles: duplicate, with the system
+  roles locked. Filters on the activity log.
+- Buttons for the runs that are commands today: open the leave year, and §8.9's badge evaluation.
+- A *Change plan* action on the Subscription page, and held seats: `seats_reserved` on the
+  company, the bill counting the greatest of headcount, reserved seats and ten.
+
+### 14.10 The remainder
+
+Independent of each other, and split as convenient:
+
+- **Brand Studio**: ID cards (serial, expiry, the QR of `DocumentVerification`, a print sheet,
+  revoke), an email-signature generator from the employee and company records, business-card
+  orders with a print queue, and a brand kit (colours, typeface) the cards use.
+- A weekly sales report — fed by CRM where it is licensed, a short form where it is not —
+  and scorecard profiles: per-designation weights over the merit sources, with quality and
+  volume shown beside the net points.
+- Field visits: staff enrolment, a GPS verdict against the client's pin and radius, an accuracy
+  limit, a photo, a rating on the confirmation page; a log of refused clock-ins.
+- Announcements with a category, a priority, role and person audiences, a scheduled publish and
+  an archive. Assets with a tag, a vendor, a warranty and their own category list.
+- The reports their walkthrough had and this lacks: anniversaries, demographics, late and
+  absence lists, leave utilisation, ratings distribution, the tax slab analysis the catalogue
+  already claims, the advance schedule and defaulters.
+- A statutory-coverage page listing the Acts the product implements, per profile; STRN and a
+  date format on the company; a phone, a map link and a head-office flag on a location; SWIFT
+  and an IBAN prefix on a bank; the employee-code prefix as a setting; a favicon upload.
