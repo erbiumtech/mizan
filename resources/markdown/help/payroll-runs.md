@@ -52,3 +52,24 @@ is. Manager and CEO inherit the same permissions from Accountant.
 **Administrator** also holds both. **Employee** holds neither and never sees
 this list. This resource lives in the `payroll` module; disabling it removes
 the list from the sidebar for the company.
+
+## Approve, then sign off
+
+A run can be **approved** by somebody holding *Approve payroll runs* before it
+is signed off, and **sent back** with a reason if it is wrong. Whether signing
+off needs an approval first is a switch under Company Settings → Payroll run;
+it ships off.
+
+## Inputs
+
+The **Inputs** badge says whether anything the run read — attendance, leave,
+expense claims, advances, the figures typed on a payslip — has changed since
+the payslips were raised. *Changed* names what moved; recalculate the
+payslips, or approve knowing it.
+
+## Before raising
+
+Raising a month checks first. An active employee with no package, or paid by
+bank with no account, blocks the run. Working days nobody has marked, or a
+month that has not ended, are warnings you acknowledge: a day nobody marked
+pays as present, and the run says so before it does.

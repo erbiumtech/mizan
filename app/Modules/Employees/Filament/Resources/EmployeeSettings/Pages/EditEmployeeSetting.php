@@ -16,6 +16,8 @@ class EditEmployeeSetting extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // What other modules offer on a package — Payroll's "Fill from structure".
+            ...\App\Support\ResourceContributions::headerActionsFor(static::class),
             DeleteAction::make(),
         ];
     }

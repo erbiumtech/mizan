@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Payroll\Console\Commands\OpenPayrollMonth;
+use App\Modules\Payroll\Console\Commands\RemindPayslipAcknowledgements;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -13,4 +14,9 @@ use Illuminate\Support\Facades\Schedule;
  */
 Schedule::command(OpenPayrollMonth::class)
     ->monthlyOn(26, '02:00')
+    ->withoutOverlapping();
+
+// Acknowledgement reminders — docs/saas-launch-plan.md §14.1: at most three, a week apart.
+Schedule::command(RemindPayslipAcknowledgements::class)
+    ->weeklyOn(1, '09:00')
     ->withoutOverlapping();

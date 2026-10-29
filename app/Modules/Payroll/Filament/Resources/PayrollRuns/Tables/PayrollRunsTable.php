@@ -56,10 +56,39 @@ class PayrollRunsTable
 
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => $state === PayrollRun::STATUS_LOCKED ? 'success' : 'warning')
-                    ->description(fn (PayrollRun $record): ?string => $record->isLocked()
-                        ? 'signed off '.$record->locked_at?->format('d M Y')
-                        : ($record->reopen_reason ? 'reopened: '.$record->reopen_reason : null)),
+                    ->color(fn (string $state): string => match ($state) {
+                        PayrollRun::STATUS_LOCKED => 'success',
+                        PayrollRun::STATUS_APPROVED => 'info',
+                        default => 'warning',
+                    })
+                    ->description(fn (PayrollRun $record): ?string => match (true) {
+                        $record->isLocked() => 'signed off '.$record->locked_at?->format('d M Y'),
+                        $record->isApproved() => 'approved '.$record->approved_at?->format('d M Y'),
+                        $record->sent_back_reason !== null => 'sent back: '.$record->sent_back_reason,
+                        $record->reopen_reason !== null => 'reopened: '.$record->reopen_reason,
+                        default => null,
+                    }),
+
+                // Inputs newer than the run last read — docs/saas-launch-plan.md §14.1. Named, so the
+                // reader knows what moved; a locked run is not judged, because its figures are history.
+                TextColumn::make('inputs')
+                    ->label('Inputs')
+                    ->badge()
+                    ->state(fn (PayrollRun $record): string => $record->isLocked() ? 'frozen' : ($record->isStale() ? 'changed' : 'current'))
+                    ->color(fn (string $state): string => match ($state) {
+                        'changed' => 'danger',
+                        'current' => 'success',
+                        default => 'gray',
+                    })
+                    ->tooltip(fn (PayrollRun $record): ?string => $record->isLocked() ? null : (($stale = $record->staleInputs()) === []
+                        ? ($record->inputs_as_of ? 'read '.$record->inputs_as_of->format('d M H:i') : null)
+                        : 'Changed since the run read them: '.collect($stale)->map(fn ($at, $what): string => "{$what} ({$at->format('d M H:i')})")->join(', '))),
+
+                TextColumn::make('pay_day')
+                    ->label('Pay day')
+                    ->state(fn (PayrollRun $record): ?string => $record->payDay()?->format('d M Y'))
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextColumn::make('locker.name')->label('Signed off by')->placeholder('—')->toggleable(),
             ])
@@ -67,10 +96,60 @@ class PayrollRunsTable
             ->filters([
                 SelectFilter::make('status')->options([
                     PayrollRun::STATUS_OPEN => 'Open',
+                    PayrollRun::STATUS_APPROVED => 'Approved',
                     PayrollRun::STATUS_LOCKED => 'Signed off',
                 ]),
             ])
             ->recordActions([
+                // Approve and send back — docs/saas-launch-plan.md §14.1. A second pair of eyes between
+                // raising a month and freezing it; whether signing off needs it is a company switch.
+                Action::make('approve')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalDescription(fn (PayrollRun $record): string => 'You have read '.$record->periodLabel().' and its figures are right. '
+                        .($record->isStale() ? 'Inputs have changed since the run read them — '.implode(', ', array_keys($record->staleInputs())).'. ' : '')
+                        .'Signing off is a separate step.')
+                    ->visible(fn (PayrollRun $record): bool => $record->isOpen()
+                        && (auth()->user()?->can('approve', $record) ?? false))
+                    ->action(function (PayrollRun $record): void {
+                        try {
+                            $record->approve(auth()->user());
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title($record->periodLabel().' approved.')->send();
+                    }),
+
+                Action::make('sendBack')
+                    ->label('Send back')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->visible(fn (PayrollRun $record): bool => $record->isApproved()
+                        && (auth()->user()?->can('approve', $record) ?? false))
+                    ->schema([
+                        Textarea::make('reason')
+                            ->label('What needs fixing?')
+                            ->required()
+                            ->rows(3)
+                            ->helperText('Kept on the run, where the clerk reads it.'),
+                    ])
+                    ->action(function (PayrollRun $record, array $data): void {
+                        try {
+                            $record->sendBack(auth()->user(), $data['reason']);
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->warning()->title($record->periodLabel().' sent back.')->send();
+                    }),
+
                 Action::make('lock')
                     ->label('Sign off')
                     ->icon('heroicon-o-lock-closed')

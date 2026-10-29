@@ -18,6 +18,9 @@ return [
     'models' => [
         'App\\Models\\PayrollRun' => \App\Modules\Payroll\Models\PayrollRun::class,
         'App\\Models\\PayComponent' => \App\Modules\Payroll\Models\PayComponent::class,
+        'App\\Models\\SalaryStructure' => \App\Modules\Payroll\Models\SalaryStructure::class,
+        'App\\Models\\SalaryStructureLine' => \App\Modules\Payroll\Models\SalaryStructureLine::class,
+        'App\\Models\\PayAdjustment' => \App\Modules\Payroll\Models\PayAdjustment::class,
         'App\\Models\\PayslipComponentInput' => \App\Modules\Payroll\Models\PayslipComponentInput::class,
         'App\\Models\\EmployeeSettingComponent' => \App\Modules\Payroll\Models\EmployeeSettingComponent::class,
         'App\\Models\\PayslipComponent' => \App\Modules\Payroll\Models\PayslipComponent::class,
@@ -28,6 +31,8 @@ return [
 
     'resources' => [
         'App\\Filament\\Resources\\PayComponents\\PayComponentResource' => \App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource::class,
+        'App\\Filament\\Resources\\SalaryStructures\\SalaryStructureResource' => \App\Modules\Payroll\Filament\Resources\SalaryStructures\SalaryStructureResource::class,
+        'App\\Filament\\Resources\\PayAdjustments\\PayAdjustmentResource' => \App\Modules\Payroll\Filament\Resources\PayAdjustments\PayAdjustmentResource::class,
         'App\\Filament\\Resources\\PayrollRuns\\PayrollRunResource' => \App\Modules\Payroll\Filament\Resources\PayrollRuns\PayrollRunResource::class,
         'App\\Filament\\Resources\\Payslips\\PayslipResource' => \App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource::class,
         'App\\Filament\\Resources\\SalarySlabs\\SalarySlabResource' => \App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource::class,
@@ -73,16 +78,22 @@ return [
     'permission_groups' => [
         'Payslip',
         'SalarySlab',
+        'SalaryStructure',
         'AnnualTax',
     ],
 
     'permissions' => [
         ['name' => 'PayrollRunView', 'group' => 'Payslip'],
         ['name' => 'PayrollRunLock', 'group' => 'Payslip'],
+        // Reading a run and saying it is right is not signing it off — docs/saas-launch-plan.md §14.1.
+        ['name' => 'PayrollRunApprove', 'group' => 'Payslip'],
         ['name' => 'PayslipView', 'group' => 'Payslip'],
         ['name' => 'PayslipCreate', 'group' => 'Payslip'],
         ['name' => 'PayslipUpdate', 'group' => 'Payslip'],
         ['name' => 'PayslipDelete', 'group' => 'Payslip'],
+        // A structure is a template over the package — docs/saas-launch-plan.md §14.1.
+        ['name' => 'SalaryStructureView', 'group' => 'SalaryStructure'],
+        ['name' => 'SalaryStructureUpdate', 'group' => 'SalaryStructure'],
         ['name' => 'SalarySlabCreate', 'group' => 'SalarySlab'],
         ['name' => 'SalarySlabView', 'group' => 'SalarySlab'],
         ['name' => 'SalarySlabUpdate', 'group' => 'SalarySlab'],
@@ -112,6 +123,11 @@ return [
             'PayslipCreate',
             'PayslipUpdate',
             'PayslipView',
+            'SalaryStructureView',
+        ],
+        // Approves what the accountant raised.
+        'Manager' => [
+            'PayrollRunApprove',
         ],
     ],
 

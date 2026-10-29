@@ -84,8 +84,17 @@ class MonthlyPayrollService
             // render, and a read that claimed days would burn them for whoever looked.
             $figures->settle($employee, $month, $fiscalYear, $payslip);
 
+            // Bonus and adjustment records for the month — docs/saas-launch-plan.md §14.1 — into the
+            // input store, on top of whatever the package and the ledgers would have paid.
+            if (app(PayAdjustments::class)->totalsFor($employee->id, $month, $fiscalYear->id) !== []) {
+                $payslip = app(PayAdjustments::class)->applyTo($payslip);
+            }
+
             $created->push($payslip);
         }
+
+        // The run read every input it has just now — docs/saas-launch-plan.md §14.1.
+        $run->markInputsRead();
 
         return $created;
     }

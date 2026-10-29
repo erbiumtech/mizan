@@ -11,9 +11,9 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Models\PayslipComponentInput;
 use App\Support\Contracts\AdvanceLedger;
 use App\Support\Contracts\ReimbursableClaims;
+use App\Support\DocumentVerification;
 use App\Support\PayrollMonth;
 use App\Support\Pdf\Pdf;
-use App\Support\DocumentVerification;
 use App\Support\Pdf\PdfDocument;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -541,6 +541,15 @@ class PayslipService
 
         // Net Salary (Earnings + Expense Reimbursement - Deductions)
         $data['net_salary'] = round($data['total_earnings'] + $data['expense_reimbursement'] - $data['total_deductions'], 2);
+
+        // Net rounded to the company's step — docs/saas-launch-plan.md §14.1. Cash pays in notes; the
+        // difference is a rounding line, not a change to any component, so the earnings and deductions
+        // still foot to what they were.
+        $step = (int) setting('payroll.rounding', config('payroll.rounding', 0));
+
+        if ($step > 1) {
+            $data['net_salary'] = (float) (round($data['net_salary'] / $step) * $step);
+        }
 
         return $data;
     }

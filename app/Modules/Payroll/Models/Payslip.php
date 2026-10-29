@@ -74,12 +74,15 @@ class Payslip extends Model
         'employee_review_recorded_by', 'employee_review_recorded_by_name',
         'review_objection_comment_id', 'review_overridden_by', 'review_overridden_by_name',
         'review_overridden_at',
+        'import_batch', 'acknowledgement_reminders', 'last_reminded_at',
     ];
 
     protected $casts = [
         'employee_reviewed_at' => 'datetime',
         'review_overridden_at' => 'datetime',
         'sent_at' => 'datetime',
+        'last_reminded_at' => 'datetime',
+        'acknowledgement_reminders' => 'integer',
     ];
 
     /**
@@ -94,6 +97,12 @@ class Payslip extends Model
      * @var array<string, float|int|string|null>|null
      */
     public ?array $typedOverrides = null;
+
+    /**
+     * Figures as imported, not recalculated — docs/saas-launch-plan.md §14.1. Set by the
+     * salary-history importer for a month that was already paid elsewhere.
+     */
+    public bool $imported = false;
 
     /**
      * The figures this save's calculation produced, keyed by column — Phase 5.
@@ -627,6 +636,11 @@ class Payslip extends Model
             // Employee accept/reject only touches review columns; the
             // figures and ledger posting must stay as issued.
             if ($payslip->exists && static::isReviewOnlyChange($payslip->getDirty())) {
+                return;
+            }
+
+            // History arrives as it was paid; nothing here may improve on it.
+            if ($payslip->imported || $payslip->import_batch !== null) {
                 return;
             }
 

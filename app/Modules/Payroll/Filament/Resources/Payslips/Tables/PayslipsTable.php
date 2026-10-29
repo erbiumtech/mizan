@@ -10,6 +10,7 @@ use App\Modules\Payroll\Services\PayslipDeliveryService;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
+use App\Support\Pdf\DocumentBundle;
 use App\Support\Pdf\Pdf;
 use App\Support\WhatsApp\PhoneNumber;
 use Filament\Actions\Action;
@@ -232,6 +233,7 @@ class PayslipsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     self::sendBulkAction(),
+                    self::downloadZipBulkAction(),
                     self::fillWorkingDaysBulkAction(),
                     DeleteBulkAction::make(),
                     self::acceptBulkAction(),
@@ -421,6 +423,40 @@ class PayslipsTable
     }
 
     // --- DownloadPayslip (showOnTableRow, withoutConfirmation) ---
+    /** Every selected payslip in one zip — docs/saas-launch-plan.md §14.1, the certificate bundle's shape. */
+    protected static function downloadZipBulkAction(): BulkAction
+    {
+        return BulkAction::make('downloadPayslipsZip')
+            ->label('Download as zip')
+            ->icon('heroicon-o-archive-box-arrow-down')
+            ->color('gray')
+            ->visible(fn (): bool => auth()->user()?->can('PayslipView') ?? false)
+            ->deselectRecordsAfterCompletion()
+            ->action(function (Collection $records) {
+                $service = app(PayslipService::class);
+                $bundle = new DocumentBundle;
+
+                foreach ($records as $payslip) {
+                    if (! (auth()->user()?->can('runAction', $payslip) ?? false)) {
+                        continue;
+                    }
+
+                    $bundle->add(
+                        Str::slug(($payslip->employee?->employee_id ?? 'payslip').'-'.$payslip->month.'-'.$payslip->getKey()).'.pdf',
+                        $service->renderPdf($payslip)->raw(),
+                    );
+                }
+
+                if ($bundle->isEmpty()) {
+                    Notification::make()->warning()->title('Nothing to download.')->send();
+
+                    return null;
+                }
+
+                return $bundle->download('payslips-'.now()->format('Ymd-His').'.zip');
+            });
+    }
+
     protected static function downloadAction(): Action
     {
         return Action::make('downloadPayslip')

@@ -229,6 +229,25 @@ class AttendanceFigures
      * indistinguishable from a month where those days were genuinely worked, and the
      * employee is the one who loses — so pro-rating declines rather than guesses.
      */
+    /**
+     * Working days in the month, up to and including the given day, with no attendance
+     * row at all — the days a run would pay as present without anybody having said so.
+     * docs/saas-launch-plan.md §14.1's warning. Zero without the attendance module: then
+     * nothing is ever marked, and the warning would say so every month.
+     */
+    public function unmarkedDays(Employee $employee, string $month, FiscalYear $fiscalYear, ?CarbonInterface $upTo = null): int
+    {
+        if (! modules()->enabled('attendance')) {
+            return 0;
+        }
+
+        $firstDay = PayrollMonth::firstDay($month, $fiscalYear);
+        $lastDay = $firstDay->copy()->endOfMonth();
+        $upTo = $upTo === null ? $lastDay : min($lastDay, $upTo->copy()->startOfDay());
+
+        return $this->calendar->unknownDaysUpTo($employee, $firstDay, $upTo);
+    }
+
     public function monthIsComplete(Employee $employee, string $month, FiscalYear $fiscalYear): bool
     {
         if (! modules()->enabled('attendance')) {

@@ -41,6 +41,9 @@ class CsvImportTest extends AccountingTestCase
 
     private const OPENING_STOCK = 'opening_stock';
 
+    /** Past payslips as paid — docs/saas-launch-plan.md §14.1, at 60. */
+    private const SALARY_HISTORY = 'salary_history';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -293,6 +296,18 @@ class CsvImportTest extends AccountingTestCase
                 ['name' => 'Template widget', 'unit' => 'pcs', 'is_active' => true],
             );
         }
+
+        if (CsvImporters::has(self::SALARY_HISTORY)) {
+            $example = CsvImporters::get(self::SALARY_HISTORY)->example();
+            \App\Modules\Employees\Models\Employee::firstOrCreate(
+                ['employee_id' => $example[0]],
+                ['gender' => 'Male', 'is_active' => 1],
+            );
+            \App\Modules\Core\Models\FiscalYear::firstOrCreate(
+                ['name' => $example[2]],
+                ['start_date' => '2026-07-01', 'end_date' => '2027-06-30', 'is_active' => true],
+            );
+        }
     }
 
     /** The three the installed modules contribute, and no fourth invented by Core. */
@@ -309,7 +324,7 @@ class CsvImportTest extends AccountingTestCase
         $this->assertSame(
             [
                 self::CONTACTS, self::PRODUCTS, self::OPENING_BALANCES, self::COST_CODES,
-                self::OPENING_INVOICES, self::OPENING_STOCK,
+                self::OPENING_INVOICES, self::OPENING_STOCK, self::SALARY_HISTORY,
             ],
             CsvImporters::keys(),
         );

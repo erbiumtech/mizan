@@ -6,6 +6,7 @@ use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Core\Services\HolidayCalendar;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveDay;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
@@ -36,6 +37,46 @@ class AttendanceCalendar
      * stored monthly total drifts against the rows the moment one is regularized, and
      * the payslip that read it would be wrong with nothing reporting the difference.
      */
+    /**
+     * Expected working days from a date to another with no known row — the summary's
+     * rule, over a range that ends today rather than at month-end. What the payroll
+     * pre-flight lists (docs/saas-launch-plan.md §14.1): a run raised mid-month must
+     * not warn about days that have not happened yet.
+     */
+    public function unknownDaysUpTo(Employee $employee, CarbonInterface $from, CarbonInterface $upTo): int
+    {
+        $from = Carbon::instance($from)->startOfDay();
+        $upTo = Carbon::instance($upTo)->startOfDay();
+
+        if ($upTo->lt($from)) {
+            return 0;
+        }
+
+        $rows = AttendanceDay::query()
+            ->where('employee_id', $employee->getKey())
+            ->whereBetween('date', [$from->toDateString(), $upTo->toDateString()])
+            ->get()
+            ->keyBy(fn (AttendanceDay $day): string => $day->date->toDateString());
+        $holidays = array_flip($this->holidays->datesBetween($from, $upTo, $employee->location_id));
+        $unknown = 0;
+
+        for ($date = $from->copy(); $date->lte($upTo); $date->addDay()) {
+            $key = $date->toDateString();
+
+            if (isset($holidays[$key]) || ! $this->patterns->isWorkingDay($employee, $date)) {
+                continue;
+            }
+
+            $row = $rows->get($key);
+
+            if (! $row || ! $row->isKnown()) {
+                $unknown++;
+            }
+        }
+
+        return $unknown;
+    }
+
     public function summarise(Employee $employee, int $year, int $month): AttendanceMonth
     {
         $start = Carbon::create($year, $month, 1)->startOfDay();

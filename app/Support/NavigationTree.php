@@ -54,6 +54,7 @@ class NavigationTree
             'Payroll' => [
                 'Payroll Months',
                 'Payslips',
+                'Pay Adjustments',
                 'Advances',
                 'Expense Claims',
                 'Final Settlements',
@@ -146,6 +147,7 @@ class NavigationTree
             ],
             'Payroll setup' => [
                 'Pay Components',
+                'Salary Structures',
                 'Salary Slabs',
             ],
             'Calendar & currency' => [

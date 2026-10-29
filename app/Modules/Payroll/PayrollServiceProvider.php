@@ -34,13 +34,13 @@ use App\Modules\Payroll\Policies\PayComponentPolicy;
 use App\Modules\Payroll\Policies\PayrollRunPolicy;
 use App\Modules\Payroll\Policies\PayslipPolicy;
 use App\Modules\Payroll\Policies\SalarySlabPolicy;
+use App\Modules\Payroll\Services\PayslipService;
 use App\Modules\Payroll\Support\PayrollReports;
+use App\Support\DocumentVerification;
 use App\Support\LedgerDimensions;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
-use App\Support\DocumentVerification;
-use App\Modules\Payroll\Services\PayslipService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -62,6 +62,9 @@ class PayrollServiceProvider extends ServiceProvider
         PayComponent::class => PayComponentPolicy::class,
         PayrollRun::class => PayrollRunPolicy::class,
         Payslip::class => PayslipPolicy::class,
+        \App\Modules\Payroll\Models\SalaryStructure::class => \App\Modules\Payroll\Policies\SalaryStructurePolicy::class,
+        \App\Modules\Payroll\Models\SalaryStructureLine::class => \App\Modules\Payroll\Policies\SalaryStructureLinePolicy::class,
+        \App\Modules\Payroll\Models\PayAdjustment::class => \App\Modules\Payroll\Policies\PayAdjustmentPolicy::class,
         SalarySlab::class => SalarySlabPolicy::class,
     ];
 
@@ -84,6 +87,9 @@ class PayrollServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The run's switches — docs/saas-launch-plan.md §14.1. 61: right after payroll posting (60).
+        \App\Support\SettingsSections::register('payroll.run', \App\Modules\Payroll\Filament\Settings\PayrollRunSettingsSection::class, 61);
+
         // This module's reports in the Reports hub. Registered rather than listed in Core, which
         // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
         /*
@@ -176,6 +182,8 @@ class PayrollServiceProvider extends ServiceProvider
         // so a moved command has to be registered here or it disappears
         // from artisan — and from the scheduler, silently.
         $this->commands([
+            \App\Modules\Payroll\Console\Commands\RevertSalaryImport::class,
+            \App\Modules\Payroll\Console\Commands\RemindPayslipAcknowledgements::class,
             BackfillComponentInputs::class,
             CheckPayrollAccounts::class,
             OpenPayrollMonth::class,
@@ -216,5 +224,16 @@ class PayrollServiceProvider extends ServiceProvider
             EmployeeSettingResource::class,
             EmployeeSettingComponentsRelationManager::class,
         );
+
+        // Fill a package from a structure and one gross figure — docs/saas-launch-plan.md §14.1. Offered
+        // from here because Employees may not name Payroll; the page spreads whatever is contributed.
+        ResourceContributions::addHeaderAction(
+            \App\Modules\Employees\Filament\Resources\EmployeeSettings\Pages\EditEmployeeSetting::class,
+            'fillFromStructure',
+            fn () => \App\Modules\Payroll\Filament\Support\FillFromStructureAction::make(),
+        );
+
+        // Past months as paid — docs/saas-launch-plan.md §14.1.
+        \App\Support\CsvImporters::register('salary_history', \App\Modules\Payroll\Support\SalaryHistoryCsvImporter::class, 60);
     }
 }

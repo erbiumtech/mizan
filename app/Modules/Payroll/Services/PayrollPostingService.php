@@ -116,6 +116,20 @@ class PayrollPostingService
             }
         }
 
+        // Net rounded to the company's step — docs/saas-launch-plan.md §14.1. The payable carries the
+        // rounded figure; the difference from the exact net is a line of its own, so the entry balances
+        // without any component pretending to be a different amount.
+        $exact = round((float) $payslip->total_earnings + (float) $payslip->expense_reimbursement - (float) $payslip->total_deductions, 2);
+        $difference = round((float) $payslip->net_salary - $exact, 2);
+
+        if (abs($difference) >= 0.01) {
+            $lines[] = [
+                'account_id' => $this->accountId('rounding'),
+                $difference > 0 ? 'debit_amount' : 'credit_amount' => abs($difference),
+                'description' => "Payslip #{$payslip->id} {$payslip->month} rounding",
+            ];
+        }
+
         if (count($lines) < 2) {
             return null; // empty payslip, nothing to book
         }

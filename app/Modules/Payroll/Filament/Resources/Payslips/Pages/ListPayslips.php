@@ -10,10 +10,13 @@ use App\Modules\Employees\Models\EmployeeSetting;
 use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\MonthlyPayrollService;
+use App\Modules\Payroll\Services\PayrollPreflight;
 use App\Support\PayrollMonth;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -22,6 +25,7 @@ use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\HtmlString;
 use InvalidArgumentException;
 
 class ListPayslips extends ListRecords
@@ -169,6 +173,17 @@ class ListPayslips extends ListRecords
                     ->live()
                     ->afterStateUpdated(fn (Get $get, Set $set) => $set('employees', self::dueRows($get('month'), $get('fiscal_year_id')))),
 
+                // The pre-flight — docs/saas-launch-plan.md §14.1. Blockers refuse the run; warnings are
+                // read and acknowledged, so a day nobody marked is never charged without saying so.
+                Placeholder::make('preflight')
+                    ->label('Before raising')
+                    ->content(fn (Get $get): HtmlString => self::preflightSummary($get('month'), $get('fiscal_year_id'))),
+                Checkbox::make('acknowledge')
+                    ->label('I have read the warnings and want the payslips raised anyway')
+                    ->visible(fn (Get $get): bool => self::preflight($get('month'), $get('fiscal_year_id'))['warnings'] !== [])
+                    ->required(fn (Get $get): bool => self::preflight($get('month'), $get('fiscal_year_id'))['warnings'] !== [])
+                    ->accepted(fn (Get $get): bool => self::preflight($get('month'), $get('fiscal_year_id'))['warnings'] !== []),
+
                 /*
                  * Every employee due a payslip, and only them: anybody who already has one
                  * for the month, or has no package covering it, is not on this list —
@@ -228,6 +243,15 @@ class ListPayslips extends ListRecords
                     ->all();
 
                 $payroll = app(MonthlyPayrollService::class);
+
+                $preflight = app(PayrollPreflight::class)->check($data['month'], $fiscalYear);
+
+                if ($preflight['blockers'] !== []) {
+                    Notification::make()->danger()->title('Nothing was raised')
+                        ->body(implode(' ', $preflight['blockers']))->persistent()->send();
+
+                    return;
+                }
 
                 try {
                     $created = $payroll->openMonth($data['month'], $fiscalYear, $overrides);
@@ -306,5 +330,40 @@ class ListPayslips extends ListRecords
         }
 
         return $months;
+    }
+
+    /** @return array{blockers: array<int, string>, warnings: array<int, string>} */
+    private static function preflight(?string $month, mixed $fiscalYearId): array
+    {
+        static $memo = [];
+
+        $year = $fiscalYearId ? FiscalYear::find($fiscalYearId) : null;
+
+        if (! $month || ! $year) {
+            return ['blockers' => [], 'warnings' => []];
+        }
+
+        return $memo["{$month}|{$year->getKey()}"] ??= app(PayrollPreflight::class)->check($month, $year);
+    }
+
+    private static function preflightSummary(?string $month, mixed $fiscalYearId): HtmlString
+    {
+        $result = self::preflight($month, $fiscalYearId);
+
+        if ($result['blockers'] === [] && $result['warnings'] === []) {
+            return new HtmlString('<p class="text-sm text-success-600 dark:text-success-400">Every active employee has a package and an account, and every working day so far is marked.</p>');
+        }
+
+        $html = '';
+
+        foreach ($result['blockers'] as $blocker) {
+            $html .= '<p class="text-sm text-danger-600 dark:text-danger-400"><strong>Blocks the run:</strong> '.e($blocker).'</p>';
+        }
+
+        foreach ($result['warnings'] as $warning) {
+            $html .= '<p class="text-sm text-warning-600 dark:text-warning-400"><strong>Warning:</strong> '.e($warning).'</p>';
+        }
+
+        return new HtmlString($html);
     }
 }

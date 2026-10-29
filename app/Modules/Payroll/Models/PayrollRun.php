@@ -10,6 +10,9 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 /**
@@ -21,18 +24,27 @@ class PayrollRun extends Model
 
     public const STATUS_OPEN = 'open';
 
+    /** Between open and locked — docs/saas-launch-plan.md §14.1. Somebody other than the clerk has read it. */
+    public const STATUS_APPROVED = 'approved';
+
     public const STATUS_LOCKED = 'locked';
 
     public const LOCK_PERMISSION = 'PayrollRunLock';
 
+    public const APPROVE_PERMISSION = 'PayrollRunApprove';
+
     protected $fillable = [
         'month', 'fiscal_year_id', 'status', 'notes',
         'locked_by', 'locked_at', 'reopened_by', 'reopened_at', 'reopen_reason',
+        'approved_by', 'approved_at', 'sent_back_by', 'sent_back_at', 'sent_back_reason', 'inputs_as_of',
     ];
 
     protected $casts = [
         'locked_at' => 'datetime',
         'reopened_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'sent_back_at' => 'datetime',
+        'inputs_as_of' => 'datetime',
     ];
 
     protected $attributes = ['status' => self::STATUS_OPEN];
@@ -60,6 +72,156 @@ class PayrollRun extends Model
     public function isLocked(): bool
     {
         return $this->status === self::STATUS_LOCKED;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === self::STATUS_APPROVED;
+    }
+
+    public function isOpen(): bool
+    {
+        return $this->status === self::STATUS_OPEN;
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /** Whether a run has to be approved before it can be signed off — a company switch, off by default. */
+    public static function approvalRequired(): bool
+    {
+        return (bool) setting('payroll.require_approval', config('payroll.require_approval', false));
+    }
+
+    public function approve(User $by): self
+    {
+        if (! $this->isOpen()) {
+            throw new InvalidArgumentException("{$this->periodLabel()} is {$this->status}, not open.");
+        }
+
+        if ($this->payslips()->count() === 0) {
+            throw new InvalidArgumentException("{$this->periodLabel()} has no payslips in it, so there is nothing to approve.");
+        }
+
+        $this->update([
+            'status' => self::STATUS_APPROVED,
+            'approved_by' => $by->getKey(),
+            'approved_at' => now(),
+            'sent_back_by' => null,
+            'sent_back_at' => null,
+            'sent_back_reason' => null,
+        ]);
+
+        return $this;
+    }
+
+    /** Back to open, with the reason kept — what the clerk reads before fixing it. */
+    public function sendBack(User $by, string $reason): self
+    {
+        if (! $this->isApproved()) {
+            throw new InvalidArgumentException("{$this->periodLabel()} is not approved.");
+        }
+
+        if (trim($reason) === '') {
+            throw new InvalidArgumentException('Sending a run back needs a reason.');
+        }
+
+        $this->update([
+            'status' => self::STATUS_OPEN,
+            'approved_by' => null,
+            'approved_at' => null,
+            'sent_back_by' => $by->getKey(),
+            'sent_back_at' => now(),
+            'sent_back_reason' => trim($reason),
+        ]);
+
+        return $this;
+    }
+
+    /** The run read its inputs now: raised, or recalculated. */
+    public function markInputsRead(): self
+    {
+        $this->forceFill(['inputs_as_of' => now()])->save();
+
+        return $this;
+    }
+
+    /**
+     * Inputs newer than the run last read — docs/saas-launch-plan.md §14.1. Each
+     * source by name with the time of its latest change, so the warning says what
+     * moved. Tables are named, not classes: Payroll may not import Expenses or
+     * Advances, and a company without them simply has no such table.
+     *
+     * @return array<string, \Illuminate\Support\Carbon>
+     */
+    public function staleInputs(): array
+    {
+        if ($this->inputs_as_of === null) {
+            return [];
+        }
+
+        $this->loadMissing('fiscalYear');
+        $first = PayrollMonth::firstDay($this->month, $this->fiscalYear);
+        $last = $first->copy()->endOfMonth();
+        $employees = $this->payslips()->pluck('employee_id');
+        $since = $this->inputs_as_of;
+        $stale = [];
+
+        $sources = [
+            'attendance' => ['attendance_days', 'date', 'employee_id'],
+            'leave' => ['leave_requests', 'from_date', 'employee_id'],
+            'expense claims' => ['expense_claims', null, 'employee_id'],
+            'advances' => ['advances', null, 'employee_id'],
+            'payslip inputs' => ['payslip_component_inputs', null, null],
+        ];
+
+        foreach ($sources as $label => [$table, $dateColumn, $employeeColumn]) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            $query = DB::table($table)->where('updated_at', '>', $since);
+
+            if ($employeeColumn !== null) {
+                $query->whereIn($employeeColumn, $employees);
+            } else {
+                $query->whereIn('payslip_id', $this->payslips()->select('id'));
+            }
+
+            if ($dateColumn !== null) {
+                $query->whereDate($dateColumn, '>=', $first->toDateString())->whereDate($dateColumn, '<=', $last->toDateString());
+            }
+
+            $latest = $query->max('updated_at');
+
+            if ($latest !== null) {
+                $stale[$label] = Carbon::parse($latest);
+            }
+        }
+
+        return $stale;
+    }
+
+    public function isStale(): bool
+    {
+        return $this->staleInputs() !== [];
+    }
+
+    /** The company's pay day for this month, when one is set — docs/saas-launch-plan.md §14.1. */
+    public function payDay(): ?\Illuminate\Support\Carbon
+    {
+        $day = (int) setting('payroll.pay_day', config('payroll.pay_day', 0));
+
+        if ($day < 1) {
+            return null;
+        }
+
+        $this->loadMissing('fiscalYear');
+        $first = PayrollMonth::firstDay($this->month, $this->fiscalYear);
+
+        return Carbon::instance($first)->day(min($day, $first->daysInMonth));
     }
 
     /**
@@ -137,6 +299,10 @@ class PayrollRun extends Model
             throw new InvalidArgumentException("{$this->periodLabel()} is already locked.");
         }
 
+        if (static::approvalRequired() && ! $this->isApproved()) {
+            throw new InvalidArgumentException("{$this->periodLabel()} has not been approved. This company signs off approved runs only.");
+        }
+
         if ($this->payslips()->count() === 0) {
             throw new InvalidArgumentException(
                 "{$this->periodLabel()} has no payslips in it, so there is nothing to agree."
@@ -170,6 +336,8 @@ class PayrollRun extends Model
 
         $this->update([
             'status' => self::STATUS_OPEN,
+            'approved_by' => null,
+            'approved_at' => null,
             'reopened_by' => $by->getKey(),
             'reopened_at' => now(),
             'reopen_reason' => trim($reason),

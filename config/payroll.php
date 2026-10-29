@@ -65,4 +65,12 @@ return [
     */
     'pay_overtime' => env('PAYROLL_PAY_OVERTIME', false),
 
+    /*
+    | The run — docs/saas-launch-plan.md §14.1. Each is a company setting of the same
+    | name; these are the defaults a company starts from, and every switch ships off.
+    */
+    'require_approval' => env('PAYROLL_REQUIRE_APPROVAL', false),
+    'pay_by_bank' => env('PAYROLL_PAY_BY_BANK', true),
+    'rounding' => (int) env('PAYROLL_ROUNDING', 0),
+    'pay_day' => env('PAYROLL_PAY_DAY'),
 ];

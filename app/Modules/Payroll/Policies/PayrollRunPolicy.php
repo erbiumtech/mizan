@@ -32,6 +32,12 @@ class PayrollRunPolicy
      * Deleting a month's run would orphan its payslips and lose the record of it
      * having been signed off. Reopening is the way to change a locked month.
      */
+    /** Approve and send back — docs/saas-launch-plan.md §14.1. Its own permission beside PayrollRunLock. */
+    public function approve(User $user, PayrollRun $run): bool
+    {
+        return $user->hasPermissionTo(PayrollRun::APPROVE_PERMISSION);
+    }
+
     public function delete(User $user, PayrollRun $run): bool
     {
         return false;

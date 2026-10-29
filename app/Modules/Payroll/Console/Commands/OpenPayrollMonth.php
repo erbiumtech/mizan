@@ -72,6 +72,24 @@ class OpenPayrollMonth extends Command
             return self::SUCCESS;
         }
 
+        // The pre-flight — docs/saas-launch-plan.md §14.1. Blockers refuse; warnings are printed,
+        // because nobody is here to acknowledge them and the log is where they are read.
+        $preflight = app(\App\Modules\Payroll\Services\PayrollPreflight::class)->check($month, $fiscalYear);
+
+        foreach ($preflight['warnings'] as $warning) {
+            $this->warn($warning);
+        }
+
+        if ($preflight['blockers'] !== []) {
+            foreach ($preflight['blockers'] as $blocker) {
+                $this->error($blocker);
+            }
+
+            $this->error('Nothing was raised.');
+
+            return self::FAILURE;
+        }
+
         $created = $payroll->openMonth($month, $fiscalYear);
 
         $this->info("Raised {$created->count()} payslip(s) for {$month} {$fiscalYear->name}.");

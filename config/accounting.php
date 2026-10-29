@@ -45,6 +45,9 @@ return [
         'provident_fund_payable' => '2230',
         'salaries_payable' => '2300',
         'employee_advances' => '1200',
+        // The difference net rounding makes — docs/saas-launch-plan.md §14.1. Booked as its own line so
+        // the components still foot; debited when pay rounds up, credited when it rounds down.
+        'rounding' => '5900',
     ],
 
     /*

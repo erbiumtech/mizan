@@ -93,6 +93,7 @@ class CsvImportPageTest extends TestCase
                 InventoryServiceProvider::class,
                 AccountingServiceProvider::class,
                 ConstructionServiceProvider::class,
+                \App\Modules\Payroll\PayrollServiceProvider::class,
             ] as $provider) {
                 $this->app->register($provider, true);
             }
