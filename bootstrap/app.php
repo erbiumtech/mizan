@@ -24,6 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
          */
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
+        // The platform host and every company's own domain — docs/saas-launch-plan.md §8.8.
+        // Exact hosts, no subdomain wildcard: a customer's domain is theirs, not its children.
+        $middleware->trustHosts(at: fn (): array => App\Support\CustomDomains::trustedHosts(), subdomains: false);
+
+        // A custom host shows one company: `/` and `/admin` go to its panel, another
+        // company's slug is a 404, and the login page learns whose front door it is.
+        $middleware->prepend(App\Http\Middleware\ResolveCompanyFromHost::class);
+
         // A token must carry the `api` ability — docs/desktop-mobile-plan.md A1. On the group, so a route
         // file added later cannot forget it.
         $middleware->api(append: [App\Http\Middleware\RequireTokenAbility::class, 'throttle:api']);

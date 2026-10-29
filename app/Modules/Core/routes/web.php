@@ -35,3 +35,13 @@ Route::middleware('web')->group(function (): void {
         ->where('hash', '[a-f0-9]{32}')
         ->name('documents.verify');
 });
+
+/**
+ * Caddy's `ask` — docs/saas-launch-plan.md §8.8 and deploy/caddy/README.md. 200 only for a host a
+ * company has claimed, so a certificate is never issued for a domain that merely points here.
+ */
+Route::get('/domains/check', function (\Illuminate\Http\Request $request) {
+    abort_unless(\App\Support\CustomDomains::companyForHost((string) $request->query('domain')), 404);
+
+    return response('OK', 200, ['Content-Type' => 'text/plain']);
+})->middleware('throttle:signup')->name('domains.check');

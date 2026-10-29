@@ -11,6 +11,17 @@ use Spatie\Permission\PermissionRegistrar;
 
 class Company extends SpatieTenant
 {
+    protected static function booted(): void
+    {
+        // The trusted-host list is cached; a domain set, changed or cleared anywhere
+        // — the Subscription page, the platform panel — must reach TrustHosts at once.
+        static::saved(function (Company $company): void {
+            if ($company->wasChanged('domain')) {
+                \App\Support\CustomDomains::flush();
+            }
+        });
+    }
+
     protected $table = 'companies';
 
     /**

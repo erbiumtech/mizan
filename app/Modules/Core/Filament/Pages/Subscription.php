@@ -5,6 +5,7 @@ namespace App\Modules\Core\Filament\Pages;
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Jobs\ExportTenant;
 use App\Modules\Core\Models\Company;
+use App\Support\CustomDomains;
 use App\Support\Plans;
 use App\Support\Subscriptions;
 use App\Support\TenantExport;
@@ -76,6 +77,10 @@ class Subscription extends Page
                 ? app(Subscriptions::class)->operator()->name
                 : null,
             'export' => $company ? $this->latestExport($company) : null,
+            // A company's own host — docs/saas-launch-plan.md §8.8.
+            'domain' => $company?->domain,
+            'customDomainAllowed' => Plans::allowsCustomDomain($company?->plan),
+            'cnameTarget' => CustomDomains::cnameTarget(),
         ];
     }
 
@@ -119,6 +124,36 @@ class Subscription extends Page
                         ->body('You will get an email when it is ready.')
                         ->send();
                 }),
+            Action::make('customDomain')
+                ->label('Custom domain')
+                ->icon('heroicon-o-globe-alt')
+                ->visible(fn (): bool => Plans::allowsCustomDomain(static::company()?->plan))
+                ->modalHeading('Your own domain')
+                ->modalDescription('Create a CNAME record pointing your host at '.CustomDomains::cnameTarget()
+                    .', wait for it to propagate, then save it here. The domain is checked before it is accepted. Leave it empty to go back to the platform address.')
+                ->modalSubmitActionLabel('Save domain')
+                ->schema([
+                    TextInput::make('domain')
+                        ->label('Domain')
+                        ->placeholder('hr.yourcompany.pk')
+                        ->maxLength(190)
+                        ->default(fn (): ?string => static::company()?->domain),
+                ])
+                ->action(function (array $data): void {
+                    try {
+                        $company = CustomDomains::claim(static::company(), $data['domain'] ?? null);
+                    } catch (Throwable $e) {
+                        Notification::make()->danger()->title('Domain not saved')->body($e->getMessage())->send();
+
+                        return;
+                    }
+
+                    Notification::make()->success()
+                        ->title($company->domain ? "Your panel answers on {$company->domain}" : 'Back on the platform address')
+                        ->body($company->domain ? 'The first visit takes a few seconds while the certificate is issued.' : null)
+                        ->send();
+                }),
+
             Action::make('subscribe')
                 ->label('Subscribe')
                 ->icon('heroicon-o-credit-card')

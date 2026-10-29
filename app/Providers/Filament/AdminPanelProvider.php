@@ -10,6 +10,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
 use App\Support\Broadcasting;
 use App\Support\CompanyLetterhead;
+use App\Support\CustomDomains;
 use App\Support\Modules;
 use App\Support\NavigationTree;
 use App\Support\TenantStorage;
@@ -227,9 +228,11 @@ class AdminPanelProvider extends PanelProvider
             // to the shipped ErbiumTech brand, exactly as before. The logo is a URL rather than a
             // data URI — this is a browser, and the tenant-scoped `public` disk's url() resolves
             // to the access-checked /files route.
-            ->brandName(fn (): string => Filament::getTenant()?->name ?? 'ErbiumTech')
-            ->brandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? asset('images/logo.png'))
-            ->darkModeBrandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? asset('images/logo-dark.png'))
+            // On a company's own domain the login page, which has no tenant yet, wears that
+            // company's name and logo — docs/saas-launch-plan.md §8.8.
+            ->brandName(fn (): string => Filament::getTenant()?->name ?? CustomDomains::hostCompany()?->name ?? 'ErbiumTech')
+            ->brandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? CustomDomains::hostCompany()?->execute(fn () => CompanyLetterhead::logoUrl()) ?? asset('images/logo.png'))
+            ->darkModeBrandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? CustomDomains::hostCompany()?->execute(fn () => CompanyLetterhead::logoUrl()) ?? asset('images/logo-dark.png'))
             ->brandLogoHeight('3rem')
             ->favicon(asset('images/favicon.png'))
             // Sampled from the ErbiumTech logo: the dark green slash drives the

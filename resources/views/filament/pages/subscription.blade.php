@@ -41,6 +41,16 @@
         </dl>
     </x-filament::section>
 
+    @if($s['customDomainAllowed'])
+        <x-filament::section heading="Your domain">
+            @if($s['domain'])
+                <p>Your panel answers on <span class="font-medium">https://{{ $s['domain'] }}</span>. Sign in there and the login page carries your logo.</p>
+            @else
+                <p>Your plan includes a custom domain. Create a CNAME record <span class="font-mono">hr.yourcompany.pk → {{ $s['cnameTarget'] }}</span>, then save it with <span class="font-medium">Custom domain</span> above.</p>
+            @endif
+        </x-filament::section>
+    @endif
+
     <x-filament::section heading="Your data">
         <p class="text-sm">
             @if($s['export'])
