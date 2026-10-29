@@ -26,6 +26,8 @@ return [
         // docs/saas-launch-plan.md §14.7.
         'App\\Models\\LetterTemplate' => \App\Modules\Employees\Models\LetterTemplate::class,
         'App\\Models\\LetterRequest' => \App\Modules\Employees\Models\LetterRequest::class,
+        // What has been proved about an employee record — §14.8.
+        'App\\Models\\EmployeeVerification' => \App\Modules\Employees\Models\EmployeeVerification::class,
     ],
 
     'resources' => [
@@ -144,6 +146,12 @@ return [
         ['name' => 'EmployeeSettingUpdate', 'group' => 'EmployeeSetting'],
         ['name' => 'EmployeeSettingDelete', 'group' => 'EmployeeSetting'],
         ['name' => 'EmployeeChangeApprove', 'group' => 'Employee'],
+        /*
+         * Subject access and erasure — docs/saas-launch-plan.md §14.8. One permission for both,
+         * and Administrator-only by default: disclosing everything the company holds about a person
+         * and emptying it are two halves of the same request, and the second cannot be undone.
+         */
+        ['name' => 'EmployeePrivacy', 'group' => 'Employee'],
         // Managing announcements. Reading them needs nothing: the dashboard shows
         // each employee what was aimed at them.
         ['name' => 'AnnouncementView', 'group' => 'Announcement'],
@@ -201,6 +209,8 @@ return [
         'App\\Filament\\Pages\\Probations' => \App\Modules\Employees\Filament\Pages\Probations::class,
         'App\\Filament\\Pages\\Transfers' => \App\Modules\Employees\Filament\Pages\Transfers::class,
         'App\\Filament\\Pages\\Promotions' => \App\Modules\Employees\Filament\Pages\Promotions::class,
+        // Where somebody confirms their own phone and address — docs/saas-launch-plan.md §14.8.
+        'App\\Filament\\Pages\\ConfirmDetails' => \App\Modules\Employees\Filament\Pages\ConfirmDetails::class,
     ],
 
     'navigation' => [

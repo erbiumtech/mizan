@@ -19,6 +19,9 @@ class LetterTemplate extends Model
 {
     use Auditable;
 
+    /** The letter that carries an address verification code — docs/saas-launch-plan.md §14.8. */
+    public const KIND_ADDRESS_VERIFICATION = 'address_verification';
+
     /** The kinds a company may word for itself, and what each is issued for. */
     public const KINDS = [
         'increment' => 'Increment letter',
@@ -37,6 +40,8 @@ class LetterTemplate extends Model
     /** What a body may carry. The list is the documentation — there is nothing to parse. */
     public const PLACEHOLDERS = [
         'employee' => "The person's name",
+        'code' => 'The verification code, on an address verification letter',
+        'address' => 'The address being verified, on an address verification letter',
         'employee_code' => 'Their employee code',
         'designation' => 'Their designation',
         'department' => 'Their department',

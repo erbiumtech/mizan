@@ -96,6 +96,20 @@ class PayrollServiceProvider extends ServiceProvider
         // The run's switches — docs/saas-launch-plan.md §14.1. 61: right after payroll posting (60).
         \App\Support\SettingsSections::register('payroll.run', \App\Modules\Payroll\Filament\Settings\PayrollRunSettingsSection::class, 61);
 
+        /*
+         * The payroll slice of a subject-access disclosure — plan §14.8.
+         *
+         * Period, net and state rather than every component. A payslip is a document the
+         * person already has, and the thing a disclosure has to answer is *what is held*:
+         * this says which months exist and what each came to, and the payslip itself is a
+         * download away.
+         */
+        \App\Support\SubjectAccess::register('Payslips', fn (object $employee): array => \App\Modules\Payroll\Models\Payslip::query()
+            ->where('employee_id', $employee->getKey())
+            ->orderBy('id')
+            ->get(['id', 'month', 'fiscal_year_id', 'net_salary', 'employee_review', 'employee_reviewed_at', 'created_at'])
+            ->toArray(), sort: 70);
+
         // This module's reports in the Reports hub. Registered rather than listed in Core, which
         // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
         /*

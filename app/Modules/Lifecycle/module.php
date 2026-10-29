@@ -48,6 +48,8 @@ return [
         'App\\Filament\\Pages\\FinalSettlementsReport' => \App\Modules\Lifecycle\Filament\Pages\FinalSettlementsReport::class,
         'App\\Filament\\Pages\\ChecklistProgress' => \App\Modules\Lifecycle\Filament\Pages\ChecklistProgress::class,
         'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
+        // Who is short of a required document — docs/saas-launch-plan.md §14.8.
+        'App\\Filament\\Pages\\DocumentCompliance' => \App\Modules\Lifecycle\Filament\Pages\DocumentCompliance::class,
         'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
         'App\\Filament\\Pages\\OpenChecklistItems' => \App\Modules\Lifecycle\Filament\Pages\OpenChecklistItems::class,
     ],

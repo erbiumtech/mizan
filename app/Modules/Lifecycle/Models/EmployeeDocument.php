@@ -37,10 +37,23 @@ class EmployeeDocument extends Model
     /** @var array<int, string> */
     public const KINDS = ['cnic', 'passport', 'visa', 'licence', 'degree', 'contract', self::KIND_INSURANCE, 'other'];
 
+    /** The same kinds, as a company reads them — docs/saas-launch-plan.md §14.8. */
+    public const KINDS_LABELLED = [
+        'cnic' => 'CNIC',
+        'passport' => 'Passport',
+        'visa' => 'Visa',
+        'licence' => 'Licence',
+        'degree' => 'Degree',
+        'contract' => 'Contract',
+        self::KIND_INSURANCE => 'Insurance',
+        'other' => 'Other',
+    ];
+
     protected $fillable = [
         'employee_id', 'kind', 'number', 'issued_on', 'expires_on',
         'insurer', 'cover_amount', 'premium',
         'file_path', 'verified_by', 'verified_at', 'expiry_notified_at_days',
+        'rejected_at', 'rejection_reason', 'rejected_by',
     ];
 
     protected $casts = [
@@ -49,12 +62,34 @@ class EmployeeDocument extends Model
         'cover_amount' => 'decimal:2',
         'premium' => 'decimal:2',
         'verified_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'expiry_notified_at_days' => 'integer',
     ];
 
     public function isInsurance(): bool
     {
         return $this->kind === self::KIND_INSURANCE;
+    }
+
+    public function isVerified(): bool
+    {
+        return $this->verified_at !== null;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->rejected_at !== null;
+    }
+
+    /**
+     * Waiting on somebody — docs/saas-launch-plan.md §14.8.
+     *
+     * Neither accepted nor refused. The queue the compliance screen filters on, and
+     * the only state in which a document is still the company's to answer.
+     */
+    public function isAwaitingReview(): bool
+    {
+        return $this->verified_at === null && $this->rejected_at === null;
     }
 
     public function employee(): BelongsTo

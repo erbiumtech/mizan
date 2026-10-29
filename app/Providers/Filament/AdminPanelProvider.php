@@ -367,6 +367,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                /*
+                 * The verification gate — docs/saas-launch-plan.md §14.8. In authMiddleware
+                 * rather than middleware, so it runs with a user and a tenant resolved and
+                 * never on the sign-in page itself: a gate that redirected a guest would
+                 * redirect them away from the login form.
+                 */
+                \App\Http\Middleware\EnsureVerificationChecks::class,
             ]);
     }
 }

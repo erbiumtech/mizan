@@ -16,6 +16,12 @@ while one person reads Urdu. Leave it unset to follow the company.
 To change your password, enter your **current password**, then the **new
 password** twice to confirm it.
 
+## Confirming your phone and address
+
+Where the company asks its staff to confirm those, **Confirm your details** above is
+where you do it, and where you come back to after changing a number. The page is not
+in the sidebar on purpose: most people finish with it once.
+
 ## Emails you don't want
 
 **Emails to stop sending me** lists the kinds of email the application sends —

@@ -61,6 +61,30 @@
                 No export yet. "Export my data" above builds one: the whole database as SQL and every uploaded file, in one archive you keep.
             @endif
         </p>
+
+        {{--
+            Snapshots — docs/saas-launch-plan.md §14.8. Listed, never linked: an archive
+            is the whole database in one encrypted file and restoring one is an
+            operator's job. The question this answers is whether there is a recent one.
+        --}}
+        <div class="mt-4">
+            <p class="text-sm font-medium">Database snapshots</p>
+
+            @if($s['snapshots'] === [])
+                <p class="text-sm mt-1">None yet. One is taken every night, and "Back up now" above takes one immediately.</p>
+            @else
+                <ul class="text-sm mt-1 space-y-1">
+                    @foreach($s['snapshots'] as $snapshot)
+                        <li>{{ $snapshot['at'] }} — {{ $snapshot['size'] }}</li>
+                    @endforeach
+                </ul>
+                <p class="text-sm mt-2">
+                    Kept on the server and not downloadable from here: they are encrypted with a key held by
+                    whoever runs the installation, and restoring one is their job. For a copy you keep yourself,
+                    use "Export my data".
+                </p>
+            @endif
+        </div>
     </x-filament::section>
 
     <x-filament::section heading="How billing works">

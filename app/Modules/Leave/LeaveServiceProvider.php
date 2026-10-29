@@ -47,6 +47,13 @@ class LeaveServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The leave slice of a subject-access disclosure — plan §14.8.
+        \App\Support\SubjectAccess::register('Leave you have taken or asked for', fn (object $employee): array => \App\Modules\Leave\Models\LeaveRequest::query()
+            ->where('employee_id', $employee->getKey())
+            ->orderBy('id')
+            ->get(['id', 'leave_type_id', 'from_date', 'to_date', 'days', 'status', 'reason', 'created_at'])
+            ->toArray(), sort: 80);
+
         // An activated employee's leave year — docs/saas-launch-plan.md §14.2.
         \Illuminate\Support\Facades\Event::listen(\App\Modules\Employees\Events\EmployeeActivated::class, \App\Modules\Leave\Listeners\OpenLeaveYearForActivatedEmployee::class);
 

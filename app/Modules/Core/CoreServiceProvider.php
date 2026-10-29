@@ -6,6 +6,7 @@ use App\Modules\Core\Console\Commands\DeliverScheduledReports;
 use App\Modules\Core\Filament\Pages\ReportDeliveries;
 use App\Modules\Core\Filament\Settings\DocumentLayoutSettingsSection;
 use App\Modules\Core\Filament\Settings\DocumentVerificationSettingsSection;
+use App\Modules\Core\Filament\Settings\VerificationChecksSettingsSection;
 use App\Modules\Core\Listeners\LogAuthenticationEvent;
 use App\Modules\Core\Listeners\LogSentMail;
 use App\Modules\Core\Listeners\NotifyRecordAudience;
@@ -164,6 +165,9 @@ class CoreServiceProvider extends ServiceProvider
         // How documents are laid out — plan §14.7. Beside verification: both are about
         // the paper rather than the figures on it.
         SettingsSections::register('documents.layout', DocumentLayoutSettingsSection::class, 86);
+
+        // What somebody must have confirmed before they are let in — plan §14.8.
+        SettingsSections::register('verification.checks', VerificationChecksSettingsSection::class, 87);
 
         // The sign-in log — plan §7.7: three rows on the landlord activity log, no table.
         Event::listen([Login::class, Logout::class, Failed::class], LogAuthenticationEvent::class);

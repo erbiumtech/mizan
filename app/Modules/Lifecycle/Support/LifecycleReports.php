@@ -448,6 +448,93 @@ class LifecycleReports
      * the daily mail watches. A company that warns at 90 days gets a 90-day report without touching this
      * file.
      */
+    /**
+     * Required documents against what each employee actually has —
+     * docs/saas-launch-plan.md §14.8.
+     *
+     * One row per active employee, one column per required kind, and the cell says
+     * which of the five states that kind is in for that person. The states matter more
+     * than a count: "they have not sent it" is a job for the employee, "nobody has
+     * looked at it" is a job for HR, and a tick-or-cross would hide the difference.
+     */
+    public function documentCompliance(string $asOf): array
+    {
+        $required = DocumentRequirements::required();
+
+        if ($required === []) {
+            return $this->table(
+                'DocumentCompliance',
+                'Document Compliance',
+                $this->subtitle('as at '.$asOf),
+                ['Employee'],
+                'minmax(0, 1fr)',
+                [],
+                [],
+                [],
+                'NO DOCUMENTS ARE REQUIRED',
+                null,
+                'No documents are required yet. Name them under Company Settings → Employee documents.',
+            );
+        }
+
+        $employees = Employee::query()->with('user')->where('is_active', true)->orderBy('employee_id')->get();
+
+        // One query for every document of every employee on the list, grouped in PHP.
+        // The alternative is a query per employee per kind, which on a hundred people
+        // and four kinds is four hundred round trips to draw one page.
+        $documents = EmployeeDocument::query()
+            ->whereIn('employee_id', $employees->modelKeys())
+            ->get()
+            ->groupBy('employee_id');
+
+        $labels = [
+            'missing' => 'Not sent',
+            'rejected' => 'Refused',
+            'expired' => 'Lapsed',
+            'unverified' => 'Awaiting review',
+            'verified' => 'Verified',
+        ];
+
+        $short = 0;
+        $rows = [];
+
+        foreach ($employees as $employee) {
+            $state = DocumentRequirements::stateFor($employee, $documents->get($employee->getKey(), collect()));
+
+            if (collect($state)->contains(fn (string $value): bool => $value !== 'verified')) {
+                $short++;
+            }
+
+            $rows[] = [
+                (string) $employee->display_label,
+                ...array_map(fn (string $value): string => $labels[$value] ?? $value, array_values($state)),
+            ];
+        }
+
+        $kinds = count($required);
+
+        return $this->table(
+            'DocumentCompliance',
+            'Document Compliance',
+            $this->subtitle('as at '.$asOf),
+            ['Employee', ...array_values($required)],
+            'minmax(0, 1fr)'.str_repeat(' 10rem', $kinds),
+            [],
+            $rows,
+            [
+                ['label' => 'EMPLOYEES', 'value' => (float) $employees->count(), 'accent' => false],
+                ['label' => 'NOT FULLY IN ORDER', 'value' => (float) $short, 'accent' => true],
+            ],
+            $employees->isEmpty()
+                ? 'NOBODY TO CHECK'
+                : mb_strtoupper($short === 0
+                    ? 'every employee has all '.$kinds.' required document(s)'
+                    : $short.' of '.$employees->count().' are short of something'),
+            null,
+            'There are no active employees to check.',
+        );
+    }
+
     public function documentsExpiring(string $asOf): array
     {
         /** @var Collection<int, array{document: EmployeeDocument, days: int, bucket: string}> $rows */

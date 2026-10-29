@@ -7,10 +7,12 @@ use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
 use App\Modules\Employees\Filament\Support\IncomeCertificatesBulkAction;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Services\EmployeeErasure;
 use App\Modules\Employees\Services\EmployeeMoves;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use App\Support\ResourceContributions;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -148,6 +150,47 @@ class EmployeesTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+
+                /*
+                 * Subject access and erasure — docs/saas-launch-plan.md §14.8.
+                 *
+                 * Together on the row they are about, because they are two halves of the same
+                 * request: somebody asks what is held, reads it, and then asks for it to go.
+                 */
+                Action::make('discloseRecord')
+                    ->label('Everything we hold')
+                    ->icon('heroicon-o-document-magnifying-glass')
+                    ->color('gray')
+                    ->visible(fn (Employee $record): bool => auth()->user()?->can('disclose', $record) ?? false)
+                    ->action(function (Employee $record) {
+                        $erasure = app(EmployeeErasure::class);
+                        $json = json_encode($erasure->disclose($record), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+                        return response()->streamDownload(fn () => print $json, $erasure->filename($record), ['Content-Type' => 'application/json']);
+                    }),
+
+                Action::make('erase')
+                    ->label('Erase this person')
+                    ->icon('heroicon-o-fire')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Erase this person from the record')
+                    ->modalDescription('The phone, address, identity card, bank details and scans are emptied and '
+                        .'the scans are deleted. Payslips and ledger entries are kept: they are statutory records '
+                        .'and this never touches them. It cannot be undone.')
+                    ->modalSubmitActionLabel('Erase')
+                    ->visible(fn (Employee $record): bool => (auth()->user()?->can('erase', $record) ?? false) && ! $record->isAnonymised())
+                    ->action(function (Employee $record): void {
+                        try {
+                            app(EmployeeErasure::class)->erase($record);
+                        } catch (\Throwable $e) {
+                            Notification::make()->danger()->title('Nothing was erased')->body($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title('Erased. The records that had to stay are still there.')->send();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

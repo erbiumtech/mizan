@@ -2,7 +2,9 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Backup\TenantBackup;
 use App\Filament\Support\HelpAction;
+use App\Modules\Core\Jobs\BackUpTenant;
 use App\Modules\Core\Jobs\ExportTenant;
 use App\Modules\Core\Models\Company;
 use App\Support\CustomDomains;
@@ -77,6 +79,8 @@ class Subscription extends Page
                 ? app(Subscriptions::class)->operator()->name
                 : null,
             'export' => $company ? $this->latestExport($company) : null,
+            // The snapshots this company has — docs/saas-launch-plan.md §14.8.
+            'snapshots' => $company ? $this->snapshots($company) : [],
             // A company's own host — docs/saas-launch-plan.md §8.8.
             'domain' => $company?->domain,
             'customDomainAllowed' => Plans::allowsCustomDomain($company?->plan),
@@ -95,6 +99,28 @@ class Subscription extends Page
             'url' => app(TenantExport::class)->url($company, $latest['path']),
             'bytes' => $latest['bytes'],
         ];
+    }
+
+    /**
+     * The last fortnight of database snapshots, newest first.
+     *
+     * Listed and not offered for download, deliberately. An archive is the whole
+     * company's database in one file, it is encrypted with a key that lives in the
+     * environment rather than in anybody's hands, and restoring one is an operator's
+     * job. What this page is for is the other question: *is there a recent one*.
+     *
+     * @return array<int, array{at: string, size: string}>
+     */
+    private function snapshots(Company $company): array
+    {
+        return collect(app(TenantBackup::class)->snapshots($company))
+            ->map(fn (array $snapshot): array => [
+                'at' => $snapshot['date']->toDayDateTimeString(),
+                'size' => $snapshot['bytes'] >= 1048576
+                    ? round($snapshot['bytes'] / 1048576, 1).' MB'
+                    : max(1, (int) round($snapshot['bytes'] / 1024)).' KB',
+            ])
+            ->all();
     }
 
     protected function getHeaderActions(): array
@@ -122,6 +148,29 @@ class Subscription extends Page
                     Notification::make()->success()
                         ->title('Export started')
                         ->body('You will get an email when it is ready.')
+                        ->send();
+                }),
+            /**
+             * A snapshot on demand — plan §14.8. The same dump the nightly run makes,
+             * for the moment before a bulk import or a payroll run somebody is nervous
+             * about.
+             */
+            Action::make('backUpNow')
+                ->label('Back up now')
+                ->icon('heroicon-o-circle-stack')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Take a snapshot now')
+                ->modalDescription('A dump of this company\'s database, kept beside the nightly ones. It runs in '
+                    .'the background and you will be told when it is done. It does not include uploaded files, '
+                    .'which are backed up for every company together.')
+                ->modalSubmitActionLabel('Start the backup')
+                ->action(function (): void {
+                    BackUpTenant::dispatch((int) static::company()->getKey(), (int) auth()->id());
+
+                    Notification::make()->success()
+                        ->title('Backup started')
+                        ->body('It appears in the list on this page when it finishes.')
                         ->send();
                 }),
             Action::make('customDomain')

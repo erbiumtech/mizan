@@ -140,8 +140,35 @@ class EditProfile extends BaseEditProfile
 
     protected function getHeaderActions(): array
     {
-        return [
+        return array_values(array_filter([
             HelpAction::make('edit-profile', 'My Profile: Help'),
-        ];
+            $this->confirmDetailsAction(),
+        ]));
+    }
+
+    /**
+     * The way back to Confirm Your Details — docs/saas-launch-plan.md §14.8.
+     *
+     * That page is not in the sidebar: most people finish with it once, and it exists
+     * for some readers and not others, which the two-level shell cannot place. Here is
+     * where somebody who has just changed their phone number would look for it, which
+     * makes this the right door rather than a second-best one.
+     *
+     * Resolved by name, because the page belongs to the Employees module and Core may
+     * not import one. Absent where the module is not installed.
+     */
+    private function confirmDetailsAction(): ?\Filament\Actions\Action
+    {
+        $page = 'App\\Modules\\Employees\\Filament\\Pages\\ConfirmDetails';
+
+        if (! class_exists($page) || ! $page::canAccess()) {
+            return null;
+        }
+
+        return \Filament\Actions\Action::make('confirmDetails')
+            ->label('Confirm your details')
+            ->icon('heroicon-o-check-badge')
+            ->color('gray')
+            ->url($page::getUrl());
     }
 }

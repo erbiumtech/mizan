@@ -54,6 +54,7 @@ class EmployeesServiceProvider extends ServiceProvider
         \App\Modules\Employees\Models\LetterRequest::class => \App\Modules\Employees\Policies\LetterRequestPolicy::class,
         \App\Modules\Employees\Models\Department::class => \App\Modules\Employees\Policies\DepartmentPolicy::class,
         \App\Modules\Employees\Models\Designation::class => \App\Modules\Employees\Policies\DesignationPolicy::class,
+        \App\Modules\Employees\Models\EmployeeVerification::class => \App\Modules\Employees\Policies\EmployeeVerificationPolicy::class,
     ];
 
     public function boot(): void
@@ -77,6 +78,40 @@ class EmployeesServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        // The checks a company may insist on before somebody is let in — plan §14.8.
+        \App\Modules\Employees\Support\EmployeeChecks::register();
+
+        /*
+         * This module's slices of a subject-access disclosure — plan §14.8.
+         *
+         * The record itself, what they asked to have changed about it, and what has been
+         * confirmed. The scan *paths* are disclosed rather than the scans: a JSON file
+         * with two megabytes of base64 identity card in it is not a more complete answer,
+         * and the files are reachable to the person through the panel.
+         */
+        \App\Support\SubjectAccess::register('The employee record', function (object $employee): array {
+            $record = $employee->toArray();
+            $record['name_on_account'] = $employee->user?->name;
+            $record['email_on_account'] = $employee->user?->email;
+
+            return $record;
+        }, sort: 10);
+
+        \App\Support\SubjectAccess::register('Changes you asked for', fn (object $employee): array => \App\Modules\Employees\Models\EmployeeChangeRequest::query()
+            ->where('employee_id', $employee->getKey())
+            ->get(['id', 'status', 'requested_changes', 'original_values', 'created_at'])
+            ->toArray(), sort: 20);
+
+        \App\Support\SubjectAccess::register('What you have confirmed', fn (object $employee): array => \App\Modules\Employees\Models\EmployeeVerification::query()
+            ->where('employee_id', $employee->getKey())
+            ->get(['kind', 'target', 'verified_at'])
+            ->toArray(), sort: 30);
+
+        \App\Support\SubjectAccess::register('Letters you asked for', fn (object $employee): array => \App\Modules\Employees\Models\LetterRequest::query()
+            ->where('employee_id', $employee->getKey())
+            ->get(['kind', 'purpose', 'status', 'refusal_reason', 'created_at'])
+            ->toArray(), sort: 40);
 
         // The letters' verification codes — plan §7.5. Each asked with the company current.
         $employee = fn (int $id): ?Employee => Employee::query()->with('user')->find($id);

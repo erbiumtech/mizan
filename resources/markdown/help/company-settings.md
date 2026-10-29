@@ -45,6 +45,32 @@ rendered by one of two PDF engines depending on what the server has installed, a
 carry per-engine corrections for the differences between them. Markup typed into a settings box
 would bypass those corrections and print correctly in testing and wrongly in production.
 
+## Employee documents
+
+Which documents every employee must have on file, what file types you accept, and
+how large an upload may be. Nothing is required until you tick it, which is the
+shipped state.
+
+What you tick here is what the *Document Compliance* report counts. A kind counts as
+held once there is a document of that kind that has not been refused and has not
+lapsed.
+
+## Before somebody is let in
+
+What a person must have confirmed before they can use anything but the *Confirm Your
+Details* screen. They can still sign in — that is the point, because that screen is
+where they finish it.
+
+**The list only offers checks this installation can actually perform.** A phone check
+needs a WhatsApp provider configured; an address check needs an address verification
+letter template written; a document check needs some documents to be required. Where
+the means is missing the check is not shown, is not required, and can never be the
+reason somebody is refused — whatever was ticked before. A company that loses its
+WhatsApp credentials for a week does not lock its own staff out of payroll.
+
+A check you ticked while it was available stays ticked if it later becomes
+unavailable. It simply stops being enforced until the means comes back.
+
 ## Notifications
 
 The bell in the top right carries two kinds of thing.

@@ -64,4 +64,27 @@ class EmployeePolicy
     {
         return $user->hasRole('Administrator');
     }
+
+    /**
+     * Subject access — docs/saas-launch-plan.md §14.8.
+     *
+     * Everything the company holds about one person, in one file. A narrower right
+     * than viewing the record, because the file gathers what six modules hold into
+     * something that can be carried out of the building in one click.
+     */
+    public function disclose(User $user, Employee $employee): bool
+    {
+        return $user->can('EmployeePrivacy');
+    }
+
+    /**
+     * Erasure. The same permission and one further condition: somebody still employed
+     * cannot be erased, so a record nobody meant to empty cannot be emptied by a
+     * misclick on a live row. {@see \App\Modules\Employees\Services\EmployeeErasure}
+     * refuses it again, because a policy is not where a rule like that should only live.
+     */
+    public function erase(User $user, Employee $employee): bool
+    {
+        return $user->can('EmployeePrivacy') && ! $employee->is_active;
+    }
 }

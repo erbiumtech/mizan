@@ -97,6 +97,48 @@ class LifecycleServiceProvider extends ServiceProvider
             ? app(\App\Modules\Lifecycle\Services\EmploymentContracts::class)->verificationFacts($c)
             : null);
 
+        // What a company insists on, and what it will accept — plan §14.8.
+        \App\Support\SettingsSections::register('lifecycle.documents', \App\Modules\Lifecycle\Filament\Settings\RequiredDocumentsSettingsSection::class, 62);
+
+        /*
+         * Documents as a condition of being let in — plan §14.8.
+         *
+         * `available` is whether the company has named any required kind at all: a check
+         * with nothing on its list cannot be failed, so offering it would be a switch that
+         * does nothing. That is the same rule the phone and address checks follow.
+         */
+        \App\Support\VerificationChecks::register(
+            key: 'lifecycle.documents',
+            label: 'The required documents are on file',
+            help: 'The kinds ticked under Employee documents, each held and not refused or lapsed.',
+            available: fn (): bool => \App\Modules\Lifecycle\Support\DocumentRequirements::required() !== [],
+            outstanding: function (?object $user): ?string {
+                $employee = \App\Modules\Employees\Support\EmployeeChecks::employeeFor($user);
+
+                if ($employee === null) {
+                    return null;
+                }
+
+                $missing = \App\Modules\Lifecycle\Support\DocumentRequirements::missingFor($employee);
+
+                return $missing === [] ? null : 'Still to send: '.implode(', ', $missing).'.';
+            },
+            sort: 40,
+        );
+
+        // This module's slices of a subject-access disclosure — plan §14.8. Paths, never
+        // the files: the scans are reachable to the person through the panel, and a JSON
+        // file full of base64 is not a fuller answer.
+        \App\Support\SubjectAccess::register('Documents on file', fn (object $employee): array => \App\Modules\Lifecycle\Models\EmployeeDocument::query()
+            ->where('employee_id', $employee->getKey())
+            ->get(['kind', 'number', 'issued_on', 'expires_on', 'file_path', 'verified_at', 'rejected_at', 'rejection_reason'])
+            ->toArray(), sort: 50);
+
+        \App\Support\SubjectAccess::register('Company property issued to you', fn (object $employee): array => \App\Modules\Lifecycle\Models\IssuedAsset::query()
+            ->where('employee_id', $employee->getKey())
+            ->get(['asset_kind', 'description', 'serial_no', 'issued_on', 'returned_on'])
+            ->toArray(), sort: 60);
+
         $this->registerReports();
     }
 
@@ -116,6 +158,12 @@ class LifecycleServiceProvider extends ServiceProvider
             'People & payroll',
             DocumentsExpiring::class,
             'Visas, licences and contracts lapsing soon, and the ones that already have.',
+        );
+
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Lifecycle\Filament\Pages\DocumentCompliance::class,
+            'Who is short of a document the company requires — the ones that were never sent have no row anywhere else.',
         );
 
         ReportCatalogue::register(
@@ -145,6 +193,10 @@ class LifecycleServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'DocumentsExpiring',
             fn (string $asOf): array => app(LifecycleReports::class)->documentsExpiring($asOf),
+        );
+        ReportRenderers::register(
+            'DocumentCompliance',
+            fn (string $asOf): array => app(LifecycleReports::class)->documentCompliance($asOf),
         );
         ReportRenderers::register(
             'LeaveLiability',

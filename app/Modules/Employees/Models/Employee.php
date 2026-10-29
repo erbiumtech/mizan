@@ -47,6 +47,9 @@ class Employee extends Model
         // stays the flag every query filters on — see the migration.
         'left_on' => 'date',
         'notice_served_until' => 'date',
+        // Deliberately not fillable: erasure is a service call, not a form field —
+        // see App\Modules\Employees\Services\EmployeeErasure.
+        'anonymised_at' => 'datetime',
     ];
 
     /**
@@ -497,6 +500,38 @@ class Employee extends Model
      * the fallback for staff with no login — a household's driver or cook — who
      * have no user to take a name from.
      */
+    /** What has been proved about this record — docs/saas-launch-plan.md §14.8. */
+    public function verifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EmployeeVerification::class);
+    }
+
+    /**
+     * The current address on one line — docs/saas-launch-plan.md §14.8.
+     *
+     * What a letter is addressed to and what an address verification proves. The
+     * parts are joined rather than printed one per line because the thing being
+     * compared later is a value, and a value with optional line breaks in it is two
+     * values (see EmployeeVerification::normalise).
+     */
+    public function postalAddress(): ?string
+    {
+        $address = (array) ($this->current_address ?? []);
+
+        $parts = array_filter(
+            [$address['line_1'] ?? null, $address['line_2'] ?? null, $address['city'] ?? null, $address['province'] ?? null, $address['postal_code'] ?? null],
+            fn ($part): bool => filled($part),
+        );
+
+        return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    /** Erased: the person emptied out of the record, the record kept. */
+    public function isAnonymised(): bool
+    {
+        return $this->anonymised_at !== null;
+    }
+
     public function fullName(): string
     {
         // Loaded explicitly rather than read lazily. This is called from selects, columns and labels

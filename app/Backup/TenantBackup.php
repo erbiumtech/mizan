@@ -3,9 +3,12 @@
 namespace App\Backup;
 
 use App\Modules\Core\Models\Company;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Spatie\Backup\BackupDestination\BackupDestination;
+use Throwable;
 
 /**
  * Back up each company's own database, one archive each.
@@ -176,5 +179,44 @@ class TenantBackup
     public function companies(): \Illuminate\Support\Collection
     {
         return Company::query()->orderBy('id')->get();
+    }
+
+    /**
+     * The archives this company has, newest first — docs/saas-launch-plan.md §14.8.
+     *
+     * Read from the package's own destination rather than by listing a folder, so a
+     * company whose archives go to S3 is answered the same way as one on local disk.
+     *
+     * Returns an empty list rather than throwing when a destination cannot be reached.
+     * This is read on a settings page: "we could not list them" belongs on the screen,
+     * and an unreachable bucket is not a reason the page should 500.
+     *
+     * @return array<int, array{disk: string, path: string, date: \Illuminate\Support\Carbon, bytes: int}>
+     */
+    public function snapshots(Company $company, int $limit = 14): array
+    {
+        $name = $this->destinationFor($company)['name'];
+        $found = [];
+
+        foreach ((array) config('backup.backup.destination.disks', []) as $disk) {
+            try {
+                $destination = BackupDestination::create((string) $disk, $name);
+
+                foreach ($destination->backups() as $backup) {
+                    $found[] = [
+                        'disk' => (string) $disk,
+                        'path' => $backup->path(),
+                        'date' => Carbon::instance($backup->date()->toDateTime()),
+                        'bytes' => (int) $backup->sizeInBytes(),
+                    ];
+                }
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
+        usort($found, fn (array $a, array $b): int => $b['date'] <=> $a['date']);
+
+        return array_slice($found, 0, $limit);
     }
 }

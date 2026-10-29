@@ -34,6 +34,21 @@ class EmployeeDocumentPolicy
         return $user->hasPermissionTo('EmployeeDocumentUpdate');
     }
 
+    /**
+     * Who may accept or refuse a scan — docs/saas-launch-plan.md §14.8.
+     *
+     * The same right as editing the document, deliberately: somebody trusted to change
+     * what a document says is trusted to say whether it is genuine, and a separate
+     * permission for it would be one more thing a small company has to notice exists.
+     *
+     * Not the person it is about, even where they may edit their own: a document
+     * nobody but its owner has looked at has not been verified by anybody.
+     */
+    public function verify(User $user, EmployeeDocument $document): bool
+    {
+        return $user->can('EmployeeDocumentUpdate') && $document->employee?->user_id !== $user->getKey();
+    }
+
     public function delete(User $user, EmployeeDocument $document): bool
     {
         return $user->hasPermissionTo('EmployeeDocumentDelete');
