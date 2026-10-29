@@ -26,7 +26,7 @@ use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasTenants, MustVerifyEmail
+class User extends Authenticatable implements \Illuminate\Contracts\Translation\HasLocalePreference, FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasTenants, MustVerifyEmail
 {
     /**
      * Users live in the landlord database. Pin the connection so that when a
@@ -61,6 +61,18 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
      * would hand any active user the installation. Enumerated route by route in
      * PlatformPanelAccessTest rather than sampled.
      */
+    /**
+     * The language this person reads — docs/saas-launch-plan.md §8.10.
+     *
+     * Laravel's own contract, so every notification is rendered in the recipient's
+     * language without a caller remembering `->locale()`: one payslip issued to two
+     * people arrives in two languages.
+     */
+    public function preferredLocale(): ?string
+    {
+        return \App\Support\Locales::forUser($this);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         if ((int) $this->status !== 1) {

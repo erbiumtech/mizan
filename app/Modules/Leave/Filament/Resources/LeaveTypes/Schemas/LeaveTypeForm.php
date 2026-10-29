@@ -80,7 +80,7 @@ class LeaveTypeForm
                         ->helperText('The statutory minimum is provincial — Sindh, Punjab, KP and Balochistan each set their own. Confirm this figure against the rules where you operate; what we shipped is a starting point.'),
 
                     TextInput::make('max_carry_forward')
-                        ->label('Days that may carry forward')
+                        ->label(__('Days that may carry forward'))
                         ->numeric()
                         ->step(0.5)
                         ->minValue(0)
@@ -92,7 +92,7 @@ class LeaveTypeForm
                         ->helperText('Unpaid leave is the only kind that can ever reduce pay, and only once pay pro-rating is switched on.'),
 
                     Toggle::make('is_encashable')
-                        ->label('Encashable on separation')
+                        ->label(__('Encashable on separation'))
                         ->helperText('Paid out in a final settlement. Never paid out at the year end — unused days lapse there.'),
                 ])
                 ->columns(2),
@@ -101,13 +101,13 @@ class LeaveTypeForm
             Section::make('Who may take it')
                 ->columns(2)
                 ->schema([
-                    Select::make('eligible_genders')->label('Genders')->multiple()->options(fn (): array => options('employees.gender'))->helperText('Empty for everyone.'),
-                    TextInput::make('min_service_months')->label('Minimum service (months)')->numeric()->minValue(0),
-                    Select::make('eligible_employment_types')->label('Employment types')->multiple()->options(fn (): array => options('employees.employment_type'))->helperText('Empty for every type.'),
-                    TextInput::make('max_consecutive_days')->label('Maximum consecutive days')->numeric()->minValue(1),
-                    TextInput::make('document_after_days')->label('Document needed after (days)')->numeric()->minValue(1)->helperText('A reminder on the request form past this many days.'),
-                    TextInput::make('pay_percent')->label('Paid at (%)')->numeric()->minValue(0)->maxValue(100)->default(100),
-                    ColorPicker::make('colour')->label('Colour on the calendar'),
+                    Select::make('eligible_genders')->label(__('Genders'))->multiple()->options(fn (): array => options('employees.gender'))->helperText('Empty for everyone.'),
+                    TextInput::make('min_service_months')->label(__('Minimum service (months)'))->numeric()->minValue(0),
+                    Select::make('eligible_employment_types')->label(__('Employment types'))->multiple()->options(fn (): array => options('employees.employment_type'))->helperText('Empty for every type.'),
+                    TextInput::make('max_consecutive_days')->label(__('Maximum consecutive days'))->numeric()->minValue(1),
+                    TextInput::make('document_after_days')->label(__('Document needed after (days)'))->numeric()->minValue(1)->helperText('A reminder on the request form past this many days.'),
+                    TextInput::make('pay_percent')->label(__('Paid at (%)'))->numeric()->minValue(0)->maxValue(100)->default(100),
+                    ColorPicker::make('colour')->label(__('Colour on the calendar')),
                 ]),
 
             Section::make('Rules when somebody asks')
@@ -117,18 +117,18 @@ class LeaveTypeForm
                         ->helperText('Half days only. Hourly leave is deliberately not offered.'),
 
                     Toggle::make('requires_document')
-                        ->label('Ask for a document')
+                        ->label(__('Ask for a document'))
                         ->helperText('A medical certificate or equivalent. Visible to the approver and HR, and to nobody else.'),
 
                     TextInput::make('min_notice_days')
-                        ->label('Notice expected (days)')
+                        ->label(__('Notice expected (days)'))
                         ->numeric()
                         ->minValue(0)
                         ->default(0)
                         ->helperText('Whether this blocks a request or merely warns is one company setting, in Company Settings → Leave. It warns by default.'),
 
                     TextInput::make('sort')
-                        ->label('Order in lists')
+                        ->label(__('Order in lists'))
                         ->numeric()
                         ->default(0),
                 ])

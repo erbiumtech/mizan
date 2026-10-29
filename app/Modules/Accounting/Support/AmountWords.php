@@ -64,8 +64,25 @@ class AmountWords
      * the way the printed leaf expects. parse() reads figures with a scale word,
      * not these words; the two are not inverses.
      */
-    public static function write(float $amount, string $currency = 'Rupees'): string
+    /** The same figure in Urdu — docs/saas-launch-plan.md §8.10. Digits stay Western; only the words change. */
+    private const URDU_ONES = [
+        '', 'ایک', 'دو', 'تین', 'چار', 'پانچ', 'چھ', 'سات', 'آٹھ', 'نو', 'دس',
+        'گیارہ', 'بارہ', 'تیرہ', 'چودہ', 'پندرہ', 'سولہ', 'سترہ', 'اٹھارہ', 'انیس',
+    ];
+
+    private const URDU_TENS = ['', '', 'بیس', 'تیس', 'چالیس', 'پچاس', 'ساٹھ', 'ستر', 'اسی', 'نوے'];
+
+    private const URDU_WORDS = [
+        'crore' => 'کروڑ', 'lakh' => 'لاکھ', 'thousand' => 'ہزار', 'hundred' => 'سو',
+        'rupees' => 'روپے', 'paisa' => 'پیسے', 'and' => 'اور', 'only' => 'صرف', 'zero' => 'صفر',
+    ];
+
+    public static function write(float $amount, string $currency = 'Rupees', ?string $locale = null): string
     {
+        if (($locale ?? app()->getLocale()) === 'ur') {
+            return self::writeUrdu($amount);
+        }
+
         $amount = round(abs($amount), 2);
         $rupees = (int) floor($amount);
         $paisa = (int) round(($amount - $rupees) * 100);
@@ -78,6 +95,50 @@ class AmountWords
         }
 
         return $line.' Only';
+    }
+
+    /**
+     * Urdu reads the amount first and "only" last, as the cheque leaf expects:
+     * صرف بارہ لاکھ پچاس ہزار روپے. The lakh-and-crore idiom is the same.
+     */
+    private static function writeUrdu(float $amount): string
+    {
+        $amount = round(abs($amount), 2);
+        $rupees = (int) floor($amount);
+        $paisa = (int) round(($amount - $rupees) * 100);
+
+        $line = self::URDU_WORDS['only'].' '.($rupees === 0 ? self::URDU_WORDS['zero'] : self::urduWhole($rupees)).' '.self::URDU_WORDS['rupees'];
+
+        if ($paisa > 0) {
+            $line .= ' '.self::URDU_WORDS['and'].' '.self::urduWhole($paisa).' '.self::URDU_WORDS['paisa'];
+        }
+
+        return $line;
+    }
+
+    private static function urduWhole(int $n): string
+    {
+        $parts = [];
+
+        foreach ([['crore', 10000000], ['lakh', 100000], ['thousand', 1000]] as [$name, $value]) {
+            if ($n >= $value) {
+                $parts[] = self::urduWhole(intdiv($n, $value)).' '.self::URDU_WORDS[$name];
+                $n %= $value;
+            }
+        }
+
+        if ($n >= 100) {
+            $parts[] = self::URDU_ONES[intdiv($n, 100)].' '.self::URDU_WORDS['hundred'];
+            $n %= 100;
+        }
+
+        if ($n >= 20) {
+            $parts[] = self::URDU_TENS[intdiv($n, 10)].($n % 10 ? ' '.self::URDU_ONES[$n % 10] : '');
+        } elseif ($n > 0) {
+            $parts[] = self::URDU_ONES[$n];
+        }
+
+        return implode(' ', $parts);
     }
 
     private static function wholeToWords(int $n): string

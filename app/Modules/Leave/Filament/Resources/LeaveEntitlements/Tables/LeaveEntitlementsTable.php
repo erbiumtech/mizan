@@ -23,33 +23,33 @@ class LeaveEntitlementsTable
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('leaveType.label')->label('Type')->sortable(),
+                TextColumn::make('leaveType.label')->label(__('Type'))->sortable(),
 
                 TextColumn::make('leave_year_start')
-                    ->label('Leave year')
+                    ->label(__('Leave year'))
                     ->date('d M Y')
                     ->description(fn (LeaveEntitlement $record): string => 'to '.$record->leave_year_end->format('d M Y'))
                     ->sortable(),
 
-                TextColumn::make('opening_days')->label('Opening')->alignEnd()->formatStateUsing(static::days())->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('opening_days')->label(__('Opening'))->alignEnd()->formatStateUsing(static::days())->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('carried_in_days')
-                    ->label('Carried in')
+                    ->label(__('Carried in'))
                     ->alignEnd()
                     ->formatStateUsing(static::days())
                     ->toggleable(),
 
-                TextColumn::make('accrued_days')->label('Accrued')->alignEnd()->formatStateUsing(static::days()),
+                TextColumn::make('accrued_days')->label(__('Accrued'))->alignEnd()->formatStateUsing(static::days()),
 
                 // Summed from the rows, never a column. Two adjustments in one year
                 // both exist and both keep their reason, which is the whole reason
                 // that table is a table.
                 TextColumn::make('adjustments_sum_days')
-                    ->label('Adjusted')
+                    ->label(__('Adjusted'))
                     ->alignEnd()
                     ->sum('adjustments', 'days')
                     ->formatStateUsing(static::days())
@@ -58,12 +58,12 @@ class LeaveEntitlementsTable
                 // Computed on read, like an account balance. No stored column to
                 // drift against the days actually taken.
                 TextColumn::make('taken')
-                    ->label('Taken')
+                    ->label(__('Taken'))
                     ->alignEnd()
                     ->state(fn (LeaveEntitlement $record): string => static::format(static::breakdown($record)?->taken ?? 0)),
 
                 TextColumn::make('remaining')
-                    ->label('Left')
+                    ->label(__('Left'))
                     ->alignEnd()
                     ->weight('bold')
                     ->state(fn (LeaveEntitlement $record): string => static::format(static::breakdown($record)?->remaining() ?? 0))
@@ -80,11 +80,11 @@ class LeaveEntitlementsTable
             ->defaultSort('leave_year_start', 'desc')
             ->filters([
                 SelectFilter::make('leave_type_id')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options(fn (): array => LeaveType::orderBy('sort')->pluck('label', 'id')->all()),
 
                 Filter::make('current_year')
-                    ->label('Current leave year')
+                    ->label(__('Current leave year'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->covering(now())),
             ])
@@ -94,20 +94,20 @@ class LeaveEntitlementsTable
                 // answerable, and a mistake is fixed by a second adjustment in the
                 // opposite direction rather than by overwriting the first.
                 Action::make('adjust')
-                    ->label('Adjust')
+                    ->label(__('Adjust'))
                     ->icon('heroicon-o-plus-circle')
                     ->color('warning')
                     ->visible(fn (): bool => auth()->user()?->can('create', LeaveAdjustment::class) ?? false)
                     ->schema([
                         TextInput::make('days')
-                            ->label('Days')
+                            ->label(__('Days'))
                             ->numeric()
                             ->step(0.5)
                             ->required()
                             ->helperText('Negative to take days away. Half days are allowed; anything finer cannot be spent.'),
 
                         TextInput::make('reason')
-                            ->label('Reason')
+                            ->label(__('Reason'))
                             ->required()
                             ->maxLength(255)
                             ->helperText('Kept for good. This is the answer to "who gave me these days and why".'),

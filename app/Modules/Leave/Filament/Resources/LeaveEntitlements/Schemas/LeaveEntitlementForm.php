@@ -17,7 +17,7 @@ class LeaveEntitlementForm
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -30,7 +30,7 @@ class LeaveEntitlementForm
                 ->required(),
 
             Select::make('leave_type_id')
-                ->label('Leave type')
+                ->label(__('Leave type'))
                 ->options(fn (): array => LeaveType::query()
                     ->active()
                     ->get()
@@ -62,21 +62,21 @@ class LeaveEntitlementForm
                     : now()->endOfYear()->toDateString()),
 
             TextInput::make('opening_days')
-                ->label('Opening days')
+                ->label(__('Opening days'))
                 ->numeric()
                 ->step(0.5)
                 ->default(0)
                 ->helperText('What they already had when this module started. Set-up only — later corrections are adjustments, so they keep their reason.'),
 
             TextInput::make('accrued_days')
-                ->label('Accrued days')
+                ->label(__('Accrued days'))
                 ->numeric()
                 ->step(0.5)
                 ->default(0)
                 ->helperText('Normally written by the nightly leave:open-year command from the type\'s accrual method.'),
 
             TextInput::make('carried_in_days')
-                ->label('Carried in')
+                ->label(__('Carried in'))
                 ->numeric()
                 ->step(0.5)
                 ->default(0)

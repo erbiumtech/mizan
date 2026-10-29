@@ -42,12 +42,12 @@ class ListAttendanceDays extends ListRecords
              * that already exists.
              */
             Action::make('openMonth')
-                ->label('Open a month')
+                ->label(__('Open a month'))
                 ->icon('heroicon-o-calendar-days')
                 ->color('gray')
                 ->schema([
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->options(fn (): array => app(EmployeeAccess::class)
                             ->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())
                             ->get()
@@ -94,13 +94,13 @@ class ListAttendanceDays extends ListRecords
              * caught before half a month is already in.
              */
             Action::make('import')
-                ->label('Import a CSV')
+                ->label(__('Import a CSV'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('gray')
                 ->visible(fn (): bool => auth()->user()?->can('create', AttendanceDay::class) ?? false)
                 ->schema([
                     FileUpload::make('file')
-                        ->label('CSV file')
+                        ->label(__('CSV file'))
                         ->disk('local')
                         ->directory('attendance-imports')
                         ->acceptedFileTypes(['text/csv', 'text/plain', 'application/vnd.ms-excel'])
@@ -108,7 +108,7 @@ class ListAttendanceDays extends ListRecords
                         ->helperText('Columns: employee_id, date, status, check_in, check_out, note. Status accepts P/A/L/H/W/HD/WFH or the full word. A ZKTeco export is matched on its user number against the employee code.'),
 
                     Select::make('preset')
-                        ->label('File layout')
+                        ->label(__('File layout'))
                         ->options(AttendanceImport::presets())
                         ->default(AttendanceImport::PRESET_CSV)
                         ->required(),
@@ -141,7 +141,7 @@ class ListAttendanceDays extends ListRecords
                     $notification->persistent()->send();
                 }),
 
-            CreateAction::make()->label('Record a day'),
+            CreateAction::make()->label(__('Record a day')),
         ];
     }
 
@@ -170,7 +170,7 @@ class ListAttendanceDays extends ListRecords
             ->modalWidth('md')
             ->schema([
                 ViewField::make('position')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->view('filament.forms.geolocation')
                     ->dehydrated(),
             ])
@@ -198,7 +198,7 @@ class ListAttendanceDays extends ListRecords
     protected function markAllPresentAction(): Action
     {
         return Action::make('markAllPresent')
-            ->label('Mark all present')
+            ->label(__('Mark all present'))
             ->icon('heroicon-o-check')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->can('AttendanceCreate') ?? false)
@@ -233,7 +233,7 @@ class ListAttendanceDays extends ListRecords
     protected function importTemplateAction(): Action
     {
         return Action::make('importTemplate')
-            ->label('Import template')
+            ->label(__('Import template'))
             ->icon('heroicon-o-arrow-down-tray')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->can('AttendanceCreate') ?? false)

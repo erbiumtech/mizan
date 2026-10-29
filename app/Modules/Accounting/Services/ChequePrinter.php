@@ -162,9 +162,12 @@ class ChequePrinter
     {
         $layout = ChequeLayout::for($cheque->company_bank_account_id);
 
+        // The cheque's own language — docs/saas-launch-plan.md §8.10.
+        $locale = \App\Support\Locales::forDocument('cheque');
+
         return $this->document($layout, [
             'payee' => $cheque->payee_name,
-            'amount_words' => AmountWords::write((float) $cheque->amount),
+            'amount_words' => AmountWords::write((float) $cheque->amount, 'Rupees', $locale),
             'amount_figures' => '**'.number_format((float) $cheque->amount, 2).'**',
             'date' => $cheque->cheque_date->format('d-m-Y'),
             'crossing' => $cheque->crossed ? 'A/C PAYEE ONLY' : '',
@@ -176,7 +179,7 @@ class ChequePrinter
     {
         return $this->document($layout, [
             'payee' => '[PAYEE NAME]',
-            'amount_words' => '[AMOUNT IN WORDS — '.AmountWords::write(1250000.5).']',
+            'amount_words' => '[AMOUNT IN WORDS — '.AmountWords::write(1250000.5, 'Rupees', \App\Support\Locales::forDocument('cheque')).']',
             'amount_figures' => '[**12,50,000.50**]',
             'date' => '[DD-MM-YYYY]',
             'crossing' => '[A/C PAYEE ONLY]',
@@ -193,7 +196,7 @@ class ChequePrinter
     /** @param  array<string, string>  $values */
     private function document(ChequeLayout $layout, array $values, string $name): PdfDocument
     {
-        return Pdf::view('pdfs.cheque', ['layout' => $layout, 'values' => $values])
+        return Pdf::document('cheque', 'pdfs.cheque', ['layout' => $layout, 'values' => $values])
             ->paperSize((float) $layout->page_width_mm, (float) $layout->page_height_mm)
             ->margins(0, 0, 0, 0)
             ->name($name);

@@ -142,3 +142,9 @@ the URL itself.
 ## Roles and permissions
 
 Administrator only.
+
+## Language
+
+The interface default for everybody, and the language each kind of document
+is written in. See the Language help for what is translated and why Urdu
+needs the Chromium renderer.

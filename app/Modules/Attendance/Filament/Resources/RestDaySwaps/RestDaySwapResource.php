@@ -45,11 +45,11 @@ class RestDaySwapResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('employee_id')->label('Employee')
+            Select::make('employee_id')->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required(),
-            DatePicker::make('work_on')->label('Works on (a rest day)')->native(false)->required(),
-            DatePicker::make('rest_on')->label('Rests on (a working day)')->native(false)->required()->different('work_on'),
+            DatePicker::make('work_on')->label(__('Works on (a rest day)'))->native(false)->required(),
+            DatePicker::make('rest_on')->label(__('Rests on (a working day)'))->native(false)->required()->different('work_on'),
             TextInput::make('reason')->maxLength(190),
         ]);
     }
@@ -58,9 +58,9 @@ class RestDaySwapResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('work_on')->date('d M Y')->label('Works on')->sortable(),
-                TextColumn::make('rest_on')->date('d M Y')->label('Rests on'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
+                TextColumn::make('work_on')->date('d M Y')->label(__('Works on'))->sortable(),
+                TextColumn::make('rest_on')->date('d M Y')->label(__('Rests on')),
                 TextColumn::make('reason')->placeholder('—'),
             ])
             ->defaultSort('work_on', 'desc')

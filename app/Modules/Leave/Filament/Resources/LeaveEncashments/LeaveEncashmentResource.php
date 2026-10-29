@@ -55,14 +55,14 @@ class LeaveEncashmentResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
                 ->live()
                 ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
             Select::make('leave_type_id')
-                ->label('Leave type')
+                ->label(__('Leave type'))
                 ->options(fn (): array => LeaveType::query()->active()->where('is_encashable', true)->orderBy('sort')->pluck('label', 'id')->all())
                 ->required()
                 ->live()
@@ -80,8 +80,8 @@ class LeaveEncashmentResource extends Resource
                 }),
             TextInput::make('days')->numeric()->minValue(0.5)->step(0.5)->required(),
             TextInput::make('amount')->numeric()->minValue(0)->default(0)->helperText('What is paid: days times the daily rate the company uses. Reaches the payslip named below as a bonus line.'),
-            Select::make('fiscal_year_id')->label('Fiscal year')->options(fn (): array => FiscalYear::query()->orderByDesc('start_date')->pluck('name', 'id')->all())->default(fn (): ?int => FiscalYear::current()?->getKey()),
-            Select::make('month')->label('Paid with the payslip for')->options(fn (): array => array_combine($m = array_keys(PayrollMonth::fiscalOrder(FiscalYear::current())), $m))->default(fn (): string => now()->monthName),
+            Select::make('fiscal_year_id')->label(__('Fiscal year'))->options(fn (): array => FiscalYear::query()->orderByDesc('start_date')->pluck('name', 'id')->all())->default(fn (): ?int => FiscalYear::current()?->getKey()),
+            Select::make('month')->label(__('Paid with the payslip for'))->options(fn (): array => array_combine($m = array_keys(PayrollMonth::fiscalOrder(FiscalYear::current())), $m))->default(fn (): string => now()->monthName),
             Textarea::make('reason')->rows(2)->columnSpanFull(),
         ]);
     }
@@ -90,8 +90,8 @@ class LeaveEncashmentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('leaveType.label')->label('Type'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
+                TextColumn::make('leaveType.label')->label(__('Type')),
                 TextColumn::make('days')->numeric(1),
                 TextColumn::make('amount')->numeric(2)->alignRight(),
                 TextColumn::make('month')->description(fn (LeaveEncashment $r): ?string => $r->fiscalYear?->name),
@@ -103,7 +103,7 @@ class LeaveEncashmentResource extends Resource
             ->filters([SelectFilter::make('status')->options(['pending' => 'Pending', 'approved' => 'Approved', 'refused' => 'Refused'])])
             ->defaultSort('id', 'desc')
             ->recordActions([
-                Action::make('approve')->label('Approve')->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
+                Action::make('approve')->label(__('Approve'))->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
                     ->modalDescription('Debits the balance now and sends the amount to the payslip named.')
                     ->visible(fn (LeaveEncashment $r): bool => $r->isPending() && (auth()->user()?->can('LeaveRequestApprove') ?? false))
                     ->action(function (LeaveEncashment $record): void {
@@ -117,7 +117,7 @@ class LeaveEncashmentResource extends Resource
 
                         Notification::make()->success()->title('Approved.')->send();
                     }),
-                Action::make('refuse')->label('Refuse')->icon('heroicon-o-x-circle')->color('danger')
+                Action::make('refuse')->label(__('Refuse'))->icon('heroicon-o-x-circle')->color('danger')
                     ->visible(fn (LeaveEncashment $r): bool => $r->isPending() && (auth()->user()?->can('LeaveRequestApprove') ?? false))
                     ->schema([Textarea::make('reason')->required()->rows(2)])
                     ->action(function (LeaveEncashment $record, array $data): void {

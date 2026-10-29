@@ -48,12 +48,12 @@ class EmployeeWorkPatternResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('employee_id')->label('Employee')
+            Select::make('employee_id')->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required(),
-            Select::make('work_pattern_id')->label('Pattern')->options(fn (): array => WorkPattern::query()->orderBy('name')->pluck('name', 'id')->all())->required(),
-            DatePicker::make('from_date')->label('From')->native(false)->required(),
-            DatePicker::make('to_date')->label('To')->native(false)->nullable()->afterOrEqual('from_date')->helperText('Leave blank while it still applies.'),
+            Select::make('work_pattern_id')->label(__('Pattern'))->options(fn (): array => WorkPattern::query()->orderBy('name')->pluck('name', 'id')->all())->required(),
+            DatePicker::make('from_date')->label(__('From'))->native(false)->required(),
+            DatePicker::make('to_date')->label(__('To'))->native(false)->nullable()->afterOrEqual('from_date')->helperText('Leave blank while it still applies.'),
         ]);
     }
 
@@ -61,12 +61,12 @@ class EmployeeWorkPatternResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('workPattern.name')->label('Pattern'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
+                TextColumn::make('workPattern.name')->label(__('Pattern')),
                 TextColumn::make('from_date')->date('d M Y')->sortable(),
                 TextColumn::make('to_date')->date('d M Y')->placeholder('ongoing'),
             ])
-            ->filters([SelectFilter::make('work_pattern_id')->label('Pattern')->relationship('workPattern', 'name')])
+            ->filters([SelectFilter::make('work_pattern_id')->label(__('Pattern'))->relationship('workPattern', 'name')])
             ->defaultSort('from_date', 'desc')
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }

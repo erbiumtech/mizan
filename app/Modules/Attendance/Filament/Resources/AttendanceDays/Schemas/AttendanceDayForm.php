@@ -31,7 +31,7 @@ class AttendanceDayForm
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -50,8 +50,8 @@ class AttendanceDayForm
                 ->required()
                 ->helperText('"Not marked" is not offered: it is what a day says before anybody answers for it, and it must never be set deliberately.'),
 
-            TimePicker::make('check_in_at')->seconds(false)->label('In'),
-            TimePicker::make('check_out_at')->seconds(false)->label('Out'),
+            TimePicker::make('check_in_at')->seconds(false)->label(__('In')),
+            TimePicker::make('check_out_at')->seconds(false)->label(__('Out')),
 
             TextInput::make('note')->maxLength(255)->columnSpanFull(),
         ]);

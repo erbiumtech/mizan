@@ -27,7 +27,7 @@ class LeaveRequestForm
             Section::make('Who, and what kind')
                 ->schema([
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                             ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -43,7 +43,7 @@ class LeaveRequestForm
                         ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
 
                     Select::make('leave_type_id')
-                        ->label('Leave type')
+                        ->label(__('Leave type'))
                         // The employee's group decides what is offered — docs/saas-launch-plan.md §14.4.
                         ->options(function ($get): array {
                             $employee = $get('employee_id') ? Employee::query()->find($get('employee_id')) : null;
@@ -91,7 +91,7 @@ class LeaveRequestForm
                         ->afterOrEqual('from_date'),
 
                     Toggle::make('is_half_day')
-                        ->label('Half day')
+                        ->label(__('Half day'))
                         ->live()
                         ->visible(fn ($get): bool => static::typeAllowsHalfDay($get('leave_type_id')))
                         ->helperText('One day only. Hours are deliberately not offered — nothing else here measures pay in hours.')
@@ -102,7 +102,7 @@ class LeaveRequestForm
                         }),
 
                     Select::make('half_day_period')
-                        ->label('Which half')
+                        ->label(__('Which half'))
                         ->options([
                             LeaveRequest::HALF_FIRST => 'First half of the day',
                             LeaveRequest::HALF_SECOND => 'Second half of the day',
@@ -121,7 +121,7 @@ class LeaveRequestForm
                     // rather than deducted: a balance that moved when somebody
                     // *asked* would show the same last day as gone to two people.
                     Placeholder::make('leave_balance')
-                        ->label('Left this leave year')
+                        ->label(__('Left this leave year'))
                         ->content(fn (Get $get): string => static::balanceSummary(
                             $get('employee_id'),
                             $get('leave_type_id'),
@@ -138,7 +138,7 @@ class LeaveRequestForm
                         ->helperText('Read by the approver. Say as much or as little as your company expects.'),
 
                     FileUpload::make('document_path')
-                        ->label('Supporting document')
+                        ->label(__('Supporting document'))
                         ->disk('public')
                         ->directory('leave-requests')
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])

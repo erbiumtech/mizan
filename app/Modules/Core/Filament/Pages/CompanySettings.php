@@ -19,6 +19,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -118,6 +119,12 @@ class CompanySettings extends Page
             'attendance_geofence_mode' => setting('attendance.geofence_mode', config('attendance.geofence_mode', 'off')),
             'attendance_remind_missing_punches' => (bool) setting('attendance.remind_missing_punches', config('attendance.remind_missing_punches', false)),
             'performance_rating_scale' => (int) setting('performance.rating_scale', config('performance.rating_scale', 5)),
+            // Languages — docs/saas-launch-plan.md §8.10.
+            'company_locale' => setting('company.locale'),
+            'documents_locale' => setting('documents.locale', 'en'),
+            'documents_locale_kinds' => collect(array_keys(\App\Support\Locales::DOCUMENT_KINDS))
+                ->mapWithKeys(fn (string $kind): array => [$kind => setting("documents.locale.{$kind}")])
+                ->all(),
             ...SettingsSections::fill(),
         ]);
     }
@@ -158,6 +165,9 @@ class CompanySettings extends Page
     {
         $sections = [
             12 => [$this->letterheadSection()],
+            // Languages — docs/saas-launch-plan.md §8.10. Beside the letterhead: both are how the
+            // company presents itself, on screen and on the documents it hands out.
+            13 => [$this->languageSection()],
             15 => [$this->reportsSection()],
             16 => [$this->notificationsSection()],
             20 => [$this->pettyCashSection()],
@@ -190,6 +200,43 @@ class CompanySettings extends Page
      * because Core is the one module always licensed — a preference filed behind a module a company has not
      * bought would be a preference it could not reach.
      */
+    /**
+     * What language the interface and the documents are in — docs/saas-launch-plan.md §8.10.
+     *
+     * The interface default is a company's, and any person may override it on their own profile.
+     * A document's language is the company's alone and may differ per kind: a factory can hand out
+     * Urdu payslips and English bank letters without a support call.
+     */
+    protected function languageSection(): Section
+    {
+        return Section::make('Language')
+            ->description('What people see, and what the documents you hand out are written in.')
+            ->columns(2)
+            ->schema([
+                Select::make('company_locale')
+                    ->label('Interface language')
+                    ->options(\App\Support\Locales::options())
+                    ->placeholder('English')
+                    ->helperText('What everybody sees unless they choose otherwise on their own profile.'),
+
+                Select::make('documents_locale')
+                    ->label('Document language')
+                    ->options(\App\Support\Locales::options())
+                    ->default('en')
+                    ->helperText('English by default: a payslip is often read by a bank, a letter by a next employer.'),
+
+                Fieldset::make('By document kind')
+                    ->columns(3)
+                    ->schema(collect(\App\Support\Locales::DOCUMENT_KINDS)
+                        ->map(fn (string $label, string $kind) => Select::make("documents_locale_kinds.{$kind}")
+                            ->label($label)
+                            ->options(\App\Support\Locales::options())
+                            ->placeholder('Follow the company'))
+                        ->values()
+                        ->all()),
+            ]);
+    }
+
     protected function reportsSection(): Section
     {
         return Section::make('Reports')
@@ -697,6 +744,15 @@ class CompanySettings extends Page
         $settings->set('attendance.geofence_mode', in_array($state['attendance_geofence_mode'] ?? 'off', ['off', 'flag', 'refuse'], true) ? $state['attendance_geofence_mode'] : 'off');
         $settings->set('attendance.remind_missing_punches', (bool) ($state['attendance_remind_missing_punches'] ?? false));
         $settings->set('performance.rating_scale', max(2, (int) ($state['performance_rating_scale'] ?? 5)));
+
+        // Languages — docs/saas-launch-plan.md §8.10.
+        $settings->set('company.locale', \App\Support\Locales::supported($state['company_locale'] ?? null) ? $state['company_locale'] : null);
+        $settings->set('documents.locale', \App\Support\Locales::supported($state['documents_locale'] ?? null) ? $state['documents_locale'] : 'en');
+
+        foreach (array_keys(\App\Support\Locales::DOCUMENT_KINDS) as $kind) {
+            $chosen = $state['documents_locale_kinds'][$kind] ?? null;
+            $settings->set("documents.locale.{$kind}", \App\Support\Locales::supported($chosen) ? $chosen : null);
+        }
 
         if ($changes !== []) {
             activity('CompanySettings')

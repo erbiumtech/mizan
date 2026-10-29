@@ -149,6 +149,8 @@ class PlatformPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                // The person's language, then the company's — docs/saas-launch-plan.md §8.10.
+                \App\Http\Middleware\SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

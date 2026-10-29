@@ -40,9 +40,9 @@ class LeaveGroupResource extends Resource
     {
         return $schema->components([
             TextInput::make('name')->required()->maxLength(80)->unique(ignoreRecord: true)->placeholder('Office staff, Factory floor, Contract'),
-            Toggle::make('is_default')->label('Default group')->helperText('Applies to every employee with no group of their own. One group is the default.'),
+            Toggle::make('is_default')->label(__('Default group'))->helperText('Applies to every employee with no group of their own. One group is the default.'),
             Select::make('types')
-                ->label('Leave types in this group')
+                ->label(__('Leave types in this group'))
                 ->relationship('types', 'label', fn ($query) => $query->where('is_active', true)->orderBy('sort'))
                 ->multiple()
                 ->preload()
@@ -56,9 +56,9 @@ class LeaveGroupResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->sortable(),
-                IconColumn::make('is_default')->boolean()->label('Default'),
-                TextColumn::make('types_count')->counts('types')->label('Types'),
-                TextColumn::make('employees_count')->counts('employees')->label('People'),
+                IconColumn::make('is_default')->boolean()->label(__('Default')),
+                TextColumn::make('types_count')->counts('types')->label(__('Types')),
+                TextColumn::make('employees_count')->counts('employees')->label(__('People')),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }

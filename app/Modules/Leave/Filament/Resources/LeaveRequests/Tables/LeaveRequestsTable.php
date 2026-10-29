@@ -27,24 +27,24 @@ class LeaveRequestsTable
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('leaveType.label')->label('Type')->sortable(),
+                TextColumn::make('leaveType.label')->label(__('Type'))->sortable(),
 
                 TextColumn::make('from_date')
-                    ->label('From')
+                    ->label(__('From'))
                     ->date('d M Y')
                     ->description(fn (LeaveRequest $record): ?string => $record->is_half_day
                         ? ($record->half_day_period === LeaveRequest::HALF_SECOND ? 'second half' : 'first half')
                         : null)
                     ->sortable(),
 
-                TextColumn::make('to_date')->label('To')->date('d M Y')->sortable(),
+                TextColumn::make('to_date')->label(__('To'))->date('d M Y')->sortable(),
 
                 TextColumn::make('days')
-                    ->label('Days')
+                    ->label(__('Days'))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state): string => rtrim(rtrim(number_format((float) $state, 1), '0'), '.'))
                     // The range is not the cost: weekends and holidays inside it are
@@ -72,7 +72,7 @@ class LeaveRequestsTable
                 TextColumn::make('reason')->wrap()->limit(60)->toggleable(),
 
                 TextColumn::make('decider.name')
-                    ->label('Decided by')
+                    ->label(__('Decided by'))
                     ->placeholder('—')
                     ->description(fn (LeaveRequest $record): ?string => $record->decided_at?->format('d M Y'))
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -87,14 +87,14 @@ class LeaveRequestsTable
                 ]),
 
                 SelectFilter::make('leave_type_id')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options(fn (): array => LeaveType::orderBy('sort')->pluck('label', 'id')->all()),
 
                 // Overlap, not containment: leave running from December into January
                 // is this year's problem as much as next year's, and a filter that
                 // only matched contained ranges would hide it in both.
                 Filter::make('current_year')
-                    ->label('Touching this year')
+                    ->label(__('Touching this year'))
                     ->query(fn (Builder $query): Builder => $query->overlapping(
                         now()->startOfYear()->toDateString(),
                         now()->endOfYear()->toDateString(),
@@ -102,14 +102,14 @@ class LeaveRequestsTable
             ])
             ->recordActions([
                 Action::make('document')
-                    ->label('Document')
+                    ->label(__('Document'))
                     ->icon('heroicon-o-paper-clip')
                     ->color('gray')
                     ->visible(fn (LeaveRequest $record): bool => (bool) $record->document_path)
                     ->url(fn (LeaveRequest $record): string => Storage::disk('public')->url($record->document_path), shouldOpenInNewTab: true),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -130,13 +130,13 @@ class LeaveRequestsTable
                     }),
 
                 Action::make('refuse')
-                    ->label('Refuse')
+                    ->label(__('Refuse'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (LeaveRequest $record): bool => auth()->user()?->can('decide', $record) ?? false)
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Reason')
+                            ->label(__('Reason'))
                             ->required()
                             ->rows(3)
                             ->helperText('Sent to the person who asked. Being told no without being told why is what this step exists to avoid.'),
@@ -154,7 +154,7 @@ class LeaveRequestsTable
                     }),
 
                 Action::make('cancel')
-                    ->label('Withdraw')
+                    ->label(__('Withdraw'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('gray')
                     ->requiresConfirmation()

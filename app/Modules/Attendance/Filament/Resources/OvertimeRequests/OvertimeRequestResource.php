@@ -59,7 +59,7 @@ class OvertimeRequestResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
@@ -75,7 +75,7 @@ class OvertimeRequestResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('worked_on')->date('d M Y')->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('minutes')->suffix(' min')->alignRight(),
                 TextColumn::make('reason')->limit(40),
                 TextColumn::make('status')->badge()->color(fn (string $s): string => match ($s) {
@@ -86,7 +86,7 @@ class OvertimeRequestResource extends Resource
             ->filters([SelectFilter::make('status')->options(['pending' => 'Pending', 'approved' => 'Approved', 'refused' => 'Refused'])])
             ->defaultSort('id', 'desc')
             ->recordActions([
-                Action::make('approve')->label('Approve')->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
+                Action::make('approve')->label(__('Approve'))->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
                     ->modalDescription(fn (OvertimeRequest $r): string => 'Adds '.$r->minutes.' minutes to the attendance day. '.(setting('payroll.pay_overtime', config('payroll.pay_overtime', false)) ? 'It is paid with that month\'s payslip.' : 'Overtime pay is switched off, so this is recorded and not paid — the request will say so.'))
                     ->visible(fn (OvertimeRequest $r): bool => auth()->user()?->can('decide', $r) ?? false)
                     ->action(function (OvertimeRequest $record): void {
@@ -100,7 +100,7 @@ class OvertimeRequestResource extends Resource
 
                         Notification::make()->success()->title('Approved. '.$record->fresh()->paymentNote().'.')->send();
                     }),
-                Action::make('refuse')->label('Refuse')->icon('heroicon-o-x-circle')->color('danger')
+                Action::make('refuse')->label(__('Refuse'))->icon('heroicon-o-x-circle')->color('danger')
                     ->visible(fn (OvertimeRequest $r): bool => auth()->user()?->can('decide', $r) ?? false)
                     ->schema([Textarea::make('reason')->required()->rows(2)])
                     ->action(function (OvertimeRequest $record, array $data): void {

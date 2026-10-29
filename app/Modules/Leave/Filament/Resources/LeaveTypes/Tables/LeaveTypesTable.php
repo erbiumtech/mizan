@@ -20,7 +20,7 @@ class LeaveTypesTable
                 TextColumn::make('label')->searchable()->sortable(),
 
                 TextColumn::make('days_per_year')
-                    ->label('Days / year')
+                    ->label(__('Days / year'))
                     ->alignEnd()
                     // Not 0: unlimited and none have no annual figure at all, and
                     // showing 0 would read as an entitlement of nothing.
@@ -29,7 +29,7 @@ class LeaveTypesTable
                     ->sortable(),
 
                 TextColumn::make('accrual_method')
-                    ->label('Earned')
+                    ->label(__('Earned'))
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
@@ -47,10 +47,10 @@ class LeaveTypesTable
                         ? 'needs Attendance — credits nothing today'
                         : null),
 
-                IconColumn::make('is_paid')->label('Paid')->boolean()->sortable(),
+                IconColumn::make('is_paid')->label(__('Paid'))->boolean()->sortable(),
 
                 TextColumn::make('max_carry_forward')
-                    ->label('May carry')
+                    ->label(__('May carry'))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state): string => (float) $state > 0
                         ? rtrim(rtrim(number_format((float) $state, 1), '0'), '.').' days'
@@ -63,21 +63,21 @@ class LeaveTypesTable
                     ->toggleable(),
 
                 TextColumn::make('min_notice_days')
-                    ->label('Notice')
+                    ->label(__('Notice'))
                     ->alignEnd()
                     ->formatStateUsing(fn ($state): string => (int) $state > 0 ? $state.' days' : '—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                IconColumn::make('requires_document')->label('Document')->boolean()->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('requires_document')->label(__('Document'))->boolean()->toggleable(isToggledHiddenByDefault: true),
 
-                IconColumn::make('is_encashable')->label('Encashable')->boolean()->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_encashable')->label(__('Encashable'))->boolean()->toggleable(isToggledHiddenByDefault: true),
 
-                IconColumn::make('is_active')->label('Active')->boolean()->sortable(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean()->sortable(),
             ])
             ->defaultSort('sort')
             ->filters([
-                TernaryFilter::make('is_active')->label('Active'),
-                TernaryFilter::make('is_paid')->label('Paid'),
+                TernaryFilter::make('is_active')->label(__('Active')),
+                TernaryFilter::make('is_paid')->label(__('Paid')),
             ])
             ->recordActions([EditAction::make()])
             ->toolbarActions([

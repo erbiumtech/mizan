@@ -78,7 +78,7 @@ class AttendanceRegularizationResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -98,12 +98,12 @@ class AttendanceRegularizationResource extends Resource
                 ->helperText('A day already past. This is a correction, not a plan.'),
 
             Select::make('requested_status')
-                ->label('What the day actually was')
+                ->label(__('What the day actually was'))
                 ->options(AttendanceDayForm::statusOptions())
                 ->required(),
 
-            TimePicker::make('requested_check_in_at')->seconds(false)->label('In'),
-            TimePicker::make('requested_check_out_at')->seconds(false)->label('Out'),
+            TimePicker::make('requested_check_in_at')->seconds(false)->label(__('In')),
+            TimePicker::make('requested_check_out_at')->seconds(false)->label(__('Out')),
 
             Textarea::make('reason')
                 ->required()
@@ -120,11 +120,11 @@ class AttendanceRegularizationResource extends Resource
                 TextColumn::make('date')->date('d M Y')->sortable(),
 
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('requested_status')->label('Asked for')->badge()->color('gray'),
+                TextColumn::make('requested_status')->label(__('Asked for'))->badge()->color('gray'),
 
                 TextColumn::make('reason')->wrap()->limit(60),
 
@@ -148,7 +148,7 @@ class AttendanceRegularizationResource extends Resource
             ])
             ->recordActions([
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -167,12 +167,12 @@ class AttendanceRegularizationResource extends Resource
                     }),
 
                 Action::make('refuse')
-                    ->label('Refuse')
+                    ->label(__('Refuse'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (AttendanceRegularization $record): bool => auth()->user()?->can('decide', $record) ?? false)
                     ->schema([
-                        Textarea::make('reason')->label('Reason')->required()->rows(2),
+                        Textarea::make('reason')->label(__('Reason'))->required()->rows(2),
                     ])
                     ->action(function (AttendanceRegularization $record, array $data): void {
                         try {

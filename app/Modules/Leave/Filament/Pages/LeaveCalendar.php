@@ -90,8 +90,8 @@ class LeaveCalendar extends Page
     {
         return [
             HelpAction::make('leave-calendar', 'Leave Calendar: Help'),
-            Action::make('previous')->label('Previous')->icon('heroicon-o-chevron-left')->color('gray')->action(fn () => $this->previous()),
-            Action::make('next')->label('Next')->icon('heroicon-o-chevron-right')->color('gray')->iconPosition('after')->action(fn () => $this->next()),
+            Action::make('previous')->label(__('Previous'))->icon('heroicon-o-chevron-left')->color('gray')->action(fn () => $this->previous()),
+            Action::make('next')->label(__('Next'))->icon('heroicon-o-chevron-right')->color('gray')->iconPosition('after')->action(fn () => $this->next()),
         ];
     }
 }

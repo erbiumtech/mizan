@@ -52,6 +52,22 @@ class EditProfile extends BaseEditProfile
                     ->disabled()
                     ->dehydrated(false),
 
+                // The language this person reads — docs/saas-launch-plan.md §8.10. Theirs, not the
+                // company's: an office can run in English while one person reads Urdu.
+                \Filament\Forms\Components\Select::make('locale')
+                    ->label('Language')
+                    ->options(\App\Support\Locales::options())
+                    ->placeholder('Follow the company ('.(\App\Support\Locales::AVAILABLE[\App\Support\Locales::company()]['label'] ?? 'English').')')
+                    ->dehydrated(false)
+                    ->afterStateHydrated(fn ($component) => $component->state($this->getUser()->preferences['locale'] ?? null))
+                    ->live()
+                    ->afterStateUpdated(function ($state): void {
+                        $user = $this->getUser();
+                        $user->preferences = array_merge((array) $user->preferences, ['locale' => \App\Support\Locales::supported($state) ? $state : null]);
+                        $user->save();
+                        \Filament\Notifications\Notification::make()->success()->title('Language saved. It applies on the next page you open.')->send();
+                    }),
+
                 $this->getPasswordFormComponent()
                     ->label('New Password')
                     // Optional now: someone updating only their name should not be

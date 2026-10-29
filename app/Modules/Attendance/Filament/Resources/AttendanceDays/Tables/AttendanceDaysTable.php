@@ -35,7 +35,7 @@ class AttendanceDaysTable
                     ->sortable(),
 
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
@@ -67,17 +67,17 @@ class AttendanceDaysTable
                         : null)
                     ->sortable(),
 
-                TextColumn::make('check_in_at')->label('In')->time('H:i')->placeholder('—')->toggleable(),
-                TextColumn::make('check_out_at')->label('Out')->time('H:i')->placeholder('—')->toggleable(),
+                TextColumn::make('check_in_at')->label(__('In'))->time('H:i')->placeholder('—')->toggleable(),
+                TextColumn::make('check_out_at')->label(__('Out'))->time('H:i')->placeholder('—')->toggleable(),
 
                 TextColumn::make('worked_minutes')
-                    ->label('Worked')
+                    ->label(__('Worked'))
                     ->formatStateUsing(fn ($state): string => static::hours((int) $state))
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('overtime_minutes')
-                    ->label('Overtime')
+                    ->label(__('Overtime'))
                     ->formatStateUsing(fn ($state): string => static::hours((int) $state))
                     ->alignEnd()
                     // Said plainly until phase 3a is switched on, so nobody assumes a
@@ -89,7 +89,7 @@ class AttendanceDaysTable
                     ->toggleable(),
 
                 TextColumn::make('late_minutes')
-                    ->label('Late')
+                    ->label(__('Late'))
                     ->formatStateUsing(fn ($state): string => (int) $state > 0 ? $state.' min' : '—')
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -102,7 +102,7 @@ class AttendanceDaysTable
             ->defaultSort('date', 'desc')
             ->filters([
                 SelectFilter::make('location')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())
                     ->query(fn ($query, array $data) => filled($data['value'] ?? null)
                         ? $query->whereHas('employee', fn ($q) => $q->where('location_id', $data['value']))
@@ -123,11 +123,11 @@ class AttendanceDaysTable
                 // nobody answered for" is the question a payroll clerk has to be able
                 // to ask before trusting a month.
                 Filter::make('unknown')
-                    ->label('Not marked')
+                    ->label(__('Not marked'))
                     ->query(fn (Builder $query): Builder => $query->unknown()),
 
                 Filter::make('this_month')
-                    ->label('This month')
+                    ->label(__('This month'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->whereBetween('date', [
                         now()->startOfMonth()->toDateString(),

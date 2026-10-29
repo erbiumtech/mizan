@@ -58,6 +58,27 @@ class PdfDocument implements Responsable
      * A page of exactly this size — a cheque leaf, a label — rather than a named
      * format. Millimetres, because that is what a ruler against the paper gives.
      */
+    /** The document kind whose locale this page is rendered in — docs/saas-launch-plan.md §8.10. */
+    protected ?string $documentKind = null;
+
+    public function documentKind(string $kind): static
+    {
+        $this->documentKind = $kind;
+
+        return $this;
+    }
+
+    /** The language this document is written in: the kind's, the company's, then English. */
+    public function locale(): string
+    {
+        return \App\Support\Locales::forDocument($this->documentKind);
+    }
+
+    public function isRtl(): bool
+    {
+        return \App\Support\Locales::isRtl($this->locale());
+    }
+
     public function paperSize(float $widthMm, float $heightMm): static
     {
         $this->paperSize = [$widthMm, $heightMm];
@@ -128,6 +149,27 @@ class PdfDocument implements Responsable
     }
 
     /**
+     * Right-to-left renders on Chromium only — docs/saas-launch-plan.md §8.10.
+     *
+     * Dompdf does not shape Arabic-script text: joined letters come out as
+     * disjointed glyphs. Printing that would hand a bank something it bounces, so
+     * the document refuses and says why rather than producing it.
+     *
+     * @throws \RuntimeException
+     */
+    protected function assertEngineCanRender(): void
+    {
+        if ($this->isRtl() && $this->driver() === 'dompdf') {
+            throw new \RuntimeException(
+                'This document is set to '.\App\Support\Locales::AVAILABLE[$this->locale()]['label']
+                .', which needs the Chromium renderer: the fallback engine cannot shape Arabic-script text and '
+                .'would print disjointed letters. Install Node and Chromium on this server, or set the document '
+                .'language back to English under Company Settings.'
+            );
+        }
+    }
+
+    /**
      * The PDF's bytes.
      *
      * **Never empty.** An engine that produces nothing — Chrome that could not start, a Dompdf that
@@ -138,6 +180,8 @@ class PdfDocument implements Responsable
      */
     public function raw(): string
     {
+        $this->assertEngineCanRender();
+
         $contents = $this->driver() === 'browsershot'
             ? (string) base64_decode($this->browsershot()->base64(), true)
             : $this->dompdf();
@@ -220,12 +264,37 @@ class PdfDocument implements Responsable
      */
     public function html(): string
     {
-        return View::make($this->view, $this->data + ['pdfEngine' => $this->driver()])->render();
+        return $this->inLocale(fn (): string => View::make($this->view, $this->data + $this->viewContext($this->driver()))->render());
+    }
+
+    /**
+     * The template's language context — docs/saas-launch-plan.md §8.10. A template reads
+     * `$documentLocale` and `$documentRtl` to set `dir` and the typeface; `$pdfEngine` is
+     * the per-engine override it already took.
+     *
+     * @return array<string, mixed>
+     */
+    protected function viewContext(string $engine): array
+    {
+        return ['pdfEngine' => $engine, 'documentLocale' => $this->locale(), 'documentRtl' => $this->isRtl()];
+    }
+
+    /** Render inside the document's language, whatever the person asking reads. */
+    protected function inLocale(callable $render): mixed
+    {
+        $was = app()->getLocale();
+        app()->setLocale($this->locale());
+
+        try {
+            return $render();
+        } finally {
+            app()->setLocale($was);
+        }
     }
 
     protected function browsershot(): PdfBuilder
     {
-        $pdf = BrowsershotPdf::view($this->view, $this->data + ['pdfEngine' => 'browsershot'])
+        $pdf = BrowsershotPdf::view($this->view, $this->data + $this->viewContext('browsershot'))
             ->format($this->format)
             ->withBrowsershot(function (Browsershot $b): void {
                 $b->setNodeBinary(config('services.node.binary'))

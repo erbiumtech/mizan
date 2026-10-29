@@ -29,7 +29,9 @@ class ApiRoutes
             // registered under both prefixes would collide and break route:cache.
             Route::prefix($prefix)
                 ->name($prefix === 'api' ? '' : 'v1.')
-                ->middleware($middleware)
+                // Accept-Language first on the API — docs/saas-launch-plan.md §8.10. Prepended, so a
+                // route group's own middleware cannot forget it.
+                ->middleware([\App\Http\Middleware\SetLocale::class.':api', ...$middleware])
                 ->group($routes);
         }
     }

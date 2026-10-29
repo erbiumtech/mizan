@@ -52,18 +52,18 @@ class WorkPatternResource extends Resource
                 ->helperText('e.g. "Office, Mon-Fri" or "Factory, six days".'),
 
             Toggle::make('is_default')
-                ->label('Use for employees with no pattern of their own')
+                ->label(__('Use for employees with no pattern of their own'))
                 ->helperText('Only one pattern can be the default; setting this one clears the other.'),
 
             // A break and a grace per pattern — docs/saas-launch-plan.md §14.4.
-            TextInput::make('break_minutes')->label('Unpaid break (minutes)')->numeric()->minValue(0)->maxValue(240)->default(0)
+            TextInput::make('break_minutes')->label(__('Unpaid break (minutes)'))->numeric()->minValue(0)->maxValue(240)->default(0)
                 ->helperText('Taken off the worked minutes before overtime is counted.'),
-            TextInput::make('grace_minutes')->label('Late grace (minutes)')->numeric()->minValue(0)->maxValue(120)
+            TextInput::make('grace_minutes')->label(__('Late grace (minutes)'))->numeric()->minValue(0)->maxValue(120)
                 ->helperText('Blank uses the company setting.'),
 
             Repeater::make('days')
                 ->relationship()
-                ->label('The week')
+                ->label(__('The week'))
                 ->schema([
                     TextInput::make('weekday')
                         ->numeric()
@@ -102,13 +102,13 @@ class WorkPatternResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
 
                 TextColumn::make('days_count')
-                    ->label('Working days / week')
+                    ->label(__('Working days / week'))
                     ->state(fn (WorkPattern $record): int => $record->days->where('is_working', true)->count()),
 
-                IconColumn::make('is_default')->label('Default')->boolean(),
+                IconColumn::make('is_default')->label(__('Default'))->boolean(),
 
                 TextColumn::make('assignments_count')
-                    ->label('Employees')
+                    ->label(__('Employees'))
                     ->counts('assignments')
                     ->alignEnd(),
             ])

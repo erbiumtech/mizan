@@ -14,7 +14,7 @@ class ListAttendanceRegularizations extends ListRecords
     {
         return [
             HelpAction::make('attendance-corrections', 'Attendance Corrections: Help'),
-            \Filament\Actions\CreateAction::make()->label('Ask for a correction'),
+            \Filament\Actions\CreateAction::make()->label(__('Ask for a correction')),
         ];
     }
 }

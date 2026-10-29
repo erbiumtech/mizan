@@ -16,7 +16,7 @@ class ListLeaveEntitlements extends ListRecords
             HelpAction::make('leave-balances', 'Leave Balances: Help'),
             // Creating one by hand is for a type added mid-year, or opening data at
             // set-up. The nightly command is what normally writes these.
-            \Filament\Actions\CreateAction::make()->label('Add an entitlement'),
+            \Filament\Actions\CreateAction::make()->label(__('Add an entitlement')),
         ];
     }
 }
