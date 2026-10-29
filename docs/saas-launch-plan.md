@@ -96,8 +96,45 @@ construction modules; the Claude command bar and receipt reader; custom fields, 
 the command palette.
 
 Their pricing, for §3 and §12: Starter $3, Growth $6, Enterprise $9 per active employee per
-month; a ten-seat minimum; annual at a sixth off; a 14-day Growth trial with no card; only
-active employees billed; full export available for 90 days after cancellation.
+month; a ten-seat minimum; annual at a sixth off; a 14-day trial with no card — Growth on the
+pricing page, but a workspace opened 2026-10-29 started on Enterprise; only active employees
+billed; full export available for 90 days after cancellation.
+
+### 1.1 What the signed-in product adds to their feature page
+
+Walked through 2026-10-29 in a trial workspace: every admin and portal screen (186 routes, read
+from the app's own router), then again after entering six employees, a month's attendance,
+leave, a loan, an expense claim, an appraisal cycle, a separation and an October payroll. The
+feature page undersells the product; these exist behind the login and on neither list above.
+
+| Area | Theirs | Here |
+|---|---|---|
+| Integrations | Self-serve API keys with scopes and a 7-day usage count; signed webhooks per event type | Sanctum tokens issued at login only; no webhooks |
+| Bank file | A file designer per company account: header, row and trailer templates over `{{iban}}`, `{{amountMinor}}` and twenty other variables, date format, line ending | One format, Standard Chartered iPayments |
+| Verification | Postal address check with a code, portal locked 30 days after the letter is requested; SMS codes for the mobile and the emergency contact; a mandatory-document list with an HR review queue; photo approval | Profile change requests only |
+| Brand Studio | ID cards with a serial, a two-year expiry and a QR validity check, refused without a photo; visiting-card orders with a print queue; email signatures with set-up steps for five mail apps | None |
+| Movements | Transfers and promotions as records; an increment issues its own letter | Dated `employee_settings` |
+| Payroll | Contribution funds paid to their own account through the bank file, with a PF ledger per employee; salary-history CSV import; bonus and adjustment screens; approved expense claims reimbursed in the next run; loan types with schedules, interest, pause and resume | PF is a pay component; advances have one type |
+| Leave | Encashment outside separation; cyclic accrual (X days per Y worked, for residential staff), negative balance, minimum service, a document after N days; the statutory set seeded per country (Hajj after 60 months' service, Umrah, maternity) | Encashment in the final settlement only |
+| Lifecycle | Onboarding: a 13-task checklist per hire whose tasks run, link out, or close themselves from the records; separation: a clearance list fed by assets, loans and PF, with a live settlement preview (encashment at basic ÷ 30, gratuity from five years) | Checklist templates and the final settlement (`Lifecycle`) |
+| Contracts | Draft → active, accepted by the employee in the portal, witnesses, signed-copy upload, IP disclosure; templates in five languages | None (§13) |
+| Performance | A composite of quality and volume fed by attendance, tasks, daily reports and, where linked, GitHub reviews and WHMCS tickets; the model grades each daily report and says what it could not verify | §8.1–§8.4, being built |
+| Notifications | About seventy email templates in fourteen groups, each with a visual editor, five languages and a test send; per-category in-app switches; email and SMS logs | `EmailTemplate` |
+| Privacy | Subject-access export and erasure per employee; "Back up now", keeping the last fourteen snapshots | Company export (Phase 4); backups server-side |
+| Commercial | Seats held above headcount and billed at the higher; offer codes; AppSumo lifetime deals; an affiliate programme; an operator console with email journeys to tenants and backup schedules | §3–§6 |
+
+What the same data showed about their arithmetic, which is what §2 sells against:
+
+- **A run before month-end charges the unmarked days.** Processed on the 29th, every employee
+  lost the 29th–31st at the calendar-day rate (450,000 × 3/31 = 43,548) while the entry showed
+  0 absent days, and their pre-payroll check reported no findings.
+- **Approved overtime never reached the run.** Three approved hours, 0 on the entry.
+- **"Gross" leaves out bonuses, adjustments and reimbursements**, so net plus deductions came
+  to 37,300 above it.
+- **Four lates cost a day's pay**, by a lates-per-absence setting.
+- **A Thursday–Friday leave counted four days**, the weekend after it included.
+- **A line manager on the employee role cannot approve a report's expense claim**; the approval
+  is a permission, not the reporting line. HR approves without it.
 
 ## 2. Decision: what this is sold as
 
@@ -1050,7 +1087,8 @@ One feature test per concern, named for the sentence it asserts:
 
 ## 12. Decisions still open
 
-1. **Which plan a trial starts on.** Operentra trials Growth. Trialling Business instead shows
+1. **Which plan a trial starts on.** Operentra's pricing page says it trials Growth; a workspace
+   opened on 2026-10-29 started on Enterprise, its top tier (§1.1). Trialling Business instead shows
    the ledger, which is the thing nobody else has — at the cost of a customer who then chooses
    Growth losing screens they saw.
 2. **Demo data in a trial.** The demo seeders exist. A trial with sample payslips and a trial
