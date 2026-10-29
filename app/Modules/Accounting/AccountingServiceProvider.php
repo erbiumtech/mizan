@@ -130,6 +130,7 @@ class AccountingServiceProvider extends ServiceProvider
         \App\Modules\Accounting\Models\Cheque::class => ChequePolicy::class,
         \App\Modules\Accounting\Models\ChequeBook::class => ChequeBookPolicy::class,
         \App\Modules\Accounting\Models\ChequeLayout::class => ChequeLayoutPolicy::class,
+        \App\Modules\Accounting\Models\BankFileFormat::class => \App\Modules\Accounting\Policies\BankFileFormatPolicy::class,
         ScheduledTransaction::class => ScheduledTransactionPolicy::class,
         ScheduledTransactionLine::class => ScheduledTransactionLinePolicy::class,
         TransactionType::class => TransactionTypePolicy::class,

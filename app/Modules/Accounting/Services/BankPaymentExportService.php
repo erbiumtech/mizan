@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Services;
 
+use App\Modules\Accounting\Models\BankFileFormat;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Employees\Models\Employee;
@@ -35,6 +36,14 @@ class BankPaymentExportService
      */
     public function exportPayments(Collection $payments, ?string $valueDate = null): string
     {
+        // The account's format decides — docs/saas-launch-plan.md §14.1. A designed one renders through
+        // the templates; the shipped iPayments writer is the rest of this method, as it always was.
+        $format = BankFileFormat::forAccount((int) ($payments->first()?->company_bank_account_id ?? 0) ?: null);
+
+        if ($format->isTemplate()) {
+            return $this->renderWith($format, $payments, $valueDate);
+        }
+
         $valueDate = $valueDate
             ? Carbon::parse($valueDate)->format('d/m/Y')
             : now()->format('d/m/Y');
@@ -120,10 +129,60 @@ class BankPaymentExportService
         return implode("\r\n", $rows)."\r\n";
     }
 
-    public function paymentFileName(?string $typeName = null): string
+    public function paymentFileName(?string $typeName = null, ?int $companyBankAccountId = null): string
     {
         $slug = $typeName ? strtolower(str_replace(' ', '-', $typeName)) : 'all';
+        $format = BankFileFormat::forAccount($companyBankAccountId);
 
-        return sprintf('bank-payments-%s-%s.csv', $slug, now()->format('Y-m-d'));
+        return sprintf('bank-payments-%s-%s.%s', $slug, now()->format('Y-m-d'), $format->isTemplate() ? ($format->extension ?: 'csv') : 'csv');
+    }
+
+    /** The designed format over the same rows the writer would get — docs/saas-launch-plan.md §14.1. */
+    public function renderWith(BankFileFormat $format, Collection $payments, ?string $valueDate = null, bool $preview = false): string
+    {
+        $config = setting('ipayments');
+        $valueDate = $valueDate ? Carbon::parse($valueDate)->toDateString() : now()->toDateString();
+        $payments = EloquentCollection::make($payments->values()->all());
+        $payments->loadMissing(['companyBankAccount', 'payslip', 'payable', 'withholdingDeduction']);
+        $payments->loadMorph('payable', [
+            Employee::class => ['bank', 'user'],
+            Beneficiary::class => ['bank'],
+        ]);
+
+        $rows = [];
+
+        foreach ($payments as $payment) {
+            $beneficiary = $payment->beneficiaryDetails();
+            $payable = $payment->payable;
+
+            $rows[] = [
+                'beneficiary_name' => $beneficiary['name'],
+                'beneficiary_account' => $beneficiary['account'],
+                'beneficiary_iban' => $payable?->iban ?? $payable?->iban_no ?? '',
+                'beneficiary_account_no' => $payable?->account_no ?? $payable?->bank_account_no ?? '',
+                'beneficiary_bank_code' => $beneficiary['bank_code'],
+                'beneficiary_bank_name' => $beneficiary['bank_short_code'],
+                'beneficiary_id' => $beneficiary['id_number'],
+                'beneficiary_email' => $beneficiary['email'],
+                'beneficiary_phone' => $beneficiary['phone'],
+                'address_1' => $beneficiary['address_1'],
+                'address_2' => $beneficiary['address_2'],
+                'amount' => $payment->transferAmount(),
+                'details' => (string) $payment->details,
+                'reference' => $payment->reference ?: sprintf('PMT-%06d', $payment->id),
+                'value_date' => $payment->value_date?->toDateString() ?? $valueDate,
+                'debit_account' => $payment->companyBankAccount?->account_no ?: ($config['debit_account'] ?? ''),
+                'debit_bank_id' => $config['debit_bank_id'] ?? '',
+                'currency' => $config['currency'] ?? 'PKR',
+            ];
+        }
+
+        return app(BankFileRenderer::class)->render($format, $rows, [
+            'value_date' => $valueDate,
+            'debit_account' => $payments->first()?->companyBankAccount?->account_no ?: ($config['debit_account'] ?? ''),
+            'debit_bank_id' => $config['debit_bank_id'] ?? '',
+            'currency' => $config['currency'] ?? 'PKR',
+            'company_name' => \App\Support\CompanyLetterhead::data()['legal_name'] ?? '',
+        ], $preview);
     }
 }

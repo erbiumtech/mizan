@@ -315,6 +315,9 @@ class PayrollRun extends Model
             'locked_at' => now(),
         ]);
 
+        // The month's provident-fund contributions, into the ledger — docs/saas-launch-plan.md §14.1.
+        app(\App\Modules\Payroll\Services\ProvidentFund::class)->recordContributions($this);
+
         return $this;
     }
 

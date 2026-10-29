@@ -35,7 +35,7 @@ class FinalSettlement extends Model
 
     protected $fillable = [
         'employee_id', 'left_on', 'notice_recovery', 'leave_encashment_days',
-        'leave_encashment_amount', 'gratuity_amount', 'outstanding_advance',
+        'leave_encashment_amount', 'gratuity_amount', 'provident_fund_amount', 'outstanding_advance',
         'unreturned_asset_value', 'other_deductions', 'net_amount', 'status',
         'approved_by', 'approved_at', 'payslip_id', 'payment_id', 'notes',
     ];
@@ -46,6 +46,7 @@ class FinalSettlement extends Model
         'leave_encashment_days' => 'decimal:1',
         'leave_encashment_amount' => 'decimal:2',
         'gratuity_amount' => 'decimal:2',
+        'provident_fund_amount' => 'decimal:2',
         'outstanding_advance' => 'decimal:2',
         'unreturned_asset_value' => 'decimal:2',
         'other_deductions' => 'decimal:2',
@@ -89,6 +90,7 @@ class FinalSettlement extends Model
         return round(
             (float) $this->leave_encashment_amount
             + (float) $this->gratuity_amount
+            + (float) $this->provident_fund_amount
             - (float) $this->notice_recovery
             - (float) $this->outstanding_advance
             - (float) $this->unreturned_asset_value

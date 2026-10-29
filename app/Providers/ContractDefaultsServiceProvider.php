@@ -66,5 +66,7 @@ class ContractDefaultsServiceProvider extends ServiceProvider
 
         $this->app->bind(WorkingDayCalendar::class, ConfiguredWeekendCalendar::class);
         $this->app->bind(PeriodLock::class, NeverLocked::class);
+        // Payroll keeps the fund; without it a settlement has no fund to pay out — docs/saas-launch-plan.md §14.1.
+        $this->app->bind(\App\Support\Contracts\ProvidentFundBalance::class, \App\Support\Contracts\NoProvidentFund::class);
     }
 }

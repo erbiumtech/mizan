@@ -9,6 +9,7 @@ use App\Modules\Leave\Models\LeaveType;
 use App\Modules\Leave\Services\LeaveBalance;
 use App\Modules\Lifecycle\Models\FinalSettlement;
 use App\Modules\Lifecycle\Models\IssuedAsset;
+use App\Support\Contracts\ProvidentFundBalance;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 
@@ -27,7 +28,7 @@ use InvalidArgumentException;
  */
 class FinalSettlementBuilder
 {
-    public function __construct(private readonly LeaveBalance $balance) {}
+    public function __construct(private readonly LeaveBalance $balance, private readonly ProvidentFundBalance $providentFund) {}
 
     /**
      * Build (or rebuild) the draft settlement for an employee.
@@ -55,6 +56,8 @@ class FinalSettlementBuilder
             'leave_encashment_days' => $encashment['days'],
             'leave_encashment_amount' => $encashment['amount'],
             'gratuity_amount' => $this->gratuity($employee, $leftOn),
+            // The fund's balance to the leaving date — docs/saas-launch-plan.md §14.1. Nothing without Payroll.
+            'provident_fund_amount' => $this->providentFund->balanceFor($employee->getKey(), $leftOn),
             'outstanding_advance' => $this->outstandingAdvance($employee),
             'unreturned_asset_value' => $this->unreturnedAssets($employee),
         ]);

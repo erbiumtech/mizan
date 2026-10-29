@@ -55,6 +55,7 @@ class NavigationTree
                 'Payroll Months',
                 'Payslips',
                 'Pay Adjustments',
+                'Provident Fund',
                 'Advances',
                 'Expense Claims',
                 'Final Settlements',
@@ -100,6 +101,7 @@ class NavigationTree
                 'Cheques',
                 'Cheque Books',
                 'Cheque Layouts',
+                'Bank File Formats',
             ],
             'Assets & loans' => [
                 'Fixed Assets',

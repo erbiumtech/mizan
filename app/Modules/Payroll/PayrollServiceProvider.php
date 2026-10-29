@@ -65,11 +65,15 @@ class PayrollServiceProvider extends ServiceProvider
         \App\Modules\Payroll\Models\SalaryStructure::class => \App\Modules\Payroll\Policies\SalaryStructurePolicy::class,
         \App\Modules\Payroll\Models\SalaryStructureLine::class => \App\Modules\Payroll\Policies\SalaryStructureLinePolicy::class,
         \App\Modules\Payroll\Models\PayAdjustment::class => \App\Modules\Payroll\Policies\PayAdjustmentPolicy::class,
+        \App\Modules\Payroll\Models\ProvidentFundEntry::class => \App\Modules\Payroll\Policies\ProvidentFundEntryPolicy::class,
         SalarySlab::class => SalarySlabPolicy::class,
     ];
 
     public function register(): void
     {
+        // The provident-fund ledger answers the settlement's question — docs/saas-launch-plan.md §14.1.
+        $this->app->bind(\App\Support\Contracts\ProvidentFundBalance::class, \App\Modules\Payroll\Services\ProvidentFund::class);
+
         // Payroll is what makes a month settled, so it answers the question.
         // Attendance asks the contract and no longer imports PayrollRun.
         $this->app->bind(

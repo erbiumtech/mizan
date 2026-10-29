@@ -57,6 +57,8 @@ class TenantBaselineSeeder extends Seeder
             // The three badges with rules — docs/saas-launch-plan.md §8.9. Nothing happens
             // until the company licenses Performance; the rows merely wait.
             BadgeSeeder::class,
+            // The shipped bank-file format as a row — docs/saas-launch-plan.md §14.1.
+            BankFileFormatSeeder::class,
         ];
     }
 

@@ -2,7 +2,9 @@
 
 namespace App\Modules\Payroll\Services;
 
+use App\Modules\Accounting\Models\BankFileFormat;
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Services\BankFileRenderer;
 use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
@@ -87,6 +89,42 @@ class SalaryBankExportService
     public function export(string $month, FiscalYear $fiscalYear, ?string $valueDate = null, ?array $payslipIds = null): string
     {
         $payments = $this->paymentsForMonth($month, $fiscalYear, $payslipIds);
+
+        // The company's designed format, if it has one — docs/saas-launch-plan.md §14.1. Salaries go
+        // out from the configured debit account, so the default format is the one that applies.
+        $format = BankFileFormat::forAccount(null);
+
+        if ($format->isTemplate()) {
+            $config = setting('ipayments');
+            $date = $valueDate ? Carbon::parse($valueDate)->toDateString() : now()->toDateString();
+
+            return app(BankFileRenderer::class)->render($format, array_map(fn (array $p, int $i): array => [
+                'beneficiary_name' => $p['name'],
+                'beneficiary_account' => $p['account'],
+                'beneficiary_iban' => $p['payslip']->employee->iban_no ?? '',
+                'beneficiary_account_no' => $p['payslip']->employee->bank_account_no ?? '',
+                'beneficiary_bank_code' => $p['bank_code'],
+                'beneficiary_bank_name' => $p['bank_short_code'],
+                'beneficiary_id' => $p['nic'],
+                'beneficiary_email' => $p['email'],
+                'beneficiary_phone' => $p['phone'],
+                'address_1' => $p['address_1'],
+                'address_2' => $p['address_2'],
+                'amount' => $p['amount'],
+                'details' => $p['details'],
+                'reference' => sprintf('SAL-%s-%03d', strtoupper(substr($month, 0, 3)), $i + 1),
+                'value_date' => $date,
+                'debit_account' => $config['debit_account'] ?? '',
+                'debit_bank_id' => $config['debit_bank_id'] ?? '',
+                'currency' => $config['currency'] ?? 'PKR',
+            ], $payments, array_keys($payments)), [
+                'value_date' => $date,
+                'debit_account' => $config['debit_account'] ?? '',
+                'debit_bank_id' => $config['debit_bank_id'] ?? '',
+                'currency' => $config['currency'] ?? 'PKR',
+                'company_name' => \App\Support\CompanyLetterhead::data()['legal_name'] ?? '',
+            ]);
+        }
         $valueDate = $valueDate
             ? Carbon::parse($valueDate)->format('d/m/Y')
             : now()->format('d/m/Y');

@@ -100,6 +100,11 @@ class FinalSettlementResource extends Resource
                         ->numeric()
                         ->default(0)
                         ->helperText('One month per completed year as shipped — a convention, not a statement of law. Confirm what applies where you operate.'),
+                    TextInput::make('provident_fund_amount')
+                        ->label('Provident fund')
+                        ->numeric()
+                        ->default(0)
+                        ->helperText('The fund\'s balance to the leaving date, from the ledger. Zero when the company runs no fund here.'),
                 ])
                 ->columns(3),
 

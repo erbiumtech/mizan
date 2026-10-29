@@ -184,7 +184,15 @@ class BankPaymentFile extends Page
                     $payments = app(PaymentService::class);
                     $reference = $payments->nextBatchReference($this->batchPrefix());
 
-                    $csv = app(BankPaymentExportService::class)->exportPayments($rows, $this->data['value_date'] ?? null);
+                    try {
+                        $csv = app(BankPaymentExportService::class)->exportPayments($rows, $this->data['value_date'] ?? null);
+                    } catch (\InvalidArgumentException $e) {
+                        // A designed format changed since its last preview — docs/saas-launch-plan.md §14.1.
+                        Notification::make()->danger()->title('Nothing was released')->body($e->getMessage())->persistent()->send();
+
+                        return null;
+                    }
+
                     $released = $payments->release($rows, $reference);
 
                     Notification::make()
@@ -195,7 +203,7 @@ class BankPaymentFile extends Page
 
                     $typeCode = $this->data['type'] ?? null;
                     $typeName = $typeCode ? TransactionType::byCode($typeCode)?->name : null;
-                    $fileName = app(BankPaymentExportService::class)->paymentFileName($typeName);
+                    $fileName = app(BankPaymentExportService::class)->paymentFileName($typeName, (int) ($rows->first()?->company_bank_account_id ?? 0) ?: null);
 
                     return response()->streamDownload(fn () => print ($csv), $fileName, [
                         'Content-Type' => 'text/csv; charset=UTF-8',
