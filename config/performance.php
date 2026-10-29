@@ -54,4 +54,17 @@ return [
         1 => 0.0,
     ],
 
+    /*
+    | The rating scale — docs/saas-launch-plan.md §14.6. A company setting of the same
+    | name overrides it; five points is the convention, not a rule.
+    */
+    'rating_scale' => env('PERFORMANCE_RATING_SCALE', 5),
+
+    'rating_labels' => [
+        1 => '1 — Below expectations',
+        2 => '2 — Partly meets',
+        3 => '3 — Meets expectations',
+        4 => '4 — Exceeds',
+        5 => '5 — Outstanding',
+    ],
 ];

@@ -51,6 +51,9 @@ class PerformanceServiceProvider extends ServiceProvider
     private const POLICIES = [
         ReviewCycle::class => ReviewCyclePolicy::class,
         Review::class => ReviewPolicy::class,
+        \App\Modules\Performance\Models\ReviewTemplate::class => \App\Modules\Performance\Policies\ReviewTemplatePolicy::class,
+        \App\Modules\Performance\Models\ReviewCompetency::class => \App\Modules\Performance\Policies\ReviewTemplatePolicy::class,
+        \App\Modules\Performance\Models\ReviewRating::class => \App\Modules\Performance\Policies\ReviewRatingPolicy::class,
         Goal::class => GoalPolicy::class,
         OneToOne::class => OneToOnePolicy::class,
         // The ledger and recurring tasks — docs/saas-launch-plan.md §8.1, §8.2.

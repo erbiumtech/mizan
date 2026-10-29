@@ -28,3 +28,14 @@ it is shared, the employee cannot see it at all — not even in a list.
 
 **View**: `ReviewView` — your own reviews once shared, and your reports'. **Create /
 update**: `ReviewCreate`, `ReviewUpdate`.
+
+## Competencies, the reviewer, and what a review can propose
+
+With a template in use, the **Competencies** tab is where the rating happens:
+the employee fills their column, the reviewer theirs, and the weighted
+averages become the two ratings on the review. **Change reviewer** fixes the
+wrong manager before the review is shared. **Propose increment** takes either
+a percentage or a new basic wage, and raises a change request an approver
+decides — nothing reaches a payslip on its own. A **promotion
+recommendation** is recorded here and nowhere else: the promotion itself is a
+dated row you record on the employee when it is decided.

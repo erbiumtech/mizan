@@ -23,6 +23,9 @@ return [
     'models' => [
         'App\\Models\\ReviewCycle' => \App\Modules\Performance\Models\ReviewCycle::class,
         'App\\Models\\Review' => \App\Modules\Performance\Models\Review::class,
+        'App\\Models\\ReviewTemplate' => \App\Modules\Performance\Models\ReviewTemplate::class,
+        'App\\Models\\ReviewCompetency' => \App\Modules\Performance\Models\ReviewCompetency::class,
+        'App\\Models\\ReviewRating' => \App\Modules\Performance\Models\ReviewRating::class,
         'App\\Models\\Goal' => \App\Modules\Performance\Models\Goal::class,
         'App\\Models\\OneToOne' => \App\Modules\Performance\Models\OneToOne::class,
         // The ledger and recurring tasks — docs/saas-launch-plan.md §8.1, §8.2.
@@ -38,6 +41,7 @@ return [
     'resources' => [
         'App\\Filament\\Resources\\ReviewCycles\\ReviewCycleResource' => \App\Modules\Performance\Filament\Resources\ReviewCycles\ReviewCycleResource::class,
         'App\\Filament\\Resources\\Reviews\\ReviewResource' => \App\Modules\Performance\Filament\Resources\Reviews\ReviewResource::class,
+        'App\\Filament\\Resources\\ReviewTemplates\\ReviewTemplateResource' => \App\Modules\Performance\Filament\Resources\ReviewTemplates\ReviewTemplateResource::class,
         'App\\Filament\\Resources\\Goals\\GoalResource' => \App\Modules\Performance\Filament\Resources\Goals\GoalResource::class,
         'App\\Filament\\Resources\\OneToOnes\\OneToOneResource' => \App\Modules\Performance\Filament\Resources\OneToOnes\OneToOneResource::class,
         'App\\Filament\\Resources\\RecurringTasks\\RecurringTaskResource' => \App\Modules\Performance\Filament\Resources\RecurringTasks\RecurringTaskResource::class,

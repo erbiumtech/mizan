@@ -21,10 +21,10 @@ class Interview extends Model
 
     protected $fillable = [
         'application_id', 'round', 'scheduled_at', 'mode', 'panel',
-        'location', 'outcome', 'notes', 'interviewer_employee_id',
+        'location', 'outcome', 'notes', 'interviewer_employee_id', 'interviewer_user_ids',
     ];
 
-    protected $casts = ['round' => 'integer', 'scheduled_at' => 'datetime'];
+    protected $casts = ['round' => 'integer', 'scheduled_at' => 'datetime', 'interviewer_user_ids' => 'array'];
 
     protected $attributes = ['round' => 1, 'mode' => 'in_person', 'outcome' => self::OUTCOME_PENDING];
 
@@ -36,5 +36,16 @@ class Interview extends Model
     public function interviewer(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'interviewer_employee_id');
+    }
+
+    /** The panel's feedback — docs/saas-launch-plan.md §14.6, one row per interviewer. */
+    public function feedback(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(InterviewFeedback::class);
+    }
+
+    public function isDecided(): bool
+    {
+        return $this->outcome !== self::OUTCOME_PENDING;
     }
 }

@@ -32,15 +32,16 @@ class Review extends Model
     public const STATUS_ACKNOWLEDGED = 'acknowledged';
 
     protected $fillable = [
-        'review_cycle_id', 'employee_id', 'reviewer_employee_id', 'status',
-        'self_rating', 'manager_rating', 'final_rating', 'strengths', 'improvements',
-        'submitted_at', 'shared_at', 'acknowledged_at',
+        'review_cycle_id', 'review_template_id', 'employee_id', 'reviewer_employee_id', 'status',
+        'self_rating', 'manager_rating', 'final_rating', 'promotion_recommended', 'promotion_designation',
+        'strengths', 'improvements', 'submitted_at', 'shared_at', 'acknowledged_at',
     ];
 
     protected $casts = [
         'self_rating' => 'integer',
         'manager_rating' => 'integer',
         'final_rating' => 'integer',
+        'promotion_recommended' => 'boolean',
         'submitted_at' => 'datetime',
         'shared_at' => 'datetime',
         'acknowledged_at' => 'datetime',
@@ -57,6 +58,17 @@ class Review extends Model
     public function incrementRequest(): HasOne
     {
         return $this->hasOne(EmployeeChangeRequest::class, 'review_id')->latestOfMany();
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(ReviewTemplate::class, 'review_template_id');
+    }
+
+    /** The per-competency ratings — docs/saas-launch-plan.md §14.6. */
+    public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ReviewRating::class);
     }
 
     public function employee(): BelongsTo

@@ -5,15 +5,7 @@ namespace App\Modules\Recruitment\Policies;
 use App\Modules\Core\Models\User;
 use App\Modules\Recruitment\Models\Interview;
 
-/**
- * Applicants, their applications, interviews and offers share ONE permission group.
- *
- * They are one pipeline, and nobody grants "may see an applicant but not their
- * interview". More importantly, splitting them would invite a role that can read CVs
- * without being trusted with the rest — and a CV is the most sensitive record here.
- *
- * The Employee role holds none of this.
- */
+/** An interview travels with its application; the panel reads its own. */
 class InterviewPolicy
 {
     public function viewAny(User $user): bool
@@ -21,23 +13,23 @@ class InterviewPolicy
         return $user->hasPermissionTo('ApplicantView');
     }
 
-    public function view(User $user, Interview $record): bool
+    public function view(User $user, Interview $interview): bool
     {
         return $user->hasPermissionTo('ApplicantView');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('ApplicantCreate');
+        return $user->hasPermissionTo('ApplicantUpdate');
     }
 
-    public function update(User $user, Interview $record): bool
+    public function update(User $user, Interview $interview): bool
     {
         return $user->hasPermissionTo('ApplicantUpdate');
     }
 
-    public function delete(User $user, Interview $record): bool
+    public function delete(User $user, Interview $interview): bool
     {
-        return $user->hasPermissionTo('ApplicantDelete');
+        return $user->hasPermissionTo('ApplicantUpdate') && ! $interview->isDecided();
     }
 }

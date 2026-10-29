@@ -23,6 +23,7 @@ return [
         'App\\Models\\Applicant' => \App\Modules\Recruitment\Models\Applicant::class,
         'App\\Models\\Application' => \App\Modules\Recruitment\Models\Application::class,
         'App\\Models\\Interview' => \App\Modules\Recruitment\Models\Interview::class,
+        'App\\Models\\InterviewFeedback' => \App\Modules\Recruitment\Models\InterviewFeedback::class,
         'App\\Models\\Offer' => \App\Modules\Recruitment\Models\Offer::class,
     ],
 
@@ -30,6 +31,7 @@ return [
         'App\\Filament\\Resources\\Vacancies\\VacancyResource' => \App\Modules\Recruitment\Filament\Resources\Vacancies\VacancyResource::class,
         'App\\Filament\\Resources\\Applicants\\ApplicantResource' => \App\Modules\Recruitment\Filament\Resources\Applicants\ApplicantResource::class,
         'App\\Filament\\Resources\\Applications\\ApplicationResource' => \App\Modules\Recruitment\Filament\Resources\Applications\ApplicationResource::class,
+        'App\\Filament\\Resources\\Interviews\\InterviewResource' => \App\Modules\Recruitment\Filament\Resources\Interviews\InterviewResource::class,
     ],
 
     'permission_groups' => [

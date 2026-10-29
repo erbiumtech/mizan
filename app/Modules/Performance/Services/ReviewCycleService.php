@@ -59,6 +59,13 @@ class ReviewCycleService
                 $review->reviewer_employee_id = $employee->manager_id;
                 $review->save();
 
+                // The company's template, with a rating row per competency — docs/saas-launch-plan.md §14.6.
+                $template = \App\Modules\Performance\Models\ReviewTemplate::forCycle();
+
+                if ($template !== null && $template->weightProblem() === null) {
+                    app(ReviewTemplates::class)->apply($review, $template);
+                }
+
                 $raised++;
             }
         );
@@ -144,6 +151,46 @@ class ReviewCycleService
      * the appraisal report can say which proposals became packages. The review
      * never writes the package; an approver does. §4.5's rule, kept.
      */
+    /**
+     * Who reviews this person — docs/saas-launch-plan.md §14.6. A reviewer who has left,
+     * or the wrong manager on the day the cycle opened, is the ordinary reason.
+     */
+    public function changeReviewer(Review $review, ?int $reviewerEmployeeId): Review
+    {
+        if ($review->shared_at !== null) {
+            throw new InvalidArgumentException('This review has been shared with the employee; the reviewer on it is part of what they read.');
+        }
+
+        if ($reviewerEmployeeId !== null && (int) $reviewerEmployeeId === (int) $review->employee_id) {
+            throw new InvalidArgumentException('Somebody cannot review themselves.');
+        }
+
+        $review->update(['reviewer_employee_id' => $reviewerEmployeeId]);
+
+        return $review->refresh();
+    }
+
+    /**
+     * The increase as a figure rather than a percentage — docs/saas-launch-plan.md §14.6.
+     *
+     * @param  float  $amount  the new basic wage
+     */
+    public function proposeIncrementOfAmount(Review $review, float $amount, string $startDate, ?\App\Modules\Core\Models\User $by = null): EmployeeChangeRequest
+    {
+        $current = EmployeeSetting::query()->where('employee_id', $review->employee_id)->orderByDesc('start_date')->first();
+
+        if (! $current || (float) $current->basic_wage <= 0) {
+            throw new InvalidArgumentException('This employee has no salary package to raise.');
+        }
+
+        if ($amount <= (float) $current->basic_wage) {
+            throw new InvalidArgumentException('An increment raises the basic wage; '.number_format($amount, 2).' is not above '.number_format((float) $current->basic_wage, 2).'.');
+        }
+
+        // Expressed as the percentage it is, so one path writes the change request.
+        return $this->proposeIncrement($review, ($amount / (float) $current->basic_wage - 1) * 100, $startDate, $by);
+    }
+
     public function proposeIncrement(Review $review, float $percent, string $startDate, ?\App\Modules\Core\Models\User $by = null): EmployeeChangeRequest
     {
         if (! modules()->enabled('payroll')) {

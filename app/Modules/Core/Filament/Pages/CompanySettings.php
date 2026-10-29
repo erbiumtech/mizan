@@ -117,6 +117,7 @@ class CompanySettings extends Page
             'attendance_retention_months' => setting('attendance.retention_months'),
             'attendance_geofence_mode' => setting('attendance.geofence_mode', config('attendance.geofence_mode', 'off')),
             'attendance_remind_missing_punches' => (bool) setting('attendance.remind_missing_punches', config('attendance.remind_missing_punches', false)),
+            'performance_rating_scale' => (int) setting('performance.rating_scale', config('performance.rating_scale', 5)),
             ...SettingsSections::fill(),
         ]);
     }
@@ -525,6 +526,13 @@ class CompanySettings extends Page
                 Toggle::make('attendance_remind_missing_punches')
                     ->label('Remind employees who clocked in and not out')
                     ->helperText('Each evening, a message to anybody with a clock-in and no clock-out that day. Off for a company that marks days by hand.'),
+                // The appraisal scale — docs/saas-launch-plan.md §14.6.
+                Select::make('performance_rating_scale')
+                    ->label('Appraisal rating scale')
+                    ->options([3 => '1 to 3', 4 => '1 to 4', 5 => '1 to 5', 10 => '1 to 10'])
+                    ->default(5)
+                    ->visible(fn (): bool => modules()->enabled('performance'))
+                    ->helperText('The highest a competency or a review can be rated.'),
             ]);
     }
 
@@ -688,6 +696,7 @@ class CompanySettings extends Page
         $settings->set('attendance.retention_months', (int) ($state['attendance_retention_months'] ?? 36));
         $settings->set('attendance.geofence_mode', in_array($state['attendance_geofence_mode'] ?? 'off', ['off', 'flag', 'refuse'], true) ? $state['attendance_geofence_mode'] : 'off');
         $settings->set('attendance.remind_missing_punches', (bool) ($state['attendance_remind_missing_punches'] ?? false));
+        $settings->set('performance.rating_scale', max(2, (int) ($state['performance_rating_scale'] ?? 5)));
 
         if ($changes !== []) {
             activity('CompanySettings')

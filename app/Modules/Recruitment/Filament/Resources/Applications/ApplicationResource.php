@@ -133,6 +133,40 @@ class ApplicationResource extends Resource
                     ->options(fn (): array => Vacancy::orderBy('title')->pluck('title', 'id')->all()),
             ])
             ->recordActions([
+                // Schedule an interview — docs/saas-launch-plan.md §14.6. Scheduling one reaches the
+                // interview stage; the panel's feedback and the outcome live on the interview.
+                Action::make('scheduleInterview')
+                    ->label('Schedule interview')
+                    ->icon('heroicon-o-calendar-days')
+                    ->color('gray')
+                    ->visible(fn (\App\Modules\Recruitment\Models\Application $record): bool => in_array($record->stage, \App\Modules\Recruitment\Models\Application::OPEN_STAGES, true)
+                        && (auth()->user()?->can('ApplicantUpdate') ?? false))
+                    ->schema([
+                        \Filament\Forms\Components\DateTimePicker::make('scheduled_at')->label('When')->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(11, 0)),
+                        \Filament\Forms\Components\Select::make('interviewers')
+                            ->label('Interviewers')
+                            ->multiple()
+                            ->options(fn (): array => \App\Modules\Core\Models\User::query()->where('status', 1)->orderBy('name')->pluck('name', 'id')->all())
+                            ->searchable()
+                            ->required(),
+                        \Filament\Forms\Components\Select::make('mode')->options(['in_person' => 'In person', 'phone' => 'Phone', 'video' => 'Video'])->default('in_person')->required(),
+                        \Filament\Forms\Components\TextInput::make('location')->maxLength(190)->placeholder('Head office, meeting room 2; or a link'),
+                    ])
+                    ->action(function (\App\Modules\Recruitment\Models\Application $record, array $data): void {
+                        try {
+                            $interview = app(\App\Modules\Recruitment\Services\Interviews::class)->schedule($record, $data['scheduled_at'], (array) $data['interviewers'], $data['mode'], $data['location'] ?? null);
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()
+                            ->title('Round '.$interview->round.' scheduled.')
+                            ->body('The panel has been told, and each has a feedback form on the interview.')
+                            ->send();
+                    }),
+
                 Action::make('makeOffer')
                     ->label('Make an offer')
                     ->icon('heroicon-o-document-text')

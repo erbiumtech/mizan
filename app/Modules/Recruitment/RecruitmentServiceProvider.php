@@ -3,6 +3,7 @@
 namespace App\Modules\Recruitment;
 
 use App\Modules\Recruitment\Filament\Pages\HiringFunnel;
+use App\Modules\Recruitment\Filament\Settings\CareersSettingsSection;
 use App\Modules\Recruitment\Models\Applicant;
 use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Interview;
@@ -13,14 +14,13 @@ use App\Modules\Recruitment\Policies\ApplicationPolicy;
 use App\Modules\Recruitment\Policies\InterviewPolicy;
 use App\Modules\Recruitment\Policies\OfferPolicy;
 use App\Modules\Recruitment\Policies\VacancyPolicy;
+use App\Modules\Recruitment\Services\OfferLetter;
 use App\Modules\Recruitment\Support\RecruitmentReports;
+use App\Support\DocumentVerification;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
-use App\Support\TenantFileAccess;
-use App\Modules\Recruitment\Filament\Settings\CareersSettingsSection;
-use App\Support\DocumentVerification;
-use App\Modules\Recruitment\Services\OfferLetter;
 use App\Support\SettingsSections;
+use App\Support\TenantFileAccess;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +31,10 @@ class RecruitmentServiceProvider extends ServiceProvider
         Vacancy::class => VacancyPolicy::class,
         Applicant::class => ApplicantPolicy::class,
         Application::class => ApplicationPolicy::class,
+
+        \App\Modules\Recruitment\Models\Interview::class => \App\Modules\Recruitment\Policies\InterviewPolicy::class,
+
+        \App\Modules\Recruitment\Models\InterviewFeedback::class => \App\Modules\Recruitment\Policies\InterviewFeedbackPolicy::class,
         Interview::class => InterviewPolicy::class,
         Offer::class => OfferPolicy::class,
     ];

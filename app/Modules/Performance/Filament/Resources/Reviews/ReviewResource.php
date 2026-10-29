@@ -10,7 +10,9 @@ use App\Modules\Performance\Filament\Resources\Reviews\Pages\EditReview;
 use App\Modules\Performance\Filament\Resources\Reviews\Pages\ListReviews;
 use App\Modules\Performance\Models\Review;
 use App\Modules\Performance\Models\ReviewCycle;
+use App\Modules\Performance\Models\ReviewTemplate;
 use App\Modules\Performance\Services\ReviewCycleService;
+use App\Modules\Performance\Services\ReviewTemplates;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use BackedEnum;
@@ -98,10 +100,27 @@ class ReviewResource extends Resource
                         ->searchable()
                         ->required(),
 
-                    TextInput::make('self_rating')->numeric()->minValue(1)->maxValue(5),
-                    TextInput::make('manager_rating')->numeric()->minValue(1)->maxValue(5),
-                    TextInput::make('final_rating')->numeric()->minValue(1)->maxValue(5)
+                    // The competencies decide these two when a template is in use — docs/saas-launch-plan.md §14.6.
+                    Select::make('review_template_id')
+                        ->label('Template')
+                        ->options(fn (): array => ReviewTemplate::query()->active()->orderBy('name')->pluck('name', 'id')->all())
+                        ->helperText('Its competencies are rated on the tab below; the two ratings here follow from them.'),
+
+                    Select::make('self_rating')->label('Self rating')->options(ReviewTemplates::scaleOptions())
+                        ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null)
+                        ->helperText(fn (?Review $record): ?string => $record?->review_template_id !== null ? 'Weighted from the competencies.' : null),
+                    Select::make('manager_rating')->label('Manager rating')->options(ReviewTemplates::scaleOptions())
+                        ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null),
+                    Select::make('final_rating')->options(ReviewTemplates::scaleOptions())
                         ->helperText('After calibration. An opinion — it reaches no payslip.'),
+
+                    // A recommendation, and nothing more: a promotion is a dated job-history row somebody records.
+                    \Filament\Forms\Components\Toggle::make('promotion_recommended')->label('Recommend a promotion'),
+                    Select::make('promotion_designation')
+                        ->label('To')
+                        ->options(fn (): array => options('employees.designation'))
+                        ->visible(fn (Get $get): bool => (bool) $get('promotion_recommended'))
+                        ->helperText('Recorded here only. Record the promotion itself on the employee when it is decided.'),
 
                     Textarea::make('strengths')->rows(3)->columnSpanFull(),
                     Textarea::make('improvements')->rows(3)->columnSpanFull(),
@@ -170,6 +189,12 @@ class ReviewResource extends Resource
 
                 TextColumn::make('cycle.name')->label('Cycle')->sortable(),
                 TextColumn::make('reviewer.display_label')->label('Reviewer')->placeholder('—')->toggleable(),
+
+                TextColumn::make('promotion_recommended')
+                    ->label('Promotion')
+                    ->state(fn (Review $r): string => $r->promotion_recommended ? ('recommended'.($r->promotion_designation ? ': '.$r->promotion_designation : '')) : '')
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextColumn::make('final_rating')
                     ->label('Rating')
@@ -249,6 +274,32 @@ class ReviewResource extends Resource
                  * new-package kind, approved under Employee Change Requests; the review
                  * never writes the package.
                  */
+                Action::make('changeReviewer')
+                    ->label('Change reviewer')
+                    ->icon('heroicon-o-user-minus')
+                    ->color('gray')
+                    ->visible(fn (Review $record): bool => $record->shared_at === null && (auth()->user()?->can('update', $record) ?? false))
+                    ->schema([
+                        Select::make('reviewer_employee_id')
+                            ->label('Reviewer')
+                            ->options(fn (Review $record): array => \App\Modules\Employees\Models\Employee::query()->where('is_active', true)->whereKeyNot($record->employee_id)->with('user')->orderBy('employee_id')->get()
+                                ->mapWithKeys(fn ($e): array => [$e->getKey() => $e->display_label])->all())
+                            ->searchable()
+                            ->nullable(),
+                    ])
+                    ->fillForm(fn (Review $record): array => ['reviewer_employee_id' => $record->reviewer_employee_id])
+                    ->action(function (Review $record, array $data): void {
+                        try {
+                            app(ReviewCycleService::class)->changeReviewer($record, $data['reviewer_employee_id'] ? (int) $data['reviewer_employee_id'] : null);
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title('Reviewer changed.')->send();
+                    }),
+
                 Action::make('increment')
                     ->label(fn (Review $record): string => match ($record->incrementRequest?->status) {
                         null, EmployeeChangeRequest::STATUS_REJECTED => 'Propose increment',
@@ -272,13 +323,28 @@ class ReviewResource extends Resource
                             .'This raises a change request an approver decides; nothing changes until they do.';
                     })
                     ->schema([
+                        // A percentage or a figure — docs/saas-launch-plan.md §14.6. Both raise the same request.
+                        \Filament\Forms\Components\Radio::make('basis')
+                            ->label('Give the increase as')
+                            ->options(['percent' => 'A percentage', 'amount' => 'A new basic wage'])
+                            ->default('percent')
+                            ->inline()
+                            ->live(),
                         TextInput::make('percent')
                             ->label('Increase (%)')
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
-                            ->required()
+                            ->visible(fn (Get $get): bool => ($get('basis') ?? 'percent') === 'percent')
+                            ->required(fn (Get $get): bool => ($get('basis') ?? 'percent') === 'percent')
                             ->default(fn (Review $record): float => app(ReviewCycleService::class)->suggestedPercent($record)),
+                        TextInput::make('amount')
+                            ->label('New basic wage')
+                            ->numeric()
+                            ->minValue(1)
+                            ->visible(fn (Get $get): bool => $get('basis') === 'amount')
+                            ->required(fn (Get $get): bool => $get('basis') === 'amount')
+                            ->default(fn (Review $record): ?float => app(ReviewCycleService::class)->suggestedIncrement($record)['suggested']),
                         DatePicker::make('start_date')
                             ->label('From')
                             ->native(false)
@@ -288,7 +354,9 @@ class ReviewResource extends Resource
                     ->modalSubmitActionLabel('Propose')
                     ->action(function (Review $record, array $data): void {
                         try {
-                            app(ReviewCycleService::class)->proposeIncrement($record, (float) $data['percent'], (string) $data['start_date'], auth()->user());
+                            ($data['basis'] ?? 'percent') === 'amount'
+                                ? app(ReviewCycleService::class)->proposeIncrementOfAmount($record, (float) $data['amount'], (string) $data['start_date'], auth()->user())
+                                : app(ReviewCycleService::class)->proposeIncrement($record, (float) $data['percent'], (string) $data['start_date'], auth()->user());
                         } catch (InvalidArgumentException $e) {
                             Notification::make()->danger()->title($e->getMessage())->send();
 
@@ -312,5 +380,11 @@ class ReviewResource extends Resource
             'create' => CreateReview::route('/create'),
             'edit' => EditReview::route('/{record}/edit'),
         ];
+    }
+
+    public static function getRelations(): array
+    {
+        // The competencies — docs/saas-launch-plan.md §14.6.
+        return [\App\Modules\Performance\Filament\Resources\Reviews\RelationManagers\RatingsRelationManager::class];
     }
 }
