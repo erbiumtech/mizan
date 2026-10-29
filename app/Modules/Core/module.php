@@ -37,6 +37,10 @@ return [
         // Every mail and WhatsApp message the application sent — docs/saas-launch-plan.md §14.7. Core
         // because every module sends something and none of them owns the question "did it go".
         'App\\Models\\MessageLog' => \App\Modules\Core\Models\MessageLog::class,
+        // Outgoing webhooks — docs/saas-launch-plan.md §14.9. Core for the reason MessageLog is:
+        // every module fires events and none of them owns "where does this company listen".
+        'App\\Models\\WebhookEndpoint' => \App\Modules\Core\Models\WebhookEndpoint::class,
+        'App\\Models\\WebhookDelivery' => \App\Modules\Core\Models\WebhookDelivery::class,
         'App\\Models\\Comment' => \App\Modules\Core\Models\Comment::class,
         'App\\Models\\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
         'App\\Models\\Holiday' => \App\Modules\Core\Models\Holiday::class,
@@ -62,6 +66,8 @@ return [
         'App\\Filament\\Resources\\CustomFields\\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
         'App\\Filament\\Resources\\ActivityLogs\\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
         'App\\Filament\\Resources\\MessageLogs\\MessageLogResource' => \App\Modules\Core\Filament\Resources\MessageLogs\MessageLogResource::class,
+        'App\\Filament\\Resources\\WebhookEndpoints\\WebhookEndpointResource' => \App\Modules\Core\Filament\Resources\WebhookEndpoints\WebhookEndpointResource::class,
+        'App\\Filament\\Resources\\WebhookDeliveries\\WebhookDeliveryResource' => \App\Modules\Core\Filament\Resources\WebhookDeliveries\WebhookDeliveryResource::class,
         'App\\Filament\\Resources\\Comments\\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
         'App\\Filament\\Resources\\FiscalYears\\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
         // Scheduled reports — Phase 8, item 1 of the reports plan.
@@ -89,6 +95,8 @@ return [
         // about the business, which is why it is here and not in a module.
         'App\\Filament\\Pages\\ReportDeliveries' => \App\Modules\Core\Filament\Pages\ReportDeliveries::class,
         'App\\Filament\\Pages\\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
+        // Each person's own API keys — docs/saas-launch-plan.md §14.9.
+        'App\\Filament\\Pages\\ApiKeys' => \App\Modules\Core\Filament\Pages\ApiKeys::class,
         'App\\Filament\\Pages\\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
         // What the company pays for — docs/saas-launch-plan.md §6. Landlord columns on a tenant page.
         'App\\Filament\\Pages\\Subscription' => \App\Modules\Core\Filament\Pages\Subscription::class,
@@ -103,6 +111,7 @@ return [
         'Permission',
         'ActivityLog',
         'MessageLog',
+        'Webhook',
         'Comment',
         'FiscalYear',
         'Holiday',
@@ -148,6 +157,9 @@ return [
         // Who the application wrote to, and whether it arrived — §14.7. Administrator only by default:
         // the log is a list of everybody's email addresses and phone numbers in one screen.
         ['name' => 'MessageLogView', 'group' => 'MessageLog'],
+        // Where this company's records are sent, and what went — §14.9. Administrator only by
+        // default: an endpoint is a standing instruction to post payroll events to an address.
+        ['name' => 'WebhookManage', 'group' => 'Webhook'],
         // Share a saved table view with the whole company (TableViewPolicy::publish).
         // Administrator holds it with everything else; no other seeded role lists it.
         ['name' => 'TableViewPublish', 'group' => 'TableView'],

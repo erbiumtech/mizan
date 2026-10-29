@@ -452,6 +452,8 @@ class User extends Authenticatable implements \Illuminate\Contracts\Translation\
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
             'preferences' => 'array',
+            // Stamped by LogAuthenticationEvent, never fillable — docs/saas-launch-plan.md §14.9.
+            'last_login_at' => 'datetime',
         ];
     }
 }

@@ -82,6 +82,8 @@ class CoreServiceProvider extends ServiceProvider
         FiscalYear::class => FiscalYearPolicy::class,
         Holiday::class => HolidayPolicy::class,
         MessageLog::class => MessageLogPolicy::class,
+        \App\Modules\Core\Models\WebhookEndpoint::class => \App\Modules\Core\Policies\WebhookEndpointPolicy::class,
+        \App\Modules\Core\Models\WebhookDelivery::class => \App\Modules\Core\Policies\WebhookDeliveryPolicy::class,
         WorkLocation::class => WorkLocationPolicy::class,
         OptionValue::class => OptionValuePolicy::class,
         ReportSchedule::class => ReportSchedulePolicy::class,
@@ -158,6 +160,35 @@ class CoreServiceProvider extends ServiceProvider
 
         // Every mail in the message log, the envelope and never the body.
         Event::listen(MessageSent::class, LogSentMail::class);
+
+        /*
+         * Outgoing webhooks — plan §14.9.
+         *
+         * Registered in `booted()`, not here. The event types come from every module's
+         * provider and this has to listen for all of them: wiring it mid-boot would
+         * subscribe to whatever had registered by the time Core happened to boot, which
+         * is alphabetical accident.
+         *
+         * One listener per type rather than per event class, because two types may share
+         * an event and each needs its own payload.
+         */
+        \App\Support\Webhooks::register(
+            'user.created',
+            'A user account was created',
+            \App\Events\UserCreated::class,
+            fn (object $event): array => [
+                'id' => $event->user->getKey(),
+                'name' => $event->user->name,
+                'email' => $event->user->email,
+            ],
+            sort: 10,
+        );
+
+        $this->app->booted(function (): void {
+            foreach (\App\Support\Webhooks::all() as $key => $type) {
+                Event::listen($type['event'], fn (object $event) => (new \App\Modules\Core\Listeners\FanOutWebhooks($key))->handle($event));
+            }
+        });
 
         // Document verification — plan §7.5: the two gates on Company Settings.
         SettingsSections::register('documents.verification', DocumentVerificationSettingsSection::class, 85);

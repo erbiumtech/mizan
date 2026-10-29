@@ -78,6 +78,7 @@ class Subscription extends Page
             'operator' => app(Subscriptions::class)->isConfigured()
                 ? app(Subscriptions::class)->operator()->name
                 : null,
+            'reservedSeats' => (int) ($company?->seats_reserved ?? 0),
             'export' => $company ? $this->latestExport($company) : null,
             // The snapshots this company has — docs/saas-launch-plan.md §14.8.
             'snapshots' => $company ? $this->snapshots($company) : [],
@@ -173,6 +174,91 @@ class Subscription extends Page
                         ->body('It appears in the list on this page when it finishes.')
                         ->send();
                 }),
+            /**
+             * Changing plan — plan §14.9.
+             *
+             * `Company::changePlan()` grants the new plan's modules and never revokes, so
+             * moving down leaves what was already licensed switched on. That is deliberate
+             * and it is also why the price is not touched here: the agreement's unit price
+             * is the customer's, agreed with a person, and the meter has never written it.
+             * Somebody has to edit the agreement, and the modal says so.
+             */
+            Action::make('changePlan')
+                ->label('Change plan')
+                ->icon('heroicon-o-arrows-right-left')
+                ->color('gray')
+                ->visible(fn (): bool => Plans::names() !== [] && static::company()?->plan !== null)
+                ->modalHeading('Change plan')
+                ->modalDescription('The new plan\'s modules are switched on straight away. Nothing is switched '
+                    .'off: a module you already have stays. The price on your agreement does not change by '
+                    .'itself — tell us and we will reissue it.')
+                ->modalSubmitActionLabel('Change it')
+                ->schema([
+                    Select::make('plan')
+                        ->label('Plan')
+                        ->options(Plans::options())
+                        ->default(fn (): ?string => static::company()?->plan)
+                        ->required()
+                        ->native(false),
+                ])
+                ->action(function (array $data): void {
+                    $company = static::company();
+
+                    if ($company === null) {
+                        return;
+                    }
+
+                    try {
+                        $company->changePlan((string) $data['plan']);
+                    } catch (Throwable $e) {
+                        Notification::make()->danger()->title('Plan not changed')->body($e->getMessage())->send();
+
+                        return;
+                    }
+
+                    Notification::make()->success()
+                        ->title('Now on '.Plans::label($data['plan']))
+                        ->body('Any new modules are available immediately.')
+                        ->send();
+                }),
+
+            /**
+             * Seats held above headcount — plan §14.9.
+             *
+             * For a company that is about to hire and does not want its bill to lurch. It
+             * raises the floor and never the ceiling: hire thirty into twenty held seats
+             * and thirty is billed, so this cannot be used to cap what is owed.
+             */
+            Action::make('holdSeats')
+                ->label('Hold seats')
+                ->icon('heroicon-o-user-plus')
+                ->color('gray')
+                ->visible(fn (): bool => static::company()?->billing_contact_id !== null)
+                ->modalHeading('Hold seats above your headcount')
+                ->modalDescription('Your bill counts the greatest of your active employees, the seats you hold, '
+                    .'and the plan minimum. Holding seats smooths a month you are hiring into; it never reduces '
+                    .'what you are billed when the people arrive.')
+                ->modalSubmitActionLabel('Save')
+                ->schema([
+                    TextInput::make('seats_reserved')
+                        ->label('Seats held')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(10000)
+                        ->default(fn (): int => (int) (static::company()?->seats_reserved ?? 0))
+                        ->helperText(fn (): string => 'You have '.(int) (static::company()?->seats ?? 0)
+                            .' active employee(s) and the plan minimum is '.Plans::minimumSeats().'.'),
+                ])
+                ->action(function (array $data): void {
+                    $company = static::company();
+
+                    $company?->forceFill(['seats_reserved' => max(0, (int) ($data['seats_reserved'] ?? 0))])->save();
+
+                    Notification::make()->success()
+                        ->title('Saved. It applies on the next meter, on the 1st.')
+                        ->send();
+                }),
+
             Action::make('customDomain')
                 ->label('Custom domain')
                 ->icon('heroicon-o-globe-alt')

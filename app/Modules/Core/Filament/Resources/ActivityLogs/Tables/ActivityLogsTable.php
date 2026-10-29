@@ -2,9 +2,14 @@
 
 namespace App\Modules\Core\Filament\Resources\ActivityLogs\Tables;
 
+use App\Modules\Core\Models\User;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Activitylog\Models\Activity;
 
 class ActivityLogsTable
@@ -48,8 +53,53 @@ class ActivityLogsTable
                     ->dateTime()
                     ->sortable(),
             ])
+            /*
+             * Filters — docs/saas-launch-plan.md §14.9.
+             *
+             * The audit log is a screen somebody opens with a question already in mind —
+             * "who changed that payslip", "what happened on the 3rd" — and until now it
+             * answered by making them page through everything. The platform panel's copy of
+             * this table has had these since it was written.
+             */
             ->filters([
-                //
+                SelectFilter::make('log_name')
+                    ->label('Record')
+                    ->options(fn (): array => Activity::query()
+                        ->whereNotNull('log_name')
+                        ->distinct()
+                        ->orderBy('log_name')
+                        ->pluck('log_name', 'log_name')
+                        ->all()),
+
+                SelectFilter::make('event')
+                    ->options(['created' => 'Created', 'updated' => 'Updated', 'deleted' => 'Deleted']),
+
+                SelectFilter::make('causer_id')
+                    ->label('Who')
+                    ->searchable()
+                    ->options(fn (): array => User::query()->inCurrentCompany()->orderBy('name')->pluck('name', 'id')->all()),
+
+                Filter::make('when')
+                    ->schema([
+                        DatePicker::make('from')->label('From')->native(false),
+                        DatePicker::make('until')->label('Until')->native(false),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when($data['from'] ?? null, fn (Builder $q, string $from): Builder => $q->whereDate('created_at', '>=', $from))
+                        ->when($data['until'] ?? null, fn (Builder $q, string $until): Builder => $q->whereDate('created_at', '<=', $until)))
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['from'] ?? null) {
+                            $indicators[] = 'From '.$data['from'];
+                        }
+
+                        if ($data['until'] ?? null) {
+                            $indicators[] = 'Until '.$data['until'];
+                        }
+
+                        return $indicators;
+                    }),
             ])
             /*
              * The whole row opens the entry in a modal.

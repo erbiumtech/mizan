@@ -168,6 +168,10 @@ class NavigationTree
                 // Email Wording rather than in a branch of its own: both are about the post going out, and a
                 // branch holding one screen is a heading that says the screen's name twice.
                 'Scheduled Reports',
+                // Where this company's own systems listen, and each person's own keys —
+                // plan §14.9. Beside the post going out, which is what they are.
+                'Webhooks',
+                'API Keys',
             ],
             'Payroll setup' => [
                 'Pay Components',

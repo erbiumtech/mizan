@@ -104,6 +104,9 @@ class Company extends SpatieTenant
         'billing_contact_id',
         'billing_currency',
         'seats',
+        // Seats held above headcount — docs/saas-launch-plan.md §14.9. The bill counts
+        // the greatest of headcount, this and the plan minimum.
+        'seats_reserved',
         'seats_counted_at',
         'suspended_reason',
         'domain',
@@ -114,6 +117,7 @@ class Company extends SpatieTenant
         'tax_exempt_approved_on' => 'date',
         'trial_ends_at' => 'datetime',
         'seats' => 'integer',
+        'seats_reserved' => 'integer',
         'seats_counted_at' => 'datetime',
     ];
 

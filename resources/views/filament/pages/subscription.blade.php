@@ -28,6 +28,18 @@
                     @if($s['countedAt'])<span class="text-sm text-gray-500 dark:text-gray-400">counted {{ $s['countedAt'] }}</span>@endif
                 </dd>
             </div>
+            {{-- Held seats — docs/saas-launch-plan.md §14.9. Shown only once somebody holds any. --}}
+            @if($s['reservedSeats'] > 0)
+                <div>
+                    <dt class="text-sm text-gray-500 dark:text-gray-400">Seats held</dt>
+                    <dd class="font-medium">
+                        {{ $s['reservedSeats'] }}
+                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                            billed when it is more than your headcount
+                        </span>
+                    </dd>
+                </div>
+            @endif
             <div>
                 <dt class="text-sm text-gray-500 dark:text-gray-400">Price</dt>
                 <dd class="font-medium">

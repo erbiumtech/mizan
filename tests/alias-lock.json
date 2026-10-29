@@ -242,6 +242,8 @@
         "App\\Models\\Variation": "App\\Modules\\ConstructionContracts\\Models\\Variation",
         "App\\Models\\VariationItem": "App\\Modules\\ConstructionContracts\\Models\\VariationItem",
         "App\\Models\\WbsNode": "App\\Modules\\Construction\\Models\\WbsNode",
+        "App\\Models\\WebhookDelivery": "App\\Modules\\Core\\Models\\WebhookDelivery",
+        "App\\Models\\WebhookEndpoint": "App\\Modules\\Core\\Models\\WebhookEndpoint",
         "App\\Models\\WipSnapshot": "App\\Modules\\ConstructionCosting\\Models\\WipSnapshot",
         "App\\Models\\WithholdingDeduction": "App\\Modules\\Accounting\\Models\\WithholdingDeduction",
         "App\\Models\\WithholdingSection": "App\\Modules\\Accounting\\Models\\WithholdingSection",
@@ -397,6 +399,8 @@
         "App\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource": "App\\Modules\\Accounting\\Filament\\Resources\\TransactionTypes\\TransactionTypeResource",
         "App\\Filament\\Resources\\Users\\UserResource": "App\\Modules\\Core\\Filament\\Resources\\Users\\UserResource",
         "App\\Filament\\Resources\\Vacancies\\VacancyResource": "App\\Modules\\Recruitment\\Filament\\Resources\\Vacancies\\VacancyResource",
+        "App\\Filament\\Resources\\WebhookDeliveries\\WebhookDeliveryResource": "App\\Modules\\Core\\Filament\\Resources\\WebhookDeliveries\\WebhookDeliveryResource",
+        "App\\Filament\\Resources\\WebhookEndpoints\\WebhookEndpointResource": "App\\Modules\\Core\\Filament\\Resources\\WebhookEndpoints\\WebhookEndpointResource",
         "App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource": "App\\Modules\\Attendance\\Filament\\Resources\\WorkPatterns\\WorkPatternResource"
     },
     "pages": {
@@ -407,6 +411,7 @@
         "App\\Filament\\Pages\\AdvancesOutstanding": "App\\Modules\\Advances\\Filament\\Pages\\AdvancesOutstanding",
         "App\\Filament\\Pages\\AgedPayables": "App\\Modules\\Invoicing\\Filament\\Pages\\AgedPayables",
         "App\\Filament\\Pages\\AgedReceivables": "App\\Modules\\Invoicing\\Filament\\Pages\\AgedReceivables",
+        "App\\Filament\\Pages\\ApiKeys": "App\\Modules\\Core\\Filament\\Pages\\ApiKeys",
         "App\\Filament\\Pages\\AssetsInHand": "App\\Modules\\Lifecycle\\Filament\\Pages\\AssetsInHand",
         "App\\Filament\\Pages\\AttendanceRegister": "App\\Modules\\Attendance\\Filament\\Pages\\AttendanceRegister",
         "App\\Filament\\Pages\\Auth\\EditProfile": "App\\Modules\\Core\\Filament\\Pages\\Auth\\EditProfile",

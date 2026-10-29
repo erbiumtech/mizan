@@ -93,9 +93,10 @@ class Subscriptions
         $months = (int) (config("saas.cadence_months.{$currency}") ?? 1);
         $plan = $company->plan;
         $seats = $this->countSeats($company);
+        $reserved = (int) $company->seats_reserved;
         $operator = $this->operator();
 
-        $contactId = $this->within($operator, function () use ($company, $email, $address, $country, $currency, $months, $plan, $seats): int {
+        $contactId = $this->within($operator, function () use ($company, $email, $address, $country, $currency, $months, $plan, $seats, $reserved): int {
             $contact = Contact::query()->create([
                 'name' => $company->name,
                 'kind' => Contact::KIND_CUSTOMER,
@@ -122,8 +123,8 @@ class Subscriptions
             ]);
 
             $agreement->lines()->create([
-                'description' => $this->lineDescription($plan, $seats, $months),
-                'quantity' => $this->quantity($seats, $months),
+                'description' => $this->lineDescription($plan, $seats, $months, $reserved),
+                'quantity' => $this->quantity($seats, $months, $reserved),
                 'unit_price' => Plans::price($plan, $currency),
                 'account_id' => $this->revenueAccountId(),
                 'tax_rate_id' => null,
@@ -158,8 +159,9 @@ class Subscriptions
 
         $seats = $this->countSeats($company);
         $plan = $company->plan;
+        $reserved = (int) $company->seats_reserved;
 
-        $this->within($this->operator(), function () use ($company, $seats, $plan): void {
+        $this->within($this->operator(), function () use ($company, $seats, $plan, $reserved): void {
             $agreement = $this->agreementFor($company);
             $line = $agreement->lines->first();
 
@@ -168,8 +170,8 @@ class Subscriptions
             }
 
             $line->update([
-                'quantity' => $this->quantity($seats, (int) $agreement->every_months),
-                'description' => $this->lineDescription($plan, $seats, (int) $agreement->every_months),
+                'quantity' => $this->quantity($seats, (int) $agreement->every_months, $reserved),
+                'description' => $this->lineDescription($plan, $seats, (int) $agreement->every_months, $reserved),
             ]);
         });
 
@@ -358,15 +360,36 @@ class Subscriptions
         return $agreements->first();
     }
 
-    protected function quantity(int $seats, int $months): int
+    /**
+     * How many seats are billed — docs/saas-launch-plan.md §14.9.
+     *
+     * **The greatest of three: headcount, held seats and the plan minimum.** Held
+     * seats raise the floor and never the ceiling — a company holding twenty and
+     * hiring thirty is billed for thirty. That is the whole of the feature: somebody
+     * who is about to hire can stop their bill lurching next month by paying for the
+     * seats now, and nobody can use it to cap what they owe.
+     */
+    protected function billedSeats(int $seats, int $reserved = 0): int
     {
-        return max($seats, Plans::minimumSeats()) * max(1, $months);
+        return max($seats, $reserved, Plans::minimumSeats());
     }
 
-    protected function lineDescription(string $plan, int $seats, int $months): string
+    protected function quantity(int $seats, int $months, int $reserved = 0): int
     {
-        $billed = max($seats, Plans::minimumSeats());
-        $floor = $billed > $seats ? " (minimum {$billed})" : '';
+        return $this->billedSeats($seats, $reserved) * max(1, $months);
+    }
+
+    protected function lineDescription(string $plan, int $seats, int $months, int $reserved = 0): string
+    {
+        $billed = $this->billedSeats($seats, $reserved);
+
+        // Which floor applied, named. "Minimum 10" and "20 held" are different
+        // conversations to have with a customer about the same number.
+        $floor = match (true) {
+            $billed <= $seats => '',
+            $reserved >= $billed => " ({$reserved} seats held)",
+            default => " (minimum {$billed})",
+        };
 
         return 'Mizan '.Plans::label($plan).', per active employee — '
             ."{$seats} active employee".($seats === 1 ? '' : 's').$floor

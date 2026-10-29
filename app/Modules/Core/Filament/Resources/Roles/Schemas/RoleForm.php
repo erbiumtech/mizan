@@ -4,11 +4,13 @@ namespace App\Modules\Core\Filament\Resources\Roles\Schemas;
 
 use App\Modules\Core\Filament\Resources\Roles\RoleResource;
 use App\Support\ModuleMap;
+use App\Support\SystemRoles;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
@@ -43,7 +45,20 @@ class RoleForm
                                     config('permission.column_names.team_foreign_key', 'company_id'),
                                     RoleResource::currentCompanyId(),
                                 ),
-                            ),
+                            )
+                            /*
+                             * The five seeded names cannot be renamed — docs/saas-launch-plan.md §14.9.
+                             *
+                             * Eleven module manifests grant permissions to them by name and the seeder
+                             * runs on every deploy, so a renamed one comes back and the company has two.
+                             * What a company *may* do is change what one of them holds, which is the
+                             * section below: the seeder grants and never revokes, so that choice stands.
+                             */
+                            ->disabled(fn (?Model $record): bool => SystemRoles::isSystem($record?->name))
+                            ->helperText(fn (?Model $record): ?string => SystemRoles::isSystem($record?->name)
+                                ? 'A built-in role. Its permissions are yours to change; its name is not, because '
+                                    .'the modules grant to it by name.'
+                                : null),
 
                         Select::make('guard_name')
                             ->options(['web' => 'web'])

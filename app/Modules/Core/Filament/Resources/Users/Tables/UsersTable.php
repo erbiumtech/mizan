@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Resources\Users\Tables;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use App\Modules\Core\Services\CompanyInvitations;
 use App\Support\Impersonation;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -41,6 +42,20 @@ class UsersTable
                 IconColumn::make('status')
                     ->label('Active')
                     ->boolean(),
+
+                /*
+                 * Last seen — docs/saas-launch-plan.md §14.9.
+                 *
+                 * A column rather than a read of the sign-in log, because the question is
+                 * "who has not been here since March" and answering that from the log means
+                 * sorting every row in it. Stamped by LogAuthenticationEvent.
+                 */
+                TextColumn::make('last_login_at')
+                    ->label('Last seen')
+                    ->dateTime('d M Y H:i')
+                    ->placeholder('never')
+                    ->description(fn (User $record): ?string => $record->last_login_ip)
+                    ->sortable(),
             ])
             ->filters([
                 // Parity with Nova UserNameFilter (options name => id) and UserEmailFilter (options email => id).
@@ -114,6 +129,77 @@ class UsersTable
                             ->send();
 
                         return redirect(Filament::getPanel('admin')->getUrl());
+                    }),
+
+                /*
+                 * Send the invitation again — §14.9.
+                 *
+                 * The same call the invitation itself makes, which is what makes it safe to
+                 * offer: a person who already has an account is sent a sign-in link and a
+                 * person who never set a password is sent a fresh one, and neither path
+                 * creates anything twice.
+                 *
+                 * Offered only to somebody who has never signed in. An invitation to a person
+                 * who uses this every day is a password-reset mail they did not ask for.
+                 */
+                Action::make('resendInvitation')
+                    ->label('Send the invitation again')
+                    ->icon('heroicon-o-envelope')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('They get a fresh link to set a password and sign in. Their roles are not changed.')
+                    ->visible(fn (User $record): bool => $record->last_login_at === null
+                        && (auth()->user()?->can('UserCreate') ?? false))
+                    ->action(function (User $record): void {
+                        $company = Filament::getTenant() ?? Company::current();
+
+                        if ($company === null) {
+                            return;
+                        }
+
+                        app(CompanyInvitations::class)->invite(
+                            $company,
+                            (string) $record->email,
+                            (string) $record->name,
+                            $record->roles->pluck('name')->all(),
+                            auth()->user(),
+                        );
+
+                        Notification::make()->success()->title('Sent again to '.$record->email)->send();
+                    }),
+
+                /*
+                 * Reset two-factor — §14.9.
+                 *
+                 * The one thing an administrator has to be able to do that a person cannot do
+                 * for themselves: somebody who has lost the phone with the authenticator on it
+                 * is locked out, and the recovery codes are on a piece of paper they also lost.
+                 *
+                 * It clears rather than replaces. The next sign-in makes them set it up again,
+                 * so nobody — including whoever clicked this — ever holds their secret.
+                 */
+                Action::make('resetTwoFactor')
+                    ->label('Reset two-factor')
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset two-factor authentication')
+                    ->modalDescription('Their authenticator app and recovery codes stop working, and they set it '
+                        .'up again on their next sign-in. Make sure you know who you are talking to: this is the '
+                        .'step somebody pretending to be them would ask for.')
+                    ->modalSubmitActionLabel('Reset it')
+                    ->visible(fn (User $record): bool => $record->app_authentication_secret !== null
+                        && (auth()->user()?->isAdministrator() ?? false))
+                    ->action(function (User $record): void {
+                        $record->forceFill([
+                            'app_authentication_secret' => null,
+                            'app_authentication_recovery_codes' => null,
+                        ])->save();
+
+                        activity('User')->performedOn($record)->causedBy(auth()->user())
+                            ->event('two-factor-reset')->log('Two-factor authentication reset');
+
+                        Notification::make()->success()->title('Reset. They set it up again next time they sign in.')->send();
                     }),
 
                 EditAction::make(),

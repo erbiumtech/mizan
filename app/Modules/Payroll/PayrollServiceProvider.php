@@ -104,6 +104,28 @@ class PayrollServiceProvider extends ServiceProvider
          * this says which months exist and what each came to, and the payslip itself is a
          * download away.
          */
+        /*
+         * What an integration can hear about pay — plan §14.9.
+         *
+         * The acknowledgement, not the issue: a payslip being raised is an internal step
+         * and the event worth telling somebody else about is the employee answering it.
+         * The net is included because the thing a receiving system usually wants is to
+         * reconcile a payment; nothing else of the breakdown is.
+         */
+        \App\Support\Webhooks::register(
+            'payslip.reviewed',
+            'An employee accepted or queried a payslip',
+            \App\Modules\Payroll\Events\PayslipReviewed::class,
+            fn (object $event): array => [
+                'id' => $event->payslip->getKey(),
+                'employee_id' => $event->payslip->employee_id,
+                'month' => $event->payslip->month,
+                'net_salary' => (float) $event->payslip->net_salary,
+                'review' => $event->payslip->employee_review,
+            ],
+            sort: 40,
+        );
+
         \App\Support\SubjectAccess::register('Payslips', fn (object $employee): array => \App\Modules\Payroll\Models\Payslip::query()
             ->where('employee_id', $employee->getKey())
             ->orderBy('id')

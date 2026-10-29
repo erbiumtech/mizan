@@ -83,6 +83,44 @@ class EmployeesServiceProvider extends ServiceProvider
         \App\Modules\Employees\Support\EmployeeChecks::register();
 
         /*
+         * What an integration can hear about people — plan §14.9.
+         *
+         * The payload names its fields rather than handing over the row. It is a public
+         * contract with somebody else's system, and `toArray()` would change it the day
+         * a column is added — including the day the column is a bank account.
+         */
+        \App\Support\Webhooks::register(
+            'employee.joined',
+            'Somebody joined',
+            \App\Modules\Employees\Events\EmployeeJoined::class,
+            fn (object $event): array => [
+                'id' => $event->employee->getKey(),
+                'code' => $event->employee->employee_id,
+                'name' => $event->employee->fullName(),
+                'designation' => $event->employee->designation,
+                'department' => $event->employee->department,
+                'joined_on' => $event->employee->date_of_joining?->toDateString(),
+            ],
+            sort: 20,
+        );
+
+        \App\Support\Webhooks::register(
+            'employee.activated',
+            'An employee was activated',
+            \App\Modules\Employees\Events\EmployeeActivated::class,
+            function (object $event): array {
+                $employee = Employee::query()->with('user')->find($event->employeeId);
+
+                return [
+                    'id' => $event->employeeId,
+                    'code' => $employee?->employee_id,
+                    'name' => $employee?->fullName(),
+                ];
+            },
+            sort: 30,
+        );
+
+        /*
          * This module's slices of a subject-access disclosure — plan §14.8.
          *
          * The record itself, what they asked to have changed about it, and what has been
