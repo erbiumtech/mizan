@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Crm\Models\NextAction;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
@@ -22,7 +23,7 @@ use Illuminate\Support\Collection;
  * a member of the company, so it takes every channel the other internal notifications take; the
  * wording is the company's own where it has written one (`EmailTemplate` key `next_action_due`).
  */
-class NextActionDue extends Notification implements ShouldQueue
+class NextActionDue extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -30,6 +31,11 @@ class NextActionDue extends Notification implements ShouldQueue
     public function __construct(public Collection $actions, public ?string $url = null) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'approvals';
+    }
+
     public function via(object $notifiable): array
     {
         return Broadcasting::channels(['mail', 'database', 'broadcast']);

@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Modules\Core\Models\User;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +21,7 @@ use Illuminate\Notifications\Notification;
  * Sent once, after the attempts are exhausted, rather than per attempt: three emails about one failure is how
  * a warning becomes something people filter.
  */
-class ScheduledReportFailed extends Notification implements ShouldQueue
+class ScheduledReportFailed extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -30,6 +32,11 @@ class ScheduledReportFailed extends Notification implements ShouldQueue
     ) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'reports';
+    }
+
     public function via(object $notifiable): array
     {
         return $notifiable instanceof User ? ['mail', 'database'] : ['mail'];
@@ -37,12 +44,19 @@ class ScheduledReportFailed extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('A scheduled report could not be sent: '.$this->report)
             ->greeting('Hello,')
             ->line($this->report.' ('.$this->timetable.') could not be sent, after three attempts.')
             ->line('The reason given was: '.$this->error)
             ->line('The report itself is still there to read. Nothing was sent to its recipients for this period.');
+
+        return TemplatedMail::wrap($mail, 'scheduled_report_failed', [
+            'report' => $this->report,
+            'timetable' => $this->timetable,
+            'error' => $this->error,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     /** @return array<string, mixed> */

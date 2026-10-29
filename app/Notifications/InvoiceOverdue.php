@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Invoicing\Models\Invoice;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,13 +34,18 @@ use Illuminate\Notifications\Notification;
  * for its own second and third letters; with neither, the shipped ones below are sent, and with only
  * `invoice_overdue`, that one is sent every time, as it was before levels existed.
  */
-class InvoiceOverdue extends Notification implements ShouldQueue
+class InvoiceOverdue extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Invoice $invoice, public int $daysOverdue, public int $level = 1) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'billing';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];

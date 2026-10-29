@@ -50,6 +50,8 @@ class EmployeesServiceProvider extends ServiceProvider
         EmployeeChangeRequest::class => EmployeeChangeRequestPolicy::class,
         Employee::class => EmployeePolicy::class,
         EmployeeSetting::class => EmployeeSettingPolicy::class,
+        \App\Modules\Employees\Models\LetterTemplate::class => \App\Modules\Employees\Policies\LetterTemplatePolicy::class,
+        \App\Modules\Employees\Models\LetterRequest::class => \App\Modules\Employees\Policies\LetterRequestPolicy::class,
         \App\Modules\Employees\Models\Department::class => \App\Modules\Employees\Policies\DepartmentPolicy::class,
         \App\Modules\Employees\Models\Designation::class => \App\Modules\Employees\Policies\DesignationPolicy::class,
     ];

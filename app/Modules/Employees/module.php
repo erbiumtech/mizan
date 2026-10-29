@@ -22,6 +22,10 @@ return [
         'App\\Models\\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
         // Announcements — docs/saas-launch-plan.md §7.6.
         'App\\Models\\Announcement' => \App\Modules\Employees\Models\Announcement::class,
+        // Letters the company writes in its own words, and the queue employees ask through —
+        // docs/saas-launch-plan.md §14.7.
+        'App\\Models\\LetterTemplate' => \App\Modules\Employees\Models\LetterTemplate::class,
+        'App\\Models\\LetterRequest' => \App\Modules\Employees\Models\LetterRequest::class,
     ],
 
     'resources' => [
@@ -31,6 +35,8 @@ return [
         'App\\Filament\\Resources\\EmployeeChangeRequests\\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
         'App\\Filament\\Resources\\EmployeeSettings\\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
         'App\\Filament\\Resources\\Announcements\\AnnouncementResource' => \App\Modules\Employees\Filament\Resources\Announcements\AnnouncementResource::class,
+        'App\\Filament\\Resources\\LetterTemplates\\LetterTemplateResource' => \App\Modules\Employees\Filament\Resources\LetterTemplates\LetterTemplateResource::class,
+        'App\\Filament\\Resources\\LetterRequests\\LetterRequestResource' => \App\Modules\Employees\Filament\Resources\LetterRequests\LetterRequestResource::class,
     ],
 
     'widgets' => [
@@ -126,6 +132,7 @@ return [
         'Employee',
         'EmployeeSetting',
         'Announcement',
+        'Letter',
     ],
 
     'permissions' => [
@@ -143,6 +150,18 @@ return [
         ['name' => 'AnnouncementCreate', 'group' => 'Announcement'],
         ['name' => 'AnnouncementUpdate', 'group' => 'Announcement'],
         ['name' => 'AnnouncementDelete', 'group' => 'Announcement'],
+        /*
+         * Letters — §14.7. Three permissions rather than the usual four.
+         *
+         * Asking for one is not a permission: every employee may, the way every employee may file a
+         * change request, and a company that wanted to stop one person asking would be doing something
+         * else. `LetterIssue` is the decision — it writes a document on company letterhead — and
+         * `LetterTemplateUpdate` is the wording itself, which is a different and larger thing: whoever
+         * holds it writes what every future letter says.
+         */
+        ['name' => 'LetterView', 'group' => 'Letter'],
+        ['name' => 'LetterIssue', 'group' => 'Letter'],
+        ['name' => 'LetterTemplateUpdate', 'group' => 'Letter'],
     ],
 
     /**
@@ -163,6 +182,8 @@ return [
             'AnnouncementView',
             'AnnouncementCreate',
             'AnnouncementUpdate',
+            'LetterView',
+            'LetterIssue',
         ],
     ],
 

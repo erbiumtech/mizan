@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\Subscriptions;
+use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -16,13 +18,18 @@ use Spatie\Multitenancy\Jobs\NotTenantAware;
  * operator's tenant, not in `users`), and `NotTenantAware` because it is sent
  * from a landlord command with no tenant current.
  */
-class SubscriptionNotice extends Notification implements NotTenantAware, ShouldQueue
+class SubscriptionNotice extends Notification implements CategorisedNotification, NotTenantAware, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public string $companyName, public string $reason) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'account';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];
@@ -32,6 +39,11 @@ class SubscriptionNotice extends Notification implements NotTenantAware, ShouldQ
     {
         $mail = (new MailMessage)->subject("{$this->companyName}: access suspended");
 
+        // No TemplatedMail here, deliberately — docs/saas-launch-plan.md §14.7 asks for
+        // coverage of every mail, and this is the stated exception. It is sent *because*
+        // a company's access has stopped, from the platform rather than from inside the
+        // company: there is no tenant current to read a template out of, and a company
+        // rewording its own suspension notice is not a thing to offer.
         return match ($this->reason) {
             Subscriptions::REASON_TRIAL_EXPIRED => $mail
                 ->line("The trial for {$this->companyName} has ended and nobody has subscribed, so sign-in is suspended.")

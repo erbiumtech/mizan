@@ -5,6 +5,7 @@ namespace App\Modules\Recruitment\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Recruitment\Models\Offer;
 use App\Modules\Recruitment\Services\OfferLetter;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,13 +21,18 @@ use Illuminate\Notifications\Notification;
  *
  * @param  array<string, mixed>  $input  the letter inputs the action collected (valid_days, signatory)
  */
-class OfferIssued extends Notification implements ShouldQueue
+class OfferIssued extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Offer $offer, public array $input = []) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'approvals';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];

@@ -5,6 +5,7 @@ namespace App\Modules\Leave\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -20,11 +21,16 @@ use Illuminate\Notifications\Notification;
  * which is the same route ExpenseClaimDecided takes. The template key is
  * `leave_request_decided`.
  */
-class LeaveRequestDecided extends Notification implements ShouldQueue
+class LeaveRequestDecided extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public LeaveRequest $request) {}
+
+    public function notificationCategory(): string
+    {
+        return 'leave';
+    }
 
     public function via(object $notifiable): array
     {

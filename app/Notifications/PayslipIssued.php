@@ -6,6 +6,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\PayslipService;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -22,11 +23,16 @@ use Illuminate\Notifications\Notification;
  * PayslipService::renderPdf, which never reads a stored file), and a few hundred
  * kilobytes of base64 in the queue payload would be paid for on every retry.
  */
-class PayslipIssued extends Notification implements ShouldQueue
+class PayslipIssued extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Payslip $payslip) {}
+
+    public function notificationCategory(): string
+    {
+        return 'payroll';
+    }
 
     public function via(object $notifiable): array
     {

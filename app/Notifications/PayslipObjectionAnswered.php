@@ -4,6 +4,8 @@ namespace App\Notifications;
 
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -27,13 +29,18 @@ use Illuminate\Notifications\Notification;
  * released; whether the employee agrees is a conversation, and the comment thread on the payslip is where
  * that belongs.
  */
-class PayslipObjectionAnswered extends Notification implements ShouldQueue
+class PayslipObjectionAnswered extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Payslip $payslip) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'payroll';
+    }
+
     public function via(object $notifiable): array
     {
         return Broadcasting::channels(['mail', 'database', 'broadcast']);
@@ -43,7 +50,7 @@ class PayslipObjectionAnswered extends Notification implements ShouldQueue
     {
         $month = $this->payslip->month;
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject("Your objection to the {$month} payslip has been answered")
             ->greeting("Hello {$notifiable->name},")
             ->line("You rejected your {$month} payslip, and payroll has now answered.")
@@ -52,6 +59,14 @@ class PayslipObjectionAnswered extends Notification implements ShouldQueue
             ->line('The payslip stands as it is and the salary has been released for payment.')
             ->action('Open the payslip', url("/cpi/resources/payslips/{$this->payslip->id}"))
             ->line('If you still think something is wrong, reply to payroll or add a comment on the payslip.');
+
+        return TemplatedMail::wrap($mail, 'payslip_objection_answered', [
+            'employee_name' => $notifiable->name ?? null,
+            'period' => $month,
+            'reason' => $this->payslip->employee_rejection_reason,
+            'reply' => $this->reply(),
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     /** @return array<string, mixed> */

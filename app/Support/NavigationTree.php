@@ -54,6 +54,9 @@ class NavigationTree
                 'Promotions',
                 // What the company tells its people — plan §7.6.
                 'Announcements',
+                // The letter queue — plan §14.7. Beside Change Requests: both are an employee
+                // asking for something and somebody deciding.
+                'Letter Requests',
             ],
             'Payroll' => [
                 'Payroll Months',
@@ -158,6 +161,9 @@ class NavigationTree
                 'Locations',
                 'Custom Fields',
                 'Email Wording',
+                // The letters, beside the emails — plan §14.7. Same decision in a different
+                // medium: what this company says in its own name.
+                'Letter Templates',
                 // What the application sends without being asked — reports-expansion-plan.md Phase 8. Beside
                 // Email Wording rather than in a branch of its own: both are about the post going out, and a
                 // branch holding one screen is a heading that says the screen's name twice.

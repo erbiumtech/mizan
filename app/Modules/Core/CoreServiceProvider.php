@@ -4,9 +4,12 @@ namespace App\Modules\Core;
 
 use App\Modules\Core\Console\Commands\DeliverScheduledReports;
 use App\Modules\Core\Filament\Pages\ReportDeliveries;
+use App\Modules\Core\Filament\Settings\DocumentLayoutSettingsSection;
 use App\Modules\Core\Filament\Settings\DocumentVerificationSettingsSection;
 use App\Modules\Core\Listeners\LogAuthenticationEvent;
+use App\Modules\Core\Listeners\LogSentMail;
 use App\Modules\Core\Listeners\NotifyRecordAudience;
+use App\Modules\Core\Listeners\RespectNotificationPreferences;
 use App\Modules\Core\Listeners\SkipBroadcastWithoutBroadcaster;
 use App\Modules\Core\Models\ActivityLog;
 use App\Modules\Core\Models\Comment;
@@ -15,6 +18,7 @@ use App\Modules\Core\Models\CustomField;
 use App\Modules\Core\Models\EmailTemplate;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\Holiday;
+use App\Modules\Core\Models\MessageLog;
 use App\Modules\Core\Models\OptionValue;
 use App\Modules\Core\Models\ReportDefinition;
 use App\Modules\Core\Models\ReportSchedule;
@@ -28,6 +32,7 @@ use App\Modules\Core\Policies\CustomFieldPolicy;
 use App\Modules\Core\Policies\EmailTemplatePolicy;
 use App\Modules\Core\Policies\FiscalYearPolicy;
 use App\Modules\Core\Policies\HolidayPolicy;
+use App\Modules\Core\Policies\MessageLogPolicy;
 use App\Modules\Core\Policies\OptionValuePolicy;
 use App\Modules\Core\Policies\PermissionPolicy;
 use App\Modules\Core\Policies\ReportSchedulePolicy;
@@ -46,6 +51,7 @@ use App\Support\TenantFileAccess;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -74,6 +80,7 @@ class CoreServiceProvider extends ServiceProvider
         CustomField::class => CustomFieldPolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
         Holiday::class => HolidayPolicy::class,
+        MessageLog::class => MessageLogPolicy::class,
         WorkLocation::class => WorkLocationPolicy::class,
         OptionValue::class => OptionValuePolicy::class,
         ReportSchedule::class => ReportSchedulePolicy::class,
@@ -144,8 +151,19 @@ class CoreServiceProvider extends ServiceProvider
         // it becomes a job that can only fail. See the listener.
         Event::listen(NotificationSending::class, SkipBroadcastWithoutBroadcaster::class);
 
+        // Email a person has asked not to receive — docs/saas-launch-plan.md §14.7. Mail only; the bell
+        // keeps showing everything.
+        Event::listen(NotificationSending::class, RespectNotificationPreferences::class);
+
+        // Every mail in the message log, the envelope and never the body.
+        Event::listen(MessageSent::class, LogSentMail::class);
+
         // Document verification — plan §7.5: the two gates on Company Settings.
         SettingsSections::register('documents.verification', DocumentVerificationSettingsSection::class, 85);
+
+        // How documents are laid out — plan §14.7. Beside verification: both are about
+        // the paper rather than the figures on it.
+        SettingsSections::register('documents.layout', DocumentLayoutSettingsSection::class, 86);
 
         // The sign-in log — plan §7.7: three rows on the landlord activity log, no table.
         Event::listen([Login::class, Logout::class, Failed::class], LogAuthenticationEvent::class);

@@ -4,6 +4,8 @@ namespace App\Notifications;
 
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -22,13 +24,18 @@ use Illuminate\Notifications\Notification;
  * It carries the note payroll wrote, because "please review again" without what changed is a request nobody
  * can act on — and the same note is in the payslip's comment thread, where the rest of the exchange is.
  */
-class PayslipReturnedForReview extends Notification implements ShouldQueue
+class PayslipReturnedForReview extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Payslip $payslip, public string $note) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'payroll';
+    }
+
     public function via(object $notifiable): array
     {
         return Broadcasting::channels(['mail', 'database', 'broadcast']);
@@ -38,7 +45,7 @@ class PayslipReturnedForReview extends Notification implements ShouldQueue
     {
         $month = $this->payslip->month;
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject("Your {$month} payslip has been updated — please review it again")
             ->greeting("Hello {$notifiable->name},")
             ->line("You rejected your {$month} payslip. Payroll has looked at it and made a change.")
@@ -46,6 +53,14 @@ class PayslipReturnedForReview extends Notification implements ShouldQueue
             ->line('Net salary is now '.number_format((float) $this->payslip->net_salary, 2).' PKR.')
             ->action('Open the payslip', url("/cpi/resources/payslips/{$this->payslip->id}"))
             ->line('Please accept it if it is right now, or reject it again and say what is still wrong.');
+
+        return TemplatedMail::wrap($mail, 'payslip_returned_for_review', [
+            'employee_name' => $notifiable->name ?? null,
+            'period' => $month,
+            'note' => $this->note,
+            'net_salary' => number_format((float) $this->payslip->net_salary, 2),
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     /** @return array<string, mixed> */

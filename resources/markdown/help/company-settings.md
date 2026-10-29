@@ -27,6 +27,24 @@ worse than a blank one.
 **Who signs** is the name printed above the signature line, with their title. The certificate
 refuses to print while the registered name, the address, the NTN or the signatory is empty.
 
+## Payslips and letters
+
+Two lines of your own wording, and which parts of a payslip print.
+
+**Line under the letterhead** and **line in the footer** appear on every document the company
+issues — payslips, certificates, letters. The usual ones are a registration statement and
+"computer-generated; no signature required".
+
+**Leave these off the payslip** drops a block from the payslip: bank account and IBAN, the
+working-days box, or the signature lines. Everything prints unless you say otherwise. Bank
+details are the usual one to drop, because a payslip is forwarded to a landlord or an embassy
+more often than people expect and the account number is the part nobody meant to send.
+
+What you cannot do here is change the design itself, and that is deliberate. Documents are
+rendered by one of two PDF engines depending on what the server has installed, and the templates
+carry per-engine corrections for the differences between them. Markup typed into a settings box
+would bypass those corrections and print correctly in testing and wrongly in production.
+
 ## Notifications
 
 The bell in the top right carries two kinds of thing.

@@ -4,6 +4,8 @@ namespace App\Notifications;
 
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -12,11 +14,16 @@ use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
+class EmployeeChangeRequestSubmitted extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public EmployeeChangeRequest $changeRequest) {}
+
+    public function notificationCategory(): string
+    {
+        return 'approvals';
+    }
 
     public function via(object $notifiable): array
     {
@@ -53,9 +60,15 @@ class EmployeeChangeRequestSubmitted extends Notification implements ShouldQueue
             $mail->line("• {$label}: {$original} → {$value}");
         }
 
-        return $mail
+        $mail
             ->action('Review Change Request', url("/cpi/resources/employee-change-requests/{$this->changeRequest->id}"))
             ->line('The change will only take effect once approved.');
+
+        return TemplatedMail::wrap($mail, 'employee_change_request', [
+            'employee_name' => $notifiable->name ?? null,
+            'requester' => $employeeName,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

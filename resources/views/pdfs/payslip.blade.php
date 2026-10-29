@@ -376,6 +376,10 @@
                         @if ($company['ntn'])
                             <span class="smc">NTN {{ $company['ntn'] }}</span>
                         @endif
+                        {{-- The company's own line — App\Support\DocumentLayout, §14.7. Text, never markup. --}}
+                        @if ($headerNote = \App\Support\DocumentLayout::headerNote())
+                            <br><span class="smc">{{ $headerNote }}</span>
+                        @endif
                     </div>
                 </div>
                 <div class="header-right">
@@ -408,12 +412,17 @@
                 <div class="info-col">
                     <div class="info-row"><span class="label">NIC</span><span
                             class="value">{{ $data->employee->nic ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Bank Name</span><span
-                            class="value">{{ $data->employee->bank->bank_name ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">Bank A/C No</span><span
-                            class="value">{{ $data->employee->bank_account_no ?? '-' }}</span></div>
-                    <div class="info-row"><span class="label">IBAN No.</span><span
-                            class="value">{{ $data->employee->iban_no ?? '-' }}</span></div>
+                    {{-- Bank details come off when the company says so — §14.7. A payslip is forwarded to a
+                         landlord or an embassy more often than people expect, and an account number is the
+                         one thing on it nobody meant to send. --}}
+                    @if (\App\Support\DocumentLayout::payslipShows('bank'))
+                        <div class="info-row"><span class="label">Bank Name</span><span
+                                class="value">{{ $data->employee->bank->bank_name ?? '-' }}</span></div>
+                        <div class="info-row"><span class="label">Bank A/C No</span><span
+                                class="value">{{ $data->employee->bank_account_no ?? '-' }}</span></div>
+                        <div class="info-row"><span class="label">IBAN No.</span><span
+                                class="value">{{ $data->employee->iban_no ?? '-' }}</span></div>
+                    @endif
                 </div>
             </div>
 
@@ -427,6 +436,8 @@
             @php
                 $days = fn ($value): string => rtrim(rtrim(number_format((float) ($value ?? 0), 1), '0'), '.');
             @endphp
+            {{-- Off where the company runs attendance elsewhere — §14.7. --}}
+            @if (\App\Support\DocumentLayout::payslipShows('attendance'))
             <div class="attendance-box">
                 <div class="att-col">
                     <div class="att-row"><span class="label">Total Working Days</span><span
@@ -441,6 +452,7 @@
                             class="att-box">{{ $days($data->leaves_taken) }}</span></div>
                 </div>
             </div>
+            @endif
 
             <!-- Salary Table -->
             <table class="main-table">
@@ -502,6 +514,9 @@
             @include('pdfs.partials.verification-qr')
 
             <!-- Signatures -->
+            {{-- Off where payslips are only ever delivered electronically — §14.7. The
+                 on-behalf note goes with them: it annotates a signature line. --}}
+            @if (\App\Support\DocumentLayout::payslipShows('signatures'))
             <div class="signatures">
                 <div class="signature-block">
                     {{-- The uploaded signature/stamp when there is one, the shipped asset when not. --}}
@@ -522,6 +537,7 @@
                     @endif
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- Footer -->
@@ -543,6 +559,9 @@
                 @foreach ($footerContact as $line)
                     {{ $line }}@if (! $loop->last)<br>@endif
                 @endforeach
+                @if ($footerNote = \App\Support\DocumentLayout::footerNote())
+                    <br>{{ $footerNote }}
+                @endif
             </div>
         </div>
     </div>

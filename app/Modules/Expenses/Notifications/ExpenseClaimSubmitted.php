@@ -4,6 +4,8 @@ namespace App\Modules\Expenses\Notifications;
 
 use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,11 +13,16 @@ use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ExpenseClaimSubmitted extends Notification implements ShouldQueue
+class ExpenseClaimSubmitted extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public ExpenseClaim $claim) {}
+
+    public function notificationCategory(): string
+    {
+        return 'approvals';
+    }
 
     public function via(object $notifiable): array
     {
@@ -43,7 +50,16 @@ class ExpenseClaimSubmitted extends Notification implements ShouldQueue
             ? 'A receipt was attached — open the claim to see it.'
             : 'No receipt was attached.');
 
-        return $mail->line('Approve it, or refuse it with a reason, from Expense Claims.');
+        $mail->line('Approve it, or refuse it with a reason, from Expense Claims.');
+
+        return TemplatedMail::wrap($mail, 'expense_claim_submitted', [
+            'employee_name' => $employee,
+            'approver_name' => $notifiable->name ?? null,
+            'amount' => number_format((float) $this->claim->amount, 2),
+            'description' => $this->claim->description,
+            'claimed_on' => $this->claim->claimed_on->format('d M Y'),
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

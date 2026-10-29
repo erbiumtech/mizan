@@ -31,6 +31,10 @@
             @if ($numbers)
                 <div class="lh-sub">{{ implode('  |  ', $numbers) }}</div>
             @endif
+            {{-- The company's own line, text and never markup — see App\Support\DocumentLayout. --}}
+            @if ($lhNote = \App\Support\DocumentLayout::headerNote())
+                <div class="lh-sub">{{ $lhNote }}</div>
+            @endif
         </td>
         <td class="lh-right">
             {{-- No address here: the green bar at the foot carries it, and a certificate printing the

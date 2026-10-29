@@ -287,6 +287,16 @@ class EmployeeChangeRequest extends Model
         }
 
         $this->forceFill(['target_id' => $setting->getKey()])->save();
+
+        // An approved increment writes the letter that records it — docs/saas-launch-plan.md §14.7.
+        if ($this->review_id !== null && $this->employee !== null) {
+            app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->issue($this->employee, 'increment', [
+                'effective_from' => (string) ($this->requested_changes['start_date'] ?? ''),
+                'old_value' => number_format((float) ($this->original_values['basic_wage'] ?? 0), 2),
+                'new_value' => number_format((float) ($this->requested_changes['basic_wage'] ?? 0), 2),
+                'amount' => number_format((float) ($this->requested_changes['basic_wage'] ?? 0), 2),
+            ]);
+        }
     }
 
     public function reject(User $reviewer, ?string $reason = null): self

@@ -4,6 +4,8 @@ namespace App\Modules\Projects\Notifications;
 
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,7 +14,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Slack\SlackMessage;
 
-class CertificateExpiring extends Notification implements ShouldQueue
+class CertificateExpiring extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -20,6 +22,11 @@ class CertificateExpiring extends Notification implements ShouldQueue
         public ProjectEnvironment $environment,
         public int $daysRemaining,
     ) {}
+
+    public function notificationCategory(): string
+    {
+        return 'monitoring';
+    }
 
     public function via(object $notifiable): array
     {
@@ -46,7 +53,14 @@ class CertificateExpiring extends Notification implements ShouldQueue
             $message->error();
         }
 
-        return $message;
+        return TemplatedMail::wrap($message, 'certificate_expiring', [
+            'employee_name' => $notifiable->name ?? null,
+            'project' => $project->name,
+            'environment' => $label,
+            'expires_on' => $this->environment->ssl_expires_at->format('j M Y H:i'),
+            'days' => (string) $this->daysRemaining,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toSlack(object $notifiable): SlackMessage

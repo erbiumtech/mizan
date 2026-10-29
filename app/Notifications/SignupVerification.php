@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\Contracts\CategorisedNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,13 +26,18 @@ use Spatie\Multitenancy\Jobs\NotTenantAware;
  * and the queue guard would otherwise refuse it at dispatch — the password-reset
  * notification is on the exemption list for exactly this reason.
  */
-class SignupVerification extends Notification implements NotTenantAware, ShouldQueue
+class SignupVerification extends Notification implements CategorisedNotification, NotTenantAware, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public string $companyName) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'account';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];

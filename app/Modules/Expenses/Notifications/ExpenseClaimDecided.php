@@ -4,6 +4,7 @@ namespace App\Modules\Expenses\Notifications;
 
 use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -15,11 +16,16 @@ use Illuminate\Notifications\Notification;
 /**
  * Tells the person who claimed what was decided — and, when refused, why.
  */
-class ExpenseClaimDecided extends Notification implements ShouldQueue
+class ExpenseClaimDecided extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public ExpenseClaim $claim) {}
+
+    public function notificationCategory(): string
+    {
+        return 'approvals';
+    }
 
     public function via(object $notifiable): array
     {

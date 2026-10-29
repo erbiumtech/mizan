@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Services\CustomerStatement;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,11 +19,16 @@ use Illuminate\Support\Carbon;
  * Routed on demand to the contact's correspondence address, so mail is the only channel; the wording is
  * the company's own where it has written one (`EmailTemplate` key `customer_statement`).
  */
-class CustomerStatementIssued extends Notification implements ShouldQueue
+class CustomerStatementIssued extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Contact $contact, public string $from, public string $to) {}
+
+    public function notificationCategory(): string
+    {
+        return 'billing';
+    }
 
     public function via(object $notifiable): array
     {

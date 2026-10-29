@@ -32,7 +32,13 @@ class EmployeeMoves
             throw new InvalidArgumentException('A transfer changes the department, the location or the manager; pick at least one.');
         }
 
-        return $this->history->record($employee, $changes, $effectiveFrom, $reason, EmployeeJobHistory::KIND_TRANSFER);
+        $row = $this->history->record($employee, $changes, $effectiveFrom, $reason, EmployeeJobHistory::KIND_TRANSFER);
+
+        // The letter that records it — docs/saas-launch-plan.md §14.7. Nothing is issued
+        // without a template the company wrote.
+        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->fromJobHistory($row);
+
+        return $row;
     }
 
     public function promote(Employee $employee, string $designation, string|Carbon $effectiveFrom, ?string $reason = null): EmployeeJobHistory
@@ -41,7 +47,10 @@ class EmployeeMoves
             throw new InvalidArgumentException('A promotion is to a designation.');
         }
 
-        return $this->history->record($employee, ['designation' => $designation], $effectiveFrom, $reason, EmployeeJobHistory::KIND_PROMOTION);
+        $row = $this->history->record($employee, ['designation' => $designation], $effectiveFrom, $reason, EmployeeJobHistory::KIND_PROMOTION);
+        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->fromJobHistory($row);
+
+        return $row;
     }
 
     public function confirm(Employee $employee, string|Carbon|null $on = null): Employee
@@ -51,6 +60,10 @@ class EmployeeMoves
         }
 
         $employee->forceFill(['confirmed_on' => Carbon::parse($on ?? now())->toDateString()])->save();
+
+        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->issue($employee, 'confirmation', [
+            'effective_from' => $employee->confirmed_on->format('d F Y'),
+        ]);
 
         return $employee;
     }

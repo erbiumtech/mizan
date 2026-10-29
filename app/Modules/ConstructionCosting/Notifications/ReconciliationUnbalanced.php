@@ -3,6 +3,8 @@
 namespace App\Modules\ConstructionCosting\Notifications;
 
 use App\Modules\ConstructionCosting\Models\Reconciliation;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -17,13 +19,18 @@ use Illuminate\Notifications\Notification;
  * Database and mail both, like every other notification in this suite. A month-end difference is exactly the thing
  * somebody needs to see when they are not at their desk.
  */
-class ReconciliationUnbalanced extends Notification
+class ReconciliationUnbalanced extends Notification implements CategorisedNotification
 {
     use Queueable;
 
     public function __construct(public Reconciliation $reconciliation) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'monitoring';
+    }
+
     public function via(object $notifiable): array
     {
         return ['database', 'mail'];
@@ -48,12 +55,20 @@ class ReconciliationUnbalanced extends Notification
             $mail->line($sentence);
         }
 
-        return $mail
+        $mail
             // Nothing has been adjusted, and saying so matters: §4.3's fourth mechanism is that a forced close never
             // fudges the ledger, and somebody reading this should not assume it has already been dealt with.
             ->line('Nothing has been adjusted. Both ledgers stay as they are until the cause is fixed or somebody '
                 .'accepts the difference with a stated reason.')
             ->line('Cost periods → Reconciliation shows the full breakdown.');
+
+        return TemplatedMail::wrap($mail, 'reconciliation_unbalanced', [
+            'period' => $month,
+            'difference' => number_format((float) $this->reconciliation->difference, 2),
+            'job_cost' => number_format((float) $this->reconciliation->job_cost, 2),
+            'gl_cost' => number_format((float) $this->reconciliation->gl_cost, 2),
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     /** @return array<string, mixed> */

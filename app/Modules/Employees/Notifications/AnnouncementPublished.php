@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Notifications;
 
 use App\Modules\Employees\Models\Announcement;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -21,13 +22,18 @@ use Illuminate\Support\Str;
  * them the same way, and the mail carries per-company wording under
  * `announcement_published`.
  */
-class AnnouncementPublished extends Notification implements ShouldQueue
+class AnnouncementPublished extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Announcement $announcement) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'company';
+    }
+
     public function via(object $notifiable): array
     {
         return Broadcasting::channels(['database', 'broadcast', 'mail']);

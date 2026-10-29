@@ -26,6 +26,9 @@
                 @foreach ($footerContact as $line)
                     {{ $line }}@if (! $loop->last)<br>@endif
                 @endforeach
+                @if ($lhFooterNote = \App\Support\DocumentLayout::footerNote())
+                    <br>{{ $lhFooterNote }}
+                @endif
             </td>
         </tr>
     </table>

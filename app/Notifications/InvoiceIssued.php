@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Services\InvoiceDeliveryService;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,13 +23,18 @@ use Illuminate\Notifications\Notification;
  * Nothing here changes the invoice. Sending is recorded as an `InvoiceEvent` by the delivery service, after
  * this has been queued, so a send that throws is not marked as done.
  */
-class InvoiceIssued extends Notification implements ShouldQueue
+class InvoiceIssued extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Invoice $invoice) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'billing';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];

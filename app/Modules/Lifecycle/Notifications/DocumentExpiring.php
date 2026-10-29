@@ -4,6 +4,8 @@ namespace App\Modules\Lifecycle\Notifications;
 
 use App\Modules\Lifecycle\Models\EmployeeDocument;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,7 +19,7 @@ use Illuminate\Notifications\Notification;
  * The distinction is the whole design: a job that mails the same warning for thirty
  * days trains somebody to filter it, and then the one that mattered is filtered too.
  */
-class DocumentExpiring extends Notification implements ShouldQueue
+class DocumentExpiring extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -26,6 +28,11 @@ class DocumentExpiring extends Notification implements ShouldQueue
         public int $days,
     ) {}
 
+    public function notificationCategory(): string
+    {
+        return 'documents';
+    }
+
     public function via(object $notifiable): array
     {
         return Broadcasting::channels(['mail', 'database', 'broadcast']);
@@ -33,11 +40,20 @@ class DocumentExpiring extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject($this->subject())
             ->greeting("Hello {$notifiable->name},")
             ->line($this->body())
             ->line('Open the employee\'s documents to record the renewal.');
+
+        return TemplatedMail::wrap($mail, 'employee_document_expiring', [
+            'employee_name' => $this->employeeName(),
+            'recipient_name' => $notifiable->name ?? null,
+            'document' => ucfirst($this->document->kind),
+            'expires_on' => $this->document->expires_on?->format('d M Y'),
+            'days' => (string) $this->days,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

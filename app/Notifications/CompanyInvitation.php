@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -16,7 +17,7 @@ use Illuminate\Notifications\Notification;
  * building a second one for invitations would be the same page with a different heading. Somebody who
  * already had an account is told the company now appears in their list, and gets the sign-in page.
  */
-class CompanyInvitation extends Notification implements ShouldQueue
+class CompanyInvitation extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -30,6 +31,11 @@ class CompanyInvitation extends Notification implements ShouldQueue
     ) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'account';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];

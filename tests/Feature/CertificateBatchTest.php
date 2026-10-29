@@ -111,7 +111,7 @@ class CertificateBatchTest extends AccountingTestCase
         $this->assertSame([], $batch->skipped);
 
         Notification::assertSentTo($this->ayesha->user, DocumentIssued::class, fn (DocumentIssued $n): bool => $n->filename === 'cert-EMP-A.pdf'
-            && $n->bytes === '%PDF-1.4 stand-in');
+            && $n->bytes() === '%PDF-1.4 stand-in');
         Notification::assertSentOnDemand(DocumentIssued::class, fn (DocumentIssued $n, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'bilal@home.test');
     }
 

@@ -10,19 +10,17 @@ subject line.
 
 ## Creating or editing one
 
-Click **New**, then pick which **Email** it rewords from the dropdown — one of:
+Click **New**, then pick which **Email** it rewords from the dropdown. Every
+email the application sends is on that list — payslips, leave and expense
+decisions, approvals waiting on somebody, invoices and statements, scheduled
+reports, expiring documents, and the monitoring alerts about environments and
+attendance devices.
 
-- Payslip issued
-- Payslip rejected
-- Expense claim submitted
-- Expense claim decided
-- Employee change request
-- Report delivered — a scheduled report, with the file attached
-- Invoice overdue — a reminder to a **customer**
-
-The last one is worth a second look before you change it: every other email on
-this list goes to somebody who works here, and that one goes to a customer. It is
-also only ever sent if overdue reminders are switched on in Company Settings →
+Most of them go to somebody who works here. A handful go outside the building,
+and those are the ones worth a second look before you change the wording:
+invoice and quotation emails, the customer statement, the overdue reminders,
+and the message asking a customer to confirm a sales visit. Overdue reminders
+are also only ever sent if chasing is switched on in Company Settings →
 *Chasing overdue invoices*.
 
 Each of these can only have one template — the Email field is unique. Fill in
@@ -39,6 +37,19 @@ check this doc for the list.
 Switch **In use** off to fall back to the shipped wording without losing what
 you wrote — useful if you want to draft a replacement without it going out
 yet.
+
+## Checking it before it goes out
+
+**Preview** shows the finished email with made-up names and figures filled into
+the placeholders. The parts you have not overridden show as *(the wording this
+email normally uses)* rather than as the shipped sentence, so you can tell at a
+glance which parts of the message are yours and which are still ours.
+
+**Send a test** emails that same preview to your own address. Worth doing once
+for anything that goes to a customer.
+
+A preview never uses a real employee's real figures: the thing being checked is
+the sentence, not the number.
 
 ## Roles and permissions
 

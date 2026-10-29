@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Invoicing\Models\ContactDocument;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -20,13 +21,18 @@ use Illuminate\Notifications\Notification;
  * of document. Goes to a member, so it takes every internal channel, and the wording is the company's
  * own where it has written one (EmailTemplate key `contact_document_expiring`).
  */
-class ContactDocumentExpiring extends Notification implements ShouldQueue
+class ContactDocumentExpiring extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public ContactDocument $document, public int $days) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'documents';
+    }
+
     public function via(object $notifiable): array
     {
         return Broadcasting::channels(['mail', 'database', 'broadcast']);

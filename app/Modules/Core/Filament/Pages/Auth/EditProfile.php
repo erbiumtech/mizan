@@ -4,9 +4,12 @@ namespace App\Modules\Core\Filament\Pages\Auth;
 
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Models\Company;
+use App\Modules\Core\Support\NotificationPreferences;
 use App\Support\TenantDb;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Throwable;
 
@@ -66,6 +69,30 @@ class EditProfile extends BaseEditProfile
                         $user->preferences = array_merge((array) $user->preferences, ['locale' => \App\Support\Locales::supported($state) ? $state : null]);
                         $user->save();
                         \Filament\Notifications\Notification::make()->success()->title('Language saved. It applies on the next page you open.')->send();
+                    }),
+
+                /*
+                 * Which emails this person wants — docs/saas-launch-plan.md §14.7.
+                 *
+                 * Phrased as what to *stop* rather than what to receive, and stored that way too: a
+                 * category added next year arrives switched on, which is the right default for somebody
+                 * who made this choice a year ago about the categories that existed then.
+                 *
+                 * Saved on change, like the language above, because the rest of this form is gated on
+                 * the current password and a person should not have to type it to stop an email.
+                 */
+                CheckboxList::make('notifications_off')
+                    ->label('Emails to stop sending me')
+                    ->options(NotificationPreferences::choosable())
+                    ->columns(2)
+                    ->dehydrated(false)
+                    ->helperText('Anything you stop here still appears in the bell at the top of the panel. '
+                        .'Emails about your account and your access cannot be stopped.')
+                    ->afterStateHydrated(fn (CheckboxList $component) => $component->state(NotificationPreferences::silenced($this->getUser())))
+                    ->live()
+                    ->afterStateUpdated(function ($state): void {
+                        NotificationPreferences::set($this->getUser(), (array) $state);
+                        Notification::make()->success()->title('Saved.')->send();
                     }),
 
                 $this->getPasswordFormComponent()

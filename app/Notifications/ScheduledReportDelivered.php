@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Modules\Core\Models\Company;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\Reporting\ReportDeliveryService;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
@@ -30,7 +31,7 @@ use Illuminate\Notifications\Notification;
  * **The link is the same report.** Item 1 stores the filter state the URL carries, so the link in the body
  * opens exactly what is attached, authorised as whoever clicks it rather than as the schedule's owner.
  */
-class ScheduledReportDelivered extends Notification
+class ScheduledReportDelivered extends Notification implements CategorisedNotification
 {
     use Queueable;
 
@@ -46,6 +47,11 @@ class ScheduledReportDelivered extends Notification
     ) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'reports';
+    }
+
     public function via(object $notifiable): array
     {
         // Mail only. A recipient may be an address with no account here — item 2's external case — so there

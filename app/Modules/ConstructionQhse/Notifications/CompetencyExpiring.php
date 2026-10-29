@@ -4,6 +4,8 @@ namespace App\Modules\ConstructionQhse\Notifications;
 
 use App\Modules\ConstructionQhse\Models\Competency;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +27,7 @@ use Illuminate\Notifications\Notification;
  * the file and the other stops somebody working. §17.5's `is_mandatory` is what makes the distinction, and the
  * notification is where it is heard.
  */
-class CompetencyExpiring extends Notification implements ShouldQueue
+class CompetencyExpiring extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -33,6 +35,11 @@ class CompetencyExpiring extends Notification implements ShouldQueue
         public Competency $competency,
         public int $days,
     ) {}
+
+    public function notificationCategory(): string
+    {
+        return 'documents';
+    }
 
     public function via(object $notifiable): array
     {
@@ -62,12 +69,21 @@ class CompetencyExpiring extends Notification implements ShouldQueue
             );
         }
 
-        return $mail->line(
+        $mail->line(
             $this->competency->is_mandatory
                 ? 'This one is marked mandatory: once it lapses they should not be doing that work. Renew it, or move '
                     .'them off it — under Quality & Safety → Site personnel.'
                 : 'Renew it under Quality & Safety → Site personnel.'
         );
+
+        return TemplatedMail::wrap($mail, 'competency_expiring', [
+            'employee_name' => $notifiable->name ?? null,
+            'person' => $person?->displayName(),
+            'competency' => $this->competency->displayName(),
+            'expires_on' => $this->competency->expires_on?->format('d M Y'),
+            'days' => (string) $this->days,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

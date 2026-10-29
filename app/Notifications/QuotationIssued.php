@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Modules\Core\Models\Company;
 use App\Modules\Quotations\Models\Quotation;
 use App\Modules\Quotations\Services\QuotationService;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,13 +19,18 @@ use Illuminate\Notifications\Notification;
  * company's own where it has written one (`EmailTemplate` key `quotation_issued`); the shipped text asks
  * for a reply rather than a click, because there is no portal for a customer to accept in.
  */
-class QuotationIssued extends Notification implements ShouldQueue
+class QuotationIssued extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     public function __construct(public Quotation $quotation) {}
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'billing';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];

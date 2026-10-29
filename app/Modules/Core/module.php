@@ -34,6 +34,9 @@ return [
         'App\\Models\\CustomField' => \App\Modules\Core\Models\CustomField::class,
         'App\\Models\\CustomFieldValue' => \App\Modules\Core\Models\CustomFieldValue::class,
         'App\\Models\\ActivityLog' => \App\Modules\Core\Models\ActivityLog::class,
+        // Every mail and WhatsApp message the application sent — docs/saas-launch-plan.md §14.7. Core
+        // because every module sends something and none of them owns the question "did it go".
+        'App\\Models\\MessageLog' => \App\Modules\Core\Models\MessageLog::class,
         'App\\Models\\Comment' => \App\Modules\Core\Models\Comment::class,
         'App\\Models\\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
         'App\\Models\\Holiday' => \App\Modules\Core\Models\Holiday::class,
@@ -58,6 +61,7 @@ return [
         'App\\Filament\\Resources\\Companies\\CompanyResource' => \App\Modules\Core\Filament\Platform\Resources\Companies\CompanyResource::class,
         'App\\Filament\\Resources\\CustomFields\\CustomFieldResource' => \App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource::class,
         'App\\Filament\\Resources\\ActivityLogs\\ActivityLogResource' => \App\Modules\Core\Filament\Resources\ActivityLogs\ActivityLogResource::class,
+        'App\\Filament\\Resources\\MessageLogs\\MessageLogResource' => \App\Modules\Core\Filament\Resources\MessageLogs\MessageLogResource::class,
         'App\\Filament\\Resources\\Comments\\CommentResource' => \App\Modules\Core\Filament\Resources\Comments\CommentResource::class,
         'App\\Filament\\Resources\\FiscalYears\\FiscalYearResource' => \App\Modules\Core\Filament\Resources\FiscalYears\FiscalYearResource::class,
         // Scheduled reports — Phase 8, item 1 of the reports plan.
@@ -98,6 +102,7 @@ return [
         'Role',
         'Permission',
         'ActivityLog',
+        'MessageLog',
         'Comment',
         'FiscalYear',
         'Holiday',
@@ -140,6 +145,9 @@ return [
         ['name' => 'WorkLocationUpdate', 'group' => 'WorkLocation'],
         ['name' => 'WorkLocationDelete', 'group' => 'WorkLocation'],
         ['name' => 'ActivityLogView', 'group' => 'ActivityLog'],
+        // Who the application wrote to, and whether it arrived — §14.7. Administrator only by default:
+        // the log is a list of everybody's email addresses and phone numbers in one screen.
+        ['name' => 'MessageLogView', 'group' => 'MessageLog'],
         // Share a saved table view with the whole company (TableViewPolicy::publish).
         // Administrator holds it with everything else; no other seeded role lists it.
         ['name' => 'TableViewPublish', 'group' => 'TableView'],

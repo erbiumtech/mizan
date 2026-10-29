@@ -6,6 +6,8 @@ use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Modules\Projects\Models\ProjectEnvironmentIncident;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -15,7 +17,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Slack\SlackMessage;
 
-class EnvironmentDown extends Notification implements ShouldQueue
+class EnvironmentDown extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -24,6 +26,11 @@ class EnvironmentDown extends Notification implements ShouldQueue
         public ProjectEnvironmentIncident $incident,
         public bool $isReminder = false,
     ) {}
+
+    public function notificationCategory(): string
+    {
+        return 'monitoring';
+    }
 
     public function via(object $notifiable): array
     {
@@ -59,7 +66,16 @@ class EnvironmentDown extends Notification implements ShouldQueue
                 .config('projects.alerts.max_reminders').'; no further reminders will be sent for this incident.');
         }
 
-        return $message->action('Open project', $this->projectUrl());
+        $message->action('Open project', $this->projectUrl());
+
+        return TemplatedMail::wrap($message, 'environment_down', [
+            'employee_name' => $notifiable->name ?? null,
+            'project' => $project->name,
+            'environment' => $label,
+            'since' => $this->incident->started_at->format('j M Y H:i'),
+            'duration' => $this->incident->durationForHumans(),
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

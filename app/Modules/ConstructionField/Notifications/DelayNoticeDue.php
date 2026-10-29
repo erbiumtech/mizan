@@ -4,7 +4,9 @@ namespace App\Modules\ConstructionField\Notifications;
 
 use App\Modules\ConstructionField\Models\DelayEvent;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\Num;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,7 +29,7 @@ use Illuminate\Notifications\Notification;
  * doing. Where nothing has been quantified yet — which is usual this early — it says that the entitlement itself goes,
  * which is worse rather than better.
  */
-class DelayNoticeDue extends Notification implements ShouldQueue
+class DelayNoticeDue extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -35,6 +37,11 @@ class DelayNoticeDue extends Notification implements ShouldQueue
         public DelayEvent $event,
         public int $days,
     ) {}
+
+    public function notificationCategory(): string
+    {
+        return 'monitoring';
+    }
 
     public function via(object $notifiable): array
     {
@@ -54,12 +61,22 @@ class DelayNoticeDue extends Notification implements ShouldQueue
             .$this->event->occurred_on?->format('d M Y').'.'
         );
 
-        return $mail->line(
+        $mail->line(
             $this->days < 0
                 ? 'Serve the notice anyway and record the date: whether a late notice is still good depends on the '
                     .'contract, and no notice at all never is.'
                 : 'Serve the notice and record the date it went, under Site → Delay events.'
         );
+
+        return TemplatedMail::wrap($mail, 'delay_notice_due', [
+            'employee_name' => $notifiable->name ?? null,
+            'reference' => $this->event->reference,
+            'event' => $this->event->displayName(),
+            'job' => $this->event->job?->code,
+            'notice_by' => $this->event->notice_required_by?->format('d M Y'),
+            'days' => (string) $this->days,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

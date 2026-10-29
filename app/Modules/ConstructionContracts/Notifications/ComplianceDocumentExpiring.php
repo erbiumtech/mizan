@@ -4,6 +4,8 @@ namespace App\Modules\ConstructionContracts\Notifications;
 
 use App\Modules\ConstructionContracts\Models\ComplianceDocument;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,7 +23,7 @@ use Illuminate\Notifications\Notification;
  * public liability policy does not merely need chasing — it will refuse the next certificate (§12), and somebody who
  * knows that renews it before the payment run rather than after the refusal.
  */
-class ComplianceDocumentExpiring extends Notification implements ShouldQueue
+class ComplianceDocumentExpiring extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
@@ -29,6 +31,11 @@ class ComplianceDocumentExpiring extends Notification implements ShouldQueue
         public ComplianceDocument $document,
         public int $days,
     ) {}
+
+    public function notificationCategory(): string
+    {
+        return 'documents';
+    }
 
     public function via(object $notifiable): array
     {
@@ -50,7 +57,17 @@ class ComplianceDocumentExpiring extends Notification implements ShouldQueue
             );
         }
 
-        return $mail->line('Record the renewal in the compliance register.');
+        $mail->line('Record the renewal in the compliance register.');
+
+        return TemplatedMail::wrap($mail, 'compliance_document_expiring', [
+            'employee_name' => $notifiable->name ?? null,
+            'document' => $this->document->label(),
+            'party' => $this->party(),
+            'expires_on' => $this->document->expires_on?->format('d M Y'),
+            'days' => (string) $this->days,
+            'contract' => $this->document->contract?->contract_number,
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

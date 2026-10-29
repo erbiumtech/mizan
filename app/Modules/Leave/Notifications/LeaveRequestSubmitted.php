@@ -4,6 +4,8 @@ namespace App\Modules\Leave\Notifications;
 
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Support\Broadcasting;
+use App\Support\Contracts\CategorisedNotification;
+use App\Support\TemplatedMail;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,12 +20,17 @@ use Illuminate\Notifications\Notification;
  * health-check alerts taught that lesson here already: a job that mails the same
  * person the same warning for thirty days trains them to filter it.
  */
-class LeaveRequestSubmitted extends Notification implements ShouldQueue
+class LeaveRequestSubmitted extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
 
     /**   string|null  $awaiting  the chain role this notice is for, when a step has already been given */
     public function __construct(public LeaveRequest $request, public ?string $awaiting = null) {}
+
+    public function notificationCategory(): string
+    {
+        return 'leave';
+    }
 
     public function via(object $notifiable): array
     {
@@ -54,7 +61,16 @@ class LeaveRequestSubmitted extends Notification implements ShouldQueue
             $mail->line("It has its earlier approval and now waits for {$this->awaiting}.");
         }
 
-        return $mail->line('Approve it, or refuse it with a reason, from Leave Requests.');
+        $mail->line('Approve it, or refuse it with a reason, from Leave Requests.');
+
+        return TemplatedMail::wrap($mail, 'leave_request_submitted', [
+            'employee_name' => $this->employeeName(),
+            'approver_name' => $notifiable->name ?? null,
+            'leave_type' => $this->typeLabel(),
+            'period' => $this->range(),
+            'days' => (string) $this->days(),
+            'company' => \App\Modules\Core\Models\Company::current()?->name,
+        ]);
     }
 
     public function toDatabase(object $notifiable): array

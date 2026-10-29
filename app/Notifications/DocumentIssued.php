@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Modules\Core\Models\Company;
+use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,18 +20,43 @@ use Illuminate\Notifications\Notification;
  * Carries the bytes rather than re-rendering on the queue: a certificate is issued as of the day it was
  * made, and one re-rendered tomorrow from a corrected payslip would not be the document that was sent.
  */
-class DocumentIssued extends Notification implements ShouldQueue
+class DocumentIssued extends Notification implements CategorisedNotification, ShouldQueue
 {
     use Queueable;
+
+    /** base64 of the document — see the constructor. */
+    public readonly string $encoded;
 
     public function __construct(
         public string $document,
         public string $filename,
-        public string $bytes,
+        string $bytes,
         public ?string $note = null,
-    ) {}
+    ) {
+        /*
+         * Base64, and this is load bearing rather than tidy.
+         *
+         * The notification is queued, and a queued job is PHP-serialized and then
+         * JSON-encoded into the payload. Raw PDF bytes inside that string are not
+         * valid UTF-8, so `json_encode` fails and the push throws
+         * InvalidPayloadException — on the queue, where nobody sees it, after the
+         * document was already rendered. A third larger in transit is the price.
+         */
+        $this->encoded = base64_encode($bytes);
+    }
+
+    /** The document itself. */
+    public function bytes(): string
+    {
+        return (string) base64_decode($this->encoded, true);
+    }
 
     /** @return array<int, string> */
+    public function notificationCategory(): string
+    {
+        return 'documents';
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];
@@ -58,6 +84,6 @@ class DocumentIssued extends Notification implements ShouldQueue
             ])),
         );
 
-        return $mail->attachData($this->bytes, $this->filename, ['mime' => 'application/pdf']);
+        return $mail->attachData($this->bytes(), $this->filename, ['mime' => 'application/pdf']);
     }
 }

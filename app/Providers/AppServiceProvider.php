@@ -28,6 +28,7 @@ use App\Support\Modules;
 use App\Support\NavigationBadge;
 use App\Support\TenantSettings;
 use App\Support\WhatsApp\CloudApiWhatsAppSender;
+use App\Support\WhatsApp\LoggingWhatsAppSender;
 use App\Support\WhatsApp\LogWhatsAppSender;
 use App\Support\WhatsApp\TwilioWhatsAppSender;
 use App\Support\WhatsApp\WhatsAppSender;
@@ -159,6 +160,17 @@ class AppServiceProvider extends ServiceProvider
             // would have gone where.
             return new LogWhatsAppSender;
         });
+
+        // Whichever of the three it turned out to be, every message it sends lands in
+        // the message log — docs/saas-launch-plan.md §14.7. A decorator rather than a
+        // line in each driver: there are three of them, a fourth is a question of
+        // which provider a customer uses, and "remember to log it" is not a thing to
+        // ask of a new one. Extenders do not apply to a test's `instance()` binding,
+        // which is the right way round — a faked sender should stay a fake.
+        $this->app->extend(
+            WhatsAppSender::class,
+            fn (WhatsAppSender $sender): WhatsAppSender => new LoggingWhatsAppSender($sender),
+        );
 
         // Registered here, in register() rather than boot(), and this is load
         // bearing. Gate::before callbacks run in registration order, and
