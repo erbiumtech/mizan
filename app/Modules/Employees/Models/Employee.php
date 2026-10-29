@@ -199,8 +199,28 @@ class Employee extends Model
         });
     }
 
-    /** The default employee-code prefix. Companies that want another one pass their own. */
+    /** The shipped employee-code prefix, and the fallback for a company that has not chosen one. */
     public const CODE_PREFIX = 'EMP-';
+
+    /**
+     * The prefix this company numbers from — docs/saas-launch-plan.md §14.10.
+     *
+     * A setting rather than the constant, because a company that writes `MZN-0001` on
+     * every badge and contract should not have to ask for a deployment to have the
+     * application agree. A PHP constant expression cannot call `setting()`, which is why
+     * the two generators below default their argument to null and coalesce here rather
+     * than naming the constant in the signature.
+     *
+     * Changing it does not renumber anybody: the next code is taken from the highest in
+     * use *with that prefix*, so a company that switches starts a second sequence at
+     * one and `EmployeeCodeRenumbering` is what moves the old rows across.
+     */
+    public static function codePrefix(): string
+    {
+        $prefix = trim((string) setting('employees.code_prefix', self::CODE_PREFIX));
+
+        return $prefix === '' ? self::CODE_PREFIX : $prefix;
+    }
 
     /**
      * The next employee code **for this company**.
@@ -220,8 +240,10 @@ class Employee extends Model
      * above `EMP-10`. Anything that is not the prefix followed by digits is ignored, so
      * a company's own hand-typed codes never affect the sequence.
      */
-    public static function nextEmployeeId(string $prefix = self::CODE_PREFIX): string
+    public static function nextEmployeeId(?string $prefix = null): string
     {
+        $prefix ??= static::codePrefix();
+
         $highest = static::query()
             ->where('employee_id', 'like', $prefix.'%')
             ->pluck('employee_id')
@@ -254,8 +276,10 @@ class Employee extends Model
      * @param  callable(string): TReturn  $callback
      * @return TReturn
      */
-    public static function withGeneratedCode(callable $callback, string $prefix = self::CODE_PREFIX, int $attempts = 5)
+    public static function withGeneratedCode(callable $callback, ?string $prefix = null, int $attempts = 5)
     {
+        $prefix ??= static::codePrefix();
+
         for ($attempt = 1; ; $attempt++) {
             try {
                 return $callback(static::nextEmployeeId($prefix));

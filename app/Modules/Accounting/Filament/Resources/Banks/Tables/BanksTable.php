@@ -34,6 +34,11 @@ class BanksTable
                     ->sortable()
                     ->searchable(),
 
+                // docs/saas-launch-plan.md §14.10. Toggled off by default: most companies
+                // never make a payment that needs either.
+                TextColumn::make('swift_code')->label('SWIFT')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('iban_prefix')->label('IBAN code')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()

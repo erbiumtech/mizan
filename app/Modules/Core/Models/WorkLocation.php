@@ -27,6 +27,8 @@ class WorkLocation extends Model
 
     protected $fillable = [
         'name', 'code', 'address', 'city', 'latitude', 'longitude', 'geofence_radius_m', 'is_active',
+        // docs/saas-launch-plan.md §14.10.
+        'phone', 'map_url', 'is_head_office',
     ];
 
     protected $casts = [
@@ -34,7 +36,34 @@ class WorkLocation extends Model
         'longitude' => 'decimal:7',
         'geofence_radius_m' => 'integer',
         'is_active' => 'boolean',
+        'is_head_office' => 'boolean',
     ];
+
+    /**
+     * The branch a document is issued from — docs/saas-launch-plan.md §14.10.
+     *
+     * The one flagged, else the first active one, else nothing. A company that has
+     * never thought about it has one branch and the fallback is right; a company with
+     * five has had to choose, and the flag is where it said so.
+     */
+    protected static function booted(): void
+    {
+        // One head office, enforced here rather than by a unique index: a partial index
+        // on a boolean is not portable, and the rule is "the last one to say so wins"
+        // rather than "the second one is refused".
+        static::saved(function (self $location): void {
+            if ($location->is_head_office) {
+                static::query()->whereKeyNot($location->getKey())->where('is_head_office', true)
+                    ->update(['is_head_office' => false]);
+            }
+        });
+    }
+
+    public static function headOffice(): ?self
+    {
+        return static::query()->where('is_head_office', true)->first()
+            ?? static::query()->active()->orderBy('name')->first();
+    }
 
     public function scopeActive(Builder $query): Builder
     {

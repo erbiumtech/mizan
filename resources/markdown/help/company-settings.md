@@ -27,6 +27,20 @@ worse than a blank one.
 **Who signs** is the name printed above the signature line, with their title. The certificate
 refuses to print while the registered name, the address, the NTN or the signatory is empty.
 
+**STRN** is the sales tax registration number — a different number from the NTN, and the one that
+appears on a sales tax invoice. Leave it empty if the company is not registered for sales tax.
+
+**Date format** is how dates print on documents: four options rather than a format box, because a
+format box lets somebody put a timestamp on a payslip. The panel's own screens are unaffected;
+their formats are chosen per column for width and sorting.
+
+**Employee code prefix** is what new employee codes are numbered from. Changing it starts a new
+sequence — it does not renumber the people you already have, and the next code is taken from the
+highest already in use with the new prefix.
+
+**Favicon** is the icon in the browser tab for this company's panel. A square PNG, 32 or 64
+pixels. Without one the tab carries the platform's icon.
+
 ## Payslips and letters
 
 Two lines of your own wording, and which parts of a payslip print.

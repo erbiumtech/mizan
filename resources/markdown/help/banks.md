@@ -17,6 +17,19 @@ Click **New**. You'll set:
 - **Active** — inactive banks stop being offered when adding a new account or
   employee, without touching records that already reference them.
 
+## SWIFT and the IBAN code
+
+**SWIFT / BIC** is what a bank outside Pakistan asks for. It is only needed for a
+payment coming from abroad; the IMD code above is what the local IBFT file uses.
+
+**IBAN bank code** is the four letters after the check digits in a Pakistani IBAN —
+`PK00` **`SCBL`** `0000…`. Recording it lets an account number typed against the wrong
+bank be spotted before it reaches a payment file.
+
+Both are optional, and an empty IBAN code refuses nothing: a directory that rejected
+accounts because somebody had not filled in a column would be worse than one that
+checks nothing.
+
 ## Where it's used
 
 Banks are referenced by **Company Bank Accounts**, **Employees** (their salary

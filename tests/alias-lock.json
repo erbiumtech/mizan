@@ -490,6 +490,7 @@
         "App\\Filament\\Pages\\SlaPerformance": "App\\Modules\\Support\\Filament\\Pages\\SlaPerformance",
         "App\\Filament\\Pages\\SlabAnalysis": "App\\Modules\\Payroll\\Filament\\Pages\\SlabAnalysis",
         "App\\Filament\\Pages\\SoleProprietorReturnPack": "App\\Modules\\PersonalFinance\\Filament\\Pages\\SoleProprietorReturnPack",
+        "App\\Filament\\Pages\\StatutoryCoverage": "App\\Modules\\Core\\Filament\\Pages\\StatutoryCoverage",
         "App\\Filament\\Pages\\StockOnHand": "App\\Modules\\Inventory\\Filament\\Pages\\StockOnHand",
         "App\\Filament\\Pages\\Subscription": "App\\Modules\\Core\\Filament\\Pages\\Subscription",
         "App\\Filament\\Pages\\TargetAttainment": "App\\Modules\\Crm\\Filament\\Pages\\TargetAttainment",

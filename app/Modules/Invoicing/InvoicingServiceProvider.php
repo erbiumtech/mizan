@@ -147,6 +147,27 @@ class InvoicingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+
+        /*
+         * What invoicing does about the law — docs/saas-launch-plan.md §14.10.
+         */
+        \App\Support\StatutoryCoverage::register(
+            'Sales Tax Act 1990 — invoice reporting',
+            'Pakistan (federal)',
+            'Submits issued invoices to the FBR digital invoicing endpoint where it is configured, keeps the '
+            .'returned invoice number and QR on the document, and reports what was submitted and what was refused.',
+            'invoicing',
+            'Reports → FBR Invoice Reporting',
+        );
+
+        \App\Support\StatutoryCoverage::register(
+            'Income Tax Ordinance 2001 — withholding by customers',
+            'Pakistan (federal)',
+            'Records tax a customer withheld against the invoice it was withheld from, so the amount claimed '
+            .'in a return can be traced to a document.',
+            'invoicing',
+            'Reports → Tax Withheld By Customers',
+        );
         $this->registerCashCommitments();
 
         // This module's reports in the Reports hub. Registered rather than listed in Core, which

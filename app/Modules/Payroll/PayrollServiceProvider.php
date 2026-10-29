@@ -93,6 +93,29 @@ class PayrollServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+
+        /*
+         * What payroll does about the law — docs/saas-launch-plan.md §14.10. Mechanisms,
+         * never compliance claims: see App\Support\StatutoryCoverage for why the wording
+         * of each of these matters.
+         */
+        \App\Support\StatutoryCoverage::register(
+            'Income Tax Ordinance 2001 — salaried withholding (s.149)',
+            'Pakistan (federal)',
+            'Holds the FBR salaried slabs as data per fiscal year and withholds against them each month, '
+            .'splitting the annual liability across the year and recomputing it whenever a payslip changes. '
+            .'Produces the withholding statement and a certificate of tax deducted per employee.',
+            'payroll',
+            'Salary Slabs · Tax Summary · Tax Slab Analysis',
+        );
+
+        \App\Support\StatutoryCoverage::register(
+            "Employees' Old-Age Benefits Act 1976",
+            'Pakistan (federal)',
+            'Produces the monthly EOBI return file from the payroll register.',
+            'payroll',
+            'Reports → EOBI Return File',
+        );
         // The run's switches — docs/saas-launch-plan.md §14.1. 61: right after payroll posting (60).
         \App\Support\SettingsSections::register('payroll.run', \App\Modules\Payroll\Filament\Settings\PayrollRunSettingsSection::class, 61);
 

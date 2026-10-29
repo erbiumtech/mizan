@@ -51,6 +51,18 @@ class WorkLocationResource extends Resource
             TextInput::make('code')->maxLength(20)->helperText('Short, for reports: LHR, KHI, FACTORY.'),
             TextInput::make('address')->maxLength(190),
             TextInput::make('city')->maxLength(80),
+
+            // docs/saas-launch-plan.md §14.10: a branch somebody has to ring, a pin
+            // somebody has to find, and which one the letterhead means.
+            TextInput::make('phone')->label('Phone')->tel()->maxLength(40),
+            TextInput::make('map_url')
+                ->label('Map link')
+                ->url()
+                ->maxLength(255)
+                ->helperText('Paste the share link from any map. It is shown as a link, never fetched.'),
+            Toggle::make('is_head_office')
+                ->label('Head office')
+                ->helperText('The branch documents are issued from. Setting it here clears it elsewhere.'),
             Toggle::make('is_active')->default(true),
             Section::make('Geofence')
                 ->description('A point and a radius. Leave blank and nothing judges a punch against this location; '
@@ -76,6 +88,17 @@ class WorkLocationResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('code')->placeholder('—'),
                 TextColumn::make('city')->placeholder('—')->sortable(),
+
+                // docs/saas-launch-plan.md §14.10. The flag is a badge rather than a
+                // column of mostly-empty ticks.
+                TextColumn::make('is_head_office')
+                    ->label('')
+                    ->badge()
+                    ->color('primary')
+                    ->state(fn (WorkLocation $record): string => $record->is_head_office ? 'Head office' : '')
+                    ->placeholder(''),
+
+                TextColumn::make('phone')->placeholder('—')->toggleable(),
                 TextColumn::make('geofence_radius_m')
                     ->label('Geofence')
                     ->state(fn (WorkLocation $record): string => $record->hasGeofence() ? $record->geofence_radius_m.' m' : '—'),

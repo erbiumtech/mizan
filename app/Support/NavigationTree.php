@@ -172,6 +172,8 @@ class NavigationTree
                 // plan §14.9. Beside the post going out, which is what they are.
                 'Webhooks',
                 'API Keys',
+                // What the product does about each law — plan §14.10.
+                'Statutory Coverage',
             ],
             'Payroll setup' => [
                 'Pay Components',

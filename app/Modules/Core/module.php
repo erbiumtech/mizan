@@ -97,6 +97,8 @@ return [
         'App\\Filament\\Pages\\UserManual' => \App\Modules\Core\Filament\Pages\UserManual::class,
         // Each person's own API keys — docs/saas-launch-plan.md §14.9.
         'App\\Filament\\Pages\\ApiKeys' => \App\Modules\Core\Filament\Pages\ApiKeys::class,
+        // What the product does about each law it touches — docs/saas-launch-plan.md §14.10.
+        'App\\Filament\\Pages\\StatutoryCoverage' => \App\Modules\Core\Filament\Pages\StatutoryCoverage::class,
         'App\\Filament\\Pages\\CompanySettings' => \App\Modules\Core\Filament\Pages\CompanySettings::class,
         // What the company pays for — docs/saas-launch-plan.md §6. Landlord columns on a tenant page.
         'App\\Filament\\Pages\\Subscription' => \App\Modules\Core\Filament\Pages\Subscription::class,

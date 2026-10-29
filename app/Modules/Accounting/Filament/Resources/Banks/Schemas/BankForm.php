@@ -31,6 +31,25 @@ class BankForm
                     ->maxLength(20)
                     ->helperText('Common abbreviation, e.g. HBL, MCB'),
 
+                /*
+             * docs/saas-launch-plan.md §14.10.
+             *
+             * The IMD code above is what the local IBFT file needs. SWIFT is what a
+             * foreign remitter asks for, and the IBAN prefix is what lets an account
+             * number typed against the wrong bank be spotted before a payment file.
+             */
+                TextInput::make('swift_code')
+                    ->label('SWIFT / BIC')
+                    ->maxLength(16)
+                    ->placeholder('SCBLPKKX')
+                    ->helperText('Only needed for payments from outside Pakistan.'),
+
+                TextInput::make('iban_prefix')
+                    ->label('IBAN bank code')
+                    ->maxLength(8)
+                    ->placeholder('SCBL')
+                    ->helperText('The letters after the check digits in a PK IBAN — PK00 **SCBL** 0000…'),
+
                 Toggle::make('is_active')
                     ->label('Active'),
             ]);

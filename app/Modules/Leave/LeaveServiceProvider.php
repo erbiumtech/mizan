@@ -47,6 +47,19 @@ class LeaveServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+
+        /*
+         * What leave does about the law — docs/saas-launch-plan.md §14.10.
+         */
+        \App\Support\StatutoryCoverage::register(
+            'Provincial Shops and Establishments ordinances — leave entitlements',
+            'Pakistan (provincial)',
+            'Holds each leave type as a rule a company sets — days a year, how they accrue, how much carries '
+            .'forward, how long notice must be — and opens a leave year per employee against it. The statutory '
+            .'set is seeded; the figures are yours to keep current, because they differ by province.',
+            'leave',
+            'Leave Types · Leave Balances',
+        );
         /*
          * Leave utilisation — plan §14.10.
          *

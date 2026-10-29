@@ -23,6 +23,20 @@ return [
     'ntn' => env('COMPANY_NTN', ''),
 
     /*
+    | Sales tax registration — docs/saas-launch-plan.md §14.10. A different number from
+    | the NTN, and the one that appears on a sales tax invoice. Blank for a company that
+    | is not registered for sales tax, which is most of them.
+    */
+    'strn' => env('COMPANY_STRN', ''),
+
+    /*
+    | How a date prints on a document. One of App\Support\CompanyDates::FORMATS; an
+    | unknown value falls back to the shipped one rather than printing a raw format
+    | string onto a payslip.
+    */
+    'date_format' => env('COMPANY_DATE_FORMAT', 'd M Y'),
+
+    /*
     | Branding uploads, as paths on the tenant-scoped `public` disk (Company
     | Settings → Letterhead stores them under `branding/`). Not env-backed:
     | a path into one tenant's storage directory is nothing an installation
@@ -30,6 +44,7 @@ return [
     */
     'logo_path' => '',
     'signature_path' => '',
+    'favicon_path' => '',
 
     /*
     | Who signs. A title rather than a person is the default because the office

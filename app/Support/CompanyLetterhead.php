@@ -125,6 +125,26 @@ final class CompanyLetterhead
         return self::imageDataUri((string) setting('company.logo_path'));
     }
 
+    /**
+     * The company's own browser-tab icon — docs/saas-launch-plan.md §14.10.
+     *
+     * A URL rather than a data URI, like {@see logoUrl()}: this one goes in a `<link>`
+     * on every page of the panel, and inlining it would put a kilobyte of base64 into
+     * every response for an icon the browser caches.
+     */
+    public static function faviconUrl(): ?string
+    {
+        $path = (string) setting('company.favicon_path');
+
+        try {
+            $disk = Storage::disk('public');
+
+            return $path !== '' && $disk->exists($path) ? $disk->url($path) : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     /** The uploaded signature/stamp image, same contract as {@see logoDataUri()}. */
     public static function signatureDataUri(): ?string
     {

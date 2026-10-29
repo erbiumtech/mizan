@@ -62,6 +62,19 @@ class LifecycleServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+
+        /*
+         * What the lifecycle module does about the law — docs/saas-launch-plan.md §14.10.
+         */
+        \App\Support\StatutoryCoverage::register(
+            'Standing Orders Ordinance 1968 — gratuity and final settlement',
+            'Pakistan (federal)',
+            'Builds a final settlement on separation: gratuity from the service the records show, leave '
+            .'encashment at the rate the leave type allows, and whatever is still outstanding against the '
+            .'person — shown as a preview before anything is paid.',
+            'lifecycle',
+            'Separations · Reports → Final Settlements',
+        );
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

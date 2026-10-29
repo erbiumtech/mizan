@@ -234,7 +234,10 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? CustomDomains::hostCompany()?->execute(fn () => CompanyLetterhead::logoUrl()) ?? asset('images/logo.png'))
             ->darkModeBrandLogo(fn (): string => CompanyLetterhead::logoUrl() ?? CustomDomains::hostCompany()?->execute(fn () => CompanyLetterhead::logoUrl()) ?? asset('images/logo-dark.png'))
             ->brandLogoHeight('3rem')
-            ->favicon(asset('images/favicon.png'))
+            // The company's own, where it has uploaded one — docs/saas-launch-plan.md §14.10. A
+            // closure for the reason the brand logo above is one: it is resolved per request,
+            // after the tenant middleware has run.
+            ->favicon(fn (): string => CompanyLetterhead::faviconUrl() ?? asset('images/favicon.png'))
             // Sampled from the ErbiumTech logo: the dark green slash drives the
             // primary ramp, the mid green and lime are used as accents.
             ->colors([

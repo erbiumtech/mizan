@@ -28,9 +28,35 @@ class Bank extends Model
 {
     use Auditable;
 
-    protected $fillable = ['bank_code', 'bank_name', 'bank_short_code', 'is_active'];
+    protected $fillable = [
+        'bank_code', 'bank_name', 'bank_short_code', 'is_active',
+        // For a payment that leaves the country, and for catching an account typed
+        // against the wrong bank — docs/saas-launch-plan.md §14.10.
+        'swift_code', 'iban_prefix',
+    ];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Whether an IBAN belongs to this bank — docs/saas-launch-plan.md §14.10.
+     *
+     * A Pakistani IBAN is PK, two check digits, then four letters naming the bank.
+     * Null where nobody has recorded the prefix, which is not the same as false: an
+     * unknown prefix cannot refuse anything, and a bank directory that rejected
+     * accounts because somebody had not filled in a column would be worse than one
+     * that checks nothing.
+     */
+    public function ownsIban(?string $iban): ?bool
+    {
+        $prefix = strtoupper(trim((string) $this->iban_prefix));
+        $iban = strtoupper((string) preg_replace('/\s+/', '', (string) $iban));
+
+        if ($prefix === '' || strlen($iban) < 4 + strlen($prefix)) {
+            return null;
+        }
+
+        return substr($iban, 4, strlen($prefix)) === $prefix;
+    }
 }

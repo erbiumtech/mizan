@@ -264,6 +264,11 @@ class CompanySettings extends Page
         'company_website' => 'company.website',
         'company_registration_no' => 'company.registration_no',
         'company_ntn' => 'company.ntn',
+        // docs/saas-launch-plan.md §14.10.
+        'company_strn' => 'company.strn',
+        'company_date_format' => 'company.date_format',
+        'company_favicon_path' => 'company.favicon_path',
+        'employees_code_prefix' => 'employees.code_prefix',
         'company_signatory_name' => 'company.signatory_name',
         'company_signatory_title' => 'company.signatory_title',
         'company_logo_path' => 'company.logo_path',
@@ -312,6 +317,50 @@ class CompanySettings extends Page
                     ->maxLength(32)
                     ->helperText('What the FBR and a bank check the company against.'),
 
+                /*
+                 * docs/saas-launch-plan.md §14.10.
+                 *
+                 * The sales-tax registration number, which is a different number from the
+                 * NTN and is what appears on a sales tax invoice. Blank for a company that
+                 * is not registered for sales tax, which is most of them.
+                 */
+                TextInput::make('company_strn')
+                    ->label('STRN')
+                    ->maxLength(32)
+                    ->helperText('Sales tax registration number. Leave empty if the company is not registered.'),
+
+                /*
+                 * What employee codes are numbered from — §14.10. It is on the letterhead
+                 * section because it is the same kind of fact: how this company writes
+                 * itself down.
+                 *
+                 * Changing it starts a second sequence rather than renumbering anybody; the
+                 * helper says so, because a company that expected a renumber and got two
+                 * sequences would find out at the worst moment.
+                 *
+                 * The default comes from `config('employees.code_prefix')` rather than from
+                 * `Employee::CODE_PREFIX`: Core may not name a module's class, and the config
+                 * key is the shared ground the model reads too.
+                 */
+                TextInput::make('employees_code_prefix')
+                    ->label('Employee code prefix')
+                    ->maxLength(12)
+                    ->placeholder((string) config('employees.code_prefix', 'EMP-'))
+                    ->visible(fn (): bool => modules()->enabled('employees'))
+                    ->helperText('New codes are numbered from this — EMP-0001. Changing it starts a new sequence; '
+                        .'it does not renumber the people you already have.'),
+
+                /*
+                 * How a date reads on a document. Four options rather than a free format
+                 * string: a format box lets somebody type `Y-m-d H:i:s` onto a payslip, and
+                 * the four below are every way a Pakistani company writes a date.
+                 */
+                Select::make('company_date_format')
+                    ->label('Date format')
+                    ->options(\App\Support\CompanyDates::FORMATS)
+                    ->placeholder(\App\Support\CompanyDates::FORMATS[\App\Support\CompanyDates::DEFAULT])
+                    ->helperText('How dates print on documents. The panel\'s own screens are unaffected.'),
+
                 TextInput::make('company_phone')->label('Phone')->maxLength(64),
 
                 TextInput::make('company_email')->label('Email')->email()->maxLength(255),
@@ -346,6 +395,18 @@ class CompanySettings extends Page
                     ->acceptedFileTypes(['image/png', 'image/jpeg'])
                     ->maxSize(2048)
                     ->helperText('Printed at the top of payslips, invoices and letters, and shown as this company\'s panel brand. Without one, documents carry the company name as text — exactly as before.'),
+
+                // The browser tab — §14.10. Small and square, and ICO is not accepted
+                // because every browser has taken PNG for a decade and an ICO is a file
+                // nobody on a phone can make.
+                FileUpload::make('company_favicon_path')
+                    ->label('Favicon')
+                    ->disk('public')
+                    ->directory('branding')
+                    ->image()
+                    ->acceptedFileTypes(['image/png'])
+                    ->maxSize(256)
+                    ->helperText('The icon in the browser tab, for this company\'s panel. A square PNG, 32 or 64 pixels.'),
 
                 FileUpload::make('company_signature_path')
                     ->label('Signature / stamp')

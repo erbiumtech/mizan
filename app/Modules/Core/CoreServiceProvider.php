@@ -110,6 +110,27 @@ class CoreServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+
+        /*
+         * What the platform itself does about the law — docs/saas-launch-plan.md §14.10.
+         */
+        \App\Support\StatutoryCoverage::register(
+            'Record keeping — statutory retention',
+            'General',
+            'Keeps posted records when a person is erased: a payslip and the ledger entries behind it survive '
+            .'a subject erasure, which empties the person out of the employee record and leaves the accounts '
+            .'where they are.',
+            null,
+            'Employees → Erase this person',
+        );
+
+        \App\Support\StatutoryCoverage::register(
+            'Subject access',
+            'General',
+            'Produces everything the company holds about one person, assembled across every module, as one file.',
+            null,
+            'Employees → Everything we hold',
+        );
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
