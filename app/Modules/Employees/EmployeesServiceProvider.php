@@ -201,9 +201,29 @@ class EmployeesServiceProvider extends ServiceProvider
             'Joiners and leavers per month, headcount, turnover, and how long the leavers stayed.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Employees\Filament\Pages\Anniversaries::class,
+            'Who has a work anniversary coming, and which one — counted on continuous service, not the joining date.',
+        );
+
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Employees\Filament\Pages\Demographics::class,
+            'Who the company is: gender, age, marital status, department and employment type, and what nobody recorded.',
+        );
+
         ReportRenderers::register(
             'HeadcountMovement',
             fn (string $asOf): array => app(HeadcountReports::class)->movement($asOf),
+        );
+        ReportRenderers::register(
+            'Anniversaries',
+            fn (string $asOf): array => app(HeadcountReports::class)->anniversaries($asOf),
+        );
+        ReportRenderers::register(
+            'Demographics',
+            fn (string $asOf): array => app(HeadcountReports::class)->demographics($asOf),
         );
     }
 }

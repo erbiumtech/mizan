@@ -47,6 +47,23 @@ class LeaveServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * Leave utilisation — plan §14.10.
+         *
+         * `LeaveLiability` in Lifecycle answers the money question: what unused encashable
+         * leave would cost. This answers the people one: who is using their leave.
+         */
+        \App\Support\Reporting\ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Leave\Filament\Pages\LeaveUtilisation::class,
+            'Credited against taken, per person per leave type — and who is sitting on a year of it.',
+        );
+
+        \App\Support\Reporting\ReportRenderers::register(
+            'LeaveUtilisation',
+            fn (string $asOf): array => app(\App\Modules\Leave\Support\LeaveReports::class)->utilisation($asOf),
+        );
+
         // The leave slice of a subject-access disclosure — plan §14.8.
         \App\Support\SubjectAccess::register('Leave you have taken or asked for', fn (object $employee): array => \App\Modules\Leave\Models\LeaveRequest::query()
             ->where('employee_id', $employee->getKey())

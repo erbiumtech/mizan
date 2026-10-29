@@ -126,6 +126,8 @@ return [
     'pages' => [
         // The month grid — docs/saas-launch-plan.md §14.4.
         'App\\Filament\\Pages\\LeaveCalendar' => \App\Modules\Leave\Filament\Pages\LeaveCalendar::class,
+        // Who is using their leave — docs/saas-launch-plan.md §14.10.
+        'App\\Filament\\Pages\\LeaveUtilisation' => \App\Modules\Leave\Filament\Pages\LeaveUtilisation::class,
     ],
 
     'navigation' => [

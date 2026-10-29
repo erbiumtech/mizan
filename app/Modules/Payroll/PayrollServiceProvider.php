@@ -148,6 +148,12 @@ class PayrollServiceProvider extends ServiceProvider
         );
 
         ReportCatalogue::register('Payroll & tax', TaxSummary::class, 'Tax withheld per employee for the year, with the slab it fell in.');
+
+        ReportCatalogue::register(
+            'Payroll & tax',
+            \App\Modules\Payroll\Filament\Pages\SlabAnalysis::class,
+            'How many people are in each FBR band, and what the company withholds from each.',
+        );
         ReportCatalogue::register('Payroll & tax', FbrTaxFile::class, 'The withholding statement, in the format FBR accepts.');
         ReportCatalogue::register('Payroll & tax', SalaryBankFile::class, 'Salary payments as a bank upload file, for a payroll month.');
         // Written and wired to nothing until docs/bexio-gap-plan.md Phase 5, item 17.
@@ -194,6 +200,10 @@ class PayrollServiceProvider extends ServiceProvider
         // do it — see docs/module-packaging-plan.md §8 Group A.
         ReportRenderers::register('TaxSummary', fn (string $asOf, bool $comparison, array $asked): array => app(PayrollReports::class)
             ->taxSummary($asOf, $asked['month'] ?? null));
+        ReportRenderers::register(
+            'SlabAnalysis',
+            fn (string $asOf): array => app(PayrollReports::class)->slabAnalysis($asOf),
+        );
         ReportRenderers::register('PayrollRegister', fn (string $asOf): array => app(PayrollReports::class)->register($asOf));
 
         /*

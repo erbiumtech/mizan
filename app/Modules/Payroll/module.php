@@ -47,6 +47,8 @@ return [
         'App\\Filament\\Pages\\SalaryBankFile' => \App\Modules\Payroll\Filament\Pages\SalaryBankFile::class,
         'App\\Filament\\Pages\\FbrTaxFile' => \App\Modules\Payroll\Filament\Pages\FbrTaxFile::class,
         'App\\Filament\\Pages\\TaxSummary' => \App\Modules\Payroll\Filament\Pages\TaxSummary::class,
+        // Who is in which FBR band — docs/saas-launch-plan.md §14.10.
+        'App\\Filament\\Pages\\SlabAnalysis' => \App\Modules\Payroll\Filament\Pages\SlabAnalysis::class,
         // The monthly EOBI return (docs/bexio-gap-plan.md Phase 5, item 17).
         'App\\Filament\\Pages\\EobiReturnFile' => \App\Modules\Payroll\Filament\Pages\EobiReturnFile::class,
     ],

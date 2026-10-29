@@ -97,9 +97,29 @@ class AttendanceServiceProvider extends ServiceProvider
             'A month of attendance per person, with paid days, loss of pay, late minutes and overtime.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Attendance\Filament\Pages\LateMarks::class,
+            'Who is late, how often and by how much — ordered by the figure rather than by name.',
+        );
+
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Attendance\Filament\Pages\Absences::class,
+            'Absent days per person for the month, beside the days nobody marked — which pay as present.',
+        );
+
         ReportRenderers::register(
             'AttendanceRegister',
             fn (string $asOf): array => app(AttendanceReports::class)->register($asOf),
+        );
+        ReportRenderers::register(
+            'LateMarks',
+            fn (string $asOf): array => app(AttendanceReports::class)->lateMarks($asOf),
+        );
+        ReportRenderers::register(
+            'Absences',
+            fn (string $asOf): array => app(AttendanceReports::class)->absences($asOf),
         );
     }
 }

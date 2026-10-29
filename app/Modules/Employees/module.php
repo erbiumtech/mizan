@@ -209,6 +209,9 @@ return [
         'App\\Filament\\Pages\\Probations' => \App\Modules\Employees\Filament\Pages\Probations::class,
         'App\\Filament\\Pages\\Transfers' => \App\Modules\Employees\Filament\Pages\Transfers::class,
         'App\\Filament\\Pages\\Promotions' => \App\Modules\Employees\Filament\Pages\Promotions::class,
+        // The two the walkthrough had and this lacked — docs/saas-launch-plan.md §14.10.
+        'App\\Filament\\Pages\\Anniversaries' => \App\Modules\Employees\Filament\Pages\Anniversaries::class,
+        'App\\Filament\\Pages\\Demographics' => \App\Modules\Employees\Filament\Pages\Demographics::class,
         // Where somebody confirms their own phone and address — docs/saas-launch-plan.md §14.8.
         'App\\Filament\\Pages\\ConfirmDetails' => \App\Modules\Employees\Filament\Pages\ConfirmDetails::class,
     ],

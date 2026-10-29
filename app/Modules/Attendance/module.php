@@ -95,6 +95,10 @@ return [
     /** The monthly register (Phase 3.1). A page: a report is a question, not rows to edit. */
     'pages' => [
         'App\\Filament\\Pages\\AttendanceRegister' => \App\Modules\Attendance\Filament\Pages\AttendanceRegister::class,
+        // Who is late and who is away — docs/saas-launch-plan.md §14.10. The register answers
+        // "what happened to this person"; these two answer "who do I talk to".
+        'App\\Filament\\Pages\\LateMarks' => \App\Modules\Attendance\Filament\Pages\LateMarks::class,
+        'App\\Filament\\Pages\\Absences' => \App\Modules\Attendance\Filament\Pages\Absences::class,
     ],
 
     'navigation' => [

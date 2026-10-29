@@ -141,9 +141,19 @@ class PerformanceServiceProvider extends ServiceProvider
             'Whether each cycle finished — reviews acknowledged, goals decided, conversations held.',
         );
 
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Performance\Filament\Pages\RatingsDistribution::class,
+            'How the ratings fell, per cycle and per department — the shape a calibration meeting is about.',
+        );
+
         ReportRenderers::register(
             'ReviewCycleProgress',
             fn (string $asOf): array => app(PerformanceReports::class)->reviewCycleProgress($asOf),
+        );
+        ReportRenderers::register(
+            'RatingsDistribution',
+            fn (string $asOf): array => app(PerformanceReports::class)->ratingsDistribution($asOf),
         );
 
         ReportCatalogue::register(

@@ -146,4 +146,163 @@ class AttendanceReports
                 : null,
         ])));
     }
+
+    /**
+     * Who is late, how often and by how much — docs/saas-launch-plan.md §14.10.
+     *
+     * The register already carries late minutes, in a grid thirty-one columns wide that
+     * answers a different question: what happened to this person this month. This one
+     * answers who to talk to, which means ordering by the figure rather than by name and
+     * leaving out everybody who was never late.
+     *
+     * **Occasions and minutes both, because they are different behaviours.** Twelve
+     * marks of five minutes and one of an hour are the same hour and not the same
+     * conversation.
+     */
+    public function lateMarks(string $asOf): array
+    {
+        $month = Carbon::parse($asOf);
+        [$from, $to] = [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()];
+
+        $days = AttendanceDay::query()
+            ->with('employee.user')
+            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+            ->where('late_minutes', '>', 0)
+            ->get();
+
+        $rows = [];
+        $occasions = 0;
+        $minutes = 0;
+
+        foreach ($days->groupBy('employee_id') as $employeeId => $forEmployee) {
+            $employeeMinutes = (int) $forEmployee->sum('late_minutes');
+            $worst = (int) $forEmployee->max('late_minutes');
+
+            $occasions += $forEmployee->count();
+            $minutes += $employeeMinutes;
+
+            $rows[] = [
+                'sort' => $employeeMinutes,
+                'row' => [
+                    (string) ($forEmployee->first()->employee?->display_label ?? 'Employee #'.$employeeId),
+                    (string) ($forEmployee->first()->employee?->department ?: '—'),
+                    number_format($forEmployee->count()),
+                    $this->duration($employeeMinutes),
+                    $this->duration($worst),
+                    $this->duration((int) round($employeeMinutes / max(1, $forEmployee->count()))),
+                ],
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b): int => $b['sort'] <=> $a['sort']);
+        $rows = array_map(fn (array $entry): array => $entry['row'], $rows);
+
+        return $this->table(
+            'LateMarks',
+            'Late Marks',
+            $this->subtitle($month->format('F Y')),
+            ['Employee', 'Department', 'Times late', 'Total', 'Worst', 'Average'],
+            'minmax(0, 1fr) 11rem 7rem 7rem 7rem 7rem',
+            [2, 3, 4, 5],
+            $rows,
+            [
+                ['label' => 'PEOPLE', 'value' => (float) count($rows), 'accent' => false],
+                ['label' => 'HOURS LOST', 'value' => round($minutes / 60, 1), 'accent' => true],
+            ],
+            $rows === []
+                ? 'NOBODY WAS LATE THIS MONTH'
+                : mb_strtoupper(count($rows).' people, '.$occasions.' occasions, '.$this->duration($minutes).' in total'),
+            null,
+            'Nobody was marked late this month.',
+        );
+    }
+
+    /**
+     * Who was absent, and whether anybody knew — docs/saas-launch-plan.md §14.10.
+     *
+     * **Absent means absent, not on leave.** A day of approved leave is a day the
+     * company agreed to; an absent day is one it did not, and putting them in one column
+     * is how an absence report stops being read. Leave is counted beside it for context
+     * and nothing more.
+     *
+     * Days nobody marked are counted too, in their own column. A month with forty
+     * unmarked days has no absence figure worth trusting, and saying so is more use than
+     * a confident zero.
+     */
+    public function absences(string $asOf): array
+    {
+        $month = Carbon::parse($asOf);
+        [$from, $to] = [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()];
+
+        $days = AttendanceDay::query()
+            ->with('employee.user')
+            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+            ->whereIn('status', [AttendanceDay::STATUS_ABSENT, AttendanceDay::STATUS_ON_LEAVE, AttendanceDay::STATUS_NOT_MARKED])
+            ->get();
+
+        $rows = [];
+        $absent = 0;
+        $unmarked = 0;
+
+        foreach ($days->groupBy('employee_id') as $employeeId => $forEmployee) {
+            $counts = $forEmployee->countBy('status');
+            $employeeAbsent = (int) ($counts[AttendanceDay::STATUS_ABSENT] ?? 0);
+            $employeeUnmarked = (int) ($counts[AttendanceDay::STATUS_NOT_MARKED] ?? 0);
+
+            if ($employeeAbsent === 0 && $employeeUnmarked === 0) {
+                continue;
+            }
+
+            $absent += $employeeAbsent;
+            $unmarked += $employeeUnmarked;
+
+            $rows[] = [
+                'sort' => $employeeAbsent * 100 + $employeeUnmarked,
+                'row' => [
+                    (string) ($forEmployee->first()->employee?->display_label ?? 'Employee #'.$employeeId),
+                    (string) ($forEmployee->first()->employee?->department ?: '—'),
+                    $employeeAbsent > 0 ? number_format($employeeAbsent) : '—',
+                    $employeeUnmarked > 0 ? number_format($employeeUnmarked) : '—',
+                    number_format((int) ($counts[AttendanceDay::STATUS_ON_LEAVE] ?? 0)),
+                ],
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b): int => $b['sort'] <=> $a['sort']);
+        $rows = array_map(fn (array $entry): array => $entry['row'], $rows);
+
+        return $this->table(
+            'Absences',
+            'Absences',
+            $this->subtitle($month->format('F Y')),
+            ['Employee', 'Department', 'Absent', 'Not marked', 'On leave'],
+            'minmax(0, 1fr) 11rem 7rem 8rem 8rem',
+            [2, 3, 4],
+            $rows,
+            [
+                ['label' => 'ABSENT DAYS', 'value' => (float) $absent, 'accent' => true],
+                // Its own tile because it is a different problem: these are days nobody
+                // recorded, and they pay as present.
+                ['label' => 'DAYS NOT MARKED', 'value' => (float) $unmarked, 'accent' => false],
+            ],
+            $rows === []
+                ? 'EVERY DAY THIS MONTH IS MARKED AND NOBODY WAS ABSENT'
+                : mb_strtoupper($absent.' absent day(s)'.($unmarked > 0 ? ', and '.$unmarked.' nobody marked' : '')),
+            null,
+            'Nobody was absent and every day is marked.',
+        );
+    }
+
+    /** Minutes as somebody would say them. */
+    private function duration(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return $minutes.'m';
+        }
+
+        $hours = intdiv($minutes, 60);
+        $rest = $minutes % 60;
+
+        return $rest === 0 ? $hours.'h' : $hours.'h '.$rest.'m';
+    }
 }

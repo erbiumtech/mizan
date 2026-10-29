@@ -291,4 +291,206 @@ class HeadcountReports
             'Nobody is on the payroll.',
         );
     }
+
+    /**
+     * Who has an anniversary coming, and which one — docs/saas-launch-plan.md §14.10.
+     *
+     * **Continuous service, not the joining date**, for the reason this class already
+     * gives about tenure: somebody re-employed after a break has two spans and only the
+     * current one counts. A company that congratulated a person on ten years when six of
+     * them were somewhere else would be congratulating them on the wrong thing.
+     *
+     * A window rather than a month, because the point of the report is to be read before
+     * the day arrives: the next ninety days, in the order they fall.
+     */
+    public function anniversaries(string $asOf): array
+    {
+        $from = Carbon::parse($asOf)->startOfDay();
+        $until = $from->copy()->addDays(self::ANNIVERSARY_WINDOW_DAYS);
+
+        $rows = [];
+        $milestones = 0;
+
+        $employees = Employee::query()->with('user')->where('is_active', true)->get();
+
+        // The same continuous-service rule the turnover figures use, loaded once for
+        // everybody rather than a job-history query per person.
+        $starts = $this->serviceStarts($employees);
+
+        foreach ($employees as $employee) {
+            $started = $starts[$employee->getKey()] ?? ($employee->date_of_joining ? Carbon::parse($employee->date_of_joining) : null);
+
+            if ($started === null) {
+                continue;
+            }
+
+            $falls = $this->nextAnniversary($started, $from);
+
+            if ($falls === null || $falls->gt($until)) {
+                continue;
+            }
+
+            $years = (int) $started->diffInYears($falls);
+
+            if ($years < 1) {
+                continue;
+            }
+
+            $milestone = in_array($years, self::MILESTONES, true);
+            $milestones += $milestone ? 1 : 0;
+
+            $rows[] = [
+                'sort' => $falls->timestamp,
+                'row' => [
+                    (string) ($employee->display_label ?? 'Employee #'.$employee->getKey()),
+                    (string) ($employee->designation ?: '—'),
+                    (string) ($employee->department ?: '—'),
+                    $falls->format('d M'),
+                    (string) $years,
+                    $milestone ? 'Milestone' : '',
+                ],
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
+        $rows = array_map(fn (array $entry): array => $entry['row'], $rows);
+
+        return $this->table(
+            'Anniversaries',
+            'Work Anniversaries',
+            $this->subtitle('the '.self::ANNIVERSARY_WINDOW_DAYS.' days from '.$asOf),
+            ['Employee', 'Designation', 'Department', 'Falls on', 'Years', ''],
+            'minmax(0, 1fr) 12rem 10rem 7rem 5rem 7rem',
+            [4],
+            $rows,
+            [
+                ['label' => 'ANNIVERSARIES', 'value' => (float) count($rows), 'accent' => false],
+                // Its own tile because it is the one a company does something about.
+                ['label' => 'MILESTONES', 'value' => (float) $milestones, 'accent' => true],
+            ],
+            $rows === []
+                ? 'NOBODY HAS AN ANNIVERSARY IN THIS WINDOW'
+                : mb_strtoupper(count($rows).' in the next '.self::ANNIVERSARY_WINDOW_DAYS.' days'),
+            null,
+            'Nobody has a work anniversary in the next '.self::ANNIVERSARY_WINDOW_DAYS.' days.',
+        );
+    }
+
+    /**
+     * Who the company is, in the dimensions it records — docs/saas-launch-plan.md §14.10.
+     *
+     * Four counts rather than a cross-tabulation. A matrix of gender against department
+     * against age band on a company of forty people is mostly ones, and the question a
+     * report like this answers is the flat one: how many of each.
+     *
+     * **"Not recorded" is a row, not a blank.** A demographics report whose numbers do
+     * not add up to the headcount has lost somebody, and the usual reason is a field
+     * nobody filled in — which is itself worth seeing.
+     */
+    public function demographics(string $asOf): array
+    {
+        $asOfDate = Carbon::parse($asOf)->startOfDay();
+        $employees = Employee::query()->where('is_active', true)->get();
+        $total = $employees->count();
+
+        $rows = [];
+
+        $rows[] = ['Gender', '', '', ''];
+        $rows = array_merge($rows, $this->breakdown($employees->map(fn (Employee $e): string => $this->titled($e->gender)), $total));
+
+        $rows[] = ['Age', '', '', ''];
+        $rows = array_merge($rows, $this->breakdown($employees->map(fn (Employee $e): string => $this->ageBand($e, $asOfDate)), $total, self::AGE_BANDS));
+
+        $rows[] = ['Marital status', '', '', ''];
+        $rows = array_merge($rows, $this->breakdown($employees->map(fn (Employee $e): string => $this->titled($e->marital_status)), $total));
+
+        $rows[] = ['Department', '', '', ''];
+        $rows = array_merge($rows, $this->breakdown($employees->map(fn (Employee $e): string => $this->titled($e->department)), $total));
+
+        $rows[] = ['Employment type', '', '', ''];
+        $rows = array_merge($rows, $this->breakdown($employees->map(fn (Employee $e): string => $this->titled($e->employment_type)), $total));
+
+        return $this->table(
+            'Demographics',
+            'Demographics',
+            $this->subtitle('as at '.$asOf),
+            ['Dimension', 'Value', 'People', 'Share'],
+            'minmax(0, 14rem) minmax(0, 1fr) 7rem 7rem',
+            [2, 3],
+            $rows,
+            [['label' => 'ACTIVE EMPLOYEES', 'value' => (float) $total, 'accent' => true]],
+            $total === 0 ? 'NOBODY TO COUNT' : mb_strtoupper($total.' active employees'),
+            null,
+            'There are no active employees to count.',
+        );
+    }
+
+    /** The anniversary window, in days. Long enough to plan, short enough to act on. */
+    private const ANNIVERSARY_WINDOW_DAYS = 90;
+
+    /** The years a company usually marks. */
+    private const MILESTONES = [1, 3, 5, 10, 15, 20, 25, 30];
+
+    /** @var array<int, string> the order age bands are shown in, however few fall in each */
+    private const AGE_BANDS = ['Under 25', '25–34', '35–44', '45–54', '55 and over', 'Not recorded'];
+
+    private function nextAnniversary(Carbon $started, Carbon $from): ?Carbon
+    {
+        // 29 February falls back to the 28th in a common year, which is what
+        // `addYears` does and is the answer every company uses.
+        $falls = $started->copy()->addYears(max(0, $from->year - $started->year));
+
+        if ($falls->lt($from)) {
+            $falls = $falls->addYear();
+        }
+
+        return $falls;
+    }
+
+    private function ageBand(Employee $employee, Carbon $asOf): string
+    {
+        if ($employee->date_of_birth === null) {
+            return 'Not recorded';
+        }
+
+        $age = (int) $employee->date_of_birth->diffInYears($asOf);
+
+        return match (true) {
+            $age < 25 => 'Under 25',
+            $age < 35 => '25–34',
+            $age < 45 => '35–44',
+            $age < 55 => '45–54',
+            default => '55 and over',
+        };
+    }
+
+    private function titled(mixed $value): string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? 'Not recorded' : (string) str($value)->replace('_', ' ')->title();
+    }
+
+    /**
+     * One dimension, counted and shared.
+     *
+     * @param  Collection<int, string>  $values
+     * @param  array<int, string>|null  $order  the order to show in, where one is fixed
+     * @return array<int, array<int, string>>
+     */
+    private function breakdown(Collection $values, int $total, ?array $order = null): array
+    {
+        $counts = $values->countBy();
+
+        $keys = $order !== null
+            ? array_values(array_filter($order, fn (string $key): bool => $counts->has($key)))
+            : $counts->sortDesc()->keys()->all();
+
+        return array_map(fn (string $key): array => [
+            '',
+            $key,
+            number_format((float) $counts[$key]),
+            $total === 0 ? '' : number_format($counts[$key] / $total * 100, 1).'%',
+        ], $keys);
+    }
 }

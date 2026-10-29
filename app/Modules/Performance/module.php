@@ -56,6 +56,8 @@ return [
 
     'pages' => [
         'App\\Filament\\Pages\\ReviewCycleProgress' => \App\Modules\Performance\Filament\Pages\ReviewCycleProgress::class,
+        // How the ratings fell — docs/saas-launch-plan.md §14.10.
+        'App\\Filament\\Pages\\RatingsDistribution' => \App\Modules\Performance\Filament\Pages\RatingsDistribution::class,
         'App\\Filament\\Pages\\MeritLedgerReport' => \App\Modules\Performance\Filament\Pages\MeritLedgerReport::class,
     ],
 

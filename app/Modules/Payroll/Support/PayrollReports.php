@@ -3,8 +3,10 @@
 namespace App\Modules\Payroll\Support;
 
 use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Payroll\Models\AnnualTax;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Models\Payslip;
+use App\Modules\Payroll\Models\SalarySlab;
 use App\Modules\Payroll\Services\EobiReturn;
 use App\Modules\Payroll\Services\PayrollRegister;
 use App\Modules\Payroll\Services\SalaryBankExportService;
@@ -300,5 +302,120 @@ class PayrollReports
         return $year?->name
             ? 'fiscal year '.$year->name
             : 'as of '.Carbon::parse($asOf)->format('j M Y');
+    }
+
+    /**
+     * The slabs, and who is in them — docs/saas-launch-plan.md §14.10.
+     *
+     * `TaxSummary` answers it per person: what each employee was withheld, and the slab
+     * they fell in. This answers it per slab: how many people are in each band of the
+     * FBR schedule and what the company is withholding from each.
+     *
+     * **The projected annual income decides the band, not the month.** A person's slab
+     * is a fact about their year — it is what `TaxCalculatorService` uses — and placing
+     * somebody by one month's earnings would move them between bands every time a bonus
+     * was paid.
+     *
+     * Read from `annual_taxes`, which the payslip writes on every change. An employee
+     * with no row is one nobody has run payroll for this year, and is counted as such
+     * rather than being placed in the bottom band by default.
+     */
+    public function slabAnalysis(string $asOf): array
+    {
+        $year = ReportPeriod::toDate($asOf)['year'] ?? FiscalYear::current();
+
+        if ($year === null) {
+            return $this->emptySlabs($asOf);
+        }
+
+        $slabs = SalarySlab::query()->where('fiscal_year_id', $year->getKey())->orderBy('min_amount')->get();
+
+        if ($slabs->isEmpty()) {
+            return $this->emptySlabs($asOf);
+        }
+
+        $taxes = AnnualTax::query()
+            ->where('fiscal_year_id', $year->getKey())
+            ->get(['employee_id', 'total_annual_income', 'total_annual_tax']);
+
+        $rows = [];
+        $placed = 0;
+        $taxTotal = 0.0;
+
+        foreach ($slabs as $slab) {
+            $min = (float) $slab->min_amount;
+            $max = $slab->max_amount === null ? null : (float) $slab->max_amount;
+
+            $inSlab = $taxes->filter(function (AnnualTax $tax) use ($min, $max): bool {
+                $income = (float) $tax->total_annual_income;
+
+                return $income > $min && ($max === null || $income <= $max);
+            });
+
+            $slabTax = (float) $inSlab->sum('total_annual_tax');
+            $placed += $inSlab->count();
+            $taxTotal += $slabTax;
+
+            $rows[] = [
+                $this->slabBand($min, $max),
+                $slab->percentage > 0 ? number_format((float) $slab->percentage, 1).'%' : '—',
+                $slab->fixed_tax > 0 ? number_format((float) $slab->fixed_tax) : '—',
+                number_format($inSlab->count()),
+                $inSlab->isEmpty() ? '—' : number_format((float) $inSlab->sum('total_annual_income')),
+                $slabTax > 0 ? number_format($slabTax) : '—',
+            ];
+        }
+
+        // Everybody the slabs did not place. Below the first threshold is the usual
+        // reason and is not an error; it is the headcount paying no tax at all.
+        $untaxed = $taxes->count() - $placed;
+
+        if ($untaxed > 0) {
+            $rows[] = ['Below the first threshold', '—', '—', number_format($untaxed), '—', '—'];
+        }
+
+        return $this->table(
+            'SlabAnalysis',
+            'Tax Slab Analysis',
+            $this->subtitle($year->name),
+            ['Annual income', 'Rate', 'Fixed', 'People', 'Income', 'Tax'],
+            'minmax(0, 1fr) 7rem 8rem 7rem 11rem 11rem',
+            [3, 4, 5],
+            $rows,
+            [
+                ['label' => 'EMPLOYEES', 'value' => (float) $taxes->count(), 'accent' => false],
+                ['label' => 'ANNUAL TAX', 'value' => round($taxTotal, 2), 'accent' => true],
+            ],
+            mb_strtoupper($placed.' of '.$taxes->count().' employees fall in a slab'
+                .($untaxed > 0 ? ', '.$untaxed.' below the first threshold' : '')),
+            null,
+            'No salary slabs are seeded for this fiscal year.',
+        );
+    }
+
+    private function slabBand(float $min, ?float $max): string
+    {
+        return $max === null
+            ? 'Over '.number_format($min)
+            : number_format($min + 1).' to '.number_format($max);
+    }
+
+    /** @return array<string, mixed> */
+    private function emptySlabs(string $asOf): array
+    {
+        return $this->table(
+            'SlabAnalysis',
+            'Tax Slab Analysis',
+            $this->subtitle('as at '.$asOf),
+            ['Annual income', 'Rate', 'Fixed', 'People', 'Income', 'Tax'],
+            'minmax(0, 1fr) 7rem 8rem 7rem 11rem 11rem',
+            [3, 4, 5],
+            [],
+            [],
+            'NO SLABS ARE SEEDED FOR THIS FISCAL YEAR',
+            null,
+            'No salary slabs are seeded for this fiscal year. Add them under Salary Slabs — they are the '
+            .'FBR schedule and change with each Finance Act.',
+        );
     }
 }

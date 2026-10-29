@@ -350,4 +350,106 @@ class PerformanceReports
             wide: true,
         );
     }
+
+    /**
+     * How the ratings fell — docs/saas-launch-plan.md §14.10.
+     *
+     * One row per cycle per rating, with the share. The shape of the distribution is
+     * the point and it is the thing a calibration meeting is about: a cycle where
+     * four-fifths of the company scored the same number has not measured anything, and a
+     * cycle with nobody at either end has a manager who does not use the ends.
+     *
+     * **Shared ratings only.** A rating a manager has entered and not yet shared is
+     * still being argued about, and counting it would make the distribution move under
+     * the people calibrating it.
+     *
+     * Broken down by department as well, because the two together are what answers "is
+     * this a company-wide curve or one manager's".
+     */
+    public function ratingsDistribution(string $asOf): array
+    {
+        $period = ReportPeriod::toDate($asOf);
+        $scale = max(2, (int) setting('performance.rating_scale', 5));
+
+        $cycles = ReviewCycle::query()
+            ->whereIn('status', [ReviewCycle::STATUS_OPEN, ReviewCycle::STATUS_CALIBRATING, ReviewCycle::STATUS_CLOSED])
+            ->whereDate('period_start', '<=', $period['to'])
+            ->whereDate('period_end', '>=', $period['from'])
+            ->orderByDesc('period_start')
+            ->get();
+
+        $reviews = Review::query()
+            ->whereIn('review_cycle_id', $cycles->modelKeys())
+            ->whereNotNull('final_rating')
+            // Shared or acknowledged: a rating still inside the manager's draft is not a
+            // rating anybody has been told, and the distribution would move under them.
+            ->whereIn('status', [Review::STATUS_SHARED, Review::STATUS_ACKNOWLEDGED])
+            ->with('employee')
+            ->get();
+
+        $rows = [];
+        $rated = 0;
+
+        foreach ($cycles as $cycle) {
+            $inCycle = $reviews->where('review_cycle_id', $cycle->getKey());
+
+            if ($inCycle->isEmpty()) {
+                continue;
+            }
+
+            $rated += $inCycle->count();
+            $counts = $inCycle->countBy('final_rating');
+
+            for ($rating = $scale; $rating >= 1; $rating--) {
+                $count = (int) ($counts[$rating] ?? 0);
+
+                $rows[] = [
+                    (string) $cycle->name,
+                    (string) $rating.' of '.$scale,
+                    number_format($count),
+                    number_format($count / $inCycle->count() * 100, 1).'%',
+                    // A bar in characters. The shape is what this report is for, and a
+                    // column of numbers hides it from everybody who is not looking for it.
+                    $this->bar($count, (int) $counts->max()),
+                ];
+            }
+
+            foreach ($inCycle->groupBy(fn (Review $review): string => (string) ($review->employee?->department ?: 'No department')) as $department => $forDepartment) {
+                $average = $forDepartment->avg('final_rating');
+
+                $rows[] = [
+                    '',
+                    '  '.$department,
+                    number_format($forDepartment->count()),
+                    'avg '.number_format((float) $average, 2),
+                    '',
+                ];
+            }
+        }
+
+        return $this->table(
+            'RatingsDistribution',
+            'Ratings Distribution',
+            $this->subtitle($period['from'].' to '.$period['to']),
+            ['Cycle', 'Rating', 'People', 'Share', ''],
+            'minmax(0, 16rem) minmax(0, 1fr) 7rem 8rem 12rem',
+            [2, 3],
+            $rows,
+            [
+                ['label' => 'RATINGS SHARED', 'value' => (float) $rated, 'accent' => true],
+                ['label' => 'CYCLES', 'value' => (float) $cycles->count(), 'accent' => false],
+            ],
+            $rows === []
+                ? 'NO RATINGS HAVE BEEN SHARED IN THIS PERIOD'
+                : mb_strtoupper($rated.' shared rating(s) across '.$cycles->count().' cycle(s)'),
+            null,
+            'No ratings have been shared yet. A rating counts here once the manager shares it.',
+        );
+    }
+
+    /** A proportional bar, at most twelve characters wide. */
+    private function bar(int $count, int $most): string
+    {
+        return $most < 1 || $count < 1 ? '' : str_repeat('█', max(1, (int) round($count / $most * 12)));
+    }
 }
