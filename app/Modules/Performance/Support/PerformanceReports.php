@@ -3,6 +3,7 @@
 namespace App\Modules\Performance\Support;
 
 use App\Modules\Performance\Models\Goal;
+use App\Modules\Performance\Models\MeritEntry;
 use App\Modules\Performance\Models\OneToOne;
 use App\Modules\Performance\Models\Review;
 use App\Modules\Performance\Models\ReviewCycle;
@@ -40,6 +41,61 @@ class PerformanceReports
 
     /** Goal states in which somebody has decided something. `missed` counts — a miss is a decision. */
     private const SETTLED_GOALS = [Goal::STATUS_ACHIEVED, Goal::STATUS_MISSED, Goal::STATUS_DROPPED];
+
+    /**
+     * The ledger per employee for the period — docs/saas-launch-plan.md §8.1.
+     * Sums over rows, never a stored total.
+     */
+    public function meritLedger(string $asOf): array
+    {
+        $period = ReportPeriod::toDate($asOf);
+
+        $entries = MeritEntry::query()
+            ->between($period['from'], $period['to'])
+            ->with('employee.user')
+            ->get()
+            ->groupBy('employee_id');
+
+        $rows = [];
+        $credits = 0;
+        $debits = 0;
+
+        foreach ($entries as $group) {
+            $employee = $group->first()->employee;
+            $plus = (int) $group->where('points', '>', 0)->sum('points');
+            $minus = (int) $group->where('points', '<', 0)->sum('points');
+            $credits += $plus;
+            $debits += $minus;
+
+            $rows[] = [
+                (string) ($employee?->display_label ?? '—'),
+                (string) ($employee?->department ?? '—'),
+                $this->count($group->count()),
+                $plus === 0 ? '—' : '+'.number_format($plus),
+                $minus === 0 ? '—' : number_format($minus),
+                number_format($plus + $minus),
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b): int => (int) str_replace(',', '', $b[5]) <=> (int) str_replace(',', '', $a[5]));
+
+        return $this->table(
+            'MeritLedgerReport',
+            'Merit Ledger',
+            $this->subtitle('entries dated between '.$period['from'].' and '.$period['to']),
+            ['Employee', 'Department', 'Entries', 'Credits', 'Debits', 'Balance'],
+            'minmax(0, 16rem) 10rem 7rem 7rem 7rem 8rem',
+            [2, 3, 4, 5],
+            $rows,
+            [
+                ['label' => 'CREDITS', 'value' => (float) $credits, 'accent' => true],
+                ['label' => 'DEBITS', 'value' => (float) $debits, 'accent' => false],
+                ['label' => 'EMPLOYEES', 'value' => (float) count($rows), 'accent' => false],
+            ],
+            'A balance is a sum over dated entries; nothing here is a rating, and nothing turns it into one.',
+            empty: 'No merit entries in this period.',
+        );
+    }
 
     public function reviewCycleProgress(string $asOf): array
     {

@@ -4,10 +4,10 @@ namespace App\Modules\Performance\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Modules\Employees\Models\EmployeeChangeRequest;
 
 /**
  * One person's review in one cycle.

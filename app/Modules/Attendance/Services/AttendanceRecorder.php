@@ -3,6 +3,7 @@
 namespace App\Modules\Attendance\Services;
 
 use App\Modules\Attendance\Models\AttendanceDay;
+use App\Modules\Employees\Events\LateMarkRecorded;
 use App\Modules\Employees\Models\Employee;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
@@ -73,14 +74,21 @@ class AttendanceRecorder
 
         if ($existing) {
             $existing->update($attributes);
-
-            return $existing->refresh();
+            $day = $existing->refresh();
+        } else {
+            $day = AttendanceDay::create($attributes + [
+                'employee_id' => $employee->getKey(),
+                'date' => $date->toDateString(),
+            ]);
         }
 
-        return AttendanceDay::create($attributes + [
-            'employee_id' => $employee->getKey(),
-            'date' => $date->toDateString(),
-        ]);
+        // Announced, not acted on — plan §8.1. Lateness is recorded here and docks
+        // nothing; the merit ledger decides whether it is evidence.
+        if ((int) $day->late_minutes > 0) {
+            LateMarkRecorded::dispatch($employee->getKey(), $day->getKey(), $date->toDateString(), (int) $day->late_minutes);
+        }
+
+        return $day;
     }
 
     /**

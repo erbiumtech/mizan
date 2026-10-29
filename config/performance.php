@@ -21,6 +21,24 @@ return [
     | docs/hrms-plan.md §4.5: a rating is an opinion, a package is approved. Wiring one to
     | the other would make the appraisal a payroll instruction.
     */
+    /*
+    | The merit ledger — docs/saas-launch-plan.md §8.1. Points per source, each a
+    | company setting under performance.merit.* with these as the defaults.
+    | `late_mark_points` is zero as shipped: a late mark becomes evidence only
+    | when a company says so.
+    */
+    'merit' => [
+        'late_mark_points' => 0,
+    ],
+
+    /*
+    | §8.2's rupee penalty. Recorded on each task and summed by tasks:settle for
+    | the payroll clerk; nothing docks pay by itself. The automatic payslip row
+    | the plan described waits for the payroll engine to carry a key for it —
+    | see SettleTaskPenalties.
+    */
+    'penalty_pay_component' => null,
+
     'increment_scale' => [
         5 => 0.15,
         4 => 0.10,

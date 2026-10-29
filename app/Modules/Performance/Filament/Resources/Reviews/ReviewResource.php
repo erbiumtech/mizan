@@ -4,6 +4,7 @@ namespace App\Modules\Performance\Filament\Resources\Reviews;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Modules\Performance\Filament\Resources\Reviews\Pages\CreateReview;
 use App\Modules\Performance\Filament\Resources\Reviews\Pages\EditReview;
 use App\Modules\Performance\Filament\Resources\Reviews\Pages\ListReviews;
@@ -15,7 +16,6 @@ use App\Support\LandlordUserColumn;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
-use App\Modules\Employees\Models\EmployeeChangeRequest;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -107,6 +107,36 @@ class ReviewResource extends Resource
                     Textarea::make('improvements')->rows(3)->columnSpanFull(),
                 ])
                 ->columns(2),
+
+            Section::make('Merit ledger')
+                ->description('Every dated entry inside the cycle\'s period — plan §8.1. Shown beside the rating and never written into it.')
+                ->schema([
+                    Placeholder::make('merit_evidence')
+                        ->label('For this period')
+                        ->content(function (?Review $record): string {
+                            if (! $record?->cycle) {
+                                return 'Save the review to see the ledger for its period.';
+                            }
+
+                            $summary = app(\App\Modules\Performance\Services\MeritLedger::class)->summary(
+                                $record->employee_id,
+                                $record->cycle->period_start->toDateString(),
+                                $record->cycle->period_end->toDateString(),
+                            );
+
+                            if ($summary['entries']->isEmpty()) {
+                                return 'No merit entries in this period.';
+                            }
+
+                            return sprintf(
+                                '%d entries: +%d credits, %d debits, balance %+d. Open Merit Entries to read each one.',
+                                $summary['entries']->count(),
+                                $summary['credits'],
+                                $summary['debits'],
+                                $summary['balance'],
+                            );
+                        }),
+                ]),
 
             Section::make('Evidence')
                 ->description('The monthly progress reports filed inside the cycle\'s period. Read, never copied: an MPR is the employee\'s own account of their month.')
