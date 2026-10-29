@@ -22,6 +22,14 @@ class Advance extends Model
 {
     use Auditable;
 
+    /** Applied for and not yet decided — docs/saas-launch-plan.md §14.3. Payroll deducts nothing. */
+    public const STATUS_REQUESTED = 'requested';
+
+    public const STATUS_REFUSED = 'refused';
+
+    /** Deductions stopped for a while; nothing written off, the advance runs longer. */
+    public const STATUS_PAUSED = 'paused';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_SETTLED = 'settled';
@@ -29,8 +37,9 @@ class Advance extends Model
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
-        'employee_id', 'total_amount', 'monthly_instalment',
+        'employee_id', 'advance_type_id', 'total_amount', 'interest_amount', 'monthly_instalment', 'instalments',
         'started_on', 'recovery_starts_on', 'skipped_months', 'status', 'reference', 'notes',
+        'requested_by', 'requested_at', 'decided_by', 'decided_at', 'refusal_reason', 'paused_at', 'paused_reason',
     ];
 
     protected $casts = [
@@ -39,11 +48,90 @@ class Advance extends Model
         'started_on' => 'date',
         'recovery_starts_on' => 'date',
         'skipped_months' => 'array',
+        'interest_amount' => 'decimal:2',
+        'instalments' => 'integer',
+        'requested_at' => 'datetime',
+        'decided_at' => 'datetime',
+        'paused_at' => 'datetime',
     ];
 
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(AdvanceType::class, 'advance_type_id');
+    }
+
+    /** What has to come back: the amount plus any interest the type adds. */
+    public function totalRecoverable(): float
+    {
+        return round((float) $this->total_amount + (float) $this->interest_amount, 2);
+    }
+
+    /**
+     * The months ahead and what each takes — docs/saas-launch-plan.md §14.3. Projected from what is
+     * left: skipped months are stepped over, and a paused advance projects nothing until resumed.
+     *
+     * @return array<int, array{month: string, amount: float}>
+     */
+    public function schedule(?string $from = null, int $limit = 60): array
+    {
+        if ($this->status !== self::STATUS_ACTIVE || (float) $this->monthly_instalment <= 0) {
+            return [];
+        }
+
+        $left = $this->remainingAmount();
+        $month = Carbon::parse($from ?? now())->startOfMonth();
+
+        if ($this->recovery_starts_on && $month->lt($this->recovery_starts_on->copy()->startOfMonth())) {
+            $month = $this->recovery_starts_on->copy()->startOfMonth();
+        }
+
+        $rows = [];
+
+        while ($left > 0.005 && count($rows) < $limit) {
+            if (! in_array($month->format('Y-m'), $this->skipped_months ?? [], true)) {
+                $take = round(min((float) $this->monthly_instalment, $left), 2);
+                $rows[] = ['month' => $month->format('Y-m'), 'amount' => $take];
+                $left = round($left - $take, 2);
+            }
+
+            $month->addMonth();
+        }
+
+        return $rows;
+    }
+
+    /** Instalments the schedule said were due by a date, against what was recorded — the defaulters' figure. */
+    public function arrearsAt(string|Carbon $asOf): float
+    {
+        if (! in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_PAUSED], true) || (float) $this->monthly_instalment <= 0) {
+            return 0.0;
+        }
+
+        $asOf = Carbon::parse($asOf)->startOfMonth();
+        $start = ($this->recovery_starts_on ?? $this->started_on)?->copy()->startOfMonth();
+
+        if ($start === null) {
+            return 0.0;
+        }
+
+        $expected = 0.0;
+        $month = $start->copy();
+
+        // Up to the month before the one asked about: this month's payroll may not have run yet.
+        while ($month->lt($asOf) && $expected < $this->totalRecoverable()) {
+            if (! in_array($month->format('Y-m'), $this->skipped_months ?? [], true)) {
+                $expected = round(min($this->totalRecoverable(), $expected + (float) $this->monthly_instalment), 2);
+            }
+
+            $month->addMonth();
+        }
+
+        return round(max(0, $expected - $this->recoveredAmount()), 2);
     }
 
     public function recoveries(): HasMany
@@ -74,7 +162,7 @@ class Advance extends Model
 
     public function remainingAmount(?int $excludingPayslipId = null): float
     {
-        return round(max(0, (float) $this->total_amount - $this->recoveredAmount($excludingPayslipId)), 2);
+        return round(max(0, $this->totalRecoverable() - $this->recoveredAmount($excludingPayslipId)), 2);
     }
 
     public function isSettled(): bool

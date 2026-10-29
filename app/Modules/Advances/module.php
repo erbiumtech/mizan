@@ -19,10 +19,12 @@ return [
     'models' => [
         'App\\Models\\Advance' => \App\Modules\Advances\Models\Advance::class,
         'App\\Models\\AdvanceRecovery' => \App\Modules\Advances\Models\AdvanceRecovery::class,
+        'App\\Models\\AdvanceType' => \App\Modules\Advances\Models\AdvanceType::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\Advances\\AdvanceResource' => \App\Modules\Advances\Filament\Resources\Advances\AdvanceResource::class,
+        'App\\Filament\\Resources\\AdvanceTypes\\AdvanceTypeResource' => \App\Modules\Advances\Filament\Resources\AdvanceTypes\AdvanceTypeResource::class,
     ],
 
     'permission_groups' => [
@@ -46,6 +48,8 @@ return [
     'role_grants' => [
         // Every member of staff.
         'Employee' => [
+            // Applying for one — docs/saas-launch-plan.md §14.3. The create page files a request for themselves.
+            'AdvanceCreate',
             'AdvanceView',
         ],
         // Records, does not approve.
@@ -67,11 +71,16 @@ return [
     /** The outstanding-advances report (Phase 2.7). A page: a report is a question, not rows to edit. */
     'pages' => [
         'App\\Filament\\Pages\\AdvancesOutstanding' => \App\Modules\Advances\Filament\Pages\AdvancesOutstanding::class,
+        'App\\Filament\\Pages\\AdvanceSchedule' => \App\Modules\Advances\Filament\Pages\AdvanceSchedule::class,
+        'App\\Filament\\Pages\\AdvanceDefaulters' => \App\Modules\Advances\Filament\Pages\AdvanceDefaulters::class,
+        'App\\Filament\\Pages\\AdvanceDisbursements' => \App\Modules\Advances\Filament\Pages\AdvanceDisbursements::class,
     ],
 
     'navigation' => [
         // The report declares the Reports group, as every report page in this application does.
         'Reports' => 'reports',
         'Employee' => 'people',
+        // Types — docs/saas-launch-plan.md §14.3.
+        'Settings' => 'admin',
     ],
 ];

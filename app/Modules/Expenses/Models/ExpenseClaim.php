@@ -10,6 +10,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Expenses\Notifications\ExpenseClaimDecided;
 use App\Modules\Expenses\Notifications\ExpenseClaimSubmitted;
+use App\Modules\Expenses\Services\ExpenseClaimApprovalChain;
 use App\Modules\Expenses\Services\ExpenseClaimBankPayment;
 use App\Modules\Expenses\Services\ExpenseClaimPosting;
 use App\Modules\Payroll\Models\Payslip;
@@ -19,6 +20,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 
@@ -55,6 +57,9 @@ class ExpenseClaim extends Model implements PayableDocument
         return app(ExpenseClaimBankPayment::class)->settle($this, $payment);
     }
 
+    /** Being written — docs/saas-launch-plan.md §14.3. Nobody is told until it is submitted. */
+    public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_APPROVED = 'approved';
@@ -69,7 +74,7 @@ class ExpenseClaim extends Model implements PayableDocument
 
     protected $fillable = [
         'employee_id', 'transaction_type_id', 'claimed_on', 'description', 'amount',
-        'notes', 'receipt_path', 'status', 'submitted_by', 'decided_by', 'decided_at',
+        'notes', 'receipt_path', 'status', 'submitted_by', 'submitted_at', 'decided_by', 'decided_at',
         'refusal_reason', 'payslip_id', 'payment_id', 'journal_entry_id',
     ];
 
@@ -77,6 +82,7 @@ class ExpenseClaim extends Model implements PayableDocument
         'claimed_on' => 'date',
         'amount' => 'decimal:2',
         'decided_at' => 'datetime',
+        'submitted_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -92,14 +98,10 @@ class ExpenseClaim extends Model implements PayableDocument
         });
 
         static::created(function (self $claim): void {
-            // Never to the person who submitted it, even if they hold the permission:
-            // the point of an approver is that it is somebody else.
-            $approvers = User::holdingPermission(self::APPROVE_PERMISSION)
-                ->where('id', '!=', $claim->submitted_by)
-                ->where('status', 1)
-                ->get();
-
-            Notification::send($approvers, new ExpenseClaimSubmitted($claim));
+            // A draft tells nobody; submit() does when it is ready — docs/saas-launch-plan.md §14.3.
+            if ($claim->isPending()) {
+                $claim->notifyApprovers();
+            }
         });
     }
 
@@ -174,10 +176,95 @@ class ExpenseClaim extends Model implements PayableDocument
      * One transaction over the status and the accrual: a claim approved whose posting then failed would
      * be a liability the report shows and the ledger does not, which is the hole this closes.
      */
+    public function lines(): HasMany
+    {
+        return $this->hasMany(ExpenseClaimLine::class)->orderBy('sort')->orderBy('id');
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(ExpenseClaimApproval::class)->orderBy('step');
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    /** The lines are the claim: their sum is its amount, and their first date its date. */
+    public function recalculateFromLines(): void
+    {
+        $lines = $this->lines()->get();
+
+        if ($lines->isEmpty()) {
+            return;
+        }
+
+        $this->forceFill([
+            'amount' => round((float) $lines->sum('amount'), 2),
+            'claimed_on' => $lines->min('spent_on'),
+        ])->saveQuietly();
+    }
+
+    /** From draft to pending: now the approvers are told. */
+    public function submit(): self
+    {
+        if (! $this->isDraft()) {
+            throw new InvalidArgumentException("This claim is already {$this->status}.");
+        }
+
+        if (round((float) $this->amount, 2) <= 0) {
+            throw new InvalidArgumentException('A claim needs at least one line with an amount.');
+        }
+
+        $this->update(['status' => self::STATUS_PENDING, 'submitted_at' => now()]);
+        $this->notifyApprovers();
+
+        return $this;
+    }
+
+    public function notifyApprovers(): void
+    {
+        // Never to the person who submitted it, even if they hold the permission:
+        // the point of an approver is that it is somebody else.
+        $approvers = User::holdingPermission(self::APPROVE_PERMISSION)
+            ->where('id', '!=', $this->submitted_by)
+            ->where('status', 1)
+            ->get();
+
+        Notification::send($approvers, new ExpenseClaimSubmitted($this));
+    }
+
+    /** "waiting for HR" part-way through a chain; null otherwise. */
+    public function awaitingLabel(): ?string
+    {
+        return app(ExpenseClaimApprovalChain::class)->awaitingLabel($this);
+    }
+
     public function approve(User $approver): self
     {
         $this->assertPending('approved');
         $this->assertNotOwnClaim($approver);
+
+        // The chain — docs/saas-launch-plan.md §14.3. A step that is not the last records itself
+        // and stops; only the last books the accrual and tells the claimant.
+        $chain = app(ExpenseClaimApprovalChain::class);
+        $step = $chain->nextStep($this);
+        $role = $chain->roleForStep($step);
+
+        if ($role !== null && ! $approver->hasRole($role)) {
+            throw new InvalidArgumentException("This claim is waiting for somebody holding the {$role} role to approve it.");
+        }
+
+        if (! $chain->isFinal($step)) {
+            $this->approvals()->create(['step' => $step, 'role' => $role, 'approved_by' => $approver->getKey(), 'approved_at' => now()]);
+
+            return $this->refresh();
+        }
+
+        if ($step > 1) {
+            $this->approvals()->create(['step' => $step, 'role' => $role, 'approved_by' => $approver->getKey(), 'approved_at' => now()]);
+        }
 
         TenantTransaction::run(function () use ($approver): void {
             $this->update([

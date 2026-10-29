@@ -24,6 +24,9 @@ class ExpensesServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     private const POLICIES = [
         ExpenseClaim::class => ExpenseClaimPolicy::class,
+        \App\Modules\Expenses\Models\ExpenseCategory::class => \App\Modules\Expenses\Policies\ExpenseCategoryPolicy::class,
+        \App\Modules\Expenses\Models\ExpenseClaimLine::class => \App\Modules\Expenses\Policies\ExpenseClaimLinePolicy::class,
+        \App\Modules\Expenses\Models\ExpenseClaimApproval::class => \App\Modules\Expenses\Policies\ExpenseClaimApprovalPolicy::class,
     ];
 
     public function register(): void
@@ -36,6 +39,9 @@ class ExpensesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The approval chain's switch — docs/saas-launch-plan.md §14.3. 63: after the payroll run's.
+        \App\Support\SettingsSections::register('expenses.approval-chain', \App\Modules\Expenses\Filament\Settings\ExpenseApprovalSettingsSection::class, 63);
+
         $this->registerReports();
 
         foreach (self::POLICIES as $model => $policy) {

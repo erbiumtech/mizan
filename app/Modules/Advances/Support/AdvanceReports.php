@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Services\GeneralLedgerService;
 use App\Modules\Advances\Models\Advance;
 use App\Support\Reporting\ReportShapes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -202,5 +203,116 @@ class AdvanceReports
         };
 
         return mb_strtoupper(implode(' · ', [...$flags, $reconciliation]));
+    }
+
+    /** The next twelve months, per employee — docs/saas-launch-plan.md §14.3. */
+    public function schedule(string $asOf): array
+    {
+        $from = Carbon::parse($asOf)->startOfMonth();
+        $months = collect(range(0, 11))->map(fn (int $i): string => $from->copy()->addMonths($i)->format('Y-m'));
+        $advances = Advance::query()->active()->with('employee.user')->orderBy('employee_id')->get();
+        $rows = [];
+        $totals = array_fill_keys($months->all(), 0.0);
+
+        foreach ($advances as $advance) {
+            $schedule = collect($advance->schedule($from->toDateString(), 12))->keyBy('month');
+            $cells = [];
+
+            foreach ($months as $month) {
+                $amount = (float) ($schedule[$month]['amount'] ?? 0);
+                $cells[] = $amount > 0 ? number_format($amount, 0) : '';
+                $totals[$month] += $amount;
+            }
+
+            $rows[] = [(string) ($advance->employee?->display_label ?? 'Employee #'.$advance->employee_id), ...$cells];
+        }
+
+        return $this->table(
+            'AdvanceSchedule',
+            'Advance Schedule',
+            $this->subtitle('from '.$from->format('M Y')),
+            ['Employee', ...$months->map(fn (string $m): string => Carbon::parse($m.'-01')->format('M y'))->all()],
+            'minmax(0, 1fr) '.str_repeat('5.5rem ', 12),
+            range(1, 12),
+            $rows,
+            [['label' => 'NEXT MONTH', 'value' => round($totals[$months[0]] ?? 0, 2), 'accent' => true]],
+            mb_strtoupper(count($rows).' advances in recovery'),
+            $rows === [] ? null : ['Total', ...array_map(fn (float $t): string => $t > 0 ? number_format($t, 0) : '', array_values($totals))],
+            'No advance is in recovery.',
+            true,
+        );
+    }
+
+    /** Behind the schedule — docs/saas-launch-plan.md §14.3: what should have come back by now, against what did. */
+    public function defaulters(string $asOf): array
+    {
+        $rows = [];
+        $arrears = 0.0;
+
+        foreach (Advance::query()->whereIn('status', [Advance::STATUS_ACTIVE, Advance::STATUS_PAUSED])->with('employee.user')->orderBy('employee_id')->get() as $advance) {
+            $behind = $advance->arrearsAt($asOf);
+
+            if ($behind <= 0) {
+                continue;
+            }
+
+            $rows[] = [
+                (string) ($advance->employee?->display_label ?? 'Employee #'.$advance->employee_id),
+                $advance->status === Advance::STATUS_PAUSED ? 'Paused'.($advance->paused_reason ? ' — '.$advance->paused_reason : '') : 'Active',
+                number_format($advance->totalRecoverable(), 0),
+                number_format($advance->recoveredAmount(), 0),
+                number_format($behind, 0),
+                number_format($advance->remainingAmount(), 0),
+            ];
+            $arrears += $behind;
+        }
+
+        return $this->table(
+            'AdvanceDefaulters',
+            'Advance Defaulters',
+            $this->subtitle('as at '.$asOf),
+            ['Employee', 'Status', 'To recover', 'Recovered', 'Behind', 'Outstanding'],
+            'minmax(0, 1fr) 12rem 9rem 9rem 9rem 9rem',
+            [2, 3, 4, 5],
+            $rows,
+            [['label' => 'IN ARREARS', 'value' => round($arrears, 2), 'accent' => true]],
+            mb_strtoupper(count($rows).' advances behind their schedule'),
+            null,
+            'Every advance is on schedule.',
+        );
+    }
+
+    /** What went out in the month — docs/saas-launch-plan.md §14.3. */
+    public function disbursements(string $asOf): array
+    {
+        $from = Carbon::parse($asOf)->startOfMonth();
+        $to = $from->copy()->endOfMonth();
+        $advances = Advance::query()->whereIn('status', [Advance::STATUS_ACTIVE, Advance::STATUS_PAUSED, Advance::STATUS_SETTLED])
+            ->whereDate('started_on', '>=', $from->toDateString())->whereDate('started_on', '<=', $to->toDateString())
+            ->with(['employee.user', 'type'])->orderBy('started_on')->get();
+
+        $rows = $advances->map(fn (Advance $a): array => [
+            $a->started_on->format('d M Y'),
+            (string) ($a->employee?->display_label ?? 'Employee #'.$a->employee_id),
+            $a->type?->name ?? '—',
+            number_format((float) $a->total_amount, 0),
+            number_format((float) $a->interest_amount, 0),
+            number_format((float) $a->monthly_instalment, 0),
+            $a->reference ?? '',
+        ])->all();
+
+        return $this->table(
+            'AdvanceDisbursements',
+            'Advance Disbursements',
+            $this->subtitle($from->format('F Y')),
+            ['Given on', 'Employee', 'Type', 'Amount', 'Interest', 'Per month', 'Reference'],
+            '8rem minmax(0, 1fr) 10rem 8rem 7rem 8rem 10rem',
+            [3, 4, 5],
+            $rows,
+            [['label' => 'DISBURSED', 'value' => round((float) $advances->sum('total_amount'), 2), 'accent' => true]],
+            mb_strtoupper($advances->count().' advances given'),
+            null,
+            'No advance was given this month.',
+        );
     }
 }

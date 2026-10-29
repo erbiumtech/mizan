@@ -155,6 +155,9 @@ class NavigationTree
                 'Pay Components',
                 'Salary Structures',
                 'Salary Slabs',
+                // Claims and advances — docs/saas-launch-plan.md §14.3.
+                'Expense Categories',
+                'Advance Types',
             ],
             // Departments and designations as rows — docs/saas-launch-plan.md §14.2.
             'People setup' => [

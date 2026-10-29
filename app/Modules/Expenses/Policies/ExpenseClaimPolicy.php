@@ -29,7 +29,7 @@ class ExpenseClaimPolicy
      */
     public function update(User $user, ExpenseClaim $claim): bool
     {
-        return $user->hasPermissionTo('ExpenseClaimUpdate') && $claim->isPending();
+        return $user->hasPermissionTo('ExpenseClaimUpdate') && ($claim->isPending() || $claim->isDraft());
     }
 
     public function delete(User $user, ExpenseClaim $claim): bool
@@ -42,6 +42,8 @@ class ExpenseClaimPolicy
     {
         return $user->hasPermissionTo(ExpenseClaim::APPROVE_PERMISSION)
             && $claim->isPending()
-            && $claim->submitted_by !== $user->getKey();
+            && $claim->submitted_by !== $user->getKey()
+            // The chain's next step may be a role this user does not hold — docs/saas-launch-plan.md §14.3.
+            && app(\App\Modules\Expenses\Services\ExpenseClaimApprovalChain::class)->userMayTakeNextStep($user, $claim);
     }
 }

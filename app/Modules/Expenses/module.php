@@ -18,10 +18,14 @@ return [
 
     'models' => [
         'App\\Models\\ExpenseClaim' => \App\Modules\Expenses\Models\ExpenseClaim::class,
+        'App\\Models\\ExpenseCategory' => \App\Modules\Expenses\Models\ExpenseCategory::class,
+        'App\\Models\\ExpenseClaimLine' => \App\Modules\Expenses\Models\ExpenseClaimLine::class,
+        'App\\Models\\ExpenseClaimApproval' => \App\Modules\Expenses\Models\ExpenseClaimApproval::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\ExpenseClaims\\ExpenseClaimResource' => \App\Modules\Expenses\Filament\Resources\ExpenseClaims\ExpenseClaimResource::class,
+        'App\\Filament\\Resources\\ExpenseCategories\\ExpenseCategoryResource' => \App\Modules\Expenses\Filament\Resources\ExpenseCategories\ExpenseCategoryResource::class,
     ],
 
     'permission_groups' => [
@@ -76,5 +80,7 @@ return [
         // The report declares the Reports group, as every report page in this application does.
         'Reports' => 'reports',
         'Employee' => 'people',
+        // Categories — docs/saas-launch-plan.md §14.3.
+        'Settings' => 'admin',
     ],
 ];

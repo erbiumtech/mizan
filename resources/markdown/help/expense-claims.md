@@ -67,3 +67,12 @@ and the claim is back with payroll. Needs the Accounting module.
 - **Update / Delete** only work while a claim is still **Pending** — once
   decided, it's locked.
 - Depends on the Expenses module being enabled.
+
+## Lines, drafts and the chain
+
+A claim is made of **lines** — date, category, what it was for, the amount
+and the receipt — and its amount is their total. Save it as a **draft** while
+it is being written; **Submit** tells the approvers. Approval can be more than
+one step: the first by anyone who may approve, then the roles named under
+Company Settings → Expense claim approval, in order. The status shows who it
+is waiting for.

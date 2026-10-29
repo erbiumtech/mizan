@@ -3,10 +3,13 @@
 namespace App\Modules\Expenses\Filament\Resources\ExpenseClaims\Schemas;
 
 use App\Modules\Accounting\Models\TransactionType;
+use App\Modules\Expenses\Models\ExpenseCategory;
+use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -48,8 +51,32 @@ class ExpenseClaimForm
 
             TextInput::make('amount')
                 ->numeric()
-                ->minValue(0.01)
-                ->required(),
+                ->minValue(0)
+                ->required()
+                ->helperText('With lines below, this is their total and is worked out for you.'),
+
+            Select::make('status')
+                ->options([ExpenseClaim::STATUS_DRAFT => 'Draft — still being written', ExpenseClaim::STATUS_PENDING => 'Submitted for approval'])
+                ->default(ExpenseClaim::STATUS_PENDING)
+                ->visible(fn (?ExpenseClaim $record): bool => $record === null || $record->isDraft())
+                ->helperText('A draft tells nobody. Submitting it tells the approvers.'),
+
+            // The lines — docs/saas-launch-plan.md §14.3: date, category, amount, receipt.
+            Repeater::make('lines')
+                ->relationship()
+                ->orderColumn('sort')
+                ->columns(4)
+                ->defaultItems(0)
+                ->addActionLabel('Add a line')
+                ->schema([
+                    DatePicker::make('spent_on')->label('Spent on')->native(false)->maxDate(now())->required(),
+                    Select::make('expense_category_id')->label('Category')->options(fn (): array => ExpenseCategory::query()->active()->orderBy('name')->pluck('name', 'id')->all())->nullable(),
+                    TextInput::make('description')->required()->maxLength(190),
+                    TextInput::make('amount')->numeric()->minValue(0.01)->required(),
+                    FileUpload::make('receipt_path')->label('Receipt')->disk('public')->directory('expense-claims')
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])->maxSize(8192)->columnSpanFull(),
+                ])
+                ->columnSpanFull(),
 
             Select::make('transaction_type_id')
                 ->label('Category')

@@ -3,6 +3,7 @@
 namespace App\Modules\Advances\Filament\Resources\Advances\Tables;
 
 use App\Modules\Advances\Models\Advance;
+use App\Modules\Advances\Services\AdvanceApplications;
 use App\Modules\Advances\Services\AdvanceService;
 use App\Support\LandlordUserColumn;
 use Filament\Actions\Action;
@@ -10,6 +11,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -65,6 +67,52 @@ class AdvancesTable
             ])
             ->recordActions([
                 // Money handed back outside payroll — cash, or a correction.
+                Action::make('approveAdvance')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_REQUESTED && (auth()->user()?->can('AdvanceUpdate') ?? false))
+                    ->action(function (Advance $record): void {
+                        try {
+                            app(AdvanceApplications::class)->approve($record, auth()->user());
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title('Approved; recovery starts with the next payslip.')->send();
+                    }),
+                Action::make('refuseAdvance')
+                    ->label('Refuse')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_REQUESTED && (auth()->user()?->can('AdvanceUpdate') ?? false))
+                    ->schema([Textarea::make('reason')->required()->rows(2)])
+                    ->action(function (Advance $record, array $data): void {
+                        app(AdvanceApplications::class)->refuse($record, auth()->user(), $data['reason']);
+                        Notification::make()->warning()->title('Refused, with your reason sent to the employee.')->send();
+                    }),
+                Action::make('pauseAdvance')
+                    ->label('Pause')
+                    ->icon('heroicon-o-pause-circle')
+                    ->color('gray')
+                    ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_ACTIVE && (auth()->user()?->can('AdvanceUpdate') ?? false))
+                    ->schema([Textarea::make('reason')->rows(2)->placeholder('Unpaid leave; hardship')])
+                    ->action(function (Advance $record, array $data): void {
+                        app(AdvanceApplications::class)->pause($record, (string) ($data['reason'] ?? ''));
+                        Notification::make()->success()->title('Paused. Nothing is deducted until it is resumed.')->send();
+                    }),
+                Action::make('resumeAdvance')
+                    ->label('Resume')
+                    ->icon('heroicon-o-play-circle')
+                    ->color('success')
+                    ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_PAUSED && (auth()->user()?->can('AdvanceUpdate') ?? false))
+                    ->action(function (Advance $record): void {
+                        app(AdvanceApplications::class)->resume($record);
+                        Notification::make()->success()->title('Resumed.')->send();
+                    }),
                 Action::make('recordRecovery')
                     ->label('Record repayment')
                     ->icon('heroicon-o-banknotes')

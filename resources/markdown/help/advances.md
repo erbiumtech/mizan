@@ -66,3 +66,12 @@ leave that payslip's deduction pointing at nothing.
   set, even for their own advances.
 - Depends on the Advances module being enabled, and on Employees (an advance
   always belongs to one).
+
+## Applying, approving, pausing
+
+An employee can **apply** for an advance against a type; it waits as
+*requested* and deducts nothing until somebody holding *Update advances*
+**approves** it (checked against the type's limits) or **refuses** it with a
+reason. An active advance can be **paused** — nothing is deducted and nothing
+written off, it simply runs longer — and **resumed**. The schedule, the
+defaulters and the disbursements are under Reports.

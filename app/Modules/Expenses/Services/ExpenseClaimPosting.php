@@ -53,6 +53,19 @@ class ExpenseClaimPosting
         $amount = round((float) $claim->amount, 2);
         $employee = $claim->employee?->user?->name ?? $claim->employee?->employee_id ?? "employee #{$claim->employee_id}";
 
+        // Lines each to their category's account — docs/saas-launch-plan.md §14.3 — and a claim without
+        // lines as one debit, as before. A line whose category names no account falls to the claim's.
+        $debits = [];
+
+        foreach ($claim->lines()->with('category.transactionType')->get() as $line) {
+            $account = $line->category?->transactionType?->account_id ?? $expenseAccount;
+            $debits[] = ['account_id' => $account, 'debit_amount' => round((float) $line->amount, 2), 'description' => $line->description];
+        }
+
+        if ($debits === []) {
+            $debits[] = ['account_id' => $expenseAccount, 'debit_amount' => $amount, 'description' => $claim->description];
+        }
+
         $entry = $this->entries->create([
             'entry_date' => now()->toDateString(),
             'entry_type' => 'general',
@@ -61,10 +74,10 @@ class ExpenseClaimPosting
             'source_type' => ModuleMap::alias(ExpenseClaim::class),
             'source_id' => $claim->getKey(),
         ], [
-            ['account_id' => $expenseAccount, 'debit_amount' => $amount, 'description' => $claim->description],
+            ...$debits,
             [
                 'account_id' => PayrollAccounts::id('expense_reimbursement'),
-                'credit_amount' => $amount,
+                'credit_amount' => round(array_sum(array_column($debits, 'debit_amount')), 2),
                 'description' => "Owed to {$employee} until reimbursed",
             ],
         ]);

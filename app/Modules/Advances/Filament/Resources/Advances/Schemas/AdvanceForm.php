@@ -3,6 +3,7 @@
 namespace App\Modules\Advances\Filament\Resources\Advances\Schemas;
 
 use App\Modules\Advances\Models\Advance;
+use App\Modules\Advances\Models\AdvanceType;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 
@@ -34,12 +36,38 @@ class AdvanceForm
                 ->disabledOn('edit')
                 ->helperText('Fixed once set: the recoveries already taken belong to this person.'),
 
+            // The type and its limits — docs/saas-launch-plan.md §14.3. Interest and the monthly figure follow.
+            Select::make('advance_type_id')
+                ->label('Type')
+                ->options(fn (): array => AdvanceType::query()->active()->orderBy('name')->pluck('name', 'id')->all())
+                ->live()
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recompute($get, $set))
+                ->helperText(fn (Get $get): ?string => ($t = AdvanceType::find($get('advance_type_id'))) ? implode(' · ', array_filter([
+                    $t->max_amount !== null ? 'up to '.number_format((float) $t->max_amount) : null,
+                    $t->max_instalments !== null ? 'at most '.$t->max_instalments.' instalments' : null,
+                    (float) $t->interest_rate_pct > 0 ? $t->interest_rate_pct.'% interest' : 'interest-free',
+                ])) : null),
             TextInput::make('total_amount')
                 ->label('Advance amount')
                 ->numeric()
                 ->minValue(0.01)
                 ->required()
-                ->live(onBlur: true),
+                ->live(onBlur: true)
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recompute($get, $set)),
+            TextInput::make('instalments')
+                ->label('Instalments')
+                ->numeric()
+                ->minValue(1)
+                ->maxValue(120)
+                ->live(onBlur: true)
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recompute($get, $set))
+                ->helperText('How many months. Sets the monthly deduction from the amount and any interest.'),
+            TextInput::make('interest_amount')
+                ->label('Interest')
+                ->numeric()
+                ->minValue(0)
+                ->default(0)
+                ->helperText('Worked out from the type; added to what is recovered.'),
 
             TextInput::make('monthly_instalment')
                 ->label('Monthly deduction')
@@ -74,10 +102,15 @@ class AdvanceForm
 
             Select::make('status')
                 ->options([
+                    Advance::STATUS_REQUESTED => 'Requested — waiting for approval',
                     Advance::STATUS_ACTIVE => 'Active — deducting',
+                    Advance::STATUS_PAUSED => 'Paused — not deducting for now',
                     Advance::STATUS_SETTLED => 'Settled',
                     Advance::STATUS_CANCELLED => 'Cancelled — stop deducting',
+                    Advance::STATUS_REFUSED => 'Refused',
                 ])
+                ->disabled(fn (): bool => ! (auth()->user()?->can('AdvanceUpdate') ?? false))
+                ->dehydrated(fn (): bool => auth()->user()?->can('AdvanceUpdate') ?? false)
                 ->default(Advance::STATUS_ACTIVE)
                 ->native(false)
                 ->required()
@@ -136,5 +169,20 @@ class AdvanceForm
                 return [$month->format('Y-m') => $month->format('F Y')];
             })
             ->all();
+    }
+
+    /** Interest from the type, the monthly figure from the instalments — docs/saas-launch-plan.md §14.3. */
+    protected static function recompute(Get $get, Set $set): void
+    {
+        $type = AdvanceType::find($get('advance_type_id'));
+        $amount = (float) $get('total_amount');
+        $interest = $type ? $type->interestOn($amount) : (float) $get('interest_amount');
+        $set('interest_amount', $interest);
+
+        $instalments = (int) $get('instalments');
+
+        if ($instalments > 0 && $amount > 0) {
+            $set('monthly_instalment', round(($amount + $interest) / $instalments, 2));
+        }
     }
 }

@@ -23,6 +23,8 @@ class AdvancesServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     private const POLICIES = [
         Advance::class => AdvancePolicy::class,
+
+        \App\Modules\Advances\Models\AdvanceType::class => \App\Modules\Advances\Policies\AdvanceTypePolicy::class,
     ];
 
     public function register(): void
@@ -65,5 +67,13 @@ class AdvancesServiceProvider extends ServiceProvider
             'AdvancesOutstanding',
             fn (string $asOf): array => app(AdvanceReports::class)->outstanding($asOf),
         );
+
+        // The schedule, the defaulters and the disbursements — docs/saas-launch-plan.md §14.3.
+        ReportCatalogue::register('People & payroll', \App\Modules\Advances\Filament\Pages\AdvanceSchedule::class, 'What each advance takes in each of the next twelve months.');
+        ReportCatalogue::register('People & payroll', \App\Modules\Advances\Filament\Pages\AdvanceDefaulters::class, 'Advances behind their schedule: what should have come back by now, against what did.');
+        ReportCatalogue::register('People & payroll', \App\Modules\Advances\Filament\Pages\AdvanceDisbursements::class, 'What was advanced in the month, to whom, and on what terms.');
+        ReportRenderers::register('AdvanceSchedule', fn (string $asOf): array => app(AdvanceReports::class)->schedule($asOf));
+        ReportRenderers::register('AdvanceDefaulters', fn (string $asOf): array => app(AdvanceReports::class)->defaulters($asOf));
+        ReportRenderers::register('AdvanceDisbursements', fn (string $asOf): array => app(AdvanceReports::class)->disbursements($asOf));
     }
 }

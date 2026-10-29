@@ -40,6 +40,7 @@ class ExpenseClaimsTable
 
                 TextColumn::make('status')
                     ->badge()
+                    ->description(fn (ExpenseClaim $record): ?string => $record->awaitingLabel())
                     ->color(fn (string $state): string => match ($state) {
                         ExpenseClaim::STATUS_PENDING => 'warning',
                         ExpenseClaim::STATUS_APPROVED => 'info',
@@ -81,6 +82,24 @@ class ExpenseClaimsTable
                     ->visible(fn (ExpenseClaim $record): bool => (bool) $record->receipt_path)
                     ->url(fn (ExpenseClaim $record): string => Storage::disk('public')->url($record->receipt_path), shouldOpenInNewTab: true),
 
+                Action::make('submit')
+                    ->label('Submit')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->modalDescription('Tells the approvers. The claim can no longer be edited by anybody but them.')
+                    ->visible(fn (ExpenseClaim $record): bool => $record->isDraft() && (auth()->user()?->can('update', $record) ?? false))
+                    ->action(function (ExpenseClaim $record): void {
+                        try {
+                            $record->submit();
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title('Submitted.')->send();
+                    }),
                 Action::make('approve')
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
