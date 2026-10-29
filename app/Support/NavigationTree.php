@@ -96,6 +96,9 @@ class NavigationTree
                 'Bank Statements',
                 'Beneficiaries',
                 'Payments',
+                'Cheques',
+                'Cheque Books',
+                'Cheque Layouts',
             ],
             'Assets & loans' => [
                 'Fixed Assets',

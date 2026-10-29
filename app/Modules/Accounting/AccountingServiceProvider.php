@@ -14,6 +14,7 @@ use App\Modules\Accounting\Filament\Pages\BankReconciliationStatement;
 use App\Modules\Accounting\Filament\Pages\BudgetVsActual;
 use App\Modules\Accounting\Filament\Pages\CashCommitments as CashCommitmentsPage;
 use App\Modules\Accounting\Filament\Pages\CashFlow;
+use App\Modules\Accounting\Filament\Pages\ChequeRegister;
 use App\Modules\Accounting\Filament\Pages\ContractorPayments;
 use App\Modules\Accounting\Filament\Pages\CurrencyRevaluation;
 use App\Modules\Accounting\Filament\Pages\FindTransactions;
@@ -55,6 +56,9 @@ use App\Modules\Accounting\Policies\BeneficiaryPolicy;
 use App\Modules\Accounting\Policies\BeneficiarySubscriptionPolicy;
 use App\Modules\Accounting\Policies\BudgetLinePolicy;
 use App\Modules\Accounting\Policies\BudgetPolicy;
+use App\Modules\Accounting\Policies\ChequeBookPolicy;
+use App\Modules\Accounting\Policies\ChequeLayoutPolicy;
+use App\Modules\Accounting\Policies\ChequePolicy;
 use App\Modules\Accounting\Policies\CompanyBankAccountPolicy;
 use App\Modules\Accounting\Policies\CurrencyPolicy;
 use App\Modules\Accounting\Policies\FixedAssetPolicy;
@@ -123,6 +127,9 @@ class AccountingServiceProvider extends ServiceProvider
         Loan::class => LoanPolicy::class,
         LoanInstalment::class => LoanInstalmentPolicy::class,
         Payment::class => PaymentPolicy::class,
+        \App\Modules\Accounting\Models\Cheque::class => ChequePolicy::class,
+        \App\Modules\Accounting\Models\ChequeBook::class => ChequeBookPolicy::class,
+        \App\Modules\Accounting\Models\ChequeLayout::class => ChequeLayoutPolicy::class,
         ScheduledTransaction::class => ScheduledTransactionPolicy::class,
         ScheduledTransactionLine::class => ScheduledTransactionLinePolicy::class,
         TransactionType::class => TransactionTypePolicy::class,
@@ -174,6 +181,8 @@ class AccountingServiceProvider extends ServiceProvider
         ReportCatalogue::register('Ledgers & books', AccountRegister::class, 'One account, every transaction against it, running balance — and edits.');
         ReportCatalogue::register('Ledgers & books', FindTransactions::class, 'Search the whole ledger by account, date, amount or wording.');
         ReportCatalogue::register('Ledgers & books', PettyCashBook::class, 'The cash float: what was spent, what is left, and replenishment.');
+        ReportCatalogue::register('Ledgers & books', ChequeRegister::class, 'Every cheque printed, who it was for, and whether the bank has seen it yet.');
+        ReportRenderers::register('ChequeRegister', fn (string $asOf): array => app(\App\Modules\Accounting\Support\ChequeReports::class)->register($asOf));
         ReportCatalogue::register('Ledgers & books', CurrencyRevaluation::class, 'Foreign balances at the rate on a date, and the difference posted.');
         ReportCatalogue::register('Bank files', BankPaymentFile::class, 'Selected payments as a bank transfer file.');
 

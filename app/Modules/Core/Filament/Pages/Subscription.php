@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Core\Jobs\ExportTenant;
 use App\Modules\Core\Models\Company;
 use App\Support\Plans;
@@ -97,6 +98,7 @@ class Subscription extends Page
         $foreign = array_values(array_diff(Plans::currencies(), [(string) config('saas.home_currency', 'PKR')]));
 
         return [
+            HelpAction::make('subscription', 'Subscription: Help'),
             /**
              * The 90-day promise — plan §9. Everything, as one archive, in the
              * company's own storage; the person who asked is emailed the link.

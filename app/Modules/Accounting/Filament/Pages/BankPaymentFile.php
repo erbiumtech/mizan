@@ -9,6 +9,7 @@ use App\Modules\Accounting\Filament\Concerns\VoidsPaymentBatches;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Accounting\Services\BankPaymentExportService;
+use App\Modules\Accounting\Services\ChequePrinter;
 use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Core\Models\FiscalYear;
 use App\Support\Banking\SelectsSalaryMonth;
@@ -105,8 +106,10 @@ class BankPaymentFile extends Page
             RaisingMonthlyPayments::dispatch($month, $fiscalYear, $typeCode ?: null);
         }
 
+        // A cheque is released by printing it, not by the file — docs/saas-launch-plan.md §8.6.
         return Payment::with(['payable', 'transactionType', 'companyBankAccount.bank', 'payslip'])
             ->unreleased()
+            ->where(fn ($q) => $q->whereNull('payment_type')->orWhere('payment_type', '!=', ChequePrinter::PAYMENT_TYPE))
             ->when($typeCode, fn ($q) => $q->whereHas('transactionType', fn ($t) => $t->where('code', $typeCode)))
             ->when($month, fn ($q) => $this->constrainToMonth($q, $month, $fiscalYear))
             ->orderBy('transaction_type_id')

@@ -51,6 +51,20 @@ class PdfDocument implements Responsable
         return $this;
     }
 
+    /** @var array{0: float, 1: float}|null width and height in millimetres, when the paper is not a named size */
+    protected ?array $paperSize = null;
+
+    /**
+     * A page of exactly this size — a cheque leaf, a label — rather than a named
+     * format. Millimetres, because that is what a ruler against the paper gives.
+     */
+    public function paperSize(float $widthMm, float $heightMm): static
+    {
+        $this->paperSize = [$widthMm, $heightMm];
+
+        return $this;
+    }
+
     public function portrait(): static
     {
         $this->orientation = 'portrait';
@@ -213,12 +227,17 @@ class PdfDocument implements Responsable
     {
         $pdf = BrowsershotPdf::view($this->view, $this->data + ['pdfEngine' => 'browsershot'])
             ->format($this->format)
-            ->withBrowsershot(fn (Browsershot $b) => $b
-                ->setNodeBinary(config('services.node.binary'))
-                ->setNpmBinary(config('services.node.npm'))
-                // Wall-clock, so what spends it is a busy machine rather than a
-                // complicated document. Configurable for exactly that reason.
-                ->timeout(config('pdf.timeout', 60)));
+            ->withBrowsershot(function (Browsershot $b): void {
+                $b->setNodeBinary(config('services.node.binary'))
+                    ->setNpmBinary(config('services.node.npm'))
+                    // Wall-clock, so what spends it is a busy machine rather than a
+                    // complicated document. Configurable for exactly that reason.
+                    ->timeout(config('pdf.timeout', 60));
+
+                if ($this->paperSize) {
+                    $b->paperSize($this->paperSize[0], $this->paperSize[1]);
+                }
+            });
 
         $pdf = $this->orientation === 'landscape' ? $pdf->landscape() : $pdf->portrait();
 
@@ -246,7 +265,11 @@ class PdfDocument implements Responsable
         $options->set('chroot', [public_path(), storage_path('app/public')]);
 
         $dompdf = new Dompdf($options);
-        $dompdf->setPaper($this->format, $this->orientation);
+        // Dompdf takes points; a millimetre is 72/25.4 of one.
+        $dompdf->setPaper(
+            $this->paperSize ? [0, 0, $this->paperSize[0] * 72 / 25.4, $this->paperSize[1] * 72 / 25.4] : $this->format,
+            $this->orientation,
+        );
         $dompdf->loadHtml($this->html(), 'UTF-8');
         $dompdf->render();
 

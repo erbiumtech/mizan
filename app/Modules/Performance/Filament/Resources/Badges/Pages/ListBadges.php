@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\Badges\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Modules\Performance\Filament\Resources\Badges\BadgeResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -12,6 +13,9 @@ class ListBadges extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [CreateAction::make()];
+        return [
+            HelpAction::make('badges', 'Badges: Help'),
+            CreateAction::make(),
+        ];
     }
 }

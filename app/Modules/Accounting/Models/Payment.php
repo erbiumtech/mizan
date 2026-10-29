@@ -332,6 +332,11 @@ class Payment extends Model
      * The party the bank file pays: the payable itself, or for a document — a supplier bill — whoever the
      * document names. See App\Support\Contracts\PayableDocument.
      */
+    public function cheques(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Cheque::class);
+    }
+
     public function payee(): ?EloquentModel
     {
         $payable = $this->loadMissing('payable')->payable;

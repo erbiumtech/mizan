@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
+use App\Modules\Accounting\Models\Cheque;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Core\Models\User;
 use App\Support\TenantTransaction;
@@ -281,7 +282,38 @@ class BankReconciliationService
             }
         }
 
+        // Pass 3: exact amount + the line names a printed cheque number — docs/saas-launch-plan.md §8.6.
+        // Banks clear a cheque weeks after it was written, so the date window above never catches it.
+        $text = trim(($line->reference ?? '').' '.($line->description ?? ''));
+
+        if ($text !== '') {
+            $byCheque = $candidates->filter(function (JournalEntryLine $l) use ($text): bool {
+                $number = $this->outstandingChequeNumbers()[$l->journal_entry_id] ?? null;
+
+                return $number !== null && str_contains($text, $number);
+            });
+
+            if ($byCheque->count() === 1) {
+                return $byCheque->first();
+            }
+        }
+
         return null;
+    }
+
+    /** @var array<int, string>|null journal_entry_id => cheque_no, for cheques the bank has not yet seen */
+    private ?array $outstandingCheques = null;
+
+    /** @return array<int, string> */
+    private function outstandingChequeNumbers(): array
+    {
+        return $this->outstandingCheques ??= Cheque::query()
+            ->where('cheques.status', Cheque::STATUS_PRINTED)
+            ->whereNotNull('cheques.payment_id')
+            ->join('payments', 'payments.id', '=', 'cheques.payment_id')
+            ->whereNotNull('payments.journal_entry_id')
+            ->pluck('cheques.cheque_no', 'payments.journal_entry_id')
+            ->all();
     }
 
     protected function amountsMatch(JournalEntryLine $ledgerLine, BankStatementLine $statementLine): bool
@@ -302,6 +334,13 @@ class BankReconciliationService
                 'matched_line_id' => $ledgerLine->id,
                 'match_status' => $status,
             ]);
+
+            // The bank has seen the cheque: cleared, and its payment paid.
+            Cheque::query()
+                ->outstanding()
+                ->whereIn('payment_id', fn ($q) => $q->select('id')->from('payments')->where('journal_entry_id', $ledgerLine->journal_entry_id))
+                ->get()
+                ->each(fn (Cheque $cheque) => app(ChequePrinter::class)->clear($cheque));
         });
     }
 

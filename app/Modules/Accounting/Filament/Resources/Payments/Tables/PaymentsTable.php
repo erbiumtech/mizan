@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Payments\Tables;
 
 use App\Modules\Accounting\Models\Payment;
+use App\Modules\Accounting\Services\ChequePrinter;
 use App\Modules\Accounting\Services\PaymentDetailsExport;
 use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Employees\Models\Employee;
@@ -83,6 +84,7 @@ class PaymentsTable
             ->recordActions([
                 EditAction::make(),
                 self::approveAction(),
+                self::printChequeAction(),
                 self::revertExportAction(),
             ])
             ->toolbarActions([
@@ -145,6 +147,36 @@ class PaymentsTable
     /**
      * ApprovePayment single-record action — parity with Nova ApprovePayment.
      */
+    /**
+     * Print a cheque for this payment — docs/saas-launch-plan.md §8.6. Takes the next number from the
+     * account's book, releases the payment with the number as its reference, and hands back the PDF.
+     */
+    protected static function printChequeAction(): Action
+    {
+        return Action::make('printCheque')
+            ->label('Print cheque')
+            ->icon('heroicon-o-printer')
+            ->requiresConfirmation()
+            ->modalDescription(fn (Payment $record): string => 'The next number from the book for '
+                .($record->companyBankAccount?->title ?? 'the account').' is used and the payment is released. A draft is approved first.')
+            ->visible(fn (Payment $record): bool => in_array($record->status, [Payment::STATUS_DRAFT, Payment::STATUS_APPROVED], true)
+                && $record->company_bank_account_id
+                && (auth()->user()?->can('PaymentUpdate') ?? false))
+            ->action(function (Payment $record) {
+                try {
+                    $cheque = app(ChequePrinter::class)->print($record, auth()->user());
+                } catch (\InvalidArgumentException $e) {
+                    Notification::make()->title($e->getMessage())->danger()->send();
+
+                    return null;
+                }
+
+                $pdf = app(ChequePrinter::class)->renderPdf($cheque);
+
+                return response()->streamDownload(fn () => print ($pdf->raw()), $pdf->getName(), ['Content-Type' => 'application/pdf']);
+            });
+    }
+
     protected static function approveAction(): Action
     {
         return Action::make('approvePayment')

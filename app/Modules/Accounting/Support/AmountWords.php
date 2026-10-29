@@ -48,6 +48,63 @@ class AmountWords
         'k' => 1000,
     ];
 
+    private const ONES = [
+        '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+        'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen',
+    ];
+
+    private const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    /**
+     * The other direction: a number as the words a cheque carries — docs/saas-launch-plan.md §8.6.
+     *
+     * The lakh-and-crore idiom, because that is what a Pakistani bank reads:
+     * 1,250,000 is "Twelve Lakh Fifty Thousand", not "One Million Two Hundred
+     * and Fifty Thousand". Paise as "and NN Paisa", and "Only" to close the line
+     * the way the printed leaf expects. parse() reads figures with a scale word,
+     * not these words; the two are not inverses.
+     */
+    public static function write(float $amount, string $currency = 'Rupees'): string
+    {
+        $amount = round(abs($amount), 2);
+        $rupees = (int) floor($amount);
+        $paisa = (int) round(($amount - $rupees) * 100);
+
+        $words = $rupees === 0 ? 'Zero' : self::wholeToWords($rupees);
+        $line = trim($currency.' '.$words);
+
+        if ($paisa > 0) {
+            $line .= ' and '.self::wholeToWords($paisa).' Paisa';
+        }
+
+        return $line.' Only';
+    }
+
+    private static function wholeToWords(int $n): string
+    {
+        $parts = [];
+
+        foreach ([['Crore', 10000000], ['Lakh', 100000], ['Thousand', 1000]] as [$name, $value]) {
+            if ($n >= $value) {
+                $parts[] = self::wholeToWords(intdiv($n, $value)).' '.$name;
+                $n %= $value;
+            }
+        }
+
+        if ($n >= 100) {
+            $parts[] = self::ONES[intdiv($n, 100)].' Hundred';
+            $n %= 100;
+        }
+
+        if ($n >= 20) {
+            $parts[] = self::TENS[intdiv($n, 10)].($n % 10 ? ' '.self::ONES[$n % 10] : '');
+        } elseif ($n > 0) {
+            $parts[] = self::ONES[$n];
+        }
+
+        return implode(' ', $parts);
+    }
+
     /**
      * @throws InvalidArgumentException when the text carries no usable number
      */

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Pages;
 
+use App\Filament\Support\HelpAction;
 use App\Support\Reporting\ModuleReportPage;
 use BackedEnum;
 
@@ -13,4 +14,9 @@ class MeritLedgerReport extends ModuleReportPage
     protected static ?string $title = 'Merit Ledger';
 
     protected static ?int $navigationSort = 50;
+
+    protected function reportActions(): array
+    {
+        return [HelpAction::make('merit-ledger', 'Merit Ledger: Help')];
+    }
 }
