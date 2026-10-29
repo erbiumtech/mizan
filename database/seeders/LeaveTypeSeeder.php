@@ -111,7 +111,32 @@ class LeaveTypeSeeder extends Seeder
                 'accrual_method' => LeaveType::ACCRUAL_ON_COMPLETION,
                 'allows_half_day' => false,
                 'min_notice_days' => 30,
+                // A year's service first — docs/saas-launch-plan.md §14.4. A seeded figure a company edits.
+                'min_service_months' => 12,
                 'sort' => 80,
+            ],
+            // Umrah and marriage — docs/saas-launch-plan.md §14.4. Seeded figures a company edits.
+            [
+                'code' => 'umrah',
+                'label' => 'Umrah Leave',
+                'kind' => 'umrah',
+                'days_per_year' => 15,
+                'accrual_method' => LeaveType::ACCRUAL_ON_COMPLETION,
+                'allows_half_day' => false,
+                'min_notice_days' => 14,
+                'min_service_months' => 12,
+                'sort' => 85,
+            ],
+            [
+                'code' => 'marriage',
+                'label' => 'Marriage Leave',
+                'kind' => 'marriage',
+                'days_per_year' => 7,
+                'accrual_method' => LeaveType::ACCRUAL_ON_COMPLETION,
+                'allows_half_day' => false,
+                'min_notice_days' => 14,
+                'max_consecutive_days' => 7,
+                'sort' => 90,
             ],
         ];
 

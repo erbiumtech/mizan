@@ -34,6 +34,11 @@ class EmployeeWorkPattern extends Model
         'to_date' => 'date',
     ];
 
+    public function workPattern(): BelongsTo
+    {
+        return $this->belongsTo(WorkPattern::class);
+    }
+
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);

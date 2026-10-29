@@ -81,4 +81,7 @@ return [
     */
     'geofence_mode' => env('ATTENDANCE_GEOFENCE_MODE', 'off'),
 
+    // An evening message to anybody with a clock-in and no clock-out — docs/saas-launch-plan.md §14.4. Off.
+    'remind_missing_punches' => env('ATTENDANCE_REMIND_MISSING_PUNCHES', false),
+
 ];

@@ -37,6 +37,10 @@ class LeaveServiceProvider extends ServiceProvider
         LeaveType::class => LeaveTypePolicy::class,
         LeaveEntitlement::class => LeaveEntitlementPolicy::class,
         LeaveAdjustment::class => LeaveAdjustmentPolicy::class,
+
+        \App\Modules\Leave\Models\LeaveGroup::class => \App\Modules\Leave\Policies\LeaveGroupPolicy::class,
+
+        \App\Modules\Leave\Models\LeaveEncashment::class => \App\Modules\Leave\Policies\LeaveEncashmentPolicy::class,
         LeaveRequest::class => LeaveRequestPolicy::class,
         LeaveDay::class => LeaveDayPolicy::class,
     ];

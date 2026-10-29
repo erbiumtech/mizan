@@ -27,12 +27,17 @@ return [
         'App\\Models\\EmployeeWorkPattern' => \App\Modules\Attendance\Models\EmployeeWorkPattern::class,
         'App\\Models\\AttendanceDay' => \App\Modules\Attendance\Models\AttendanceDay::class,
         'App\\Models\\AttendanceRegularization' => \App\Modules\Attendance\Models\AttendanceRegularization::class,
+        'App\\Models\\OvertimeRequest' => \App\Modules\Attendance\Models\OvertimeRequest::class,
+        'App\\Models\\RestDaySwap' => \App\Modules\Attendance\Models\RestDaySwap::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\AttendanceDays\\AttendanceDayResource' => \App\Modules\Attendance\Filament\Resources\AttendanceDays\AttendanceDayResource::class,
         'App\\Filament\\Resources\\AttendanceRegularizations\\AttendanceRegularizationResource' => \App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\AttendanceRegularizationResource::class,
         'App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource' => \App\Modules\Attendance\Filament\Resources\WorkPatterns\WorkPatternResource::class,
+        'App\\Filament\\Resources\\OvertimeRequests\\OvertimeRequestResource' => \App\Modules\Attendance\Filament\Resources\OvertimeRequests\OvertimeRequestResource::class,
+        'App\\Filament\\Resources\\RestDaySwaps\\RestDaySwapResource' => \App\Modules\Attendance\Filament\Resources\RestDaySwaps\RestDaySwapResource::class,
+        'App\\Filament\\Resources\\EmployeeWorkPatterns\\EmployeeWorkPatternResource' => \App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\EmployeeWorkPatternResource::class,
     ],
 
     'widgets' => [

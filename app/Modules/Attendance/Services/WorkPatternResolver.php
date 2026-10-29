@@ -94,6 +94,14 @@ class WorkPatternResolver
      */
     public function isWorkingDay(Employee|int $employee, string|Carbon $date): bool
     {
+        // A swapped day answers first — docs/saas-launch-plan.md §14.4: the rest day worked is a
+        // working day, the working day rested is not, whatever the pattern says.
+        $swap = $this->swapOn($employee, $date);
+
+        if ($swap !== null) {
+            return $swap;
+        }
+
         $pattern = $this->for($employee, $date);
 
         // No pattern at all: assume a working day. The alternative — treating an
@@ -118,8 +126,45 @@ class WorkPatternResolver
         return $this->for($employee, $date)?->expectedHoursOn(Carbon::parse($date)->dayOfWeekIso);
     }
 
+    /** @var array<int, array<string, bool>>|null employee => date => working, the whole company's swaps */
+    private ?array $swaps = null;
+
+    /**
+     * The company's swaps, from the cache store rather than the database: the register and the
+     * resolver are held to a query budget per employee, and a table that is empty for most
+     * companies must not cost each of them a query. RestDaySwap forgets the key when it changes.
+     */
+    private function swapOn(Employee|int $employee, string|Carbon $date): ?bool
+    {
+        $id = $employee instanceof Employee ? (int) $employee->getKey() : (int) $employee;
+
+        $this->swaps ??= \Illuminate\Support\Facades\Cache::rememberForever(static::swapsCacheKey(), function (): array {
+            $map = [];
+
+            foreach (\App\Modules\Attendance\Models\RestDaySwap::query()->get() as $swap) {
+                $map[(int) $swap->employee_id][$swap->work_on->toDateString()] = true;
+                $map[(int) $swap->employee_id][$swap->rest_on->toDateString()] = false;
+            }
+
+            return $map;
+        });
+
+        return $this->swaps[$id][Carbon::parse($date)->toDateString()] ?? null;
+    }
+
+    public static function swapsCacheKey(): string
+    {
+        return 'rest-day-swaps:'.(\App\Modules\Core\Models\Company::current()?->getKey() ?? (\Filament\Facades\Filament::getTenant()?->getKey() ?? 'default'));
+    }
+
+    public static function forgetSwaps(): void
+    {
+        \Illuminate\Support\Facades\Cache::forget(static::swapsCacheKey());
+    }
+
     public function flush(): void
     {
+        $this->swaps = null;
         $this->cache = [];
         $this->assignments = [];
         $this->defaultPattern = false;

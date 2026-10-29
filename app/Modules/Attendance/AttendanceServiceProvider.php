@@ -39,6 +39,8 @@ class AttendanceServiceProvider extends ServiceProvider
         EmployeeWorkPattern::class => EmployeeWorkPatternPolicy::class,
         AttendanceDay::class => AttendanceDayPolicy::class,
         AttendanceRegularization::class => AttendanceRegularizationPolicy::class,
+        \App\Modules\Attendance\Models\OvertimeRequest::class => \App\Modules\Attendance\Policies\OvertimeRequestPolicy::class,
+        \App\Modules\Attendance\Models\RestDaySwap::class => \App\Modules\Attendance\Policies\RestDaySwapPolicy::class,
     ];
 
     public function register(): void
@@ -65,7 +67,7 @@ class AttendanceServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
-        $this->commands([AccrueCompensatoryOff::class]);
+        $this->commands([AccrueCompensatoryOff::class, \App\Modules\Attendance\Console\Commands\RemindMissingPunches::class]);
 
         // attendance.* for the rule builder — docs/saas-launch-plan.md §8.9. Registered by the
         // module that owns the table, so a rule can only name what is there to read.

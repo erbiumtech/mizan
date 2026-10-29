@@ -68,11 +68,19 @@ class NavigationTree
                 'Leave Requests',
                 'Leave Types',
                 'Leave Balances',
+                // docs/saas-launch-plan.md §14.4.
+                'Leave Groups',
+                'Leave Encashments',
+                'Leave Calendar',
             ],
             'Attendance & time' => [
                 'Attendance',
                 'Attendance Corrections',
                 'Work Patterns',
+                // docs/saas-launch-plan.md §14.4.
+                'Pattern Assignments',
+                'Overtime Requests',
+                'Rest-day Swaps',
                 'Timesheets',
             ],
             // Joining and leaving: the documents, the kit and the checklist that tracks both.
@@ -167,6 +175,8 @@ class NavigationTree
             'Calendar & currency' => [
                 'Fiscal Years',
                 'Holidays',
+                // docs/saas-launch-plan.md §14.4.
+                'Holiday Calendar',
                 'Currencies',
             ],
             'Imports' => [

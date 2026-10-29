@@ -51,3 +51,9 @@ Reassign people to another pattern instead.
 **View**: `WorkPatternView` — everybody, since forms name the pattern somebody is on.
 **Create / update / delete**: `WorkPatternCreate`, `WorkPatternUpdate`,
 `WorkPatternDelete` — HR's and the Administrator's.
+
+## Break and grace
+
+A pattern can carry an **unpaid break**, taken off the worked minutes before
+overtime is counted, and its own **late grace**, which overrides the company's
+when set.

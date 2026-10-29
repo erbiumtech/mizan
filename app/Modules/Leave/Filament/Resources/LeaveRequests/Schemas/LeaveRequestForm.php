@@ -3,6 +3,7 @@
 namespace App\Modules\Leave\Filament\Resources\LeaveRequests\Schemas;
 
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Leave\Models\LeaveGroup;
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Modules\Leave\Models\LeaveType;
 use App\Modules\Leave\Services\LeaveBalance;
@@ -43,14 +44,28 @@ class LeaveRequestForm
 
                     Select::make('leave_type_id')
                         ->label('Leave type')
-                        ->options(fn (): array => LeaveType::query()
-                            ->active()
-                            ->orderBy('sort')
-                            ->pluck('label', 'id')
-                            ->all())
+                        // The employee's group decides what is offered — docs/saas-launch-plan.md §14.4.
+                        ->options(function ($get): array {
+                            $employee = $get('employee_id') ? Employee::query()->find($get('employee_id')) : null;
+                            $types = $employee ? LeaveGroup::typesFor($employee) : LeaveType::query()->active()->orderBy('sort')->get();
+
+                            return $types->pluck('label', 'id')->all();
+                        })
                         ->searchable()
                         ->required()
-                        ->live(),
+                        ->live()
+                        ->helperText(function ($get): ?string {
+                            $employee = $get('employee_id') ? Employee::query()->find($get('employee_id')) : null;
+                            $type = $get('leave_type_id') ? LeaveType::query()->find($get('leave_type_id')) : null;
+
+                            if (! $employee || ! $type) {
+                                return null;
+                            }
+
+                            $problem = $type->eligibilityProblem($employee);
+
+                            return $problem ?? ($type->document_after_days ? "A document is needed for more than {$type->document_after_days} days." : null);
+                        }),
                 ])
                 ->columns(2),
 

@@ -200,6 +200,17 @@ class EmployeeForm
                 DatePicker::make('date_of_joining')
                     ->label('Date of Joining'),
 
+                // Which bundle of leave types applies — docs/saas-launch-plan.md §14.4. Options come from
+                // Leave's table by name, so this form names no Leave class.
+                Select::make('leave_group_id')
+                    ->label('Leave group')
+                    ->options(fn (): array => \Illuminate\Support\Facades\Schema::hasTable('leave_groups') ? \Illuminate\Support\Facades\DB::table('leave_groups')->orderBy('name')->pluck('name', 'id')->all() : [])
+                    ->placeholder('Default group')
+                    ->nullable()
+                    ->visible(fn (): bool => modules()->enabled('leave'))
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly()),
+
                 DatePicker::make('probation_ends_on')
                     ->label('Probation ends')
                     ->afterOrEqual('date_of_joining')

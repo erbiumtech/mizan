@@ -3,6 +3,7 @@
 namespace App\Modules\Leave\Filament\Resources\LeaveTypes\Schemas;
 
 use App\Modules\Leave\Models\LeaveType;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -95,6 +96,19 @@ class LeaveTypeForm
                         ->helperText('Paid out in a final settlement. Never paid out at the year end — unused days lapse there.'),
                 ])
                 ->columns(2),
+
+            // Who may take it, and how it shows — docs/saas-launch-plan.md §14.4.
+            Section::make('Who may take it')
+                ->columns(2)
+                ->schema([
+                    Select::make('eligible_genders')->label('Genders')->multiple()->options(fn (): array => options('employees.gender'))->helperText('Empty for everyone.'),
+                    TextInput::make('min_service_months')->label('Minimum service (months)')->numeric()->minValue(0),
+                    Select::make('eligible_employment_types')->label('Employment types')->multiple()->options(fn (): array => options('employees.employment_type'))->helperText('Empty for every type.'),
+                    TextInput::make('max_consecutive_days')->label('Maximum consecutive days')->numeric()->minValue(1),
+                    TextInput::make('document_after_days')->label('Document needed after (days)')->numeric()->minValue(1)->helperText('A reminder on the request form past this many days.'),
+                    TextInput::make('pay_percent')->label('Paid at (%)')->numeric()->minValue(0)->maxValue(100)->default(100),
+                    ColorPicker::make('colour')->label('Colour on the calendar'),
+                ]),
 
             Section::make('Rules when somebody asks')
                 ->schema([

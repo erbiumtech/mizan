@@ -30,6 +30,8 @@ class ListAttendanceDays extends ListRecords
             HelpAction::make('attendance', 'Attendance: Help'),
 
             $this->clockAction(),
+            $this->markAllPresentAction(),
+            $this->importTemplateAction(),
 
             /**
              * Open a month for filling in.
@@ -190,5 +192,55 @@ class ListAttendanceDays extends ListRecords
                     ->body($position ? 'Location recorded.' : 'No location was recorded.')
                     ->send();
             });
+    }
+
+    /** Everyone with nothing marked on a date, marked present — docs/saas-launch-plan.md §14.4. */
+    protected function markAllPresentAction(): Action
+    {
+        return Action::make('markAllPresent')
+            ->label('Mark all present')
+            ->icon('heroicon-o-check')
+            ->color('gray')
+            ->visible(fn (): bool => auth()->user()?->can('AttendanceCreate') ?? false)
+            ->schema([
+                \Filament\Forms\Components\DatePicker::make('date')->native(false)->default(now())->maxDate(now())->required(),
+            ])
+            ->modalDescription('Every active employee with no attendance row on the date, and for whom it is a working day, is marked present without times. Rows already there are left alone.')
+            ->action(function (array $data): void {
+                $date = \Illuminate\Support\Carbon::parse($data['date']);
+                $recorder = app(AttendanceRecorder::class);
+                $patterns = app(\App\Modules\Attendance\Services\WorkPatternResolver::class);
+                $marked = 0;
+
+                foreach (\App\Modules\Employees\Models\Employee::query()->where('is_active', true)->get() as $employee) {
+                    if (\App\Modules\Attendance\Models\AttendanceDay::forDate($employee->getKey(), $date) !== null || ! $patterns->isWorkingDay($employee, $date)) {
+                        continue;
+                    }
+
+                    try {
+                        $recorder->record($employee, $date, \App\Modules\Attendance\Models\AttendanceDay::STATUS_PRESENT, null, null, \App\Modules\Attendance\Models\AttendanceDay::SOURCE_MANUAL, 'Marked present for everyone');
+                        $marked++;
+                    } catch (\InvalidArgumentException) {
+                        // On approved leave that day: the recorder refuses, rightly.
+                    }
+                }
+
+                Notification::make()->success()->title("{$marked} employee(s) marked present for {$date->format('d M Y')}.")->send();
+            });
+    }
+
+    /** The import's shape, as a file to fill in — docs/saas-launch-plan.md §14.4. */
+    protected function importTemplateAction(): Action
+    {
+        return Action::make('importTemplate')
+            ->label('Import template')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('gray')
+            ->visible(fn (): bool => auth()->user()?->can('AttendanceCreate') ?? false)
+            ->action(fn () => response()->streamDownload(
+                fn () => print (implode(',', \App\Modules\Attendance\Services\AttendanceImport::COLUMNS)."\nEMP-001,".now()->toDateString().",present,09:00,18:00,\n"),
+                'attendance-template.csv',
+                ['Content-Type' => 'text/csv'],
+            ));
     }
 }

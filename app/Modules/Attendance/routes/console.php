@@ -24,3 +24,8 @@ Schedule::command(AccrueCompensatoryOff::class)
 // same entry in Projects records that this has already happened here once.
 Schedule::command('tenants:artisan', ['model:prune --model='.AttendanceDay::class])
     ->daily();
+
+// "You clocked in and never out" — docs/saas-launch-plan.md §14.4. Each evening; off per company by default.
+Schedule::command(\App\Modules\Attendance\Console\Commands\RemindMissingPunches::class)
+    ->dailyAt('20:00')
+    ->withoutOverlapping();

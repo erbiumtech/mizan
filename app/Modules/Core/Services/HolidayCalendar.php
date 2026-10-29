@@ -80,6 +80,7 @@ class HolidayCalendar
 
         return $this->all()
             ->filter(fn (Holiday $holiday): bool => $holiday->appliesTo($locationId)
+                && $holiday->closes()
                 && $holiday->date->toDateString() >= $from
                 && $holiday->date->toDateString() <= $to)
             ->values();
@@ -136,8 +137,9 @@ class HolidayCalendar
         $key = $this->tenantKey().':'.($locationId ?? 'all');
 
         if (! array_key_exists($key, $this->dates)) {
+            // Only a holiday that closes the company — docs/saas-launch-plan.md §14.4.
             $this->dates[$key] = $this->all()
-                ->filter(fn (Holiday $holiday): bool => $holiday->appliesTo($locationId))
+                ->filter(fn (Holiday $holiday): bool => $holiday->appliesTo($locationId) && $holiday->closes())
                 ->mapWithKeys(fn (Holiday $holiday): array => [$holiday->date->toDateString() => true])
                 ->all();
         }

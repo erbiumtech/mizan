@@ -340,8 +340,11 @@ class AttendanceRegisterReportTest extends TestCase
             $resolver->isWorkingDay($employee, sprintf('2026-08-%02d', $day));
         }
 
+        // Three for the assignments and their patterns, and one for the company's rest-day swaps
+        // (docs/saas-launch-plan.md §14.4), which the resolver loads once from the cache store —
+        // a miss here, because the test's cache is empty. Still nothing per day.
         $this->assertLessThanOrEqual(
-            3,
+            4,
             $queries,
             "the resolver ran {$queries} queries for 28 days of one employee; it should load the "
             .'assignments once and resolve dates in memory',

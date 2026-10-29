@@ -28,6 +28,8 @@ return [
         'App\\Models\\LeaveEntitlement' => \App\Modules\Leave\Models\LeaveEntitlement::class,
         'App\\Models\\LeaveApproval' => \App\Modules\Leave\Models\LeaveApproval::class,
         'App\\Models\\LeaveAdjustment' => \App\Modules\Leave\Models\LeaveAdjustment::class,
+        'App\\Models\\LeaveGroup' => \App\Modules\Leave\Models\LeaveGroup::class,
+        'App\\Models\\LeaveEncashment' => \App\Modules\Leave\Models\LeaveEncashment::class,
         'App\\Models\\LeaveRequest' => \App\Modules\Leave\Models\LeaveRequest::class,
         'App\\Models\\LeaveDay' => \App\Modules\Leave\Models\LeaveDay::class,
     ],
@@ -36,6 +38,8 @@ return [
         'App\\Filament\\Resources\\LeaveRequests\\LeaveRequestResource' => \App\Modules\Leave\Filament\Resources\LeaveRequests\LeaveRequestResource::class,
         'App\\Filament\\Resources\\LeaveTypes\\LeaveTypeResource' => \App\Modules\Leave\Filament\Resources\LeaveTypes\LeaveTypeResource::class,
         'App\\Filament\\Resources\\LeaveEntitlements\\LeaveEntitlementResource' => \App\Modules\Leave\Filament\Resources\LeaveEntitlements\LeaveEntitlementResource::class,
+        'App\\Filament\\Resources\\LeaveGroups\\LeaveGroupResource' => \App\Modules\Leave\Filament\Resources\LeaveGroups\LeaveGroupResource::class,
+        'App\\Filament\\Resources\\LeaveEncashments\\LeaveEncashmentResource' => \App\Modules\Leave\Filament\Resources\LeaveEncashments\LeaveEncashmentResource::class,
     ],
 
     'widgets' => [
@@ -119,6 +123,11 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    'pages' => [
+        // The month grid — docs/saas-launch-plan.md §14.4.
+        'App\\Filament\\Pages\\LeaveCalendar' => \App\Modules\Leave\Filament\Pages\LeaveCalendar::class,
+    ],
+
     'navigation' => [
         'Employee' => 'people',
     ],

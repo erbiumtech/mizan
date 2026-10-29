@@ -153,7 +153,10 @@ class CoreServiceProvider extends ServiceProvider
         // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the
         // timetable, and a command nobody can invoke by hand is a command nobody can test or re-run after a
         // failed night.
-        $this->commands([DeliverScheduledReports::class]);
+        $this->commands([DeliverScheduledReports::class, \App\Modules\Core\Console\Commands\RolloverHolidays::class]);
+
+        // A year of holidays from a spreadsheet — docs/saas-launch-plan.md §14.4.
+        \App\Support\CsvImporters::register('holidays', \App\Modules\Core\Support\HolidayCsvImporter::class, 35);
 
     }
 

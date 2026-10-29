@@ -73,6 +73,8 @@ class PayrollServiceProvider extends ServiceProvider
     {
         // The provident-fund ledger answers the settlement's question — docs/saas-launch-plan.md §14.1.
         $this->app->bind(\App\Support\Contracts\ProvidentFundBalance::class, \App\Modules\Payroll\Services\ProvidentFund::class);
+        // A figure for a payslip line from a module that may not name Payroll — docs/saas-launch-plan.md §14.4.
+        $this->app->bind(\App\Support\Contracts\PayrollInputs::class, \App\Modules\Payroll\Support\PayAdjustmentInputs::class);
 
         // Payroll is what makes a month settled, so it answers the question.
         // Attendance asks the contract and no longer imports PayrollRun.

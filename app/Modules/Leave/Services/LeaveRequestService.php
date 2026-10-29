@@ -59,6 +59,7 @@ class LeaveRequestService
 
         $this->assertNoticeGiven($request);
         $this->assertNoOverlap($request);
+        $this->assertEligible($request, array_sum(array_column($planned, 'portion')));
 
         $request->save();
 
@@ -340,6 +341,25 @@ class LeaveRequestService
 
         if ($submitter && (int) $submitter->status === 1) {
             Notification::send($submitter, new LeaveRequestDecided($request));
+        }
+    }
+
+    /** The group offers it and the type's rules allow it — docs/saas-launch-plan.md §14.4. */
+    private function assertEligible(LeaveRequest $request, float $days): void
+    {
+        $employee = $request->employee;
+        $type = $request->leaveType;
+
+        if ($employee === null || $type === null) {
+            return;
+        }
+
+        if (! \App\Modules\Leave\Models\LeaveGroup::typesFor($employee)->contains(fn ($t): bool => $t->is($type))) {
+            throw new InvalidArgumentException("{$type->label} is not in this employee's leave group.");
+        }
+
+        if ($problem = $type->eligibilityProblem($employee, $days, $request->from_date ? \Illuminate\Support\Carbon::parse($request->from_date) : null)) {
+            throw new InvalidArgumentException($problem);
         }
     }
 }

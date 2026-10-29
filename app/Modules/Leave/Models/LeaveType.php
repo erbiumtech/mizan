@@ -51,6 +51,8 @@ class LeaveType extends Model
         'code', 'label', 'kind', 'is_paid', 'accrual_method', 'days_per_year',
         'max_carry_forward', 'allows_half_day', 'requires_document',
         'min_notice_days', 'is_encashable', 'is_active', 'sort',
+        // Eligibility and presentation — docs/saas-launch-plan.md §14.4.
+        'eligible_genders', 'min_service_months', 'eligible_employment_types', 'max_consecutive_days', 'document_after_days', 'colour', 'pay_percent',
     ];
 
     protected $casts = [
@@ -63,6 +65,12 @@ class LeaveType extends Model
         'is_encashable' => 'boolean',
         'is_active' => 'boolean',
         'sort' => 'integer',
+        'eligible_genders' => 'array',
+        'eligible_employment_types' => 'array',
+        'min_service_months' => 'integer',
+        'max_consecutive_days' => 'integer',
+        'document_after_days' => 'integer',
+        'pay_percent' => 'decimal:2',
     ];
 
     protected $attributes = [
@@ -101,6 +109,40 @@ class LeaveType extends Model
      * either does not need an entitlement to exist, and refusing the request
      * because none does would be wrong.
      */
+    /**
+     * Why this person may not take this leave, or null — docs/saas-launch-plan.md §14.4.
+     * Gender, service, employment type and a run of days; the document rule is a reminder
+     * on the form rather than a refusal here.
+     */
+    public function eligibilityProblem(\App\Modules\Employees\Models\Employee $employee, float $days = 0, ?\Illuminate\Support\Carbon $on = null): ?string
+    {
+        $genders = array_map('strtolower', (array) ($this->eligible_genders ?? []));
+
+        if ($genders !== [] && ! in_array(strtolower((string) $employee->gender), $genders, true)) {
+            return "{$this->label} is for ".implode(' and ', array_map('ucfirst', $genders)).' employees.';
+        }
+
+        if ($this->min_service_months !== null) {
+            $served = $employee->date_of_joining ? (int) $employee->date_of_joining->diffInMonths($on ?? now()) : 0;
+
+            if ($served < $this->min_service_months) {
+                return "{$this->label} needs {$this->min_service_months} months of service; {$served} so far.";
+            }
+        }
+
+        $types = (array) ($this->eligible_employment_types ?? []);
+
+        if ($types !== [] && ! in_array((string) $employee->employment_type, $types, true)) {
+            return "{$this->label} is for ".implode(', ', $types).' staff.';
+        }
+
+        if ($this->max_consecutive_days !== null && $days > $this->max_consecutive_days) {
+            return "{$this->label} allows at most {$this->max_consecutive_days} consecutive days.";
+        }
+
+        return null;
+    }
+
     public function isCounted(): bool
     {
         return ! in_array($this->accrual_method, [self::ACCRUAL_UNLIMITED, self::ACCRUAL_NONE], true);

@@ -26,6 +26,12 @@ class LeavePlugin implements Plugin
             for: __NAMESPACE__.'\Filament\Resources',
         );
 
+        // The leave calendar — docs/saas-launch-plan.md §14.4. A page, not a resource: a month is not rows to edit.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
+
         // The leave-awaiting-decision stats (Phase 5.2). Registered unconditionally; each widget's own canView() gates on the module and a permission.
         $panel->discoverWidgets(
             in: __DIR__.'/Filament/Widgets',

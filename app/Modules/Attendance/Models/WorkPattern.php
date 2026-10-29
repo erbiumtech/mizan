@@ -17,7 +17,7 @@ class WorkPattern extends Model
 {
     use Auditable;
 
-    protected $fillable = ['name', 'is_default', 'week_start', 'notes'];
+    protected $fillable = ['name', 'is_default', 'week_start', 'notes', 'break_minutes', 'grace_minutes'];
 
     protected $casts = [
         'is_default' => 'boolean',

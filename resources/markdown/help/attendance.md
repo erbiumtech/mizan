@@ -78,3 +78,9 @@ day rather than after somebody notices. A company that needs longer can say so.
 `AttendanceCreate` / `AttendanceUpdate`, which is HR's rather than every employee's.
 **Delete**: `AttendanceDelete`. Employees get View and the right to ask for a
 correction, and nothing else.
+
+## Marking everyone, and the template
+
+**Mark all present** marks every active employee with nothing recorded on a
+date as present, on working days only. **Import template** downloads the
+import's columns with one example row to fill in.

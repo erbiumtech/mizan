@@ -55,6 +55,11 @@ class AttendanceRecorder
 
         $worked = $checkInAt && $checkOutAt ? $checkInAt->diffInMinutes($checkOutAt) : null;
 
+        // The pattern's unpaid break comes off before anything is judged — docs/saas-launch-plan.md §14.4.
+        if ($worked !== null) {
+            $worked = max(0, $worked - (int) ($this->patterns->for($employee, $date)?->break_minutes ?? 0));
+        }
+
         $attributes = [
             'status' => $status,
             'check_in_at' => $checkInAt,
@@ -135,8 +140,9 @@ class AttendanceRecorder
             return 0;
         }
 
-        $expectedStart = Carbon::parse($date->toDateString().' '.$startTime)
-            ->addMinutes((int) setting('attendance.late_grace_minutes', 15));
+        // The pattern's own grace when it has one — docs/saas-launch-plan.md §14.4 — else the company's.
+        $grace = $pattern->grace_minutes ?? (int) setting('attendance.late_grace_minutes', 15);
+        $expectedStart = Carbon::parse($date->toDateString().' '.$startTime)->addMinutes((int) $grace);
 
         return $checkInAt->gt($expectedStart) ? $expectedStart->diffInMinutes($checkInAt) : 0;
     }

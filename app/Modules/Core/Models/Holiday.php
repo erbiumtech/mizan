@@ -17,7 +17,22 @@ class Holiday extends Model
 {
     use Auditable;
 
-    protected $fillable = ['date', 'name', 'location_id', 'is_recurring', 'notes'];
+    /** Closed for everyone; offered but not closed; closed for some — docs/saas-launch-plan.md §14.4. */
+    public const KIND_PUBLIC = 'public';
+
+    public const KIND_OPTIONAL = 'optional';
+
+    public const KIND_RESTRICTED = 'restricted';
+
+    public const KINDS = [self::KIND_PUBLIC => 'Public — the company is closed', self::KIND_OPTIONAL => 'Optional — offered, not closed', self::KIND_RESTRICTED => 'Restricted — closed for some'];
+
+    protected $fillable = ['date', 'name', 'kind', 'location_id', 'is_recurring', 'notes'];
+
+    /** Only a public holiday closes the company: the calendar counts no working day lost to an optional one. */
+    public function closes(): bool
+    {
+        return ($this->kind ?? self::KIND_PUBLIC) === self::KIND_PUBLIC;
+    }
 
     /** The site this holiday is local to; null is company-wide — plan §7.9. */
     public function location(): \Illuminate\Database\Eloquent\Relations\BelongsTo

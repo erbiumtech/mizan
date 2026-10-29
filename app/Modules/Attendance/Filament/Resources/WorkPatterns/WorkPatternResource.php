@@ -55,6 +55,12 @@ class WorkPatternResource extends Resource
                 ->label('Use for employees with no pattern of their own')
                 ->helperText('Only one pattern can be the default; setting this one clears the other.'),
 
+            // A break and a grace per pattern — docs/saas-launch-plan.md §14.4.
+            TextInput::make('break_minutes')->label('Unpaid break (minutes)')->numeric()->minValue(0)->maxValue(240)->default(0)
+                ->helperText('Taken off the worked minutes before overtime is counted.'),
+            TextInput::make('grace_minutes')->label('Late grace (minutes)')->numeric()->minValue(0)->maxValue(120)
+                ->helperText('Blank uses the company setting.'),
+
             Repeater::make('days')
                 ->relationship()
                 ->label('The week')

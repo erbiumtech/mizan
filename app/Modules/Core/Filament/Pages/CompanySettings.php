@@ -116,6 +116,7 @@ class CompanySettings extends Page
             'attendance_overtime_multiplier' => setting('attendance.overtime_multiplier'),
             'attendance_retention_months' => setting('attendance.retention_months'),
             'attendance_geofence_mode' => setting('attendance.geofence_mode', config('attendance.geofence_mode', 'off')),
+            'attendance_remind_missing_punches' => (bool) setting('attendance.remind_missing_punches', config('attendance.remind_missing_punches', false)),
             ...SettingsSections::fill(),
         ]);
     }
@@ -520,6 +521,10 @@ class CompanySettings extends Page
                     ])
                     ->default('off')
                     ->helperText('Applies to employees whose location (Settings → Locations) has a radius. Start on Flag: a phone\'s first fix is often a hundred metres out, and a refused punch at nine is a support call at one minute past.'),
+                // Off by default — docs/saas-launch-plan.md §14.4.
+                Toggle::make('attendance_remind_missing_punches')
+                    ->label('Remind employees who clocked in and not out')
+                    ->helperText('Each evening, a message to anybody with a clock-in and no clock-out that day. Off for a company that marks days by hand.'),
             ]);
     }
 
@@ -682,6 +687,7 @@ class CompanySettings extends Page
         $settings->set('attendance.overtime_multiplier', (float) ($state['attendance_overtime_multiplier'] ?? 2.0));
         $settings->set('attendance.retention_months', (int) ($state['attendance_retention_months'] ?? 36));
         $settings->set('attendance.geofence_mode', in_array($state['attendance_geofence_mode'] ?? 'off', ['off', 'flag', 'refuse'], true) ? $state['attendance_geofence_mode'] : 'off');
+        $settings->set('attendance.remind_missing_punches', (bool) ($state['attendance_remind_missing_punches'] ?? false));
 
         if ($changes !== []) {
             activity('CompanySettings')

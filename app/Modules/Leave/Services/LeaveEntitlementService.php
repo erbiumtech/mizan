@@ -79,11 +79,13 @@ class LeaveEntitlementService
      */
     public function openYearFor(string|Carbon|null $date = null): int
     {
-        $types = LeaveType::query()->active()->get()->filter->isCounted();
         $touched = 0;
 
         Employee::query()->where('is_active', true)->cursor()->each(
-            function (Employee $employee) use ($types, $date, &$touched): void {
+            function (Employee $employee) use ($date, &$touched): void {
+                // The employee's group — docs/saas-launch-plan.md §14.4 — or every active type without one.
+                $types = \App\Modules\Leave\Models\LeaveGroup::typesFor($employee)->filter->isCounted();
+
                 foreach ($types as $type) {
                     if ($this->open($employee, $type, $date)) {
                         $touched++;

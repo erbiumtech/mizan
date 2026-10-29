@@ -75,6 +75,8 @@ return [
     ],
 
     'pages' => [
+        // The year's holidays as grids — docs/saas-launch-plan.md §14.4.
+        'App\\Filament\\Pages\\HolidayCalendarPage' => \App\Modules\Core\Filament\Pages\HolidayCalendarPage::class,
         // The dashboard. Core for the reason the Reports hub is: it belongs to no module and every module
         // contributes widgets to it, so each widget's own canView() is the only thing deciding what appears.
         'App\\Filament\\Pages\\Dashboard' => \App\Modules\Core\Filament\Pages\Dashboard::class,

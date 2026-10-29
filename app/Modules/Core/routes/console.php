@@ -38,3 +38,8 @@ Schedule::command(DeliverScheduledReports::class)
 Schedule::command('activitylog:clean --force')
     ->dailyAt('03:15')
     ->withoutOverlapping();
+
+// Next year's recurring holidays, offered on the first of December — docs/saas-launch-plan.md §14.4.
+Schedule::command(\App\Modules\Core\Console\Commands\RolloverHolidays::class)
+    ->yearlyOn(12, 1, '03:00')
+    ->withoutOverlapping();

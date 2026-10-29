@@ -27,7 +27,7 @@ class Employee extends Model
         // The numeric user id a biometric device knows them by — docs/saas-launch-plan.md §8.7. Its own
         // column: the employee code is renumbered and printed, the PIN is enrolled once on the device.
         'device_pin',
-        'is_active', 'designation', 'department', 'location_id', 'employment_type',
+        'is_active', 'designation', 'department', 'location_id', 'employment_type', 'leave_group_id',
         // What this employee's time bills at, when the project does not say. Nullable
         // and unused by any company that bills by headcount rather than by the hour.
         'hourly_rate',

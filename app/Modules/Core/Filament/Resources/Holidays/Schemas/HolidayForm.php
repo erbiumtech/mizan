@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Holidays\Schemas;
 
+use App\Modules\Core\Models\Holiday;
 use App\Modules\Core\Models\WorkLocation;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -27,6 +28,11 @@ class HolidayForm
 
                 TextInput::make('name')
                     ->label('Name')
+                    ->required(),
+                // docs/saas-launch-plan.md §14.4. Only a public holiday closes the company.
+                Select::make('kind')
+                    ->options(Holiday::KINDS)
+                    ->default(Holiday::KIND_PUBLIC)
                     ->required(),
 
                 // Company-wide unless a site is named — plan §7.9. Leave days

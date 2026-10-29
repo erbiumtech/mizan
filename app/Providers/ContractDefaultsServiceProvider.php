@@ -68,5 +68,6 @@ class ContractDefaultsServiceProvider extends ServiceProvider
         $this->app->bind(PeriodLock::class, NeverLocked::class);
         // Payroll keeps the fund; without it a settlement has no fund to pay out — docs/saas-launch-plan.md §14.1.
         $this->app->bind(\App\Support\Contracts\ProvidentFundBalance::class, \App\Support\Contracts\NoProvidentFund::class);
+        $this->app->bind(\App\Support\Contracts\PayrollInputs::class, \App\Support\Contracts\NoPayrollInputs::class);
     }
 }
