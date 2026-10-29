@@ -4,6 +4,7 @@ namespace App\Modules\Recruitment\Services;
 
 use App\Modules\Recruitment\Models\Offer;
 use App\Support\CompanyLetterhead;
+use App\Support\DocumentVerification;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
 use Illuminate\Support\Carbon;
@@ -48,6 +49,24 @@ class OfferLetter
         }
 
         return [...$missing, ...CompanyLetterhead::missing()];
+    }
+
+    /**
+     * The facts the letter's verification code vouches for — plan §7.5.
+     *
+     * @return array<string, mixed>
+     */
+    public function verificationFacts(Offer $offer): array
+    {
+        $offer->loadMissing('application.applicant', 'application.vacancy');
+        $vacancy = $offer->application?->vacancy;
+
+        return [
+            'candidate' => (string) $offer->application?->applicant?->name,
+            'position' => (string) ($vacancy?->designation ?: $vacancy?->title),
+            'date_of_joining' => (string) $offer->joining_date?->toDateString(),
+            'basic_salary' => (float) $offer->salary,
+        ];
     }
 
     public function filename(Offer $offer): string
@@ -95,6 +114,7 @@ class OfferLetter
             'signatory' => CompanyLetterhead::signatory($input),
             'issued_on' => $issuedOn,
             'valid_until' => $issuedOn->copy()->addDays($validDays),
+            'verification_qr' => DocumentVerification::qrFor('offer-letter', $offer->getKey(), $this->verificationFacts($offer)),
             'reference' => CompanyLetterhead::reference('OFR/'.$offer->getKey(), $issuedOn),
             'position' => (string) ($vacancy?->designation ?: $vacancy?->title),
             'department' => (string) ($vacancy?->department ?? ''),

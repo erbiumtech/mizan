@@ -1,6 +1,8 @@
 <?php
 
 use App\Modules\Core\Http\Controllers\SignupController;
+use App\Modules\Core\Http\Controllers\VerificationController;
+use App\Modules\Core\Http\Middleware\ResolveVerificationTenant;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,4 +26,12 @@ Route::middleware('web')->group(function (): void {
     Route::get('/signup/ready', [SignupController::class, 'ready'])
         ->middleware('auth')
         ->name('signup.ready');
+
+    // Document verification — plan §7.5. Public, behind the two gates; 404 for both.
+    Route::get('/verify/{company}/{token}/{kind}/{id}/{hash}', [VerificationController::class, 'show'])
+        ->middleware([ResolveVerificationTenant::class, 'throttle:signup'])
+        ->whereNumber('id')
+        ->where('kind', '[a-z-]+')
+        ->where('hash', '[a-f0-9]{32}')
+        ->name('documents.verify');
 });

@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Services;
 
 use App\Modules\Employees\Models\Employee;
 use App\Support\CompanyLetterhead;
+use App\Support\DocumentVerification;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
 use Illuminate\Support\Carbon;
@@ -46,6 +47,24 @@ class AppointmentLetter
         return [...$missing, ...CompanyLetterhead::missing()];
     }
 
+    /**
+     * The facts the letter's verification code vouches for — plan §7.5.
+     *
+     * @return array<string, mixed>
+     */
+    public function verificationFacts(Employee $employee): array
+    {
+        $joining = $employee->date_of_joining?->copy() ?? Carbon::today();
+
+        return [
+            'employee_code' => (string) $employee->employee_id,
+            'employee' => (string) $employee->fullName(),
+            'designation' => (string) $employee->designation,
+            'date_of_joining' => $joining->toDateString(),
+            'gross_monthly_salary' => (float) ($this->certificates->monthlyGross($employee, $joining) ?? 0),
+        ];
+    }
+
     public function filename(Employee $employee): string
     {
         $name = str($employee->fullName() ?: $employee->employee_id)->slug()->value();
@@ -76,6 +95,7 @@ class AppointmentLetter
             'company' => CompanyLetterhead::data(),
             'signatory' => CompanyLetterhead::signatory($input),
             'issued_on' => $issuedOn,
+            'verification_qr' => DocumentVerification::qrFor('appointment-letter', $employee->getKey(), $this->verificationFacts($employee)),
             'reference' => CompanyLetterhead::reference(
                 ($employee->employee_id ?: 'EMP-'.$employee->getKey()).'/APT',
                 $issuedOn,

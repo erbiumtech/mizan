@@ -4,6 +4,10 @@ namespace App\Modules\Performance\Services;
 
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Mpr\Models\MPR;
+use App\Modules\Core\Models\FiscalYear;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
+use App\Modules\Employees\Models\EmployeeSetting;
+use Illuminate\Support\Carbon;
 use App\Modules\Performance\Models\Review;
 use App\Modules\Performance\Models\ReviewCycle;
 use Illuminate\Support\Collection;
@@ -124,6 +128,80 @@ class ReviewCycleService
      *
      * @return array{current: ?float, suggested: ?float, note: string}
      */
+    /** The scale's percentage for a rating, as a number a form can show: 10 for a tenth. */
+    public function suggestedPercent(Review $review): float
+    {
+        $scale = (array) config('performance.increment_scale', [5 => 0.15, 4 => 0.10, 3 => 0.05]);
+
+        return round((float) ($scale[$review->final_rating] ?? 0) * 100, 2);
+    }
+
+    /**
+     * Turn the suggestion into a proposal somebody approves — docs/saas-launch-plan.md §7.10.
+     *
+     * Not a package: a change request of the new-package kind, through the same
+     * approval path a self-service edit takes, with the review stamped on it so
+     * the appraisal report can say which proposals became packages. The review
+     * never writes the package; an approver does. §4.5's rule, kept.
+     */
+    public function proposeIncrement(Review $review, float $percent, string $startDate, ?\App\Modules\Core\Models\User $by = null): EmployeeChangeRequest
+    {
+        if (! modules()->enabled('payroll')) {
+            throw new InvalidArgumentException('Proposing an increment needs the Payroll module.');
+        }
+
+        if ($review->final_rating === null) {
+            throw new InvalidArgumentException('Finalise the rating before proposing an increment.');
+        }
+
+        $open = $review->incrementRequest;
+
+        if ($open && $open->status !== EmployeeChangeRequest::STATUS_REJECTED) {
+            throw new InvalidArgumentException("This review already has a proposal ({$open->status}).");
+        }
+
+        $current = EmployeeSetting::query()
+            ->where('employee_id', $review->employee_id)
+            ->orderByDesc('start_date')
+            ->first();
+
+        if (! $current) {
+            throw new InvalidArgumentException('This employee has no salary package to raise.');
+        }
+
+        $start = Carbon::parse($startDate)->startOfDay();
+        $fiscalYear = FiscalYear::containing($start->toDateString());
+
+        if (! $fiscalYear) {
+            throw new InvalidArgumentException("No fiscal year covers {$start->toDateString()}. Create it first.");
+        }
+
+        if ($start->lessThanOrEqualTo($current->start_date)) {
+            throw new InvalidArgumentException('The new package has to start after the current one does.');
+        }
+
+        $changes = ['start_date' => $start->toDateString(), 'end_date' => $fiscalYear->end_date->toDateString(), 'fiscal_year_id' => $fiscalYear->getKey()];
+
+        foreach (EmployeeChangeRequest::SETTING_FIELDS as $field) {
+            $changes[$field] = (float) ($current->{$field} ?? 0);
+        }
+
+        $changes['basic_wage'] = round((float) $current->basic_wage * (1 + max(0, $percent) / 100), 2);
+
+        return EmployeeChangeRequest::create([
+            'employee_id' => $review->employee_id,
+            'target_type' => EmployeeChangeRequest::TARGET_NEW_SETTING,
+            'target_id' => null,
+            'review_id' => $review->getKey(),
+            // Explicit rather than the column default: approve() reads it on the
+            // instance create() hands back, before any reload.
+            'status' => EmployeeChangeRequest::STATUS_PENDING,
+            'requested_by' => $by?->getKey() ?? auth()->id(),
+            'requested_changes' => $changes,
+            'original_values' => ['basic_wage' => (float) $current->basic_wage, 'start_date' => $current->start_date?->toDateString()],
+        ]);
+    }
+
     public function suggestedIncrement(Review $review): array
     {
         $note = 'A suggestion only. Nothing is applied: a rating is an opinion, and a '

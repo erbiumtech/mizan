@@ -48,6 +48,8 @@ class NavigationTree
                 'Employees',
                 'Employee Change Requests',
                 'Employee Settings',
+                // What the company tells its people — plan §7.6.
+                'Announcements',
             ],
             'Payroll' => [
                 'Payroll Months',

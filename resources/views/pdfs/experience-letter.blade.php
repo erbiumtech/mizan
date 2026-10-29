@@ -152,6 +152,8 @@
      foot of the page, so gluing the two together would drag the sign-off down with it. --}}
 <p class="sincerely">Sincerely,</p>
 
+@include('pdfs.partials.verification-qr')
+
 <div class="sign">
 
     {{-- The seal: the same employer signature the payslip carries, so all three documents are signed the

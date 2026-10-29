@@ -14,6 +14,8 @@ use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -212,26 +214,62 @@ class ReviewResource extends Resource
                         Notification::make()->success()->title('Shared.')->send();
                     }),
 
+                /**
+                 * The suggestion, made into a proposal — plan §7.10. A change request of the
+                 * new-package kind, approved under Employee Change Requests; the review
+                 * never writes the package.
+                 */
                 Action::make('increment')
-                    ->label('Suggested increment')
+                    ->label(fn (Review $record): string => match ($record->incrementRequest?->status) {
+                        null, EmployeeChangeRequest::STATUS_REJECTED => 'Propose increment',
+                        EmployeeChangeRequest::STATUS_PENDING => 'Increment proposed',
+                        default => 'Increment approved',
+                    })
                     ->icon('heroicon-o-calculator')
                     ->color('gray')
                     ->visible(fn (Review $record): bool => $record->final_rating !== null
-                        && modules()->enabled('payroll'))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
+                        && modules()->enabled('payroll')
+                        && (auth()->user()?->can('update', $record) ?? false))
+                    ->disabled(fn (Review $record): bool => $record->incrementRequest !== null
+                        && $record->incrementRequest->status !== EmployeeChangeRequest::STATUS_REJECTED)
+                    ->modalHeading('Propose a salary increment')
                     ->modalDescription(function (Review $record): string {
                         $suggestion = app(ReviewCycleService::class)->suggestedIncrement($record);
 
-                        if ($suggestion['suggested'] === null) {
-                            return $suggestion['note'];
+                        return ($suggestion['current'] !== null
+                            ? 'Current basic: '.number_format($suggestion['current'], 2).' — the scale suggests '.number_format($suggestion['suggested'], 2).'. '
+                            : '')
+                            .'This raises a change request an approver decides; nothing changes until they do.';
+                    })
+                    ->schema([
+                        TextInput::make('percent')
+                            ->label('Increase (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->required()
+                            ->default(fn (Review $record): float => app(ReviewCycleService::class)->suggestedPercent($record)),
+                        DatePicker::make('start_date')
+                            ->label('From')
+                            ->native(false)
+                            ->required()
+                            ->default(fn (): string => now()->addMonthNoOverflow()->startOfMonth()->toDateString()),
+                    ])
+                    ->modalSubmitActionLabel('Propose')
+                    ->action(function (Review $record, array $data): void {
+                        try {
+                            app(ReviewCycleService::class)->proposeIncrement($record, (float) $data['percent'], (string) $data['start_date'], auth()->user());
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
                         }
 
-                        return 'Current basic: '.number_format($suggestion['current'], 2)
-                            .' — suggested: '.number_format($suggestion['suggested'], 2)
-                            ."\n\n".$suggestion['note'];
-                    })
-                    ->action(fn () => null),
+                        Notification::make()->success()
+                            ->title('Increment proposed.')
+                            ->body('An approver will find it under Employee Change Requests.')
+                            ->send();
+                    }),
 
                 \Filament\Actions\EditAction::make(),
             ]);

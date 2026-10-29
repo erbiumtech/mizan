@@ -6,6 +6,8 @@ use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
 
 /**
  * One person's review in one cycle.
@@ -49,6 +51,12 @@ class Review extends Model
     public function cycle(): BelongsTo
     {
         return $this->belongsTo(ReviewCycle::class, 'review_cycle_id');
+    }
+
+    /** The salary proposal this appraisal raised, if any — plan §7.10. */
+    public function incrementRequest(): HasOne
+    {
+        return $this->hasOne(EmployeeChangeRequest::class, 'review_id')->latestOfMany();
     }
 
     public function employee(): BelongsTo

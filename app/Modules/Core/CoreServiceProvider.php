@@ -4,6 +4,8 @@ namespace App\Modules\Core;
 
 use App\Modules\Core\Console\Commands\DeliverScheduledReports;
 use App\Modules\Core\Filament\Pages\ReportDeliveries;
+use App\Modules\Core\Filament\Settings\DocumentVerificationSettingsSection;
+use App\Modules\Core\Listeners\LogAuthenticationEvent;
 use App\Modules\Core\Listeners\NotifyRecordAudience;
 use App\Modules\Core\Listeners\SkipBroadcastWithoutBroadcaster;
 use App\Modules\Core\Models\ActivityLog;
@@ -35,10 +37,14 @@ use App\Modules\Core\Services\HolidayCalendar;
 use App\Support\Reporting\BuiltReport;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportDeliveryLog;
+use App\Support\SettingsSections;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\TenantExport;
 use App\Support\TenantFileAccess;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -134,6 +140,12 @@ class CoreServiceProvider extends ServiceProvider
         // With no broadcaster configured, the broadcast channel is withdrawn from every notification before
         // it becomes a job that can only fail. See the listener.
         Event::listen(NotificationSending::class, SkipBroadcastWithoutBroadcaster::class);
+
+        // Document verification — plan §7.5: the two gates on Company Settings.
+        SettingsSections::register('documents.verification', DocumentVerificationSettingsSection::class, 85);
+
+        // The sign-in log — plan §7.7: three rows on the landlord activity log, no table.
+        Event::listen([Login::class, Logout::class, Failed::class], LogAuthenticationEvent::class);
 
         // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the
         // timetable, and a command nobody can invoke by hand is a command nobody can test or re-run after a

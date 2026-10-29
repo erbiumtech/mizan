@@ -1,4 +1,4 @@
-@extends('signup.layout')
+@extends('layouts.public')
 @section('title', $failed ? 'Something went wrong' : 'Preparing your workspace')
 @section('head')
     @unless($failed)

@@ -1,4 +1,4 @@
-@extends('signup.layout')
+@extends('layouts.public')
 @section('title', 'Check your inbox')
 @section('body')
     <h1>Check your inbox</h1>

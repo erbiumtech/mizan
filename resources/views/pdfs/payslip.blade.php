@@ -499,6 +499,8 @@
                 <span>PKR {{ number_format($data->net_salary, 2) }}</span>
             </div>
 
+            @include('pdfs.partials.verification-qr')
+
             <!-- Signatures -->
             <div class="signatures">
                 <div class="signature-block">

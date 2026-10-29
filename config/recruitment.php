@@ -24,4 +24,14 @@ return [
     */
     'retention_months' => env('RECRUITMENT_RETENTION_MONTHS', 24),
 
+    /*
+    | The careers page — docs/saas-launch-plan.md §7.4. Submissions a minute per
+    | company and per address before the form answers silently, and the CV size.
+    */
+    'careers' => [
+        'per_minute' => 20,
+        'per_minute_per_ip' => 5,
+        'resume_max_kb' => 8192,
+    ],
+
 ];

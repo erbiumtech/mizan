@@ -23,6 +23,13 @@ class EmployeeChangeRequest extends Model
     /** One of the employee's salary settings rows, named by `target_id`. */
     public const TARGET_SETTING = 'employee_setting';
 
+    /**
+     * A NEW salary package rather than a change to one — the increment an appraisal
+     * proposes (docs/saas-launch-plan.md §7.10). Approving creates the version,
+     * from `start_date`, and closes the one before it.
+     */
+    public const TARGET_NEW_SETTING = 'new_employee_setting';
+
     /** Employee-editable attributes; user_* keys write to the linked user. */
     /**
      * Fields an employee may request a change to.
@@ -53,8 +60,11 @@ class EmployeeChangeRequest extends Model
         'bonus', 'extra_work_hours', 'advances', 'meal_deduction', 'esi_health_insurance',
     ];
 
+    /** @var array<int, string> */
+    public const NEW_SETTING_FIELDS = ['start_date', 'end_date', 'fiscal_year_id', ...self::SETTING_FIELDS];
+
     protected $fillable = [
-        'employee_id', 'target_type', 'target_id', 'requested_by', 'requested_changes',
+        'employee_id', 'target_type', 'target_id', 'review_id', 'requested_by', 'requested_changes',
         'original_values', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason',
     ];
 
@@ -114,15 +124,26 @@ class EmployeeChangeRequest extends Model
     /** Which attributes an employee may request on a given target. */
     public static function allowedFieldsFor(string $targetType): array
     {
-        return $targetType === self::TARGET_SETTING
-            ? self::SETTING_FIELDS
-            : self::ALLOWED_FIELDS;
+        return match ($targetType) {
+            self::TARGET_SETTING => self::SETTING_FIELDS,
+            self::TARGET_NEW_SETTING => self::NEW_SETTING_FIELDS,
+            default => self::ALLOWED_FIELDS,
+        };
+    }
+
+    public function proposesNewSetting(): bool
+    {
+        return $this->target_type === self::TARGET_NEW_SETTING;
     }
 
     /** Human label for the target, for the approver's list and emails. */
     public function targetLabel(): string
     {
-        return $this->targetsSetting() ? 'Salary settings' : 'Employee profile';
+        return match ($this->target_type) {
+            self::TARGET_SETTING => 'Salary settings',
+            self::TARGET_NEW_SETTING => 'New salary package',
+            default => 'Employee profile',
+        };
     }
 
     public function approve(User $reviewer): self
@@ -147,6 +168,8 @@ class EmployeeChangeRequest extends Model
         TenantTransaction::run(function () use ($reviewer, &$userChanges) {
             if ($this->targetsSetting()) {
                 $this->applyToSetting();
+            } elseif ($this->proposesNewSetting()) {
+                $this->applyAsNewSetting();
             } else {
                 $userChanges = $this->applyToEmployee();
             }
@@ -218,6 +241,52 @@ class EmployeeChangeRequest extends Model
             // end-date defaulting still run.
             EmployeeSetting::withoutApprovalRouting(fn () => $setting->update($changes->all()));
         }
+    }
+
+    /**
+     * The approval that makes a proposed package real — plan §7.10.
+     *
+     * Creates the version from the requested start date, closes the package
+     * before it the day before, and carries that package's data-driven
+     * components across so an allowance a company added as a row survives the
+     * increment. The request then points at what it made.
+     */
+    protected function applyAsNewSetting(): void
+    {
+        $fields = collect($this->requested_changes)->only(self::NEW_SETTING_FIELDS);
+
+        if (blank($fields->get('start_date')) || blank($fields->get('fiscal_year_id'))) {
+            throw new InvalidArgumentException('A new package needs a start date and a fiscal year.');
+        }
+
+        $start = \Illuminate\Support\Carbon::parse($fields->get('start_date'))->startOfDay();
+
+        $previous = EmployeeSetting::query()
+            ->where('employee_id', $this->employee_id)
+            ->where('start_date', '<', $start->toDateString())
+            ->orderByDesc('start_date')
+            ->first();
+
+        $setting = EmployeeSetting::withoutApprovalRouting(fn () => EmployeeSetting::create(
+            ['employee_id' => $this->employee_id] + $fields->all(),
+        ));
+
+        if ($previous && ($previous->end_date === null || $previous->end_date->greaterThanOrEqualTo($start))) {
+            EmployeeSetting::withoutApprovalRouting(fn () => $previous->update([
+                'end_date' => $start->copy()->subDay()->toDateString(),
+            ]));
+        }
+
+        if ($previous && modules()->enabled('payroll')) {
+            foreach ($previous->components as $component) {
+                $setting->components()->create([
+                    'pay_component_id' => $component->pay_component_id,
+                    'amount' => $component->amount,
+                ]);
+            }
+        }
+
+        $this->forceFill(['target_id' => $setting->getKey()])->save();
     }
 
     public function reject(User $reviewer, ?string $reason = null): self

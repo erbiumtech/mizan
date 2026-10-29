@@ -35,18 +35,46 @@ class AttendanceImport
      *
      * @param  string  $csv  the file's contents
      */
-    public function preview(string $csv): AttendanceImportResult
+    public const PRESET_CSV = 'csv';
+
+    public const PRESET_ZKTECO = 'zkteco';
+
+    /** @return array<string, string> preset => label, for the import form */
+    public static function presets(): array
     {
-        return $this->process($csv, commit: false);
+        return [
+            self::PRESET_CSV => 'Plain CSV — employee_id, date, status, check_in, check_out, note',
+            self::PRESET_ZKTECO => 'ZKTeco attendance log export — AC-No., Time, one row per punch',
+        ];
     }
 
-    public function import(string $csv): AttendanceImportResult
+    public function preview(string $csv, string $preset = self::PRESET_CSV): AttendanceImportResult
     {
-        return $this->process($csv, commit: true);
+        return $this->process($csv, commit: false, preset: $preset);
     }
 
-    private function process(string $csv, bool $commit): AttendanceImportResult
+    public function import(string $csv, string $preset = self::PRESET_CSV): AttendanceImportResult
     {
+        return $this->process($csv, commit: true, preset: $preset);
+    }
+
+    private function process(string $csv, bool $commit, string $preset = self::PRESET_CSV): AttendanceImportResult
+    {
+        // The device preset (plan §7.8): the device's punches folded into this
+        // importer's own columns first, and the rows marked as the device's rather
+        // than a person's. Everything below then runs unchanged.
+        $source = AttendanceDay::SOURCE_IMPORT;
+
+        if ($preset === self::PRESET_ZKTECO) {
+            try {
+                $csv = ZkTecoAttendanceLog::fold($csv);
+            } catch (\InvalidArgumentException $e) {
+                return new AttendanceImportResult(errors: [$e->getMessage()]);
+            }
+
+            $source = AttendanceDay::SOURCE_DEVICE;
+        }
+
         $rows = $this->parse($csv);
 
         if ($rows === []) {
@@ -91,7 +119,7 @@ class AttendanceImport
                         status: $status,
                         checkIn: $row['check_in'] ?: null,
                         checkOut: $row['check_out'] ?: null,
-                        source: AttendanceDay::SOURCE_IMPORT,
+                        source: $source,
                         note: $row['note'] ?: null,
                     );
                 } else {

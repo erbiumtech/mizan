@@ -1,5 +1,5 @@
 {{--
-    The signup door's pages. Self-contained like the status page: no Vite build,
+    The public pages — signup, careers, document verification. Self-contained like the status page: no Vite build,
     no panel session, nothing a visitor needs before they have a company.
 --}}
 <!DOCTYPE html>

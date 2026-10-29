@@ -13,6 +13,7 @@ use App\Support\Contracts\AdvanceLedger;
 use App\Support\Contracts\ReimbursableClaims;
 use App\Support\PayrollMonth;
 use App\Support\Pdf\Pdf;
+use App\Support\DocumentVerification;
 use App\Support\Pdf\PdfDocument;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -717,10 +718,33 @@ class PayslipService
 
         // The letterhead is the template's own business — it resolves Company Settings itself, because it is
         // also rendered directly, without this service, and must not depend on any one caller.
-        return Pdf::view('pdfs.payslip', ['data' => $payslip])
+        return Pdf::view('pdfs.payslip', [
+            'data' => $payslip,
+            // Null unless the company has switched verification on — plan §7.5.
+            'verification_qr' => DocumentVerification::qrFor('payslip', $payslip->getKey(), static::verificationFacts($payslip)),
+        ])
             ->format('a4')
             ->margins(0, 0, 0, 0)
             ->name($this->pdfFilename($payslip));
+    }
+
+    /**
+     * The facts a payslip's verification code vouches for — the ones printed that
+     * somebody outside the company would check: who, which month, how much.
+     *
+     * @return array<string, mixed>
+     */
+    public static function verificationFacts(Payslip $payslip): array
+    {
+        $payslip->loadMissing('employee.user', 'fiscalYear');
+
+        return [
+            'employee_code' => (string) $payslip->employee?->employee_id,
+            'employee' => (string) $payslip->employee?->fullName(),
+            'month' => (string) $payslip->month,
+            'fiscal_year' => (string) $payslip->fiscalYear?->name,
+            'net_salary' => (float) $payslip->net_salary,
+        ];
     }
 
     /**

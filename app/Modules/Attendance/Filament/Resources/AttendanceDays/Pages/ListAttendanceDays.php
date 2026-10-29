@@ -103,7 +103,13 @@ class ListAttendanceDays extends ListRecords
                         ->directory('attendance-imports')
                         ->acceptedFileTypes(['text/csv', 'text/plain', 'application/vnd.ms-excel'])
                         ->required()
-                        ->helperText('Columns: employee_id, date, status, check_in, check_out, note. Status accepts P/A/L/H/W/HD/WFH or the full word.'),
+                        ->helperText('Columns: employee_id, date, status, check_in, check_out, note. Status accepts P/A/L/H/W/HD/WFH or the full word. A ZKTeco export is matched on its user number against the employee code.'),
+
+                    Select::make('preset')
+                        ->label('File layout')
+                        ->options(AttendanceImport::presets())
+                        ->default(AttendanceImport::PRESET_CSV)
+                        ->required(),
 
                     Select::make('mode')
                         ->options([
@@ -117,9 +123,10 @@ class ListAttendanceDays extends ListRecords
                     $csv = Storage::disk('local')->get($data['file']);
                     $import = app(AttendanceImport::class);
 
+                    $preset = (string) ($data['preset'] ?? AttendanceImport::PRESET_CSV);
                     $result = $data['mode'] === 'import'
-                        ? $import->import($csv)
-                        : $import->preview($csv);
+                        ? $import->import($csv, $preset)
+                        : $import->preview($csv, $preset);
 
                     $notification = Notification::make()->title($result->summary());
 

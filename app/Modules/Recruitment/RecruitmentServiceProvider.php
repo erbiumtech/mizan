@@ -17,6 +17,10 @@ use App\Modules\Recruitment\Support\RecruitmentReports;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\TenantFileAccess;
+use App\Modules\Recruitment\Filament\Settings\CareersSettingsSection;
+use App\Support\DocumentVerification;
+use App\Modules\Recruitment\Services\OfferLetter;
+use App\Support\SettingsSections;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -38,6 +42,15 @@ class RecruitmentServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        // The careers page — plan §7.4: its two gates on Company Settings, its routes.
+        SettingsSections::register('recruitment.careers', CareersSettingsSection::class, 80);
+
+        // The offer letter's verification code — plan §7.5.
+        DocumentVerification::register('offer-letter', fn (int $id): ?array => ($offer = Offer::query()->find($id))
+            ? app(OfferLetter::class)->verificationFacts($offer)
+            : null);
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
 
         // A candidate CV streams only to someone who may view the applicant — security audit finding 10.
         TenantFileAccess::registerRecordPrefix('applicant-resumes/', fn (string $path) => Applicant::query()->where('resume_path', $path)->first());

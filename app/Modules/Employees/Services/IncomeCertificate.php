@@ -6,6 +6,7 @@ use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
 use App\Support\CompanyLetterhead;
+use App\Support\DocumentVerification;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
 use Illuminate\Support\Carbon;
@@ -82,6 +83,24 @@ class IncomeCertificate
 
         // The letterhead half is shared with the experience letter — see App\Support\CompanyLetterhead.
         return [...$missing, ...CompanyLetterhead::missing()];
+    }
+
+    /**
+     * The facts the certificate's verification code vouches for — plan §7.5.
+     *
+     * @return array<string, mixed>
+     */
+    public function verificationFacts(Employee $employee): array
+    {
+        $on = $this->speaksFor($employee);
+
+        return [
+            'employee_code' => (string) $employee->employee_id,
+            'employee' => (string) $employee->fullName(),
+            'designation' => (string) $employee->designation,
+            'date_of_joining' => (string) $employee->date_of_joining?->toDateString(),
+            'gross_monthly_salary' => (float) ($this->monthlyGross($employee, $on) ?? 0),
+        ];
     }
 
     /**
@@ -177,6 +196,7 @@ class IncomeCertificate
             'signatory' => CompanyLetterhead::signatory($input),
             'issued_on' => $issuedOn,
             'reference' => $this->reference($employee, $issuedOn),
+            'verification_qr' => DocumentVerification::qrFor('income-certificate', $employee->getKey(), $this->verificationFacts($employee)),
             // The same two keys the experience letter hands its template, and for the same reason:
             // the tense of every sentence on the page turns on them.
             'has_left' => $employee->left_on !== null,

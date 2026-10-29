@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Services;
 
 use App\Modules\Employees\Models\Employee;
 use App\Support\CompanyLetterhead;
+use App\Support\DocumentVerification;
 use App\Support\Pdf\Pdf;
 use App\Support\Pdf\PdfDocument;
 use Illuminate\Support\Carbon;
@@ -125,6 +126,24 @@ class ExperienceLetter
         return $parts === [] ? 'less than a month' : implode(' ', $parts);
     }
 
+    /**
+     * The facts the letter's verification code vouches for — plan §7.5.
+     *
+     * @return array<string, mixed>
+     */
+    public function verificationFacts(Employee $employee): array
+    {
+        $roles = $this->roles($employee);
+
+        return [
+            'employee_code' => (string) $employee->employee_id,
+            'employee' => (string) $employee->fullName(),
+            'date_of_joining' => (string) $employee->date_of_joining?->toDateString(),
+            'last_working_day' => (string) ($employee->left_on?->toDateString() ?? 'current'),
+            'designation' => $roles === [] ? (string) $employee->designation : (string) end($roles)['designation'],
+        ];
+    }
+
     public function filename(Employee $employee): string
     {
         $name = str($employee->fullName() ?: $employee->employee_id)->slug()->value();
@@ -157,6 +176,7 @@ class ExperienceLetter
             'company' => CompanyLetterhead::data(),
             'signatory' => CompanyLetterhead::signatory($input),
             'issued_on' => $issuedOn,
+            'verification_qr' => DocumentVerification::qrFor('experience-letter', $employee->getKey(), $this->verificationFacts($employee)),
             'reference' => CompanyLetterhead::reference(
                 ($employee->employee_id ?: 'EMP-'.$employee->getKey()).'/EXP',
                 $issuedOn,

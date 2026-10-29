@@ -18,16 +18,20 @@ return [
         'App\\Models\\Employee' => \App\Modules\Employees\Models\Employee::class,
         'App\\Models\\EmployeeChangeRequest' => \App\Modules\Employees\Models\EmployeeChangeRequest::class,
         'App\\Models\\EmployeeSetting' => \App\Modules\Employees\Models\EmployeeSetting::class,
+        // Announcements — docs/saas-launch-plan.md §7.6.
+        'App\\Models\\Announcement' => \App\Modules\Employees\Models\Announcement::class,
     ],
 
     'resources' => [
         'App\\Filament\\Resources\\Employees\\EmployeeResource' => \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::class,
         'App\\Filament\\Resources\\EmployeeChangeRequests\\EmployeeChangeRequestResource' => \App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\EmployeeChangeRequestResource::class,
         'App\\Filament\\Resources\\EmployeeSettings\\EmployeeSettingResource' => \App\Modules\Employees\Filament\Resources\EmployeeSettings\EmployeeSettingResource::class,
+        'App\\Filament\\Resources\\Announcements\\AnnouncementResource' => \App\Modules\Employees\Filament\Resources\Announcements\AnnouncementResource::class,
     ],
 
     'widgets' => [
         'App\\Filament\\Widgets\\HeadcountOverview' => \App\Modules\Employees\Filament\Widgets\HeadcountOverview::class,
+        'App\\Filament\\Widgets\\AnnouncementsOverview' => \App\Modules\Employees\Filament\Widgets\AnnouncementsOverview::class,
     ],
 
     // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is
@@ -117,6 +121,7 @@ return [
     'permission_groups' => [
         'Employee',
         'EmployeeSetting',
+        'Announcement',
     ],
 
     'permissions' => [
@@ -128,6 +133,12 @@ return [
         ['name' => 'EmployeeSettingUpdate', 'group' => 'EmployeeSetting'],
         ['name' => 'EmployeeSettingDelete', 'group' => 'EmployeeSetting'],
         ['name' => 'EmployeeChangeApprove', 'group' => 'Employee'],
+        // Managing announcements. Reading them needs nothing: the dashboard shows
+        // each employee what was aimed at them.
+        ['name' => 'AnnouncementView', 'group' => 'Announcement'],
+        ['name' => 'AnnouncementCreate', 'group' => 'Announcement'],
+        ['name' => 'AnnouncementUpdate', 'group' => 'Announcement'],
+        ['name' => 'AnnouncementDelete', 'group' => 'Announcement'],
     ],
 
     /**
@@ -145,6 +156,9 @@ return [
         // On top of Accountant.
         'Manager' => [
             'EmployeeChangeApprove',
+            'AnnouncementView',
+            'AnnouncementCreate',
+            'AnnouncementUpdate',
         ],
     ],
 

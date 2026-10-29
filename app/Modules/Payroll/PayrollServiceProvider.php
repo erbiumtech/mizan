@@ -39,6 +39,8 @@ use App\Support\LedgerDimensions;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
+use App\Support\DocumentVerification;
+use App\Modules\Payroll\Services\PayslipService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -115,6 +117,11 @@ class PayrollServiceProvider extends ServiceProvider
         // rather than in a global EventServiceProvider because the pair is Payroll's business — see
         // App\Modules\Payroll\Listeners\CopyReviewOntoPayment.
         Event::listen(PayslipReviewed::class, CopyReviewOntoPayment::class);
+
+        // The payslip's verification code — plan §7.5. Asked with the company current.
+        DocumentVerification::register('payslip', fn (int $id): ?array => ($payslip = Payslip::query()->with('employee.user', 'fiscalYear')->find($id))
+            ? PayslipService::verificationFacts($payslip)
+            : null);
 
         // The month's salary payables, raised when either bank-file page is opened. Listened for rather
         // than called by name, because the caller is in Accounting and naming this from there was the last

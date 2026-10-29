@@ -90,6 +90,8 @@
 
 <p class="sincerely">Sincerely,</p>
 
+@include('pdfs.partials.verification-qr')
+
 <div class="sign">
     @if ($seal = \App\Support\CompanyLetterhead::signatureDataUri())
         <img src="{{ $seal }}" class="seal-image" alt="">

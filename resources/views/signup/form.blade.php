@@ -1,4 +1,4 @@
-@extends('signup.layout')
+@extends('layouts.public')
 @section('title', 'Create your company')
 @section('body')
     <h1>Create your company</h1>

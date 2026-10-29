@@ -8,9 +8,11 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Console\Commands\ApplyDueJobChanges;
 use App\Modules\Employees\Filament\Pages\HeadcountMovement;
 use App\Modules\Employees\Listeners\CreateEmployeeForUser;
+use App\Modules\Employees\Models\Announcement;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Modules\Employees\Models\EmployeeSetting;
+use App\Modules\Employees\Policies\AnnouncementPolicy;
 use App\Modules\Employees\Policies\EmployeeChangeRequestPolicy;
 use App\Modules\Employees\Policies\EmployeePolicy;
 use App\Modules\Employees\Policies\EmployeeSettingPolicy;
@@ -24,6 +26,10 @@ use App\Support\Reporting\ReportRenderers;
 use App\Support\TenantFileAccess;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Event;
+use App\Support\DocumentVerification;
+use App\Modules\Employees\Services\IncomeCertificate;
+use App\Modules\Employees\Services\ExperienceLetter;
+use App\Modules\Employees\Services\AppointmentLetter;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -40,6 +46,7 @@ class EmployeesServiceProvider extends ServiceProvider
 {
     /** @var array<class-string, class-string> */
     private const POLICIES = [
+        Announcement::class => AnnouncementPolicy::class,
         EmployeeChangeRequest::class => EmployeeChangeRequestPolicy::class,
         Employee::class => EmployeePolicy::class,
         EmployeeSetting::class => EmployeeSettingPolicy::class,
@@ -63,6 +70,12 @@ class EmployeesServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        // The letters' verification codes — plan §7.5. Each asked with the company current.
+        $employee = fn (int $id): ?Employee => Employee::query()->with('user')->find($id);
+        DocumentVerification::register('income-certificate', fn (int $id): ?array => ($e = $employee($id)) ? app(IncomeCertificate::class)->verificationFacts($e) : null);
+        DocumentVerification::register('experience-letter', fn (int $id): ?array => ($e = $employee($id)) ? app(ExperienceLetter::class)->verificationFacts($e) : null);
+        DocumentVerification::register('appointment-letter', fn (int $id): ?array => ($e = $employee($id)) ? app(AppointmentLetter::class)->verificationFacts($e) : null);
 
         // NIC scans stream only to the employee's own reporting line — security audit finding 10.
         TenantFileAccess::register(function (User $user, Company $company, string $path): ?bool {
