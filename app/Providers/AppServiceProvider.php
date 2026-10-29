@@ -207,6 +207,10 @@ class AppServiceProvider extends ServiceProvider
         // SignupController, where a 429 would tell a bot how to pace itself.
         RateLimiter::for('signup', fn (Request $request): Limit => Limit::perMinute(10)->by($request->ip()));
 
+        // A biometric device, per serial — docs/saas-launch-plan.md §8.7.
+        RateLimiter::for('devices', fn (Request $request): Limit => Limit::perMinute((int) config('devices.per_minute', 60))
+            ->by('device:'.((string) $request->query('SN') ?: $request->ip())));
+
         /*
          * Lazy loading is an error everywhere except production.
          *

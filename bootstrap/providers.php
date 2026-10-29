@@ -21,6 +21,7 @@ return [
     App\Modules\ConstructionQhse\ConstructionQhseServiceProvider::class,
     App\Modules\Core\CoreServiceProvider::class,
     App\Modules\Crm\CrmServiceProvider::class,
+    App\Modules\Devices\DevicesServiceProvider::class,
     App\Modules\Employees\EmployeesServiceProvider::class,
     App\Modules\Expenses\ExpensesServiceProvider::class,
     App\Modules\Inventory\InventoryServiceProvider::class,

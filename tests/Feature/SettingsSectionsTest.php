@@ -81,8 +81,8 @@ class SettingsSectionsTest extends AccountingTestCase
         $this->assertSame(
             [
                 'accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting',
-                'construction.accounts', 'invoicing.dunning', 'invoicing.credit-control', 'invoicing.statements',
-                'crm.field-visits', 'crm.lead-capture', 'recruitment.careers', 'documents.verification',
+                'construction.accounts', 'invoicing.dunning', 'invoicing.credit-control', 'devices.devices',
+                'invoicing.statements', 'crm.field-visits', 'crm.lead-capture', 'recruitment.careers', 'documents.verification',
             ],
             SettingsSections::keys(),
         );

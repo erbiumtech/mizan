@@ -32,6 +32,17 @@ class EmployeeForm
                     ->disabled($adminOnly)
                     ->dehydrated(fn (): bool => ! $adminOnly()),
 
+                // The biometric device's user id — docs/saas-launch-plan.md §8.7. Shown only
+                // when a device can push, because without one it is a number nobody has.
+                TextInput::make('device_pin')
+                    ->label('Device PIN')
+                    ->maxLength(32)
+                    ->unique(ignoreRecord: true)
+                    ->helperText('The user number enrolled on the attendance device. Punches with this PIN become this employee\'s days.')
+                    ->visible(fn (): bool => modules()->enabled('devices'))
+                    ->disabled($adminOnly)
+                    ->dehydrated(fn (): bool => ! $adminOnly()),
+
                 // BelongsTo user (Employee Name) — readonly in Nova; picker
                 // restricted to users holding the Employee role.
                 //

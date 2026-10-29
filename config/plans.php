@@ -73,7 +73,7 @@ return [
             'label' => 'HR, payroll and books',
             'description' => 'Growth plus the double-entry ledger, invoicing, quotations, inventory, CRM, campaigns, support and client billing.',
             'includes' => 'growth',
-            'modules' => ['accounting', 'invoicing', 'quotations', 'inventory', 'crm', 'campaigns', 'support', 'billing'],
+            'modules' => ['accounting', 'invoicing', 'quotations', 'inventory', 'crm', 'campaigns', 'support', 'billing', 'devices'],
             'prices' => ['PKR' => 1400, 'USD' => 10, 'EUR' => 10],
             'custom_domain' => true,
         ],
