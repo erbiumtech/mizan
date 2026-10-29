@@ -4,6 +4,7 @@ namespace App\Modules\Lifecycle\Services;
 
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Lifecycle\Models\ChecklistItem;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use App\Modules\Lifecycle\Models\EmployeeChecklist;
 use App\Modules\Lifecycle\Models\EmployeeChecklistItem;
@@ -48,6 +49,9 @@ class ChecklistService
             foreach ($template->items as $item) {
                 $checklist->items()->create([
                     'title' => $item->title,
+                    'kind' => $item->kind ?? ChecklistItem::KIND_MANUAL,
+                    'link_url' => $item->link_url,
+                    'auto_check' => $item->auto_check,
                     'owner_role' => $item->owner_role,
                     'due_on' => $anchor->copy()->addDays($item->due_offset_days)->toDateString(),
                     'sort' => $item->sort,
@@ -69,6 +73,48 @@ class ChecklistService
         $this->closeIfFinished($item->checklist);
 
         return $item;
+    }
+
+    /** Waived with a reason — docs/saas-launch-plan.md §14.5 — which closes it as a tick does. */
+    public function waive(EmployeeChecklistItem $item, User $by, string $reason): EmployeeChecklistItem
+    {
+        if (trim($reason) === '') {
+            throw new \InvalidArgumentException('Waiving an item needs a reason.');
+        }
+
+        $item->update(['waived_at' => now(), 'waived_by' => $by->getKey(), 'waive_reason' => trim($reason)]);
+        $this->closeIfFinished($item->checklist);
+
+        return $item;
+    }
+
+    /**
+     * Auto items, closed from the records — docs/saas-launch-plan.md §14.5. Run daily and on demand;
+     * an item whose fact is not yet true stays open with nobody blamed.
+     */
+    public function autoCheck(EmployeeChecklist $checklist): int
+    {
+        $employee = $checklist->employee;
+        $closed = 0;
+
+        foreach ($checklist->items()->where('kind', ChecklistItem::KIND_AUTO)->whereNull('completed_at')->whereNull('waived_at')->get() as $item) {
+            $true = match ($item->auto_check) {
+                'user_created' => $employee->user_id !== null,
+                'package_in_effect' => \App\Modules\Employees\Models\EmployeeSetting::getActiveSettingForDate($employee->getKey(), now()->toDateString()) !== null,
+                'contract_active' => \App\Modules\Lifecycle\Models\EmploymentContract::query()->active()->where('employee_id', $employee->getKey())->exists(),
+                'asset_issued' => \App\Modules\Lifecycle\Models\IssuedAsset::query()->where('employee_id', $employee->getKey())->whereNull('returned_on')->exists(),
+                default => false,
+            };
+
+            if ($true) {
+                $item->update(['completed_at' => now(), 'note' => trim(($item->note ? $item->note.' ' : '').'Closed from the records.')]);
+                $closed++;
+            }
+        }
+
+        $this->closeIfFinished($checklist->refresh());
+
+        return $closed;
     }
 
     public function reopen(EmployeeChecklistItem $item): EmployeeChecklistItem

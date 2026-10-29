@@ -361,8 +361,22 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             return false;
         }
 
-        return $this->isSuperAdmin()
-            || $this->companies()->whereKey($tenant->getKey())->exists();
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! $this->companies()->whereKey($tenant->getKey())->exists()) {
+            return false;
+        }
+
+        // A leaver's login closes some days after their last working day — docs/saas-launch-plan.md §14.5.
+        // Asked of the contract, not of Lifecycle: Core names no module, and a company without
+        // Lifecycle gets the always-open default.
+        if ($tenant instanceof \App\Modules\Core\Models\Company) {
+            return app(\App\Support\Contracts\LoginWindow::class)->isOpen($this, $tenant);
+        }
+
+        return true;
     }
 
     /**

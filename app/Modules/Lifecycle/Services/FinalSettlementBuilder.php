@@ -39,7 +39,9 @@ class FinalSettlementBuilder
      */
     public function build(Employee $employee, string|Carbon|null $leftOn = null): FinalSettlement
     {
-        $leftOn = Carbon::parse($leftOn ?? $employee->left_on ?? now());
+        // The separation's last working day, when one is open — docs/saas-launch-plan.md §14.5.
+        $separation = \App\Modules\Lifecycle\Models\Separation::query()->where('employee_id', $employee->getKey())->orderByDesc('id')->first();
+        $leftOn = Carbon::parse($leftOn ?? $separation?->last_working_day ?? $employee->left_on ?? now());
 
         $settlement = FinalSettlement::firstOrNew(['employee_id' => $employee->getKey()]);
 

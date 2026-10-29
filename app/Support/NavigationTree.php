@@ -88,6 +88,10 @@ class NavigationTree
                 'Checklist Templates',
                 'Employee Documents',
                 'Issued Assets',
+                // docs/saas-launch-plan.md §14.5.
+                'Employment Contracts',
+                'Separations',
+                'Checklist Items',
             ],
             // Both are about what people are working on rather than about their employment, and they
             // are the two entries in this group that a payroll clerk never opens.

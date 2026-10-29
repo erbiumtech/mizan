@@ -14,3 +14,8 @@ use Illuminate\Support\Facades\Schedule;
  */
 Schedule::command(CheckDocumentExpiry::class)
     ->dailyAt('06:30');
+
+// Auto-check items and separations past their last day — docs/saas-launch-plan.md §14.5.
+Schedule::command(\App\Modules\Lifecycle\Console\Commands\RunLifecycleChecks::class)
+    ->dailyAt('01:15')
+    ->withoutOverlapping();

@@ -38,11 +38,11 @@ class EmployeeChecklist extends Model
 
     public function isComplete(): bool
     {
-        return ! $this->items()->whereNull('completed_at')->exists();
+        return ! $this->items()->whereNull('completed_at')->whereNull('waived_at')->exists();
     }
 
     public function outstandingCount(): int
     {
-        return $this->items()->whereNull('completed_at')->count();
+        return $this->items()->whereNull('completed_at')->whereNull('waived_at')->count();
     }
 }

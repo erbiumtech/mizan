@@ -20,4 +20,9 @@ return [
     */
     'document_expiry_thresholds' => [60, 30, 7],
 
+    /*
+    | How many days after the last working day a leaver may still sign in —
+    | docs/saas-launch-plan.md §14.5. Long enough to download a payslip; not a month.
+    */
+    'login_grace_days' => env('LIFECYCLE_LOGIN_GRACE_DAYS', 7),
 ];

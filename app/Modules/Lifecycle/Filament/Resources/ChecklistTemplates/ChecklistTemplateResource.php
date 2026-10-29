@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\Pages\CreateChecklistTemplate;
 use App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\Pages\EditChecklistTemplate;
 use App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\Pages\ListChecklistTemplates;
+use App\Modules\Lifecycle\Models\ChecklistItem;
 use App\Modules\Lifecycle\Models\ChecklistTemplate;
 use BackedEnum;
 use Filament\Forms\Components\Repeater;
@@ -64,6 +65,23 @@ class ChecklistTemplateResource extends Resource
                 ->label('Items')
                 ->schema([
                     TextInput::make('title')->required()->maxLength(255)->columnSpan(2),
+
+                    // Manual, link or auto — docs/saas-launch-plan.md §14.5.
+                    \Filament\Forms\Components\Select::make('kind')
+                        ->options(ChecklistItem::KINDS)
+                        ->default(ChecklistItem::KIND_MANUAL)
+                        ->required()
+                        ->live(),
+                    TextInput::make('link_url')
+                        ->label('Link')
+                        ->url()
+                        ->maxLength(255)
+                        ->visible(fn ($get): bool => $get('kind') === ChecklistItem::KIND_LINK),
+                    \Filament\Forms\Components\Select::make('auto_check')
+                        ->label('Closes when')
+                        ->options(ChecklistItem::AUTO_CHECKS)
+                        ->visible(fn ($get): bool => $get('kind') === ChecklistItem::KIND_AUTO)
+                        ->required(fn ($get): bool => $get('kind') === ChecklistItem::KIND_AUTO),
 
                     TextInput::make('owner_role')
                         ->label('Owner')

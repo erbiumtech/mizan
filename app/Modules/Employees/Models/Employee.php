@@ -131,6 +131,14 @@ class Employee extends Model
             }
         });
 
+        // Every new employee has joined — docs/saas-launch-plan.md §14.5 — not only a Recruitment hire.
+        // Lifecycle starts onboarding in answer and ignores a person already being onboarded.
+        static::created(function (Employee $employee): void {
+            if ((bool) $employee->is_active) {
+                \App\Modules\Employees\Events\EmployeeJoined::dispatch($employee);
+            }
+        });
+
         static::saving(function ($employee) {
             /*
              * The two code columns are a copy of the chosen directory bank, kept beside the

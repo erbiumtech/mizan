@@ -147,7 +147,7 @@ class DocumentVerificationTest extends AccountingTestCase
         $this->tenant->makeCurrent();
 
         $this->assertEqualsCanonicalizing(
-            ['payslip', 'income-certificate', 'experience-letter', 'appointment-letter', 'offer-letter'],
+            ['payslip', 'income-certificate', 'experience-letter', 'appointment-letter', 'offer-letter', 'employment-contract'],
             DocumentVerification::kinds(),
         );
 

@@ -28,6 +28,9 @@ return [
         'App\\Models\\EmployeeDocument' => \App\Modules\Lifecycle\Models\EmployeeDocument::class,
         'App\\Models\\IssuedAsset' => \App\Modules\Lifecycle\Models\IssuedAsset::class,
         'App\\Models\\FinalSettlement' => \App\Modules\Lifecycle\Models\FinalSettlement::class,
+        'App\\Models\\EmploymentContract' => \App\Modules\Lifecycle\Models\EmploymentContract::class,
+        'App\\Models\\Separation' => \App\Modules\Lifecycle\Models\Separation::class,
+        'App\\Models\\ClearanceItem' => \App\Modules\Lifecycle\Models\ClearanceItem::class,
     ],
 
     'resources' => [
@@ -35,6 +38,8 @@ return [
         'App\\Filament\\Resources\\EmployeeDocuments\\EmployeeDocumentResource' => \App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments\EmployeeDocumentResource::class,
         'App\\Filament\\Resources\\IssuedAssets\\IssuedAssetResource' => \App\Modules\Lifecycle\Filament\Resources\IssuedAssets\IssuedAssetResource::class,
         'App\\Filament\\Resources\\FinalSettlements\\FinalSettlementResource' => \App\Modules\Lifecycle\Filament\Resources\FinalSettlements\FinalSettlementResource::class,
+        'App\\Filament\\Resources\\EmploymentContracts\\EmploymentContractResource' => \App\Modules\Lifecycle\Filament\Resources\EmploymentContracts\EmploymentContractResource::class,
+        'App\\Filament\\Resources\\Separations\\SeparationResource' => \App\Modules\Lifecycle\Filament\Resources\Separations\SeparationResource::class,
     ],
 
     /** The two reports. Pages, not resources: a report is a question, not rows to edit. */
@@ -44,6 +49,7 @@ return [
         'App\\Filament\\Pages\\ChecklistProgress' => \App\Modules\Lifecycle\Filament\Pages\ChecklistProgress::class,
         'App\\Filament\\Pages\\DocumentsExpiring' => \App\Modules\Lifecycle\Filament\Pages\DocumentsExpiring::class,
         'App\\Filament\\Pages\\LeaveLiability' => \App\Modules\Lifecycle\Filament\Pages\LeaveLiability::class,
+        'App\\Filament\\Pages\\OpenChecklistItems' => \App\Modules\Lifecycle\Filament\Pages\OpenChecklistItems::class,
     ],
 
     'widgets' => [

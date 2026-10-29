@@ -29,6 +29,12 @@ class StartOnboardingForNewEmployee
             return;
         }
 
+        // Once per joining — docs/saas-launch-plan.md §14.5. The event now fires for every new employee, and a
+        // hire fires it as well; a checklist already running for this person is the one that counts.
+        if (\App\Modules\Lifecycle\Models\EmployeeChecklist::query()->where('employee_id', $event->employee->getKey())->where('kind', ChecklistTemplate::KIND_ONBOARDING)->whereNull('completed_on')->exists()) {
+            return;
+        }
+
         $templates = ChecklistTemplate::query()
             ->active()
             ->ofKind(ChecklistTemplate::KIND_ONBOARDING)

@@ -49,7 +49,16 @@ class LifecycleServiceProvider extends ServiceProvider
         EmployeeDocument::class => EmployeeDocumentPolicy::class,
         IssuedAsset::class => IssuedAssetPolicy::class,
         FinalSettlement::class => FinalSettlementPolicy::class,
+        \App\Modules\Lifecycle\Models\EmploymentContract::class => \App\Modules\Lifecycle\Policies\EmploymentContractPolicy::class,
+        \App\Modules\Lifecycle\Models\Separation::class => \App\Modules\Lifecycle\Policies\SeparationPolicy::class,
+        \App\Modules\Lifecycle\Models\ClearanceItem::class => \App\Modules\Lifecycle\Policies\ClearanceItemPolicy::class,
     ];
+
+    public function register(): void
+    {
+        // A leaver's login window — docs/saas-launch-plan.md §14.5. Core asks the contract.
+        $this->app->bind(\App\Support\Contracts\LoginWindow::class, \App\Modules\Lifecycle\Services\SeparationLoginWindow::class);
+    }
 
     public function boot(): void
     {
@@ -81,7 +90,12 @@ class LifecycleServiceProvider extends ServiceProvider
             return $access->isPrivileged($user) || $access->accessibleEmployeeIds($user)->contains($record->employee_id);
         });
 
-        $this->commands([CheckDocumentExpiry::class]);
+        $this->commands([CheckDocumentExpiry::class, \App\Modules\Lifecycle\Console\Commands\RunLifecycleChecks::class]);
+
+        // The contract's QR — docs/saas-launch-plan.md §14.5 — answers against the live record, as every document kind does.
+        \App\Support\DocumentVerification::register(\App\Modules\Lifecycle\Services\EmploymentContracts::KIND, fn (int $id): ?array => ($c = \App\Modules\Lifecycle\Models\EmploymentContract::query()->with('employee.user')->find($id))
+            ? app(\App\Modules\Lifecycle\Services\EmploymentContracts::class)->verificationFacts($c)
+            : null);
 
         $this->registerReports();
     }

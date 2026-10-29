@@ -91,6 +91,25 @@ class FinalSettlementResource extends Resource
                 ])
                 ->columns(2),
 
+            // The clearance list, read here — docs/saas-launch-plan.md §14.5.
+            Section::make('Clearance')
+                ->schema([
+                    \Filament\Forms\Components\Placeholder::make('clearance')
+                        ->label('Items')
+                        ->content(function ($get): string {
+                            $separation = $get('employee_id') ? \App\Modules\Lifecycle\Models\Separation::query()->where('employee_id', $get('employee_id'))->orderByDesc('id')->first() : null;
+
+                            if ($separation === null) {
+                                return 'No separation recorded; open one under Lifecycle → Separations to build the clearance list.';
+                            }
+
+                            $c = $separation->clearance();
+
+                            return "{$c['clear']} of {$c['total']} cleared or waived".($c['clear'] < $c['total'] ? ' — not yet clear' : ' — all clear');
+                        }),
+                ])
+                ->visible(fn ($get): bool => filled($get('employee_id'))),
+
             Section::make('Owed to them')
                 ->schema([
                     TextInput::make('leave_encashment_days')->label('Encashable leave (days)')->numeric()->step(0.5)->default(0),
