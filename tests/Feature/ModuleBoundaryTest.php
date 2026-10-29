@@ -76,6 +76,15 @@ class ModuleBoundaryTest extends TestCase
         'app/Support/EmployeeAccess.php' => ['employees'],
         'app/Support/EmployeeOptions.php' => ['employees'],
         'app/Support/LandlordUserColumn.php' => ['employees'],
+        // The platform's own billing — docs/saas-launch-plan.md §6. It counts a
+        // customer's employees and writes the operator tenant's contact, agreement
+        // and invoices, so it names three modules from a namespace that may name
+        // none. Shared rather than in Core because Core deliberately names no
+        // module (phase 9 above), and in no module because it serves the landlord.
+        // The way out is the same as EmployeeAccess's: a seat-counter contract
+        // Employees binds and an operator-books port Invoicing binds, both with
+        // null defaults, so an installation without either module still boots.
+        'app/Support/Subscriptions.php' => ['accounting', 'employees', 'invoicing'],
     ];
 
     /**
