@@ -37,6 +37,7 @@ return [
         'App\\Models\\Activity' => \App\Modules\Crm\Models\Activity::class,
         'App\\Models\\NextAction' => \App\Modules\Crm\Models\NextAction::class,
         'App\\Models\\SalesTarget' => \App\Modules\Crm\Models\SalesTarget::class,
+        'App\\Models\\FieldVisit' => \App\Modules\Crm\Models\FieldVisit::class,
     ],
 
     'resources' => [
@@ -46,6 +47,7 @@ return [
         'App\\Filament\\Resources\\Pipelines\\PipelineResource' => \App\Modules\Crm\Filament\Resources\Pipelines\PipelineResource::class,
         'App\\Filament\\Resources\\NextActions\\NextActionResource' => \App\Modules\Crm\Filament\Resources\NextActions\NextActionResource::class,
         'App\\Filament\\Resources\\SalesTargets\\SalesTargetResource' => \App\Modules\Crm\Filament\Resources\SalesTargets\SalesTargetResource::class,
+        'App\\Filament\\Resources\\FieldVisits\\FieldVisitResource' => \App\Modules\Crm\Filament\Resources\FieldVisits\FieldVisitResource::class,
     ],
 
     /**
@@ -58,6 +60,8 @@ return [
         'App\\Filament\\Pages\\WinLoss' => \App\Modules\Crm\Filament\Pages\WinLoss::class,
         'App\\Filament\\Pages\\RottingDeals' => \App\Modules\Crm\Filament\Pages\RottingDeals::class,
         'App\\Filament\\Pages\\TargetAttainment' => \App\Modules\Crm\Filament\Pages\TargetAttainment::class,
+        'App\\Filament\\Pages\\VisitsPerRep' => \App\Modules\Crm\Filament\Pages\VisitsPerRep::class,
+        'App\\Filament\\Pages\\UnconfirmedVisits' => \App\Modules\Crm\Filament\Pages\UnconfirmedVisits::class,
     ],
 
     'widgets' => [
@@ -91,6 +95,7 @@ return [
         'Pipeline',
         'Opportunity',
         'SalesTarget',
+        'FieldVisit',
     ],
 
     'permissions' => [
@@ -123,6 +128,11 @@ return [
         ['name' => 'LeadSourceCreate', 'group' => 'LeadSource'],
         ['name' => 'LeadSourceUpdate', 'group' => 'LeadSource'],
         ['name' => 'LeadSourceDelete', 'group' => 'LeadSource'],
+        // A visit is a rep's own record; its permissions follow the deal's.
+        ['name' => 'FieldVisitView', 'group' => 'FieldVisit'],
+        ['name' => 'FieldVisitCreate', 'group' => 'FieldVisit'],
+        ['name' => 'FieldVisitUpdate', 'group' => 'FieldVisit'],
+        ['name' => 'FieldVisitDelete', 'group' => 'FieldVisit'],
     ],
 
     /**

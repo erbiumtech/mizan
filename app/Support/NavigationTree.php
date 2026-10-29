@@ -116,6 +116,7 @@ class NavigationTree
                 'Leads',
                 'Deals',
                 'Next Actions',
+                'Field Visits',
                 'Quotes',
                 'Campaigns',
             ],

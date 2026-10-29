@@ -33,4 +33,13 @@ class LogWhatsAppSender implements WhatsAppSender
 
         return $id;
     }
+
+    public function sendText(string $to, string $text): string
+    {
+        $id = 'log-'.Str::random(16);
+
+        Log::info('WhatsApp text (log driver, nothing sent)', ['to' => $to, 'text' => $text, 'message_id' => $id]);
+
+        return $id;
+    }
 }

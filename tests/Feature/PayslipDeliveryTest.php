@@ -149,6 +149,11 @@ class PayslipDeliveryTest extends AccountingTestCase
 
         $this->swap(WhatsAppSender::class, new class($sent) implements WhatsAppSender
         {
+            public function sendText(string $to, string $text): string
+            {
+                throw new \LogicException('sendText is not expected here');
+            }
+
             public function __construct(public array &$sent) {}
 
             public function sendDocument(string $to, WhatsAppDocument $document, string $caption): string
@@ -197,6 +202,11 @@ class PayslipDeliveryTest extends AccountingTestCase
 
         $this->swap(WhatsAppSender::class, new class implements WhatsAppSender
         {
+            public function sendText(string $to, string $text): string
+            {
+                throw new \LogicException('sendText is not expected here');
+            }
+
             public function sendDocument(string $to, WhatsAppDocument $document, string $caption): string
             {
                 throw new WhatsAppException('Template payslip_issued is still in review');
@@ -291,6 +301,11 @@ class PayslipDeliveryTest extends AccountingTestCase
 
         $this->swap(WhatsAppSender::class, new class implements WhatsAppSender
         {
+            public function sendText(string $to, string $text): string
+            {
+                throw new \LogicException('sendText is not expected here');
+            }
+
             public function sendDocument(string $to, WhatsAppDocument $document, string $caption): string
             {
                 throw new \LogicException('WhatsApp must not be used when it is switched off');

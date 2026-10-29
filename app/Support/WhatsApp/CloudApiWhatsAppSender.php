@@ -57,6 +57,25 @@ class CloudApiWhatsAppSender implements WhatsAppSender
         return $id;
     }
 
+    /** Free-form text, never a template: the link preview is what makes the confirmation one tap. */
+    public function sendText(string $to, string $text): string
+    {
+        $response = $this->post('messages', [
+            'messaging_product' => 'whatsapp',
+            'to' => $to,
+            'type' => 'text',
+            'text' => ['preview_url' => true, 'body' => $text],
+        ]);
+
+        $id = $response->json('messages.0.id');
+
+        if (! is_string($id) || $id === '') {
+            throw new WhatsAppException('WhatsApp accepted the request but returned no message id: '.$response->body());
+        }
+
+        return $id;
+    }
+
     /**
      * @return string the media id
      */

@@ -35,4 +35,13 @@ return [
         'per_minute_per_ip' => env('CRM_LEAD_CAPTURE_PER_MINUTE_PER_IP', 5),
     ],
 
+    /*
+    | Field visits — docs/saas-launch-plan.md §8.5. The witness's confirmation link is sent
+    | at check-out when a company has switched it on, and works for this many hours.
+    */
+    'field_visits' => [
+        'enabled' => env('CRM_FIELD_VISITS_ENABLED', false),
+        'confirmation_link_hours' => env('CRM_FIELD_VISIT_LINK_HOURS', 24),
+    ],
+
 ];

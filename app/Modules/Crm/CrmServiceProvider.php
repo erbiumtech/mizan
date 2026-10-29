@@ -7,11 +7,15 @@ use App\Modules\Crm\Filament\Pages\PipelineByStage;
 use App\Modules\Crm\Filament\Pages\RottingDeals;
 use App\Modules\Crm\Filament\Pages\SalesForecast;
 use App\Modules\Crm\Filament\Pages\TargetAttainment;
+use App\Modules\Crm\Filament\Pages\UnconfirmedVisits;
+use App\Modules\Crm\Filament\Pages\VisitsPerRep;
 use App\Modules\Crm\Filament\Pages\WinLoss;
 use App\Modules\Crm\Filament\RelationManagers\ContactNextActionsRelationManager;
 use App\Modules\Crm\Filament\RelationManagers\ContactTimelineRelationManager;
+use App\Modules\Crm\Filament\Settings\FieldVisitsSettingsSection;
 use App\Modules\Crm\Filament\Settings\LeadCaptureSettingsSection;
 use App\Modules\Crm\Models\Activity;
+use App\Modules\Crm\Models\FieldVisit;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadSource;
 use App\Modules\Crm\Models\LostReason;
@@ -22,6 +26,7 @@ use App\Modules\Crm\Models\Pipeline;
 use App\Modules\Crm\Models\PipelineStage;
 use App\Modules\Crm\Models\SalesTarget;
 use App\Modules\Crm\Policies\ActivityPolicy;
+use App\Modules\Crm\Policies\FieldVisitPolicy;
 use App\Modules\Crm\Policies\LeadPolicy;
 use App\Modules\Crm\Policies\LeadSourcePolicy;
 use App\Modules\Crm\Policies\LostReasonPolicy;
@@ -32,6 +37,7 @@ use App\Modules\Crm\Policies\PipelinePolicy;
 use App\Modules\Crm\Policies\PipelineStagePolicy;
 use App\Modules\Crm\Policies\SalesTargetPolicy;
 use App\Modules\Crm\Support\CrmReports;
+use App\Modules\Crm\Support\FieldVisitReports;
 use App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource;
 use App\Modules\Invoicing\Models\Contact;
 use App\Support\Reporting\ReportCatalogue;
@@ -63,6 +69,7 @@ class CrmServiceProvider extends ServiceProvider
         Activity::class => ActivityPolicy::class,
         NextAction::class => NextActionPolicy::class,
         SalesTarget::class => SalesTargetPolicy::class,
+        FieldVisit::class => FieldVisitPolicy::class,
     ];
 
     public function boot(): void
@@ -76,6 +83,8 @@ class CrmServiceProvider extends ServiceProvider
         // The public lead-capture endpoint. Outside the panel, so the panel's tenancy
         // middleware never runs for it — see ResolveLeadCaptureTenant.
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
+        // The phone's side of a field visit — docs/saas-launch-plan.md §8.5.
+        $this->loadRoutesFrom(__DIR__.'/routes/api.php');
 
         // Laravel only auto-discovers commands in app/Console/Commands; a module's has to be named
         // here or it disappears from artisan and, silently, from the scheduler.
@@ -84,6 +93,7 @@ class CrmServiceProvider extends ServiceProvider
         // 79: with the other public-endpoint plumbing, directly before the status page
         // (80), which the CompanySettings comment puts last as "the least consequential".
         SettingsSections::register('crm.lead-capture', LeadCaptureSettingsSection::class, 79);
+        SettingsSections::register('crm.field-visits', FieldVisitsSettingsSection::class, 78);
 
         $this->contributeToContacts();
     }
@@ -166,5 +176,11 @@ class CrmServiceProvider extends ServiceProvider
         ReportRenderers::register('WinLoss', fn (string $asOf): array => app(CrmReports::class)->winLoss($asOf));
         ReportRenderers::register('RottingDeals', fn (string $asOf): array => app(CrmReports::class)->rotting($asOf));
         ReportRenderers::register('TargetAttainment', fn (string $asOf): array => app(CrmReports::class)->attainment($asOf));
+
+        // Field visits — docs/saas-launch-plan.md §8.5.
+        ReportCatalogue::register('Sales & pipeline', VisitsPerRep::class, 'How many visits each rep made this month, and how many the person visited confirmed.');
+        ReportCatalogue::register('Sales & pipeline', UnconfirmedVisits::class, 'Completed visits nobody has confirmed, and where the link went.');
+        ReportRenderers::register('VisitsPerRep', fn (string $asOf): array => app(FieldVisitReports::class)->perRep($asOf));
+        ReportRenderers::register('UnconfirmedVisits', fn (string $asOf): array => app(FieldVisitReports::class)->unconfirmed($asOf));
     }
 }

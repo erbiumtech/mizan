@@ -181,6 +181,11 @@ class DeliveryTestCommandsTest extends TestCase
 
 class RecordingWhatsAppSender implements WhatsAppSender
 {
+    public function sendText(string $to, string $text): string
+    {
+        throw new \LogicException('sendText is not expected here');
+    }
+
     public ?string $to = null;
 
     public ?string $bytes = null;
@@ -199,6 +204,11 @@ class RecordingWhatsAppSender implements WhatsAppSender
 
 class RefusingWhatsAppSender implements WhatsAppSender
 {
+    public function sendText(string $to, string $text): string
+    {
+        throw new \LogicException('sendText is not expected here');
+    }
+
     public function sendDocument(string $to, WhatsAppDocument $document, string $caption): string
     {
         throw new WhatsAppException('The From number is not a WhatsApp sender on this account.');

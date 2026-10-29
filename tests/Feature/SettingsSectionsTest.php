@@ -71,6 +71,10 @@ class SettingsSectionsTest extends AccountingTestCase
      * and no administrator could open it. Directly before the status page (80) because it is the same shape
      * of thing: a public, token-gated door that opening has to be a deliberate act. Hidden for a company
      * without the CRM module.
+     *
+     * **2026-10-29** — the SaaS launch plan's three public doors joined on the same terms:
+     * `crm.field-visits` (78, docs/saas-launch-plan.md §8.5), `recruitment.careers` (§7.4) and
+     * `documents.verification` (§7.5). Each is a switch that closes a public page without a deploy.
      */
     public function test_the_modules_contribute_their_sections(): void
     {
@@ -78,7 +82,7 @@ class SettingsSectionsTest extends AccountingTestCase
             [
                 'accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting',
                 'construction.accounts', 'invoicing.dunning', 'invoicing.credit-control', 'invoicing.statements',
-                'crm.lead-capture',
+                'crm.field-visits', 'crm.lead-capture', 'recruitment.careers', 'documents.verification',
             ],
             SettingsSections::keys(),
         );

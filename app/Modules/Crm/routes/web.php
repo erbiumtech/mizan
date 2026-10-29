@@ -1,6 +1,8 @@
 <?php
 
+use App\Modules\Crm\Http\Controllers\FieldVisitConfirmationController;
 use App\Modules\Crm\Http\Controllers\LeadCaptureController;
+use App\Modules\Crm\Http\Middleware\ResolveFieldVisitTenant;
 use App\Modules\Crm\Http\Middleware\ResolveLeadCaptureTenant;
 use Illuminate\Support\Facades\Route;
 
@@ -23,3 +25,13 @@ use Illuminate\Support\Facades\Route;
 Route::post('/leads/{company}/{token}', [LeadCaptureController::class, 'store'])
     ->middleware([ResolveLeadCaptureTenant::class, 'module:crm,404'])
     ->name('crm.leads.capture');
+
+/**
+ * The witness's confirmation page — docs/saas-launch-plan.md §8.5. A temporary signed link
+ * (a day) and the per-company switch are the two gates; the module gate is the third.
+ * Inside `web` for the session the form needs; the signature, not a token, is the credential.
+ */
+Route::middleware(['web', ResolveFieldVisitTenant::class, 'module:crm,404', 'throttle:signup'])->group(function (): void {
+    Route::get('/visits/confirm/{company}/{visit}', [FieldVisitConfirmationController::class, 'show'])->whereNumber('visit')->name('crm.visits.confirm');
+    Route::post('/visits/confirm/{company}/{visit}', [FieldVisitConfirmationController::class, 'store'])->whereNumber('visit')->name('crm.visits.confirm.store');
+});

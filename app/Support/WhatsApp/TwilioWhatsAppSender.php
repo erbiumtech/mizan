@@ -82,6 +82,24 @@ class TwilioWhatsAppSender implements WhatsAppSender
         return $sid;
     }
 
+    /** Free-form text: Body only, never ContentSid — a template is for documents that must arrive cold. */
+    public function sendText(string $to, string $text): string
+    {
+        $response = $this->post([
+            'From' => $this->channel($this->from),
+            'To' => $this->channel($to),
+            'Body' => $text,
+        ]);
+
+        $sid = $response->json('sid');
+
+        if (! is_string($sid) || $sid === '') {
+            throw new WhatsAppException('Twilio accepted the request but returned no message sid: '.$response->body());
+        }
+
+        return $sid;
+    }
+
     /**
      * An approved Content Template, which is the only way to reach an employee who
      * has not messaged you first — and therefore the only way payroll ever reaches
