@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\DeliveryTestMediaController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\TenantFileController;
@@ -16,6 +17,14 @@ Route::get('/', function () {
 Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
 Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.worker');
 Route::get('/offline', [PwaController::class, 'offline'])->name('pwa.offline');
+
+// The panel subscribing itself to push — docs/desktop-mobile-plan.md M2. The same controller the API
+// clients use, reached with the session instead of a token: a person at the panel has no bearer token and
+// should not need one to switch notifications on for the device in their hand.
+Route::middleware(['web', 'auth'])->prefix('push')->name('push.')->group(function (): void {
+    Route::post('/subscriptions', [DeviceController::class, 'store'])->name('subscribe');
+    Route::delete('/subscriptions', [DeviceController::class, 'destroyByEndpoint'])->name('unsubscribe');
+});
 
 // The public status page lives in app/Modules/Projects/routes/web.php.
 

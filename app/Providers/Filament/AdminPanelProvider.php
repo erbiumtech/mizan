@@ -292,6 +292,12 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_AFTER,
                 fn (): string => view('filament.partials.table-context-menu-toggle')->render(),
             )
+            // Notifications on this device — docs/desktop-mobile-plan.md M2. Beside the context-menu
+            // switch because both are per-device preferences; renders nothing without VAPID keys.
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_AFTER,
+                fn (): string => view('filament.partials.push-subscribe')->render(),
+            )
             // The manifest, the worker and the theme colour that make the panel installable —
             // docs/desktop-mobile-plan.md M1. In the head because the manifest link has to be.
             ->renderHook(

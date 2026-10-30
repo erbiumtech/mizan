@@ -49,6 +49,19 @@ class DeviceController extends Controller
         return ApiResponse::success(['device' => $token->toClient()], $token->wasRecentlyCreated ? 201 : 200);
     }
 
+    /**
+     * The panel's own unsubscribe — M2. A browser that has just called `unsubscribe()` knows its endpoint
+     * and nothing else; the id was never shown to it.
+     */
+    public function destroyByEndpoint(Request $request): JsonResponse
+    {
+        $data = $request->validate(['endpoint' => ['required', 'string', 'max:2048']]);
+
+        $request->user()->deviceTokens()->where('endpoint_hash', hash('sha256', $data['endpoint']))->delete();
+
+        return ApiResponse::success(['message' => 'This device will no longer be pushed to.']);
+    }
+
     public function destroy(Request $request, int $device): JsonResponse
     {
         $deleted = $request->user()->deviceTokens()->whereKey($device)->delete();

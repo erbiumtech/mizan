@@ -16,6 +16,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="{{ \Filament\Facades\Filament::getTenant()?->name ?? config('app.name') }}">
 <link rel="apple-touch-icon" href="{{ asset('images/logo-mark.png') }}">
+{{-- M2: the key a browser subscribes with. Absent when push is not configured, and the user-menu switch then renders nothing. --}}
+@if ($vapid = \App\Support\WebPush::publicKey())
+    <meta name="webpush-public-key" content="{{ $vapid }}">
+@endif
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {}));
