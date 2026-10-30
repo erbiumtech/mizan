@@ -41,7 +41,7 @@ class UserForm
                 // Settings → People → Users says. Shown to whoever may Activate/Deactivate on the list;
                 // CreateUser applies the same default when it is hidden.
                 Toggle::make('status')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->helperText('Off, they cannot sign in. A new account starts as set under Company Settings → People → Users.')
                     ->default(fn (): bool => UserAccessSettingsSection::newAccountsActive())
                     ->formatStateUsing(fn (mixed $state): bool => (int) $state === 1)
@@ -55,7 +55,7 @@ class UserForm
 
                 // Super admin — only a super admin can grant/revoke this.
                 Toggle::make('is_super_admin')
-                    ->label('Super Admin')
+                    ->label(__('Super Admin'))
                     ->helperText('Manages all companies and can switch into any tenant.')
                     ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
 
@@ -72,7 +72,7 @@ class UserForm
                 // Filament had just attached, leaving a user with roles here,
                 // no access and no employee record.
                 Select::make('companies')
-                    ->label('Company Access')
+                    ->label(__('Company Access'))
                     ->multiple()
                     ->relationship('companies', 'name')
                     ->default(fn (): array => array_filter([Filament::getTenant()?->getKey()]))

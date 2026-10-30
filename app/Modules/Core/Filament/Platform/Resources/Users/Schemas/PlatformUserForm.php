@@ -42,16 +42,16 @@ class PlatformUserForm
                         : null),
 
                 Toggle::make('is_super_admin')
-                    ->label('Platform admin')
+                    ->label(__('Platform admin'))
                     ->helperText('Administers the installation: every company, and this panel.'),
 
                 Toggle::make('status')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true)
                     ->helperText('An inactive account cannot sign in to any panel.'),
 
                 Select::make('companies')
-                    ->label('Company access')
+                    ->label(__('Company access'))
                     ->multiple()
                     ->relationship('companies', 'name')
                     ->preload()

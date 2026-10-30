@@ -41,7 +41,7 @@ class EditProfile extends BaseEditProfile
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->required(! $nameManagedElsewhere)
                     ->maxLength(255)
                     ->disabled($nameManagedElsewhere)
@@ -51,14 +51,14 @@ class EditProfile extends BaseEditProfile
                         : null),
 
                 TextInput::make('email')
-                    ->label('Company Email')
+                    ->label(__('Company Email'))
                     ->disabled()
                     ->dehydrated(false),
 
                 // The language this person reads — docs/saas-launch-plan.md §8.10. Theirs, not the
                 // company's: an office can run in English while one person reads Urdu.
                 \Filament\Forms\Components\Select::make('locale')
-                    ->label('Language')
+                    ->label(__('Language'))
                     ->options(\App\Support\Locales::options())
                     ->placeholder('Follow the company ('.(\App\Support\Locales::AVAILABLE[\App\Support\Locales::company()]['label'] ?? 'English').')')
                     ->dehydrated(false)
@@ -82,7 +82,7 @@ class EditProfile extends BaseEditProfile
                  * the current password and a person should not have to type it to stop an email.
                  */
                 CheckboxList::make('notifications_off')
-                    ->label('Emails to stop sending me')
+                    ->label(__('Emails to stop sending me'))
                     ->options(NotificationPreferences::choosable())
                     ->columns(2)
                     ->dehydrated(false)
@@ -96,13 +96,13 @@ class EditProfile extends BaseEditProfile
                     }),
 
                 $this->getPasswordFormComponent()
-                    ->label('New Password')
+                    ->label(__('New Password'))
                     // Optional now: someone updating only their name should not be
                     // forced to also set a password. Blank leaves the password as is.
                     ->required(false),
 
                 $this->getPasswordConfirmationFormComponent()
-                    ->label('Confirm New Password'),
+                    ->label(__('Confirm New Password')),
 
                 $this->getCurrentPasswordFormComponent(),
             ]);
@@ -169,7 +169,7 @@ class EditProfile extends BaseEditProfile
         }
 
         return \Filament\Actions\Action::make('confirmDetails')
-            ->label('Confirm your details')
+            ->label(__('Confirm your details'))
             ->icon('heroicon-o-check-badge')
             ->color('gray')
             ->url($page::getUrl());

@@ -54,14 +54,14 @@ class WorkLocationResource extends Resource
 
             // docs/saas-launch-plan.md §14.10: a branch somebody has to ring, a pin
             // somebody has to find, and which one the letterhead means.
-            TextInput::make('phone')->label('Phone')->tel()->maxLength(40),
+            TextInput::make('phone')->label(__('Phone'))->tel()->maxLength(40),
             TextInput::make('map_url')
-                ->label('Map link')
+                ->label(__('Map link'))
                 ->url()
                 ->maxLength(255)
                 ->helperText('Paste the share link from any map. It is shown as a link, never fetched.'),
             Toggle::make('is_head_office')
-                ->label('Head office')
+                ->label(__('Head office'))
                 ->helperText('The branch documents are issued from. Setting it here clears it elsewhere.'),
             Toggle::make('is_active')->default(true),
             Section::make('Geofence')
@@ -71,7 +71,7 @@ class WorkLocationResource extends Resource
                     TextInput::make('latitude')->numeric()->minValue(-90)->maxValue(90)->step(0.0000001),
                     TextInput::make('longitude')->numeric()->minValue(-180)->maxValue(180)->step(0.0000001),
                     TextInput::make('geofence_radius_m')
-                        ->label('Radius (metres)')
+                        ->label(__('Radius (metres)'))
                         ->numeric()
                         ->minValue(20)
                         ->maxValue(5000)
@@ -92,7 +92,7 @@ class WorkLocationResource extends Resource
                 // docs/saas-launch-plan.md §14.10. The flag is a badge rather than a
                 // column of mostly-empty ticks.
                 TextColumn::make('is_head_office')
-                    ->label('')
+                    ->label(__(''))
                     ->badge()
                     ->color('primary')
                     ->state(fn (WorkLocation $record): string => $record->is_head_office ? 'Head office' : '')
@@ -100,19 +100,19 @@ class WorkLocationResource extends Resource
 
                 TextColumn::make('phone')->placeholder('—')->toggleable(),
                 TextColumn::make('geofence_radius_m')
-                    ->label('Geofence')
+                    ->label(__('Geofence'))
                     ->state(fn (WorkLocation $record): string => $record->hasGeofence() ? $record->geofence_radius_m.' m' : '—'),
                 // Counted on the employees table directly: Core may not name the
                 // Employees module, and a count is a count.
                 TextColumn::make('employees_count')
-                    ->label('Employees')
+                    ->label(__('Employees'))
                     ->state(fn (WorkLocation $record): int => (int) \Illuminate\Support\Facades\DB::connection($record->getConnectionName())
                         ->table('employees')->where('location_id', $record->getKey())->where('is_active', true)->count()),
                 IconColumn::make('is_active')->boolean(),
             ])
             ->defaultSort('name')
             ->filters([
-                TernaryFilter::make('is_active')->label('Active'),
+                TernaryFilter::make('is_active')->label(__('Active')),
             ])
             ->recordActions([
                 EditAction::make(),

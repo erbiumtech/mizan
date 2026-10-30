@@ -23,7 +23,7 @@ class EditUser extends EditRecord
             // Not DeleteAction: the account is shared with every other company
             // this person works for. See User::removeFromCompany().
             Action::make('removeFromCompany')
-                ->label('Remove from company')
+                ->label(__('Remove from company'))
                 ->icon('heroicon-o-user-minus')
                 ->color('danger')
                 ->requiresConfirmation()
@@ -54,7 +54,7 @@ class EditUser extends EditRecord
             // Deleting the account itself reaches every company the person works
             // for, so it stays with the people who work across them.
             DeleteAction::make()
-                ->label('Delete account entirely')
+                ->label(__('Delete account entirely'))
                 ->modalDescription('Deletes this account from the whole installation, not just this company. Everything of theirs that survives — payslips, MPRs, audit entries — is left pointing at a user that no longer exists.')
                 ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
         ];

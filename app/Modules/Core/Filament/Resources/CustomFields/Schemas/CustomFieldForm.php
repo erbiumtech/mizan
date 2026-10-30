@@ -23,7 +23,7 @@ class CustomFieldForm
                 ->columns(2)
                 ->schema([
                     Select::make('model_type')
-                        ->label('Applies to')
+                        ->label(__('Applies to'))
                         ->options(CustomFieldResource::modelOptions())
                         ->required()
                         ->live(),
@@ -66,7 +66,7 @@ class CustomFieldForm
                         ->visible(fn (callable $get) => in_array($get('type'), ['text', 'textarea', 'number'], true)),
 
                     TextInput::make('regex')
-                        ->label('Regex pattern')
+                        ->label(__('Regex pattern'))
                         ->helperText('Without delimiters, e.g. ^[A-Z]{3}$')
                         ->visible(fn (callable $get) => in_array($get('type'), ['text', 'textarea'], true)),
 
@@ -80,7 +80,7 @@ class CustomFieldForm
                 ->columns(2)
                 ->schema([
                     Select::make('visible_when_field')
-                        ->label('Visible when field')
+                        ->label(__('Visible when field'))
                         ->options(fn (callable $get, ?CustomField $record) => CustomField::query()
                             ->where('model_type', $get('model_type'))
                             ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
@@ -91,7 +91,7 @@ class CustomFieldForm
                         ->helperText('Show this field only while another field of the same model has a given value.'),
 
                     TextInput::make('visible_when_value')
-                        ->label('Visible when value')
+                        ->label(__('Visible when value'))
                         ->helperText('The value that reveals this field (for a toggle: 1 or 0).')
                         ->visible(fn (callable $get) => filled($get('visible_when_field'))),
                 ]),
@@ -100,17 +100,17 @@ class CustomFieldForm
                 ->description('Whether it must be answered, whether the answer is encrypted at rest, and where it sits among the others.')
                 ->columns(2)
                 ->schema([
-                    Toggle::make('is_required')->label('Required'),
+                    Toggle::make('is_required')->label(__('Required')),
 
                     Toggle::make('is_encrypted')
-                        ->label('Encrypted')
+                        ->label(__('Encrypted'))
                         ->helperText('Stored encrypted at rest. Encrypted fields cannot be filtered or searched.'),
 
-                    Toggle::make('is_active')->label('Active')->default(true),
+                    Toggle::make('is_active')->label(__('Active'))->default(true),
 
                     TextInput::make('sort')->numeric()->default(0),
 
-                    Textarea::make('help')->label('Help text')->nullable(),
+                    Textarea::make('help')->label(__('Help text'))->nullable(),
                 ]),
         ]);
     }

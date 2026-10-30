@@ -26,7 +26,7 @@ class UsersTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('name')
@@ -40,7 +40,7 @@ class UsersTable
                 // Nova Password field hideFromIndex -> not shown in table.
 
                 IconColumn::make('status')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
 
                 /*
@@ -51,7 +51,7 @@ class UsersTable
                  * sorting every row in it. Stamped by LogAuthenticationEvent.
                  */
                 TextColumn::make('last_login_at')
-                    ->label('Last seen')
+                    ->label(__('Last seen'))
                     ->dateTime('d M Y H:i')
                     ->placeholder('never')
                     ->description(fn (User $record): ?string => $record->last_login_ip)
@@ -66,11 +66,11 @@ class UsersTable
                 // this does not go through — same two scopes it applies, see
                 // User::scopeInCurrentCompany() and scopeExceptPlatformAdmins().
                 SelectFilter::make('name')
-                    ->label('User Name')
+                    ->label(__('User Name'))
                     ->options(fn (): array => User::inCurrentCompany()->exceptPlatformAdmins()->orderBy('name')->pluck('name', 'id')->toArray()),
 
                 SelectFilter::make('email')
-                    ->label('User Email')
+                    ->label(__('User Email'))
                     ->attribute('id')
                     ->options(fn (): array => User::inCurrentCompany()->exceptPlatformAdmins()->orderBy('email')->pluck('email', 'id')->toArray()),
             ])
@@ -103,7 +103,7 @@ class UsersTable
                 // the one row that must never offer it. start() re-checks anyway,
                 // so a stale or forged request still cannot get through.
                 Action::make('impersonate')
-                    ->label('Log in as')
+                    ->label(__('Log in as'))
                     ->icon('heroicon-o-arrow-right-end-on-rectangle')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -143,7 +143,7 @@ class UsersTable
                  * who uses this every day is a password-reset mail they did not ask for.
                  */
                 Action::make('resendInvitation')
-                    ->label('Send the invitation again')
+                    ->label(__('Send the invitation again'))
                     ->icon('heroicon-o-envelope')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -179,7 +179,7 @@ class UsersTable
                  * so nobody — including whoever clicked this — ever holds their secret.
                  */
                 Action::make('resetTwoFactor')
-                    ->label('Reset two-factor')
+                    ->label(__('Reset two-factor'))
                     ->icon('heroicon-o-device-phone-mobile')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -211,7 +211,7 @@ class UsersTable
                     // Deleting the account itself reaches every company the person
                     // works for, so it stays with the people who work across them.
                     DeleteBulkAction::make()
-                        ->label('Delete accounts entirely')
+                        ->label(__('Delete accounts entirely'))
                         ->modalDescription('Deletes these accounts from the whole installation, not just this company. Everything of theirs that survives — payslips, MPRs, audit entries — is left pointing at a user that no longer exists.')
                         ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
                 ]),
@@ -227,7 +227,7 @@ class UsersTable
     public static function removeFromCompanyBulkAction(): BulkAction
     {
         return BulkAction::make('removeFromCompany')
-            ->label('Remove from company')
+            ->label(__('Remove from company'))
             ->icon('heroicon-o-user-minus')
             ->color('danger')
             ->requiresConfirmation()

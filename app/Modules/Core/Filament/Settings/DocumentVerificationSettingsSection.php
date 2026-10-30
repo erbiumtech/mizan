@@ -29,15 +29,15 @@ class DocumentVerificationSettingsSection implements SettingsSection
                     .'document still matches the record — the facts printed, and nothing else.')
                 ->schema([
                     Toggle::make('documents_verification_enabled')
-                        ->label('Print verification codes')
+                        ->label(__('Print verification codes'))
                         ->helperText('Off by default. Documents rendered while this is off carry no code.'),
                     TextInput::make('documents_verification_token')
-                        ->label('Verification token')
+                        ->label(__('Verification token'))
                         ->helperText('Part of every code\'s address. Changing it breaks the codes already printed.')
                         ->suffixAction(
                             Action::make('generateVerificationToken')
                                 ->icon('heroicon-m-arrow-path')
-                                ->label('Generate')
+                                ->label(__('Generate'))
                                 ->action(fn (Set $set) => $set('documents_verification_token', Str::random(32)))
                         ),
                 ]),

@@ -20,19 +20,19 @@ class FiscalYearsTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('name')
-                    ->label('Year Name')
+                    ->label(__('Year Name'))
                     ->searchable(),
 
                 IconColumn::make('is_active')
-                    ->label('Is Active')
+                    ->label(__('Is Active'))
                     ->boolean(),
 
                 TextColumn::make('closed_at')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->state(fn (FiscalYear $record): string => $record->isClosed() ? 'Closed' : 'Open')
                     ->color(fn (FiscalYear $record): string => $record->isClosed() ? 'gray' : 'success')
@@ -47,7 +47,7 @@ class FiscalYearsTable
                 EditAction::make(),
 
                 Action::make('close')
-                    ->label('Close')
+                    ->label(__('Close'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->visible(fn (FiscalYear $record): bool => ! $record->isClosed()
@@ -83,7 +83,7 @@ class FiscalYearsTable
                     }),
 
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-lock-open')
                     ->color('gray')
                     ->visible(fn (FiscalYear $record): bool => $record->isClosed()

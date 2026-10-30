@@ -14,7 +14,7 @@ class CommentForm
                 // Nova: only Textarea `body` (Comment) — required, alwaysShow.
                 // commentable/user/created_at are exceptOnForms; Status/resolver are computed/detail-only.
                 Textarea::make('body')
-                    ->label('Comment')
+                    ->label(__('Comment'))
                     ->required()
                     ->columnSpanFull(),
             ]);
