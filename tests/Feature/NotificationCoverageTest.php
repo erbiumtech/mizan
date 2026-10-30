@@ -31,6 +31,7 @@ class NotificationCoverageTest extends TestCase
         \App\Notifications\SubscriptionNotice::class => 'sent from the platform after access is suspended',
         \App\Notifications\TenantExportReady::class => 'NotTenantAware: built with no company current',
         \App\Notifications\SignupVerification::class => 'there is no company yet',
+        \App\Notifications\ContactMessageReceived::class => 'NotTenantAware: the public contact form has no company',
     ];
 
     public function test_every_mail_the_application_sends_can_be_reworded_by_the_company(): void
