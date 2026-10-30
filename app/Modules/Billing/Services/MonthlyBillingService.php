@@ -180,21 +180,28 @@ class MonthlyBillingService
             );
         }
 
-        $breakdown = $this->breakdown($run);
-        $lines = array_merge(
-            $breakdown['salaries'],
-            $breakdown['hours'] ?? [],
-            $breakdown['expenses'],
-            $breakdown['credits'],
-        );
+        return TenantTransaction::run(function () use ($run) {
+            // A rebuild gives back the hours the last build locked: they are this draft's own lines, and as
+            // "already billed" the breakdown below left them out — a rebuild silently dropped the hours.
+            // Inside the transaction, so a build that refuses below puts the locks back.
+            if ($run->invoice !== null) {
+                $this->billableTime()->unlockFor(...$this->periodOf($run));
+            }
 
-        if ($lines === []) {
-            throw new InvalidArgumentException(
-                "Nothing to bill for {$run->periodLabel()}: no payslips, expenses or recoveries in that month."
+            $breakdown = $this->breakdown($run);
+            $lines = array_merge(
+                $breakdown['salaries'],
+                $breakdown['hours'] ?? [],
+                $breakdown['expenses'],
+                $breakdown['credits'],
             );
-        }
 
-        return TenantTransaction::run(function () use ($run, $lines, $breakdown) {
+            if ($lines === []) {
+                throw new InvalidArgumentException(
+                    "Nothing to bill for {$run->periodLabel()}: no payslips, expenses or recoveries in that month."
+                );
+            }
+
             $invoice = $run->invoice ?? Invoice::create([
                 'kind' => Invoice::KIND_SALE,
                 'contact_id' => $run->contact_id,

@@ -92,6 +92,12 @@ class PayComponentRecorder
      */
     private function packagedAmount(Payslip $payslip, PayComponent $component): float
     {
+        // History arrives as it was paid: its columns are the whole payslip. Today's package adding its
+        // components on top made the journal entry unbalanced and refused the import.
+        if ($payslip->imported || $payslip->import_batch !== null) {
+            return 0.0;
+        }
+
         $setting = $this->settingFor($payslip);
 
         if (! $setting) {

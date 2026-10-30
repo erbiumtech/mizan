@@ -2,8 +2,11 @@
 
 namespace App\Modules\Payroll\Filament\Resources\SalarySlabs\Schemas;
 
+use App\Modules\Payroll\Models\SalarySlab;
+use Closure;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class SalarySlabForm
@@ -24,6 +27,28 @@ class SalarySlabForm
                     ->numeric()
                     ->minValue(0)
                     ->required()
+                    // A slab covers income above its minimum up to its maximum; two that overlap in one year
+                    // leave the tax depending on which one TaxCalculatorService happens to pick.
+                    ->rules([
+                        fn (Get $get, ?SalarySlab $record): Closure => function (string $attribute, $value, Closure $fail) use ($get, $record): void {
+                            $max = filled($get('max_amount')) ? (float) $get('max_amount') : null;
+
+                            $overlapping = SalarySlab::query()
+                                ->where('fiscal_year_id', $get('fiscal_year_id'))
+                                ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
+                                ->when($max !== null, fn ($query) => $query->where('min_amount', '<', $max))
+                                ->where(fn ($query) => $query->whereNull('max_amount')->orWhere('max_amount', '>', (float) $value))
+                                ->first();
+
+                            if ($overlapping) {
+                                $fail(sprintf(
+                                    'This overlaps the %s – %s slab already in this fiscal year.',
+                                    number_format((float) $overlapping->min_amount),
+                                    $overlapping->max_amount === null ? 'and above' : number_format((float) $overlapping->max_amount),
+                                ));
+                            }
+                        },
+                    ])
                     ->helperText('Annual income starting range, e.g., 600001'),
 
                 TextInput::make('max_amount')

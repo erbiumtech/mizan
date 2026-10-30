@@ -73,8 +73,12 @@ class PayAdjustments
         // recalculation in its hook — the edit page forces it the same way.
         if (! $payslip->isDirty()) {
             $stamp = $payslip->freshTimestamp();
-            // Within the same second as the last write the fresh stamp is not a change either.
-            $payslip->updated_at = $payslip->updated_at !== null && $stamp->equalTo($payslip->updated_at) ? $stamp->copy()->addSecond() : $stamp;
+            // Within the same second as the last write the fresh stamp is not a change either — dirtiness
+            // is judged at the column's precision, so the comparison is too. Raising a month applies the
+            // adjustments in the second the payslip was created; microseconds made that a silent no-op.
+            $payslip->updated_at = $payslip->updated_at !== null && $stamp->format('Y-m-d H:i:s') <= $payslip->updated_at->format('Y-m-d H:i:s')
+                ? $payslip->updated_at->copy()->addSecond()
+                : $stamp;
         }
 
         $payslip->save();

@@ -40,6 +40,19 @@ class PayslipsTable
             // and what the last one said. Loaded for the page rather than asked per row: the same question
             // answered row by row is an N+1, which is what `preventLazyLoading` reported the first time.
             ->modifyQueryUsing(fn ($query) => $query->with(['employee.user', 'comments']))
+            /*
+             * **Nine columns shown of sixteen, and the other seven are one click away.**
+             *
+             * Every component of the pay was on screen at once — medical, petrol, bonus, extra
+             * hours, reimbursement, advances, meal — which is sixteen columns on a table that is
+             * read to answer "was this person paid, and how much". Each of those seven was already
+             * marked toggleable, meaning somebody had judged them optional; they were simply never
+             * switched off, so the judgement never reached anybody.
+             *
+             * What stays is what the question needs: who, which month, the basic, the tax, the
+             * deductions, the net, whether it was sent and what they said about it. A component is
+             * a detail of one payslip, and the payslip itself is one click away.
+             */
             ->columns([
                 TextColumn::make('employee.employee_id')
                     ->label('Employee')
@@ -70,37 +83,37 @@ class PayslipsTable
                 TextColumn::make('medical_allowance')
                     ->label('Medical Allowance')
                     ->money('PKR')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('petrol_allowance')
                     ->label('Petrol Allowance')
                     ->money('PKR')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('bonus')
                     ->label('Bonus')
                     ->money('PKR')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('extra_work_hours')
                     ->label('Extra Work Hours')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('expense_reimbursement')
                     ->label('Expense Reimbursment')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('advances')
                     ->label('Advances')
                     ->money('PKR')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('meal_deduction')
                     ->label('Meal Deduction')
                     ->money('PKR')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('withholding_tax')
                     ->label('Withholding Tax')
@@ -590,6 +603,7 @@ class PayslipsTable
             ->label('Accept Payslip')
             ->icon('heroicon-o-check-circle')
             ->color('success')
+            ->visible(fn (): bool => self::reviewsOwnPayslips())
             ->requiresConfirmation()
             ->action(function (Collection $records) {
                 $done = 0;
@@ -614,6 +628,7 @@ class PayslipsTable
             ->label('Reject Payslip')
             ->icon('heroicon-o-x-circle')
             ->color('danger')
+            ->visible(fn (): bool => self::reviewsOwnPayslips())
             ->schema([
                 Textarea::make('reason')
                     ->label('Reason')
@@ -644,10 +659,18 @@ class PayslipsTable
      */
     protected static function canReview(Payslip $record): bool
     {
+        // The person themselves, not their reporting line: `accessibleEmployeeIds()` is the subtree, so a
+        // manager could accept a report's payslip — releasing the salary — and it was stored as the
+        // employee's own answer. An administrator answering for somebody impersonates them, which keeps
+        // `employee_review_recorded_by`.
         return $record->isPendingReview()
             && $record->employee_id
-            && app(EmployeeAccess::class)
-                ->accessibleEmployeeIds(auth()->user())
-                ->contains($record->employee_id);
+            && app(EmployeeAccess::class)->ownEmployeeId(auth()->user()) === (int) $record->employee_id;
+    }
+
+    /** The bulk review actions, only for somebody who has payslips of their own to answer. */
+    protected static function reviewsOwnPayslips(): bool
+    {
+        return app(EmployeeAccess::class)->isEmployee(auth()->user());
     }
 }

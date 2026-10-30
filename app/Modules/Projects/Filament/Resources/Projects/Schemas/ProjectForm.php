@@ -6,6 +6,7 @@ use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Support\EmployeeOptions;
+use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -78,6 +79,31 @@ class ProjectForm
                             ->nullable()
                             ->different('manager_employee_id')
                             ->helperText('Stand-in for the primary manager. Must be a different person.'),
+
+                        // Who the project is for and what an hour on it bills at — the two columns billing and
+                        // the timesheet reports read, which no screen could set. Contacts by name through
+                        // TenantDb, as the timesheet reports read them: Projects does not import Invoicing.
+                        Select::make('contact_id')
+                            ->label('Client')
+                            ->options(fn (?Project $record): array => TenantDb::table('contacts')
+                                ->where(fn ($query) => $query->whereIn('kind', ['customer', 'both'])->where('is_active', true))
+                                ->when($record?->contact_id, fn ($query, $id) => $query->orWhere('id', $id))
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->nullable()
+                            ->placeholder('Internal')
+                            ->visible(fn (): bool => modules()->enabled('invoicing'))
+                            ->helperText('Leave empty for internal work. A client is what bills this project\'s hours.'),
+
+                        TextInput::make('hourly_rate')
+                            ->label('Hourly rate')
+                            ->numeric()
+                            ->minValue(0)
+                            ->nullable()
+                            ->visible(fn (): bool => modules()->enabled('timesheets'))
+                            ->helperText('What an hour on this project bills at. Empty falls back to the employee\'s rate, then the company default.'),
                     ]),
 
                 Section::make('Environments')

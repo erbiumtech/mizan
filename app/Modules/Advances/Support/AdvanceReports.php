@@ -65,8 +65,9 @@ class AdvanceReports
     public function outstanding(string $asOf): array
     {
         /** @var Collection<int, Advance> $advances */
+        // Paused as well as active: a pause stops the deductions, not the debt.
         $advances = Advance::query()
-            ->active()
+            ->whereIn('status', [Advance::STATUS_ACTIVE, Advance::STATUS_PAUSED])
             ->whereDate('started_on', '<=', $asOf)
             ->with(['employee.user', 'recoveries'])
             ->orderBy('employee_id')
@@ -81,7 +82,8 @@ class AdvanceReports
         foreach ($advances as $advance) {
             // From the loaded relation, so a register of forty advances is one query rather than forty-one.
             $taken = round((float) $advance->recoveries->sum('amount'), 2);
-            $left = round(max(0, (float) $advance->total_amount - $taken), 2);
+            // What has to come back, interest included — the figure the schedule and payroll recover against.
+            $left = round(max(0, $advance->totalRecoverable() - $taken), 2);
             $instalment = (float) $advance->monthly_instalment;
 
             if ($instalment <= 0) {

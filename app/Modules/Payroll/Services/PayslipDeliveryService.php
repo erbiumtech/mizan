@@ -70,8 +70,12 @@ class PayslipDeliveryService
         // Stamped only when something actually reached somebody. A payslip marked
         // sent that nobody received is worse than one that is plainly unsent: the
         // month looks done and nobody chases it.
+        //
+        // Quietly: a timestamp is not a change to the payslip. A plain save ran the whole
+        // recalculation and journal repost, and on a signed-off month — when payslips are
+        // normally sent — the lock refused it after the email had already gone.
         if ($result['email'] || $result['whatsapp']) {
-            $payslip->forceFill(['sent_at' => now()])->save();
+            $payslip->forceFill(['sent_at' => now()])->saveQuietly();
             $result['sent'] = true;
         }
 

@@ -46,7 +46,9 @@ class FillFromStructureAction
                 $structure = SalaryStructure::query()->findOrFail($data['salary_structure_id']);
                 $amounts = app(SalaryStructures::class)->apply($setting, $structure, (float) $data['gross']);
 
-                $livewire->fillForm();
+                // fillForm() is protected on EditRecord; refreshFormData() is its public way in. Only the
+                // package's own fields — a component outside the columns is not on this form.
+                $livewire->refreshFormData(array_values(array_intersect(array_keys($amounts), $setting->getFillable())));
 
                 Notification::make()->success()
                     ->title('Package filled from '.$structure->name)

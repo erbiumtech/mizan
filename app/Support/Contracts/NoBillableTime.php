@@ -21,4 +21,9 @@ class NoBillableTime implements BillableTime
     {
         return 0;
     }
+
+    public function unlockFor(int|string $contactId, int $year, int $month): int
+    {
+        return 0;
+    }
 }

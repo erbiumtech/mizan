@@ -43,4 +43,13 @@ interface BillableTime
      * month's figures must not burn the hours.
      */
     public function lockFor(int|string $contactId, int $year, int $month): int;
+
+    /**
+     * Release what an earlier build locked for this contact and month, and report how many.
+     *
+     * Called only when a draft invoice is rebuilt: those hours are the draft's own lines, and left locked
+     * they read as already billed and fall off the rebuilt invoice. One run per contact and month, so
+     * everything locked here was locked by that run.
+     */
+    public function unlockFor(int|string $contactId, int $year, int $month): int;
 }

@@ -15,6 +15,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use UnitEnum;
 
 /**
@@ -132,6 +133,12 @@ class CsvImport extends Page
 
         if (! $path) {
             return null;
+        }
+
+        // Nothing has stored the upload yet — that happens on getState(), which this page never calls — so the
+        // state is still Livewire's temporary file, and asking the public disk for its absolute path found nothing.
+        if ($path instanceof TemporaryUploadedFile) {
+            return $path->get();
         }
 
         // Uploaded through the tenant-aware public disk, so a file waiting to be

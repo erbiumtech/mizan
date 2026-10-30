@@ -77,7 +77,9 @@ class PaymentService
             return $entry instanceof JournalEntry ? $entry : null;
         }
 
-        $type = $payment->transactionType;
+        // loadMissing, like the payable above: a batch release posts payments that came as a collection,
+        // and reading the relation off one of them is the lazy load the guard refuses.
+        $type = $payment->loadMissing('transactionType')->transactionType;
         $cashAccount = Account::where('code', '1100')->first();
 
         if (! $cashAccount) {

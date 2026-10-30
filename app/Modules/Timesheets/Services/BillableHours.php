@@ -130,4 +130,18 @@ class BillableHours implements BillableTime
 
         return $entries->count();
     }
+
+    public function unlockFor(int|string $contactId, int $year, int $month): int
+    {
+        if (! modules()->enabled('timesheets')) {
+            return 0;
+        }
+
+        return TimesheetEntry::query()
+            ->whereIn('project_id', Project::query()->where('contact_id', $contactId)->select('id'))
+            ->inMonth($year, $month)
+            ->billable()
+            ->whereNotNull('locked_at')
+            ->update(['locked_at' => null]);
+    }
 }

@@ -118,7 +118,11 @@ class ExpenseClaimsTable
                             return;
                         }
 
-                        Notification::make()->success()->title('Approved and booked — it will be reimbursed with the next payslip.')->send();
+                        // A step in a longer chain books nothing yet; saying "booked" there told the approver
+                        // the claim was done while it still waited for the next role.
+                        Notification::make()->success()->title($record->isApproved()
+                            ? 'Approved and booked — it will be reimbursed with the next payslip.'
+                            : 'Approved — '.$record->awaitingLabel().'.')->send();
                     }),
 
                 Action::make('refuse')

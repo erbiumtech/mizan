@@ -184,9 +184,18 @@ class SalaryBankExportService
         return implode("\r\n", $rows)."\r\n";
     }
 
+    /**
+     * Named after the format that wrote it, as export() chose it: a designed format's file is not an
+     * iPayments CSV and should not arrive at the bank's portal called one.
+     */
     public function fileName(string $month, FiscalYear $fiscalYear): string
     {
-        return sprintf('salary-ipayments-%s-%d.csv', $month, $this->yearForMonth($month, $fiscalYear));
+        $format = BankFileFormat::forAccount(null);
+        $year = $this->yearForMonth($month, $fiscalYear);
+
+        return $format->isTemplate()
+            ? sprintf('salary-%s-%d.%s', $month, $year, $format->extension ?: 'csv')
+            : sprintf('salary-ipayments-%s-%d.csv', $month, $year);
     }
 
     /**

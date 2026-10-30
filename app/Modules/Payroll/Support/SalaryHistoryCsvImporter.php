@@ -9,6 +9,7 @@ use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Contracts\CsvImporter;
 use App\Support\PayrollMonth;
+use App\Support\TenantTransaction;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -87,6 +88,13 @@ class SalaryHistoryCsvImporter implements CsvImporter
     }
 
     public function write(Collection $rows, ?string $date = null): int
+    {
+        // All or nothing: a row the ledger refuses half-way would otherwise leave the rows before it written
+        // and their month open, and a second attempt then skips them as "already has a payslip".
+        return TenantTransaction::run(fn (): int => $this->writeRows($rows));
+    }
+
+    private function writeRows(Collection $rows): int
     {
         $batch = 'hist-'.Str::lower(Str::ulid());
         $runs = [];

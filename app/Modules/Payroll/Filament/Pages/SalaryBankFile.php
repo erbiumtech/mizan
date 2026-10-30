@@ -194,12 +194,21 @@ class SalaryBankFile extends Page
 
                     // Only the rows going out: the file the bank receives and the
                     // payments marked released have to be the same set.
-                    $csv = $export->export(
-                        $month,
-                        $fiscalYear,
-                        $this->data['value_date'] ?? null,
-                        array_column($rows, 'payslip_id'),
-                    );
+                    //
+                    // Built before anything is released, so a refusal — a designed format
+                    // changed since it was last previewed — releases nothing.
+                    try {
+                        $csv = $export->export(
+                            $month,
+                            $fiscalYear,
+                            $this->data['value_date'] ?? null,
+                            array_column($rows, 'payslip_id'),
+                        );
+                    } catch (\InvalidArgumentException $e) {
+                        Notification::make()->danger()->title($e->getMessage())->send();
+
+                        return null;
+                    }
 
                     $released = $payments->release(collect($rows)->pluck('payment')->filter(), $reference);
 

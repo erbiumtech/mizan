@@ -39,8 +39,13 @@ class EditPayslip extends EditRecord
             fn (string $key): bool => round((float) ($overrides[$key] ?? 0), 2) !== round((float) $record->getOriginal($key), 2)
         );
 
+        // A stamp in the same second as the last write is not dirty at the column's precision, so it moves on a
+        // second rather than leaving the save — and the recalculation — skipped. Same rule as PayAdjustments.
         if ($overrideChanged && ! $record->isDirty()) {
-            $record->updated_at = $record->freshTimestamp();
+            $stamp = $record->freshTimestamp();
+            $record->updated_at = $record->updated_at !== null && $stamp->format('Y-m-d H:i:s') <= $record->updated_at->format('Y-m-d H:i:s')
+                ? $record->updated_at->copy()->addSecond()
+                : $stamp;
         }
 
         $record->save();

@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class BillingRunsTable
 {
@@ -35,6 +36,8 @@ class BillingRunsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // periodLabel() reads the fiscal year; loaded with the rest, not once per row.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['contact', 'invoice', 'fiscalYear']))
             ->columns([
                 TextColumn::make('contact.name')->label('Client')->searchable()->sortable(),
 
