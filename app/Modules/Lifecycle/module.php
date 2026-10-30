@@ -132,6 +132,17 @@ return [
         'Employee' => [
             'IssuedAssetView',
         ],
+        // The decisions in a joiner's and a leaver's path: ticking the onboarding items a manager owns,
+        // verifying documents, approving a final settlement. Creating and deleting stay with the
+        // Administrator. CEO inherits them.
+        'Manager' => [
+            'ChecklistUpdate',
+            'ChecklistView',
+            'EmployeeDocumentUpdate',
+            'EmployeeDocumentView',
+            'SettlementApprove',
+            'SettlementView',
+        ],
     ],
 
     /**

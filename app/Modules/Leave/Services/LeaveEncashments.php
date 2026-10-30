@@ -3,9 +3,11 @@
 namespace App\Modules\Leave\Services;
 
 use App\Modules\Core\Models\User;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Models\LeaveAdjustment;
 use App\Modules\Leave\Models\LeaveEncashment;
 use App\Modules\Leave\Models\LeaveEntitlement;
+use App\Modules\Leave\Models\LeaveType;
 use App\Support\Contracts\PayrollInputs;
 use App\Support\TenantTransaction;
 use InvalidArgumentException;
@@ -14,6 +16,29 @@ use InvalidArgumentException;
 class LeaveEncashments
 {
     public function __construct(private readonly LeaveBalance $balance, private readonly PayrollInputs $payroll) {}
+
+    /**
+     * How many days of this type can still be asked for: the balance, less what is already asked for and
+     * waiting. Null when no leave year is open for it.
+     *
+     * What the form checks at filing. Approval checks the balance again, because it can fall in between.
+     */
+    public function available(Employee $employee, LeaveType $type): ?float
+    {
+        $remaining = $this->balance->remaining($employee, $type);
+
+        if ($remaining === null) {
+            return null;
+        }
+
+        $asked = (float) LeaveEncashment::query()
+            ->where('employee_id', $employee->getKey())
+            ->where('leave_type_id', $type->getKey())
+            ->where('status', LeaveEncashment::STATUS_PENDING)
+            ->sum('days');
+
+        return max(0.0, $remaining - $asked);
+    }
 
     public function approve(LeaveEncashment $encashment, User $by): LeaveEncashment
     {

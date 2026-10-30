@@ -43,11 +43,28 @@ class EmployeeChangeRequest extends Model
         'date_of_joining', 'date_of_birth', 'phone', 'secondary_phone', 'gender',
         'bank_id', 'bank_account_no', 'iban_no', 'address_line_1', 'address_line_2',
         // The record's depth — docs/saas-launch-plan.md §14.2 — which the form offers the person
-        // to change and which were dropped until listed here. The two structured addresses are
-        // still absent: they are array casts, and a request would carry their raw JSON.
+        // to change and which were dropped until listed here. The two addresses are array casts:
+        // the request carries them as arrays (see Employee::routeChangesThroughApproval()), and
+        // displayValue() is how every screen and email shows one.
         'father_name', 'ntn', 'nationality', 'marital_status',
         'emergency_contact_name', 'emergency_contact_relation', 'emergency_contact_phone',
+        'current_address', 'permanent_address',
     ];
+
+    /**
+     * A requested or original value as one line, for the list, the diff and the email.
+     *
+     * Most are strings already. An address is an array of parts, printed in order with the empty
+     * ones left out — the shape Employee::postalAddress() gives the current one.
+     */
+    public static function displayValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_filter(array_map(fn (mixed $part): string => is_array($part) ? '' : trim((string) $part), $value), fn (string $part): bool => $part !== ''));
+        }
+
+        return (string) $value;
+    }
 
     /**
      * Requested values that are file paths on the `public` disk rather than

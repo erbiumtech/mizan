@@ -26,6 +26,7 @@ use App\Modules\Lifecycle\Policies\EmployeeChecklistPolicy;
 use App\Modules\Lifecycle\Policies\EmployeeDocumentPolicy;
 use App\Modules\Lifecycle\Policies\FinalSettlementPolicy;
 use App\Modules\Lifecycle\Policies\IssuedAssetPolicy;
+use App\Modules\Lifecycle\Services\ChecklistService;
 use App\Modules\Lifecycle\Support\ChecklistReports;
 use App\Modules\Lifecycle\Support\LifecycleReports;
 use App\Modules\Lifecycle\Support\SettlementReports;
@@ -113,6 +114,13 @@ class LifecycleServiceProvider extends ServiceProvider
         // What a company insists on, and what it will accept — plan §14.8.
         \App\Support\SettingsSections::register('lifecycle.documents', \App\Modules\Lifecycle\Filament\Settings\RequiredDocumentsSettingsSection::class, 62, 'people');
 
+        // Which onboarding template a joiner gets when several are active — plan §14.5.
+        \App\Support\SettingsSections::register('lifecycle.onboarding', \App\Modules\Lifecycle\Filament\Settings\OnboardingSettingsSection::class, 63, 'people');
+
+        // "Start checklist" on the employee — for somebody who joined before the template existed, a
+        // second template, or an exit list. Contributed: Employees may not name this module.
+        \App\Support\ResourceContributions::addHeaderAction(\App\Modules\Employees\Filament\Resources\Employees\Pages\ViewEmployee::class, 'startChecklist', fn () => $this->startChecklistAction());
+
         /*
          * Documents as a condition of being let in — plan §14.8.
          *
@@ -153,6 +161,40 @@ class LifecycleServiceProvider extends ServiceProvider
             ->toArray(), sort: 60);
 
         $this->registerReports();
+    }
+
+    private function startChecklistAction(): \Filament\Actions\Action
+    {
+        return \Filament\Actions\Action::make('startChecklist')
+            ->label('Start checklist')
+            ->icon('heroicon-o-clipboard-document-check')
+            ->color('gray')
+            ->visible(fn (): bool => modules()->enabled('lifecycle') && (auth()->user()?->can('create', EmployeeChecklist::class) ?? false))
+            ->modalDescription('Starts the template\'s items for this person, each due its number of days from the joining date (onboarding) or the last working day (exit).')
+            ->schema([
+                \Filament\Forms\Components\Select::make('template_id')
+                    ->label('Checklist')
+                    ->options(fn (): array => ChecklistTemplate::query()->active()->orderBy('kind')->orderBy('name')->get()
+                        ->mapWithKeys(fn (ChecklistTemplate $t): array => [$t->getKey() => $t->name.' ('.ucfirst($t->kind).')'])->all())
+                    ->default(fn (): ?int => app(ChecklistService::class)->defaultTemplate(ChecklistTemplate::KIND_ONBOARDING)?->getKey())
+                    ->required(),
+            ])
+            ->action(function (\App\Modules\Employees\Models\Employee $record, array $data): void {
+                $template = ChecklistTemplate::query()->active()->with('items')->findOrFail($data['template_id']);
+
+                try {
+                    $checklist = app(ChecklistService::class)->start($record, $template);
+                } catch (\InvalidArgumentException $e) {
+                    \Filament\Notifications\Notification::make()->danger()->title($e->getMessage())->send();
+
+                    return;
+                }
+
+                \Filament\Notifications\Notification::make()->success()
+                    ->title($template->name.' started')
+                    ->body($checklist->items()->count().' item(s), on Checklist Items.')
+                    ->send();
+            });
     }
 
     /**

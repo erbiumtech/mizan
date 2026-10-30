@@ -6,6 +6,7 @@ use App\Modules\Core\Console\Commands\DeliverScheduledReports;
 use App\Modules\Core\Filament\Pages\ReportDeliveries;
 use App\Modules\Core\Filament\Settings\DocumentLayoutSettingsSection;
 use App\Modules\Core\Filament\Settings\DocumentVerificationSettingsSection;
+use App\Modules\Core\Filament\Settings\UserAccessSettingsSection;
 use App\Modules\Core\Filament\Settings\VerificationChecksSettingsSection;
 use App\Modules\Core\Listeners\LogAuthenticationEvent;
 use App\Modules\Core\Listeners\LogSentMail;
@@ -220,6 +221,9 @@ class CoreServiceProvider extends ServiceProvider
 
         // What somebody must have confirmed before they are let in — plan §14.8.
         SettingsSections::register('verification.checks', VerificationChecksSettingsSection::class, 87, 'people');
+
+        // How an account made on the Users page starts — active or not. People, first: who gets in.
+        SettingsSections::register('users.access', UserAccessSettingsSection::class, 35, 'company');
 
         // The sign-in log — plan §7.7: three rows on the landlord activity log, no table.
         Event::listen([Login::class, Logout::class, Failed::class], LogAuthenticationEvent::class);

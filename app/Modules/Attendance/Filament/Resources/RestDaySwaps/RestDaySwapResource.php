@@ -3,10 +3,12 @@
 namespace App\Modules\Attendance\Filament\Resources\RestDaySwaps;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Modules\Attendance\Filament\Resources\RestDaySwaps\Pages\CreateRestDaySwap;
 use App\Modules\Attendance\Filament\Resources\RestDaySwaps\Pages\ListRestDaySwaps;
 use App\Modules\Attendance\Models\RestDaySwap;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\DatePicker;
@@ -24,6 +26,7 @@ use UnitEnum;
 class RestDaySwapResource extends Resource
 {
     use BelongsToModule;
+    use ScopesToAccessibleEmployees;
 
     protected static ?string $model = RestDaySwap::class;
 
@@ -39,14 +42,21 @@ class RestDaySwapResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('employee.user');
+        $query = parent::getEloquentQuery()->with('employee.user');
+
+        // Own and downline unless privileged, like every employee-keyed list.
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('employee_id', static::accessibleEmployeeIds()->all());
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Select::make('employee_id')->label(__('Employee'))
-                ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
+                ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required(),
             DatePicker::make('work_on')->label(__('Works on (a rest day)'))->native(false)->required(),
             DatePicker::make('rest_on')->label(__('Rests on (a working day)'))->native(false)->required()->different('work_on'),

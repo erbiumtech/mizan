@@ -113,6 +113,14 @@ return [
             'LeaveRequestView',
             'LeaveTypeView',
         ],
+        // Who decides leave. Without these only an Administrator could, so a chain naming Manager
+        // (Company Settings → Leave) waited for ever. CEO inherits them.
+        'Manager' => [
+            'LeaveEntitlementView',
+            'LeaveRequestApprove',
+            'LeaveRequestView',
+            'LeaveTypeView',
+        ],
     ],
 
     /**

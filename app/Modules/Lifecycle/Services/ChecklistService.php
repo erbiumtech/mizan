@@ -10,6 +10,7 @@ use App\Modules\Lifecycle\Models\EmployeeChecklist;
 use App\Modules\Lifecycle\Models\EmployeeChecklistItem;
 use App\Support\TenantTransaction;
 use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 
 /**
  * Starting somebody on a checklist, and marking it off.
@@ -21,6 +22,31 @@ use Illuminate\Support\Carbon;
  */
 class ChecklistService
 {
+    /** Which onboarding template a joiner gets when more than one is active — Company Settings → People → Onboarding. */
+    public const ONBOARDING_TEMPLATE_SETTING = 'lifecycle.onboarding_template_id';
+
+    /**
+     * The template a checklist of this kind starts from when nobody picks one.
+     *
+     * For onboarding, the company's chosen default if it is still an active onboarding template;
+     * otherwise — and for exit — the only active template of the kind. Null when there are several
+     * and nothing chooses between them: guessing would start the wrong list for somebody.
+     */
+    public function defaultTemplate(string $kind): ?ChecklistTemplate
+    {
+        $templates = ChecklistTemplate::query()->active()->ofKind($kind)->with('items')->get();
+
+        if ($kind === ChecklistTemplate::KIND_ONBOARDING && ($chosen = setting(self::ONBOARDING_TEMPLATE_SETTING))) {
+            $template = $templates->firstWhere('id', (int) $chosen);
+
+            if ($template !== null) {
+                return $template;
+            }
+        }
+
+        return $templates->count() === 1 ? $templates->first() : null;
+    }
+
     /**
      * Start a checklist for an employee from a template.
      *
@@ -33,6 +59,12 @@ class ChecklistService
         ChecklistTemplate $template,
         string|Carbon|null $anchor = null,
     ): EmployeeChecklist {
+        // One running checklist of a kind per person: a second onboarding list beside the first is
+        // the same items owed twice.
+        if (EmployeeChecklist::query()->where('employee_id', $employee->getKey())->where('kind', $template->kind)->whereNull('completed_on')->exists()) {
+            throw new InvalidArgumentException($employee->display_label.' already has an open '.$template->kind.' checklist.');
+        }
+
         $anchor = Carbon::parse($anchor ?? match ($template->kind) {
             ChecklistTemplate::KIND_EXIT => $employee->left_on ?? now(),
             default => $employee->date_of_joining ?? now(),

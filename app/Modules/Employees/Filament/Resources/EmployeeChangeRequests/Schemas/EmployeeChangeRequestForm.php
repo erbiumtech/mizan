@@ -36,6 +36,8 @@ class EmployeeChangeRequestForm
                     ->label('Requested Changes')
                     ->keyLabel('Field')
                     ->valueLabel('New Value')
+                    // A key-value field holds strings; an address arrives as an array of parts.
+                    ->formatStateUsing(fn (?array $state): array => array_map(fn (mixed $value): string => \App\Modules\Employees\Models\EmployeeChangeRequest::displayValue($value), $state ?? []))
                     ->disabled(),
 
                 Select::make('status')

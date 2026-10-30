@@ -367,14 +367,14 @@ class ViewEmployee extends ViewRecord
             ])
             ->action(function (Employee $record, array $data): void {
                 try {
-                    app(\App\Modules\Employees\Services\EmployeeMoves::class)->transfer($record, $data, $data['effective_from'], $data['reason'] ?? null);
+                    $row = app(\App\Modules\Employees\Services\EmployeeMoves::class)->transfer($record, $data, $data['effective_from'], $data['reason'] ?? null);
                 } catch (\InvalidArgumentException $e) {
                     \Filament\Notifications\Notification::make()->danger()->title($e->getMessage())->send();
 
                     return;
                 }
 
-                \Filament\Notifications\Notification::make()->success()->title('Transfer recorded.')->send();
+                static::notifyMoveRecorded($record, $row, 'Transfer');
             });
     }
 
@@ -391,9 +391,45 @@ class ViewEmployee extends ViewRecord
                 \Filament\Forms\Components\TextInput::make('reason')->maxLength(190),
             ])
             ->action(function (Employee $record, array $data): void {
-                app(\App\Modules\Employees\Services\EmployeeMoves::class)->promote($record, $data['designation'], $data['effective_from'], $data['reason'] ?? null);
-                \Filament\Notifications\Notification::make()->success()->title('Promotion recorded.')->send();
+                $row = app(\App\Modules\Employees\Services\EmployeeMoves::class)->promote($record, $data['designation'], $data['effective_from'], $data['reason'] ?? null);
+                static::notifyMoveRecorded($record, $row, 'Promotion');
             });
+    }
+
+    /**
+     * Say whether the move changed the record, not only that it was written down.
+     *
+     * A row moves the record only when it is the one in force today (JobHistory::syncCurrentValues). A
+     * future date waits for its day; a date earlier than a later row — including the row an ordinary edit
+     * of a job fact writes today — is history behind that row and never applies. Both used to say
+     * "recorded" and nothing else, so a backdated transfer looked done while the record still showed the
+     * old department.
+     */
+    protected static function notifyMoveRecorded(Employee $employee, \App\Modules\Employees\Models\EmployeeJobHistory $row, string $what): void
+    {
+        $inForce = app(\App\Modules\Employees\Services\JobHistory::class)->rowOn($employee, now());
+
+        if ($inForce?->is($row)) {
+            \Filament\Notifications\Notification::make()->success()->title("{$what} recorded and applied.")->send();
+
+            return;
+        }
+
+        if ($row->effective_from->isAfter(now()->endOfDay())) {
+            \Filament\Notifications\Notification::make()->success()
+                ->title("{$what} recorded. It takes effect on ".$row->effective_from->format('d M Y').'.')
+                ->body('The record keeps its current values until then; the nightly run moves it on the day.')
+                ->send();
+
+            return;
+        }
+
+        \Filament\Notifications\Notification::make()->warning()
+            ->title("{$what} recorded in the history, but not applied to the record.")
+            ->body('A later change, effective '.($inForce?->effective_from?->format('d M Y') ?? 'after it').', is the one in force, '
+                .'so the record keeps what that change says. To move the record now, record it again effective today.')
+            ->persistent()
+            ->send();
     }
 
     protected function rehireAction(): Action

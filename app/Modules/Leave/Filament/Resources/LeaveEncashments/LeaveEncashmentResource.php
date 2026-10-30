@@ -89,7 +89,25 @@ class LeaveEncashmentResource extends Resource
 
                     return $left === null ? 'No leave year is open for this type.' : number_format($left, 1).' day(s) left.';
                 }),
-            TextInput::make('days')->numeric()->minValue(0.5)->step(0.5)->required(),
+            TextInput::make('days')->numeric()->minValue(0.5)->step(0.5)->required()
+                // Refused at filing, not first at approval: an approver should not be handed a request the
+                // balance never covered.
+                ->rule(fn (Get $get) => function (string $attribute, mixed $value, \Closure $fail) use ($get): void {
+                    $employee = $get('employee_id') ? Employee::query()->find($get('employee_id')) : null;
+                    $type = $get('leave_type_id') ? LeaveType::query()->find($get('leave_type_id')) : null;
+
+                    if (! $employee || ! $type || ! is_numeric($value)) {
+                        return;
+                    }
+
+                    $available = app(LeaveEncashments::class)->available($employee, $type);
+
+                    if ($available === null) {
+                        $fail("No leave year is open for {$type->label}, so there is nothing to encash.");
+                    } elseif ((float) $value > $available) {
+                        $fail(sprintf('Only %s day(s) of %s can be encashed — the balance, less what is already asked for.', number_format($available, 1), $type->label));
+                    }
+                }),
             TextInput::make('amount')->numeric()->minValue(0)->default(0)->helperText('What is paid: days times the daily rate the company uses. Reaches the payslip named below as a bonus line.'),
             Select::make('fiscal_year_id')->label(__('Fiscal year'))->options(fn (): array => FiscalYear::query()->orderByDesc('start_date')->pluck('name', 'id')->all())->default(fn (): ?int => FiscalYear::current()?->getKey()),
             Select::make('month')->label(__('Paid with the payslip for'))->options(fn (): array => array_combine($m = array_keys(PayrollMonth::fiscalOrder(FiscalYear::current())), $m))->default(fn (): string => now()->monthName),

@@ -3,12 +3,14 @@
 namespace App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\Pages\CreateEmployeeWorkPattern;
 use App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\Pages\EditEmployeeWorkPattern;
 use App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\Pages\ListEmployeeWorkPatterns;
 use App\Modules\Attendance\Models\EmployeeWorkPattern;
 use App\Modules\Attendance\Models\WorkPattern;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -27,6 +29,7 @@ use UnitEnum;
 class EmployeeWorkPatternResource extends Resource
 {
     use BelongsToModule;
+    use ScopesToAccessibleEmployees;
 
     protected static ?string $model = EmployeeWorkPattern::class;
 
@@ -42,14 +45,21 @@ class EmployeeWorkPatternResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['employee.user', 'workPattern']);
+        $query = parent::getEloquentQuery()->with(['employee.user', 'workPattern']);
+
+        // Own and downline unless privileged, like every employee-keyed list.
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('employee_id', static::accessibleEmployeeIds()->all());
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Select::make('employee_id')->label(__('Employee'))
-                ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
+                ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required(),
             Select::make('work_pattern_id')->label(__('Pattern'))->options(fn (): array => WorkPattern::query()->orderBy('name')->pluck('name', 'id')->all())->required(),
             DatePicker::make('from_date')->label(__('From'))->native(false)->required(),

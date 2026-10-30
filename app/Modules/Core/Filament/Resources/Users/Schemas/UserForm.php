@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Users\Schemas;
 
+use App\Modules\Core\Filament\Settings\UserAccessSettingsSection;
 use App\Modules\Core\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -34,6 +35,23 @@ class UserForm
                     ->minLength(8)
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->required(fn (string $operation): bool => $operation === 'create'),
+
+                // Whether the account can sign in — User::canAccessPanel(). The column defaults to 0, so
+                // without this every account made here was deactivated; a new one now starts as Company
+                // Settings → People → Users says. Shown to whoever may Activate/Deactivate on the list;
+                // CreateUser applies the same default when it is hidden.
+                Toggle::make('status')
+                    ->label('Active')
+                    ->helperText('Off, they cannot sign in. A new account starts as set under Company Settings → People → Users.')
+                    ->default(fn (): bool => UserAccessSettingsSection::newAccountsActive())
+                    ->formatStateUsing(fn (mixed $state): bool => (int) $state === 1)
+                    ->dehydrateStateUsing(fn (mixed $state): int => $state ? 1 : 0)
+                    ->visible(function (): bool {
+                        $user = auth()->user();
+
+                        return (bool) $user?->isSuperAdmin()
+                            || (bool) $user?->hasAnyRole(['Administrator', 'Manager', 'CEO']);
+                    }),
 
                 // Super admin — only a super admin can grant/revoke this.
                 Toggle::make('is_super_admin')

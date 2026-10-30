@@ -38,11 +38,13 @@ class EmployeeChangeRequestsTable
                 TextColumn::make('requester.name')
                     ->label('Requested By'),
 
+                // The whole request as one "field: value" line. Formatting the array state instead hands
+                // each value over on its own, without its field — and an address arrived as its parts.
                 TextColumn::make('requested_changes')
                     ->label('Requested Changes')
-                    ->formatStateUsing(fn ($state): string => is_array($state)
-                        ? collect($state)->map(fn ($v, $k) => "{$k}: {$v}")->implode(', ')
-                        : (string) $state)
+                    ->state(fn (EmployeeChangeRequest $record): string => collect($record->requested_changes ?? [])
+                        ->map(fn ($v, $k) => $k.': '.EmployeeChangeRequest::displayValue($v))
+                        ->implode('; '))
                     ->wrap(),
 
                 TextColumn::make('status')

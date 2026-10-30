@@ -56,8 +56,8 @@ class EmployeeChangeRequestSubmitted extends Notification implements Categorised
                 continue;
             }
 
-            $original = $this->changeRequest->original_values[$field] ?? '—';
-            $mail->line("• {$label}: {$original} → {$value}");
+            $original = EmployeeChangeRequest::displayValue($this->changeRequest->original_values[$field] ?? null) ?: '—';
+            $mail->line("• {$label}: {$original} → ".EmployeeChangeRequest::displayValue($value));
         }
 
         $mail

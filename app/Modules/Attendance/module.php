@@ -82,6 +82,14 @@ return [
             'AttendanceView',
             'WorkPatternView',
         ],
+        // Who decides corrections and overtime (both use the regularization approval), and sees the
+        // attendance it decides about. CEO inherits them.
+        'Manager' => [
+            'AttendanceRegularizationApprove',
+            'AttendanceRegularizationView',
+            'AttendanceView',
+            'WorkPatternView',
+        ],
     ],
 
     /**

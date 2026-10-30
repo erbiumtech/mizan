@@ -17,7 +17,7 @@
     ];
     $requested = (array) ($record->requested_changes ?? []);
     $original = (array) ($record->original_values ?? []);
-    $format = fn ($v) => (is_null($v) || $v === '') ? '—' : (is_array($v) ? json_encode($v) : (string) $v);
+    $format = fn ($v) => EmployeeChangeRequest::displayValue($v) ?: '—';
 
     // Uploads are stored as paths, and a filename tells the reviewer nothing —
     // they need to see the scan to judge it. The URL comes off the `public`

@@ -10,11 +10,12 @@ use Filament\Notifications\Notification;
 /**
  * Hire starts the onboarding checklist — docs/saas-launch-plan.md §7.3.
  *
- * Exactly one active onboarding template: start it, with the due dates
- * ChecklistService computes from the joining date. None, or two: start nothing
- * and say so, because guessing between two templates is how somebody is handed
- * the wrong laptop order, and silently starting nothing is how nobody notices
- * until the first morning. No default flag until somebody has two.
+ * The template is ChecklistService::defaultTemplate(): the company's chosen default
+ * (Company Settings → People → Onboarding) when several are active, the only one when
+ * there is one. None, or several and no default: start nothing and say so, because
+ * guessing between two templates is how somebody is handed the wrong laptop order,
+ * and silently starting nothing is how nobody notices until the first morning. The
+ * employee's page has Start checklist for exactly that case.
  *
  * Guarded on the module, not on the listener being registered: the provider
  * registers it at boot for every company, and the licence is a per-request fact.
@@ -35,30 +36,28 @@ class StartOnboardingForNewEmployee
             return;
         }
 
-        $templates = ChecklistTemplate::query()
-            ->active()
-            ->ofKind(ChecklistTemplate::KIND_ONBOARDING)
-            ->with('items')
-            ->get();
+        $template = $this->checklists->defaultTemplate(ChecklistTemplate::KIND_ONBOARDING);
 
-        if ($templates->count() !== 1) {
+        if ($template === null) {
+            $active = ChecklistTemplate::query()->active()->ofKind(ChecklistTemplate::KIND_ONBOARDING)->count();
+
             Notification::make()
                 ->warning()
                 ->title('No onboarding checklist started')
-                ->body($templates->isEmpty()
-                    ? 'There is no active onboarding template. Add one under Lifecycle → Checklist templates and start it from the employee.'
-                    : "There are {$templates->count()} active onboarding templates, so none was chosen. Start the right one from the employee.")
+                ->body($active === 0
+                    ? 'There is no active onboarding template. Add one under Lifecycle → Checklist templates, then use Start checklist on the employee.'
+                    : "There are {$active} active onboarding templates and no default. Choose one under Company Settings → People → Onboarding, or use Start checklist on the employee.")
                 ->send();
 
             return;
         }
 
-        $checklist = $this->checklists->start($event->employee, $templates->first());
+        $checklist = $this->checklists->start($event->employee, $template);
 
         Notification::make()
             ->success()
             ->title('Onboarding checklist started')
-            ->body("{$templates->first()->name}: {$checklist->items()->count()} items, dated from the joining date.")
+            ->body("{$template->name}: {$checklist->items()->count()} items, dated from the joining date.")
             ->send();
     }
 }

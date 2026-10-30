@@ -72,6 +72,16 @@ class SettingsSectionsTest extends AccountingTestCase
      * of thing: a public, token-gated door that opening has to be a deliberate act. Hidden for a company
      * without the CRM module.
      *
+     * **2026-10-30** — construction's two policy blocks joined, owner-decision fixes that would otherwise be hard-coded:
+     * `construction.qhse` (64, people) holds the base every safety rate is quoted against, and `construction.costing`
+     * (71, money, beside the account map) holds the treatment a hand-typed cost starts with and the three-way match
+     * tolerances, which had a setting key and no screen. Both hidden for a company without the module.
+     *
+     * **2026-10-30** — `accounting.petty-cash` joined at sort 25, contributed by Accounting: the petty cash float
+     * was a field Core's page carried for Accounting, and a required one, so a company that keeps no petty cash
+     * could save no setting at all without inventing a float. It is Accounting's own block now, in the same place
+     * on the page (after the ledger freeze, before approvals), and blank means "no float".
+     *
      * **2026-10-29** — the SaaS launch plan's three public doors joined on the same terms:
      * `crm.field-visits` (78, docs/saas-launch-plan.md §8.5), `recruitment.careers` (§7.4) and
      * `documents.verification` (§7.5). Each is a switch that closes a public page without a deploy.
@@ -80,9 +90,11 @@ class SettingsSectionsTest extends AccountingTestCase
     {
         $this->assertSame(
             [
-                'accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting', 'payroll.run',
-                'lifecycle.documents', 'expenses.approval-chain', 'construction.accounts', 'invoicing.dunning',
-                'invoicing.credit-control', 'devices.devices', 'invoicing.statements', 'crm.field-visits',
+                'accounting.currency', 'accounting.ledger-freeze', 'accounting.petty-cash', 'users.access',
+                'accounting.payroll-posting', 'payroll.run', 'lifecycle.documents', 'expenses.approval-chain',
+                'lifecycle.onboarding', 'construction.qhse', 'advances.recovery', 'construction.accounts',
+                'construction.costing', 'invoicing.dunning',
+                'invoicing.credit-control', 'devices.devices', 'invoicing.statements', 'campaigns.sending', 'crm.field-visits',
                 'crm.lead-capture', 'recruitment.careers', 'documents.verification', 'documents.layout',
                 'verification.checks',
             ],
@@ -99,7 +111,7 @@ class SettingsSectionsTest extends AccountingTestCase
         Livewire::test(CompanySettings::class)
             ->assertSeeInOrder([
                 'What this company keeps its books in',   // 10, contributed
-                'Float Amount',                           // 20
+                'Float Amount',                           // 25, contributed
                 'Who has to sign an entry off',           // 30
                 'Auto-post payroll journal entries',      // 60, contributed
                 'iPayments Defaults',                     // 70
@@ -129,6 +141,12 @@ class SettingsSectionsTest extends AccountingTestCase
      *  - **what somebody must confirm before being let in** is people for the same reason.
      *  - the **document layout** is company, beside the letterhead, which is the other half of the
      *    same question — it is the one section placed against its sort number.
+     *
+     * **2026-10-30** — `users.access` is **Company, not People.** People is employment policy — leave,
+     * hours, what staff must confirm before they are let in — and this is about logins: whether an
+     * account made on the Users page can sign in with the password just typed for it. Every company has
+     * that question whether or not it records anybody as an employee, and a company using none of the
+     * HR modules would have found the setting under a tab about staff it does not keep.
      */
     public function test_each_module_says_which_tab_its_settings_belong_under(): void
     {
@@ -136,15 +154,22 @@ class SettingsSectionsTest extends AccountingTestCase
             [
                 'accounting.currency' => 'money',
                 'accounting.ledger-freeze' => 'money',
+                'accounting.petty-cash' => 'money',
+                'users.access' => 'company',
                 'accounting.payroll-posting' => 'money',
                 'payroll.run' => 'people',
                 'lifecycle.documents' => 'people',
                 'expenses.approval-chain' => 'people',
+                'lifecycle.onboarding' => 'people',
+                'construction.qhse' => 'people',
+                'advances.recovery' => 'people',
                 'construction.accounts' => 'money',
+                'construction.costing' => 'money',
                 'invoicing.dunning' => 'customers',
                 'invoicing.credit-control' => 'customers',
                 'devices.devices' => 'people',
                 'invoicing.statements' => 'customers',
+                'campaigns.sending' => 'customers',
                 'crm.field-visits' => 'public',
                 'crm.lead-capture' => 'public',
                 'recruitment.careers' => 'public',
@@ -199,12 +224,13 @@ class SettingsSectionsTest extends AccountingTestCase
                 ->assertSuccessful()
                 ->assertDontSee('What this company keeps its books in')
                 ->assertDontSee('Auto-post payroll journal entries')
-                ->assertSee('Float Amount')
-                ->set('data.petty_cash_float_amount', 7777)
+                // The petty cash float is Accounting's too now, so it goes with the rest of the books.
+                ->assertDontSee('Float Amount')
+                ->set('data.reports_negatives_in_parentheses', true)
                 ->call('save')
                 ->assertHasNoErrors();
 
-            $this->assertEqualsWithDelta(7777.0, app(TenantSettings::class)->get('petty_cash.float_amount'), 0.001);
+            $this->assertTrue((bool) app(TenantSettings::class)->get('reports.negatives_in_parentheses'));
         } finally {
             // Restored by re-booting the provider that registers them, since this is static state the rest of
             // the suite shares. Re-registering is idempotent — the keys are the same both times.
@@ -212,7 +238,7 @@ class SettingsSectionsTest extends AccountingTestCase
         }
 
         $this->assertSame(
-            ['accounting.currency', 'accounting.ledger-freeze', 'accounting.payroll-posting'],
+            ['accounting.currency', 'accounting.ledger-freeze', 'accounting.petty-cash', 'accounting.payroll-posting'],
             SettingsSections::keys(),
             'the registry was left as it was found',
         );

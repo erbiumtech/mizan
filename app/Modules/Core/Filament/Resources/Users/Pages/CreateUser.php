@@ -5,6 +5,7 @@ namespace App\Modules\Core\Filament\Resources\Users\Pages;
 use App\Events\UserCreated;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Core\Filament\Resources\Users\UserResource;
+use App\Modules\Core\Filament\Settings\UserAccessSettingsSection;
 use App\Modules\Core\Models\User;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
@@ -14,6 +15,17 @@ class CreateUser extends CreateRecord
     use RedirectsToIndex;
 
     protected static string $resource = UserResource::class;
+
+    /**
+     * The company's default for a new account when the Active switch was not shown to whoever is
+     * creating it — the column itself defaults to 0, which is a deactivated account.
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['status'] ??= UserAccessSettingsSection::newAccountsActive() ? 1 : 0;
+
+        return $data;
+    }
 
     /**
      * Parity with Nova User::afterCreate() — assign the Employee role and

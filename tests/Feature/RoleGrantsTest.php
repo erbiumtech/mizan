@@ -394,10 +394,17 @@ class RoleGrantsTest extends AccountingTestCase
         'Accountant' => 160,
         // 196 since 2026-09-21: InvoiceOverrideCreditLimit — docs/erpnext-gap-plan.md §4 item 5.
         // 197 since 2026-10-26: ConstructionDocumentRestrictedView, beside Publish — construction plan §15.2.
-        'Manager' => 219,
+        // 233 by 2026-10-30: the Phase 24-25 grants moved Manager by 14 without re-pinning it here.
+        // 263 since 2026-10-30, round 2 of the flow fixes: a fresh company's Manager can now work the
+        // modules nobody could — CRM +19 (leads, sources, pipeline, deals, targets, field visits), Support
+        // +3 (tickets), Campaigns +4 (drafting and sending), Performance +4 (reviews, goals, one-to-ones
+        // and their private notes). Employee is untouched: CRM stays out of it on purpose.
+        'Manager' => 263,
         // 217 since 2026-09-21: CEO composes on Manager, so InvoiceOverrideCreditLimit reaches here too;
-        // 218 since 2026-10-26 for the same reason.
-        'CEO' => 240,
+        // 218 since 2026-10-26 for the same reason. 254 by 2026-10-30 (Phase 24-25, as above); 292 since,
+        // the Manager's +30 plus the deletes that are the CEO's: LeadDelete, LeadSourceDelete,
+        // PipelineDelete, OpportunityDelete, FieldVisitDelete, TicketDelete, CampaignDelete, ReviewDelete.
+        'CEO' => 292,
     ];
 
     protected function setUp(): void

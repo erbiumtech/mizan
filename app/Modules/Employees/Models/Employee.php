@@ -438,8 +438,11 @@ class Employee extends Model
             return;
         }
 
+        // An array cast (the two addresses) is carried as its array, not the JSON string getDirty() holds,
+        // so the request stores what was asked for and approval writes it back through the same cast.
         $changes = collect($this->getDirty())
             ->only(EmployeeChangeRequest::ALLOWED_FIELDS)
+            ->map(fn (mixed $raw, string $key): mixed => $this->hasCast($key, ['array', 'json']) ? $this->getAttribute($key) : $raw)
             ->merge($userChanges);
 
         if ($changes->isEmpty()) {
@@ -457,7 +460,7 @@ class Employee extends Model
                 $key => match ($key) {
                     'user_name' => $this->user?->name,
                     'user_email' => $this->user?->email,
-                    default => $this->getRawOriginal($key),
+                    default => $this->hasCast($key, ['array', 'json']) ? $this->getOriginal($key) : $this->getRawOriginal($key),
                 },
             ])->all(),
         ]);
