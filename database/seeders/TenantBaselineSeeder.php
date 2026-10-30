@@ -59,6 +59,10 @@ class TenantBaselineSeeder extends Seeder
             BadgeSeeder::class,
             // The shipped bank-file format as a row — docs/saas-launch-plan.md §14.1.
             BankFileFormatSeeder::class,
+            // The workflow a board starts with — docs/project-management-plan.md §4.1. Like the
+            // badges above, this waits: nothing happens until the company licenses `work`, and a
+            // company that never does carries four unread rows.
+            WorkWorkflowSeeder::class,
         ];
     }
 

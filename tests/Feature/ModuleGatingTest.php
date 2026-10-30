@@ -52,15 +52,6 @@ class ModuleGatingTest extends TestCase
         // Company Settings. There is nothing to list that the device itself is not
         // the authority on — docs/saas-launch-plan.md §8.4.
         'devices',
-        /*
-         * **Phase 0 only** — docs/project-management-plan.md §14. The work module is the manifest, the
-         * rail's Work domain and the permissions; its first screen is the work item in Phase 1, and
-         * this line comes out in the same commit that adds it.
-         *
-         * Declared a phase early on purpose: role grants are seeded from the manifest, and a permission
-         * that arrives late is a role somebody has to re-save.
-         */
-        'work',
     ];
 
     private function gatedModules(): array

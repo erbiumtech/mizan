@@ -262,6 +262,17 @@ class NavigationTree
                 'Holiday Calendar',
                 'Currencies',
             ],
+            /*
+             * The statuses a board may have — docs/project-management-plan.md §4.1.
+             *
+             * Its own branch rather than a line in Company, and one entry is enough to justify it:
+             * a workflow is not a company detail, it is the shape of how work moves, and Phase 2's
+             * board settings land beside it. Sorted after People setup because a company writes its
+             * departments before it writes its statuses.
+             */
+            'Work setup' => [
+                'Workflows',
+            ],
             'Imports' => [
                 'Import from CSV',
                 'GnuCash Import',

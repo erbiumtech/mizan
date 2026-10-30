@@ -15,11 +15,10 @@
  * elsewhere licenses one and not the other, and the module boundary is what makes that a flag
  * rather than a fork. §2.1.
  *
- * **Phase 0 declares the module and nothing else.** No models, no resources, no navigation claim —
- * the rail's Work domain is fed by `projects` and `mpr` claiming the *Projects* group, and this
- * module's own screens arrive in Phase 1 with the work item. The permissions are here now because
- * role grants are seeded from the manifest and a permission that appears a phase late is a role
- * somebody has to re-save.
+ * Phase 1 adds the work item, the workflow behind it and the two screens — the board, the backlog
+ * and the sprints follow in Phases 2 and 3. The work item joins the *Projects* group that `projects`
+ * and `mpr` already claim for the Work domain, because a work item and the project it belongs to
+ * are read on the same visit.
  *
  * Merged by App\Support\ModuleManifest. See docs/module-packaging-plan.md §5.
  */
@@ -33,6 +32,57 @@ return [
     ],
     'licensed_by_default' => false,
     'plugin' => \App\Modules\Work\WorkPlugin::class,
+
+    'models' => [
+        'App\\Models\\WorkWorkflow' => \App\Modules\Work\Models\WorkWorkflow::class,
+        'App\\Models\\WorkStatus' => \App\Modules\Work\Models\WorkStatus::class,
+        'App\\Models\\WorkWorkflowRule' => \App\Modules\Work\Models\WorkWorkflowRule::class,
+        'App\\Models\\WorkItem' => \App\Modules\Work\Models\WorkItem::class,
+        'App\\Models\\WorkLabel' => \App\Modules\Work\Models\WorkLabel::class,
+        'App\\Models\\WorkAttachment' => \App\Modules\Work\Models\WorkAttachment::class,
+        'App\\Models\\WorkItemLink' => \App\Modules\Work\Models\WorkItemLink::class,
+    ],
+
+    'resources' => [
+        'App\\Filament\\Resources\\WorkItems\\WorkItemResource' => \App\Modules\Work\Filament\Resources\WorkItems\WorkItemResource::class,
+        // Workflows are a Settings screen rather than a board one: a workflow governs every board
+        // the company has, which is why §13.1 makes it an administrator's.
+        'App\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource' => \App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource::class,
+    ],
+
+    /**
+     * The three lists a company edits for itself — docs/project-management-plan.md §3.2.
+     *
+     * Types, priorities and resolutions are option lists rather than constants because "add a Spike"
+     * and "we call it P0 here" are the two requests every team makes in its first week, and neither
+     * should be a deploy. The hierarchy meanings are the exception: `epic` and `subtask` are read by
+     * the model, so renaming their labels is fine and deleting the rows is not.
+     */
+    'option_lists' => [
+        'work.type' => [
+            'label' => 'Work item types',
+            'help' => 'What kinds of work you track. Epic and Subtask carry meaning — an epic sits above stories and a subtask below one — so rename them freely but do not remove them.',
+            'values' => ['Epic', 'Story', 'Task', 'Bug', 'Subtask'],
+        ],
+
+        'work.priority' => [
+            'label' => 'Work item priorities',
+            'help' => 'How urgent a work item is. Nothing computes from these; they sort and they filter.',
+            'values' => ['Highest', 'High', 'Medium', 'Low', 'Lowest'],
+        ],
+
+        'work.resolution' => [
+            'label' => 'Work item resolutions',
+            'help' => 'How a work item ended. Asked for when a status requires it — see the workflow rules.',
+            'values' => ['Done', 'Won\'t do', 'Duplicate', 'Cannot reproduce'],
+        ],
+    ],
+
+    'navigation' => [
+        'Projects' => 'work',
+        // The workflow editor sits with the other things an administrator sets up once.
+        'Settings' => 'admin',
+    ],
 
     'permission_groups' => [
         'Work',

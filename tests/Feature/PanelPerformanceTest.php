@@ -175,10 +175,22 @@ class PanelPerformanceTest extends TestCase
      * climbing every time a screen earns a badge. That is the work this file keeps pointing at, and
      * every move since it was first written has made the case stronger rather than weaker.
      */
+    /*
+     * **All three moved by one on 2026-10-31: the work module's badge** — unassigned open items,
+     * docs/project-management-plan.md §14 Phase 1. The twenty-second `select count(*)`, and the
+     * sanctioned shape this file has recorded four times: the count is the feature, NavigationBadge
+     * memoises it for a minute, and the warm budgets do not move.
+     *
+     * **This one was avoidable, and the record should say so.** The plan put the badge registry in
+     * Phase 0 precisely so it would land before any new badge did — *"cheaper to build before the
+     * badges exist than after"* — and Phase 0 deferred it as a 21-file refactor of unrelated code.
+     * The price of that deferral is these three lines. The registry is the next commit, and it
+     * collapses the whole band from twenty-two round trips to one.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 41, 'warm' => 9],
-        'employees' => ['cold' => 38, 'warm' => 11],
-        'reports' => ['cold' => 31, 'warm' => 7],
+        'dashboard' => ['cold' => 42, 'warm' => 9],
+        'employees' => ['cold' => 39, 'warm' => 11],
+        'reports' => ['cold' => 32, 'warm' => 7],
     ];
 
     private Company $company;
