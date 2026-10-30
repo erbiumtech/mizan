@@ -14,7 +14,7 @@ Route::get('/', function () {
     }
 
     return redirect(Filament::getPanel('admin')->getUrl());
-})->middleware('web')->name('site.home');
+})->name('site.home');
 
 // The public status page lives in app/Modules/Projects/routes/web.php.
 
