@@ -44,6 +44,24 @@ class PushSubscribeTest extends TestCase
         $this->assertSame(0, DeviceToken::query()->where('user_id', $user->getKey())->count());
     }
 
+    public function test_the_switch_can_ask_whether_this_browsers_subscription_is_the_callers(): void
+    {
+        $user = $this->user();
+        $other = User::create(['name' => 'Other', 'email' => 'other-mine@test.local', 'password' => bcrypt('password'), 'status' => 1]);
+        DeviceToken::register($user, 'https://push.example.test/send/mine', ['p256dh' => 'p', 'auth' => 'a']);
+        DeviceToken::register($other, 'https://push.example.test/send/theirs', ['p256dh' => 'p', 'auth' => 'a']);
+
+        $this->actingAs($user)
+            ->getJson('/push/subscriptions/mine?endpoint='.urlencode('https://push.example.test/send/mine'))
+            ->assertOk()
+            ->assertJsonPath('mine', true);
+
+        $this->actingAs($user)
+            ->getJson('/push/subscriptions/mine?endpoint='.urlencode('https://push.example.test/send/theirs'))
+            ->assertOk()
+            ->assertJsonPath('mine', false);
+    }
+
     public function test_subscribing_needs_a_session(): void
     {
         $this->postJson('/push/subscriptions', [

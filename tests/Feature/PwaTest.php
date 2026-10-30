@@ -63,7 +63,7 @@ class PwaTest extends TestCase
     {
         $this->get('/offline')
             ->assertOk()
-            ->assertSee("You're offline", false)
+            ->assertSee("You're offline")
             ->assertSee('Try again');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Modules\Core\Models\DeviceToken;
+use App\Support\PushEndpoints;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,7 +31,12 @@ class DeviceController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'endpoint' => ['required', 'url', 'max:2048'],
+            // https to a public host, or the server could be made to POST at its own network — PushEndpoints.
+            'endpoint' => ['required', 'string', 'max:2048', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! PushEndpoints::isAcceptable(is_string($value) ? $value : null)) {
+                    $fail('The endpoint must be an https URL on a public push service.');
+                }
+            }],
             'keys' => ['required', 'array'],
             'keys.p256dh' => ['required', 'string', 'max:255'],
             'keys.auth' => ['required', 'string', 'max:255'],
@@ -47,6 +53,19 @@ class DeviceController extends Controller
         ]);
 
         return ApiResponse::success(['device' => $token->toClient()], $token->wasRecentlyCreated ? 201 : 200);
+    }
+
+    /**
+     * Whose is the subscription this browser holds? — M2, for a shared browser. The switch asks before it
+     * shows On: a subscription registered by whoever was signed in before is not this person's.
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        $data = $request->validate(['endpoint' => ['required', 'string', 'max:2048']]);
+
+        $mine = $request->user()->deviceTokens()->where('endpoint_hash', hash('sha256', $data['endpoint']))->exists();
+
+        return ApiResponse::success(['mine' => $mine]);
     }
 
     /**

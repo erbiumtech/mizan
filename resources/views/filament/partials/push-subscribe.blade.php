@@ -25,8 +25,22 @@
             this.denied = Notification.permission === 'denied'
             try {
                 const registration = await navigator.serviceWorker.ready
-                this.on = (await registration.pushManager.getSubscription()) !== null
+                const subscription = await registration.pushManager.getSubscription()
+                // A subscription this browser holds is On only if the server has it against *this* person.
+                // On a shared browser it may be the previous user's: then it is let go, so their notifications
+                // stop arriving on a device they are no longer signed in to, and the switch shows Off.
+                this.on = subscription !== null && (await this.isMine(subscription.endpoint))
+                if (subscription !== null && ! this.on) {
+                    await subscription.unsubscribe().catch(() => {})
+                }
             } catch (e) { this.supported = false }
+        },
+        async isMine(endpoint) {
+            const response = await fetch(@js(route('push.mine')) + '?endpoint=' + encodeURIComponent(endpoint), {
+                headers: { 'Accept': 'application/json' },
+            })
+            if (! response.ok) return false
+            return (await response.json()).mine === true
         },
         toUint8(base64) {
             const padding = '='.repeat((4 - base64.length % 4) % 4)
@@ -59,13 +73,21 @@
                         userVisibleOnly: true,
                         applicationServerKey: this.toUint8(this.key),
                     })
-                    const response = await fetch(@js(route('push.subscribe')), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': this.csrf },
-                        body: JSON.stringify(subscription.toJSON()),
-                    })
-                    if (! response.ok) {
-                        await subscription.unsubscribe()
+                    // Registered or not at all: a subscription the server never heard of would show On
+                    // after a reload and deliver nothing, so a failed or thrown registration lets it go.
+                    let registered = false
+                    try {
+                        const response = await fetch(@js(route('push.subscribe')), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': this.csrf },
+                            body: JSON.stringify(subscription.toJSON()),
+                        })
+                        registered = response.ok
+                    } catch (e) {
+                        registered = false
+                    }
+                    if (! registered) {
+                        await subscription.unsubscribe().catch(() => {})
                         return
                     }
                     this.on = true

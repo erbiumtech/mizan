@@ -4,6 +4,7 @@ namespace App\Support\WebPushTransports;
 
 use App\Modules\Core\Models\DeviceToken;
 use App\Support\Contracts\WebPushTransport;
+use App\Support\PushEndpoints;
 use App\Support\WebPush;
 use App\Support\WebPushOutcome;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,13 @@ class LibraryTransport implements WebPushTransport
 
     public function send(DeviceToken $token, string $payload): WebPushOutcome
     {
+        // Checked again here, by resolved address: the name was public when registered, and may not be now.
+        if (! PushEndpoints::resolvesPublicly($token->endpoint)) {
+            Log::warning('Web push refused: endpoint is not a public push service', ['endpoint' => $token->endpoint]);
+
+            return WebPushOutcome::Expired;
+        }
+
         try {
             $report = $this->library()->sendOneNotification(
                 Subscription::create([
@@ -56,6 +64,7 @@ class LibraryTransport implements WebPushTransport
 
     private function library(): Library
     {
-        return $this->library ??= new Library(WebPush::auth());
+        // No redirects: a public endpoint answering 302 to a private address would otherwise be followed.
+        return $this->library ??= new Library(WebPush::auth(), [], 30, ['allow_redirects' => false]);
     }
 }

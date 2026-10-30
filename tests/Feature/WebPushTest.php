@@ -91,6 +91,30 @@ class WebPushTest extends TestCase
         $this->assertDatabaseHas('device_tokens', ['id' => $token->getKey()]);
     }
 
+    public function test_an_endpoint_must_be_https_on_a_public_host(): void
+    {
+        Sanctum::actingAs($this->user('ssrf@test.local'), ['api']);
+
+        foreach ([
+            'http://push.example.test/send/plain',
+            'https://localhost/send/x',
+            'https://127.0.0.1/send/x',
+            'https://10.0.0.5/send/x',
+            'https://192.168.1.20:8443/admin',
+            'https://[::1]/send/x',
+            'https://169.254.169.254/latest/meta-data',
+            'https://intranet.local/send/x',
+            'https://metadata.google.internal/computeMetadata/v1/',
+            'https://user:pass@push.example.test/send/x',
+        ] as $endpoint) {
+            $this->postJson('/api/v1/devices', ['endpoint' => $endpoint, 'keys' => ['p256dh' => 'p', 'auth' => 'a']])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['endpoint']);
+        }
+
+        $this->assertSame(0, DeviceToken::query()->count());
+    }
+
     public function test_a_subscription_needs_its_keys(): void
     {
         Sanctum::actingAs($this->user('keys@test.local'), ['api']);

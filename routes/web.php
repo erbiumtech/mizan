@@ -22,6 +22,7 @@ Route::get('/offline', [PwaController::class, 'offline'])->name('pwa.offline');
 // clients use, reached with the session instead of a token: a person at the panel has no bearer token and
 // should not need one to switch notifications on for the device in their hand.
 Route::middleware(['web', 'auth'])->prefix('push')->name('push.')->group(function (): void {
+    Route::get('/subscriptions/mine', [DeviceController::class, 'mine'])->name('mine');
     Route::post('/subscriptions', [DeviceController::class, 'store'])->name('subscribe');
     Route::delete('/subscriptions', [DeviceController::class, 'destroyByEndpoint'])->name('unsubscribe');
 });

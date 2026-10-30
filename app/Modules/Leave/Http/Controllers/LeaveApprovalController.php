@@ -4,9 +4,13 @@ namespace App\Modules\Leave\Http\Controllers;
 
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Modules\Core\Models\User;
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Modules\Leave\Services\LeaveApprovalChain;
+use App\Modules\Leave\Services\LeaveApprovalRule;
 use App\Modules\Leave\Services\LeaveRequestService;
+use App\Support\EmployeeAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -14,23 +18,26 @@ use InvalidArgumentException;
 /**
  * A manager's leave approvals, from the phone — docs/desktop-mobile-plan.md A4/M3. Versioned surface only.
  *
- * Nothing here decides anything itself. The list is the pending requests the caller may decide, asked of
- * the same policy that shows or hides the button in the panel; approving and refusing go through
- * LeaveRequestService, so the API cannot approve what the form would refuse — the self-approval rule, the
- * chain's next role, a refusal without a reason — and the claimant is told the same way.
+ * Nothing here decides anything itself. The list is the pending requests the caller may decide, within
+ * the reporting line the panel's resource shows them (EmployeeAccess) and under the same eligibility the
+ * service will enforce — the self-approval rule and the chain's next role — asked explicitly rather than
+ * only through the policy, because an Administrator passes every policy through Gate::before and would
+ * otherwise be shown requests the service then refuses. Approving and refusing go through
+ * LeaveRequestService, so the API cannot approve what the form would refuse, and the claimant is told the
+ * same way.
+ *
+ * Records are loaded here, after the company middleware has run, rather than route-bound: SubstituteBindings
+ * sits ahead of `api.company` in the stack, and a tenant model bound before the tenant is current is bound
+ * against the wrong connection.
  */
 class LeaveApprovalController extends Controller
 {
     public function index(Request $request, LeaveApprovalChain $chain): JsonResponse
     {
-        $user = $request->user();
-
-        $pending = LeaveRequest::query()
-            ->pending()
-            ->with(['employee', 'leaveType'])
+        $pending = $this->decidable($request->user())
             ->orderBy('from_date')
             ->get()
-            ->filter(fn (LeaveRequest $leave): bool => $user->can('decide', $leave))
+            ->filter(fn (LeaveRequest $leave): bool => $this->mayDecide($request->user(), $leave, $chain))
             ->values();
 
         return ApiResponse::success([
@@ -39,32 +46,68 @@ class LeaveApprovalController extends Controller
         ]);
     }
 
-    public function approve(Request $request, LeaveRequest $leaveRequest, LeaveRequestService $service, LeaveApprovalChain $chain): JsonResponse
+    public function approve(Request $request, int $leaveRequest, LeaveRequestService $service, LeaveApprovalChain $chain): JsonResponse
     {
-        abort_unless($request->user()->can('decide', $leaveRequest), 403, 'You may not decide this request.');
+        $leave = $this->find($request->user(), $leaveRequest);
 
         try {
-            $leaveRequest = $service->approve($leaveRequest, $request->user());
+            $leave = $service->approve($leave, $request->user());
         } catch (InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
 
-        return ApiResponse::success(['data' => $this->shape($leaveRequest->refresh(), $chain)]);
+        return ApiResponse::success(['data' => $this->shape($leave->refresh(), $chain)]);
     }
 
-    public function refuse(Request $request, LeaveRequest $leaveRequest, LeaveRequestService $service, LeaveApprovalChain $chain): JsonResponse
+    public function refuse(Request $request, int $leaveRequest, LeaveRequestService $service, LeaveApprovalChain $chain): JsonResponse
     {
-        abort_unless($request->user()->can('decide', $leaveRequest), 403, 'You may not decide this request.');
+        $leave = $this->find($request->user(), $leaveRequest);
 
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
 
         try {
-            $leaveRequest = $service->refuse($leaveRequest, $request->user(), $data['reason']);
+            $leave = $service->refuse($leave, $request->user(), $data['reason']);
         } catch (InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
 
-        return ApiResponse::success(['data' => $this->shape($leaveRequest->refresh(), $chain)]);
+        return ApiResponse::success(['data' => $this->shape($leave->refresh(), $chain)]);
+    }
+
+    /** Pending requests within the caller's reporting line — the same boundary LeaveRequestResource draws. */
+    private function decidable(User $user): Builder
+    {
+        $query = LeaveRequest::query()->pending()->with(['employee', 'leaveType']);
+
+        return app(EmployeeAccess::class)->scopeAccessibleEmployees($query, $user, 'employee_id');
+    }
+
+    /** One request, within the boundary, that the caller may decide — 404 outside it, 403 within it but not theirs to decide. */
+    private function find(User $user, int $id): LeaveRequest
+    {
+        $leave = $this->decidable($user)->whereKey($id)->first();
+
+        abort_unless($leave, 404, 'No such pending leave request.');
+        abort_unless($user->can('decide', $leave), 403, 'You may not decide this request.');
+
+        return $leave;
+    }
+
+    /**
+     * The policy, plus the two checks the service holds that an Administrator's policy bypass would skip:
+     * their own leave when the company requires somebody else, and a step waiting on a role they lack.
+     */
+    private function mayDecide(User $user, LeaveRequest $leave, LeaveApprovalChain $chain): bool
+    {
+        if (! $user->can('decide', $leave)) {
+            return false;
+        }
+
+        if ($leave->belongsToUser($user) && ! app(LeaveApprovalRule::class)->allowsSelfApproval()) {
+            return false;
+        }
+
+        return $chain->userMayTakeNextStep($user, $leave);
     }
 
     /** @return array<string, mixed> */

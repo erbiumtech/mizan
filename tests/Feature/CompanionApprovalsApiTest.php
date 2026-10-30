@@ -212,7 +212,42 @@ class CompanionApprovalsApiTest extends AccountingTestCase
         ]);
         Sanctum::actingAs($this->approver, ['api']);
 
+        // Not in the queue — and the attempt is refused by the claim itself (an Administrator passes the
+        // policy through Gate::before), answered as the panel answers it.
         $this->getJson('/api/v1/approvals/expense-claims')->assertOk()->assertJsonPath('count', 0);
-        $this->postJson('/api/v1/approvals/expense-claims/'.$claim->getKey().'/approve')->assertForbidden();
+        $this->postJson('/api/v1/approvals/expense-claims/'.$claim->getKey().'/approve')
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
+
+        $this->assertTrue($claim->fresh()->isPending());
+    }
+
+    public function test_a_manager_sees_only_their_own_reporting_line(): void
+    {
+        // Somebody outside the privileged roles: the boundary is their downline, and it bites before the
+        // approve permission is even asked — a record outside the line does not exist to them.
+        $manager = $this->makeUser('Employee', 'line-manager@test.local');
+        Employee::create([
+            'user_id' => $manager->id,
+            'name' => 'Line Manager',
+            'employee_id' => 'EMP-LM',
+            'gender' => 'Male',
+            'phone' => '0300-0000021',
+            'is_active' => true,
+        ]);
+
+        // Sana reports to nobody in particular, so she is outside this manager's line.
+        $claim = $this->pendingClaim();
+        $leave = $this->pendingLeave(12);
+
+        Sanctum::actingAs($manager, ['api']);
+
+        $this->getJson('/api/v1/approvals/expense-claims')->assertOk()->assertJsonPath('count', 0);
+        $this->getJson('/api/v1/approvals/leave')->assertOk()->assertJsonPath('count', 0);
+        $this->postJson('/api/v1/approvals/expense-claims/'.$claim->getKey().'/approve')->assertNotFound();
+        $this->postJson('/api/v1/approvals/leave/'.$leave->getKey().'/approve')->assertNotFound();
+
+        $this->assertTrue($claim->fresh()->isPending());
+        $this->assertTrue($leave->fresh()->isPending());
     }
 }
