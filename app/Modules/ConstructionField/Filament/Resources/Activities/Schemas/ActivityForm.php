@@ -165,7 +165,7 @@ class ActivityForm
                             ->helperText('Imported from the scheduling tool. Nothing in this application derives it.'),
 
                         Placeholder::make('imported_note')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (?ProgrammeActivity $record): bool => $record?->isImported() ?? false)
                             ->content(fn (?ProgrammeActivity $record): string => 'Imported from '

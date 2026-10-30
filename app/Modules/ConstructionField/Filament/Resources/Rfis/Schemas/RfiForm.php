@@ -186,7 +186,7 @@ class RfiForm
                          * raises the event at that date rather than today.
                          */
                         Placeholder::make('delay_warning')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (callable $get, ?Rfi $record): bool => $get('time_impact_flag') === Rfi::IMPACT_YES
                                 && $record?->delay_event_id === null)

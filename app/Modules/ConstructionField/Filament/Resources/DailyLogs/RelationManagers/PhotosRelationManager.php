@@ -135,7 +135,7 @@ class PhotosRelationManager extends RelationManager
             ->contentGrid(['md' => 2, 'xl' => 3])
             ->columns([
                 ImageColumn::make('file_path')
-                    ->label(__(''))
+                    ->label(fn (): string => '')
                     ->disk('public')
                     ->height(140),
 

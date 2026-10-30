@@ -84,7 +84,7 @@ class UserForm
                 // company whose panel you are currently in. Not a real column —
                 // hydrated/synced by the Create/Edit pages.
                 Select::make('roles')
-                    ->label('Roles in '.(Filament::getTenant()?->name ?? 'this company'))
+                    ->label(__('Roles in :company', ['company' => Filament::getTenant()?->name ?? __('this company')]))
                     ->multiple()
                     ->options(fn (): array => Role::query()
                         ->where('company_id', app(PermissionRegistrar::class)->getPermissionsTeamId())

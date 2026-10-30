@@ -168,7 +168,7 @@ class NcrForm
                         DatePicker::make('preventive_done_on')->label(__('Done'))->native(false),
 
                         Placeholder::make('capa_note')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (?Ncr $record): bool => $record?->fixedButNotPrevented() ?? false)
                             ->content('The corrective action is done and this is not. That is the commonest CAPA failure: the pour gets fixed and the reason it happened does not.'),

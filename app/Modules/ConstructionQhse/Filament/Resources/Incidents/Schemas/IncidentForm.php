@@ -71,7 +71,7 @@ class IncidentForm
                             ->helperText('Kept separately, because the delay between the two is a safety measure in its own right.'),
 
                         Placeholder::make('reporting_delay')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (callable $get): bool => filled($get('occurred_at')) && filled($get('reported_at')))
                             ->content(function (callable $get): string {

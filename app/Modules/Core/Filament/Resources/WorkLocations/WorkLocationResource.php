@@ -92,7 +92,7 @@ class WorkLocationResource extends Resource
                 // docs/saas-launch-plan.md §14.10. The flag is a badge rather than a
                 // column of mostly-empty ticks.
                 TextColumn::make('is_head_office')
-                    ->label(__(''))
+                    ->label(fn (): string => '')
                     ->badge()
                     ->color('primary')
                     ->state(fn (WorkLocation $record): string => $record->is_head_office ? 'Head office' : '')

@@ -116,7 +116,7 @@ class PermitForm
                             ->live(onBlur: true),
 
                         Placeholder::make('window')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (callable $get): bool => filled($get('valid_from')) && filled($get('valid_to')))
                             ->content(function (callable $get): string {
@@ -140,7 +140,7 @@ class PermitForm
                     ->columns(1)
                     ->schema([
                         Placeholder::make('required_details')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->visible(fn (callable $get): bool => isset(self::PROMPTS[$get('type') ?? '']))
                             ->content(fn (callable $get): string => self::PROMPTS[$get('type')] ?? ''),
 

@@ -95,7 +95,7 @@ class InspectionForm
                             ->visible(fn (callable $get): bool => blank($get('itp_activity_id'))),
 
                         Placeholder::make('from_plan')
-                            ->label(__(''))
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (callable $get): bool => filled($get('itp_activity_id')))
                             ->content('The point type and notice period come from the plan and are frozen onto this inspection when it is requested — a later revision of the ITP cannot change what this inspection meant.'),
