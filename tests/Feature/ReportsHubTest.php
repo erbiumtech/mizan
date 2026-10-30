@@ -90,7 +90,13 @@ class ReportsHubTest extends TestCase
         // only fails if an unexpected label here is an error. User Manual earns
         // its place beside Reports for the same reason Reports has one — it is a
         // door to everything rather than one more screen.
-        $this->assertSame(['Dashboard', 'Reports', 'User Manual'], $navigation[''] ?? []);
+        //
+        // **My Work joined on 2026-10-31** — docs/project-management-plan.md §5.5. It is ungrouped
+        // for the same reason Personal is: it is about the person looking at it rather than about
+        // the company, and People is where you go to act on somebody else's record. It is also not
+        // a report, which is the thing this list exists to keep out: it is one board, derived from
+        // whose name is on the items, and it has no hub to live inside.
+        $this->assertSame(['Dashboard', 'Reports', 'User Manual', 'My Work'], $navigation[''] ?? []);
 
         $everything = collect($navigation)->flatten()->all();
         $this->assertSame(1, collect($everything)->filter(fn (string $l) => $l === 'Reports')->count());

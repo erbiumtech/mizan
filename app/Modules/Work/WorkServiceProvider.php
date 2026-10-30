@@ -3,6 +3,7 @@
 namespace App\Modules\Work;
 
 use App\Modules\Work\Models\WorkAttachment;
+use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkItemLink;
 use App\Modules\Work\Models\WorkLabel;
@@ -10,6 +11,7 @@ use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Models\WorkWorkflowRule;
 use App\Modules\Work\Policies\WorkAttachmentPolicy;
+use App\Modules\Work\Policies\WorkBoardPolicy;
 use App\Modules\Work\Policies\WorkItemLinkPolicy;
 use App\Modules\Work\Policies\WorkItemPolicy;
 use App\Modules\Work\Policies\WorkLabelPolicy;
@@ -38,6 +40,7 @@ class WorkServiceProvider extends ServiceProvider
         WorkLabel::class => WorkLabelPolicy::class,
         WorkAttachment::class => WorkAttachmentPolicy::class,
         WorkItemLink::class => WorkItemLinkPolicy::class,
+        WorkBoard::class => WorkBoardPolicy::class,
     ];
 
     public function boot(): void

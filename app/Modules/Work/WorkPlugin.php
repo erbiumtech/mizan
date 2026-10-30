@@ -19,6 +19,12 @@ class WorkPlugin implements Plugin
             in: __DIR__.'/Filament/Resources',
             for: __NAMESPACE__.'\Filament\Resources',
         );
+
+        // The board and My Work. Each gates itself on the module through BelongsToModule.
+        $panel->discoverPages(
+            in: __DIR__.'/Filament/Pages',
+            for: __NAMESPACE__.'\Filament\Pages',
+        );
     }
 
     public function boot(Panel $panel): void

@@ -3079,3 +3079,258 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
         color: var(--color-gray-400);
     }
 }
+
+/*
+ * ============================================================================
+ * The board
+ * ============================================================================
+ *
+ * Columns that scroll sideways as a set and vertically one at a time — docs/project-management-plan.md
+ * §5. The one rule worth stating: a column over its WIP limit is coloured on the column, not on the
+ * cards in it. The limit is a property of the column, and marking twelve cards to say one column is
+ * too full is twelve things to read instead of one.
+ */
+
+.fi-board {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.fi-board-column {
+    display: flex;
+    flex: 0 0 18rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: calc(100vh - 18rem);
+    padding: 0.625rem;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    background-color: var(--color-gray-50);
+
+    /* Over its limit. The column says so; the cards are left alone. */
+    &.fi-over {
+        border-color: var(--color-danger-400);
+        background-color: color-mix(in oklab, var(--color-danger-500) 6%, transparent);
+    }
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        background-color: var(--color-gray-950);
+    }
+}
+
+.fi-board-column-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.fi-board-column-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-gray-600);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-300);
+    }
+}
+
+.fi-board-column-count {
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-gray-500);
+
+    .fi-over & {
+        font-weight: 700;
+        color: var(--color-danger-600);
+    }
+}
+
+.fi-board-lane {
+    margin: 0.25rem 0 0;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-gray-500);
+}
+
+/* The drop target. Keeps a minimum height so an empty column can still be dropped into. */
+.fi-board-stack {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 3rem;
+    overflow-y: auto;
+}
+
+.fi-board-card {
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    background-color: var(--color-white, #fff);
+    cursor: grab;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        background-color: var(--color-gray-900);
+    }
+}
+
+/* What SortableJS leaves behind while a card is in the air. */
+.fi-sortable-ghost {
+    opacity: 0.4;
+}
+
+.fi-board-card-key {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-primary-600);
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.fi-board-card-title {
+    margin: 0.1875rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        color: var(--color-gray-100);
+    }
+}
+
+.fi-board-card-labels,
+.fi-board-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0.375rem 0 0;
+}
+
+.fi-board-type {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-gray-500);
+}
+
+.fi-board-chip {
+    padding: 0.0625rem 0.375rem;
+    border-radius: 0.3125rem;
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-600);
+    font-size: 0.625rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &.fi-blocked,
+    &.fi-overdue {
+        background-color: var(--color-danger-50);
+        color: var(--color-danger-700);
+    }
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-800);
+        color: var(--color-gray-300);
+    }
+
+    &.fi-blocked:where(.dark, .dark *),
+    &.fi-overdue:where(.dark, .dark *) {
+        background-color: color-mix(in oklab, var(--color-danger-400) 15%, transparent);
+        color: var(--color-danger-300);
+    }
+}
+
+/* Initials rather than a photograph: a board shows forty of these and loads none of them. */
+.fi-board-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-inline-start: auto;
+    border-radius: 9999px;
+    background-color: var(--color-primary-600);
+    color: var(--color-white, #fff);
+    font-size: 0.5625rem;
+    font-weight: 700;
+}
+
+.fi-board-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.fi-board-project,
+.fi-board-search {
+    padding: 0.3125rem 0.625rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+    background-color: var(--color-white, #fff);
+    font-size: 0.8125rem;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        background-color: var(--color-gray-900);
+        color: var(--color-gray-100);
+    }
+}
+
+.fi-board-toggles {
+    display: flex;
+    gap: 0.25rem;
+    margin-inline-start: auto;
+}
+
+.fi-board-toggle {
+    padding: 0.3125rem 0.625rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+    background-color: transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-gray-600);
+    cursor: pointer;
+
+    &.fi-on {
+        border-color: var(--color-primary-600);
+        background-color: var(--color-primary-50);
+        color: var(--color-primary-700);
+    }
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+        color: var(--color-gray-300);
+    }
+
+    &.fi-on:where(.dark, .dark *) {
+        background-color: color-mix(in oklab, var(--color-primary-400) 15%, transparent);
+        color: var(--color-primary-300);
+    }
+}
+
+.fi-board-unmapped,
+.fi-board-empty {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+}

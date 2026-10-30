@@ -41,6 +41,12 @@ return [
         'App\\Models\\WorkLabel' => \App\Modules\Work\Models\WorkLabel::class,
         'App\\Models\\WorkAttachment' => \App\Modules\Work\Models\WorkAttachment::class,
         'App\\Models\\WorkItemLink' => \App\Modules\Work\Models\WorkItemLink::class,
+        'App\\Models\\WorkBoard' => \App\Modules\Work\Models\WorkBoard::class,
+    ],
+
+    'pages' => [
+        'App\\Filament\\Pages\\Board' => \App\Modules\Work\Filament\Pages\Board::class,
+        'App\\Filament\\Pages\\MyWork' => \App\Modules\Work\Filament\Pages\MyWork::class,
     ],
 
     'resources' => [
@@ -76,6 +82,12 @@ return [
             'help' => 'How a work item ended. Asked for when a status requires it — see the workflow rules.',
             'values' => ['Done', 'Won\'t do', 'Duplicate', 'Cannot reproduce'],
         ],
+    ],
+
+    'navigation_items' => [
+        // Beside the other screens about the person looking at them, not about the company —
+        // the same reason NavigationDomains gives for putting Personal in Home.
+        \App\Modules\Work\Filament\Pages\MyWork::class => 'home',
     ],
 
     'navigation' => [
