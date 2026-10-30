@@ -28,6 +28,9 @@ return [
         'App\\Models\\LetterRequest' => \App\Modules\Employees\Models\LetterRequest::class,
         // What has been proved about an employee record — §14.8.
         'App\\Models\\EmployeeVerification' => \App\Modules\Employees\Models\EmployeeVerification::class,
+        // Brand Studio — docs/saas-launch-plan.md §14.10.
+        'App\\Models\\EmployeeIdCard' => \App\Modules\Employees\Models\EmployeeIdCard::class,
+        'App\\Models\\BusinessCardOrder' => \App\Modules\Employees\Models\BusinessCardOrder::class,
     ],
 
     'resources' => [
@@ -39,6 +42,8 @@ return [
         'App\\Filament\\Resources\\Announcements\\AnnouncementResource' => \App\Modules\Employees\Filament\Resources\Announcements\AnnouncementResource::class,
         'App\\Filament\\Resources\\LetterTemplates\\LetterTemplateResource' => \App\Modules\Employees\Filament\Resources\LetterTemplates\LetterTemplateResource::class,
         'App\\Filament\\Resources\\LetterRequests\\LetterRequestResource' => \App\Modules\Employees\Filament\Resources\LetterRequests\LetterRequestResource::class,
+        'App\\Filament\\Resources\\IdCards\\IdCardResource' => \App\Modules\Employees\Filament\Resources\IdCards\IdCardResource::class,
+        'App\\Filament\\Resources\\BusinessCardOrders\\BusinessCardOrderResource' => \App\Modules\Employees\Filament\Resources\BusinessCardOrders\BusinessCardOrderResource::class,
     ],
 
     'widgets' => [
@@ -229,6 +234,7 @@ return [
         'App\\Filament\\Pages\\Demographics' => \App\Modules\Employees\Filament\Pages\Demographics::class,
         // Where somebody confirms their own phone and address — docs/saas-launch-plan.md §14.8.
         'App\\Filament\\Pages\\ConfirmDetails' => \App\Modules\Employees\Filament\Pages\ConfirmDetails::class,
+        'App\\Filament\\Pages\\MyEmailSignature' => \App\Modules\Employees\Filament\Pages\MyEmailSignature::class,
     ],
 
     'navigation' => [

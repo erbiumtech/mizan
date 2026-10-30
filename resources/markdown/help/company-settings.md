@@ -41,6 +41,15 @@ highest already in use with the new prefix.
 **Favicon** is the icon in the browser tab for this company's panel. A square PNG, 32 or 64
 pixels. Without one the tab carries the platform's icon.
 
+**Brand colour**, **text colour** and **typeface** are the brand kit. They govern three things —
+the ID card, the business card and the email signature — and nothing else. A company wanting more
+than two colours and a typeface wants a designer, and a product offering more would be offering a
+worse one than they already have.
+
+The typeface is a choice from four rather than a name you type, because a PDF has to *have* the
+font: a free-text name produces a card that looks right in the browser and falls back to Times in
+the PDF. A colour that is not six hex digits is ignored rather than printed.
+
 ## Payslips and letters
 
 Two lines of your own wording, and which parts of a payslip print.

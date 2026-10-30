@@ -550,6 +550,18 @@ class Employee extends Model
         return $parts === [] ? null : implode(', ', $parts);
     }
 
+    /**
+     * The employee's photo, embedded — docs/saas-launch-plan.md §14.10.
+     *
+     * Through `CompanyLetterhead::imageOnDisk()` rather than a third copy of the
+     * base64 dance: it reads the real mime type, and a PDF that embeds a JPEG labelled
+     * as a PNG is a PDF some readers refuse.
+     */
+    public function photoDataUri(): ?string
+    {
+        return \App\Support\CompanyLetterhead::imageOnDisk($this->photo_path);
+    }
+
     /** Erased: the person emptied out of the record, the record kept. */
     public function isAnonymised(): bool
     {

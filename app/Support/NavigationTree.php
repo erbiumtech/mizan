@@ -57,6 +57,11 @@ class NavigationTree
                 // The letter queue — plan §14.7. Beside Change Requests: both are an employee
                 // asking for something and somebody deciding.
                 'Letter Requests',
+                // Brand Studio — plan §14.10. The three things a company puts its name on
+                // and hands to a person.
+                'ID Cards',
+                'Business Cards',
+                'My Email Signature',
             ],
             'Payroll' => [
                 'Payroll Months',

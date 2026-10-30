@@ -138,10 +138,21 @@ class PanelPerformanceTest extends TestCase
      * statements against nineteen tables on one connection, and a badge registry that collected them into
      * one round trip per request would turn the whole band into a handful.
      */
+    /*
+     * **Moved again on 2026-10-30, for one more badge and one more settings read.**
+     * §14.10's business-card queue carries a count beside its name, and the field-visit
+     * screens read whether enrolment is required. Same sanctioned shape as the move
+     * above: the count is the feature, `NavigationBadge` memoises it for a minute, and
+     * the warm budgets are untouched.
+     *
+     * This is now the third move in three phases, which is the signal the note above
+     * describes: nineteen separate `select count(*)` statements is where a badge
+     * registry collecting them into one round trip per request stops being premature.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 39, 'warm' => 9],
-        'employees' => ['cold' => 37, 'warm' => 11],
-        'reports' => ['cold' => 30, 'warm' => 7],
+        'dashboard' => ['cold' => 41, 'warm' => 9],
+        'employees' => ['cold' => 38, 'warm' => 11],
+        'reports' => ['cold' => 31, 'warm' => 7],
     ];
 
     private Company $company;

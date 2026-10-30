@@ -169,6 +169,19 @@ final class CompanyLetterhead
         }
     }
 
+    /**
+     * Any image on the tenant's own disk, as a data URI.
+     *
+     * Public since §14.10: an ID card needs the employee's photo embedded the same way
+     * the letterhead needs the logo, and `pdfs/employee.blade.php` had already written
+     * a weaker copy of this in a Blade closure — one that guesses the mime from the
+     * extension instead of reading it.
+     */
+    public static function imageOnDisk(?string $path): ?string
+    {
+        return self::imageDataUri((string) $path);
+    }
+
     private static function imageDataUri(string $path): ?string
     {
         if ($path === '') {

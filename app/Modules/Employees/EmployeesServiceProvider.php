@@ -55,6 +55,8 @@ class EmployeesServiceProvider extends ServiceProvider
         \App\Modules\Employees\Models\Department::class => \App\Modules\Employees\Policies\DepartmentPolicy::class,
         \App\Modules\Employees\Models\Designation::class => \App\Modules\Employees\Policies\DesignationPolicy::class,
         \App\Modules\Employees\Models\EmployeeVerification::class => \App\Modules\Employees\Policies\EmployeeVerificationPolicy::class,
+        \App\Modules\Employees\Models\EmployeeIdCard::class => \App\Modules\Employees\Policies\EmployeeIdCardPolicy::class,
+        \App\Modules\Employees\Models\BusinessCardOrder::class => \App\Modules\Employees\Policies\BusinessCardOrderPolicy::class,
     ];
 
     public function boot(): void
@@ -156,6 +158,9 @@ class EmployeesServiceProvider extends ServiceProvider
         DocumentVerification::register('income-certificate', fn (int $id): ?array => ($e = $employee($id)) ? app(IncomeCertificate::class)->verificationFacts($e) : null);
         DocumentVerification::register('experience-letter', fn (int $id): ?array => ($e = $employee($id)) ? app(ExperienceLetter::class)->verificationFacts($e) : null);
         DocumentVerification::register('appointment-letter', fn (int $id): ?array => ($e = $employee($id)) ? app(AppointmentLetter::class)->verificationFacts($e) : null);
+        // A staff card answers the same way every other document here does: recomputed
+        // from the live record — docs/saas-launch-plan.md §14.10.
+        DocumentVerification::register(\App\Modules\Employees\Models\EmployeeIdCard::KIND, fn (int $id): ?array => app(\App\Modules\Employees\Services\IdCards::class)->verificationFacts($id));
 
         // NIC scans stream only to the employee's own reporting line — security audit finding 10.
         TenantFileAccess::register(function (User $user, Company $company, string $path): ?bool {

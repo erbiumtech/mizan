@@ -147,7 +147,9 @@ class DocumentVerificationTest extends AccountingTestCase
         $this->tenant->makeCurrent();
 
         $this->assertEqualsCanonicalizing(
-            ['payslip', 'income-certificate', 'experience-letter', 'appointment-letter', 'offer-letter', 'employment-contract'],
+            // 'id-card' since 2026-10-30 — docs/saas-launch-plan.md §14.10. A staff card
+            // answers the same way every other document here does.
+            ['payslip', 'income-certificate', 'experience-letter', 'appointment-letter', 'offer-letter', 'employment-contract', 'id-card'],
             DocumentVerification::kinds(),
         );
 

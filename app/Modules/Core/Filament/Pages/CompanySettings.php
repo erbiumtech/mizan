@@ -268,6 +268,9 @@ class CompanySettings extends Page
         'company_strn' => 'company.strn',
         'company_date_format' => 'company.date_format',
         'company_favicon_path' => 'company.favicon_path',
+        'company_brand_colour' => 'company.brand.colour',
+        'company_brand_accent' => 'company.brand.accent',
+        'company_brand_typeface' => 'company.brand.typeface',
         'employees_code_prefix' => 'employees.code_prefix',
         'company_signatory_name' => 'company.signatory_name',
         'company_signatory_title' => 'company.signatory_title',
@@ -395,6 +398,36 @@ class CompanySettings extends Page
                     ->acceptedFileTypes(['image/png', 'image/jpeg'])
                     ->maxSize(2048)
                     ->helperText('Printed at the top of payslips, invoices and letters, and shown as this company\'s panel brand. Without one, documents carry the company name as text — exactly as before.'),
+
+                /*
+                 * The brand kit — docs/saas-launch-plan.md §14.10.
+                 *
+                 * Two colours and a choice of four typefaces, not a design tool. What they
+                 * govern is an ID card, a business card and an email signature; a company
+                 * wanting more than this wants a designer.
+                 *
+                 * The typeface is a choice rather than a name because a PDF has to *have*
+                 * the font: a free-text name produces a card that looks right in the browser
+                 * and falls back to Times in the PDF.
+                 */
+                TextInput::make('company_brand_colour')
+                    ->label('Brand colour')
+                    ->maxLength(7)
+                    ->placeholder(\App\Support\BrandKit::DEFAULT_COLOUR)
+                    ->rule('regex:/^#[0-9a-fA-F]{6}$/')
+                    ->helperText('Six hex digits, like #0f766e. The band on an ID card and the rule beside a signature.'),
+
+                TextInput::make('company_brand_accent')
+                    ->label('Text colour')
+                    ->maxLength(7)
+                    ->placeholder(\App\Support\BrandKit::DEFAULT_ACCENT)
+                    ->rule('regex:/^#[0-9a-fA-F]{6}$/')
+                    ->helperText('The darker one, for text that sits on white.'),
+
+                Select::make('company_brand_typeface')
+                    ->label('Typeface')
+                    ->options(\App\Support\BrandKit::typefaceOptions())
+                    ->placeholder(\App\Support\BrandKit::typefaceOptions()[\App\Support\BrandKit::DEFAULT_TYPEFACE]),
 
                 // The browser tab — §14.10. Small and square, and ICO is not accepted
                 // because every browser has taken PNG for a decade and an ICO is a file

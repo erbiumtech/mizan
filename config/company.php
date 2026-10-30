@@ -47,6 +47,21 @@ return [
     'favicon_path' => '',
 
     /*
+    | The brand kit — docs/saas-launch-plan.md §14.10. Two colours and a typeface key
+    | from App\Support\BrandKit::TYPEFACES. They govern an ID card, a business card and
+    | an email signature, and nothing else.
+    |
+    | A colour that is not six hex digits falls back to the shipped one rather than
+    | reaching a `style` attribute: these values are printed into PDFs and into HTML
+    | somebody pastes into a mail client.
+    */
+    'brand' => [
+        'colour' => env('COMPANY_BRAND_COLOUR', ''),
+        'accent' => env('COMPANY_BRAND_ACCENT', ''),
+        'typeface' => env('COMPANY_BRAND_TYPEFACE', 'sans'),
+    ],
+
+    /*
     | Who signs. A title rather than a person is the default because the office
     | outlasts whoever holds it, and a certificate signed by a name nobody at the
     | company recognises is a certificate the bank calls about.
