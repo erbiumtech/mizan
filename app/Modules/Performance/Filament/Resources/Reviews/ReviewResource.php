@@ -181,6 +181,8 @@ class ReviewResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Eager: the increment action's label and state read the request per row.
+            ->modifyQueryUsing(fn ($query) => $query->with(['incrementRequest']))
             ->columns([
                 TextColumn::make('employee.display_label')
                     ->label('Employee')

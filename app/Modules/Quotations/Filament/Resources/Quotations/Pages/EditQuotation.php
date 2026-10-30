@@ -12,6 +12,14 @@ class EditQuotation extends EditRecord
 
     protected static string $resource = QuotationResource::class;
 
+    /** A draft's totals follow its lines; a sent quote's stay as they were sent. */
+    protected function afterSave(): void
+    {
+        if ($this->record->isDraft()) {
+            $this->record->recalculate();
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [\Filament\Actions\DeleteAction::make()];

@@ -70,7 +70,7 @@ class InterviewResource extends Resource
                         return $summary['given'].' of '.$summary['of'].($summary['average'] !== null ? ' · avg '.$summary['average'] : '');
                     })
                     ->color(fn (Interview $r): string => app(Interviews::class)->feedbackSummary($r)['given'] > 0 ? 'success' : 'warning'),
-                TextColumn::make('outcome')->badge()->color(fn (string $s): string => match ($s) {
+                TextColumn::make('outcome')->badge()->color(fn (string $state): string => match ($state) {
                     'passed' => 'success', 'failed', 'no_show' => 'danger', default => 'warning'
                 }),
             ])

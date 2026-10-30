@@ -2,8 +2,10 @@
 
 namespace App\Modules\Recruitment\Services;
 
+use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Core\Models\User;
+use App\Modules\Core\Services\CompanyInvitations;
 use App\Modules\Employees\Events\EmployeeJoined;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeSetting;
@@ -12,6 +14,7 @@ use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Offer;
 use App\Support\TenantTransaction;
+use Filament\Facades\Filament;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -198,14 +201,16 @@ class HireService
             );
         }
 
-        return User::create([
-            'name' => $applicant->name,
-            'email' => $applicant->email,
-            // A random password nobody is told: the person resets it. Issuing a known
-            // password in a hire flow means a credential somebody has to transmit.
-            'password' => bcrypt(bin2hex(random_bytes(16))),
-            'status' => 1,
-        ]);
+        $company = Company::current() ?? (($tenant = Filament::getTenant()) instanceof Company ? $tenant : null);
+
+        if ($company === null) {
+            throw new InvalidArgumentException('A login belongs to a company, and there is none in scope. Hire without one.');
+        }
+
+        // The path Employees → Activate takes: membership, the Employee role, and a link to set the
+        // password — still nobody is told one. A bare User::create left a login with no role here,
+        // a panel with nothing in it.
+        return app(CompanyInvitations::class)->invite($company, $applicant->email, $applicant->name, ['Employee'], auth()->user())['user'];
     }
 
     private function fiscalYearFor(Offer $offer): ?FiscalYear

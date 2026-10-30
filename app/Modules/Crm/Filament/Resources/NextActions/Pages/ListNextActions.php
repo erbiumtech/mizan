@@ -14,7 +14,8 @@ class ListNextActions extends ListRecords
     {
         return [
             HelpAction::make('next-actions', 'Next Actions: Help'),
-            \Filament\Actions\CreateAction::make(),
+            // No "New": an action is made from the deal, lead or customer it is about — see
+            // NextActionResource::canCreate().
         ];
     }
 }

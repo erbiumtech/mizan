@@ -157,6 +157,8 @@ class QuotationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Eager: the party column, read per row.
+            ->modifyQueryUsing(fn ($query) => $query->with(['contact', 'lead']))
             ->columns([
                 TextColumn::make('number')
                     ->searchable()

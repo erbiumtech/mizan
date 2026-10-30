@@ -117,6 +117,8 @@ class TicketResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Eager: the customer under the subject, read per row.
+            ->modifyQueryUsing(fn ($query) => $query->with(['contact']))
             ->columns([
                 TextColumn::make('number')->searchable()->sortable(),
 

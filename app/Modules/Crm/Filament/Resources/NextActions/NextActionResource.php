@@ -58,6 +58,16 @@ class NextActionResource extends Resource
         return $query;
     }
 
+    /**
+     * Made from the deal, lead or customer it is about, never from this list: the subject is
+     * carried rather than chosen (see form()), so a free-standing one had none and failed on
+     * the NOT NULL subject columns.
+     */
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     /** What is due today or overdue — the number somebody should act on. */
     public static function getNavigationBadge(): ?string
     {

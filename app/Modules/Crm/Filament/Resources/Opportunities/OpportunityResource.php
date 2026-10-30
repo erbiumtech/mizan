@@ -178,6 +178,8 @@ class OpportunityResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Eager: the party under the title and the lost reason under the stage, read per row.
+            ->modifyQueryUsing(fn ($query) => $query->with(['contact', 'lead', 'lostReason']))
             ->columns([
                 TextColumn::make('title')
                     ->searchable()

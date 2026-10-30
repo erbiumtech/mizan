@@ -22,6 +22,8 @@ class LeadsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // Eager: the status column names the customer a converted lead became.
+            ->modifyQueryUsing(fn ($query) => $query->with(['convertedContact']))
             ->columns([
                 TextColumn::make('company_name')
                     ->label('Company')

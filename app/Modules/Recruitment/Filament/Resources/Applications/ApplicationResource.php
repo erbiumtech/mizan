@@ -93,6 +93,8 @@ class ApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Eager: the offer, hire and letter actions each ask for the offer per row.
+            ->modifyQueryUsing(fn ($query) => $query->with(['offer']))
             ->columns([
                 TextColumn::make('applicant.name')->label('Applicant')->searchable()->sortable(),
                 TextColumn::make('vacancy.title')->label('Vacancy')->searchable()->sortable(),

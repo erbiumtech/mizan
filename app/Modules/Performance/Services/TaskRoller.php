@@ -45,6 +45,12 @@ class TaskRoller
             }
 
             foreach ($task->assignees() as $employee) {
+                // Not before they join nor after they leave: `is_active` alone handed a hire
+                // with a future joining date a missed task, and its penalty, every day until then.
+                if ($employee->date_of_joining?->gt($today) || $employee->left_on?->lt($today)) {
+                    continue;
+                }
+
                 if ($task->working_days_only && ! $this->isWorkingDay($employee, $today)) {
                     continue;
                 }

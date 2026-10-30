@@ -42,6 +42,13 @@ class ReportVerdicts
             return $report;
         }
 
+        // A reply with no verdict field is no verdict, as above. The `local` driver is the command
+        // bar's pattern parser, which fills only the fields it knows — and a missing verdict used to
+        // be stamped "thin" on every report.
+        if (! array_key_exists('verdict', $reply)) {
+            return $report;
+        }
+
         $verdict = in_array($reply['verdict'] ?? null, DailyReport::VERDICTS, true) ? $reply['verdict'] : DailyReport::VERDICT_THIN;
 
         $report->forceFill([

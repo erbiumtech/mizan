@@ -191,12 +191,16 @@ class RecruitmentAndPerformanceTest extends TestCase
 
     public function test_a_login_is_created_when_asked_for(): void
     {
+        // A provisioned company always has the Employee role; the hire invites the login into it.
+        \Spatie\Permission\Models\Role::create(['name' => 'Employee', 'guard_name' => 'web', 'company_id' => $this->tenant->getKey()]);
         $offer = $this->makeOffer();
 
         $employee = app(HireService::class)->hire($offer, withLogin: true);
 
         $this->assertNotNull($employee->user_id);
         $this->assertSame('sana@example.test', $employee->user->email);
+        $this->assertTrue($employee->user->hasRole('Employee'), 'the hire gave the login no role, so it could reach nothing');
+        $this->assertTrue($employee->user->companies()->whereKey($this->tenant->getKey())->exists(), 'the login is not a member of the company');
     }
 
     public function test_a_login_needs_an_email(): void

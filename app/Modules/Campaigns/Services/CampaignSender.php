@@ -143,7 +143,7 @@ class CampaignSender
         $sent = 0;
         $skipped = 0;
 
-        foreach ($campaign->sends()->where('status', CampaignSend::STATUS_PENDING)->get() as $send) {
+        foreach ($campaign->sends()->with(['contact', 'lead'])->where('status', CampaignSend::STATUS_PENDING)->get() as $send) {
             $recipient = $send->recipient();
 
             if (! $recipient || ! Consent::permits($recipient, $campaign->channel)) {
