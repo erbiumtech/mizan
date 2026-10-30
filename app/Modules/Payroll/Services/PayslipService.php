@@ -160,12 +160,79 @@ class PayslipService
     }
 
     /**
-     * This payslip's eight typed overrides, keyed by component — the input map the save hook and the backfill
-     * both build. The values are the columns today; Phase 3 moves the genuine ones onto the store.
+     * This payslip's eight typed overrides, keyed by component, read from the input store — Phase 5's first
+     * step (docs/payslip-component-input-plan.md). A key with no row is null: not overridden, so the setting,
+     * the ledger or the claims decide. A stored 0 comes back as 0.0, which the save keeps as a deliberate zero.
+     *
+     * Nothing here reads a figure column. A payslip that does not exist yet has no store and so no overrides;
+     * the input a writer passed on the row itself is lifted by liftTypedInput(), not read back here.
+     *
+     * @return array<string, float|null>
+     */
+    public function typedOverridesOf(Payslip $payslip): array
+    {
+        $typed = array_fill_keys(self::OVERRIDE_KEYS, null);
+
+        if ($payslip->exists) {
+            foreach ($this->overridesFromStore((int) $payslip->getKey()) as $key => $amount) {
+                $typed[$key] = $amount;
+            }
+        }
+
+        return $typed;
+    }
+
+    /**
+     * The typed input a save carries, with the columns left as output only.
+     *
+     * The bridge between the two ways a payslip is written. A writer that set `Payslip::$typedOverrides`
+     * (the form, the monthly run, a pay adjustment) never reaches this. Everything else — a direct create
+     * with `bonus => 5000` in the attributes, an `update(['bonus' => 5000])`, a `$payslip->bonus = 0` — has
+     * its input *lifted off the row* here: the value becomes this save's typed override, and the attribute
+     * goes back to what the column held (or off a creating row), so an input column is never written by a
+     * caller. The calculation then writes every figure column as output, exactly as before.
+     *
+     * The lift reads the attribute the caller just set, not the stored column: once the columns are dropped
+     * (Phase 5's last step) a caller that still sets one lands here and is handled the same way, which is
+     * what makes the drop a schema change rather than a behaviour change.
+     *
+     * @return array<string, float|int|string|null>
+     */
+    public function liftTypedInput(Payslip $payslip): array
+    {
+        $typed = $this->typedOverridesOf($payslip);
+
+        foreach (self::OVERRIDE_KEYS as $key) {
+            if ($payslip->exists) {
+                if (! $payslip->isDirty($key)) {
+                    continue;
+                }
+
+                $typed[$key] = $payslip->getAttribute($key);
+                $payslip->setAttribute($key, $payslip->getOriginal($key));
+
+                continue;
+            }
+
+            if (! array_key_exists($key, $payslip->getAttributes())) {
+                continue;
+            }
+
+            $typed[$key] = $payslip->getAttribute($key);
+            unset($payslip->{$key});
+        }
+
+        return $typed;
+    }
+
+    /**
+     * The eight figure columns read as if they were the typed input — the pre-Phase-3 reading, kept for the
+     * backfill alone (payroll:backfill-component-inputs), whose whole job is to move what the columns hold
+     * onto the store. Nothing on the save path reads this.
      *
      * @return array<string, float|int|null>
      */
-    public function typedOverridesOf(Payslip $payslip): array
+    public function columnOverridesOf(Payslip $payslip): array
     {
         return [
             'bonus' => $payslip->bonus,

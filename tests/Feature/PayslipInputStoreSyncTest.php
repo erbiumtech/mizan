@@ -93,8 +93,7 @@ class PayslipInputStoreSyncTest extends AccountingTestCase
     {
         $payslip = $this->payslip(['device_allowance' => 7000]);
 
-        $payslip->device_allowance = 9000;
-        $payslip->save();
+        $payslip->saveWithInputs(['device_allowance' => 9000]);
         $payslip = $payslip->fresh();
 
         // The row is 9,000, not the 7,000 a previous save left; and the column is 9,000, which it would not be
@@ -107,8 +106,7 @@ class PayslipInputStoreSyncTest extends AccountingTestCase
     {
         $payslip = $this->payslip(['device_allowance' => 7000]);
 
-        $payslip->device_allowance = 0;
-        $payslip->save();
+        $payslip->saveWithInputs(['device_allowance' => 0]);
         $payslip = $payslip->fresh();
 
         $this->assertSame([], $this->stored($payslip), 'no override row survives the clear');
@@ -120,8 +118,9 @@ class PayslipInputStoreSyncTest extends AccountingTestCase
         $payslip = $this->payslip(['device_allowance' => 7000]);
         $net = (float) $payslip->net_salary;
 
-        // Re-saving reads the figure back from the store rather than the column; the net must not move.
-        $payslip->save();
+        // Re-saving reads the figure back from the store rather than the column; the net must not move. Forced
+        // through saveWithInputs, because a plain save() with nothing dirty would not run the hook at all.
+        $payslip->saveWithInputs([]);
 
         $this->assertSame($net, (float) $payslip->fresh()->net_salary);
     }

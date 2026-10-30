@@ -107,6 +107,49 @@ class Payslip extends Model
      */
     public ?array $zeroOverrides = null;
 
+    /**
+     * Create a payslip with this month's typed overrides on the input store — the way to build one in code.
+     *
+     * The second argument is the eight-key input (`bonus`, `extra_work_hours`, `device_allowance`,
+     * `petrol_allowance`, `advances`, `meal_deduction`, `esi_health_insurance`, `expense_reimbursement`);
+     * it never touches a column. A positive amount overrides the setting, the ledger or the claims for the
+     * month; 0 or null leaves the line to them. docs/payslip-component-input-plan.md Phase 5.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  array<string, float|int|string|null>  $inputs
+     */
+    public static function createWithInputs(array $attributes, array $inputs = []): static
+    {
+        $payslip = new static($attributes);
+        $payslip->typedOverrides = array_merge(array_fill_keys(PayslipService::OVERRIDE_KEYS, null), $inputs);
+        $payslip->save();
+
+        return $payslip;
+    }
+
+    /**
+     * Save with these typed overrides changed and every other line as the store already has it.
+     *
+     * Overrides alone leave no column dirty, so Eloquent would skip the save and the recalculation in its
+     * hook; the save is forced the way the edit page and PayAdjustments force theirs. Attributes filled
+     * before the call are saved with it.
+     *
+     * @param  array<string, float|int|string|null>  $inputs
+     */
+    public function saveWithInputs(array $inputs): bool
+    {
+        $this->typedOverrides = array_merge(app(PayslipService::class)->typedOverridesOf($this), $inputs);
+
+        if ($this->exists && ! $this->isDirty()) {
+            $stamp = $this->freshTimestamp();
+            $this->updated_at = $this->updated_at !== null && $stamp->format('Y-m-d H:i:s') <= $this->updated_at->format('Y-m-d H:i:s')
+                ? $this->updated_at->copy()->addSecond()
+                : $stamp;
+        }
+
+        return $this->save();
+    }
+
     /** Company setting: whether an employee's own follow-up counts as the reply to their objection — B13. */
     public const OBJECTION_EMPLOYEE_REPLY_COUNTS = 'payroll.objection_employee_reply_counts';
 
@@ -696,11 +739,18 @@ class Payslip extends Model
             $service = app(PayslipService::class);
 
             // The typed input and the month's recorded facts. The overrides come from the writer when one
-            // supplied them (the form, Phase 4), otherwise from the columns (the monthly run, the API).
-            // Captured here, before the figures below overwrite these columns with output — the inputs must
-            // not be read back from their own results.
-            $typed = $payslip->typedOverrides ?? $service->typedOverridesOf($payslip);
+            // supplied them (the form, the monthly run, a pay adjustment); otherwise from the input store,
+            // with any input a caller set on the row itself lifted off it (Phase 5, step 1 — nothing reads a
+            // figure column as input any more). Captured here, before the figures below overwrite the
+            // columns with output — the inputs must not be read back from their own results.
+            $typed = $payslip->typedOverrides ?? $service->liftTypedInput($payslip);
             $attendance = $service->attendanceOf($payslip);
+
+            // A creating payslip has no id for store rows yet; the created hook below syncs them from this
+            // same map, so it is kept on the instance until then and cleared once saved.
+            if (! $payslip->exists) {
+                $payslip->typedOverrides = $typed;
+            }
 
             // Phase 3 (docs/payslip-component-input-plan.md): the genuine per-month overrides are reconciled
             // onto the input store BEFORE the figures are computed, so a value changed this save wins over the
@@ -784,6 +834,10 @@ class Payslip extends Model
             if (! static::isReviewOnlyChange($payslip->getChanges())) {
                 $syncTax($payslip);
             }
+
+            // Consumed by this save. Left on the instance it would be taken as the next save's input too,
+            // and a later `update(['bonus' => …])` on the same object would be silently ignored.
+            $payslip->typedOverrides = null;
         });
         static::deleted($syncTax);
 

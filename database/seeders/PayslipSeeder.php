@@ -64,23 +64,28 @@ class PayslipSeeder extends Seeder
                 $extraHours = ($seed % 4 === 0) ? 2500 : 0;
                 $lopDays = ($seed % 7 === 0) ? 1 : 0;
 
-                $payslip = Payslip::firstOrCreate(
-                    [
-                        'employee_id' => $employee->id,
-                        'month' => $date->format('F'),
-                        'fiscal_year_id' => $fiscalYear->id,
-                    ],
-                    [
-                        'total_working_days' => $workingDays,
-                        'paid_days' => $workingDays - $lopDays,
-                        'lop_days' => $lopDays,
-                        'leaves_taken' => $lopDays,
-                        'bonus' => $bonus,
-                        'extra_work_hours' => $extraHours,
-                    ]
-                );
+                $where = [
+                    'employee_id' => $employee->id,
+                    'month' => $date->format('F'),
+                    'fiscal_year_id' => $fiscalYear->id,
+                ];
 
-                $payslip->wasRecentlyCreated ? $created++ : $skipped++;
+                if (Payslip::where($where)->exists()) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                // The bonus and the hours are this month's typed input, so they go on the input store rather
+                // than the columns — docs/payslip-component-input-plan.md Phase 5.
+                Payslip::createWithInputs($where + [
+                    'total_working_days' => $workingDays,
+                    'paid_days' => $workingDays - $lopDays,
+                    'lop_days' => $lopDays,
+                    'leaves_taken' => $lopDays,
+                ], ['bonus' => $bonus, 'extra_work_hours' => $extraHours]);
+
+                $created++;
             }
         }
 

@@ -72,14 +72,13 @@ class PayslipLedgerContractTest extends AccountingTestCase
 
     private function payslipFor(float $advances = 0.0): Payslip
     {
-        return Payslip::create([
+        return Payslip::createWithInputs([
             'employee_id' => $this->employee->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'month' => 'July',
             'total_working_days' => 22,
             'paid_days' => 22,
-            'advances' => $advances,
-        ]);
+        ], ['advances' => $advances]);
     }
 
     /** The bindings the whole inversion rests on. Left on the default, payroll would deduct nothing. */

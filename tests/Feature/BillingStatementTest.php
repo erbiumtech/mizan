@@ -326,7 +326,7 @@ class BillingStatementTest extends AccountingTestCase
         $employee = $this->employee('Ayesha Khan', 'EMP-1', 400000);
 
         $payslip = $this->payslip($employee);
-        $payslip->update(['expense_reimbursement' => 15000]);
+        $payslip->saveWithInputs(['expense_reimbursement' => 15000]);
 
         // Asserted first, so this test cannot pass by the reimbursement never having been
         // recorded at all — which is what it would prove if the column were not fillable.

@@ -270,7 +270,7 @@ class MonthlyScheduleTest extends AccountingTestCase
         $payroll->openMonth('August', $this->fiscalYear);
 
         $payslip = Payslip::where('employee_id', $employee->id)->firstOrFail();
-        $payslip->update(['paid_days' => 22, 'bonus' => 15000]);
+        $payslip->fill(['paid_days' => 22])->saveWithInputs(['bonus' => 15000]);
         $payslip->recordEmployeeReview(Payslip::REVIEW_ACCEPTED);
 
         $payroll->openMonth('August', $this->fiscalYear);

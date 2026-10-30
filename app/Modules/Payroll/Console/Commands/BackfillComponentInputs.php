@@ -73,7 +73,7 @@ class BackfillComponentInputs extends Command
         $connection->beginTransaction();
 
         foreach ($payslips as $payslip) {
-            $typed = $service->typedOverridesOf($payslip);
+            $typed = $service->columnOverridesOf($payslip);
             $attendance = $service->attendanceOf($payslip);
             $column = $this->figuresOf($payslip);
 

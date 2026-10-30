@@ -97,7 +97,7 @@ class PayslipReviewTest extends AccountingTestCase
         $this->assertSame('Overtime hours missing', $payslip->employee_rejection_reason);
 
         // Accounts team can still edit the payslip afterwards (rejection is advisory).
-        $payslip->update(['bonus' => 5000]);
+        $payslip->saveWithInputs(['bonus' => 5000]);
         $this->assertEquals(5000, $payslip->refresh()->bonus);
     }
 

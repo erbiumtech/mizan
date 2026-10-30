@@ -95,7 +95,7 @@ class PayrollPostingTest extends AccountingTestCase
         $payslip = $this->makePayslip();
         $originalEntryId = $payslip->journalEntries()->first()->id;
 
-        $payslip->update(['bonus' => 50000]);
+        $payslip->saveWithInputs(['bonus' => 50000]);
 
         $live = JournalEntry::forSource(Payslip::class)
             ->where('source_id', $payslip->id)
@@ -209,7 +209,7 @@ class PayrollPostingTest extends AccountingTestCase
         $child = $this->misfileChildUnderBasicSalary();
 
         try {
-            $payslip->update(['bonus' => 50000]);
+            $payslip->saveWithInputs(['bonus' => 50000]);
             $this->fail('expected the unpostable account to throw');
         } catch (RuntimeException) {
             // expected
@@ -226,7 +226,7 @@ class PayrollPostingTest extends AccountingTestCase
         // And it posts again once the chart is put right: this time the reversal is
         // real, because the replacement it makes room for is actually written.
         $child->update(['parent_id' => Account::where('code', '5000')->firstOrFail()->id]);
-        $payslip->update(['bonus' => 50000]);
+        $payslip->saveWithInputs(['bonus' => 50000]);
 
         $live = JournalEntry::forSource(Payslip::class)
             ->where('source_id', $payslip->id)
