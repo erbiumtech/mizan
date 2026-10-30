@@ -1,8 +1,11 @@
 # Desktop and mobile clients: the plan
 
 > Written 2026-09-27 from a code inventory, not aspiration. Nothing below is built
-> unless marked so. **Phase 0 was answered 2026-10-30** (§2), which ungates the M- and
-> A-series; what each answer settled is recorded beside its question.
+> unless marked so. **Phase 0 was answered 2026-10-30** (§2), and §7 is **built through
+> step 5 the same day**: M1 (the installable panel, which is D1), A3 (the push seam), M2
+> (push end to end), A4 and M3 (the bell and a manager's approvals over `/v1`). What each
+> answer settled is recorded beside its question; what remains is the O-series and the
+> gated M4/D2.
 
 ## 0. What is true today, and the one fact that reorders everything
 
@@ -119,31 +122,54 @@ module-gate 403 and tenant-resolution 422 documented in one place. Publish a sta
 OpenAPI file in `docs/` — 15 endpoints is a morning, and the shipped-client author needs
 it more than we do.
 
-**A3 — Push.** `device_tokens` table (landlord — devices belong to users), registration
+**A3 — Push.** **Built 2026-10-30** (`WebPushTest`): `device_tokens` is landlord-side with a
+`transport` column, `GET/POST /devices` and `DELETE /devices/{id}` register and revoke, the
+`webpush` channel sits behind `App\Support\Contracts\WebPushTransport` (minishlink/web-push
+for real, a recorder in tests) and `Broadcasting::channels()` appends it wherever a
+notification asks for `broadcast` — so every alerting notification already on that seam
+reaches a subscribed device with the bell's own title and body, unedited. Expired
+subscriptions are deleted on the push service's word; `webpush:keys` mints the VAPID pair.
+As planned: `device_tokens` table (landlord — devices belong to users), registration
 endpoint, and one seam: the existing `Broadcasting::channels()` (built for the Slack
 gate) grows push the same way — every one of the 17 `toBroadcast` classes inherits it
 for free, payload identical to the database/broadcast shape. Transport per Phase 0 Q4;
 the seam does not care.
 
-**A4 — Companion endpoints, scope per Phase 0 Q2.** Likely: notifications
+**A4 — Companion endpoints, scope per Phase 0 Q2.** **Built 2026-10-30** (`NotificationsApiTest`,
+`CompanionApprovalsApiTest`), on `/v1` only through `ApiRoutes::versioned()`: the bell
+(`GET /notifications`, `POST /notifications/{id}/read`, `POST /notifications/read-all`) and a
+manager's approvals (`GET /approvals/leave`, `/approvals/expense-claims`, each with
+`/{id}/approve` and `/{id}/refuse`), filtered by the panel's own `decide` policies and
+decided through `LeaveRequestService` and `ExpenseClaim::approve()/refuse()`. As planned: notifications
 (list/mark-read — the database notifications already exist), leave approvals for
 managers (`LeaveRequestService::decide()` is the seam), expense claim approvals.
 Only what the companion's screens actually draw.
 
 ## 4. M-series: the companion app
 
-**M1 — PWA-ify the panel.** Manifest (name/icons from the per-company branding that
+**M1 — PWA-ify the panel.** **Built 2026-10-30** (`PwaTest`): `/manifest.webmanifest?company=`
+wears the company's name and panel as start URL (the host decides on a custom domain), `/sw.js`
+is served from the root with `Service-Worker-Allowed`, `/offline` renders without a session, and
+the head tags come from a `HEAD_END` render hook. Icons stay the shipped mark: the company logo
+is behind the access-checked files route, which an installer fetching without cookies cannot read.
+No mobile polish pass beyond what Filament already does. As planned: manifest (name/icons from the per-company branding that
 `CompanyLetterhead` now serves — the tenant-aware brand landed 2026-09-27), a service
 worker that caches the app shell and answers offline with a "you're offline" page (not
 offline data), installability verified on Android/iOS/desktop Chrome. Mobile polish
 pass over the self-service pages only: payslip list/view, leave apply/balances,
 notifications. Filament is responsive; polish means thumb-sized, not redesigned.
 
-**M2 — Push wired end to end.** A3's transport delivering the 17 notifications to an
+**M2 — Push wired end to end.** **Built 2026-10-30** (`PushSubscribeTest`): the worker shows a push
+and opens its URL on tap; a per-device switch in the user menu asks permission, subscribes with
+the VAPID public key the head exposes, and records or forgets the subscription over the session
+(`POST/DELETE /push/subscriptions`). Renders nothing without keys or where the browser cannot push.
+As planned: A3's transport delivering the 17 notifications to an
 installed PWA (and/or the shipped native client through FCM); notification tap opens
 the right screen.
 
-**M3 — Manager approvals** on mobile (per Phase 0 Q2): approve/return leave and expense
+**M3 — Manager approvals** on mobile (per Phase 0 Q2). **Built 2026-10-30** as A4's approval
+endpoints; the notification a manager taps opens the panel's own screen, and a client drawing
+its own approval list has the endpoints. As planned: approve/return leave and expense
 claims from the notification. This is the feature that makes managers install it.
 
 **M4 — Native shell, gated.** Capacitor around the same PWA if Phase 0 Q3 demands store
@@ -245,7 +271,7 @@ workflow at a time, never by replication.
 
 ## 5. D-series: desktop
 
-**D1 — ships with M1.** The PWA manifest makes the panel installable on Windows/macOS;
+**D1 — ships with M1.** **Built 2026-10-30, with M1.** The PWA manifest makes the panel installable on Windows/macOS;
 web push (A3) gives desktop notifications. Nothing else to build.
 
 **D2 — Tauri wrapper, gated** on a named OS-level need. The first candidate on record
@@ -268,12 +294,12 @@ retail plan's own phases, not this document.
 
 | Step | What | Gate |
 |---|---|---|
-| 0 | Phase 0 answers (esp. locate the shipped client) | — |
-| 1 | A1 auth lifecycle + login throttle | none — overdue regardless |
-| 2 | A2 envelope + `/v1` + OpenAPI | A1 |
-| 3 | M1 PWA + mobile polish | Phase 0 Q1/Q2 |
-| 4 | A3 push seam + M2 delivery | Phase 0 Q4 |
-| 5 | A4 + M3 approvals | Phase 0 Q2 |
+| 0 | Phase 0 answers (esp. locate the shipped client) — **answered 2026-10-30** | — |
+| 1 | A1 auth lifecycle + login throttle — **built 2026-10-26** | none — overdue regardless |
+| 2 | A2 envelope + `/v1` + OpenAPI — **built 2026-10-26** | A1 |
+| 3 | M1 PWA + mobile polish — **built 2026-10-30** (D1 with it) | Phase 0 Q1/Q2 |
+| 4 | A3 push seam + M2 delivery — **built 2026-10-30** | Phase 0 Q4 |
+| 5 | A4 + M3 approvals — **built 2026-10-30** | Phase 0 Q2 |
 | 6 | O1 engine + attendance punches | A1, A2 |
 | 7 | O2 construction field offline | O1 |
 | 8 | O3 MPR offline entry | O1 |
