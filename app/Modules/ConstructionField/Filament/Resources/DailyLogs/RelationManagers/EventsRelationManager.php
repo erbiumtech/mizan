@@ -21,6 +21,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -89,6 +90,8 @@ class EventsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('description')
+            // What the columns and row actions read per row — one query each, not one per row.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['delayEvent']))
             ->columns([
                 TextColumn::make('kind')
                     ->badge()

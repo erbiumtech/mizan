@@ -119,7 +119,7 @@ class QhseActionsTable
             ->defaultSort('due_on')
             ->recordActions([
                 EditAction::make()
-                    ->visible(fn (QhseAction $record): bool => auth()->user()?->can('update', $record) ?? false),
+                    ->visible(fn (QhseAction $record): bool => $record->isLive() && (auth()->user()?->can('update', $record) ?? false)),
 
                 Action::make('start')
                     ->label('Start')

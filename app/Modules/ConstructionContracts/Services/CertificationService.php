@@ -244,8 +244,10 @@ class CertificationService
      *
      * Materials are retained at their own rate where the contract sets one — G702 splits retainage into 5a on
      * work and 5b on stored material for exactly this reason, and a single rate would misstate both.
+     *
+     * Public because a certifier's edit to a line has to land on the same figure — see CertificateLinesRelationManager.
      */
-    private function lineRetention(Contract $contract, ContractItem $item, float $work, float $materials): float
+    public function lineRetention(Contract $contract, ContractItem $item, float $work, float $materials): float
     {
         if (! $item->retention_applies) {
             return 0.0;

@@ -196,6 +196,8 @@ class ItemsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('reference')
+            // What the columns and row actions read per row — one query each, not one per row.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['location', 'responsible', 'inspections']))
             ->defaultSort('reference')
             ->columns([
                 TextColumn::make('reference')->label('No.')->sortable(),

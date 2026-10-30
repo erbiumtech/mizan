@@ -129,6 +129,8 @@ class PhotosRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('caption')
+            // What the columns and row actions read per row — one query each, not one per row.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['location', 'promotedDocument']))
             ->defaultSort('id')
             ->contentGrid(['md' => 2, 'xl' => 3])
             ->columns([

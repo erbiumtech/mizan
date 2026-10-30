@@ -167,7 +167,8 @@ class GoodsReceiptService
             throw new InvalidArgumentException("{$receipt->number} has no lines. Nothing was delivered.");
         }
 
-        $receipt->load('lines.job');
+        // Everything the posting loop reads per line, so a receipt of several lines is one query per relation.
+        $receipt->load(['lines.job', 'lines.commitmentLine', 'lines.costCode']);
 
         foreach ($receipt->lines as $line) {
             if ($line->goesToStore()) {

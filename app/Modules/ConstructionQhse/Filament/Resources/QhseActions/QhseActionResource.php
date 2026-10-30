@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /**
@@ -65,6 +66,16 @@ class QhseActionResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with(['job', 'subject']);
+    }
+
+    /**
+     * Only a live action is editable, whoever is asking. The policy says the same, but a super admin passes every
+     * gate, and the service then refused the save with an exception the page never caught — a 500 on a verified
+     * action instead of no Edit button.
+     */
+    public static function canEdit(Model $record): bool
+    {
+        return $record instanceof QhseAction && $record->isLive() && parent::canEdit($record);
     }
 
     public static function form(Schema $schema): Schema

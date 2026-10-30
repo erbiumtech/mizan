@@ -11,6 +11,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
 /**
@@ -49,6 +50,8 @@ class ReviewsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('round')
+            // What the columns and row actions read per row — one query each, not one per row.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['delayEvent']))
             ->defaultSort('round')
             ->columns([
                 TextColumn::make('round')->label('Round')->badge(),

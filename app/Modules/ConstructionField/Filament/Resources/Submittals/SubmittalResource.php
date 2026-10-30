@@ -65,7 +65,7 @@ class SubmittalResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         // The rounds are folded into two columns on every row — how many, and the reviewer's overrun.
-        return parent::getEloquentQuery()->with(['job', 'reviews']);
+        return parent::getEloquentQuery()->with(['job', 'reviews', 'responsible']);
     }
 
     public static function form(Schema $schema): Schema

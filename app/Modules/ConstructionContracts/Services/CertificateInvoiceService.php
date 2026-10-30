@@ -157,6 +157,18 @@ class CertificateInvoiceService
         $lines = $this->lines($certificate);
         $total = round(array_sum(array_column($lines, 'line_total')), 2);
 
+        // Deductions can outweigh the period's work — a back-charge, an NCR, retention caught up — and the certificate
+        // then nets to money coming back. An invoice for a negative total is not that document and cannot be issued;
+        // the instrument is a note against the last invoice.
+        if ($total < 0) {
+            $note = $contract->side === Contract::SIDE_RECEIVABLE ? 'credit note to the employer' : 'debit note against the subcontractor';
+
+            throw new InvalidArgumentException(
+                "{$certificate->certificate_number} nets to a credit of ".number_format(abs($total), 2).'. That is not '
+                ."an invoice: raise a {$note} for it from Invoicing instead."
+            );
+        }
+
         return TenantTransaction::run(function () use ($certificate, $contract, $lines, $total): Invoice {
             $invoice = Invoice::create([
                 'kind' => $contract->side === Contract::SIDE_RECEIVABLE ? Invoice::KIND_SALE : Invoice::KIND_PURCHASE,

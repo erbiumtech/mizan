@@ -249,7 +249,7 @@ class VariationService
         }
 
         return TenantTransaction::run(function () use ($variation): Variation {
-            foreach ($variation->items as $item) {
+            foreach ($variation->items()->with('contractItem')->get() as $item) {
                 if ($item->resulting_item_id !== null) {
                     continue;
                 }

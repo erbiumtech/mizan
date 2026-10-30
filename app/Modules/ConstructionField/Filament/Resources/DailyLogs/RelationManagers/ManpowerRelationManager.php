@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -103,6 +104,8 @@ class ManpowerRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('trade_label')
+            // What the columns and row actions read per row — one query each, not one per row.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['contact']))
             ->columns([
                 TextColumn::make('trade_label')
                     ->label('Trade')

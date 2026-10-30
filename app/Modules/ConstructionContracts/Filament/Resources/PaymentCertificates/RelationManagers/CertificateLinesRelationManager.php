@@ -142,6 +142,22 @@ class CertificateLinesRelationManager extends RelationManager
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (): bool => $this->isDraft())
+                    // The retention follows the edited value unless the certifier typed a different one: the form
+                    // comes back with the figure it was filled with, and saving that froze the claim's retention
+                    // onto a line certified for less — or none at all on a certificate prepared without a claim.
+                    ->mutateDataUsing(function (array $data, CertificateLine $record): array {
+                        if ((float) ($data['line_retention'] ?? 0) === (float) $record->line_retention) {
+                            $data['line_retention'] = app(CertificationService::class)->lineRetention(
+                                // Queried rather than read off the relations, which these records were fetched without.
+                                $this->getOwnerRecord()->contract()->firstOrFail(),
+                                $record->contractItem()->firstOrFail(),
+                                (float) $data['cumulative_work_value'],
+                                (float) ($data['cumulative_materials_value'] ?? 0),
+                            );
+                        }
+
+                        return $data;
+                    })
                     ->after(fn () => app(CertificationService::class)->recompute($this->getOwnerRecord()->refresh())),
             ])
             ->emptyStateHeading('No lines')

@@ -63,7 +63,7 @@ class NcrResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['job', 'location', 'inspection']);
+        return parent::getEloquentQuery()->with(['job', 'location', 'inspection', 'responsible']);
     }
 
     public static function form(Schema $schema): Schema
