@@ -55,6 +55,8 @@ return [
         // The stopwatch's side — §8.8.
         'App\\Models\\WorkTimeProject' => \App\Modules\Work\Models\WorkTimeProject::class,
         'App\\Models\\WorkTimeTask' => \App\Modules\Work\Models\WorkTimeTask::class,
+        // Chat — §8.7.
+        'App\\Models\\WorkChannelSubscription' => \App\Modules\Work\Models\WorkChannelSubscription::class,
     ],
 
     'pages' => [

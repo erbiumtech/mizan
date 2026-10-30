@@ -7,6 +7,7 @@ use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource;
 use App\Modules\Timesheets\Models\TimesheetEntry;
+use App\Modules\Work\Console\Commands\ImportTrello;
 use App\Modules\Work\Console\Commands\PullTimeEntries;
 use App\Modules\Work\Console\Commands\SendWorkDigest;
 use App\Modules\Work\Events\ReleaseReleased;
@@ -25,10 +26,12 @@ use App\Modules\Work\Filament\Pages\WorkCumulativeFlow;
 use App\Modules\Work\Filament\Pages\WorkCycleTime;
 use App\Modules\Work\Filament\Pages\WorkTimeBySource;
 use App\Modules\Work\Filament\Pages\WorkVelocity;
+use App\Modules\Work\Filament\RelationManagers\ChannelSubscriptionsRelationManager;
 use App\Modules\Work\Filament\Resources\IntegrationConnections\IntegrationConnectionResource;
 use App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource;
 use App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource;
 use App\Modules\Work\Filament\Settings\WorkDefaultsSettingsSection;
+use App\Modules\Work\Imports\JiraCsvImporter;
 use App\Modules\Work\Integrations\Bitbucket\BitbucketProvider;
 use App\Modules\Work\Integrations\Clockify\ClockifyProvider;
 use App\Modules\Work\Integrations\GitHub\GitHubProvider;
@@ -38,6 +41,7 @@ use App\Modules\Work\Models\IntegrationEvent;
 use App\Modules\Work\Models\IntegrationIdentity;
 use App\Modules\Work\Models\WorkAttachment;
 use App\Modules\Work\Models\WorkBoard;
+use App\Modules\Work\Models\WorkChannelSubscription;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkItemBranch;
 use App\Modules\Work\Models\WorkItemCommit;
@@ -57,6 +61,7 @@ use App\Modules\Work\Policies\IntegrationEventPolicy;
 use App\Modules\Work\Policies\IntegrationIdentityPolicy;
 use App\Modules\Work\Policies\WorkAttachmentPolicy;
 use App\Modules\Work\Policies\WorkBoardPolicy;
+use App\Modules\Work\Policies\WorkChannelSubscriptionPolicy;
 use App\Modules\Work\Policies\WorkItemBranchPolicy;
 use App\Modules\Work\Policies\WorkItemCommitPolicy;
 use App\Modules\Work\Policies\WorkItemLinkPolicy;
@@ -72,11 +77,14 @@ use App\Modules\Work\Policies\WorkTimeTaskPolicy;
 use App\Modules\Work\Policies\WorkWorkflowPolicy;
 use App\Modules\Work\Policies\WorkWorkflowRulePolicy;
 use App\Modules\Work\Services\WorkTime;
+use App\Modules\Work\Support\ChannelPosts;
 use App\Modules\Work\Support\SyncedTimesheetRows;
 use App\Modules\Work\Support\TimeTaskOnProgress;
 use App\Modules\Work\Support\WorkReports;
 use App\Modules\Work\Support\WorkWatching;
 use App\Modules\Work\Support\WorkWebhookPayloads;
+use App\Support\ApiAbilities;
+use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\Integrations;
 use App\Support\ModuleMap;
@@ -124,6 +132,7 @@ class WorkServiceProvider extends ServiceProvider
         WorkItemPullRequest::class => WorkItemPullRequestPolicy::class,
         WorkTimeProject::class => WorkTimeProjectPolicy::class,
         WorkTimeTask::class => WorkTimeTaskPolicy::class,
+        WorkChannelSubscription::class => WorkChannelSubscriptionPolicy::class,
     ];
 
     public function boot(): void
@@ -164,6 +173,23 @@ class WorkServiceProvider extends ServiceProvider
 
         // The tracker's task made as the item starts, where a project asks for it — §8.8.
         TimeTaskOnProgress::register();
+
+        /*
+         * Chat — §8.7. A project posts a line per chosen event to a Slack channel or a Teams webhook.
+         * The subscriptions live on the project page as a tab, through the slot, and the relation is
+         * added to the Project model here, so Projects names nothing of this module's.
+         */
+        Project::resolveRelationUsing('workChannelSubscriptions', fn (Project $project) => $project->hasMany(WorkChannelSubscription::class));
+        ResourceContributions::addRelationManager(ProjectResource::class, ChannelSubscriptionsRelationManager::class);
+        ChannelPosts::register();
+
+        // Imports — §8.9. Jira through the CSV page; Trello's JSON through a command.
+        CsvImporters::register('jira', JiraCsvImporter::class, 70);
+        $this->commands([ImportTrello::class]);
+
+        // The API — §11. A key has to be issued with the `work` ability to reach a board.
+        ApiAbilities::register('work', 'Work items and boards');
+        $this->loadRoutesFrom(__DIR__.'/routes/api.php');
 
         // The inbound hook endpoint — §8.3. Public, tenant resolved by its own middleware.
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');

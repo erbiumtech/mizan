@@ -259,6 +259,7 @@
         "App\\Models\\WithholdingSection": "App\\Modules\\Accounting\\Models\\WithholdingSection",
         "App\\Models\\WorkAttachment": "App\\Modules\\Work\\Models\\WorkAttachment",
         "App\\Models\\WorkBoard": "App\\Modules\\Work\\Models\\WorkBoard",
+        "App\\Models\\WorkChannelSubscription": "App\\Modules\\Work\\Models\\WorkChannelSubscription",
         "App\\Models\\WorkItem": "App\\Modules\\Work\\Models\\WorkItem",
         "App\\Models\\WorkItemBranch": "App\\Modules\\Work\\Models\\WorkItemBranch",
         "App\\Models\\WorkItemCommit": "App\\Modules\\Work\\Models\\WorkItemCommit",

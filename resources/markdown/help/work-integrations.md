@@ -98,6 +98,31 @@ deliveries either — the provider redelivers, and nothing is lost. A delivery t
 being processed keeps its payload and can be replayed from the connection's page once whatever
 failed is fixed.
 
+## Chat channels
+
+A project may post a line per event to a **Slack channel** or a **Microsoft Teams incoming
+webhook** — from the project's *Channels* tab. Pick the events: an item filed, an item finished, an
+item blocked, a sprint started or completed, a release gone out. One-way, deliberately: nothing
+comes back from the channel.
+
+Slack posting needs a bot token on the server; without one nothing is sent and nothing fails. A
+Teams webhook URL is the whole credential and is stored encrypted. A post that fails is recorded on
+the row and never stops the item saving.
+
+## Arriving from Jira or Trello
+
+**Jira**: export the project to CSV and import it under Settings → Import, type *Work items from a
+Jira export*. Set each project's key here to its Jira key first — `PROJ-412` lands in the project
+whose key is `PROJ`, and the Jira key is kept on the item so a search for it still finds it.
+Statuses map onto the workflow by name, or by what the name means when there is no status of that
+name; Jira's own created and resolved dates come along, so the reports read history rather than the
+day of the import. Running the same file twice corrects rather than duplicates.
+
+**Trello**: export the board as JSON and run `php artisan work:import-trello board.json
+--project=CODE --tenant=ID`. Lists become statuses the same way, cards become items in the list's
+order, labels come along, a closed card is archived, and attachments keep their URLs in the
+description.
+
 ## Roles and permissions
 
 Connecting, linking and assigning identities need **IntegrationManage**, which only Administrators
