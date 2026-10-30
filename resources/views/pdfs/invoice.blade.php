@@ -115,9 +115,9 @@
         <tr><td>Subtotal</td><td class="num">{{ number_format($invoice->subtotal, 2) }}</td></tr>
         <tr><td>Tax</td><td class="num">{{ number_format($invoice->tax_amount, 2) }}</td></tr>
         <tr class="grand"><td>{{ match ($invoice->kind) {
-            'credit_note' => 'Total credited (PKR)',
-            'debit_note' => 'Total debited (PKR)',
-            default => 'Total (PKR)',
+            'credit_note' => 'Total credited ('.$invoice->currencyCode().')',
+            'debit_note' => 'Total debited ('.$invoice->currencyCode().')',
+            default => 'Total ('.$invoice->currencyCode().')',
         } }}</td><td class="num">{{ number_format($invoice->total, 2) }}</td></tr>
         {{-- Suppressed on either note. Nobody pays one, so "Paid 0.00 / Outstanding 1,000.00"
              reads as a demand for money on a document that is the opposite of one. --}}

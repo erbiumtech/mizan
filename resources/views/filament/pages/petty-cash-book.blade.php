@@ -12,7 +12,7 @@
         <x-reports.stat-card
             label="Imprest Float"
             :value="number_format($summary['float_amount'], 2)"
-            help="Configured float amount"
+            :help="$summary['float_amount'] > 0 ? 'Company Settings → Money → Petty cash' : 'No float set — Company Settings → Money → Petty cash'"
         />
         <x-reports.stat-card
             label="Total Received"

@@ -6,6 +6,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class CompanyBankAccountForm
 {
@@ -34,6 +35,15 @@ class CompanyBankAccountForm
                     ->label('IBAN')
                     ->nullable()
                     ->maxLength(34),
+
+                Select::make('account_id')
+                    ->label('Ledger account')
+                    ->relationship('account', 'name', fn (Builder $query) => $query->postable()->ofType('asset'))
+                    ->getOptionLabelFromRecordUsing(fn ($record): string => $record->code.' '.$record->name)
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->helperText('Where the money in this account is booked: payments drawn on it credit this ledger account, and its bank statements are reconciled against it. Give each bank its own account to keep their balances apart.'),
 
                 Select::make('transaction_type_id')
                     ->label('Purpose (Transaction Type)')

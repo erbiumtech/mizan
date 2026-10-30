@@ -3,6 +3,7 @@
 namespace App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers;
 
 use App\Modules\Invoicing\Models\InvoiceEvent;
+use App\Support\CompanyCurrency;
 use App\Support\LandlordUserColumn;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -33,7 +34,7 @@ class HistoryRelationManager extends RelationManager
                 TextColumn::make('description')->wrap(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->placeholder('—')
                     ->alignEnd(),
 

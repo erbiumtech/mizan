@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\InvoiceLines\Tables;
 
+use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -33,11 +34,11 @@ class InvoiceLinesTable
 
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('line_total')
                     ->label('Line Total')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
             ])
             ->filters([
                 //

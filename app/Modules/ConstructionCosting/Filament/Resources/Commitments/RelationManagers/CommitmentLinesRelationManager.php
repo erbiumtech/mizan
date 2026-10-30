@@ -8,6 +8,7 @@ use App\Modules\Construction\Models\WbsNode;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Models\CommitmentLine;
 use App\Modules\ConstructionCosting\Services\CommitmentService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -155,20 +156,20 @@ class CommitmentLinesRelationManager extends RelationManager
 
                 TextColumn::make('amount')
                     ->label('Ordered')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('relieved')
                     ->label('Received / invoiced')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (CommitmentLine $record): float => $record->relievedTotal())
                     ->toggleable(),
 
                 TextColumn::make('open')
                     ->label('Open')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->weight('bold')
                     // Computed from the reliefs, so it cannot disagree with them.

@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\Table
 
 use App\Modules\ConstructionCosting\Models\LabourRecord;
 use App\Modules\ConstructionCosting\Services\LabourRecordService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -68,7 +69,7 @@ class LabourRecordsTable
 
                 TextColumn::make('cost_rate_per_hour')
                     ->label('Rate')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Not a dash: a draft has no rate *yet*, which is a different fact from a rate of nothing.
                     ->placeholder('at approval')
@@ -76,18 +77,18 @@ class LabourRecordsTable
 
                 TextColumn::make('labour_amount')
                     ->label('Labour')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
-                    ->summarize(Sum::make()->money('PKR')->label('Labour')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Labour')),
 
                 TextColumn::make('burden_amount')
                     ->label('Burden')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // §7.3's separability, on a screen: labour and burden are two figures and stay two figures.
                     ->placeholder('—')
-                    ->summarize(Sum::make()->money('PKR')->label('Burden'))
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Burden'))
                     ->toggleable(),
 
                 TextColumn::make('status')

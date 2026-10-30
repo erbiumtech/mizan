@@ -6,6 +6,7 @@ use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Services\CertificateCommitmentService;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Services\CommitmentService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -99,13 +100,13 @@ class OrdersRelationManager extends RelationManager
                 // wrong thing is how a total comes to disagree with the rows above it.
                 TextColumn::make('ordered')
                     ->label('Ordered')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->orderedTotal()),
 
                 TextColumn::make('relieved')
                     ->label('Relieved')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->relievedTotal())
                     ->description(fn (Commitment $record): ?string => $record->overRelieved()
@@ -116,7 +117,7 @@ class OrdersRelationManager extends RelationManager
 
                 TextColumn::make('open')
                     ->label('Still committed')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->openTotal()),
             ])

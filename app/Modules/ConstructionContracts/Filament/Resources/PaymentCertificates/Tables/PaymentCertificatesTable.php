@@ -6,6 +6,7 @@ use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Services\CertificateInvoiceService;
 use App\Modules\ConstructionContracts\Services\CertificationService;
 use App\Modules\ConstructionContracts\Services\ComplianceService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
@@ -61,26 +62,26 @@ class PaymentCertificatesTable
 
                 TextColumn::make('gross_value_to_date')
                     ->label('Gross to date')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('this_period')
                     ->label('This period')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (PaymentCertificate $record): float => $record->grossThisPeriod())
                     ->tooltip('Gross to date less previously certified — derived, never stored.'),
 
                 TextColumn::make('retention_to_date')
                     ->label('Retention held')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('current_due')
                     ->label('Due')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Computed on a draft, frozen once issued — the whole rule, in one column.
                     ->state(fn (PaymentCertificate $record): float => $record->currentDue())

@@ -7,6 +7,7 @@ use App\Modules\Construction\Models\WbsNode;
 use App\Modules\ConstructionCosting\Models\JobBudget;
 use App\Modules\ConstructionCosting\Models\JobBudgetLine;
 use App\Modules\ConstructionCosting\Services\BudgetService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -170,10 +171,10 @@ class LinesRelationManager extends RelationManager
                     ->placeholder('—'),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('period_start')
                     ->label('Month')

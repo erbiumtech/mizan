@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Budgets\RelationManagers;
 
 use App\Modules\Accounting\Filament\Resources\Budgets\Schemas\BudgetForm;
+use App\Support\CompanyCurrency;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -37,7 +38,7 @@ class MonthlyPlanRelationManager extends RelationManager
                 ->numeric()
                 ->minValue(0)
                 ->required()
-                ->prefix('PKR')
+                ->prefix(CompanyCurrency::code())
                 ->helperText('Changing a month changes the year\'s total for this account by the same amount.'),
         ]);
     }

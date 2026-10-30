@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\CostEntries\Tables;
 
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use App\Modules\ConstructionCosting\Services\CostLedger;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
@@ -67,7 +68,7 @@ class CostEntriesTable
                     ->toggleable(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // A reversal reads as a credit, which is what it is.
                     ->color(fn (CostEntry $record): string => (float) $record->amount < 0 ? 'danger' : 'gray')

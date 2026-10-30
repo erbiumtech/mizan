@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\PlantItems\Tables;
 
 use App\Modules\ConstructionCosting\Models\PlantItem;
 use App\Modules\ConstructionCosting\Services\PlantHireMatch;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -57,7 +58,7 @@ class PlantItemsTable
 
                 TextColumn::make('working_rate')
                     ->label('Working rate')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Not a dash: a machine with no rate cannot be approved against at all, and that is worth seeing
                     // on the register rather than discovering at approval.
@@ -66,14 +67,14 @@ class PlantItemsTable
 
                 TextColumn::make('idle_rate')
                     ->label('Idle')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('not charged')
                     ->toggleable(),
 
                 TextColumn::make('standby_rate')
                     ->label('Standby')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('not charged')
                     ->toggleable(),

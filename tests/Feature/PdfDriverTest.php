@@ -114,21 +114,22 @@ class PdfDriverTest extends TestCase
     }
 
     /**
-     * The MPR sheet gets its styling from the Tailwind browser CDN, which is a
-     * <script> — inert under Dompdf. Its shim must therefore be present.
+     * The MPR sheet styles itself for both engines; what Dompdf still does differently — no repeated
+     * thead/tfoot, so real page margins and a footer placed into the bottom one — is its override, and
+     * only Dompdf gets it. (It used to be a shim for the Tailwind browser CDN, a <script> Dompdf never ran.)
      */
-    public function test_the_dompdf_shim_loads_only_for_dompdf(): void
+    public function test_the_dompdf_overrides_load_only_for_dompdf(): void
     {
         config(['pdf.driver' => 'dompdf']);
         $dompdfHtml = Pdf::view('pdfs.mpr-report', $this->mprData())->html();
 
-        $this->assertStringContainsString('.grid-cols-2', $dompdfHtml);
-        $this->assertStringContainsString('.space-y-6', $dompdfHtml);
+        $this->assertStringContainsString('.page-head, .page-foot', $dompdfHtml);
 
         config(['pdf.driver' => 'browsershot']);
         $chromeHtml = Pdf::view('pdfs.mpr-report', $this->mprData())->html();
 
-        $this->assertStringNotContainsString('.grid-cols-2', $chromeHtml);
+        $this->assertStringNotContainsString('.page-head, .page-foot', $chromeHtml);
+        $this->assertStringNotContainsString('<script', $chromeHtml);
     }
 
     /** Every template with a Dompdf override must actually include it. */

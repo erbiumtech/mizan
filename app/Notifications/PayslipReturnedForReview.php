@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Broadcasting;
+use App\Support\CompanyCurrency;
 use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Actions\Action;
@@ -50,7 +51,7 @@ class PayslipReturnedForReview extends Notification implements CategorisedNotifi
             ->greeting("Hello {$notifiable->name},")
             ->line("You rejected your {$month} payslip. Payroll has looked at it and made a change.")
             ->line('What changed: '.$this->note)
-            ->line('Net salary is now '.number_format((float) $this->payslip->net_salary, 2).' PKR.')
+            ->line('Net salary is now '.number_format((float) $this->payslip->net_salary, 2).' '.CompanyCurrency::code().'.')
             ->action('Open the payslip', url("/cpi/resources/payslips/{$this->payslip->id}"))
             ->line('Please accept it if it is right now, or reject it again and say what is still wrong.');
 

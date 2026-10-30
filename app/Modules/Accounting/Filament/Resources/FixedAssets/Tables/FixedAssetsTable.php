@@ -6,6 +6,7 @@ use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Services\DepreciationService;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\CompanyCurrency;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -45,15 +46,15 @@ class FixedAssetsTable
 
                 TextColumn::make('purchase_cost')
                     ->label('Purchase Cost')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('accumulated_depreciation')
                     ->label('Accumulated Depreciation')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('book_value')
                     ->label('Book Value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->state(fn (FixedAsset $record): float => $record->book_value)
                     ->sortable(),
 

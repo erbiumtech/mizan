@@ -75,7 +75,7 @@
 @php
     $vocabulary = $certificate->contract->vocabulary();
     $contract = $certificate->contract;
-    $currency = $contract->currency_code ?: config('app.currency', 'PKR');
+    $currency = $contract->currency_code ?: \App\Support\CompanyCurrency::code();
     $money = fn (?float $value): string => $value === null ? '—' : number_format($value, 2);
 @endphp
 

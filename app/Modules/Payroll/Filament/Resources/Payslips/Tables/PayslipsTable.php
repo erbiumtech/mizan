@@ -8,6 +8,7 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\AttendanceFigures;
 use App\Modules\Payroll\Services\PayslipDeliveryService;
 use App\Modules\Payroll\Services\PayslipService;
+use App\Support\CompanyCurrency;
 use App\Support\EmployeeAccess;
 use App\Support\LandlordUserColumn;
 use App\Support\Pdf\DocumentBundle;
@@ -77,22 +78,22 @@ class PayslipsTable
 
                 TextColumn::make('basic_wage')
                     ->label('Basic Salary')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('medical_allowance')
                     ->label('Medical Allowance')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('petrol_allowance')
                     ->label('Petrol Allowance')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('bonus')
                     ->label('Bonus')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('extra_work_hours')
@@ -107,27 +108,27 @@ class PayslipsTable
 
                 TextColumn::make('advances')
                     ->label('Advances')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('meal_deduction')
                     ->label('Meal Deduction')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('withholding_tax')
                     ->label('Withholding Tax')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('total_deductions')
                     ->label('Total Deductions')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('net_salary')
                     ->label('Net Salary')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 // Whether the employee has been sent it at all, which the review

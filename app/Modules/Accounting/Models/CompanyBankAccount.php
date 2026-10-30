@@ -11,7 +11,7 @@ class CompanyBankAccount extends Model
     use Auditable;
 
     protected $fillable = [
-        'title', 'bank_id', 'account_no', 'iban', 'statement_mapping',
+        'title', 'bank_id', 'account_no', 'iban', 'statement_mapping', 'account_id',
         'transaction_type_id', 'is_default', 'is_active',
     ];
 
@@ -38,6 +38,16 @@ class CompanyBankAccount extends Model
     public function bank()
     {
         return $this->belongsTo(Bank::class);
+    }
+
+    /**
+     * The ledger account this bank account's money is booked to — what a payment drawn on it credits, and
+     * what its bank statement is reconciled against. Null on a row nobody has set; payments then fall back
+     * to Cash/Bank as they always did.
+     */
+    public function account()
+    {
+        return $this->belongsTo(Account::class);
     }
 
     public function transactionType()

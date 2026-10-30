@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\Contacts\RelationManagers;
 
+use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -40,12 +41,12 @@ class InvoicesRelationManager extends RelationManager
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('amount_paid')
                     ->label('Paid')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
             ])
             ->defaultSort('invoice_date', 'desc');

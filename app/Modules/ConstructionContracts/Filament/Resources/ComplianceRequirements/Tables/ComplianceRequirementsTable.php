@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\ComplianceRequirements\Tables;
 
 use App\Modules\ConstructionContracts\Models\ComplianceRequirement;
+use App\Support\CompanyCurrency;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -56,7 +57,7 @@ class ComplianceRequirementsTable
 
                 TextColumn::make('minimum_cover')
                     ->label('Minimum cover')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('any'),
 

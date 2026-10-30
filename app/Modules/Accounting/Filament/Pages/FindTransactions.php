@@ -7,6 +7,7 @@ use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Support\CompanyCurrency;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -180,8 +181,8 @@ class FindTransactions extends Page implements HasTable
 
                 Filter::make('amount')
                     ->schema([
-                        TextInput::make('min')->label('At least')->numeric()->prefix('PKR'),
-                        TextInput::make('max')->label('At most')->numeric()->prefix('PKR'),
+                        TextInput::make('min')->label('At least')->numeric()->prefix(CompanyCurrency::code()),
+                        TextInput::make('max')->label('At most')->numeric()->prefix(CompanyCurrency::code()),
                     ])
                     ->columns(2)
                     // Each line is a debit or a credit, never both, so "at least

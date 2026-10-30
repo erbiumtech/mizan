@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\JobBudgets\Tables;
 
 use App\Modules\ConstructionCosting\Models\JobBudget;
 use App\Modules\ConstructionCosting\Services\BudgetService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -85,7 +86,7 @@ class JobBudgetsTable
 
                 TextColumn::make('lines_sum_amount')
                     ->label('Budget')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—'),
 

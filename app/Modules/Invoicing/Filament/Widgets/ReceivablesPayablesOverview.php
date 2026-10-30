@@ -7,6 +7,7 @@ use App\Modules\Invoicing\Filament\Pages\AgedPayables;
 use App\Modules\Invoicing\Filament\Pages\AgedReceivables;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Services\InvoiceService;
+use App\Support\CompanyCurrency;
 use App\Support\Reporting\DashboardWidgets;
 use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
@@ -142,7 +143,7 @@ class ReceivablesPayablesOverview extends Widget
      */
     public function currency(): string
     {
-        return 'PKR';
+        return CompanyCurrency::code();
     }
 
     public function hasAnything(): bool

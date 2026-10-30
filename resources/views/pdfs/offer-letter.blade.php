@@ -67,11 +67,11 @@
     @if ($department)<tr><th>Department</th><td>{{ $department }}</td></tr>@endif
     @if ($employment_type)<tr><th>Employment Type</th><td>{{ $employment_type }}</td></tr>@endif
     <tr><th>Date of Joining</th><td>{{ $offer->joining_date->format('d F Y') }}</td></tr>
-    <tr><th>Basic Salary</th><td>PKR {{ number_format($basic, 0) }} per month</td></tr>
+    <tr><th>Basic Salary</th><td>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($basic, 0) }} per month</td></tr>
     @foreach ($components as $component)
-        <tr><th>{{ $component['label'] }}</th><td>PKR {{ number_format($component['amount'], 0) }} per month</td></tr>
+        <tr><th>{{ $component['label'] }}</th><td>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($component['amount'], 0) }} per month</td></tr>
     @endforeach
-    <tr><th>Gross Monthly Salary</th><td><strong>PKR {{ number_format($gross, 0) }}</strong> per month</td></tr>
+    <tr><th>Gross Monthly Salary</th><td><strong>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($gross, 0) }}</strong> per month</td></tr>
 </table>
 
 <p>

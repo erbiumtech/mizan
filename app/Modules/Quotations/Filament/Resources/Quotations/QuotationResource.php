@@ -12,6 +12,7 @@ use App\Modules\Quotations\Filament\Resources\Quotations\Pages\EditQuotation;
 use App\Modules\Quotations\Filament\Resources\Quotations\Pages\ListQuotations;
 use App\Modules\Quotations\Models\Quotation;
 use App\Modules\Quotations\Services\QuotationService;
+use App\Support\CompanyCurrency;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -92,7 +93,7 @@ class QuotationResource extends Resource
                         ->default(now()->addDays(30))
                         ->helperText('After this it cannot be accepted — the prices may no longer hold. Expiring happens once, not as a daily reminder.'),
 
-                    TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder('PKR'),
+                    TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder(CompanyCurrency::code()),
                     TextInput::make('exchange_rate')->numeric(),
 
                     Textarea::make('terms')->rows(2)->columnSpanFull(),
@@ -174,7 +175,7 @@ class QuotationResource extends Resource
                     ->state(fn (Quotation $record): string => $record->partyLabel())
                     ->searchable(false),
 
-                TextColumn::make('total')->money('PKR')->alignEnd()->sortable(),
+                TextColumn::make('total')->money(CompanyCurrency::code())->alignEnd()->sortable(),
 
                 TextColumn::make('valid_until')
                     ->label('Valid to')

@@ -5,6 +5,7 @@ namespace App\Modules\Advances\Filament\Resources\Advances\Tables;
 use App\Modules\Advances\Models\Advance;
 use App\Modules\Advances\Services\AdvanceApplications;
 use App\Modules\Advances\Services\AdvanceService;
+use App\Support\CompanyCurrency;
 use App\Support\LandlordUserColumn;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -29,8 +30,8 @@ class AdvancesTable
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('total_amount')->label('Advance')->money('PKR')->sortable(),
-                TextColumn::make('monthly_instalment')->label('Per month')->money('PKR'),
+                TextColumn::make('total_amount')->label('Advance')->money(CompanyCurrency::code())->sortable(),
+                TextColumn::make('monthly_instalment')->label('Per month')->money(CompanyCurrency::code()),
 
                 // Derived from the recovery ledger, so they cannot disagree with
                 // what payroll actually took.

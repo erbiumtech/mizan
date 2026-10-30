@@ -5,6 +5,7 @@ namespace App\Modules\Inventory\Filament\Resources\Products\Tables;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Services\InventoryService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -53,7 +54,7 @@ class ProductsTable
 
                 TextColumn::make('stock_value')
                     ->label('Stock Value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->state(fn (Product $record): float => round((float) ($record->stock_in_value ?? 0) - (float) ($record->stock_out_value ?? 0), 2)),
 
                 TextColumn::make('stock_status')

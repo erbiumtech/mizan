@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\Re
 
 use App\Modules\ConstructionContracts\Models\ProgressClaim;
 use App\Modules\ConstructionContracts\Models\ProgressClaimLine;
+use App\Support\CompanyCurrency;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -103,7 +104,7 @@ class ClaimLinesRelationManager extends RelationManager
 
                 TextColumn::make('contractItem.scheduled_value')
                     ->label('Scheduled')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd(),
 
                 TextColumn::make('measurement_input')
@@ -120,15 +121,15 @@ class ClaimLinesRelationManager extends RelationManager
 
                 TextColumn::make('cumulative_work_value')
                     ->label('Work to date')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('cumulative_materials_value')
                     ->label('Materials')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
             ])
             ->defaultSort('id')
             ->recordActions([

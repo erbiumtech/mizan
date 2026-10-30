@@ -8,6 +8,7 @@ use App\Modules\ConstructionCosting\Models\CommitmentLine;
 use App\Modules\ConstructionCosting\Models\GoodsReceipt;
 use App\Modules\ConstructionCosting\Models\GoodsReceiptLine;
 use App\Modules\ConstructionCosting\Services\GoodsReceiptService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -158,9 +159,9 @@ class ReceiptLinesRelationManager extends RelationManager
 
                 TextColumn::make('amount')
                     ->label('Value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('commitmentLine.commitment.number')
                     ->label('Order')

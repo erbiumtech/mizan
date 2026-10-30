@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\Products\RelationManagers;
 
+use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -34,15 +35,15 @@ class MovementsRelationManager extends RelationManager
 
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('total_cost')
                     ->label('COGS')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('remaining_quantity')
                     ->label('Lot Remaining')

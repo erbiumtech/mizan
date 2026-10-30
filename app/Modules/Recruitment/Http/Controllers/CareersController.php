@@ -7,6 +7,7 @@ use App\Modules\Core\Models\Company;
 use App\Modules\Recruitment\Models\Applicant;
 use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Vacancy;
+use App\Support\CompanyCurrency;
 use App\Support\CompanyLetterhead;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -193,7 +194,7 @@ class CareersController extends Controller
             'openings' => $vacancy->openings,
             'description' => $vacancy->description,
             'salary' => $vacancy->salary_min || $vacancy->salary_max
-                ? trim(($vacancy->currency_code ?: 'PKR').' '.($vacancy->salary_min ? number_format((float) $vacancy->salary_min) : '').($vacancy->salary_max ? ' – '.number_format((float) $vacancy->salary_max) : ''))
+                ? trim(($vacancy->currency_code ?: CompanyCurrency::code()).' '.($vacancy->salary_min ? number_format((float) $vacancy->salary_min) : '').($vacancy->salary_max ? ' – '.number_format((float) $vacancy->salary_max) : ''))
                 : null,
             'opened_on' => $vacancy->opened_on?->toFormattedDateString(),
         ];

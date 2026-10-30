@@ -135,7 +135,8 @@ class BillPaymentService
             (float) $payment->amount,
             ($payment->value_date ?? now())->toDateString(),
             null,
-            null,
+            // The bank it left from, as a payment that is not a bill's is booked (PaymentService).
+            $payment->loadMissing('companyBankAccount')->companyBankAccount?->account_id,
             'bank payment #'.$payment->getKey(),
         );
 

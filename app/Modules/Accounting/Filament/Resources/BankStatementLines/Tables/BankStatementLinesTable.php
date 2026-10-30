@@ -6,6 +6,7 @@ use App\Modules\Accounting\Filament\Resources\BankStatementLines\BankStatementLi
 use App\Modules\Accounting\Models\BankStatementLine;
 use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Accounting\Services\BankReconciliationService;
+use App\Support\CompanyCurrency;
 use App\Support\ResourceContributions;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -40,7 +41,7 @@ class BankStatementLinesTable
                     ->searchable(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('match_status')

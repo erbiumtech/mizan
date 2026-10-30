@@ -16,6 +16,7 @@ use App\Modules\Crm\Models\PipelineStage;
 use App\Modules\Crm\Services\OpportunityService;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\CompanyCurrency;
 use App\Support\EmployeeAccess;
 use App\Support\NavigationBadge;
 use BackedEnum;
@@ -151,7 +152,7 @@ class OpportunityResource extends Resource
                 ->schema([
                     TextInput::make('amount')->numeric()->minValue(0)->default(0)->required(),
 
-                    TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder('PKR')
+                    TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder(CompanyCurrency::code())
                         ->helperText('Blank means the company\'s own currency.'),
 
                     TextInput::make('exchange_rate')
@@ -198,7 +199,7 @@ class OpportunityResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->description(fn (Opportunity $record): ?string => (int) $record->probability_pct > 0
                         && $record->isOpen()

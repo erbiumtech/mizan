@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Accounts\RelationManagers;
 
+use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -36,7 +37,7 @@ class ChildrenRelationManager extends RelationManager
                     ->boolean(),
 
                 TextColumn::make('balance')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
             ])
             ->defaultSort('code');

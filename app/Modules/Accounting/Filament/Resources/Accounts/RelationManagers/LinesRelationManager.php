@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Accounts\RelationManagers;
 
+use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -24,11 +25,11 @@ class LinesRelationManager extends RelationManager
 
                 TextColumn::make('debit_amount')
                     ->label('Debit')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('credit_amount')
                     ->label('Credit')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('description')
                     ->toggleable(isToggledHiddenByDefault: true),

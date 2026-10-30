@@ -5,6 +5,7 @@ namespace App\Modules\Crm\Filament\Resources\Leads\Schemas;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadSource;
 use App\Modules\Employees\Models\Employee;
+use App\Support\CompanyCurrency;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Select;
@@ -114,7 +115,7 @@ class LeadForm
                     TextInput::make('currency_code')
                         ->label('Currency')
                         ->maxLength(3)
-                        ->placeholder('PKR')
+                        ->placeholder(CompanyCurrency::code())
                         ->helperText('Leave blank for the company\'s own currency.'),
 
                     Textarea::make('notes')->rows(3)->columnSpanFull(),

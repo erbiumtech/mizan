@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Resources\Beneficiaries\RelationManage
 
 use App\Modules\Accounting\Models\BeneficiarySubscription;
 use App\Modules\Accounting\Services\SubscriptionBillingService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -98,7 +99,7 @@ class SubscriptionsRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('description')->searchable()->sortable(),
-                TextColumn::make('amount')->money('PKR')->sortable()->alignEnd(),
+                TextColumn::make('amount')->money(CompanyCurrency::code())->sortable()->alignEnd(),
 
                 TextColumn::make('due_day')
                     ->label('Due')

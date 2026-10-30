@@ -9,6 +9,7 @@ use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Banking\IPaymentsFileWriter;
+use App\Support\CompanyCurrency;
 use App\Support\PayrollMonth;
 use Carbon\Carbon;
 
@@ -116,12 +117,12 @@ class SalaryBankExportService
                 'value_date' => $date,
                 'debit_account' => $config['debit_account'] ?? '',
                 'debit_bank_id' => $config['debit_bank_id'] ?? '',
-                'currency' => $config['currency'] ?? 'PKR',
+                'currency' => $config['currency'] ?? CompanyCurrency::code(),
             ], $payments, array_keys($payments)), [
                 'value_date' => $date,
                 'debit_account' => $config['debit_account'] ?? '',
                 'debit_bank_id' => $config['debit_bank_id'] ?? '',
-                'currency' => $config['currency'] ?? 'PKR',
+                'currency' => $config['currency'] ?? CompanyCurrency::code(),
                 'company_name' => \App\Support\CompanyLetterhead::data()['legal_name'] ?? '',
             ]);
         }

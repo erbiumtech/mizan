@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Broadcasting;
+use App\Support\CompanyCurrency;
 use App\Support\Contracts\CategorisedNotification;
 use App\Support\TemplatedMail;
 use Filament\Actions\Action;
@@ -37,7 +38,7 @@ class PayslipRejected extends Notification implements CategorisedNotification, S
         $mail = (new MailMessage)
             ->subject("Payslip rejected by {$employeeName} ({$this->payslip->month})")
             ->greeting("Hello {$notifiable->name},")
-            ->line("{$employeeName} has rejected their {$this->payslip->month} payslip (net salary ".number_format((float) $this->payslip->net_salary, 2).' PKR).')
+            ->line("{$employeeName} has rejected their {$this->payslip->month} payslip (net salary ".number_format((float) $this->payslip->net_salary, 2).' '.CompanyCurrency::code().').')
             ->line('Reason: '.($this->payslip->employee_rejection_reason ?: 'No reason given.'))
             ->action('Review Payslip', url("/cpi/resources/payslips/{$this->payslip->id}"))
             ->line('The rejection is advisory — correct the payslip or dismiss the objection as appropriate.');
@@ -54,7 +55,7 @@ class PayslipRejected extends Notification implements CategorisedNotification, S
     {
         return FilamentNotification::make()
             ->title("Payslip rejected by {$this->employeeName()}")
-            ->body("{$this->payslip->month} payslip — net ".number_format((float) $this->payslip->net_salary, 2).' PKR.')
+            ->body("{$this->payslip->month} payslip — net ".number_format((float) $this->payslip->net_salary, 2).' '.CompanyCurrency::code().'.')
             ->danger()
             ->actions([
                 Action::make('review')

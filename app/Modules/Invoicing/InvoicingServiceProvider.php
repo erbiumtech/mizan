@@ -37,6 +37,7 @@ use App\Modules\Invoicing\Support\InvoicingReports;
 use App\Modules\Invoicing\Support\OpeningInvoiceCsvImporter;
 use App\Modules\Invoicing\Support\RevenueReports;
 use App\Support\CashCommitments;
+use App\Support\CompanyCurrency;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
 use App\Support\DashboardStats;
@@ -324,7 +325,7 @@ class InvoicingServiceProvider extends ServiceProvider
 
             return Stat::make(
                 'Unpaid Customer Invoices',
-                'PKR '.number_format(round((float) $open->outstanding_total, 2), 2),
+                CompanyCurrency::code().' '.number_format(round((float) $open->outstanding_total, 2), 2),
             )->description(((int) $open->cnt).' open');
         }, sort: 30);
 

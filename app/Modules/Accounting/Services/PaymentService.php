@@ -80,10 +80,14 @@ class PaymentService
         // loadMissing, like the payable above: a batch release posts payments that came as a collection,
         // and reading the relation off one of them is the lazy load the guard refuses.
         $type = $payment->loadMissing('transactionType')->transactionType;
-        $cashAccount = Account::where('code', '1100')->first();
+        // What the money leaves from: the ledger account of the bank account it is drawn on. 1100 Cash/Bank
+        // only for a payment on no bank account, or on one nobody has mapped — which is what every payment
+        // was credited to before bank accounts named their own.
+        $cashAccount = $payment->loadMissing('companyBankAccount.account')->companyBankAccount?->account
+            ?? Account::where('code', '1100')->first();
 
         if (! $cashAccount) {
-            throw new RuntimeException('Account 1100 Cash/Bank not found.');
+            throw new RuntimeException('Account 1100 Cash/Bank not found, and the bank account on the payment names no ledger account.');
         }
 
         /*

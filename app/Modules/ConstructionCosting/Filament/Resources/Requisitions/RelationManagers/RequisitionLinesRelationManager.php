@@ -6,6 +6,7 @@ use App\Modules\Construction\Models\CostCode;
 use App\Modules\ConstructionCosting\Models\Requisition;
 use App\Modules\ConstructionCosting\Models\RequisitionLine;
 use App\Modules\ConstructionCosting\Services\RequisitionService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -118,7 +119,7 @@ class RequisitionLinesRelationManager extends RelationManager
 
                 TextColumn::make('estimated_amount')
                     ->label('Estimate')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),

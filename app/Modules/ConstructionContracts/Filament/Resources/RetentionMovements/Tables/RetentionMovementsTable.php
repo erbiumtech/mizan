@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\RetentionMovements\Tables;
 
 use App\Modules\ConstructionContracts\Models\RetentionMovement;
+use App\Support\CompanyCurrency;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
@@ -60,16 +61,16 @@ class RetentionMovementsTable
                     ->toggleable(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->color(fn (RetentionMovement $record): string => $record->isRelease() ? 'success' : 'warning')
                     ->sortable()
                     // Filter to one contract and this total is its balance.
-                    ->summarize(Sum::make()->label('Balance')->money('PKR')),
+                    ->summarize(Sum::make()->label('Balance')->money(CompanyCurrency::code())),
 
                 TextColumn::make('basis_gross')
                     ->label('On gross of')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),

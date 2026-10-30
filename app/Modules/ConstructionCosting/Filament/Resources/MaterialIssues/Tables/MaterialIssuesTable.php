@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues\Tabl
 
 use App\Modules\ConstructionCosting\Models\MaterialIssue;
 use App\Modules\ConstructionCosting\Services\MaterialIssueService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -60,7 +61,7 @@ class MaterialIssuesTable
                 // on the lines, where `amount` is a column, and it is there.
                 TextColumn::make('value')
                     ->label('Value moved')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (MaterialIssue $record): float => $record->totalValue())
                     ->description('reclassified, not added'),

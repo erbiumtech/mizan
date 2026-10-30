@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Filament\Resources\Budgets\Schemas;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Budget;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\CompanyCurrency;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -94,7 +95,7 @@ class BudgetForm
                                     ->numeric()
                                     ->minValue(0)
                                     ->required()
-                                    ->prefix('PKR'),
+                                    ->prefix(CompanyCurrency::code()),
                             ])
                             ->columns(3)
                             ->addActionLabel('Add an account')

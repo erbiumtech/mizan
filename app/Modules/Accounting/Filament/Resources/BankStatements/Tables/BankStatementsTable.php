@@ -6,6 +6,7 @@ use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Accounting\Services\BankReconciliationService;
 use App\Modules\Accounting\Support\StatementCsv;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -43,12 +44,12 @@ class BankStatementsTable
 
                 TextColumn::make('opening_balance')
                     ->label('Opening Balance')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('closing_balance')
                     ->label('Closing Balance')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('status')

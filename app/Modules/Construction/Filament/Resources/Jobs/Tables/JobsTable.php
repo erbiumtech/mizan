@@ -3,6 +3,7 @@
 namespace App\Modules\Construction\Filament\Resources\Jobs\Tables;
 
 use App\Modules\Construction\Models\Job;
+use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -67,7 +68,7 @@ class JobsTable
 
                 TextColumn::make('contract_sum')
                     ->label('Contract sum')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->sortable(),

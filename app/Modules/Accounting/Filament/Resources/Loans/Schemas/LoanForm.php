@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Resources\Loans\Schemas;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Services\LoanService;
+use App\Support\CompanyCurrency;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -36,7 +37,7 @@ class LoanForm
                             ->numeric()
                             ->minValue(1)
                             ->required()
-                            ->prefix('PKR')
+                            ->prefix(CompanyCurrency::code())
                             ->live(onBlur: true),
 
                         TextInput::make('annual_rate')

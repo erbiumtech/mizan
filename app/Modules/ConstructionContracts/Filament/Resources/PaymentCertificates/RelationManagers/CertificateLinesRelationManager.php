@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\PaymentCertificat
 use App\Modules\ConstructionContracts\Models\CertificateLine;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Services\CertificationService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -80,33 +81,33 @@ class CertificateLinesRelationManager extends RelationManager
                 TextColumn::make('scheduled_value')
                     ->label('C')
                     ->tooltip('Scheduled value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('previous_work_value')
                     ->label('D')
                     ->tooltip('Work completed from previous applications — a frozen snapshot')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd(),
 
                 TextColumn::make('this_period')
                     ->label('E')
                     ->tooltip('Work completed this period — derived from D and the cumulative figure')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (CertificateLine $record): float => $record->workThisPeriod()),
 
                 TextColumn::make('cumulative_materials_value')
                     ->label('F')
                     ->tooltip('Materials presently stored')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd(),
 
                 TextColumn::make('total_to_date')
                     ->label('G')
                     ->tooltip('Total completed and stored to date')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (CertificateLine $record): float => $record->totalToDate())
                     ->weight('bold'),
@@ -114,7 +115,7 @@ class CertificateLinesRelationManager extends RelationManager
                 TextColumn::make('balance')
                     ->label('H')
                     ->tooltip('Balance to finish')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (CertificateLine $record): float => $record->balanceToFinish())
                     // Negative means certified beyond the scheduled value, which is worth seeing in red rather
@@ -124,9 +125,9 @@ class CertificateLinesRelationManager extends RelationManager
                 TextColumn::make('line_retention')
                     ->label('I')
                     ->tooltip('Retainage')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('percent')
                     ->label('%')

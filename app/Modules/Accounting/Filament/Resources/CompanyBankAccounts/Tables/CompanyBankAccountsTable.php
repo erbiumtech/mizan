@@ -32,6 +32,11 @@ class CompanyBankAccountsTable
                         : null)
                     ->searchable(),
 
+                TextColumn::make('account.name')
+                    ->label('Ledger account')
+                    ->placeholder('Cash / Bank (not set)')
+                    ->toggleable(),
+
                 IconColumn::make('is_default')
                     ->label('Default for its type')
                     ->boolean(),

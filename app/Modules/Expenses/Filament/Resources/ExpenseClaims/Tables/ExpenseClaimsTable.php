@@ -5,6 +5,7 @@ namespace App\Modules\Expenses\Filament\Resources\ExpenseClaims\Tables;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Modules\Expenses\Services\ExpenseClaimBankPayment;
+use App\Support\CompanyCurrency;
 use App\Support\LandlordUserColumn;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -36,7 +37,7 @@ class ExpenseClaimsTable
 
                 TextColumn::make('transactionType.name')->label('Category')->placeholder('—')->toggleable(),
 
-                TextColumn::make('amount')->money('PKR')->sortable()->alignEnd(),
+                TextColumn::make('amount')->money(CompanyCurrency::code())->sortable()->alignEnd(),
 
                 TextColumn::make('status')
                     ->badge()

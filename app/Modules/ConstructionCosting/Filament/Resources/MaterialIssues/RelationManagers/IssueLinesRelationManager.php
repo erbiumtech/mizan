@@ -10,6 +10,7 @@ use App\Modules\ConstructionCosting\Models\MaterialIssueLine;
 use App\Modules\ConstructionCosting\Services\MaterialIssueService;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Services\InventoryValuationService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -178,16 +179,16 @@ class IssueLinesRelationManager extends RelationManager
 
                 TextColumn::make('unit_cost')
                     ->label('At')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('at posting'),
 
                 TextColumn::make('amount')
                     ->label('Value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
-                    ->summarize(Sum::make()->money('PKR')->label('Moved')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Moved')),
             ])
             ->headerActions([
                 CreateAction::make()

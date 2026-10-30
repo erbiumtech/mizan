@@ -29,6 +29,7 @@ use App\Modules\Accounting\Filament\Pages\WithholdingStatement;
 use App\Modules\Accounting\Filament\Settings\CurrencySettingsSection;
 use App\Modules\Accounting\Filament\Settings\LedgerFreezeSettingsSection;
 use App\Modules\Accounting\Filament\Settings\PayrollPostingSettingsSection;
+use App\Modules\Accounting\Filament\Settings\PettyCashSettingsSection;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\BankStatement;
 use App\Modules\Accounting\Models\BankStatementLine;
@@ -82,6 +83,7 @@ use App\Modules\Accounting\Support\ReturnPackReports;
 use App\Modules\Accounting\Support\WithholdingReports;
 use App\Modules\Core\Models\Bank;
 use App\Modules\Employees\Models\Employee;
+use App\Support\CompanyCurrency;
 use App\Support\Contracts\FiscalYearCloseCheck;
 use App\Support\CsvImporters;
 use App\Support\CustomFieldSubjects;
@@ -293,6 +295,19 @@ class AccountingServiceProvider extends ServiceProvider
         // Closing off a period — `docs/erpnext-gap-plan.md` Phase 3. After the currency and before payroll
         // posting: it is a decision about the books rather than about a module's own behaviour.
         SettingsSections::register('accounting.ledger-freeze', LedgerFreezeSettingsSection::class, 20, 'money');
+        // The petty cash float, which Core's page used to carry for Accounting — after the freeze, where it sat.
+        SettingsSections::register('accounting.petty-cash', PettyCashSettingsSection::class, 25, 'money');
+
+        // The currency every other module prints an amount in: this company's base currency, a row in the
+        // currencies table — see App\Support\CompanyCurrency. Null (no base row, or no tenant database to ask)
+        // leaves the installation's home currency as the answer.
+        CompanyCurrency::resolveUsing(static function (): ?string {
+            try {
+                return Currency::base()?->code;
+            } catch (\Throwable) {
+                return null;
+            }
+        });
 
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);

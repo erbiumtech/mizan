@@ -7,6 +7,7 @@ use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Services\CertificationService;
 use App\Modules\ConstructionContracts\Services\NcrDeductionOffer;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -119,10 +120,10 @@ class CertificateDeductionsRelationManager extends RelationManager
                     ->wrap(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->color(fn (CertificateDeduction $record): string => $record->reducesPayment() ? 'danger' : 'success')
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 IconColumn::make('is_automatic')
                     ->label('Computed')

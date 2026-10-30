@@ -7,6 +7,7 @@ use App\Modules\ConstructionCosting\Models\Requisition;
 use App\Modules\ConstructionCosting\Models\RequisitionLine;
 use App\Modules\ConstructionCosting\Services\CommitmentService;
 use App\Modules\ConstructionCosting\Services\RequisitionService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -81,7 +82,7 @@ class RequisitionsTable
 
                 TextColumn::make('estimated')
                     ->label('Estimate')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Requisition $record): float => $record->estimatedTotal())
                     ->tooltip('What site thinks it will cost. Nothing is committed until an order is issued.')

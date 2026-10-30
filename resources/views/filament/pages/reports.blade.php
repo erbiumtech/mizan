@@ -451,7 +451,7 @@
                         </div>
 
                         <div class="fi-explorer-statement-foot">
-                            Figures in {{ \App\Modules\Core\Models\Company::current()?->currency_code ?? 'PKR' }} ·
+                            Figures in {{ \App\Support\CompanyCurrency::code() }} ·
                             complete statement
                         </div>
                     </div>
@@ -526,7 +526,7 @@
                         </div>
 
                         <div class="fi-explorer-statement-foot">
-                            Figures in {{ \App\Modules\Core\Models\Company::current()?->currency_code ?? 'PKR' }}
+                            Figures in {{ \App\Support\CompanyCurrency::code() }}
                         </div>
                     </div>
 

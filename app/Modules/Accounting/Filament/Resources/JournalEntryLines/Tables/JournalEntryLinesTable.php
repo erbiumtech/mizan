@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\JournalEntryLines\Tables;
 
+use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -29,12 +30,12 @@ class JournalEntryLinesTable
 
                 TextColumn::make('debit_amount')
                     ->label('Debit')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('credit_amount')
                     ->label('Credit')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('description')

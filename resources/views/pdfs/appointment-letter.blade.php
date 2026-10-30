@@ -64,7 +64,7 @@
     <tr><th>Date of Joining</th><td>{{ $joining_on->format('d F Y') }}</td></tr>
     @if ($reports_to)<tr><th>Reports To</th><td>{{ $reports_to }}</td></tr>@endif
     @if ($monthly_gross !== null)
-        <tr><th>Gross Monthly Salary</th><td><strong>PKR {{ number_format($monthly_gross, 0) }}</strong> per month</td></tr>
+        <tr><th>Gross Monthly Salary</th><td><strong>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($monthly_gross, 0) }}</strong> per month</td></tr>
     @endif
 </table>
 

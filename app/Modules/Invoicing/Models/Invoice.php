@@ -29,7 +29,9 @@ class Invoice extends Model implements PayableDocument
     /** The supplier on the bill, whose bank details go into the file. */
     public function payee(): ?EloquentModel
     {
-        return $this->contact;
+        // Loaded explicitly, as ExpenseClaim::payee() is: the payments list and the bank file reach this through
+        // the morph, and with a second bill among them the lazy-load guard tripped on the contact.
+        return $this->loadMissing('contact')->contact;
     }
 
     public function paymentLabel(): string

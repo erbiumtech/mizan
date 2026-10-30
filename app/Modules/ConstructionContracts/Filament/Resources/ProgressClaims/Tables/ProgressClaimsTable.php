@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\Ta
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Models\ProgressClaim;
 use App\Modules\ConstructionContracts\Services\CertificationService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -54,13 +55,13 @@ class ProgressClaimsTable
 
                 TextColumn::make('claimed_gross_to_date')
                     ->label('Applied')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('certified')
                     ->label('Certified')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Null rather than zero until a certificate exists: zero would read as "certified nothing",
                     // which is a different and much worse fact than "not certified yet".
@@ -71,7 +72,7 @@ class ProgressClaimsTable
 
                 TextColumn::make('difference')
                     ->label('Difference')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->color('danger')

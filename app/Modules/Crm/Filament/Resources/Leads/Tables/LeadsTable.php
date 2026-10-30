@@ -5,6 +5,7 @@ namespace App\Modules\Crm\Filament\Resources\Leads\Tables;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadSource;
 use App\Modules\Crm\Services\LeadConversion;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -87,7 +88,7 @@ class LeadsTable
 
                 TextColumn::make('estimated_value')
                     ->label('Est. value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->placeholder('—')
                     ->alignEnd()
                     ->sortable()

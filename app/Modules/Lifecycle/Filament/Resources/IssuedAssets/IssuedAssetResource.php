@@ -9,6 +9,7 @@ use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\CreateIssuedAsse
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\EditIssuedAsset;
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\ListIssuedAssets;
 use App\Modules\Lifecycle\Models\IssuedAsset;
+use App\Support\CompanyCurrency;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use App\Support\LandlordUserColumn;
@@ -148,7 +149,7 @@ class IssuedAssetResource extends Resource
                     ->color(fn (IssuedAsset $record): string => $record->isReturned() ? 'success' : 'warning')
                     ->sortable(),
 
-                TextColumn::make('value')->money('PKR')->placeholder('—')->alignEnd()->toggleable(),
+                TextColumn::make('value')->money(CompanyCurrency::code())->placeholder('—')->alignEnd()->toggleable(),
             ])
             ->defaultSort('issued_on', 'desc')
             ->filters([

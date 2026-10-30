@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Accounts\Tables;
 
+use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -57,7 +58,7 @@ class AccountsTable
 
                 // Nova: Currency balance — exceptOnForms, sortable (already rounded → money PKR).
                 TextColumn::make('balance')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 // Nova: Boolean allow_manual_entry — hideFromIndex.

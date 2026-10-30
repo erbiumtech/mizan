@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\PlantLogs\Tables;
 use App\Modules\ConstructionCosting\Models\PlantItem;
 use App\Modules\ConstructionCosting\Models\PlantLog;
 use App\Modules\ConstructionCosting\Services\PlantService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -77,10 +78,10 @@ class PlantLogsTable
 
                 TextColumn::make('charge_amount')
                     ->label('Charge')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('at approval')
-                    ->summarize(Sum::make()->money('PKR')->label('Charged')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Charged')),
 
                 TextColumn::make('books_cost')
                     ->label('Books cost')

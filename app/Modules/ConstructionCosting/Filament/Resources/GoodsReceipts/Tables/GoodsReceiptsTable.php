@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts\Table
 
 use App\Modules\ConstructionCosting\Models\GoodsReceipt;
 use App\Modules\ConstructionCosting\Services\GoodsReceiptService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
@@ -60,7 +61,7 @@ class GoodsReceiptsTable
 
                 TextColumn::make('total')
                     ->label('Value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (GoodsReceipt $record): float => $record->total())
                     ->tooltip('At order rate. The invoice may disagree, and the three-way match is where that is somebody\'s decision.'),

@@ -4,6 +4,7 @@ namespace App\Modules\Quotations\Filament\RelationManagers;
 
 use App\Modules\Quotations\Filament\Resources\Quotations\QuotationResource;
 use App\Modules\Quotations\Models\Quotation;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -38,7 +39,7 @@ class ContactQuotationsRelationManager extends RelationManager
                         : null),
                 TextColumn::make('issue_date')->label('Date')->date('d M Y')->sortable(),
                 TextColumn::make('valid_until')->label('Valid to')->date('d M Y')->placeholder('—'),
-                TextColumn::make('total')->money('PKR')->alignEnd()->sortable(),
+                TextColumn::make('total')->money(CompanyCurrency::code())->alignEnd()->sortable(),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {

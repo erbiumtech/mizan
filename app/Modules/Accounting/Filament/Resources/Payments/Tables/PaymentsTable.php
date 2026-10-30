@@ -7,6 +7,7 @@ use App\Modules\Accounting\Services\ChequePrinter;
 use App\Modules\Accounting\Services\PaymentDetailsExport;
 use App\Modules\Accounting\Services\PaymentService;
 use App\Modules\Employees\Models\Employee;
+use App\Support\CompanyCurrency;
 use App\Support\Contracts\PayableDocument;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -41,7 +42,7 @@ class PaymentsTable
                     ->label('Debit Account'),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('details')

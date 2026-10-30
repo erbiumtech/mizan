@@ -98,7 +98,7 @@
              disclose at their next negotiation. --}}
         <tr>
             <th>{{ $has_left ? 'Last Drawn Gross Salary' : 'Gross Monthly Salary' }}</th>
-            <td>PKR {{ number_format($monthly_gross, 0) }} per month</td>
+            <td>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($monthly_gross, 0) }} per month</td>
         </tr>
     @endif
 </table>

@@ -4,6 +4,7 @@ namespace App\Modules\Billing\Filament\Resources\BillingRuns\Tables;
 
 use App\Modules\Billing\Models\BillingRun;
 use App\Modules\Billing\Services\MonthlyBillingService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -53,7 +54,7 @@ class BillingRunsTable
 
                 TextColumn::make('invoice.total')
                     ->label('Total')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->placeholder('—')
                     ->alignEnd(),
 

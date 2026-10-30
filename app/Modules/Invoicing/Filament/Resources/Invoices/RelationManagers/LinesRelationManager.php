@@ -5,6 +5,7 @@ namespace App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers;
 use App\Modules\Invoicing\Filament\Support\LinePricing;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\TaxRate;
+use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -138,11 +139,11 @@ class LinesRelationManager extends RelationManager
 
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('line_total')
                     ->label('Line Total')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
             ])
             // Every action asks the same question of the invoice these lines belong to, never of a row:
             // an issued invoice has posted its lines, so none may be added, changed or deleted — including

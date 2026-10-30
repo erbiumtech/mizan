@@ -9,6 +9,7 @@ use App\Modules\Crm\Filament\Resources\SalesTargets\Pages\ListSalesTargets;
 use App\Modules\Crm\Models\SalesTarget;
 use App\Modules\Crm\Services\PipelineReports;
 use App\Modules\Employees\Models\Employee;
+use App\Support\CompanyCurrency;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -71,7 +72,7 @@ class SalesTargetResource extends Resource
 
             TextInput::make('target_amount')->label('Target')->numeric()->minValue(0)->required(),
 
-            TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder('PKR'),
+            TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder(CompanyCurrency::code()),
         ]);
     }
 
@@ -96,7 +97,7 @@ class SalesTargetResource extends Resource
                     ->date('d M Y')
                     ->description(fn (SalesTarget $record): string => 'to '.$record->period_end->format('d M Y')),
 
-                TextColumn::make('target_amount')->label('Target')->money('PKR')->alignEnd(),
+                TextColumn::make('target_amount')->label('Target')->money(CompanyCurrency::code())->alignEnd(),
 
                 // Computed on read, from won deals at the rate each recorded. Never stored:
                 // a stored attainment drifts from the deals behind it.

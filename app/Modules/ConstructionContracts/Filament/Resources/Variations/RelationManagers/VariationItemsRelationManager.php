@@ -7,6 +7,7 @@ use App\Modules\ConstructionContracts\Models\ContractItem;
 use App\Modules\ConstructionContracts\Models\Variation;
 use App\Modules\ConstructionContracts\Models\VariationItem;
 use App\Modules\ConstructionContracts\Services\VariationService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -174,9 +175,9 @@ class VariationItemsRelationManager extends RelationManager
                         : 'was '.$record->previous_rate),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('resultingItem.item_no')
                     ->label('Wrote')

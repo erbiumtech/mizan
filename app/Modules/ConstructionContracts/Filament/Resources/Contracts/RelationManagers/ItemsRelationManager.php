@@ -7,6 +7,7 @@ use App\Modules\Construction\Models\WbsNode;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Models\ContractItem;
 use App\Modules\ConstructionContracts\Services\ContractService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -210,12 +211,12 @@ class ItemsRelationManager extends RelationManager
 
                 TextColumn::make('scheduled_value')
                     ->label('Scheduled value')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // An omission is negative and reads as one, which is the point of writing it that way.
                     ->color(fn (ContractItem $record): string => $record->isOmission() ? 'danger' : 'gray')
                     ->sortable()
-                    ->summarize(Sum::make()->money('PKR')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())),
             ])
             ->defaultSort('sort')
             ->headerActions([

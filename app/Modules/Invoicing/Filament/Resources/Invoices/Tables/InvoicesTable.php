@@ -45,6 +45,8 @@ class InvoicesTable
         // See docs/page-load-performance-plan.md.
         return $table
             ->deferLoading()
+            // The note's original, named under its kind; read once for the page rather than once per note.
+            ->modifyQueryUsing(fn ($query) => $query->with('creditedInvoice:id,invoice_number'))
             ->header(view('filament.tables.saved-views-bar'))
             ->columns([
                 TextColumn::make('invoice_number')

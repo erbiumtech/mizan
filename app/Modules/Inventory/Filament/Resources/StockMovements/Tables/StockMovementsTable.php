@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\StockMovements\Tables;
 
+use App\Support\CompanyCurrency;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -35,15 +36,15 @@ class StockMovementsTable
 
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('total_cost')
                     ->label('COGS')
-                    ->money('PKR'),
+                    ->money(CompanyCurrency::code()),
 
                 TextColumn::make('remaining_quantity')
                     ->label('Lot Remaining')

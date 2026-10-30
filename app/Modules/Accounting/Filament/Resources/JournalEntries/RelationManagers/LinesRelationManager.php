@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\JournalEntries\RelationManagers;
 
+use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -68,12 +69,12 @@ class LinesRelationManager extends RelationManager
 
                 TextColumn::make('debit_amount')
                     ->label('Debit')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('credit_amount')
                     ->label('Credit')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('description')

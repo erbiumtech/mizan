@@ -115,12 +115,12 @@
     <tr><th>Employment Status</th><td>{{ $employment_status }}</td></tr>
     <tr>
         <th>{{ $salaryLabel }}</th>
-        <td>PKR {{ number_format($monthly_gross, 0) }}
+        <td>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($monthly_gross, 0) }}
             <span class="in-words">({{ $monthly_gross_words }} only)</span></td>
     </tr>
     <tr>
         <th>{{ $annualLabel }}</th>
-        <td>PKR {{ number_format($annual_gross, 0) }}
+        <td>{{ \App\Support\CompanyCurrency::code() }} {{ number_format($annual_gross, 0) }}
             <span class="in-words">({{ $annual_gross_words }} only)</span></td>
     </tr>
     {{-- The caveat sits with the figures it qualifies rather than in a footnote at the foot of the page.

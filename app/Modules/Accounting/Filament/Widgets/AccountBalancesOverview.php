@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Widgets;
 
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Accounting\Models\Account;
+use App\Support\CompanyCurrency;
 use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -52,6 +53,6 @@ class AccountBalancesOverview extends StatsOverviewWidget
     {
         $balance = round((float) Account::whereIn('code', $codes)->sum('balance'), 2);
 
-        return Stat::make($label, 'PKR '.number_format($balance, 2));
+        return Stat::make($label, CompanyCurrency::code().' '.number_format($balance, 2));
     }
 }

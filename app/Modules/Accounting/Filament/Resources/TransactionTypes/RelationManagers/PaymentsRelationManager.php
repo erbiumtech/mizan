@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\TransactionTypes\RelationManagers;
 
+use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -21,7 +22,7 @@ class PaymentsRelationManager extends RelationManager
                     ->searchable(),
 
                 TextColumn::make('amount')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('status')

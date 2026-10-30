@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\Commitments\Tables;
 
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Services\CommitmentService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
@@ -73,20 +74,20 @@ class CommitmentsTable
 
                 TextColumn::make('ordered')
                     ->label('Ordered')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Commitment $record): float => $record->orderedTotal()),
 
                 TextColumn::make('relieved')
                     ->label('Received / invoiced')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Commitment $record): float => $record->relievedTotal())
                     ->toggleable(),
 
                 TextColumn::make('open')
                     ->label('Open')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->weight('bold')
                     ->state(fn (Commitment $record): float => $record->openTotal())

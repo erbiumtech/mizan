@@ -7,6 +7,7 @@ use App\Modules\Crm\Models\Opportunity;
 use App\Modules\Crm\Models\Pipeline;
 use App\Modules\Crm\Models\SalesTarget;
 use App\Modules\Crm\Services\PipelineReports;
+use App\Support\CompanyCurrency;
 use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportShapes;
 use Carbon\Carbon;
@@ -126,7 +127,7 @@ class CrmReports
 
         $forecast = $reports->forecast($from, $to, pipelineId: $pipeline?->getKey());
 
-        $base = Company::current()?->currency_code ?? 'PKR';
+        $base = CompanyCurrency::code();
         $foreign = array_values(array_diff($forecast['currencies'], [$base]));
 
         // Per stage as the rows, so the total above is explicable rather than a single figure to be

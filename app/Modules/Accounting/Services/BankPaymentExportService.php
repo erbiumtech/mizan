@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Employees\Models\Employee;
 use App\Support\Banking\IPaymentsFileWriter;
+use App\Support\CompanyCurrency;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -173,7 +174,7 @@ class BankPaymentExportService
                 'value_date' => $payment->value_date?->toDateString() ?? $valueDate,
                 'debit_account' => $payment->companyBankAccount?->account_no ?: ($config['debit_account'] ?? ''),
                 'debit_bank_id' => $config['debit_bank_id'] ?? '',
-                'currency' => $config['currency'] ?? 'PKR',
+                'currency' => $config['currency'] ?? CompanyCurrency::code(),
             ];
         }
 
@@ -181,7 +182,7 @@ class BankPaymentExportService
             'value_date' => $valueDate,
             'debit_account' => $payments->first()?->companyBankAccount?->account_no ?: ($config['debit_account'] ?? ''),
             'debit_bank_id' => $config['debit_bank_id'] ?? '',
-            'currency' => $config['currency'] ?? 'PKR',
+            'currency' => $config['currency'] ?? CompanyCurrency::code(),
             'company_name' => \App\Support\CompanyLetterhead::data()['legal_name'] ?? '',
         ], $preview);
     }

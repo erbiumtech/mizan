@@ -10,6 +10,7 @@ use App\Modules\Performance\Filament\Resources\RecurringTasks\Pages\CreateRecurr
 use App\Modules\Performance\Filament\Resources\RecurringTasks\Pages\EditRecurringTask;
 use App\Modules\Performance\Filament\Resources\RecurringTasks\Pages\ListRecurringTasks;
 use App\Modules\Performance\Models\RecurringTask;
+use App\Support\CompanyCurrency;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -149,7 +150,7 @@ class RecurringTaskResource extends Resource
                 TextColumn::make('cadence')->badge(),
                 TextColumn::make('due_time')->label('By')->time('H:i'),
                 TextColumn::make('penalty_points')->label('Points')->alignEnd(),
-                TextColumn::make('penalty_amount')->label('Amount')->money('PKR')->placeholder('—')->alignEnd(),
+                TextColumn::make('penalty_amount')->label('Amount')->money(CompanyCurrency::code())->placeholder('—')->alignEnd(),
                 IconColumn::make('is_active')->boolean(),
             ])
             ->defaultSort('title')

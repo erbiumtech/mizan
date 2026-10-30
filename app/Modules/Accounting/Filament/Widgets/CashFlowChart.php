@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Filament\Widgets;
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntryLine;
+use App\Support\CompanyCurrency;
 use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
@@ -60,11 +61,16 @@ class CashFlowChart extends ChartWidget
         ['in' => $in, 'out' => $out] = $this->periodTotals();
         $net = round($in - $out, 2);
 
+        $currency = CompanyCurrency::code();
+
         return sprintf(
-            'In PKR %s · Out PKR %s · Net %sPKR %s over %d days',
+            'In %s %s · Out %s %s · Net %s%s %s over %d days',
+            $currency,
             number_format($in, 2),
+            $currency,
             number_format($out, 2),
             $net < 0 ? '−' : '',
+            $currency,
             number_format(abs($net), 2),
             (int) ($this->filter ?: 14),
         );

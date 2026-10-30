@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\BackCharges\Table
 use App\Modules\ConstructionContracts\Models\BackCharge;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Services\BackChargeService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
@@ -87,14 +88,14 @@ class BackChargesTable
 
                 TextColumn::make('total_amount')
                     ->label('Notified')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money('PKR')->label('Total'))
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Total'))
                     ->sortable(),
 
                 TextColumn::make('agreed_amount')
                     ->label('Settled')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Beside the notified figure rather than over it: "notified 240,000, settled at 180,000" is the
                     // fact somebody needs at final account.

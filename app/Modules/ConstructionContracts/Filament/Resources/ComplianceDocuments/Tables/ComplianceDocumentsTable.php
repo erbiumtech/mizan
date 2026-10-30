@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\ComplianceDocumen
 
 use App\Modules\ConstructionContracts\Models\ComplianceDocument;
 use App\Modules\ConstructionContracts\Services\ComplianceService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
@@ -87,7 +88,7 @@ class ComplianceDocumentsTable
 
                 TextColumn::make('amount_covered')
                     ->label('Sum insured')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),

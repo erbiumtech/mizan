@@ -37,7 +37,7 @@ class ContactCsvImporter implements CsvImporter
     public function example(): array
     {
         return array_merge(
-            ['Erbium AG', 'customer', 'billing@erbium.example', '+41 44 000 0000', '', '', 'Zurich'],
+            ['Acme Trading Co.', 'customer', 'billing@acme.example', '+92 42 111 000 000', '', '', 'Lahore'],
             array_fill(0, count(CustomField::csvColumns(Contact::class)), ''),
         );
     }

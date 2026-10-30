@@ -86,7 +86,7 @@
     <table class="totals">
         <tr><td>Subtotal</td><td class="num">{{ number_format($quotation->subtotal, 2) }}</td></tr>
         <tr><td>Tax</td><td class="num">{{ number_format($quotation->tax_total, 2) }}</td></tr>
-        <tr class="grand"><td>Total ({{ $quotation->currency_code ?: 'PKR' }})</td><td class="num">{{ number_format($quotation->total, 2) }}</td></tr>
+        <tr class="grand"><td>Total ({{ $quotation->currency_code ?: \App\Support\CompanyCurrency::code() }})</td><td class="num">{{ number_format($quotation->total, 2) }}</td></tr>
     </table>
 
     @if ($quotation->terms)

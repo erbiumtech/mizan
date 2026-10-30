@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRates\Tables;
 
 use App\Modules\ConstructionCosting\Models\LabourRate;
+use App\Support\CompanyCurrency;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -39,7 +40,7 @@ class LabourRatesTable
 
                 TextColumn::make('cost_rate_per_hour')
                     ->label('Per hour')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 

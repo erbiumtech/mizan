@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Services;
 
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\Currency;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Support\TenantTransaction;
 use Carbon\Carbon;
@@ -202,6 +203,8 @@ class GnuCashImportService
         $accountsCreated = 0;
         $errors = [];
 
+        $baseCurrency = Currency::baseCode();
+
         foreach ($groups as $gnucashId => $group) {
             if (JournalEntry::where('gnucash_id', $gnucashId)->exists()) {
                 $skipped++;
@@ -212,9 +215,9 @@ class GnuCashImportService
             $first = $group[0];
             $currency = strtoupper(trim($first['commodity/currency'] ?? ''));
 
-            if ($currency && ! str_contains($currency, 'PKR') && ! str_contains($currency, 'CURRENCY')) {
-                // GnuCash writes e.g. CURRENCY::PKR — reject anything else
-                $errors[] = "Line {$first['_line']}: unsupported currency '{$currency}' (single-currency PKR engine)";
+            if ($currency && ! str_contains($currency, $baseCurrency) && ! str_contains($currency, 'CURRENCY')) {
+                // GnuCash writes e.g. CURRENCY::PKR — anything but the company's own currency is refused
+                $errors[] = "Line {$first['_line']}: unsupported currency '{$currency}' (the books are kept in {$baseCurrency})";
 
                 continue;
             }

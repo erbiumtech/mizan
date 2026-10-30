@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\Contracts\Tables;
 
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Services\ContractService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -64,13 +65,13 @@ class ContractsTable
 
                 TextColumn::make('contract_sum')
                     ->label('Sum')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('schedule_total')
                     ->label('Schedule')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Contract $record): float => $record->scheduleTotal())
                     ->tooltip('The priced lines. Agreed to differ from the contract sum by whatever was not broken down.')

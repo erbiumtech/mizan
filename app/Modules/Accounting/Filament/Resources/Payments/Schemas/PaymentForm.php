@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Filament\Resources\Payments\Schemas;
 use App\Modules\Accounting\Models\Beneficiary;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Employees\Models\Employee;
+use App\Support\CompanyCurrency;
 use App\Support\EmployeeOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\MorphToSelect;
@@ -54,7 +55,7 @@ class PaymentForm
                     ->step(0.01)
                     ->required()
                     ->minValue(0.01)
-                    ->prefix('PKR'),
+                    ->prefix(CompanyCurrency::code()),
 
                 TextInput::make('details')
                     ->label('Details')

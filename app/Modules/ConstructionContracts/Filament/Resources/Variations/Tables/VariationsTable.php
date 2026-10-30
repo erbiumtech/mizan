@@ -4,6 +4,7 @@ namespace App\Modules\ConstructionContracts\Filament\Resources\Variations\Tables
 
 use App\Modules\ConstructionContracts\Models\Variation;
 use App\Modules\ConstructionContracts\Services\VariationService;
+use App\Support\CompanyCurrency;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -71,21 +72,21 @@ class VariationsTable
 
                 TextColumn::make('quoted_amount')
                     ->label('Quoted')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('assessed_amount')
                     ->label('Assessed')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('approved_amount')
                     ->label('Approved')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Null rather than zero until it is agreed: zero would read as an agreed variation worth
                     // nothing, which is a different fact.

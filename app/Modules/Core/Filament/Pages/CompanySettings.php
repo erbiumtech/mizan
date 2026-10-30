@@ -125,7 +125,6 @@ class CompanySettings extends Page
         // Own state first, then whatever the contributed sections need — which is not always a settings key:
         // the base currency is a row in the currencies table. See App\Support\Contracts\SettingsSection.
         $this->form->fill([
-            'petty_cash_float_amount' => setting('petty_cash.float_amount'),
             'reports_negatives_in_parentheses' => (bool) setting('reports.negatives_in_parentheses', false),
             'notifications_record_changes' => (bool) setting('notifications.record_changes', true),
             ...static::letterheadState(),
@@ -210,7 +209,6 @@ class CompanySettings extends Page
                 16 => [$this->notificationsSection()],
             ],
             'money' => [
-                20 => [$this->pettyCashSection()],
                 30 => [$this->approvalsSection()],
                 70 => [$this->ipaymentsSection()],
             ],
@@ -397,7 +395,7 @@ class CompanySettings extends Page
                 TextInput::make('company_legal_name')
                     ->label('Registered name')
                     ->maxLength(255)
-                    ->placeholder('ERBIUMTECH (SMC-Private) Limited')
+                    ->placeholder('Acme Traders (SMC-Private) Limited')
                     ->helperText('As registered, including the suffix. Not the short name the panel uses.'),
 
                 TextInput::make('company_registration_no')
@@ -560,18 +558,6 @@ class CompanySettings extends Page
                         .'changed it themselves, and never by email: it goes to the bell, where the cost of '
                         .'one you did not need is a glance. Payslips, leave and expense claims are '
                         .'unaffected either way; each of those says something better for itself.'),
-            ]);
-    }
-
-    protected function pettyCashSection(): Section
-    {
-        return Section::make('Petty Cash')
-            ->schema([
-                TextInput::make('petty_cash_float_amount')
-                    ->label('Float Amount')
-                    ->numeric()
-                    ->required()
-                    ->helperText('The imprest the petty cash box is restored to each month.'),
             ]);
     }
 
@@ -851,7 +837,6 @@ class CompanySettings extends Page
         SettingsSections::save($state);
 
         $settings = app(TenantSettings::class);
-        $settings->set('petty_cash.float_amount', (float) $state['petty_cash_float_amount']);
         $settings->set('reports.negatives_in_parentheses', (bool) ($state['reports_negatives_in_parentheses'] ?? false));
         $settings->set('notifications.record_changes', (bool) ($state['notifications_record_changes'] ?? false));
 

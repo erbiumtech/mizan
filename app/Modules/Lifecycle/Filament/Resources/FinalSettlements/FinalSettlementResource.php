@@ -7,6 +7,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Lifecycle\Filament\Resources\FinalSettlements\Pages\ListFinalSettlements;
 use App\Modules\Lifecycle\Models\FinalSettlement;
 use App\Modules\Lifecycle\Services\FinalSettlementBuilder;
+use App\Support\CompanyCurrency;
 use App\Support\LandlordUserColumn;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -155,14 +156,14 @@ class FinalSettlementResource extends Resource
 
                 TextColumn::make('left_on')->label('Left')->date('d M Y')->sortable(),
 
-                TextColumn::make('leave_encashment_amount')->label('Leave')->money('PKR')->alignEnd()->toggleable(),
-                TextColumn::make('gratuity_amount')->label('Gratuity')->money('PKR')->alignEnd()->toggleable(),
-                TextColumn::make('outstanding_advance')->label('Advance')->money('PKR')->alignEnd()->toggleable(),
-                TextColumn::make('unreturned_asset_value')->label('Kit')->money('PKR')->alignEnd()->toggleable(),
+                TextColumn::make('leave_encashment_amount')->label('Leave')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('gratuity_amount')->label('Gratuity')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('outstanding_advance')->label('Advance')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('unreturned_asset_value')->label('Kit')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
 
                 TextColumn::make('net_amount')
                     ->label('Net')
-                    ->money('PKR')
+                    ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->weight('bold')
                     // A settlement can legitimately be negative: somebody leaving with an
