@@ -24,6 +24,31 @@ class InvoiceLine extends Model
         'tax_amount' => 'decimal:2',
     ];
 
+    /**
+     * A credit or debit note line carries the tax its source line actually charged, copied rather than
+     * recomputed (see InvoiceService::creditLines()), and issuing the note totals that figure as it stands.
+     * Trimming the line — which is what the Credit and Debit actions tell people to do for a partial
+     * correction — must trim that tax in proportion, or a note crediting one of two units reverses the tax
+     * on both. Scaled from the copied figure, not re-derived from the rate, for the reason the copy exists:
+     * the rate may have been edited since the invoice was issued.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (InvoiceLine $line): void {
+            $was = (float) $line->getOriginal('line_total');
+
+            if (! $line->isDirty('line_total') || $line->isDirty('tax_amount') || abs($was) < 0.005) {
+                return;
+            }
+
+            $kind = Invoice::query()->whereKey($line->invoice_id)->value('kind');
+
+            if (in_array($kind, [Invoice::KIND_CREDIT_NOTE, Invoice::KIND_DEBIT_NOTE], true)) {
+                $line->tax_amount = round((float) $line->getOriginal('tax_amount') * (float) $line->line_total / $was, 2);
+            }
+        });
+    }
+
     public function invoice()
     {
         return $this->belongsTo(Invoice::class);

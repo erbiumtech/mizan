@@ -4,7 +4,6 @@ namespace App\Modules\Core\Filament\Resources\Comments\Pages;
 
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Resources\Comments\CommentResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListComments extends ListRecords
@@ -14,8 +13,8 @@ class ListComments extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            // No New comment: a comment is made on what it is about. See CommentResource::canCreate().
             HelpAction::make('comments', 'Comments: Help'),
-            CreateAction::make(),
         ];
     }
 }

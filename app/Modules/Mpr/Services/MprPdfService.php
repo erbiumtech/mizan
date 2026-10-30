@@ -2,8 +2,8 @@
 
 namespace App\Modules\Mpr\Services;
 
-use App\Models\Mpr;
 use App\Modules\Core\Models\User;
+use App\Modules\Mpr\Models\MPR as Mpr;
 use App\Support\Pdf\Pdf;
 use Carbon\Carbon;
 use Exception;

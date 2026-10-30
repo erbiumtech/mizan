@@ -57,7 +57,7 @@ class EmailTemplatesTable
                 Action::make('preview')
                     ->icon('heroicon-o-eye')
                     ->color('gray')
-                    ->modalHeading(fn (EmailTemplate $record): string => 'Preview: '.$record->keyLabel())
+                    ->modalHeading(fn (EmailTemplate $record): string => 'Preview: '.ucfirst(str_replace('_', ' ', (string) $record->key)))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
                     ->modalContent(function (EmailTemplate $record): HtmlString {
@@ -68,7 +68,7 @@ class EmailTemplatesTable
                         return new HtmlString(
                             '<p class="mb-3 text-sm"><strong>Subject:</strong> '.e($mail->subject).'</p>'
                             .'<div class="overflow-hidden rounded-lg border">'
-                            .'<iframe class="h-[32rem] w-full bg-white" srcdoc="'.e($mail->render()).'"></iframe>'
+                            .'<iframe class="h-[32rem] w-full bg-white" srcdoc="'.e((string) $mail->render()).'"></iframe>'
                             .'</div>'
                         );
                     }),
@@ -91,7 +91,7 @@ class EmailTemplatesTable
                         $mail = TemplatedMail::previewOf($record);
 
                         try {
-                            Mail::html($mail->render(), fn (Message $message) => $message->to($to)->subject($mail->subject));
+                            Mail::html((string) $mail->render(), fn (Message $message) => $message->to($to)->subject($mail->subject));
                         } catch (Throwable $e) {
                             Notification::make()->danger()->title('It could not be sent.')->body($e->getMessage())->send();
 

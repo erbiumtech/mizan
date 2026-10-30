@@ -17,7 +17,9 @@ class InvoiceLineForm
             ->components([
                 Select::make('invoice_id')
                     ->label('Invoice')
-                    ->relationship('invoice', 'invoice_number')
+                    // Drafts only: an issued invoice has posted its lines, so a line added to one from here
+                    // changed the document without touching its totals or its ledger entry.
+                    ->relationship('invoice', 'invoice_number', fn ($query) => $query->where('status', Invoice::STATUS_DRAFT))
                     ->searchable()
                     ->preload()
                     ->required(),

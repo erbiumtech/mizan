@@ -95,8 +95,9 @@ class ScheduleRelationManager extends RelationManager
                     ->label('Record')
                     ->icon('heroicon-o-check-circle')
                     ->color('gray')
-                    ->visible(fn (LoanInstalment $record): bool => ! $record->isRecorded()
-                        && auth()->user()?->can('record', $record->loan))
+                    // The loan is the owner record — asking each row for its own was a query per instalment.
+                    ->visible(fn (LoanInstalment $record, RelationManager $livewire): bool => ! $record->isRecorded()
+                        && auth()->user()?->can('record', $livewire->getOwnerRecord()))
                     ->schema([
                         DatePicker::make('date')
                             ->label('Paid on')

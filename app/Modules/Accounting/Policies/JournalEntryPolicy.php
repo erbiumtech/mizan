@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Policies;
 
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Services\SecondApproverRule;
 use App\Modules\Core\Models\User;
 
 class JournalEntryPolicy
@@ -44,8 +45,12 @@ class JournalEntryPolicy
             return false;
         }
 
-        // Segregation of duties: the creator may never approve their own entry.
-        return $entry->created_by === null || $entry->created_by !== $user->id;
+        // Segregation of duties: the creator may not approve their own entry — unless the company has said it
+        // has nobody to segregate with, the same rule JournalEntryService::approve() applies. Without that
+        // the setting only ever reached Administrators, who skip this policy.
+        return $entry->created_by === null
+            || $entry->created_by !== $user->id
+            || ! app(SecondApproverRule::class)->isRequired();
     }
 
     public function reject(User $user, JournalEntry $entry): bool

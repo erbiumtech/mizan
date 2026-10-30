@@ -50,6 +50,13 @@ class InvoicingReports
             ->sortByDesc('days_overdue')
             ->values();
 
+        $footer = [
+            'Total outstanding — '.$invoices->count().' invoices',
+            '',
+            '',
+            number_format((float) $report['total'], 0),
+        ];
+
         return [
             'kind' => 'table',
             'key' => $key,
@@ -74,12 +81,11 @@ class InvoicingReports
                 ])
                 ->values()
                 ->all(),
-            'footer' => [
-                'Total outstanding — '.$invoices->count().' invoices',
-                '',
-                '',
-                number_format((float) $report['total'], 0),
-            ],
+            'footer' => $footer,
+            // The pane spans the footer label across the blank cells after it; ReportShapes::table() works
+            // this out for every other table, and this one is built by hand, so it says so itself. Without
+            // it the pane threw on the first ageing report that had anything outstanding.
+            'footer_span' => self::span($footer),
             'note' => mb_strtoupper($invoices->count().' invoices outstanding'),
             'balanced' => true,
         ];

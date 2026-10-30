@@ -144,27 +144,29 @@ class LinesRelationManager extends RelationManager
                     ->label('Line Total')
                     ->money('PKR'),
             ])
+            // Every action asks the same question of the invoice these lines belong to, never of a row:
+            // an issued invoice has posted its lines, so none may be added, changed or deleted — including
+            // in bulk — and reading `$record->invoice` per row was a query per line.
             ->headerActions([
                 CreateAction::make()
-                    ->visible(fn (): bool => auth()->user()?->can('InvoiceUpdate') ?? false),
+                    ->visible(fn (RelationManager $livewire): bool => self::canModify($livewire->getOwnerRecord())),
             ])
             ->recordActions([
                 EditAction::make()
-                    ->visible(fn (Model $record): bool => self::canModify($record)),
+                    ->visible(fn (RelationManager $livewire): bool => self::canModify($livewire->getOwnerRecord())),
                 DeleteAction::make()
-                    ->visible(fn (Model $record): bool => self::canModify($record)),
+                    ->visible(fn (RelationManager $livewire): bool => self::canModify($livewire->getOwnerRecord())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn (RelationManager $livewire): bool => self::canModify($livewire->getOwnerRecord())),
                 ]),
             ]);
     }
 
-    protected static function canModify(Model $record): bool
+    protected static function canModify(Model $invoice): bool
     {
-        $invoice = $record->invoice;
-
         return ($invoice instanceof Invoice && $invoice->isDraft())
             && (auth()->user()?->can('InvoiceUpdate') ?? false);
     }

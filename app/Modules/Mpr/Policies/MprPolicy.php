@@ -2,8 +2,8 @@
 
 namespace App\Modules\Mpr\Policies;
 
-use App\Models\Mpr;
 use App\Modules\Core\Models\User;
+use App\Modules\Mpr\Models\MPR as Mpr;
 
 class MprPolicy
 {

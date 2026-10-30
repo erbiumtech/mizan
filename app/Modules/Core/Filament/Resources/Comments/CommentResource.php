@@ -28,6 +28,16 @@ class CommentResource extends Resource
     // Nova: $displayInNavigation = false
     protected static bool $shouldRegisterNavigation = false;
 
+    /**
+     * A comment is made on the thing it is about — a payslip, from its own page — and this form has no way to
+     * say what that is. Created from here it had no subject, and the insert failed on the NOT NULL
+     * commentable columns: a "New comment" button that could never succeed.
+     */
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['body'];

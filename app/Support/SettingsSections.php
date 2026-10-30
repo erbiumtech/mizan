@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Support\Contracts\SettingsSection;
+use Illuminate\Support\Arr;
 
 /**
  * Sections of the Company Settings screen, contributed by the modules whose settings they are.
@@ -82,7 +83,10 @@ class SettingsSections
             $state = array_merge($state, $entry['section']->fill());
         }
 
-        return $state;
+        // Nested, because that is where the form reads a dotted name: a field called
+        // `invoicing.dunning_enabled` lives at data.invoicing.dunning_enabled, and handed the flat
+        // key it showed its default instead of the saved value.
+        return Arr::undot($state);
     }
 
     /**
@@ -92,6 +96,11 @@ class SettingsSections
      */
     public static function save(array $state): void
     {
+        // The same names come back nested from the form, and the sections read them flat. Without the
+        // flat copy every save wrote the default over them — the ledger freeze, dunning, statements and
+        // the overdue credit block were reset by anybody saving any other setting on the page.
+        $state += Arr::dot($state);
+
         foreach (self::sorted() as $entry) {
             $entry['section']->save($state);
         }
