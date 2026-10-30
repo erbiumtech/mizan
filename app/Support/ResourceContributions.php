@@ -184,6 +184,28 @@ class ResourceContributions
         return array_values(array_map(fn (Closure $factory) => $factory(), self::$tableColumns[$resource] ?? []));
     }
 
+    /**
+     * Form components one module contributes to another module's form — the first is the work item
+     * picker on the timesheet entry (docs/project-management-plan.md §9): the form is Timesheets', the
+     * item is Work's, and Work is the one that may name the other. The factory builds a fresh component
+     * each time the form is configured, and the component decides its own visibility.
+     *
+     * @var array<class-string, array<string, Closure(): mixed>>
+     */
+    private static array $formComponents = [];
+
+    /** @param  Closure(): mixed  $factory  builds a fresh form component each time the form is configured */
+    public static function addFormComponent(string $resource, string $name, Closure $factory): void
+    {
+        self::$formComponents[$resource][$name] = $factory;
+    }
+
+    /** @return array<int, mixed> */
+    public static function formComponentsFor(string $resource): array
+    {
+        return array_values(array_map(fn (Closure $factory) => $factory(), self::$formComponents[$resource] ?? []));
+    }
+
     /** For tests that need to assert what a resource looks like without contributions. */
     public static function flush(): void
     {
@@ -193,5 +215,6 @@ class ResourceContributions
         self::$headerActions = [];
         self::$subNavigation = [];
         self::$tableColumns = [];
+        self::$formComponents = [];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Modules\Timesheets\Services;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Support\Contracts\BillableTime;
+use App\Support\TenantDb;
 use Illuminate\Support\Collection;
 
 /**
@@ -100,11 +101,12 @@ class BillableHours implements BillableTime
 
                 $lines[] = [
                     'description' => sprintf(
-                        '%s — %s: %s hours at %s',
+                        '%s — %s: %s hours at %s%s',
                         $project->name,
                         $employee->display_label,
                         $hours,
                         number_format($rate, 2),
+                        $this->itemKeys($employeeEntries),
                     ),
                     'amount' => round($hours * $rate, 2),
                 ];
@@ -114,6 +116,30 @@ class BillableHours implements BillableTime
         }
 
         return ['lines' => $lines, 'entries' => $billed, 'unpriced' => $unpriced];
+    }
+
+    /**
+     * The keys of the work items these hours were logged against — docs/project-management-plan.md §9.
+     *
+     * "An invoice line from a project's billable hours now carries the keys of the items they were
+     * logged against, which is what a client asks for on the invoice." Read with the query builder
+     * rather than a relation, the way `ProjectForm` reads contacts: `work_item_id` is a column the
+     * work module adds to this table, and Timesheets names no class of that module's. Empty when the
+     * column is absent or nothing was logged against an item, which costs the line nothing.
+     *
+     * @param  Collection<int, TimesheetEntry>  $entries
+     */
+    private function itemKeys(Collection $entries): string
+    {
+        $ids = $entries->pluck('work_item_id')->filter()->unique()->values();
+
+        if ($ids->isEmpty() || ! TenantDb::hasTable('work_items')) {
+            return '';
+        }
+
+        $keys = TenantDb::table('work_items')->whereIn('id', $ids->all())->orderBy('number')->pluck('key');
+
+        return $keys->isEmpty() ? '' : ' ('.$keys->implode(', ').')';
     }
 
     /**

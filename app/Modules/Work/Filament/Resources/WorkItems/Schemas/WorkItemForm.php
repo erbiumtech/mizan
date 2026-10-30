@@ -5,17 +5,22 @@ namespace App\Modules\Work\Filament\Resources\WorkItems\Schemas;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkStatus;
+use App\Modules\Work\Services\WorkTime;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * What a work item is, in four sections.
@@ -157,6 +162,80 @@ class WorkItemForm
 
                     ...CustomFieldsSchema::form(WorkItem::class),
                 ]),
+
+            /*
+             * Estimate against logged, and what it cost — §9.
+             *
+             * Read from the timesheet every time, never from a column here: an hour exists in the
+             * ledger exactly once, and this is a window onto it. Absent on create (nothing to show)
+             * and absent without the Timesheets module (nowhere for an hour to be).
+             */
+            Section::make('Time')
+                ->columns(3)
+                ->hiddenOn('create')
+                ->visible(fn (): bool => app(WorkTime::class)->isAvailable())
+                ->description('Logged here or synced in. Log time with the button above; the week\'s timesheet, payroll and invoicing all see it as time.')
+                ->schema([
+                    Placeholder::make('time_logged')
+                        ->label('Logged')
+                        ->content(fn (?WorkItem $record): string => $record === null ? '—'
+                            : WorkTime::duration(app(WorkTime::class)->summaryFor($record)['logged'])),
+
+                    Placeholder::make('time_remaining')
+                        ->label('Remaining')
+                        ->content(function (?WorkItem $record): string {
+                            $summary = $record === null ? null : app(WorkTime::class)->summaryFor($record);
+
+                            return $summary === null || $summary['remaining'] === null
+                                ? 'No estimate'
+                                : WorkTime::duration($summary['remaining']).($summary['remaining'] < 0 ? ' over' : '');
+                        }),
+
+                    Placeholder::make('time_cost')
+                        ->label('Cost')
+                        ->content(function (?WorkItem $record): string {
+                            $summary = $record === null ? null : app(WorkTime::class)->summaryFor($record);
+
+                            if ($summary === null || $summary['cost'] === null) {
+                                return $summary !== null && $summary['logged'] > 0 ? 'Uncosted — no payroll rate for these hours' : '—';
+                            }
+
+                            return number_format($summary['cost']).($summary['uncosted'] > 0
+                                ? ' ('.$summary['uncosted'].' entries uncosted)'
+                                : '');
+                        }),
+
+                    Placeholder::make('time_entries')
+                        ->label('Entries')
+                        ->columnSpanFull()
+                        ->content(fn (?WorkItem $record): HtmlString => new HtmlString(
+                            $record === null ? '—' : self::entriesTable(app(WorkTime::class)->entriesFor($record)),
+                        )),
+                ]),
         ]);
+    }
+
+    /**
+     * The entries behind the figures, each marked with where it came from.
+     *
+     * @param  Collection<int, TimesheetEntry>  $entries
+     */
+    private static function entriesTable(Collection $entries): string
+    {
+        if ($entries->isEmpty()) {
+            return '<span class="fi-board-empty">'.e(__('No time logged against this item yet.')).'</span>';
+        }
+
+        $rows = $entries->map(fn (TimesheetEntry $entry): string => '<tr>'
+            .'<td>'.e($entry->date->format('d M Y')).'</td>'
+            .'<td>'.e($entry->employee?->display_label ?? '—').'</td>'
+            .'<td>'.e(WorkTime::duration($entry->minutes)).'</td>'
+            .'<td>'.e(WorkTime::SOURCES[(string) ($entry->getAttribute('source') ?? WorkTime::MANUAL)] ?? (string) $entry->getAttribute('source')).'</td>'
+            .'<td>'.e((string) $entry->description).'</td>'
+            .'</tr>')->implode('');
+
+        return '<table class="fi-sprint-velocity"><thead><tr>'
+            .'<th>'.e(__('Date')).'</th><th>'.e(__('Who')).'</th><th>'.e(__('Time')).'</th><th>'.e(__('From')).'</th><th>'.e(__('Note')).'</th>'
+            .'</tr></thead><tbody>'.$rows.'</tbody></table>';
     }
 }

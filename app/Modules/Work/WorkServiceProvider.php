@@ -5,6 +5,8 @@ namespace App\Modules\Work;
 use App\Modules\Core\Filament\Pages\Reports;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource;
+use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Work\Filament\Pages\Backlog;
 use App\Modules\Work\Filament\Pages\Board;
 use App\Modules\Work\Filament\Pages\Epics;
@@ -34,13 +36,18 @@ use App\Modules\Work\Policies\WorkSprintPolicy;
 use App\Modules\Work\Policies\WorkStatusPolicy;
 use App\Modules\Work\Policies\WorkWorkflowPolicy;
 use App\Modules\Work\Policies\WorkWorkflowRulePolicy;
+use App\Modules\Work\Services\WorkTime;
+use App\Modules\Work\Support\SyncedTimesheetRows;
 use App\Modules\Work\Support\WorkReports;
 use App\Support\CustomFieldSubjects;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -85,7 +92,47 @@ class WorkServiceProvider extends ServiceProvider
         CustomFieldSubjects::register(ModuleMap::alias(WorkItem::class), 'Work Items');
 
         $this->contributeToProjects();
+        $this->contributeToTimesheets();
         $this->registerReports();
+    }
+
+    /**
+     * What Work adds to the timesheet — docs/project-management-plan.md §9.
+     *
+     * `work` does **not** require `timesheets`: a board is worth having without a ledger of hours, and
+     * a timesheet without a board. So this is the guarded shape (`ModuleBoundaryTest` KNOWN_COUPLINGS):
+     * the picker is offered only when the entry's project has items, the row guard only fires on rows
+     * with a non-manual source, and a company without one module or the other sees neither.
+     *
+     * Three things: the item picker on the entry form, a marker on rows that came from a sync, and
+     * the rule that such a row is edited where it was made.
+     */
+    private function contributeToTimesheets(): void
+    {
+        // Offered only when the entry's project has items: a timesheet in a company that runs no
+        // board should not grow a field that is always empty.
+        ResourceContributions::addFormComponent(TimesheetEntryResource::class, 'work_item', fn () => Select::make('work_item_id')
+            ->label(__('Work item'))
+            ->options(fn (Get $get, ?TimesheetEntry $record): array => app(WorkTime::class)
+                ->pickableItems($get('project_id'), $record?->getAttribute('work_item_id')))
+            ->searchable()
+            ->placeholder(__('None'))
+            ->visible(fn (Get $get): bool => modules()->enabled('work')
+                && $get('project_id') !== null
+                && WorkItem::query()->where('project_id', $get('project_id'))->exists())
+            ->helperText(__('Which piece of work this hour went on. The item shows it against its estimate.')));
+
+        // Says where a synced row came from, in the row. Disabled rather than hidden, because a
+        // button that does nothing but explain is the explanation.
+        ResourceContributions::addRecordAction(TimesheetEntryResource::class, 'work_source', fn () => Action::make('work_source')
+            ->label(fn (TimesheetEntry $record): string => WorkTime::SOURCES[(string) $record->getAttribute('source')] ?? (string) $record->getAttribute('source'))
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('gray')
+            ->disabled()
+            ->tooltip(__('This row was synced in and is edited where it was made.'))
+            ->visible(fn (TimesheetEntry $record): bool => ! WorkTime::isEditable($record)));
+
+        SyncedTimesheetRows::register();
     }
 
     /**

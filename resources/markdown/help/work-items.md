@@ -49,6 +49,22 @@ Points or minutes, both optional, and your company uses one or the other. Time l
 item is an ordinary timesheet entry, so it reaches payroll inputs and client invoices the same way
 every other hour does.
 
+## Logging time
+
+**Log time** on an item takes minutes, a date, a note and whether it bills, and writes one
+timesheet entry — nothing else. The item's *Time* section then shows what has been logged against
+its estimate, what is left (or how far over it is), and what those hours cost at the payroll rate
+for each person's month. Hours nobody's payroll can price are counted and said to be uncosted rather
+than priced at a guess.
+
+Time logged from an item is yours: it goes on your own timesheet. Logging somebody else's time is
+done on the timesheet, where the item picker is.
+
+A row that was synced in from another tool — Clockify, or a commit message — is read-only on the
+timesheet and says where to change it. The next sync would overwrite a hand edit anyway.
+
+This needs the Timesheets module; without it the button and the section are absent.
+
 ## Roles and permissions
 
 Everybody who works the board may view, create, update and move items — filing a bug should never
