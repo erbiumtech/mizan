@@ -58,6 +58,38 @@ return [
         'App\\Filament\\Widgets\\DocumentsExpiringOverview' => \App\Modules\Lifecycle\Filament\Widgets\DocumentsExpiringOverview::class,
     ],
 
+    /**
+     * What a company issues to its people — docs/saas-launch-plan.md §14.10.
+     *
+     * A list rather than the constant on the model, and it passes the three tests
+     * App\Support\OptionLists sets: the column is a plain string, nothing in the
+     * application branches on the value, and two companies would write different
+     * lists — one issues vehicles and site radios, another issues neither.
+     */
+    'option_lists' => [
+        'lifecycle.asset_kind' => [
+            'label' => 'Asset kinds',
+            'help' => 'What the company issues to people. Shown on an issued asset and on the assets-in-hand report.',
+            'values' => [
+                'laptop' => 'Laptop',
+                'phone' => 'Phone',
+                'sim' => 'SIM',
+                'vehicle' => 'Vehicle',
+                'access_card' => 'Access card',
+                'monitor' => 'Monitor',
+                'keyboard' => 'Keyboard',
+                'mouse' => 'Mouse',
+                'headphone' => 'Headphone',
+                'docking_station' => 'Docking station',
+                'ups' => 'UPS',
+                'charger' => 'Charger',
+                'computer_table' => 'Computer table',
+                'webcam' => 'Webcam',
+                'other' => 'Other',
+            ],
+        ],
+    ],
+
     'permission_groups' => [
         'Checklist',
         'EmployeeDocument',

@@ -181,7 +181,10 @@ class EmployeesServiceProvider extends ServiceProvider
         // Laravel auto-discovers commands only in app/Console/Commands, so one
         // living in a module has to be registered here or it exists and cannot
         // be run — including by the schedule entry that names it.
-        $this->commands([ApplyDueJobChanges::class]);
+        $this->commands([
+            ApplyDueJobChanges::class,
+            \App\Modules\Employees\Console\Commands\PublishDueAnnouncements::class,
+        ]);
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Employees\Console\Commands\ApplyDueJobChanges;
+use App\Modules\Employees\Console\Commands\PublishDueAnnouncements;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -19,4 +20,18 @@ use Illuminate\Support\Facades\Schedule;
  */
 Schedule::command(ApplyDueJobChanges::class)
     ->dailyAt('00:05')
+    ->withoutOverlapping();
+
+/**
+ * Announcements whose publish date has arrived — docs/saas-launch-plan.md §14.10.
+ *
+ * At seven, not at midnight. A notice is read when somebody opens their mail in the
+ * morning, and one that arrives at 00:05 is at the bottom of the overnight pile.
+ *
+ * The command tells each audience once, inside a one-day window. Without
+ * `schedule:run` on cron, a scheduled announcement still appears on the dashboard on
+ * its day — the dashboard has always respected a future date — but nobody is told.
+ */
+Schedule::command(PublishDueAnnouncements::class)
+    ->dailyAt('07:00')
     ->withoutOverlapping();

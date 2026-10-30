@@ -78,11 +78,24 @@ class IssuedAssetResource extends Resource
 
             Select::make('asset_kind')
                 ->label('Kind')
-                ->options(IssuedAsset::kindOptions())
+                // The company's own list — docs/saas-launch-plan.md §14.10. `$keep` holds
+                // on to the value an old asset already carries.
+                ->options(fn (?IssuedAsset $record): array => IssuedAsset::kindOptions($record?->asset_kind))
                 ->required(),
 
             TextInput::make('description')->required()->maxLength(255),
             TextInput::make('serial_no')->label('Serial number')->maxLength(255),
+
+            // docs/saas-launch-plan.md §14.10.
+            TextInput::make('tag')
+                ->label('Asset tag')
+                ->maxLength(40)
+                ->helperText('The sticker on it. Not the serial — a serial is the maker\'s, a tag is yours, and an audit counts tags.'),
+            TextInput::make('vendor')->label('Bought from')->maxLength(120),
+            DatePicker::make('warranty_until')
+                ->label('Warranty until')
+                ->native(false)
+                ->helperText('What decides whether a broken screen is a phone call or a purchase.'),
 
             DatePicker::make('issued_on')->native(false)->default(now())->required(),
 
@@ -115,6 +128,14 @@ class IssuedAssetResource extends Resource
                 TextColumn::make('description')->searchable()
                     ->description(fn (IssuedAsset $record): ?string => $record->serial_no),
 
+                TextColumn::make('tag')->label('Tag')->placeholder('—')->searchable()->toggleable(),
+                TextColumn::make('warranty_until')
+                    ->label('Warranty')
+                    ->date('d M Y')
+                    ->placeholder('—')
+                    ->color(fn (IssuedAsset $record): string => $record->isUnderWarranty() === false ? 'danger' : 'gray')
+                    ->description(fn (IssuedAsset $record): ?string => $record->isUnderWarranty() === false ? 'expired' : null)
+                    ->toggleable(),
                 TextColumn::make('asset_kind')->label('Kind')->badge()->color('gray')
                     ->formatStateUsing(fn (string $state): string => IssuedAsset::kindLabel($state)),
 

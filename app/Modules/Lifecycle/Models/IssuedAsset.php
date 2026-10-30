@@ -55,21 +55,52 @@ class IssuedAsset extends Model
     }
 
     /** @return array<string, string> value => label, for a select */
-    public static function kindOptions(): array
+    /**
+     * The kinds a company issues — docs/saas-launch-plan.md §14.10.
+     *
+     * An editable list now rather than the constant: `asset_kind` is a plain string
+     * column, nothing in the application branches on its value, and two companies
+     * would write different lists — which is exactly the test `OptionLists` applies.
+     * The constant above is what the list is seeded from and the fallback for a
+     * company whose list has not been seeded yet.
+     *
+     * `$keep` re-injects the value a record already holds, so a kind somebody
+     * deactivated does not render blank on an old asset and get written back empty.
+     */
+    public static function kindOptions(?string $keep = null): array
     {
-        return array_combine(self::KINDS, array_map(self::kindLabel(...), self::KINDS));
+        $options = options('lifecycle.asset_kind', $keep);
+
+        return $options !== [] ? $options : array_combine(self::KINDS, array_map(self::kindLabel(...), self::KINDS));
     }
 
     protected $fillable = [
         'employee_id', 'asset_kind', 'description', 'serial_no', 'fixed_asset_id',
         'issued_on', 'returned_on', 'condition_note', 'value',
+        // docs/saas-launch-plan.md §14.10.
+        'tag', 'vendor', 'warranty_until',
     ];
 
     protected $casts = [
         'issued_on' => 'date',
         'returned_on' => 'date',
         'value' => 'decimal:2',
+        'warranty_until' => 'date',
     ];
+
+    /**
+     * Whether the cover has run out — docs/saas-launch-plan.md §14.10.
+     *
+     * Null where nobody recorded it, which is not the same as "no". An asset with no
+     * warranty date is one nobody wrote the date down for, and saying "out of
+     * warranty" about it would send somebody to buy a screen they could have claimed.
+     */
+    public function isUnderWarranty(?string $asOf = null): ?bool
+    {
+        return $this->warranty_until === null
+            ? null
+            : $this->warranty_until->gte(\Illuminate\Support\Carbon::parse($asOf ?? now()->toDateString()));
+    }
 
     public function employee(): BelongsTo
     {

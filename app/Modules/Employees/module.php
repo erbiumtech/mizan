@@ -94,6 +94,21 @@ return [
         // How an experience letter describes somebody's conduct. A list because the wording is the
         // company's own and the letter is read by a next employer: "satisfactory" and "exemplary" are
         // different references, and HR should not have to type either into a free-text box.
+        // What kind of notice an announcement is — docs/saas-launch-plan.md §14.10. A
+        // company's own vocabulary, so a list rather than an enum: nothing branches on
+        // the value and two companies would write different ones.
+        'employees.announcement_category' => [
+            'label' => 'Announcement categories',
+            'help' => 'Shown on the announcement and filterable. "Policy", "Office", "Holiday" — whatever this company files them under.',
+            'values' => [
+                'Policy',
+                'Office',
+                'Holiday',
+                'People',
+                'System',
+            ],
+        ],
+
         'employees.conduct' => [
             'label' => 'Conduct wording (experience letters)',
             'help' => 'Printed as "conduct and performance were found to be …" on an experience letter.',
