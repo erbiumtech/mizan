@@ -411,6 +411,12 @@ class User extends Authenticatable implements \Illuminate\Contracts\Translation\
     use InteractsWithAppAuthentication;
     use InteractsWithAppAuthenticationRecovery;
 
+    /** The browsers and apps this person has asked to be pushed to — docs/desktop-mobile-plan.md A3. */
+    public function deviceTokens(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
     /**
      * Slack alerts (docs/projects-listing-plan.md §11) post to the installation's default
      * channel — SLACK_BOT_USER_DEFAULT_CHANNEL. Only reached when the bot token is set,

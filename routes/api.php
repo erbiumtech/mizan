@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DeviceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,6 +22,12 @@ foreach (['', 'v1'] as $version) {
             Route::post('/refresh', [AuthController::class, 'refresh']);
             Route::get('/tokens', [AuthController::class, 'tokens']);
             Route::delete('/tokens/{token}', [AuthController::class, 'revoke'])->whereNumber('token');
+
+            // Push subscriptions — docs/desktop-mobile-plan.md A3. A device is the user's, not a company's,
+            // so no company is resolved here.
+            Route::get('/devices', [DeviceController::class, 'index']);
+            Route::post('/devices', [DeviceController::class, 'store']);
+            Route::delete('/devices/{device}', [DeviceController::class, 'destroy'])->whereNumber('device');
         });
     });
 }
