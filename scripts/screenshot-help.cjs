@@ -25,6 +25,9 @@ const BASE = process.env.HELP_SHOT_BASE;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Filament sends anybody it does not recognise to the panel's login page, under a 200. */
+const isLoginPage = (url) => new URL(url).pathname.endsWith('/login');
+
 (async () => {
   const puppeteer = (await import('puppeteer')).default;
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -56,6 +59,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.keyboard.press('Enter');
   await sleep(3000);
 
+  // **Sign-in is checked, not assumed.** A wrong password lands back on the login
+  // page under a 200, which the per-topic guard below reads as a healthy screen —
+  // so every capture in the run would be a picture of the sign-in form, written
+  // over sixty real screenshots, and the command would report success. Asked once
+  // here because the answer is the same for every topic.
+  if (isLoginPage(page.url())) {
+    console.error(`Sign-in failed for ${EMAIL}: still on the login page. Check the email and password.`);
+    await browser.close();
+    process.exit(1);
+  }
+
   const results = { captured: [], skipped: [] };
 
   for (const [slug, info] of Object.entries(manifest)) {
@@ -63,12 +77,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const response = await page.goto(info.url, { waitUntil: 'networkidle2', timeout: 30000 });
       const status = response ? response.status() : 0;
 
-      // A 403/404/500 renders a bare error page. Shipping that as a "screenshot"
-      // documents a broken screen for a working feature, so skip it and say so
-      // rather than writing the file.
+      // A 403/404/500 renders a bare error page, and a session that has gone sends
+      // us to the login form under a 200 — both document something other than the
+      // feature. Shipping either as a "screenshot" is worse than having none, so
+      // skip it and say so rather than writing the file.
+      const sentToLogin = isLoginPage(page.url());
       const body = await page.evaluate(() => document.body.innerText.slice(0, 120).trim());
-      if (status !== 200 || /^(403|404|419|500|Forbidden|Not Found|Server Error)/i.test(body)) {
-        results.skipped.push({ slug, reason: `HTTP ${status}` });
+      if (status !== 200 || sentToLogin || /^(403|404|419|500|Forbidden|Not Found|Server Error)/i.test(body)) {
+        results.skipped.push({ slug, reason: sentToLogin ? 'redirected to the login page' : `HTTP ${status}` });
         continue;
       }
 

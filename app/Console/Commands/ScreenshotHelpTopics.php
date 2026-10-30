@@ -188,7 +188,11 @@ class ScreenshotHelpTopics extends Command
         $port = (int) $this->option('port');
 
         $server = new Process(
-            ['php', 'artisan', 'serve', '--port='.$port],
+            // PHP_BINARY rather than 'php': the one on PATH is whichever version the
+            // shell resolves, which on a machine with more than one installed is not
+            // necessarily the one this command is running on — and the server would
+            // then boot the application on a PHP the project does not support.
+            [PHP_BINARY, 'artisan', 'serve', '--port='.$port],
             base_path(),
             // Best-effort only — see the class comment for why this does not
             // survive into the child server, and what does the real work.
