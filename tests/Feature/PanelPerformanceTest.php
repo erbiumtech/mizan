@@ -162,8 +162,21 @@ class PanelPerformanceTest extends TestCase
      * twenty-three call sites go through it. The re-cut's three queries were paid for and one
      * more came off the top.
      */
+    /*
+     * **And back to 41 on 2026-10-30, for a twenty-first badge.** The dashboard's cold request now
+     * carries twenty-one `select count(*)` statements against twenty-one tables, and one more screen
+     * grew a pending figure beside its name. Sanctioned on the same terms as every badge move above:
+     * the count is the feature, `NavigationBadge` memoises it for a minute, and the warm budget does
+     * not move — it still measures 9.
+     *
+     * **This is the fourth badge move, and the note above has now asked twice for the same thing.**
+     * Twenty-one separate round trips to answer twenty-one counts is the whole band; a registry that
+     * collected them into one would take this budget from 41 to roughly 21 and stop the number
+     * climbing every time a screen earns a badge. That is the work this file keeps pointing at, and
+     * every move since it was first written has made the case stronger rather than weaker.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 40, 'warm' => 9],
+        'dashboard' => ['cold' => 41, 'warm' => 9],
         'employees' => ['cold' => 38, 'warm' => 11],
         'reports' => ['cold' => 31, 'warm' => 7],
     ];
