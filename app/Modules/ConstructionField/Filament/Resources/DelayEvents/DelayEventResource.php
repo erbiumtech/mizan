@@ -9,6 +9,7 @@ use App\Modules\ConstructionField\Filament\Resources\DelayEvents\Pages\ListDelay
 use App\Modules\ConstructionField\Filament\Resources\DelayEvents\Schemas\DelayEventForm;
 use App\Modules\ConstructionField\Filament\Resources\DelayEvents\Tables\DelayEventsTable;
 use App\Modules\ConstructionField\Models\DelayEvent;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -47,11 +48,15 @@ class DelayEventResource extends Resource
     protected static ?string $pluralLabel = 'Delay events';
 
     /** The count of events still needing a notice, because it is the number somebody should act on. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return DelayEvent::query()->awaitingNotice();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $awaiting = DelayEvent::query()->awaitingNotice()->count();
-
-        return $awaiting > 0 ? (string) $awaiting : null;
+        return NavigationBadge::of(static::class);
     }
 
     /**

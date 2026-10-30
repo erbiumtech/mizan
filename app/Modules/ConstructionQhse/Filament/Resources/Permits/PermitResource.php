@@ -9,6 +9,7 @@ use App\Modules\ConstructionQhse\Filament\Resources\Permits\Pages\ListPermits;
 use App\Modules\ConstructionQhse\Filament\Resources\Permits\Schemas\PermitForm;
 use App\Modules\ConstructionQhse\Filament\Resources\Permits\Tables\PermitsTable;
 use App\Modules\ConstructionQhse\Models\Permit;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -47,11 +48,15 @@ class PermitResource extends Resource
     protected static ?string $pluralLabel = 'Permits';
 
     /** Expired and still open — one indexed count against `(status, valid_to)`. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return Permit::query()->expiredAndOpen();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $expired = Permit::query()->expiredAndOpen()->count();
-
-        return $expired > 0 ? (string) $expired : null;
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

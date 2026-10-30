@@ -9,6 +9,7 @@ use App\Modules\ConstructionField\Filament\Resources\Rfis\Pages\ListRfis;
 use App\Modules\ConstructionField\Filament\Resources\Rfis\Schemas\RfiForm;
 use App\Modules\ConstructionField\Filament\Resources\Rfis\Tables\RfisTable;
 use App\Modules\ConstructionField\Models\Rfi;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -46,11 +47,15 @@ class RfiResource extends Resource
     protected static ?string $pluralLabel = 'RFIs';
 
     /** Overdue, not open: a badge lit by the normal state of a register is one nobody reads. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return Rfi::query()->overdue();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $overdue = Rfi::query()->overdue()->count();
-
-        return $overdue > 0 ? (string) $overdue : null;
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

@@ -44,12 +44,17 @@ class WorkItemResource extends Resource
     }
 
     /** What is open and assigned to nobody — the number a standup actually asks about. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()
+            ->open()
+            ->whereNull('assignee_employee_id');
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
-            ->open()
-            ->whereNull('assignee_employee_id')
-            ->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

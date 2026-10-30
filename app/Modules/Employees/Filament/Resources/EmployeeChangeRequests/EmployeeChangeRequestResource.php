@@ -61,17 +61,25 @@ class EmployeeChangeRequestResource extends Resource
     /**
      * Sidebar pending-count badge for approvers (Nova menu() parity).
      */
-    public static function getNavigationBadge(): ?string
+    /**
+     * The query behind the badge, or nothing for somebody who may not approve.
+     *
+     * Returning null rather than an empty query is what keeps this resource out of the batched
+     * statement entirely: a reader who cannot approve should not be costing a subquery to be told
+     * a number they are not shown.
+     */
+    public static function badgeQuery(): ?Builder
     {
-        $user = auth()->user();
-
-        if (! ($user?->can('EmployeeChangeApprove') ?? false)) {
+        if (! (auth()->user()?->can('EmployeeChangeApprove') ?? false)) {
             return null;
         }
 
-        return NavigationBadge::of(static::class, fn (): int => EmployeeChangeRequest::query()
-            ->where('status', EmployeeChangeRequest::STATUS_PENDING)
-            ->count());
+        return EmployeeChangeRequest::query()->where('status', EmployeeChangeRequest::STATUS_PENDING);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

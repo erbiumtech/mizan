@@ -56,9 +56,15 @@ class TicketResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()->open();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function form(Schema $schema): Schema

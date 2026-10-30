@@ -66,9 +66,15 @@ class BackChargeResource extends Resource
      * Through `NavigationBadge`, which caches it for a minute — Filament evaluates every badge as a value while it
      * builds the navigation, on every page of the panel, whether or not the branch holding it is open.
      */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()->unnotified();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->unnotified()->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

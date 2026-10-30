@@ -55,15 +55,20 @@ class AttendanceDayResource extends Resource
      * makes the whole distinction from `absent` stop meaning anything, and a badge is
      * how somebody notices before a payroll clerk does.
      */
-    public static function getNavigationBadge(): ?string
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
+        return static::getEloquentQuery()
             ->unknown()
             ->whereBetween('date', [
                 now()->startOfMonth()->toDateString(),
                 now()->endOfMonth()->toDateString(),
-            ])
-            ->count());
+            ]);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

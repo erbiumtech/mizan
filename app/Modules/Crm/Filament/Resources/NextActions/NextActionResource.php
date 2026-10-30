@@ -69,9 +69,15 @@ class NextActionResource extends Resource
     }
 
     /** What is due today or overdue — the number somebody should act on. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()->due();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->due()->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

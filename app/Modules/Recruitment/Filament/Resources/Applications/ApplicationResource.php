@@ -27,6 +27,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 /**
@@ -47,9 +48,15 @@ class ApplicationResource extends Resource
 
     protected static ?int $navigationSort = 12;
 
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()->open();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
+        return NavigationBadge::of(static::class);
     }
 
     /**

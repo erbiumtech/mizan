@@ -57,9 +57,15 @@ class LeadResource extends Resource
     }
 
     /** Open leads: what is actually somebody's to work. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()->open();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function form(Schema $schema): Schema

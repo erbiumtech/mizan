@@ -59,12 +59,17 @@ class EmployeeDocumentResource extends Resource
     }
 
     /** Expired, or lapsing inside the tightest warning threshold. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()
+            ->expiring()
+            ->whereDate('expires_on', '<=', now()->addDays(30)->toDateString());
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
-            ->expiring()
-            ->whereDate('expires_on', '<=', now()->addDays(30)->toDateString())
-            ->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

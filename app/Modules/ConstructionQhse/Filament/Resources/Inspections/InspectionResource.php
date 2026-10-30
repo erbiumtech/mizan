@@ -10,6 +10,7 @@ use App\Modules\ConstructionQhse\Filament\Resources\Inspections\RelationManagers
 use App\Modules\ConstructionQhse\Filament\Resources\Inspections\Schemas\InspectionForm;
 use App\Modules\ConstructionQhse\Filament\Resources\Inspections\Tables\InspectionsTable;
 use App\Modules\ConstructionQhse\Models\Inspection;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -54,11 +55,15 @@ class InspectionResource extends Resource
      * One indexed count, per Phase 9g's rule, and it earns its place because the failure is silent: the inspection
      * passed, everybody moved on, and the next operation is waiting for a signature nobody knows is missing.
      */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return Inspection::query()->awaitingRelease();
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $waiting = Inspection::query()->awaitingRelease()->count();
-
-        return $waiting > 0 ? (string) $waiting : null;
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

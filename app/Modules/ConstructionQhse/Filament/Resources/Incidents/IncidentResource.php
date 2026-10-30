@@ -10,6 +10,7 @@ use App\Modules\ConstructionQhse\Filament\Resources\Incidents\RelationManagers\W
 use App\Modules\ConstructionQhse\Filament\Resources\Incidents\Schemas\IncidentForm;
 use App\Modules\ConstructionQhse\Filament\Resources\Incidents\Tables\IncidentsTable;
 use App\Modules\ConstructionQhse\Models\Incident;
+use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -54,14 +55,17 @@ class IncidentResource extends Resource
      * The clock here is statutory rather than contractual, which makes it the one figure in this register that cannot be
      * recovered by looking later.
      */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return Incident::query()
+            ->reportable()
+            ->whereNull('reported_to_authority_on');
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        $unreported = Incident::query()
-            ->reportable()
-            ->whereNull('reported_to_authority_on')
-            ->count();
-
-        return $unreported > 0 ? (string) $unreported : null;
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string

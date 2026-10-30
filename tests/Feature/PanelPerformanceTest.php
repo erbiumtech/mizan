@@ -176,21 +176,33 @@ class PanelPerformanceTest extends TestCase
      * every move since it was first written has made the case stronger rather than weaker.
      */
     /*
-     * **All three moved by one on 2026-10-31: the work module's badge** — unassigned open items,
-     * docs/project-management-plan.md §14 Phase 1. The twenty-second `select count(*)`, and the
-     * sanctioned shape this file has recorded four times: the count is the feature, NavigationBadge
-     * memoises it for a minute, and the warm budgets do not move.
+     * **Nineteen off every cold page, 2026-10-31 — the badge batch.** Dashboard 42 to 23, employees
+     * 39 to 20, reports 32 to 13.
      *
-     * **This one was avoidable, and the record should say so.** The plan put the badge registry in
-     * Phase 0 precisely so it would land before any new badge did — *"cheaper to build before the
-     * badges exist than after"* — and Phase 0 deferred it as a 21-file refactor of unrelated code.
-     * The price of that deferral is these three lines. The registry is the next commit, and it
-     * collapses the whole band from twenty-two round trips to one.
+     * This is the thing the notes above asked for twice and the band they were counting. Twenty
+     * resources put a number beside their name, and on a cold request each one went to the database
+     * by itself: twenty `select count(*)` statements against twenty tables on one connection, every
+     * time somebody arrived after a quiet minute. They now go together, as scalar subqueries of a
+     * single statement — see `App\Support\NavigationBadge::fillBatch()`.
+     *
+     * **The warm budgets do not move, and that is the proof the TTL was never the problem.** A warm
+     * request was already paying nothing for badges; it measured 9, 11 and 7 before this and
+     * measures the same after. The whole saving is on the first visit, which is the one a person
+     * waits for.
+     *
+     * Five of the twenty were not even cached: the construction badges asked their models directly
+     * rather than going through this class, so they ran on *every* request, warm or cold. They are
+     * in the batch now, which is the second reason the cold figures fall by more than the count of
+     * statements removed.
+     *
+     * What this replaces: four separate moves — 2026-08-25, 2026-08-26, 2026-10-29 and 2026-10-30 —
+     * each adding one or more badge counts, each sanctioned on the grounds that the count is the
+     * feature. It still is. It is now a feature that costs one round trip rather than twenty.
      */
     private const BUDGET = [
-        'dashboard' => ['cold' => 42, 'warm' => 9],
-        'employees' => ['cold' => 39, 'warm' => 11],
-        'reports' => ['cold' => 32, 'warm' => 7],
+        'dashboard' => ['cold' => 23, 'warm' => 9],
+        'employees' => ['cold' => 20, 'warm' => 11],
+        'reports' => ['cold' => 13, 'warm' => 7],
     ];
 
     private Company $company;
@@ -268,10 +280,16 @@ class PanelPerformanceTest extends TestCase
     /**
      * The badge counts really are cached, rather than merely being fewer.
      *
-     * Asserted as a property of the second request rather than by a number: eleven `count(*)`s on the
+     * Asserted as a property of the second request rather than by a number: twenty `count(*)`s on the
      * first page and one on the next is the whole of Phase 2, and a cache that quietly stopped
      * working — a key that includes something per-request, a `scoped` binding turned transient —
      * shows up here and in no other test.
+     *
+     * **Still true now that they are batched**, and this is the test that proves the batch did not
+     * simply stop asking. The counts are carried as subqueries of one statement rather than twenty
+     * statements, so the measure below is occurrences of `count(*)` rather than statements
+     * containing one — the number the badges ask for is unchanged, and only the number of round
+     * trips fell.
      */
     public function test_the_second_page_within_the_minute_stops_counting(): void
     {
@@ -515,9 +533,21 @@ class PanelPerformanceTest extends TestCase
     }
 
     /** @param  array<int, string>  $queries */
+    /**
+     * How many counts a request actually asked for — occurrences, not statements.
+     *
+     * It counted statements until 2026-10-31, which stopped meaning anything the moment
+     * `NavigationBadge` learned to batch: twenty badges now arrive as twenty `count(*)` subqueries
+     * inside *one* statement, and counting statements reported three. The question this test asks is
+     * "were the badges run", and the honest measure of that is how many counts were asked for,
+     * wherever they were carried.
+     */
     private function countsIn(array $queries): int
     {
-        return count(array_filter($queries, fn (string $sql): bool => str_contains($sql, 'count(*)')));
+        return array_sum(array_map(
+            fn (string $sql): int => substr_count($sql, 'count(*)'),
+            $queries,
+        ));
     }
 
     /**

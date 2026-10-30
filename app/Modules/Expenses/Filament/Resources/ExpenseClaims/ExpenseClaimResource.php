@@ -51,11 +51,15 @@ class ExpenseClaimResource extends Resource
     }
 
     /** Pending claims, so an approver sees there is something waiting. */
+    /** The query behind the badge. Batched with every other one on the page — see NavigationBadge. */
+    public static function badgeQuery(): ?Builder
+    {
+        return static::getEloquentQuery()->where('status', ExpenseClaim::STATUS_PENDING);
+    }
+
     public static function getNavigationBadge(): ?string
     {
-        return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()
-            ->where('status', ExpenseClaim::STATUS_PENDING)
-            ->count());
+        return NavigationBadge::of(static::class);
     }
 
     public static function getNavigationBadgeColor(): ?string
