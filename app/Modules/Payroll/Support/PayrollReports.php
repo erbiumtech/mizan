@@ -174,7 +174,7 @@ class PayrollReports
         /** @var Collection<int, PayComponent> $components */
         $components = $data['components'];
 
-        $columns = ['Employee', ...$components->pluck('label')->all(), 'Earnings', 'Deductions', 'Net'];
+        $columns = ['Employee', ...$components->pluck('label')->all(), 'Earnings', 'Deductions', 'Net', 'Employer cost'];
 
         $rows = [];
 
@@ -192,6 +192,8 @@ class PayrollReports
             $cells[] = number_format($data['totals'][$payslipId]['earnings'], 0);
             $cells[] = number_format($data['totals'][$payslipId]['deductions'], 0);
             $cells[] = number_format($data['totals'][$payslipId]['net'], 0);
+            // On top of pay, beside net rather than inside it.
+            $cells[] = number_format($data['totals'][$payslipId]['employer'], 0);
 
             $rows[] = $cells;
         }
@@ -199,6 +201,7 @@ class PayrollReports
         $earnings = round(array_sum(array_column($data['totals'], 'earnings')), 2);
         $deductions = round(array_sum(array_column($data['totals'], 'deductions')), 2);
         $net = round(array_sum(array_column($data['totals'], 'net')), 2);
+        $employer = round(array_sum(array_column($data['totals'], 'employer')), 2);
 
         $footer = ['Total — '.$data['payslips'].' payslips'];
 
@@ -209,13 +212,14 @@ class PayrollReports
         $footer[] = number_format($earnings, 0);
         $footer[] = number_format($deductions, 0);
         $footer[] = number_format($net, 0);
+        $footer[] = number_format($employer, 0);
 
         return $this->table(
             'PayrollRegister',
             'Payroll Register',
             $this->subtitle($month.($year?->name ? ' '.$year->name : '')),
             $columns,
-            'minmax(12rem, 16rem) '.str_repeat('7.5rem ', $components->count()).'8rem 8rem 8rem',
+            'minmax(12rem, 16rem) '.str_repeat('7.5rem ', $components->count()).'8rem 8rem 8rem 8rem',
             range(1, count($columns) - 1),
             $rows,
             [
@@ -224,6 +228,7 @@ class PayrollReports
                 // each of its reports ties to a balance, and a reader should not have to hold one of the
                 // two figures in their head to make it.
                 ['label' => 'SALARIES PAYABLE', 'value' => $data['ledger_available'] ? $data['ledger_net'] : 0.0, 'accent' => false],
+                ['label' => 'EMPLOYER COST', 'value' => $employer, 'accent' => false],
             ],
             $this->registerNote($data, $net),
             $rows === [] ? null : $footer,

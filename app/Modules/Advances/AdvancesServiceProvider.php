@@ -40,6 +40,9 @@ class AdvancesServiceProvider extends ServiceProvider
     {
         $this->registerReports();
 
+        // When a blank start month starts recovering — B17. 65: a free place in the people tab, after the payroll ones.
+        \App\Support\SettingsSections::register('advances.recovery', \App\Modules\Advances\Filament\Settings\AdvanceRecoverySettingsSection::class, 65, 'people');
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

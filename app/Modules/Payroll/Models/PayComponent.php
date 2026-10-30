@@ -39,12 +39,18 @@ class PayComponent extends Model
     public const BASIS_ANNUAL = 'annual';
 
     /** @var array<int, string> the payroll year's months, July first — what `pays_in_month` is chosen from */
+    /** Taken off the employee's pay. */
+    public const PAID_BY_EMPLOYEE = 'employee';
+
+    /** A cost on top of pay: never a deduction, posted as an expense against its payable. */
+    public const PAID_BY_EMPLOYER = 'employer';
+
     public const MONTHS = ['July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June'];
 
     protected $fillable = [
         'code', 'label', 'kind', 'basis', 'pays_in_month', 'account_key', 'account_id',
         'is_taxable', 'is_column_backed', 'is_active', 'sort', 'description',
-        'prorates',
+        'prorates', 'paid_by', 'expense_account_id', 'expense_account_key',
     ];
 
     protected $casts = [
@@ -57,6 +63,7 @@ class PayComponent extends Model
 
     protected $attributes = [
         'kind' => self::KIND_EARNING,
+        'paid_by' => self::PAID_BY_EMPLOYEE,
         'basis' => self::BASIS_MONTHLY,
         'is_taxable' => true,
         'is_column_backed' => false,
@@ -97,6 +104,18 @@ class PayComponent extends Model
         });
 
         static::saving(function (self $component): void {
+            // Only a deduction can be the employer's: an earning is the employer paying already.
+            if ($component->isEarning() || $component->is_column_backed) {
+                $component->paid_by = self::PAID_BY_EMPLOYEE;
+            }
+
+            if ($component->isEmployerPaid() && ! $component->expense_account_id && ! $component->expense_account_key) {
+                throw new InvalidArgumentException(
+                    "Employer-paid component \"{$component->label}\" needs an expense account, or a payroll account key "
+                    .'for one: it is a cost to the company, and a payslip that includes it cannot be posted without it.'
+                );
+            }
+
             if ($component->is_column_backed || $component->account_id || $component->account_key) {
                 return;
             }
@@ -111,6 +130,11 @@ class PayComponent extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function expenseAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'expense_account_id');
     }
 
     public function settingAmounts(): HasMany
@@ -154,6 +178,18 @@ class PayComponent extends Model
         return $this->kind === self::KIND_EARNING;
     }
 
+    /** A cost to the employer on top of pay — never a deduction from it. */
+    public function isEmployerPaid(): bool
+    {
+        return $this->paid_by === self::PAID_BY_EMPLOYER;
+    }
+
+    /** Taken off the employee's pay. */
+    public function isEmployeeDeduction(): bool
+    {
+        return ! $this->isEarning() && ! $this->isEmployerPaid();
+    }
+
     /**
      * Where this component posts.
      *
@@ -172,5 +208,22 @@ class PayComponent extends Model
         }
 
         return \App\Modules\Accounting\Support\PayrollAccounts::id($this->account_key);
+    }
+
+    /**
+     * Where an employer-paid component's cost is expensed: its own account, else the payroll mapping key it
+     * names — the same two ways accountId() finds the payable it is credited to.
+     */
+    public function expenseAccountId(): ?int
+    {
+        if ($this->expense_account_id) {
+            return $this->expense_account_id;
+        }
+
+        if (! $this->expense_account_key) {
+            return null;
+        }
+
+        return \App\Modules\Accounting\Support\PayrollAccounts::id($this->expense_account_key);
     }
 }

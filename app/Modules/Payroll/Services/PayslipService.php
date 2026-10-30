@@ -57,7 +57,7 @@ class PayslipService
      */
     protected function componentTotals(?EmployeeSetting $setting, string $month = '', ?FiscalYear $fiscalYear = null, bool $projecting = false): array
     {
-        $empty = ['earnings' => 0.0, 'taxable_earnings' => 0.0, 'deductions' => 0.0];
+        $empty = ['earnings' => 0.0, 'taxable_earnings' => 0.0, 'deductions' => 0.0, 'employer' => 0.0];
 
         if (! $setting) {
             return $empty;
@@ -87,6 +87,14 @@ class PayslipService
                 if ($row->component->is_taxable) {
                     $empty['taxable_earnings'] = round($empty['taxable_earnings'] + $amount, 2);
                 }
+
+                continue;
+            }
+
+            // The employer's contribution is a cost on top of pay, never taken from it — it is recorded on the
+            // payslip and posted, but it is not a deduction and does not touch net pay.
+            if ($row->component->isEmployerPaid()) {
+                $empty['employer'] = round($empty['employer'] + $amount, 2);
 
                 continue;
             }
@@ -207,7 +215,7 @@ class PayslipService
      * @param  array<string, float|int|string|null>  $typed  keyed by OVERRIDE_KEYS — the form's input
      * @param  array<string, mixed>|null  $attendance
      */
-    public function syncInputStore(Payslip $payslip, array $typed, ?array $attendance = null): void
+    public function syncInputStore(Payslip $payslip, array $typed, ?array $attendance = null, ?array $zeroOverrides = null): void
     {
         if (! $payslip->exists) {
             return;
@@ -222,6 +230,11 @@ class PayslipService
             [], $payslip->id, $attendance, false,
         );
 
+        // Zero overrides already on the store. A zero cannot be told apart from "nothing" in the columns, so a
+        // save that only re-reads them must keep the ones a writer set rather than drop them.
+        $keptZeros = $payslip->componentInputs()->where('amount', 0)->with('component:id,code')->get()
+            ->pluck('component.code')->filter()->flip();
+
         $payslip->componentInputs()->delete();
 
         $componentIds = PayComponent::whereIn('code', self::OVERRIDE_KEYS)->pluck('id', 'code');
@@ -231,10 +244,26 @@ class PayslipService
         foreach (self::OVERRIDE_KEYS as $key) {
             $amount = round((float) ($typed[$key] ?? 0), 2);
 
-            // Positive, because calculateByParams falls back on anything that is not; and different from the
-            // fallback, because a figure that only echoes it is not an override and must stay free to follow it.
+            // Positive, because a positive figure is always somebody's input; and different from the fallback,
+            // because a figure that only echoes it is not an override and must stay free to follow it.
             if ($amount > 0 && abs($amount - (float) ($fallback[$key] ?? 0)) > 0.005 && isset($componentIds[$key])) {
                 $rows[] = ['pay_component_id' => $componentIds[$key], 'amount' => $amount];
+
+                continue;
+            }
+
+            // Exactly nothing, where the fallback would pay something: a line a pay adjustment took to 0 — a
+            // waived deduction, a cancelled allowance — is an override too, and the store is where "0" means "0"
+            // rather than "not set". Typed zeros otherwise keep meaning "clear the override" (the form's
+            // behaviour), so a zero row is written only for the lines the writer names (`$zeroOverrides`, from
+            // PayAdjustments), or kept when a save that names none finds one already there.
+            $zeroIsOverride = $zeroOverrides === null ? $keptZeros->has($key) : in_array($key, $zeroOverrides, true);
+
+            if ($zeroIsOverride
+                && $this->isTypedZero($typed, $key)
+                && abs((float) ($fallback[$key] ?? 0)) > 0.005
+                && isset($componentIds[$key])) {
+                $rows[] = ['pay_component_id' => $componentIds[$key], 'amount' => 0];
             }
         }
 
@@ -244,9 +273,29 @@ class PayslipService
     }
 
     /**
+     * What a package's own components add to a month's taxable income, as the projection counts them — the
+     * figure calculateByParams adds to the column-backed pay for every month it has not paid yet. Public so the
+     * annual tax record (Payslip::calculateAndStoreAnnualTax) projects the same income the payslips withhold on.
+     */
+    public function projectedTaxableComponents(EmployeeSetting $setting, string $month, ?FiscalYear $fiscalYear): float
+    {
+        return $this->componentTotals($setting, $month, $fiscalYear, projecting: true)['taxable_earnings'];
+    }
+
+    /** A typed value that is a number and is zero — not null, not blank. */
+    private function isTypedZero(array $typed, string $key): bool
+    {
+        $value = $typed[$key] ?? null;
+
+        return $value !== null && $value !== '' && is_numeric($value) && round((float) $value, 2) === 0.0;
+    }
+
+    /**
      * @param  array<string, float|int|string|null>  $overrides  keyed by OVERRIDE_KEYS; a positive value is
      *                                                           this month's typed amount, anything else falls
-     *                                                           back to the setting (or the ledger/claims)
+     *                                                           back to the setting (or the ledger/claims) —
+     *                                                           except a line the input store holds, which is
+     *                                                           taken as it stands, 0 included
      */
     public function calculateByParams(
         $employeeId, $month, $fiscalYearId,
@@ -268,6 +317,8 @@ class PayslipService
         // — what a figure would be with nothing overridden: the form's "Overrides X" hint and its live
         // preview, which compute from the fields on screen, and syncInputStore deciding what is genuinely an
         // override. Everywhere the store is the input (a save, the backfill's check) it is left true.
+        $stored = [];
+
         if ($payslipId && $withStore) {
             $stored = $this->overridesFromStore($payslipId);
             $bonus = $stored['bonus'] ?? $bonus;
@@ -279,6 +330,10 @@ class PayslipService
             $esiInsurance = $stored['esi_health_insurance'] ?? $esiInsurance;
             $expenseReimbursement = $stored['expense_reimbursement'] ?? $expenseReimbursement;
         }
+
+        // Whether a line is overridden: a positive typed amount, or anything the store holds — the store keeps a
+        // deliberate 0, which as a typed value would read as "not set" and fall back.
+        $overridden = fn (string $key, $value): bool => array_key_exists($key, $stored) || (float) $value > 0;
 
         $fiscalYear = FiscalYear::find($fiscalYearId);
 
@@ -293,8 +348,8 @@ class PayslipService
         $data = [
             'basic_wage' => (float) $setting->basic_wage,
             'medical_allowance' => (float) $setting->medical_allowance,
-            'device_allowance' => ((float) $deviceAllowance > 0) ? (float) $deviceAllowance : (float) $setting->device_allowance,
-            'petrol_allowance' => ((float) $petrolAllowance > 0) ? (float) $petrolAllowance : (float) $setting->petrol_allowance,
+            'device_allowance' => $overridden('device_allowance', $deviceAllowance) ? (float) $deviceAllowance : (float) $setting->device_allowance,
+            'petrol_allowance' => $overridden('petrol_allowance', $petrolAllowance) ? (float) $petrolAllowance : (float) $setting->petrol_allowance,
             // From the advance ledger when the employee has one, so the figure
             // deducted and the balance still owed are the same fact. An explicit
             // amount passed in still wins — a payroll clerk overriding one month
@@ -303,18 +358,18 @@ class PayslipService
             // The month is passed because the ledger's answer depends on it: an
             // advance can start recovering later than it was given, and can skip a
             // month.
-            'advances' => ((float) $advances > 0)
+            'advances' => $overridden('advances', $advances)
                 ? (float) $advances
                 : ($this->advanceInstalmentFor($employeeId, $payslipId, $targetDate) ?: (float) $setting->advances),
-            'meal_deduction' => ((float) $mealDeduction > 0) ? (float) $mealDeduction : (float) $setting->meal_deduction,
-            'esi_health_insurance' => ((float) $esiInsurance > 0) ? (float) $esiInsurance : (float) $setting->esi_health_insurance,
-            'bonus' => ((float) $bonus > 0) ? (float) $bonus : (float) ($setting->bonus ?? 0),
-            'extra_work_hours' => ((float) $extraWorkHours > 0) ? (float) $extraWorkHours : (float) ($setting->extra_work_hours ?? 0),
+            'meal_deduction' => $overridden('meal_deduction', $mealDeduction) ? (float) $mealDeduction : (float) $setting->meal_deduction,
+            'esi_health_insurance' => $overridden('esi_health_insurance', $esiInsurance) ? (float) $esiInsurance : (float) $setting->esi_health_insurance,
+            'bonus' => $overridden('bonus', $bonus) ? (float) $bonus : (float) ($setting->bonus ?? 0),
+            'extra_work_hours' => $overridden('extra_work_hours', $extraWorkHours) ? (float) $extraWorkHours : (float) ($setting->extra_work_hours ?? 0),
             // From the approved claims when there are any, so the figure on the
             // payslip is the sum of things somebody approved rather than a number
             // typed with nothing behind it. An explicit amount still wins: paying a
             // reimbursement outside the claim process is a legitimate correction.
-            'expense_reimbursement' => ((float) $expenseReimbursement > 0)
+            'expense_reimbursement' => $overridden('expense_reimbursement', $expenseReimbursement)
                 ? (float) $expenseReimbursement
                 : $this->expenseClaimsFor($employeeId, $payslipId),
         ];
@@ -331,7 +386,7 @@ class PayslipService
         // because a clerk overriding one month is a legitimate correction.
         $overtime = $this->overtimeFor($employeeId, $month, $fiscalYear, $attendance);
 
-        if ($overtime && (float) $extraWorkHours <= 0) {
+        if ($overtime && ! $overridden('extra_work_hours', $extraWorkHours)) {
             $data['extra_work_hours'] = $overtime['amount'];
         }
 
@@ -343,6 +398,7 @@ class PayslipService
         $components = $this->componentTotals($setting, $month, $fiscalYear);
         $data['component_earnings'] = $components['earnings'];
         $data['component_deductions'] = $components['deductions'];
+        $data['employer_contributions'] = $components['employer'];
 
         // ── Phase 3: pro-rating ──────────────────────────────────────────────────
         //

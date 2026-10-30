@@ -124,14 +124,34 @@ class StatutoryContributions
      */
     public function providentFund(float $basicWage): array
     {
-        if (! config('statutory.provident_fund.enabled', false)) {
+        if (! $this->providentFundEnabled()) {
             return ['provident_fund_employee' => 0.0, 'provident_fund_employer' => 0.0];
         }
 
         return [
-            'provident_fund_employee' => round($basicWage * (float) config('statutory.provident_fund.employee_rate', 0), 2),
-            'provident_fund_employer' => round($basicWage * (float) config('statutory.provident_fund.employer_rate', 0), 2),
+            'provident_fund_employee' => round($basicWage * $this->providentFundRate('employee'), 2),
+            'provident_fund_employer' => round($basicWage * $this->providentFundRate('employer'), 2),
         ];
+    }
+
+    /** The company's provident-fund switch (Company Settings → Payroll). */
+    public const PROVIDENT_FUND_ENABLED = 'payroll.provident_fund.enabled';
+
+    /**
+     * Whether this company runs a provident fund.
+     *
+     * Was the installation's STATUTORY_PF_ENABLED alone — one answer for every company on the server. Now the
+     * company's setting, falling back to that default (off) for a company that has not said.
+     */
+    public function providentFundEnabled(): bool
+    {
+        return (bool) setting(self::PROVIDENT_FUND_ENABLED, config('statutory.provident_fund.enabled', false));
+    }
+
+    /** A contribution rate, as a fraction of the basic wage: the company's, else the installation's default. */
+    public function providentFundRate(string $side): float
+    {
+        return (float) setting("payroll.provident_fund.{$side}_rate", config("statutory.provident_fund.{$side}_rate", 0));
     }
 
     /**

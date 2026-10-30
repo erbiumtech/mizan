@@ -50,7 +50,7 @@ class EmployeeSettingComponentsRelationManager extends RelationManager
                     ->orderBy('sort')
                     ->get()
                     ->mapWithKeys(fn ($c): array => [
-                        $c->id => $c->label.' — '.($c->isEarning() ? 'earning' : 'deduction'),
+                        $c->id => $c->label.' — '.($c->isEarning() ? 'earning' : ($c->isEmployerPaid() ? 'employer cost' : 'deduction')),
                     ])
                     ->all())
                 ->required()
@@ -75,7 +75,10 @@ class EmployeeSettingComponentsRelationManager extends RelationManager
                 TextColumn::make('component.kind')
                     ->label('Kind')
                     ->badge()
-                    ->color(fn (string $state): string => $state === PayComponent::KIND_EARNING ? 'success' : 'danger'),
+                    ->formatStateUsing(fn (string $state, $record): string => $record->component?->isEmployerPaid() ? 'employer cost' : $state)
+                    ->color(fn (string $state, $record): string => $record->component?->isEmployerPaid()
+                        ? 'warning'
+                        : ($state === PayComponent::KIND_EARNING ? 'success' : 'danger')),
 
                 TextColumn::make('amount')->money('PKR')->alignEnd(),
 

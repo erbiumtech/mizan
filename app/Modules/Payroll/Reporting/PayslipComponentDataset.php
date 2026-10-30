@@ -83,6 +83,8 @@ class PayslipComponentDataset extends Dataset
             DatasetColumn::related('component', 'Component', 'component.label', groupBy: 'pay_component_id'),
             DatasetColumn::related('component_code', 'Code', 'component.code', groupBy: 'pay_component_id'),
             DatasetColumn::related('component_kind', 'Kind', 'component.kind', groupBy: 'pay_component_id'),
+            // Employer or employee: an employer contribution is a deduction-kind row that never left anybody's pay.
+            DatasetColumn::related('paid_by', 'Paid by', 'component.paid_by', groupBy: 'pay_component_id'),
             DatasetColumn::related('taxable', 'Taxable', 'component.is_taxable', DatasetColumn::BOOLEAN),
 
             DatasetColumn::related('month', 'Month', 'payslip.month'),

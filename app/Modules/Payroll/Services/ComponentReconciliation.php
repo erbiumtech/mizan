@@ -84,7 +84,10 @@ class ComponentReconciliation
      */
     public function all(): Collection
     {
-        $kinds = PayComponent::query()->pluck('kind', 'id');
+        // An employer-paid component is neither an earning nor a deduction: it is recorded on the payslip and
+        // counted in neither stored total.
+        $kinds = PayComponent::query()->get(['id', 'kind', 'paid_by'])
+            ->mapWithKeys(fn (PayComponent $c): array => [$c->getKey() => $c->isEmployerPaid() ? PayComponent::PAID_BY_EMPLOYER : $c->kind]);
         $codes = PayComponent::query()->pluck('code', 'id');
 
         $rows = new Collection;
@@ -129,6 +132,10 @@ class ComponentReconciliation
             // neither total, which makes the payslip report as a discrepancy — correctly: the
             // money is on the payslip and nothing can say what it was for.
             if ($kind === null) {
+                continue;
+            }
+
+            if ($kind === PayComponent::PAID_BY_EMPLOYER) {
                 continue;
             }
 

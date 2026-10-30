@@ -78,20 +78,20 @@ class PayrollRegister
         $totals = [];
 
         foreach ($payslips as $payslip) {
-            $totals[$payslip->getKey()] = ['earnings' => 0.0, 'deductions' => 0.0, 'net' => 0.0];
+            $totals[$payslip->getKey()] = ['earnings' => 0.0, 'deductions' => 0.0, 'net' => 0.0, 'employer' => 0.0];
         }
 
-        $kinds = $components->mapWithKeys(fn (PayComponent $c): array => [$c->getKey() => $c->kind]);
+        // The employer's contributions are their own bucket: a cost on top of pay, so neither earnings nor
+        // deductions, and outside net.
+        $kinds = $components->mapWithKeys(fn (PayComponent $c): array => [
+            $c->getKey() => $c->isEmployerPaid() ? 'employer' : ($c->isEarning() ? 'earnings' : 'deductions'),
+        ]);
 
         foreach ($rows as $row) {
             $amount = round((float) $row->amount, 2);
             $cells[$row->payslip_id.':'.$row->pay_component_id] = $amount;
 
-            $bucket = ($kinds[$row->pay_component_id] ?? PayComponent::KIND_EARNING) === PayComponent::KIND_EARNING
-                ? 'earnings'
-                : 'deductions';
-
-            $totals[$row->payslip_id][$bucket] += $amount;
+            $totals[$row->payslip_id][$kinds[$row->pay_component_id] ?? 'earnings'] += $amount;
         }
 
         foreach ($totals as $payslipId => $total) {
@@ -148,7 +148,7 @@ class PayrollRegister
             // subtly wrong: kind first, then the component's own sort, then the label to break a tie.
             ->sortBy(fn (PayComponent $component): string => sprintf(
                 '%d-%06d-%s',
-                $component->isEarning() ? 0 : 1,
+                $component->isEarning() ? 0 : ($component->isEmployerPaid() ? 2 : 1),
                 (int) $component->sort,
                 (string) $component->label,
             ))

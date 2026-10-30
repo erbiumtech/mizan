@@ -47,16 +47,22 @@ class StatutoryComponentSeeder extends Seeder
                 'code' => StatutoryContributions::COMPONENT_EOBI_EMPLOYER,
                 'label' => 'EOBI (employer)',
                 'kind' => PayComponent::KIND_DEDUCTION,
+                // The employer's cost, not the employee's deduction: it never reduces take-home pay, and posts
+                // to the staff-cost line of the payroll mapping against the EOBI payable.
+                'paid_by' => PayComponent::PAID_BY_EMPLOYER,
+                'expense_account_key' => 'basic_wage',
                 'account_key' => 'eobi_payable',
                 'is_taxable' => false,
                 'sort' => 101,
                 'description' => 'Employer EOBI contribution. An employer cost rather than an employee deduction — '
-                    .'it does not reduce take-home pay, and a company tracking it here should say so on the payslip.',
+                    .'it does not reduce take-home pay; the payslip shows it as an employer contribution.',
             ],
             [
                 'code' => StatutoryContributions::COMPONENT_SOCIAL_SECURITY,
                 'label' => 'Social security (employer)',
                 'kind' => PayComponent::KIND_DEDUCTION,
+                'paid_by' => PayComponent::PAID_BY_EMPLOYER,
+                'expense_account_key' => 'basic_wage',
                 'account_key' => 'social_security_payable',
                 'is_taxable' => false,
                 'sort' => 102,
@@ -71,12 +77,14 @@ class StatutoryComponentSeeder extends Seeder
                 'is_taxable' => false,
                 'sort' => 103,
                 'description' => 'Employee provident fund contribution. Voluntary for most establishments — '
-                    .'off by default in config/statutory.php.',
+                    .'off unless switched on under Company Settings → Payroll.',
             ],
             [
                 'code' => StatutoryContributions::COMPONENT_PF_EMPLOYER,
                 'label' => 'Provident fund (employer match)',
                 'kind' => PayComponent::KIND_DEDUCTION,
+                'paid_by' => PayComponent::PAID_BY_EMPLOYER,
+                'expense_account_key' => 'basic_wage',
                 'account_key' => 'provident_fund_payable',
                 'is_taxable' => false,
                 'sort' => 104,

@@ -203,6 +203,21 @@ class PayrollPostingService
                 continue;
             }
 
+            // The employer's contribution is its own pair: the expense it is to the company against the payable it
+            // is owed to — never part of the employee's pay, so salaries payable is not touched.
+            if ($row->component->isEmployerPaid()) {
+                $expenseId = $row->component->expenseAccountId();
+
+                if (! $expenseId) {
+                    continue;
+                }
+
+                $lines[] = [$expenseId, $amount, true, $row->component->label.' (employer)'];
+                $lines[] = [$accountId, $amount, false, $row->component->label.' (employer)'];
+
+                continue;
+            }
+
             $lines[] = [$accountId, $amount, $row->component->isEarning(), $row->component->label];
         }
 

@@ -24,7 +24,13 @@ class PayComponentsTable
 
                 TextColumn::make('kind')
                     ->badge()
-                    ->color(fn (string $state): string => $state === PayComponent::KIND_EARNING ? 'success' : 'danger'),
+                    // An employer contribution reads as what it is rather than as a deduction it no longer is.
+                    ->formatStateUsing(fn (string $state, PayComponent $record): string => $record->isEmployerPaid() ? 'employer cost' : $state)
+                    ->color(fn (string $state, PayComponent $record): string => match (true) {
+                        $record->isEmployerPaid() => 'warning',
+                        $state === PayComponent::KIND_EARNING => 'success',
+                        default => 'danger',
+                    }),
 
                 IconColumn::make('is_taxable')
                     ->label('Taxable')

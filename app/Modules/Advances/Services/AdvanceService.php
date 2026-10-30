@@ -88,6 +88,28 @@ class AdvanceService implements AdvanceLedger
         }
 
         $this->recover($settlement);
+        $this->rememberPausedMonth($settlement);
+    }
+
+    /**
+     * A month raised while an advance is paused stays unrecovered — B16.
+     *
+     * A pause is a status, and a status is read at the moment of asking: resuming the advance and then saving the
+     * paused month's payslip again (a correction after reopening the run) made that month deduct after all. So
+     * the month is written into the advance's skipped months the first time a payslip for it is saved during
+     * the pause — unless the advance already recovered on that payslip, which means the month was not paused.
+     */
+    protected function rememberPausedMonth(PayslipSettlement $settlement): void
+    {
+        $month = \Illuminate\Support\Carbon::parse($settlement->effectiveOn)->format('Y-m');
+
+        Advance::query()
+            ->where('employee_id', $settlement->employeeId)
+            ->where('status', Advance::STATUS_PAUSED)
+            ->get()
+            ->reject(fn (Advance $advance): bool => in_array($month, $advance->skipped_months ?? [], true)
+                || $advance->recoveries()->where('payslip_id', $settlement->payslipId)->exists())
+            ->each(fn (Advance $advance) => $advance->update(['skipped_months' => [...($advance->skipped_months ?? []), $month]]));
     }
 
     /**

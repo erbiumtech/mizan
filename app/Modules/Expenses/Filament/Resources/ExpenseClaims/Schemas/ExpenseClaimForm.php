@@ -13,6 +13,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class ExpenseClaimForm
@@ -74,7 +75,12 @@ class ExpenseClaimForm
                     TextInput::make('description')->required()->maxLength(190),
                     TextInput::make('amount')->numeric()->minValue(0.01)->required(),
                     FileUpload::make('receipt_path')->label('Receipt')->disk('public')->directory('expense-claims')
-                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])->maxSize(8192)->columnSpanFull(),
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])->maxSize(8192)->columnSpanFull()
+                        // The category's "Needs a receipt", once the claim goes to the approvers — a draft may
+                        // still be waiting for it. ExpenseClaim::submit() holds the same line for the Submit action.
+                        ->required(fn (Get $get): bool => (bool) ExpenseCategory::query()->whereKey($get('expense_category_id'))->value('requires_receipt')
+                            && $get('../../status') !== ExpenseClaim::STATUS_DRAFT)
+                        ->validationMessages(['required' => 'This category needs a receipt.']),
                 ])
                 ->columnSpanFull(),
 

@@ -35,7 +35,7 @@ class ProvidentFund implements ProvidentFundBalance
      */
     public function recordContributions(PayrollRun $run): int
     {
-        if (! config('statutory.provident_fund.enabled', false)) {
+        if (! $this->statutory->providentFundEnabled()) {
             return 0;
         }
 

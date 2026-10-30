@@ -41,6 +41,21 @@ class PayComponentForm
                 ->disabled(fn (?PayComponent $record): bool => (bool) $record?->is_column_backed)
                 ->required(),
 
+            // Who bears it. An employer contribution — EOBI, social security, a provident-fund match — is a cost on
+            // top of pay: never taken from the employee, posted as an expense against the payable below.
+            Select::make('paid_by')
+                ->label('Who pays')
+                ->options([
+                    PayComponent::PAID_BY_EMPLOYEE => 'The employee — taken off their pay',
+                    PayComponent::PAID_BY_EMPLOYER => 'The employer — a cost on top of pay',
+                ])
+                ->default(PayComponent::PAID_BY_EMPLOYEE)
+                ->selectablePlaceholder(false)
+                ->live()
+                ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_DEDUCTION)
+                ->disabled(fn (?PayComponent $record): bool => (bool) $record?->is_column_backed)
+                ->helperText('The employer\'s share never reduces net pay. The payslip, the register and the run show it as employer cost.'),
+
             Toggle::make('is_taxable')
                 ->label('Taxable')
                 ->default(true)
@@ -83,6 +98,28 @@ class PayComponentForm
                 ->helperText(fn (): string => setting('payroll.prorate_on_attendance')
                     ? 'On, this scales with the days actually paid, exactly as the basic wage does. Leave it off for a fixed allowance that is paid whole whatever the attendance — a device or internet allowance usually is.'
                     : 'Has no effect until "Reduce pay for unpaid absence" is switched on in Company Settings, which it is not. Setting it now decides what happens if that is ever turned on.'),
+
+            Select::make('expense_account_id')
+                ->label('Expensed to')
+                ->options(fn (): array => Account::where('allow_manual_entry', true)
+                    ->where('type', 'expense')
+                    ->orderBy('code')
+                    ->get()
+                    ->mapWithKeys(fn (Account $a): array => [$a->id => $a->code.' '.$a->name])
+                    ->all())
+                ->searchable()
+                // A new contribution starts where the company's existing ones are expensed.
+                ->default(fn (): ?int => PayComponent::query()->where('paid_by', PayComponent::PAID_BY_EMPLOYER)->whereNotNull('expense_account_id')->value('expense_account_id'))
+                ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_DEDUCTION && $get('paid_by') === PayComponent::PAID_BY_EMPLOYER)
+                ->helperText('The company\'s cost of this contribution. Required unless an expense key is given below.'),
+
+            TextInput::make('expense_account_key')
+                ->label('Expense account key')
+                ->maxLength(64)
+                ->default(fn (): ?string => PayComponent::query()->where('paid_by', PayComponent::PAID_BY_EMPLOYER)->whereNotNull('expense_account_key')->value('expense_account_key'))
+                ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_DEDUCTION && $get('paid_by') === PayComponent::PAID_BY_EMPLOYER)
+                ->required(fn (Get $get): bool => $get('paid_by') === PayComponent::PAID_BY_EMPLOYER && blank($get('expense_account_id')))
+                ->helperText('Or a line of the payroll account mapping, e.g. basic_wage — the shipped contributions start there.'),
 
             Select::make('account_id')
                 ->label('Posts to')

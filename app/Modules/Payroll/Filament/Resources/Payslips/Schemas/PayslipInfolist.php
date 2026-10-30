@@ -72,6 +72,13 @@ class PayslipInfolist
                     TextEntry::make('total_earnings')->money('PKR'),
                     TextEntry::make('total_deductions')->money('PKR'),
                     TextEntry::make('net_salary')->money('PKR')->weight('bold'),
+                    // The employer's contributions on top of pay: not deducted from the employee, and not in net.
+                    TextEntry::make('employer_cost')
+                        ->label('Employer contributions')
+                        ->state(fn (Payslip $record): float => $record->employerCost())
+                        ->money(fn (): string => \App\Support\CompanyCurrency::code())
+                        ->helperText('Paid by the employer on top of this pay — not deducted from it.')
+                        ->visible(fn (Payslip $record): bool => $record->employerCost() > 0),
                 ]),
 
             Section::make('Acknowledgement')

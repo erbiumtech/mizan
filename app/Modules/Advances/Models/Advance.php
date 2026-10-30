@@ -86,8 +86,10 @@ class Advance extends Model
         $left = $this->remainingAmount();
         $month = Carbon::parse($from ?? now())->startOfMonth();
 
-        if ($this->recovery_starts_on && $month->lt($this->recovery_starts_on->copy()->startOfMonth())) {
-            $month = $this->recovery_starts_on->copy()->startOfMonth();
+        $first = $this->firstRecoveryMonth();
+
+        if ($first !== null && $month->lt($first)) {
+            $month = $first->copy();
         }
 
         $rows = [];
@@ -113,7 +115,7 @@ class Advance extends Model
         }
 
         $asOf = Carbon::parse($asOf)->startOfMonth();
-        $start = ($this->recovery_starts_on ?? $this->started_on)?->copy()->startOfMonth();
+        $start = ($this->firstRecoveryMonth() ?? $this->started_on)?->copy()->startOfMonth();
 
         if ($start === null) {
             return 0.0;
@@ -189,12 +191,49 @@ class Advance extends Model
         }
 
         $month = Carbon::parse($periodOn)->format('Y-m');
+        $first = $this->firstRecoveryMonth();
 
-        if ($this->recovery_starts_on && $month < $this->recovery_starts_on->format('Y-m')) {
+        if ($first !== null && $month < $first->format('Y-m')) {
             return false;
         }
 
         return ! in_array($month, $this->skipped_months ?? [], true);
+    }
+
+    /** Company setting: when recovery may start relative to when the advance is given — B17. */
+    public const RECOVERY_STARTS_SETTING = 'advances.recovery_starts';
+
+    /** Never before the month the advance is given — the default. */
+    public const RECOVERY_FROM_MONTH_GIVEN = 'month_given';
+
+    /** From the month after it is given. */
+    public const RECOVERY_FROM_MONTH_AFTER = 'month_after';
+
+    /** Any payroll month not yet raised, before the advance was given included — how it behaved before the setting. */
+    public const RECOVERY_FROM_ANY_MONTH = 'any_month';
+
+    /**
+     * The first month this advance may be deducted in.
+     *
+     * The start month somebody chose wins. Without one, the company's rule decides (Company Settings → Advances):
+     * by default never before the month the advance was given, so an advance handed over on 30 October is not
+     * taken from a September payslip raised afterwards — which a blank start used to allow.
+     */
+    public function firstRecoveryMonth(): ?Carbon
+    {
+        if ($this->recovery_starts_on) {
+            return $this->recovery_starts_on->copy()->startOfMonth();
+        }
+
+        if (! $this->started_on) {
+            return null;
+        }
+
+        return match (setting(self::RECOVERY_STARTS_SETTING, self::RECOVERY_FROM_MONTH_GIVEN)) {
+            self::RECOVERY_FROM_ANY_MONTH => null,
+            self::RECOVERY_FROM_MONTH_AFTER => $this->started_on->copy()->startOfMonth()->addMonthNoOverflow(),
+            default => $this->started_on->copy()->startOfMonth(),
+        };
     }
 
     /**

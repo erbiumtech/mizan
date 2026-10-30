@@ -54,6 +54,13 @@ class PayrollRunsTable
                     ->weight('bold')
                     ->alignEnd(),
 
+                // The employer's contributions on top of the month — what the run costs beyond net and deductions.
+                TextColumn::make('employer_cost')
+                    ->label('Employer cost')
+                    ->state(fn (PayrollRun $record): string => number_format($record->totals()['employer_cost'], 2))
+                    ->alignEnd()
+                    ->toggleable(),
+
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {

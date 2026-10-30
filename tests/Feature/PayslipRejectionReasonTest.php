@@ -294,13 +294,35 @@ class PayslipRejectionReasonTest extends AccountingTestCase
             ->assertTableActionEnabled('overrideRejection', $payslip);
     }
 
-    /** A reply from the employee counts too: what is required is that somebody said something back. */
-    public function test_a_reply_from_either_side_opens_the_close(): void
+    /**
+     * By default the employee adding to their own objection is not the reply: it is more of the objection, and
+     * counting it let payroll close it without having said a word.
+     */
+    public function test_by_default_the_employees_own_follow_up_does_not_open_the_close(): void
     {
         $payslip = $this->payslip();
         $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
 
         // The employee, adding to their own objection.
+        $this->reply($payslip, 'It was the 14th and the 21st, not just the 14th.');
+
+        $this->assertFalse($payslip->refresh()->objectionHasReply());
+        $this->assertNull($payslip->latestObjectionReply(), 'the employee\'s own words are not offered as the answer');
+
+        $this->actingAs($this->makeUser('Accountant', 'follow-up-accountant@test.local'));
+        $this->reply($payslip, 'Checked both days.');
+
+        $this->assertTrue($payslip->refresh()->objectionHasReply());
+    }
+
+    /** A company that wants any later comment to count says so in Company Settings → Payroll. */
+    public function test_a_company_can_count_the_employees_own_follow_up(): void
+    {
+        app(\App\Support\TenantSettings::class)->set(Payslip::OBJECTION_EMPLOYEE_REPLY_COUNTS, true);
+
+        $payslip = $this->payslip();
+        $payslip->recordEmployeeReview(Payslip::REVIEW_REJECTED, 'Overtime missing');
+
         $this->reply($payslip, 'It was the 14th and the 21st, not just the 14th.');
 
         $this->assertTrue($payslip->refresh()->objectionHasReply());
@@ -443,6 +465,8 @@ class PayslipRejectionReasonTest extends AccountingTestCase
             CommentsRelationManager::getBadge($payslip->refresh(), EditPayslip::class),
         );
 
+        // Payroll's answer: the employee's own follow-up would not count (the default).
+        $this->actingAs($this->makeUser('Accountant', 'badge-accountant@test.local'));
         $this->reply($payslip, 'Checked — the figure is right.');
 
         $this->assertNull(CommentsRelationManager::getBadge($payslip->refresh(), EditPayslip::class));

@@ -206,6 +206,23 @@ class ExpenseClaim extends Model implements PayableDocument
         ])->saveQuietly();
     }
 
+    /**
+     * The lines whose category needs a receipt and which have none — what stops a submit.
+     *
+     * "Needs a receipt" is the category's own switch (Expense Categories), checked when the claim is put in
+     * front of an approver rather than while it is a draft somebody is still assembling.
+     *
+     * @return array<int, string>
+     */
+    public function linesMissingReceipts(): array
+    {
+        return $this->lines()->with('category')->get()
+            ->filter(fn (ExpenseClaimLine $line): bool => (bool) $line->category?->requires_receipt && blank($line->receipt_path))
+            ->map(fn (ExpenseClaimLine $line): string => trim($line->description.' ('.$line->category->name.')'))
+            ->values()
+            ->all();
+    }
+
     /** From draft to pending: now the approvers are told. */
     public function submit(): self
     {
@@ -215,6 +232,10 @@ class ExpenseClaim extends Model implements PayableDocument
 
         if (round((float) $this->amount, 2) <= 0) {
             throw new InvalidArgumentException('A claim needs at least one line with an amount.');
+        }
+
+        if (($missing = $this->linesMissingReceipts()) !== []) {
+            throw new InvalidArgumentException('A receipt is needed for: '.implode('; ', $missing).'. Attach it to the line, then submit.');
         }
 
         $this->update(['status' => self::STATUS_PENDING, 'submitted_at' => now()]);

@@ -89,8 +89,9 @@ class AdvanceForm
                 ->label('Start deducting from')
                 ->native(false)
                 ->live(onBlur: true)
-                ->helperText('The first payroll month to deduct from. Leave blank to start with the next '
-                    .'payslip. Only the month matters — a date mid-month still means the whole of it.'),
+                ->helperText('The first payroll month to deduct from. Leave blank to follow Company Settings → '
+                    .'Advances (by default, the month it is given). Only the month matters — a date mid-month still '
+                    .'means the whole of it.'),
 
             Select::make('skipped_months')
                 ->label('Skip these months')

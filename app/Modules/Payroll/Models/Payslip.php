@@ -99,6 +99,18 @@ class Payslip extends Model
     public ?array $typedOverrides = null;
 
     /**
+     * The override lines a pay adjustment took to exactly 0 this save — B3. A typed 0 otherwise means "clear
+     * the override" (the form's meaning), so the writer that means "pay nothing on this line" names the lines.
+     * Null: this save names none, and a 0 already on the store is kept. Consumed by the save, never persisted.
+     *
+     * @var array<int, string>|null
+     */
+    public ?array $zeroOverrides = null;
+
+    /** Company setting: whether an employee's own follow-up counts as the reply to their objection — B13. */
+    public const OBJECTION_EMPLOYEE_REPLY_COUNTS = 'payroll.objection_employee_reply_counts';
+
+    /**
      * Figures as imported, not recalculated — docs/saas-launch-plan.md §14.1. Set by the
      * salary-history importer for a month that was already paid elsewhere.
      */
@@ -198,9 +210,11 @@ class Payslip extends Model
      * released over a complaint nobody engaged with, which is the thing this whole flow exists to prevent —
      * so the reply has to exist, and it has to have come *after* the objection was raised.
      *
-     * Any comment counts, from either side, because the payroll team replying is what the employee is owed
-     * and requiring the employee to reply *again* would hand a silent employee the power to hold their own
-     * salary indefinitely — the dead end this feature removes.
+     * Whose comment counts is the company's choice (`OBJECTION_EMPLOYEE_REPLY_COUNTS`, Company Settings →
+     * Payroll). By default only somebody other than the employee answers it: the employee adding to their own
+     * objection is more of the objection, and counting it let payroll close it without having said a word.
+     * Switched on, any later comment counts — requiring the employee to reply *again* is never the rule, which
+     * would hand a silent employee the power to hold their own salary indefinitely.
      */
     public function objectionHasReply(): bool
     {
@@ -238,8 +252,15 @@ class Payslip extends Model
             ? $this->comments
             : $this->comments()->where('created_at', '>=', $raisedAt)->get();
 
+        // The objector's own follow-ups count only where the company says so. loadMissing: PayslipsTable eager
+        // loads `employee`, so on the list this costs nothing.
+        $objector = setting(self::OBJECTION_EMPLOYEE_REPLY_COUNTS, false)
+            ? null
+            : $this->loadMissing('employee')->employee?->user_id;
+
         return $replies
             ->filter(fn (Comment $comment): bool => $comment->getKey() !== $this->review_objection_comment_id
+                && ($objector === null || (int) $comment->user_id !== (int) $objector)
                 && $comment->created_at !== null
                 && $comment->created_at->greaterThanOrEqualTo($raisedAt))
             ->sortBy([['created_at', 'asc'], ['id', 'asc']])
@@ -537,6 +558,34 @@ class Payslip extends Model
     }
 
     /**
+     * The data-driven components this payslip recorded, with their component, in payslip order — what the PDF
+     * lists beside the fixed lines. Earnings, the employee's deductions and the employer's contributions are
+     * told apart by the component (`isEarning()`, `isEmployeeDeduction()`, `isEmployerPaid()`).
+     *
+     * @return \Illuminate\Support\Collection<int, PayslipComponent>
+     */
+    public function dataDrivenComponents(): \Illuminate\Support\Collection
+    {
+        return $this->components()
+            ->with('component')
+            ->get()
+            ->filter(fn (PayslipComponent $row): bool => $row->component !== null && ! $row->component->is_column_backed)
+            ->sortBy(fn (PayslipComponent $row): int => (int) $row->component->sort)
+            ->values();
+    }
+
+    /**
+     * What the employer paid on top of this payslip — its contributions (EOBI, social security, the provident
+     * fund match). Never part of net pay or the deductions; shown as employer cost.
+     */
+    public function employerCost(): float
+    {
+        return round((float) $this->components()
+            ->whereHas('component', fn ($query) => $query->where('paid_by', PayComponent::PAID_BY_EMPLOYER))
+            ->sum('amount'), 2);
+    }
+
+    /**
      * The typed per-month overrides — docs/payslip-component-input-plan.md Phase 2. The *input* to the
      * calculation; `components()` is the output it produces.
      */
@@ -658,7 +707,8 @@ class Payslip extends Model
             // row a previous save left — calculateByParams reads the store first. Only on update: a creating
             // payslip has no id yet to hang rows from, so the created hook below syncs it once it exists.
             if ($payslip->exists) {
-                $service->syncInputStore($payslip, $typed, $attendance);
+                $service->syncInputStore($payslip, $typed, $attendance, $payslip->zeroOverrides);
+                $payslip->zeroOverrides = null;
             }
 
             $calculatedData = $service->calculateByParams(
@@ -860,15 +910,20 @@ class Payslip extends Model
 
         $annualTotalEarnings = 0;
         $completedMonths = $payslips->pluck('month')->toArray();
+        $fiscalYear = FiscalYear::find($fiscalYearId);
+        $service = app(PayslipService::class);
 
         if ($allSettings->isNotEmpty()) {
             foreach ($allSettings as $empSetting) {
+                // The package's taxable components count too (B24): the payslip's own projection adds them for
+                // every month not yet paid, and this record has to project the same income it withholds on.
                 $sMonthlyTotal = (float) $empSetting->basic_wage
                                  + (float) $empSetting->medical_allowance
                                  + (float) $empSetting->petrol_allowance
                                  + (float) $empSetting->device_allowance
                                  + (float) ($empSetting->bonus ?? 0)
-                                 + (float) ($empSetting->extra_work_hours ?? 0);
+                                 + (float) ($empSetting->extra_work_hours ?? 0)
+                                 + $service->projectedTaxableComponents($empSetting, Carbon::parse($empSetting->start_date)->format('F'), $fiscalYear);
 
                 $sStart = Carbon::parse($empSetting->start_date);
                 $sEnd = Carbon::parse($empSetting->end_date);

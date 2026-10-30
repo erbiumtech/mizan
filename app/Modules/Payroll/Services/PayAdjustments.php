@@ -59,15 +59,24 @@ class PayAdjustments
         $fallback = $this->payslips->calculateByParams($payslip->employee_id, $payslip->month, $payslip->fiscal_year_id, [], $payslip->id, null, false) ?: [];
         $typed = $this->payslips->typedOverridesOf($payslip);
 
+        $zeros = [];
+
         foreach (PayslipService::OVERRIDE_KEYS as $key) {
             if (! isset($totals[$key])) {
                 continue;
             }
 
-            $typed[$key] = round((float) ($fallback[$key] ?? 0) + $totals[$key], 2);
+            // A line cannot go below nothing: an adjustment larger than the line takes it to 0.
+            $typed[$key] = max(0.0, round((float) ($fallback[$key] ?? 0) + $totals[$key], 2));
+
+            // And 0 is what this month pays on it — not "no override", which would bring the package back.
+            if ($typed[$key] === 0.0) {
+                $zeros[] = $key;
+            }
         }
 
         $payslip->typedOverrides = $typed;
+        $payslip->zeroOverrides = $zeros;
 
         // An override alone leaves no column dirty, so Eloquent would skip the save and the
         // recalculation in its hook — the edit page forces it the same way.

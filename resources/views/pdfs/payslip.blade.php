@@ -17,6 +17,13 @@
     // line items below read this projection, not the columns, so there is one source for what a payslip paid.
     // Resolved up here, not in the salary table: a @php block between <tr> and <td> drops the earnings cell.
     $comp = $data->componentAmounts();
+    // The data-driven components — an allowance, a loan instalment, a statutory contribution — beside the fixed
+    // lines, so the columns add up to the totals under them. The employer's contributions are listed apart: a
+    // cost on top of pay, not taken from it.
+    $extra = $data->dataDrivenComponents();
+    $extraEarnings = $extra->filter(fn ($row) => $row->component->isEarning());
+    $extraDeductions = $extra->filter(fn ($row) => $row->component->isEmployeeDeduction());
+    $employerLines = $extra->filter(fn ($row) => $row->component->isEmployerPaid());
 @endphp
 <!DOCTYPE html>
 <html>
@@ -477,6 +484,9 @@
                         </div>
                         <div class="line-item"><span>Expense
                                 Reimbursement</span><span>{{ number_format($comp['expense_reimbursement'] ?? 0, 2) }}</span></div>
+                        @foreach ($extraEarnings as $row)
+                            <div class="line-item"><span>{{ $row->component->label }}</span><span>{{ number_format((float) $row->amount, 2) }}</span></div>
+                        @endforeach
                     </td>
                     <td>
                         <div class="line-item"><span>Withholding
@@ -488,6 +498,9 @@
                                 Deduction</span><span>{{ number_format($comp['meal_deduction'] ?? 0, 2) }}</span></div>
                         <div class="line-item"><span>ESI / Health
                                 Insurance</span><span>{{ number_format($comp['esi_health_insurance'] ?? 0, 2) }}</span></div>
+                        @foreach ($extraDeductions as $row)
+                            <div class="line-item"><span>{{ $row->component->label }}</span><span>{{ number_format((float) $row->amount, 2) }}</span></div>
+                        @endforeach
                     </td>
                 </tr>
                 <tr>
@@ -510,6 +523,22 @@
                 <span>Net Salary</span>
                 <span>PKR {{ number_format($data->net_salary, 2) }}</span>
             </div>
+
+            @if ($employerLines->isNotEmpty())
+                {{-- Paid by the employer on top of this pay; not deducted from it and not part of the net above. --}}
+                <table class="main-table">
+                    <tr>
+                        <th style="width: 100%;">Employer contributions (not deducted from your pay)</th>
+                    </tr>
+                    <tr>
+                        <td>
+                            @foreach ($employerLines as $row)
+                                <div class="line-item"><span>{{ $row->component->label }}</span><span>{{ number_format((float) $row->amount, 2) }}</span></div>
+                            @endforeach
+                        </td>
+                    </tr>
+                </table>
+            @endif
 
             @include('pdfs.partials.verification-qr')
 

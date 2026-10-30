@@ -252,7 +252,7 @@ class PayrollRun extends Model
     }
 
     /**
-     * Cached for the life of the model, because reading it costs five queries.
+     * Cached for the life of the model, because reading it costs two queries.
      *
      * @var array<string, float|int>|null
      */
@@ -261,7 +261,8 @@ class PayrollRun extends Model
     /**
      * What the month came to, from the payslips in it.
      *
-     * Five aggregates — a count, three sums and another count — so the figure is remembered per model.
+     * Two aggregates — the payslips' figures in one, the employer's contributions in the other — and the
+     * figure is remembered per model.
      * The payroll-runs table asked for it *twice* per row to render "3 of 8 accepted", which was ten
      * queries a row and a hundred for a page of ten; nothing on that screen changes a payslip while it
      * renders, so answering the second ask from the first is the same answer for a tenth of the cost.
@@ -278,14 +279,25 @@ class PayrollRun extends Model
             return $this->totalsMemo;
         }
 
-        $payslips = $this->payslips();
+        // One aggregate over the payslips rather than five, now that the employer's cost is a sixth figure: the
+        // runs table reads these for every row.
+        $sums = $this->payslips()
+            ->toBase()
+            ->selectRaw('count(*) as payslips, coalesce(sum(total_earnings), 0) as gross, coalesce(sum(total_deductions), 0) as deductions, '
+                .'coalesce(sum(net_salary), 0) as net, coalesce(sum(case when employee_review = ? then 1 else 0 end), 0) as accepted', [Payslip::REVIEW_ACCEPTED])
+            ->first();
 
         return $this->totalsMemo = [
-            'payslips' => $payslips->count(),
-            'gross' => round((float) $payslips->sum('total_earnings'), 2),
-            'deductions' => round((float) $payslips->sum('total_deductions'), 2),
-            'net' => round((float) $payslips->sum('net_salary'), 2),
-            'accepted' => $payslips->where('employee_review', Payslip::REVIEW_ACCEPTED)->count(),
+            'payslips' => (int) $sums->payslips,
+            'gross' => round((float) $sums->gross, 2),
+            'deductions' => round((float) $sums->deductions, 2),
+            'net' => round((float) $sums->net, 2),
+            // The employer's contributions on top of the month's pay — a cost of the run, never part of net.
+            'employer_cost' => round((float) PayslipComponent::query()
+                ->whereIn('payslip_id', $this->payslips()->select('id'))
+                ->whereHas('component', fn ($query) => $query->where('paid_by', PayComponent::PAID_BY_EMPLOYER))
+                ->sum('amount'), 2),
+            'accepted' => (int) $sums->accepted,
         ];
     }
 
