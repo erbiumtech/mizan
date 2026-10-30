@@ -19,6 +19,12 @@ class EmployeeSettingsTable
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
+            /*
+             * **Six columns shown of fourteen** — the same decision as PayslipsTable, for the same
+             * reason. This is the structure a salary is built from, and it is read to answer which
+             * structure applies to somebody and from when; the eight components it is built out of
+             * are what you open the row to see. Five of them were already toggleable and shown.
+             */
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -58,7 +64,8 @@ class EmployeeSettingsTable
 
                 TextColumn::make('medical_allowance')
                     ->label('Medical Allowance')
-                    ->numeric(),
+                    ->numeric()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('device_allowance')
                     ->label('Device Allowance')
@@ -68,27 +75,27 @@ class EmployeeSettingsTable
                 TextColumn::make('petrol_allowance')
                     ->label('Petrol Allowance')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('bonus')
                     ->label('Bonus')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('extra_work_hours')
                     ->label('Extra Work Hours')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('meal_deduction')
                     ->label('Meal Deduction')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('advances')
                     ->label('Advances')
                     ->numeric()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('esi_health_insurance')
                     ->label('ESI / Health Insurance')
