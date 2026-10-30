@@ -352,8 +352,9 @@ class ProgrammeImport
 
         try {
             // No entity loading: a programme file arrives by email from another company, and an XML importer that
-            // resolves external entities is a file-read primitive handed to whoever sent it.
-            $xml = simplexml_load_string($contents, 'SimpleXMLElement', LIBXML_NONET | LIBXML_NOENT);
+            // resolves external entities is a file-read primitive handed to whoever sent it. LIBXML_NOENT is the flag
+            // that *substitutes* entities — it was here once and read local files into activity names.
+            $xml = simplexml_load_string($contents, 'SimpleXMLElement', LIBXML_NONET);
         } catch (Throwable) {
             $xml = false;
         } finally {
