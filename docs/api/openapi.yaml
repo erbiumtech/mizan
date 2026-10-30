@@ -461,3 +461,273 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           description: Already clocked in and out today
+  /devices:
+    get:
+      summary: The browsers and apps the caller has subscribed to push
+      description: docs/desktop-mobile-plan.md A3. A device is the user's, so no company is resolved.
+      responses:
+        '200':
+          description: Devices, newest use first; the push-service keys are never returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Register this device for push
+      description: >-
+        The PushSubscription a browser returns from pushManager.subscribe(), as JSON. Posting the same
+        endpoint again replaces the row (200) rather than adding a device (201).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endpoint, keys]
+              properties:
+                endpoint:
+                  type: string
+                  format: uri
+                keys:
+                  type: object
+                  required: [p256dh, auth]
+                  properties:
+                    p256dh:
+                      type: string
+                    auth:
+                      type: string
+                content_encoding:
+                  type: string
+                  enum: [aes128gcm, aesgcm]
+                transport:
+                  type: string
+                  enum: [webpush]
+      responses:
+        '201':
+          description: Registered.
+        '200':
+          description: Replaced.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /devices/{device}:
+    delete:
+      summary: Stop pushing to one of the caller's devices
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /notifications:
+    get:
+      summary: The caller's bell, newest first
+      description: >-
+        docs/desktop-mobile-plan.md A4. Versioned surface only (/api/v1). The same rows the panel's bell
+        shows, flattened to title, body, the URL a tap opens, status and read_at. ?unread=1 filters to
+        unread; ?limit= caps at 100 (default 50).
+      parameters:
+        - name: unread
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 100
+      responses:
+        '200':
+          description: Notifications, with unread_count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /notifications/read-all:
+    post:
+      summary: Mark every unread notification of the caller's read
+      description: Versioned surface only (/api/v1).
+      responses:
+        '200':
+          description: The number marked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /notifications/{notification}/read:
+    post:
+      summary: Mark one of the caller's notifications read
+      description: Versioned surface only (/api/v1).
+      parameters:
+        - name: notification
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The notification, now read.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /approvals/leave:
+    get:
+      summary: Pending leave requests the caller may decide
+      description: >-
+        docs/desktop-mobile-plan.md A4/M3. Versioned surface only (/api/v1). Filtered by the same policy that
+        shows the Approve button in the panel: the approve permission, not the requester's own leave unless
+        the company allows it, and the approval chain's next role.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Requests, earliest start first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /approvals/leave/{leaveRequest}/approve:
+    post:
+      summary: Approve a leave request
+      description: Versioned surface only. Goes through LeaveRequestService, so the panel's refusals are 422 here.
+      parameters:
+        - name: leaveRequest
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Approved (or one step of the chain taken).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /approvals/leave/{leaveRequest}/refuse:
+    post:
+      summary: Refuse a leave request, with a reason
+      description: Versioned surface only.
+      parameters:
+        - name: leaveRequest
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/Company'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Refused.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /approvals/expense-claims:
+    get:
+      summary: Pending expense claims the caller may decide
+      description: docs/desktop-mobile-plan.md A4/M3. Versioned surface only (/api/v1). Same policy as the panel.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Claims, earliest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /approvals/expense-claims/{expenseClaim}/approve:
+    post:
+      summary: Approve an expense claim
+      description: Versioned surface only. The claim's own approve(), so nobody approves their own and the chain's next role holds.
+      parameters:
+        - name: expenseClaim
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Approved (or one step of the chain taken).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /approvals/expense-claims/{expenseClaim}/refuse:
+    post:
+      summary: Refuse an expense claim, with a reason
+      description: Versioned surface only.
+      parameters:
+        - name: expenseClaim
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/Company'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Refused.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'

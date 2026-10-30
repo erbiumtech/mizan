@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,3 +32,12 @@ foreach (['', 'v1'] as $version) {
         });
     });
 }
+
+// The versioned surface only — docs/desktop-mobile-plan.md A4: new endpoints land under /v1 and nowhere
+// else. The bell's rows are the user's, not a company's, so no company is resolved here; the approvals
+// that go with them are in the Leave and Expenses modules' route files.
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
+});
