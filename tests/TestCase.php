@@ -52,14 +52,14 @@ abstract class TestCase extends BaseTestCase
      * also compiles its own views there, so no two processes ever write the same compiled template.
      *
      * Emptied once per process rather than per test, which is what the shared directory got too.
+     *
+     * A serial run is isolated too, under its own fixed token. Without it the suite wrote into the
+     * developer's real storage/ — and the tests that empty storage/app/public/tenants on tearDown
+     * deleted every local company's uploads with it.
      */
     private function useParallelStoragePath(): void
     {
-        $token = $_SERVER['TEST_TOKEN'] ?? false;
-
-        if (! $token) {
-            return;
-        }
+        $token = $_SERVER['TEST_TOKEN'] ?? 'serial';
 
         $path = Application::inferBasePath()."/storage/framework/testing/parallel/{$token}";
 
