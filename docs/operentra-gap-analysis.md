@@ -9,8 +9,9 @@ trial workspace was crawled signed in (186 routes from the app's router), then f
 employees, a month of attendance, leave, a loan, an expense claim, an appraisal cycle, a
 separation and a payroll, and crawled again (209 pages, 21 of them record pages). That produced
 199 features, each checked against this codebase's code — models, Filament resources, services,
-migrations, tests — not its docs. Phases 0–10 of the launch plan are in; the uncommitted Devices
-module (Phase 11) and custom domains are counted and marked.
+migrations, tests — not its docs. Phases 0–10 of the launch plan were in when this was written; the Devices
+module (Phase 11) and custom domains (Phase 12) landed on 2026-10-29, so the rows below that say
+*uncommitted* are now committed — the inventory itself was not re-crawled.
 
 **The headline: the names are here, the depth is not.** Of 199 features, 38 are here as fully as
 Operentra has them, 107 exist in a narrower form, and 54 do not exist. The plan's §1 counted 76 of
