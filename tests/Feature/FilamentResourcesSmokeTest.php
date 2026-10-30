@@ -44,6 +44,12 @@ class FilamentResourcesSmokeTest extends TestCase
                 if (! isset($pages[$key])) {
                     continue;
                 }
+
+                // A resource that refuses creation (its records only arise from another record — a
+                // comment on a payslip, a next action on a lead) answers its create page with 403.
+                if ($key === 'create' && ! $resource::canCreate()) {
+                    continue;
+                }
                 $page = $pages[$key]->getPage();
                 try {
                     Livewire::test($page)->assertSuccessful();
