@@ -21,6 +21,8 @@ return [
     'plugin' => \App\Modules\Performance\PerformancePlugin::class,
 
     'models' => [
+        // How a designation's score is weighted — docs/saas-launch-plan.md §14.10.
+        'App\\Models\\ScorecardProfile' => \App\Modules\Performance\Models\ScorecardProfile::class,
         'App\\Models\\ReviewCycle' => \App\Modules\Performance\Models\ReviewCycle::class,
         'App\\Models\\Review' => \App\Modules\Performance\Models\Review::class,
         'App\\Models\\ReviewTemplate' => \App\Modules\Performance\Models\ReviewTemplate::class,
@@ -39,6 +41,7 @@ return [
     ],
 
     'resources' => [
+        'App\\Filament\\Resources\\ScorecardProfiles\\ScorecardProfileResource' => \App\Modules\Performance\Filament\Resources\ScorecardProfiles\ScorecardProfileResource::class,
         'App\\Filament\\Resources\\ReviewCycles\\ReviewCycleResource' => \App\Modules\Performance\Filament\Resources\ReviewCycles\ReviewCycleResource::class,
         'App\\Filament\\Resources\\Reviews\\ReviewResource' => \App\Modules\Performance\Filament\Resources\Reviews\ReviewResource::class,
         'App\\Filament\\Resources\\ReviewTemplates\\ReviewTemplateResource' => \App\Modules\Performance\Filament\Resources\ReviewTemplates\ReviewTemplateResource::class,
@@ -58,6 +61,7 @@ return [
         'App\\Filament\\Pages\\ReviewCycleProgress' => \App\Modules\Performance\Filament\Pages\ReviewCycleProgress::class,
         // How the ratings fell — docs/saas-launch-plan.md §14.10.
         'App\\Filament\\Pages\\RatingsDistribution' => \App\Modules\Performance\Filament\Pages\RatingsDistribution::class,
+        'App\\Filament\\Pages\\Scorecards' => \App\Modules\Performance\Filament\Pages\Scorecards::class,
         'App\\Filament\\Pages\\MeritLedgerReport' => \App\Modules\Performance\Filament\Pages\MeritLedgerReport::class,
     ],
 

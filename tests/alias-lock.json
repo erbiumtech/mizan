@@ -216,6 +216,7 @@
         "App\\Models\\SavedReportView": "App\\Modules\\Core\\Models\\SavedReportView",
         "App\\Models\\ScheduledTransaction": "App\\Modules\\Accounting\\Models\\ScheduledTransaction",
         "App\\Models\\ScheduledTransactionLine": "App\\Modules\\Accounting\\Models\\ScheduledTransactionLine",
+        "App\\Models\\ScorecardProfile": "App\\Modules\\Performance\\Models\\ScorecardProfile",
         "App\\Models\\Segment": "App\\Modules\\Campaigns\\Models\\Segment",
         "App\\Models\\Separation": "App\\Modules\\Lifecycle\\Models\\Separation",
         "App\\Models\\Setting": "App\\Modules\\Core\\Models\\Setting",
@@ -249,6 +250,7 @@
         "App\\Models\\WbsNode": "App\\Modules\\Construction\\Models\\WbsNode",
         "App\\Models\\WebhookDelivery": "App\\Modules\\Core\\Models\\WebhookDelivery",
         "App\\Models\\WebhookEndpoint": "App\\Modules\\Core\\Models\\WebhookEndpoint",
+        "App\\Models\\WeeklySalesReport": "App\\Modules\\Crm\\Models\\WeeklySalesReport",
         "App\\Models\\WipSnapshot": "App\\Modules\\ConstructionCosting\\Models\\WipSnapshot",
         "App\\Models\\WithholdingDeduction": "App\\Modules\\Accounting\\Models\\WithholdingDeduction",
         "App\\Models\\WithholdingSection": "App\\Modules\\Accounting\\Models\\WithholdingSection",
@@ -397,6 +399,7 @@
         "App\\Filament\\Resources\\SalaryStructures\\SalaryStructureResource": "App\\Modules\\Payroll\\Filament\\Resources\\SalaryStructures\\SalaryStructureResource",
         "App\\Filament\\Resources\\SalesTargets\\SalesTargetResource": "App\\Modules\\Crm\\Filament\\Resources\\SalesTargets\\SalesTargetResource",
         "App\\Filament\\Resources\\ScheduledTransactions\\ScheduledTransactionResource": "App\\Modules\\Accounting\\Filament\\Resources\\ScheduledTransactions\\ScheduledTransactionResource",
+        "App\\Filament\\Resources\\ScorecardProfiles\\ScorecardProfileResource": "App\\Modules\\Performance\\Filament\\Resources\\ScorecardProfiles\\ScorecardProfileResource",
         "App\\Filament\\Resources\\Separations\\SeparationResource": "App\\Modules\\Lifecycle\\Filament\\Resources\\Separations\\SeparationResource",
         "App\\Filament\\Resources\\StockLocations\\StockLocationResource": "App\\Modules\\Inventory\\Filament\\Resources\\StockLocations\\StockLocationResource",
         "App\\Filament\\Resources\\StockMovements\\StockMovementResource": "App\\Modules\\Inventory\\Filament\\Resources\\StockMovements\\StockMovementResource",
@@ -410,6 +413,7 @@
         "App\\Filament\\Resources\\Vacancies\\VacancyResource": "App\\Modules\\Recruitment\\Filament\\Resources\\Vacancies\\VacancyResource",
         "App\\Filament\\Resources\\WebhookDeliveries\\WebhookDeliveryResource": "App\\Modules\\Core\\Filament\\Resources\\WebhookDeliveries\\WebhookDeliveryResource",
         "App\\Filament\\Resources\\WebhookEndpoints\\WebhookEndpointResource": "App\\Modules\\Core\\Filament\\Resources\\WebhookEndpoints\\WebhookEndpointResource",
+        "App\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource": "App\\Modules\\Crm\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource",
         "App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource": "App\\Modules\\Attendance\\Filament\\Resources\\WorkPatterns\\WorkPatternResource"
     },
     "pages": {
@@ -496,6 +500,7 @@
         "App\\Filament\\Pages\\SafetyIndicators": "App\\Modules\\ConstructionQhse\\Filament\\Pages\\SafetyIndicatorsReport",
         "App\\Filament\\Pages\\SalaryBankFile": "App\\Modules\\Payroll\\Filament\\Pages\\SalaryBankFile",
         "App\\Filament\\Pages\\SalesForecast": "App\\Modules\\Crm\\Filament\\Pages\\SalesForecast",
+        "App\\Filament\\Pages\\Scorecards": "App\\Modules\\Performance\\Filament\\Pages\\Scorecards",
         "App\\Filament\\Pages\\SlaBreaches": "App\\Modules\\Support\\Filament\\Pages\\SlaBreaches",
         "App\\Filament\\Pages\\SlaPerformance": "App\\Modules\\Support\\Filament\\Pages\\SlaPerformance",
         "App\\Filament\\Pages\\SlabAnalysis": "App\\Modules\\Payroll\\Filament\\Pages\\SlabAnalysis",
@@ -514,6 +519,7 @@
         "App\\Filament\\Pages\\UnconfirmedVisits": "App\\Modules\\Crm\\Filament\\Pages\\UnconfirmedVisits",
         "App\\Filament\\Pages\\UserManual": "App\\Modules\\Core\\Filament\\Pages\\UserManual",
         "App\\Filament\\Pages\\VisitsPerRep": "App\\Modules\\Crm\\Filament\\Pages\\VisitsPerRep",
+        "App\\Filament\\Pages\\WeeklySales": "App\\Modules\\Crm\\Filament\\Pages\\WeeklySales",
         "App\\Filament\\Pages\\WinLoss": "App\\Modules\\Crm\\Filament\\Pages\\WinLoss",
         "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement"
     },

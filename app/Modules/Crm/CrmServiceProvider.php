@@ -73,6 +73,7 @@ class CrmServiceProvider extends ServiceProvider
         \App\Modules\Crm\Models\FieldVisitPlace::class => \App\Modules\Crm\Policies\FieldVisitPlacePolicy::class,
         \App\Modules\Crm\Models\FieldVisitStaff::class => \App\Modules\Crm\Policies\FieldVisitStaffPolicy::class,
         \App\Modules\Crm\Models\FieldVisitRefusal::class => \App\Modules\Crm\Policies\FieldVisitRefusalPolicy::class,
+        \App\Modules\Crm\Models\WeeklySalesReport::class => \App\Modules\Crm\Policies\WeeklySalesReportPolicy::class,
     ];
 
     public function boot(): void
@@ -182,6 +183,22 @@ class CrmServiceProvider extends ServiceProvider
 
         // Field visits — docs/saas-launch-plan.md §8.5.
         ReportCatalogue::register('Sales & pipeline', VisitsPerRep::class, 'How many visits each rep made this month, and how many the person visited confirmed.');
+
+        /*
+         * A rep's week — docs/saas-launch-plan.md §14.10. Read from the pipeline where it
+         * exists and from the weekly form where it does not, which is a licensing fact
+         * rather than a setting.
+         */
+        ReportCatalogue::register(
+            'Sales & pipeline',
+            \App\Modules\Crm\Filament\Pages\WeeklySales::class,
+            'Visits, calls, quotes and orders per rep for the week — from the pipeline, or from the weekly form.',
+        );
+
+        ReportRenderers::register(
+            'WeeklySales',
+            fn (string $asOf): array => app(\App\Modules\Crm\Support\WeeklySalesReports::class)->week($asOf),
+        );
         ReportCatalogue::register('Sales & pipeline', UnconfirmedVisits::class, 'Completed visits nobody has confirmed, and where the link went.');
         ReportRenderers::register('VisitsPerRep', fn (string $asOf): array => app(FieldVisitReports::class)->perRep($asOf));
         ReportRenderers::register('UnconfirmedVisits', fn (string $asOf): array => app(FieldVisitReports::class)->unconfirmed($asOf));

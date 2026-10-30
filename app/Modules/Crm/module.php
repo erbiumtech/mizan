@@ -43,6 +43,8 @@ return [
         'App\\Models\\FieldVisitPlace' => \App\Modules\Crm\Models\FieldVisitPlace::class,
         'App\\Models\\FieldVisitStaff' => \App\Modules\Crm\Models\FieldVisitStaff::class,
         'App\\Models\\FieldVisitRefusal' => \App\Modules\Crm\Models\FieldVisitRefusal::class,
+        // The weekly form, for a company without the pipeline — docs/saas-launch-plan.md §14.10.
+        'App\\Models\\WeeklySalesReport' => \App\Modules\Crm\Models\WeeklySalesReport::class,
     ],
 
     'resources' => [
@@ -55,6 +57,7 @@ return [
         'App\\Filament\\Resources\\FieldVisits\\FieldVisitResource' => \App\Modules\Crm\Filament\Resources\FieldVisits\FieldVisitResource::class,
         'App\\Filament\\Resources\\FieldVisitStaff\\FieldVisitStaffResource' => \App\Modules\Crm\Filament\Resources\FieldVisitStaff\FieldVisitStaffResource::class,
         'App\\Filament\\Resources\\FieldVisitRefusals\\FieldVisitRefusalResource' => \App\Modules\Crm\Filament\Resources\FieldVisitRefusals\FieldVisitRefusalResource::class,
+        'App\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource' => \App\Modules\Crm\Filament\Resources\WeeklySalesReports\WeeklySalesReportResource::class,
     ],
 
     /**
@@ -62,6 +65,8 @@ return [
      * why they are pages rather than a resource: a report is a question, not a table of rows to edit.
      */
     'pages' => [
+        // The week per rep — docs/saas-launch-plan.md §14.10.
+        'App\\Filament\\Pages\\WeeklySales' => \App\Modules\Crm\Filament\Pages\WeeklySales::class,
         'App\\Filament\\Pages\\PipelineByStage' => \App\Modules\Crm\Filament\Pages\PipelineByStage::class,
         'App\\Filament\\Pages\\SalesForecast' => \App\Modules\Crm\Filament\Pages\SalesForecast::class,
         'App\\Filament\\Pages\\WinLoss' => \App\Modules\Crm\Filament\Pages\WinLoss::class,

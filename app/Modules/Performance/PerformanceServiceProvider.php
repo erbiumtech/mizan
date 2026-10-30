@@ -49,6 +49,7 @@ class PerformanceServiceProvider extends ServiceProvider
 {
     /** @var array<class-string, class-string> */
     private const POLICIES = [
+        \App\Modules\Performance\Models\ScorecardProfile::class => \App\Modules\Performance\Policies\ScorecardProfilePolicy::class,
         ReviewCycle::class => ReviewCyclePolicy::class,
         Review::class => ReviewPolicy::class,
         \App\Modules\Performance\Models\ReviewTemplate::class => \App\Modules\Performance\Policies\ReviewTemplatePolicy::class,
@@ -147,6 +148,16 @@ class PerformanceServiceProvider extends ServiceProvider
             'How the ratings fell, per cycle and per department — the shape a calibration meeting is about.',
         );
 
+        /*
+         * Scorecards — docs/saas-launch-plan.md §14.10. Quality and volume beside the net,
+         * because two people on the same net can be opposite employees.
+         */
+        ReportCatalogue::register(
+            'People & payroll',
+            \App\Modules\Performance\Filament\Pages\Scorecards::class,
+            'The merit ledger weighted by designation, with quality and volume shown beside the net.',
+        );
+
         ReportRenderers::register(
             'ReviewCycleProgress',
             fn (string $asOf): array => app(PerformanceReports::class)->reviewCycleProgress($asOf),
@@ -154,6 +165,10 @@ class PerformanceServiceProvider extends ServiceProvider
         ReportRenderers::register(
             'RatingsDistribution',
             fn (string $asOf): array => app(PerformanceReports::class)->ratingsDistribution($asOf),
+        );
+        ReportRenderers::register(
+            'Scorecards',
+            fn (string $asOf): array => app(\App\Modules\Performance\Support\Scorecards::class)->scorecard($asOf),
         );
 
         ReportCatalogue::register(

@@ -144,6 +144,8 @@ class NavigationTree
                 'Deals',
                 'Next Actions',
                 'Field Visits',
+                // The weekly form, for a company without the pipeline — plan §14.10.
+                'Weekly Sales Form',
                 'Quotes',
                 'Campaigns',
             ],
@@ -173,6 +175,8 @@ class NavigationTree
                 // Email Wording rather than in a branch of its own: both are about the post going out, and a
                 // branch holding one screen is a heading that says the screen's name twice.
                 'Scheduled Reports',
+                // How a designation's score is weighted — plan §14.10.
+                'Scorecard Profiles',
                 // Where this company's own systems listen, and each person's own keys —
                 // plan §14.9. Beside the post going out, which is what they are.
                 'Webhooks',
