@@ -37,7 +37,7 @@ class InspectionForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -53,7 +53,7 @@ class InspectionForm
                          * possible: a client's representative asking to see a detail is an inspection.
                          */
                         Select::make('itp_activity_id')
-                            ->label('ITP point')
+                            ->label(__('ITP point'))
                             ->options(fn (callable $get): array => static::itpPoints($get('job_id')))
                             ->searchable()
                             ->live()
@@ -61,18 +61,18 @@ class InspectionForm
                             ->helperText('Choosing a point snapshots its type and notice period onto this inspection. Leave it blank for an inspection nobody planned.'),
 
                         Textarea::make('activity_description')
-                            ->label('What is being inspected')
+                            ->label(__('What is being inspected'))
                             ->required()
                             ->rows(2)
                             ->columnSpanFull(),
 
                         Select::make('location_id')
-                            ->label('Where')
+                            ->label(__('Where'))
                             ->options(fn (callable $get): array => static::locations($get('job_id')))
                             ->searchable(),
 
                         Select::make('contract_item_id')
-                            ->label('Contract item')
+                            ->label(__('Contract item'))
                             ->options(fn (callable $get): array => static::contractItems($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts')),
@@ -82,7 +82,7 @@ class InspectionForm
                          * would let somebody downgrade a hold point to a review on the way past.
                          */
                         Select::make('point_type')
-                            ->label('Point type')
+                            ->label(__('Point type'))
                             ->options(ItpActivity::POINT_TYPES)
                             ->default(ItpActivity::POINT_REVIEW)
                             ->required()
@@ -90,12 +90,12 @@ class InspectionForm
                             ->helperText('A hold point stops work until it is released. Choose it deliberately.'),
 
                         TextInput::make('notice_hours')
-                            ->label('Notice required (hours)')
+                            ->label(__('Notice required (hours)'))
                             ->numeric()
                             ->visible(fn (callable $get): bool => blank($get('itp_activity_id'))),
 
                         Placeholder::make('from_plan')
-                            ->label('')
+                            ->label(__(''))
                             ->columnSpanFull()
                             ->visible(fn (callable $get): bool => filled($get('itp_activity_id')))
                             ->content('The point type and notice period come from the plan and are frozen onto this inspection when it is requested — a later revision of the ITP cannot change what this inspection meant.'),
@@ -105,22 +105,22 @@ class InspectionForm
                     ->columns(2)
                     ->schema([
                         DatePicker::make('requested_on')
-                            ->label('Requested on')
+                            ->label(__('Requested on'))
                             ->native(false)
                             ->default(now())
                             ->required(),
 
-                        DatePicker::make('scheduled_for')->label('Scheduled for')->native(false),
+                        DatePicker::make('scheduled_for')->label(__('Scheduled for'))->native(false),
 
                         Select::make('witness_contact_id')
-                            ->label('Witness')
+                            ->label(__('Witness'))
                             ->relationship('witness', 'name')
                             ->searchable()
                             ->preload()
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                         TextInput::make('witness_label')
-                            ->label('Witness, in words')
+                            ->label(__('Witness, in words'))
                             ->maxLength(255)
                             ->helperText('The attending party, where you keep no contact record for them.'),
                     ]),

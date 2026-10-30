@@ -63,13 +63,13 @@ class ItemsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 TextInput::make('item_no')
-                    ->label('Item')
+                    ->label(__('Item'))
                     ->required()
                     ->maxLength(255)
                     ->helperText('The printed line number: 2.1.4, or 03 30 00.'),
 
                 Select::make('item_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options([
                         ContractItem::TYPE_MEASURED => 'Measured',
                         ContractItem::TYPE_LUMP_SUM => 'Lump sum',
@@ -90,7 +90,7 @@ class ItemsRelationManager extends RelationManager
                     ->columnSpanFull(),
 
                 Select::make('parent_id')
-                    ->label('Under section')
+                    ->label(__('Under section'))
                     ->options(fn (): array => ContractItem::query()
                         ->where('contract_id', $contract->getKey())
                         ->orderBy('sort')->get()
@@ -101,7 +101,7 @@ class ItemsRelationManager extends RelationManager
                     ->helperText('BoQ sections and continuation-sheet subtotal groups.'),
 
                 Select::make('cost_code_id')
-                    ->label('Cost code')
+                    ->label(__('Cost code'))
                     ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
                         ->orderBy('code')->get()
                         ->mapWithKeys(fn (CostCode $code): array => [$code->getKey() => "{$code->code} — {$code->name}"])
@@ -110,7 +110,7 @@ class ItemsRelationManager extends RelationManager
                     ->helperText('The join to job cost. Without it, certified value and the cost that earned it cannot be compared.'),
 
                 Select::make('wbs_node_id')
-                    ->label('WBS element')
+                    ->label(__('WBS element'))
                     ->options(fn (): array => WbsNode::query()
                         ->where('job_id', $contract->job_id)
                         ->orderBy('path')->get()
@@ -134,7 +134,7 @@ class ItemsRelationManager extends RelationManager
                     ->afterStateUpdated(fn ($state, callable $get, callable $set) => static::recomputeValue($get, $set)),
 
                 TextInput::make('scheduled_value')
-                    ->label('Scheduled value')
+                    ->label(__('Scheduled value'))
                     ->numeric()
                     ->required()
                     // Editable, because a lump sum has no quantity. Frozen at execution, not here — the model
@@ -142,11 +142,11 @@ class ItemsRelationManager extends RelationManager
                     ->helperText('Quantity × rate where both are given, and editable. Frozen when the contract is executed.'),
 
                 Toggle::make('retention_applies')
-                    ->label('Retention applies')
+                    ->label(__('Retention applies'))
                     ->default(true),
 
                 Toggle::make('materials_allowed')
-                    ->label('Materials on site claimable')
+                    ->label(__('Materials on site claimable'))
                     ->helperText('Whether materials delivered but not built in may be claimed against this line.'),
 
                 TextInput::make('sort')
@@ -173,7 +173,7 @@ class ItemsRelationManager extends RelationManager
             ->recordTitleAttribute('item_no')
             ->columns([
                 TextColumn::make('item_no')
-                    ->label('Item')
+                    ->label(__('Item'))
                     ->searchable()
                     ->sortable(),
 
@@ -187,13 +187,13 @@ class ItemsRelationManager extends RelationManager
                         : null),
 
                 TextColumn::make('item_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', ucfirst($state)))
                     ->toggleable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->placeholder('—')
                     ->toggleable(),
 
@@ -210,7 +210,7 @@ class ItemsRelationManager extends RelationManager
                     ->placeholder('—'),
 
                 TextColumn::make('scheduled_value')
-                    ->label('Scheduled value')
+                    ->label(__('Scheduled value'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // An omission is negative and reads as one, which is the point of writing it that way.

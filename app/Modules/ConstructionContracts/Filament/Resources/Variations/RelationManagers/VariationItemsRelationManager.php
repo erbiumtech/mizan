@@ -60,7 +60,7 @@ class VariationItemsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('action')
-                    ->label('Action')
+                    ->label(__('Action'))
                     ->options([
                         VariationItem::ACTION_ADD => 'Add — a new line',
                         VariationItem::ACTION_OMIT => 'Omit — remove work, as a negative line',
@@ -73,7 +73,7 @@ class VariationItemsRelationManager extends RelationManager
                     ->required(),
 
                 Select::make('contract_item_id')
-                    ->label('Schedule line')
+                    ->label(__('Schedule line'))
                     ->options(fn (): array => ContractItem::query()
                         ->where('contract_id', $variation->contract_id)
                         ->where('is_active', true)
@@ -87,7 +87,7 @@ class VariationItemsRelationManager extends RelationManager
                     ->helperText('The line this acts on.'),
 
                 TextInput::make('item_no')
-                    ->label('New item number')
+                    ->label(__('New item number'))
                     ->required(fn (callable $get): bool => $get('action') === VariationItem::ACTION_ADD)
                     ->visible(fn (callable $get): bool => $get('action') === VariationItem::ACTION_ADD)
                     ->helperText('What it will print as on the schedule.'),
@@ -97,7 +97,7 @@ class VariationItemsRelationManager extends RelationManager
                     ->columnSpanFull(),
 
                 Select::make('cost_code_id')
-                    ->label('Cost code')
+                    ->label(__('Cost code'))
                     ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
                         ->orderBy('code')->get()
                         ->mapWithKeys(fn (CostCode $code): array => [$code->getKey() => "{$code->code} — {$code->name}"])
@@ -152,7 +152,7 @@ class VariationItemsRelationManager extends RelationManager
                     ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', ucfirst($state))),
 
                 TextColumn::make('contractItem.item_no')
-                    ->label('Schedule line')
+                    ->label(__('Schedule line'))
                     ->placeholder('New line')
                     ->description(fn (VariationItem $record): ?string => $record->item_no),
 
@@ -180,7 +180,7 @@ class VariationItemsRelationManager extends RelationManager
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('resultingItem.item_no')
-                    ->label('Wrote')
+                    ->label(__('Wrote'))
                     ->placeholder('—')
                     ->tooltip('The schedule line this became when the variation was written in.')
                     ->toggleable(),

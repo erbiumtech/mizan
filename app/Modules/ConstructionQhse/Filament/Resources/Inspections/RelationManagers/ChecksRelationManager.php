@@ -49,7 +49,7 @@ class ChecksRelationManager extends RelationManager
                 TextInput::make('sequence')->numeric()->default(0),
 
                 Select::make('passed')
-                    ->label('Result')
+                    ->label(__('Result'))
                     ->options([1 => 'Pass', 0 => 'Fail'])
                     ->placeholder('Not yet checked')
                     ->helperText('Left blank means nobody has reached this line — which is a different fact from failing it.'),
@@ -70,17 +70,17 @@ class ChecksRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->defaultSort('sequence')
             ->columns([
-                TextColumn::make('sequence')->label('#')->sortable(),
+                TextColumn::make('sequence')->label(__('#'))->sortable(),
 
                 TextColumn::make('description')->wrap()->limit(60),
 
                 TextColumn::make('values')
-                    ->label('Expected / measured')
+                    ->label(__('Expected / measured'))
                     ->getStateUsing(fn (InspectionCheck $record): ?string => $record->describe() ?: null)
                     ->placeholder('—'),
 
                 TextColumn::make('passed')
-                    ->label('Result')
+                    ->label(__('Result'))
                     ->badge()
                     ->getStateUsing(fn (InspectionCheck $record): string => match (true) {
                         $record->isOutstanding() => 'not checked',

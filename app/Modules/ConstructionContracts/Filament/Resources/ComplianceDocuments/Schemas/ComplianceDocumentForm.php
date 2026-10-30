@@ -30,7 +30,7 @@ class ComplianceDocumentForm
             ->columns(2)
             ->components([
                 Select::make('contact_id')
-                    ->label('Subcontractor')
+                    ->label(__('Subcontractor'))
                     ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     // Absent without Invoicing, which owns Contacts (§18.1). The register still works; the column
@@ -39,7 +39,7 @@ class ComplianceDocumentForm
                     ->helperText('Whose document it is. Company-scope documents cover every contract they hold.'),
 
                 Select::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->options(fn (): array => Contract::query()->payable()->with('job')->get()
                         ->mapWithKeys(fn (Contract $c): array => [
                             $c->getKey() => "{$c->job?->code} · {$c->contract_number} — {$c->title}",
@@ -50,7 +50,7 @@ class ComplianceDocumentForm
                     ->helperText('Leave blank for an obligation that is not specific to one contract.'),
 
                 Select::make('kind')
-                    ->label('What it is')
+                    ->label(__('What it is'))
                     ->options([
                         'general_liability' => 'General / public liability insurance',
                         'workers_compensation' => "Workers' compensation",
@@ -73,7 +73,7 @@ class ComplianceDocumentForm
                     ->required(),
 
                 Select::make('scope')
-                    ->label('Scope')
+                    ->label(__('Scope'))
                     ->options([
                         ComplianceDocument::SCOPE_COMPANY => 'Company — covers everything they do',
                         ComplianceDocument::SCOPE_CONTRACT => 'Contract — this subcontract only',
@@ -85,36 +85,36 @@ class ComplianceDocumentForm
                     ->helperText('A lien waiver is per period. Filing one as company scope would clear every payment on the contract.'),
 
                 TextInput::make('reference')
-                    ->label('Policy or certificate number')
+                    ->label(__('Policy or certificate number'))
                     ->maxLength(255),
 
                 TextInput::make('issuer')
-                    ->label('Issued by')
+                    ->label(__('Issued by'))
                     ->maxLength(255)
                     ->helperText('The insurer, the authority, the bank.'),
 
                 DatePicker::make('effective_from')
-                    ->label('Valid from'),
+                    ->label(__('Valid from')),
 
                 DatePicker::make('expires_on')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->helperText('Left blank means it does not expire — a trade licence with no end date is not expiring.'),
 
                 DatePicker::make('period_start')
-                    ->label('Period from')
+                    ->label(__('Period from'))
                     ->visible(fn (callable $get): bool => $get('scope') === ComplianceDocument::SCOPE_PERIOD),
 
                 DatePicker::make('period_end')
-                    ->label('Period to')
+                    ->label(__('Period to'))
                     ->visible(fn (callable $get): bool => $get('scope') === ComplianceDocument::SCOPE_PERIOD),
 
                 TextInput::make('amount_covered')
-                    ->label('Sum insured')
+                    ->label(__('Sum insured'))
                     ->numeric()
                     ->helperText('Checked against any minimum the requirement sets — a token policy does not satisfy one.'),
 
                 DatePicker::make('received_on')
-                    ->label('Received')
+                    ->label(__('Received'))
                     ->helperText('Arriving and being read are two different facts. Verifying is the action on the register.'),
 
                 Textarea::make('notes')

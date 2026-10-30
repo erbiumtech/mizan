@@ -39,7 +39,7 @@ class NcrForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -50,7 +50,7 @@ class NcrForm
                             ->dehydrated(),
 
                         Select::make('contract_id')
-                            ->label('Under contract')
+                            ->label(__('Under contract'))
                             ->options(fn (callable $get): array => static::contracts($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts'))
@@ -76,13 +76,13 @@ class NcrForm
                             ->required(),
 
                         Textarea::make('description')
-                            ->label('What is wrong')
+                            ->label(__('What is wrong'))
                             ->required()
                             ->rows(3)
                             ->columnSpanFull(),
 
                         Textarea::make('requirement_breached')
-                            ->label('The requirement it breaches')
+                            ->label(__('The requirement it breaches'))
                             ->rows(2)
                             ->columnSpanFull()
                             ->helperText('"The cover is 22 mm" is the description; "BS EN 1992 clause 4.4.1, 40 mm minimum" is this. An NCR with only the first is an opinion.'),
@@ -103,40 +103,40 @@ class NcrForm
                     ->columns(2)
                     ->schema([
                         Select::make('inspection_id')
-                            ->label('Found by inspection')
+                            ->label(__('Found by inspection'))
                             ->options(fn (callable $get): array => static::inspections($get('job_id')))
                             ->searchable()
                             ->helperText('Choosing one carries the ITP row across, which is the traceability the standard asks for.'),
 
                         Select::make('itp_activity_id')
-                            ->label('ITP point')
+                            ->label(__('ITP point'))
                             ->options(fn (callable $get): array => static::itpPoints($get('job_id')))
                             ->searchable()
                             ->helperText('The plan row this failed against.'),
 
                         Select::make('location_id')
-                            ->label('Where')
+                            ->label(__('Where'))
                             ->options(fn (callable $get): array => static::locations($get('job_id')))
                             ->searchable(),
 
                         Select::make('wbs_node_id')
-                            ->label('WBS node')
+                            ->label(__('WBS node'))
                             ->options(fn (callable $get): array => static::wbsNodes($get('job_id')))
                             ->searchable(),
 
                         Select::make('responsible_contact_id')
-                            ->label('Who has to put it right')
+                            ->label(__('Who has to put it right'))
                             ->relationship('responsible', 'name')
                             ->searchable()
                             ->preload()
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                         TextInput::make('responsible_label')
-                            ->label('Who, in words')
+                            ->label(__('Who, in words'))
                             ->maxLength(255),
 
                         TextInput::make('cost_impact')
-                            ->label('Expected cost to put right')
+                            ->label(__('Expected cost to put right'))
                             ->numeric()
                             ->helperText('An estimate. It is not a deduction — proposing one is a separate act, and applying it happens on a certificate that somebody signs.'),
                     ]),
@@ -148,14 +148,14 @@ class NcrForm
                         Textarea::make('root_cause')->rows(2)->columnSpanFull(),
 
                         TextInput::make('root_cause_method')
-                            ->label('How the cause was found')
+                            ->label(__('How the cause was found'))
                             ->maxLength(255)
                             ->helperText('Five whys, fishbone, 8D. Recorded because an audit asks, and because "we discussed it" is not a method.'),
 
                         Textarea::make('corrective_action')->rows(2)->columnSpanFull(),
-                        TextInput::make('corrective_owner_label')->label('Owner')->maxLength(255),
-                        DatePicker::make('corrective_due_on')->label('Due')->native(false),
-                        DatePicker::make('corrective_done_on')->label('Done')->native(false),
+                        TextInput::make('corrective_owner_label')->label(__('Owner'))->maxLength(255),
+                        DatePicker::make('corrective_due_on')->label(__('Due'))->native(false),
+                        DatePicker::make('corrective_done_on')->label(__('Done'))->native(false),
                     ]),
 
                 Section::make('Preventive action')
@@ -163,12 +163,12 @@ class NcrForm
                     ->description('About the next forty. ISO 9001:2015 dropped preventive action as a clause and every client\'s quality manual still demands it — and an NCR whose preventive action restates the fix is the failure this section is kept separate to avoid.')
                     ->schema([
                         Textarea::make('preventive_action')->rows(2)->columnSpanFull(),
-                        TextInput::make('preventive_owner_label')->label('Owner')->maxLength(255),
-                        DatePicker::make('preventive_due_on')->label('Due')->native(false),
-                        DatePicker::make('preventive_done_on')->label('Done')->native(false),
+                        TextInput::make('preventive_owner_label')->label(__('Owner'))->maxLength(255),
+                        DatePicker::make('preventive_due_on')->label(__('Due'))->native(false),
+                        DatePicker::make('preventive_done_on')->label(__('Done'))->native(false),
 
                         Placeholder::make('capa_note')
-                            ->label('')
+                            ->label(__(''))
                             ->columnSpanFull()
                             ->visible(fn (?Ncr $record): bool => $record?->fixedButNotPrevented() ?? false)
                             ->content('The corrective action is done and this is not. That is the commonest CAPA failure: the pour gets fixed and the reason it happened does not.'),

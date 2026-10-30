@@ -38,14 +38,14 @@ class CostCodeForm
                             ->maxLength(255),
 
                         Select::make('parent_id')
-                            ->label('Under')
+                            ->label(__('Under'))
                             ->relationship('parent', 'name')
                             ->searchable()
                             ->preload()
                             ->helperText('Leave blank for a top-level heading.'),
 
                         Select::make('cost_type')
-                            ->label('Cost type')
+                            ->label(__('Cost type'))
                             ->options([
                                 CostCode::TYPE_LABOUR => 'Labour',
                                 CostCode::TYPE_MATERIAL => 'Material',
@@ -63,7 +63,7 @@ class CostCodeForm
                             ->helperText('m3, m2, t, hr, sum — what the rate is per.'),
 
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true)
                             ->helperText('Switch off a one-off provisional item rather than inventing a private code on one job.'),
                     ]),
@@ -73,11 +73,11 @@ class CostCodeForm
                     ->collapsed()
                     ->columns(2)
                     ->schema([
-                        TextInput::make('masterformat_code')->label('MasterFormat (CSI)')->maxLength(255),
-                        TextInput::make('uniformat_code')->label('UniFormat')->maxLength(255),
-                        TextInput::make('uniclass_code')->label('Uniclass 2015 (NBS)')->maxLength(255),
-                        TextInput::make('omniclass_code')->label('OmniClass')->maxLength(255),
-                        TextInput::make('nrm_code')->label('NRM (RICS)')->maxLength(255),
+                        TextInput::make('masterformat_code')->label(__('MasterFormat (CSI)'))->maxLength(255),
+                        TextInput::make('uniformat_code')->label(__('UniFormat'))->maxLength(255),
+                        TextInput::make('uniclass_code')->label(__('Uniclass 2015 (NBS)'))->maxLength(255),
+                        TextInput::make('omniclass_code')->label(__('OmniClass'))->maxLength(255),
+                        TextInput::make('nrm_code')->label(__('NRM (RICS)'))->maxLength(255),
                     ]),
 
                 Section::make('ICMS')
@@ -85,13 +85,13 @@ class CostCodeForm
                     ->columns(2)
                     ->schema([
                         Select::make('icms_category')
-                            ->label('ICMS category (Level 2)')
+                            ->label(__('ICMS category (Level 2)'))
                             ->options(CostCode::ICMS_CATEGORIES)
                             ->native(false)
                             ->helperText('The six fixed categories.'),
 
                         TextInput::make('icms_group')
-                            ->label('ICMS cost group (Level 3)')
+                            ->label(__('ICMS cost group (Level 3)'))
                             ->maxLength(255)
                             ->helperText('The standardised group under that category. Level 4 below it is your own.'),
 

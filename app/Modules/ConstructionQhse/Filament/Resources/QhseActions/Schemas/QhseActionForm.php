@@ -31,7 +31,7 @@ class QhseActionForm
                     ->columns(2)
                     ->schema([
                         Placeholder::make('subject')
-                            ->label('Raised against')
+                            ->label(__('Raised against'))
                             ->columnSpanFull()
                             ->content(fn (?QhseAction $record): string => $record === null
                                 ? '—'
@@ -50,17 +50,17 @@ class QhseActionForm
                             ->default('medium')
                             ->required(),
 
-                        DatePicker::make('due_on')->label('Due')->native(false),
+                        DatePicker::make('due_on')->label(__('Due'))->native(false),
 
                         Select::make('assigned_contact_id')
-                            ->label('Assignee (contact)')
+                            ->label(__('Assignee (contact)'))
                             ->relationship('assignedContact', 'name')
                             ->searchable()
                             ->preload()
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                         TextInput::make('assignee_label')
-                            ->label('Assignee, in words')
+                            ->label(__('Assignee, in words'))
                             ->maxLength(255)
                             ->helperText('The one that always works. On most sites the person who has to do this is a subcontractor\'s foreman, in no table here.'),
                     ]),
