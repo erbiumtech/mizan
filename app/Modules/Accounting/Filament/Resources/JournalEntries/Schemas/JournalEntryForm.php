@@ -16,11 +16,11 @@ class JournalEntryForm
         return $schema
             ->components([
                 DatePicker::make('entry_date')
-                    ->label('Entry Date')
+                    ->label(__('Entry Date'))
                     ->required(),
 
                 Select::make('entry_type')
-                    ->label('Entry Type')
+                    ->label(__('Entry Type'))
                     ->options([
                         'general' => 'General',
                         'adjusting' => 'Adjusting',
@@ -38,18 +38,18 @@ class JournalEntryForm
                 // account balances that only post() applies. The table's row
                 // actions are the only place status changes.
                 TextInput::make('reference')
-                    ->label('Reference')
+                    ->label(__('Reference'))
                     ->nullable(),
 
                 Textarea::make('memo')
-                    ->label('Memo')
+                    ->label(__('Memo'))
                     ->nullable(),
 
                 // The document behind the entry — docs/bexio-gap-plan.md Phase 2, item 9. Same disk and
                 // limits as a petty-cash receipt. Changeable after posting: a swap is in the audit log,
                 // and refusing it would only keep a bank advice that arrived late off the entry it proves.
                 FileUpload::make('attachment_path')
-                    ->label('Attachment')
+                    ->label(__('Attachment'))
                     ->helperText('The invoice, receipt or bank advice this entry records. Image or PDF, up to 5 MB.')
                     ->disk('public')
                     ->directory('journal-attachments')
@@ -61,7 +61,7 @@ class JournalEntryForm
                     ->columnSpanFull(),
 
                 Select::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name')
                     ->searchable()
                     ->preload()

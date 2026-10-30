@@ -27,7 +27,7 @@ class TransactionTypeForm
                     ->helperText('Stable slug, e.g. salary, rent, food'),
 
                 Select::make('account_id')
-                    ->label('Default Account')
+                    ->label(__('Default Account'))
                     ->relationship('account', 'name')
                     ->searchable()
                     ->preload()
@@ -38,7 +38,7 @@ class TransactionTypeForm
                     ->nullable(),
 
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
             ]);
     }

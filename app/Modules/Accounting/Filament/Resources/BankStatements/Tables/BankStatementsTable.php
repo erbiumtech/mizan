@@ -30,25 +30,25 @@ class BankStatementsTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('account.name')
-                    ->label('Bank Account')
+                    ->label(__('Bank Account'))
                     ->sortable(),
 
                 TextColumn::make('statement_date')
-                    ->label('Statement Date')
+                    ->label(__('Statement Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('opening_balance')
-                    ->label('Opening Balance')
+                    ->label(__('Opening Balance'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('closing_balance')
-                    ->label('Closing Balance')
+                    ->label(__('Closing Balance'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
@@ -63,17 +63,17 @@ class BankStatementsTable
                     ->sortable(),
 
                 TextColumn::make('progress')
-                    ->label('Progress')
+                    ->label(__('Progress'))
                     ->state(fn (BankStatement $record): string => ($record->lines_count ?? 0)
                         ? "{$record->matched_count} / {$record->lines_count} matched"
                         : '—'),
 
                 TextColumn::make('completedBy.name')
-                    ->label('Completed By')
+                    ->label(__('Completed By'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('completed_at')
-                    ->label('Completed At')
+                    ->label(__('Completed At'))
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -106,7 +106,7 @@ class BankStatementsTable
              * bank is upload-and-done; picking the account fills the mapping back in.
              */
             Action::make('importLines')
-                ->label('Import statement (CSV)')
+                ->label(__('Import statement (CSV)'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->visible(fn (BankStatement $record): bool => auth()->user()?->can('import', $record) ?? false)
                 ->modalDescription('Upload the CSV the bank gives you and say which of its columns hold what. Each '
@@ -114,7 +114,7 @@ class BankStatementsTable
                 ->modalSubmitActionLabel('Import')
                 ->schema([
                     FileUpload::make('file')
-                        ->label('CSV file')
+                        ->label(__('CSV file'))
                         ->acceptedFileTypes(['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'])
                         ->maxSize(4096)
                         ->disk('public')
@@ -122,7 +122,7 @@ class BankStatementsTable
                         ->required(),
 
                     Select::make('company_bank_account_id')
-                        ->label('Bank account')
+                        ->label(__('Bank account'))
                         ->options(fn (): array => CompanyBankAccount::query()->where('is_active', true)->pluck('title', 'id')->all())
                         ->required()
                         ->live()
@@ -137,15 +137,15 @@ class BankStatementsTable
 
                     Fieldset::make('Columns, by their header in the file')
                         ->schema([
-                            TextInput::make('mapping.date')->label('Date')->required()->placeholder('Txn Date'),
-                            TextInput::make('mapping.date_format')->label('Date format')->placeholder('d/m/Y')
+                            TextInput::make('mapping.date')->label(__('Date'))->required()->placeholder('Txn Date'),
+                            TextInput::make('mapping.date_format')->label(__('Date format'))->placeholder('d/m/Y')
                                 ->helperText('Only if the dates are not recognised on their own.'),
-                            TextInput::make('mapping.description')->label('Narration')->placeholder('Particulars'),
-                            TextInput::make('mapping.reference')->label('Reference')->placeholder('Ref No'),
-                            TextInput::make('mapping.amount')->label('Signed amount')->placeholder('Amount')
+                            TextInput::make('mapping.description')->label(__('Narration'))->placeholder('Particulars'),
+                            TextInput::make('mapping.reference')->label(__('Reference'))->placeholder('Ref No'),
+                            TextInput::make('mapping.amount')->label(__('Signed amount'))->placeholder('Amount')
                                 ->helperText('One column, negative for money out — or leave this and use the two below.'),
-                            TextInput::make('mapping.credit')->label('Money in (credit)')->placeholder('Credit'),
-                            TextInput::make('mapping.debit')->label('Money out (debit)')->placeholder('Debit'),
+                            TextInput::make('mapping.credit')->label(__('Money in (credit)'))->placeholder('Credit'),
+                            TextInput::make('mapping.debit')->label(__('Money out (debit)'))->placeholder('Debit'),
                         ])
                         ->columns(2),
                 ])
@@ -169,7 +169,7 @@ class BankStatementsTable
                 }, 'Import')),
 
             Action::make('autoMatch')
-                ->label('Auto-Match')
+                ->label(__('Auto-Match'))
                 ->icon('heroicon-o-link')
                 ->requiresConfirmation()
                 ->modalDescription('Auto-match unmatched statement lines against the ledger (exact amount + date within 3 days, or amount + reference)?')
@@ -177,7 +177,7 @@ class BankStatementsTable
                 ->action(fn (BankStatement $record) => self::run(fn (BankReconciliationService $s) => 'Auto-matched '.$s->autoMatch($record).' line(s).', 'Auto-Match')),
 
             Action::make('completeReconciliation')
-                ->label('Complete Reconciliation')
+                ->label(__('Complete Reconciliation'))
                 ->icon('heroicon-o-check-badge')
                 ->requiresConfirmation()
                 ->modalDescription('Complete this reconciliation? All lines must be matched or excluded and the closing balance must equal the ledger balance. This locks the statement.')
@@ -199,12 +199,12 @@ class BankStatementsTable
     {
         return [
             BulkAction::make('importLinesBulk')
-                ->label('Import Lines (CSV)')
+                ->label(__('Import Lines (CSV)'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->visible(fn (): bool => auth()->user()?->can('BankStatementImport') ?? false)
                 ->schema([
                     Textarea::make('csv')
-                        ->label('CSV')
+                        ->label(__('CSV'))
                         ->required()
                         ->helperText('One row per line: transaction_date,description,reference,amount (amount signed; negative for money out).'),
                 ])
@@ -217,14 +217,14 @@ class BankStatementsTable
                 }, 'Import Lines')),
 
             BulkAction::make('autoMatchBulk')
-                ->label('Auto-Match')
+                ->label(__('Auto-Match'))
                 ->icon('heroicon-o-link')
                 ->requiresConfirmation()
                 ->visible(fn (): bool => auth()->user()?->can('BankStatementMatch') ?? false)
                 ->action(fn (Collection $records) => self::runBulk($records, fn (BankReconciliationService $s, BankStatement $r) => $s->autoMatch($r), 'Auto-Match')),
 
             BulkAction::make('completeReconciliationBulk')
-                ->label('Complete Reconciliation')
+                ->label(__('Complete Reconciliation'))
                 ->icon('heroicon-o-check-badge')
                 ->requiresConfirmation()
                 ->visible(fn (): bool => auth()->user()?->can('BankStatementComplete') ?? false)

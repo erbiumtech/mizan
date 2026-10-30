@@ -36,7 +36,7 @@ class AccountsTable
 
                 // Nova: Badge normal_balance — debit→info, credit→warning; exceptOnForms.
                 TextColumn::make('normal_balance')
-                    ->label('Normal Balance')
+                    ->label(__('Normal Balance'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'debit' => 'info',
@@ -46,13 +46,13 @@ class AccountsTable
 
                 // Nova: BelongsTo parent → Account — sortable.
                 TextColumn::make('parent.name')
-                    ->label('Parent Account')
+                    ->label(__('Parent Account'))
                     ->sortable()
                     ->placeholder('—'),
 
                 // Nova: Boolean is_active (Active) — sortable, filterable.
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
@@ -63,7 +63,7 @@ class AccountsTable
 
                 // Nova: Boolean allow_manual_entry — hideFromIndex.
                 IconColumn::make('allow_manual_entry')
-                    ->label('Allow Manual Entry')
+                    ->label(__('Allow Manual Entry'))
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -77,10 +77,10 @@ class AccountsTable
                         'expense' => 'Expense',
                     ]),
                 SelectFilter::make('normal_balance')
-                    ->label('Normal Balance')
+                    ->label(__('Normal Balance'))
                     ->options(['debit' => 'Debit', 'credit' => 'Credit']),
                 TernaryFilter::make('is_active')
-                    ->label('Active'),
+                    ->label(__('Active')),
             ])
             ->recordActions([
                 EditAction::make(),

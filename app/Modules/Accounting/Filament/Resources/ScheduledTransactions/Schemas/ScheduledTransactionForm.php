@@ -27,13 +27,13 @@ class ScheduledTransactionForm
                             ->helperText('What this standing entry is — "Office rent", "Vehicle loan instalment".'),
 
                         Select::make('interval_months')
-                            ->label('Raise it')
+                            ->label(__('Raise it'))
                             ->options(ScheduledTransaction::INTERVALS)
                             ->default(1)
                             ->required(),
 
                         TextInput::make('day_of_month')
-                            ->label('On day')
+                            ->label(__('On day'))
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(31)
@@ -42,20 +42,20 @@ class ScheduledTransactionForm
                             ->helperText('A month too short for this day uses its last day, so the 31st still fires in February.'),
 
                         DatePicker::make('starts_on')
-                            ->label('First due')
+                            ->label(__('First due'))
                             ->native(false)
                             ->default(now()->startOfMonth())
                             ->required(),
 
                         DatePicker::make('ends_on')
-                            ->label('Stops after')
+                            ->label(__('Stops after'))
                             ->native(false)
                             ->afterOrEqual('starts_on')
                             ->nullable()
                             ->helperText('Leave empty for an open-ended arrangement.'),
 
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true)
                             ->helperText('Switch off to pause without losing the schedule or its history.'),
                     ])
@@ -65,7 +65,7 @@ class ScheduledTransactionForm
                     ->description('Raised as a DRAFT on each due date, exactly as if somebody had typed it. It still needs submitting and approving before it reaches the ledger.')
                     ->schema([
                         Select::make('entry_type')
-                            ->label('Entry type')
+                            ->label(__('Entry type'))
                             ->options([
                                 'general' => 'General',
                                 'adjusting' => 'Adjusting',
@@ -89,20 +89,20 @@ class ScheduledTransactionForm
                             ->hiddenLabel()
                             ->schema([
                                 Select::make('account_id')
-                                    ->label('Account')
+                                    ->label(__('Account'))
                                     ->options(fn (): array => static::postableAccounts())
                                     ->searchable()
                                     ->required()
                                     ->columnSpan(2),
 
                                 TextInput::make('debit_amount')
-                                    ->label('Debit')
+                                    ->label(__('Debit'))
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0),
 
                                 TextInput::make('credit_amount')
-                                    ->label('Credit')
+                                    ->label(__('Credit'))
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0),

@@ -16,25 +16,25 @@ class JournalEntryLinesTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('journalEntry.id')
-                    ->label('Journal Entry')
+                    ->label(__('Journal Entry'))
                     ->sortable(),
 
                 TextColumn::make('account.name')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('debit_amount')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('credit_amount')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 

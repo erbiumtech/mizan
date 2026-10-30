@@ -33,7 +33,7 @@ class PettyCashSettingsSection implements SettingsSection
                 ->description('The cash box the Petty Cash Book keeps.')
                 ->schema([
                     TextInput::make('petty_cash_float_amount')
-                        ->label('Float Amount')
+                        ->label(__('Float Amount'))
                         ->numeric()
                         ->minValue(0)
                         ->nullable()

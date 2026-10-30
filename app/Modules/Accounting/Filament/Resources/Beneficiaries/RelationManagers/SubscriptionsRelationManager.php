@@ -38,7 +38,7 @@ class SubscriptionsRelationManager extends RelationManager
     {
         return $schema->components([
             TextInput::make('description')
-                ->label('Description')
+                ->label(__('Description'))
                 ->required()
                 ->maxLength(255)
                 ->helperText('Shown on the payment and in the bank file, e.g. "House rent".'),
@@ -49,7 +49,7 @@ class SubscriptionsRelationManager extends RelationManager
                 ->required(),
 
             TextInput::make('due_day')
-                ->label('Due day')
+                ->label(__('Due day'))
                 ->numeric()
                 ->minValue(1)
                 ->maxValue(31)
@@ -58,14 +58,14 @@ class SubscriptionsRelationManager extends RelationManager
                 ->helperText('Day of the month the payment is dated. Short months use their last day.'),
 
             Select::make('transaction_type_id')
-                ->label('Transaction type')
+                ->label(__('Transaction type'))
                 ->relationship('transactionType', 'name')
                 ->searchable()
                 ->preload()
                 ->helperText("Leave empty to use the beneficiary's own type."),
 
             Select::make('company_bank_account_id')
-                ->label('Pay from')
+                ->label(__('Pay from'))
                 ->relationship('companyBankAccount', 'account_title')
                 ->searchable()
                 ->preload()
@@ -83,7 +83,7 @@ class SubscriptionsRelationManager extends RelationManager
                 ->helperText('The last month billed. Leave empty for an open-ended agreement.'),
 
             Toggle::make('is_active')
-                ->label('Active')
+                ->label(__('Active'))
                 ->default(true)
                 ->helperText('Switch off to stop billing without losing the record of it.'),
 
@@ -102,22 +102,22 @@ class SubscriptionsRelationManager extends RelationManager
                 TextColumn::make('amount')->money(CompanyCurrency::code())->sortable()->alignEnd(),
 
                 TextColumn::make('due_day')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->formatStateUsing(fn (int $state): string => 'day '.$state)
                     ->alignCenter(),
 
                 TextColumn::make('transactionType.name')
-                    ->label('Type')
+                    ->label(__('Type'))
                     // The beneficiary's own type applies when this one states none,
                     // so the column says what will actually be used.
                     ->state(fn (BeneficiarySubscription $record): string => $record->transactionType?->name
                         ?? ($record->beneficiary?->transactionType?->name ?? '—'))
                     ->toggleable(),
 
-                TextColumn::make('starts_on')->label('From')->date('M Y')->sortable()->toggleable(),
-                TextColumn::make('ends_on')->label('Until')->date('M Y')->placeholder('open')->toggleable(),
+                TextColumn::make('starts_on')->label(__('From'))->date('M Y')->sortable()->toggleable(),
+                TextColumn::make('ends_on')->label(__('Until'))->date('M Y')->placeholder('open')->toggleable(),
 
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
 
                 // Whether this month has been raised yet, which is the question
                 // anyone opening this screen mid-month is actually asking.
@@ -136,7 +136,7 @@ class SubscriptionsRelationManager extends RelationManager
                 // catching up without waiting for the 26th. Idempotent, so it is
                 // safe to press twice.
                 Action::make('raiseThisMonth')
-                    ->label('Raise this month')
+                    ->label(__('Raise this month'))
                     ->icon('heroicon-o-calendar-days')
                     ->requiresConfirmation()
                     ->modalDescription(fn (): string => 'Raises a draft payment for every subscription running in '

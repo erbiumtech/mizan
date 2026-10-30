@@ -62,8 +62,8 @@ class CashFlow extends Page
     {
         return $schema
             ->components([
-                DatePicker::make('from')->label('From')->native(false)->live(),
-                DatePicker::make('to')->label('To')->native(false)->afterOrEqual('from')->live(),
+                DatePicker::make('from')->label(__('From'))->native(false)->live(),
+                DatePicker::make('to')->label(__('To'))->native(false)->afterOrEqual('from')->live(),
             ])
             ->statePath('data')
             ->columns(3);
@@ -83,7 +83,7 @@ class CashFlow extends Page
             HelpAction::make('cash-flow', 'Cash Flow: Help'),
 
             Action::make('pdf')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
                     fn (): string => route('reports.cash-flow', [

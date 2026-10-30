@@ -43,7 +43,7 @@ class BudgetForm
                             ->helperText('What this plan is — "2026-2027", "2026-2027 revised after Q1".'),
 
                         Select::make('fiscal_year_id')
-                            ->label('Fiscal Year')
+                            ->label(__('Fiscal Year'))
                             ->options(fn (): array => FiscalYear::query()
                                 ->orderByDesc('start_date')
                                 ->pluck('name', 'id')
@@ -61,7 +61,7 @@ class BudgetForm
                             ->helperText('Fixed once the plan is saved — copy the budget to plan a different year.'),
 
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true)
                             ->helperText('Superseded plans stay here for comparison. Only active ones are offered on the report.'),
 
@@ -78,7 +78,7 @@ class BudgetForm
                             ->hiddenLabel()
                             ->schema([
                                 Select::make('account_id')
-                                    ->label('Account')
+                                    ->label(__('Account'))
                                     ->options(fn (): array => static::plannableAccounts())
                                     ->searchable()
                                     ->required()
@@ -91,7 +91,7 @@ class BudgetForm
                                     ->columnSpan(2),
 
                                 TextInput::make('amount')
-                                    ->label('For the year')
+                                    ->label(__('For the year'))
                                     ->numeric()
                                     ->minValue(0)
                                     ->required()

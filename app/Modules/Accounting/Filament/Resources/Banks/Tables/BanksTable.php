@@ -16,31 +16,31 @@ class BanksTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('bank_code')
-                    ->label('Bank Code')
+                    ->label(__('Bank Code'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('bank_name')
-                    ->label('Bank Name')
+                    ->label(__('Bank Name'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('bank_short_code')
-                    ->label('Bank Short Code')
+                    ->label(__('Bank Short Code'))
                     ->sortable()
                     ->searchable(),
 
                 // docs/saas-launch-plan.md §14.10. Toggled off by default: most companies
                 // never make a payment that needs either.
-                TextColumn::make('swift_code')->label('SWIFT')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('iban_prefix')->label('IBAN code')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('swift_code')->label(__('SWIFT'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('iban_prefix')->label(__('IBAN code'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
             ])

@@ -19,14 +19,14 @@ class CurrenciesTable
                 TextColumn::make('symbol')->placeholder('—'),
 
                 IconColumn::make('is_base')
-                    ->label('Books kept in')
+                    ->label(__('Books kept in'))
                     ->boolean()
                     ->tooltip('Set in Company Settings — it is what every amount in the ledger means.'),
 
                 // The rate in force today, which is the number anybody opening this
                 // screen is looking for.
                 TextColumn::make('rate_today')
-                    ->label('Rate today')
+                    ->label(__('Rate today'))
                     ->state(fn (Currency $record): string => $record->isBase()
                         ? '—'
                         : ($record->rateOn() === null
@@ -37,8 +37,8 @@ class CurrenciesTable
                         ? null
                         : Currency::baseCode().' per 1 '.$record->code),
 
-                TextColumn::make('rates_count')->label('Rates')->counts('rates')->alignEnd(),
-                IconColumn::make('is_active')->label('In use')->boolean(),
+                TextColumn::make('rates_count')->label(__('Rates'))->counts('rates')->alignEnd(),
+                IconColumn::make('is_active')->label(__('In use'))->boolean(),
             ])
             ->defaultSort('is_base', 'desc')
             ->recordActions([EditAction::make()]);

@@ -27,7 +27,7 @@ class FixedAssetsTable
         return $table
             ->columns([
                 TextColumn::make('asset_code')
-                    ->label('Asset Code')
+                    ->label(__('Asset Code'))
                     ->sortable()
                     ->searchable(),
 
@@ -36,24 +36,24 @@ class FixedAssetsTable
                     ->searchable(),
 
                 TextColumn::make('account.name')
-                    ->label('Asset Account')
+                    ->label(__('Asset Account'))
                     ->sortable(),
 
                 TextColumn::make('purchase_date')
-                    ->label('Purchase Date')
+                    ->label(__('Purchase Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('purchase_cost')
-                    ->label('Purchase Cost')
+                    ->label(__('Purchase Cost'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('accumulated_depreciation')
-                    ->label('Accumulated Depreciation')
+                    ->label(__('Accumulated Depreciation'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('book_value')
-                    ->label('Book Value')
+                    ->label(__('Book Value'))
                     ->money(CompanyCurrency::code())
                     ->state(fn (FixedAsset $record): float => $record->book_value)
                     ->sortable(),
@@ -101,7 +101,7 @@ class FixedAssetsTable
     {
         return [
             Action::make('runDepreciation')
-                ->label('Run Depreciation')
+                ->label(__('Run Depreciation'))
                 ->icon('heroicon-o-calculator')
                 ->requiresConfirmation()
                 ->modalDescription('Book one month of depreciation for the selected asset? Entries are posted immediately.')
@@ -110,7 +110,7 @@ class FixedAssetsTable
                 ->action(fn (array $data, FixedAsset $record) => self::runDepreciation(collect([$record]), $data)),
 
             Action::make('disposeAsset')
-                ->label('Dispose Asset')
+                ->label(__('Dispose Asset'))
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
                 ->modalDescription('This writes the asset off the books (remaining book value becomes a loss) and cannot be undone. Continue?')
@@ -128,7 +128,7 @@ class FixedAssetsTable
     {
         return [
             BulkAction::make('runDepreciationBulk')
-                ->label('Run Depreciation')
+                ->label(__('Run Depreciation'))
                 ->icon('heroicon-o-calculator')
                 ->requiresConfirmation()
                 ->modalDescription('Book one month of depreciation for the selected assets? Entries are posted immediately.')
@@ -137,7 +137,7 @@ class FixedAssetsTable
                 ->action(fn (array $data, Collection $records) => self::runDepreciation($records, $data)),
 
             BulkAction::make('disposeAssetBulk')
-                ->label('Dispose Asset')
+                ->label(__('Dispose Asset'))
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
                 ->modalDescription('This writes the asset off the books (remaining book value becomes a loss) and cannot be undone. Continue?')
@@ -150,7 +150,7 @@ class FixedAssetsTable
     {
         return [
             DatePicker::make('month')
-                ->label('Month')
+                ->label(__('Month'))
                 ->helperText('Any date in the month to depreciate; defaults to last month.')
                 ->default(now()->subMonth()->toDateString()),
         ];
