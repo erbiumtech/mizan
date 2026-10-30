@@ -15,11 +15,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use UnitEnum;
 
 /**
@@ -53,12 +56,27 @@ class SitePageResource extends Resource
     {
         return $schema->components([
             Section::make()->components([
-                TextInput::make('title')->label(__('Title'))->required()->maxLength(160),
+                TextInput::make('title')
+                    ->label(__('Title'))
+                    ->required()
+                    ->maxLength(160)
+                    // The address follows the title until somebody types one, so the field validation
+                    // below sees the slug that will actually be saved, never a blank the model fills later.
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (?string $state, Get $get, Set $set): void {
+                        if (blank($get('slug'))) {
+                            $set('slug', Str::slug((string) $state));
+                        }
+                    }),
                 TextInput::make('slug')
                     ->label(__('Address'))
                     ->prefix(url('/p').'/')
-                    ->helperText(__('Left blank, it is made from the title.'))
+                    ->helperText(__('Made from the title until you type one. Letters, numbers and dashes.'))
+                    ->required()
                     ->maxLength(80)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (?string $state, Set $set) => $set('slug', Str::slug((string) $state)))
+                    ->dehydrateStateUsing(fn (?string $state): string => Str::slug((string) $state))
                     ->unique(ignoreRecord: true),
                 TextInput::make('meta_description')
                     ->label(__('Search description'))

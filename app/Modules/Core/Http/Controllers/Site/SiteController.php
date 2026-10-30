@@ -269,7 +269,7 @@ class SiteController extends Controller
      * Every module some plan or add-on sells, keyed by module, each with the cheapest plan that
      * includes it. Core and anything in no plan are not pages: the site describes what is for sale.
      *
-     * @return array<string, array{key: string, label: string, description: string, requires: array<int, string>, plan: string, plan_label: string, sort: int}>
+     * @return array<string, array<string, mixed>>
      */
     private function soldModules(): array
     {
@@ -293,7 +293,7 @@ class SiteController extends Controller
                     continue;
                 }
 
-                $sold[$module] = $this->moduleEntry($module, $registry[$module], $addOn, ($definition['label'] ?? $addOn).' add-on', $order++);
+                $sold[$module] = $this->moduleEntry($module, $registry[$module], $addOn, ($definition['label'] ?? $addOn).' add-on', $order++, addOn: true, requiresPlan: $definition['requires_plan'] ?? null);
             }
         }
 
@@ -302,9 +302,9 @@ class SiteController extends Controller
 
     /**
      * @param  array<string, mixed>  $manifest
-     * @return array{key: string, label: string, description: string, requires: array<int, string>, plan: string, plan_label: string, sort: int}
+     * @return array<string, mixed>
      */
-    private function moduleEntry(string $key, array $manifest, string $plan, string $planLabel, int $sort): array
+    private function moduleEntry(string $key, array $manifest, string $plan, string $planLabel, int $sort, bool $addOn = false, ?string $requiresPlan = null): array
     {
         return [
             'key' => $key,
@@ -313,6 +313,14 @@ class SiteController extends Controller
             'requires' => array_values(array_diff((array) ($manifest['requires'] ?? []), ['core'])),
             'plan' => $plan,
             'plan_label' => $planLabel,
+            // An add-on is bought on top of a plan, not included in the ones above it; the page says
+            // which plan it sits on rather than claiming a tier. The anchor on the pricing page differs too.
+            'add_on' => $addOn,
+            'requires_plan' => $requiresPlan,
+            'requires_plan_label' => $requiresPlan ? Plans::label($requiresPlan) : null,
+            // The trial is one configured plan (§12.1); a page must not promise a trial of a module
+            // that plan does not carry.
+            'in_trial' => in_array($key, Plans::modules(Plans::trialPlan()) ?? [], true),
             'sort' => $sort,
         ];
     }
