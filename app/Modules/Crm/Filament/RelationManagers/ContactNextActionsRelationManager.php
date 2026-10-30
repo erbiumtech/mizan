@@ -39,12 +39,12 @@ class ContactNextActionsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('title')->searchable()->wrap(),
                 NextActionResource::dueColumn(),
-                TextColumn::make('assignee.display_label')->label('Whose')->placeholder('—'),
-                TextColumn::make('completed_at')->label('Done')->date('d M Y')->placeholder('—')->sortable(),
+                TextColumn::make('assignee.display_label')->label(__('Whose'))->placeholder('—'),
+                TextColumn::make('completed_at')->label(__('Done'))->date('d M Y')->placeholder('—')->sortable(),
             ])
             ->defaultSort('due_on')
             ->headerActions([
-                CreateAction::make()->label('Add a follow-up')->icon('heroicon-o-bell-alert'),
+                CreateAction::make()->label(__('Add a follow-up'))->icon('heroicon-o-bell-alert'),
             ])
             ->recordActions([
                 NextActionResource::completeAction(),

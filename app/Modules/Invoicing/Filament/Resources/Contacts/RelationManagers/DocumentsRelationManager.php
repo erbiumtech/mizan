@@ -43,11 +43,11 @@ class DocumentsRelationManager extends RelationManager
                 ->helperText('What it is, in your words: "Supply agreement 2026", "NDA signed 12 Mar".'),
 
             TextInput::make('number')
-                ->label('Reference number')
+                ->label(__('Reference number'))
                 ->maxLength(255),
 
             DatePicker::make('issued_on')
-                ->label('Signed or issued on')
+                ->label(__('Signed or issued on'))
                 ->native(false),
 
             DatePicker::make('expires_on')
@@ -56,7 +56,7 @@ class DocumentsRelationManager extends RelationManager
                     .implode(', ', self::thresholds()).' days, not every day.'),
 
             FileUpload::make('file_path')
-                ->label('File')
+                ->label(__('File'))
                 ->disk('public')
                 ->directory('contact-documents')
                 ->visibility('public')
@@ -86,11 +86,11 @@ class DocumentsRelationManager extends RelationManager
                     ->description(fn (ContactDocument $record): ?string => $record->number)
                     ->wrap(),
 
-                TextColumn::make('issued_on')->label('Issued')->date('d M Y')->placeholder('—')->sortable(),
+                TextColumn::make('issued_on')->label(__('Issued'))->date('d M Y')->placeholder('—')->sortable(),
 
                 // Red once it has lapsed, amber inside the widest warning threshold, plain otherwise.
                 TextColumn::make('expires_on')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->date('d M Y')
                     ->placeholder('never')
                     ->sortable()
@@ -106,7 +106,7 @@ class DocumentsRelationManager extends RelationManager
                     }),
 
                 TextColumn::make('file_path')
-                    ->label('File')
+                    ->label(__('File'))
                     ->formatStateUsing(fn (): string => 'Open')
                     ->placeholder('—')
                     ->url(fn (ContactDocument $record): ?string => $record->file_path
@@ -115,7 +115,7 @@ class DocumentsRelationManager extends RelationManager
             ])
             ->defaultSort('created_at', 'desc')
             ->headerActions([
-                CreateAction::make()->label('Add a document')->icon('heroicon-o-document-plus'),
+                CreateAction::make()->label(__('Add a document'))->icon('heroicon-o-document-plus'),
             ])
             ->recordActions([
                 EditAction::make(),

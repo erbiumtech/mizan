@@ -27,7 +27,7 @@ class ContactForm
                             ->maxLength(255),
 
                         Select::make('kind')
-                            ->label('Kind')
+                            ->label(__('Kind'))
                             ->options([
                                 'customer' => 'Customer',
                                 'supplier' => 'Supplier',
@@ -38,7 +38,7 @@ class ContactForm
                         // The account columns — docs/bexio-gap-plan.md Phase 2, item 5.
 
                         TextInput::make('category')
-                            ->label('Category')
+                            ->label(__('Category'))
                             ->maxLength(100)
                             ->datalist(fn (): array => Contact::categories())
                             ->nullable()
@@ -48,7 +48,7 @@ class ContactForm
                         // no relation to hang a relationship() select on. Same shape as construction_workers.
 
                         Select::make('owner_employee_id')
-                            ->label('Account manager')
+                            ->label(__('Account manager'))
                             ->searchable()
                             ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                             ->getOptionLabelUsing(fn ($value): ?string => EmployeeOptions::labelFor($value))
@@ -57,7 +57,7 @@ class ContactForm
                             ->helperText('Who looks after this account.'),
 
                         Toggle::make('is_active')
-                            ->label('Active'),
+                            ->label(__('Active')),
                     ]),
 
                 Section::make('How to reach them')
@@ -65,20 +65,20 @@ class ContactForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('email')
-                            ->label('Email')
+                            ->label(__('Email'))
                             ->email()
                             ->nullable(),
 
                         TextInput::make('phone')
-                            ->label('Phone')
+                            ->label(__('Phone'))
                             ->nullable(),
 
                         TextInput::make('address_line_1')
-                            ->label('Address Line 1')
+                            ->label(__('Address Line 1'))
                             ->nullable(),
 
                         TextInput::make('address_line_2')
-                            ->label('Address Line 2')
+                            ->label(__('Address Line 2'))
                             ->nullable(),
                     ]),
 
@@ -87,11 +87,11 @@ class ContactForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('ntn')
-                            ->label('NTN')
+                            ->label(__('NTN'))
                             ->nullable(),
 
                         TextInput::make('cnic')
-                            ->label('CNIC')
+                            ->label(__('CNIC'))
                             ->nullable(),
                     ]),
 
@@ -100,7 +100,7 @@ class ContactForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('default_discount_pct')
-                            ->label('Standing discount %')
+                            ->label(__('Standing discount %'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
@@ -108,7 +108,7 @@ class ContactForm
                             ->helperText('Taken off a product\'s list price when it lands on their quote or invoice line. The line carries the resulting price.'),
 
                         Select::make('payment_terms_days')
-                            ->label('Payment terms')
+                            ->label(__('Payment terms'))
                             ->options(Contact::TERMS)
                             ->placeholder('None agreed')
                             ->selectablePlaceholder()
@@ -121,7 +121,7 @@ class ContactForm
                         // line of every invoice until they forget once.
 
                         Select::make('default_tax_rate_id')
-                            ->label('Default tax rate')
+                            ->label(__('Default tax rate'))
                             ->options(fn (): array => TaxRate::active()
                                 ->orderByDesc('is_default')
                                 ->orderByDesc('rate')
@@ -137,7 +137,7 @@ class ContactForm
                         // Checked when a sale is *issued*, against everything the customer already owes.
 
                         TextInput::make('credit_limit')
-                            ->label('Credit limit')
+                            ->label(__('Credit limit'))
                             ->numeric()
                             ->minValue(0)
                             ->nullable()
@@ -150,7 +150,7 @@ class ContactForm
                     ->columns(2)
                     ->schema([
                         Select::make('bank_id')
-                            ->label('Bank')
+                            ->label(__('Bank'))
                             ->relationship('bank', 'bank_name')
                             ->searchable()
                             ->preload()
@@ -161,13 +161,13 @@ class ContactForm
                         // goes to another bank; the account number is needed when they bank with us.
 
                         TextInput::make('iban')
-                            ->label('IBAN')
+                            ->label(__('IBAN'))
                             ->maxLength(34)
                             ->nullable()
                             ->helperText('For "Pay through the bank" on their bills.'),
 
                         TextInput::make('account_no')
-                            ->label('Account number')
+                            ->label(__('Account number'))
                             ->maxLength(50)
                             ->nullable()
                             ->helperText('Needed instead of the IBAN when they bank with the same bank the payment leaves from.'),

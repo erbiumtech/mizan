@@ -27,7 +27,7 @@ class FieldVisitsSettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('crm'))
                 ->schema([
                     Toggle::make('crm_field_visits_enabled')
-                        ->label('Send confirmation links')
+                        ->label(__('Send confirmation links'))
                         ->helperText('Off by default. Switching it off closes every link already sent.'),
 
                     /*
@@ -39,7 +39,7 @@ class FieldVisitsSettingsSection implements SettingsSection
                      * own calls on a day the signal is poor.
                      */
                     Select::make('crm_field_visits_geofence_mode')
-                        ->label('Checking the position')
+                        ->label(__('Checking the position'))
                         ->options(FieldVisits::MODES)
                         ->default(FieldVisits::MODE_FLAG)
                         ->required()
@@ -47,7 +47,7 @@ class FieldVisitsSettingsSection implements SettingsSection
                             .'judged until a place has a pin, whatever this says.'),
 
                     TextInput::make('crm_field_visits_accuracy_limit_m')
-                        ->label('Accept a reading within (metres)')
+                        ->label(__('Accept a reading within (metres)'))
                         ->numeric()
                         ->minValue(10)
                         ->maxValue(2000)
@@ -55,7 +55,7 @@ class FieldVisitsSettingsSection implements SettingsSection
                             .'"could not tell" rather than being called away — indoors, that is most of them.'),
 
                     Toggle::make('crm_field_visits_enrolment_required')
-                        ->label('Only enrolled staff may be sent on visits')
+                        ->label(__('Only enrolled staff may be sent on visits'))
                         ->helperText('Off by default, when anybody can be named on a visit. On, the picker offers '
                             .'only the people enrolled under Field Visit Staff.'),
                 ]),

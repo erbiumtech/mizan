@@ -27,13 +27,13 @@ class ContactsTable
                     ->searchable(),
 
                 TextColumn::make('payment_terms_days')
-                    ->label('Terms')
+                    ->label(__('Terms'))
                     ->state(fn (Contact $record): string => $record->paymentTermsLabel())
                     ->color(fn (Contact $record): string => $record->payment_terms_days === null ? 'gray' : 'primary')
                     ->toggleable(),
 
                 TextColumn::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'customer' => 'info',
@@ -53,14 +53,14 @@ class ContactsTable
                 // One small query per row for the name: the column is a plain id, and Invoicing may not
                 // join Employees. Toggleable, so a long list can switch it off.
                 TextColumn::make('owner_employee_id')
-                    ->label('Account manager')
+                    ->label(__('Account manager'))
                     ->formatStateUsing(fn ($state): ?string => EmployeeOptions::labelFor($state))
                     ->placeholder('—')
                     ->toggleable()
                     ->visible(fn (): bool => modules()->enabled('employees')),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
@@ -71,7 +71,7 @@ class ContactsTable
                     ->options(fn (): array => array_combine(Contact::categories(), Contact::categories())),
 
                 SelectFilter::make('owner_employee_id')
-                    ->label('Account manager')
+                    ->label(__('Account manager'))
                     ->searchable()
                     ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                     ->getOptionLabelUsing(fn ($value): ?string => EmployeeOptions::labelFor($value))
@@ -88,7 +88,7 @@ class ContactsTable
                  * statements); this is for the customer who rings up and asks.
                  */
                 Action::make('statement')
-                    ->label('Statement')
+                    ->label(__('Statement'))
                     ->icon('heroicon-o-document-text')
                     ->color('gray')
                     ->visible(fn (Contact $record): bool => (auth()->user()?->can('InvoiceView') ?? false)
@@ -97,11 +97,11 @@ class ContactsTable
                     ->modalSubmitActionLabel('Download')
                     ->schema([
                         DatePicker::make('from')
-                            ->label('From')
+                            ->label(__('From'))
                             ->required()
                             ->default(now()->startOfYear()->toDateString()),
                         DatePicker::make('to')
-                            ->label('To')
+                            ->label(__('To'))
                             ->required()
                             ->default(now()->toDateString())
                             ->afterOrEqual('from'),

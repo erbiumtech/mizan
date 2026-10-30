@@ -41,22 +41,22 @@ class LeadCaptureSettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('crm'))
                 ->schema([
                     Toggle::make('crm_lead_capture_enabled')
-                        ->label('Enable lead capture')
+                        ->label(__('Enable lead capture'))
                         ->helperText('Off by default. The endpoint is reachable only with the token below, '
                             .'and switching this off closes it without changing the token.'),
 
                     TextInput::make('crm_lead_capture_token')
-                        ->label('Capture token')
+                        ->label(__('Capture token'))
                         ->helperText('Part of the URL. Changing it revokes every form and integration already pointed here.')
                         ->suffixAction(
                             Action::make('generateLeadCaptureToken')
                                 ->icon('heroicon-m-arrow-path')
-                                ->label('Generate')
+                                ->label(__('Generate'))
                                 ->action(fn (Set $set) => $set('crm_lead_capture_token', Str::random(40)))
                         ),
 
                     Placeholder::make('crm_lead_capture_url')
-                        ->label('Capture URL')
+                        ->label(__('Capture URL'))
                         ->content(function (Get $get): string {
                             $token = $get('crm_lead_capture_token');
                             $company = Company::current();

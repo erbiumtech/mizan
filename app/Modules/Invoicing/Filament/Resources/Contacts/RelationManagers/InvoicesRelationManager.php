@@ -20,32 +20,32 @@ class InvoicesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('invoice_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->badge()
                     ->sortable(),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->sortable(),
 
                 TextColumn::make('invoice_date')
-                    ->label('Invoice Date')
+                    ->label(__('Invoice Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('total')
-                    ->label('Total')
+                    ->label(__('Total'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('amount_paid')
-                    ->label('Paid')
+                    ->label(__('Paid'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
             ])
