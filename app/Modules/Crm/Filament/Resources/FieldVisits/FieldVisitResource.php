@@ -161,7 +161,10 @@ class FieldVisitResource extends Resource
                     ->tooltip(fn (FieldVisit $record): ?string => $record->confirmed_name ? 'by '.$record->confirmed_name : ($record->confirmation_sent_to ? 'sent to '.$record->confirmation_sent_to : null)),
             ])
             ->filters([
-                SelectFilter::make('employee_id')->label('Visitor')->relationship('visitor', 'name'),
+                // `employees.name` is null for anyone with a login — their name is on the user.
+                SelectFilter::make('employee_id')->label('Visitor')
+                    ->relationship('visitor', 'employee_id', fn (Builder $query) => $query->with('user'))
+                    ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->display_label),
                 Filter::make('unconfirmed')->label('Unconfirmed')->query(fn (Builder $q) => $q->unconfirmed()),
                 Filter::make('open')->label('Not yet done')->query(fn (Builder $q) => $q->whereNull('checked_out_at')),
             ])

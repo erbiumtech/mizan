@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Core\Models\User;
+use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\ListFieldVisits;
 use App\Modules\Crm\Models\FieldVisit;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Notifications\VisitConfirmationRequest;
@@ -20,9 +21,12 @@ use App\Support\WhatsApp\WhatsAppSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
@@ -272,6 +276,29 @@ class FieldVisitTest extends TestCase
             ->assertJsonPath('data.outcome', 'follow_up');
 
         $this->postJson("/api/v1/field-visits/{$mine->getKey()}/check-out", [])->assertStatus(422);
+    }
+
+    // ──────────────────────────────────────────────────────────────── list ──
+
+    public function test_the_visitor_filter_names_visitors_from_their_login(): void
+    {
+        // `employees.name` is null for anyone with a login, so a filter labelled from the column
+        // had nothing to show and the page threw. Two visitors, so the lazy-load guard is armed.
+        foreach (['View', 'Create', 'Update', 'Delete'] as $ability) {
+            Permission::firstOrCreate(['name' => 'FieldVisit'.$ability, 'guard_name' => 'web'], ['group' => 'FieldVisit']);
+        }
+        $this->user->givePermissionTo('FieldVisitView');
+
+        Employee::create([
+            'user_id' => User::factory()->create(['status' => 1, 'name' => 'Sana Field'])->getKey(),
+            'employee_id' => 'EMP-8', 'gender' => 'Female', 'is_active' => true, 'date_of_joining' => '2022-01-01',
+        ]);
+        DB::table('employees')->update(['name' => null]);
+
+        Livewire::test(ListFieldVisits::class)
+            ->assertOk()
+            ->assertSee('EMP-7 - Bilal Rep')
+            ->assertSee('EMP-8 - Sana Field');
     }
 
     // ───────────────────────────────────────────────────────────── reports ──
