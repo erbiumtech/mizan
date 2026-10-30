@@ -1,7 +1,8 @@
 # Desktop and mobile clients: the plan
 
 > Written 2026-09-27 from a code inventory, not aspiration. Nothing below is built
-> unless marked so. Phase 0's questions gate everything after them.
+> unless marked so. **Phase 0 was answered 2026-10-30** (§2), which ungates the M- and
+> A-series; what each answer settled is recorded beside its question.
 
 ## 0. What is true today, and the one fact that reorders everything
 
@@ -79,15 +80,24 @@ are confirmed migrated (the same courtesy `docs/modules-plan.md` §risks demande
 1. **Where is the shipped mobile client?** Which repo, which framework, who maintains
    it, what does it call today? Everything in the M-series either inherits it or
    supersedes it, and nobody should build a companion app twice. *(Gates M1.)*
+   **Answered 2026-10-30: there is none.** Nothing ships today; the PWA in this
+   repository is the first client, so §0's "a mobile client already ships" was the
+   code's assumption rather than a fact, and M1 inherits nothing.
 2. **Scope of the companion**: employee-only (payslips/leave/notifications), or
    manager approvals too? *(Gates A4/M3.)*
+   **Answered 2026-10-30: employee self-service plus manager approvals.** A4 and M3
+   are in scope: leave and expense-claim decisions from the phone.
 3. **Store presence required?** If the answer is yes on iOS, Capacitor + an Apple
    developer account enter at M4; if no, the PWA route runs the whole distance.
    *(Gates M4.)*
+   **Answered 2026-10-30: no.** The PWA runs the whole distance; M4 stays gated on a
+   named need, in writing.
 4. **Push provider**: Web Push (VAPID, no vendor account, works for PWA) vs FCM
    (needed the moment Capacitor/native enters). Building the device-token table and the
    notification seam identically for both is cheap; choosing the first transport is not
    reversible-free. *(Gates A3.)*
+   **Answered 2026-10-30: Web Push with VAPID.** No vendor account; the seam keeps the
+   `transport` column so FCM can sit beside it if a native shell ever arrives.
 5. **Offline-first workflows** — *answered 2026-09-27: all four* (construction field,
    employee self-service, retail till, MPR field entry), which promotes offline sync
    from a per-plan afterthought to the platform capability designed in §5a. Order there
