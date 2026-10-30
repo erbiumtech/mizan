@@ -25,7 +25,7 @@ class ReviewCycle extends Model
 
     protected $fillable = [
         'name', 'period_start', 'period_end', 'status',
-        'self_review_due_on', 'manager_review_due_on', 'calibration_notes',
+        'self_review_due_on', 'manager_review_due_on', 'calibration_notes', 'includes_self_review',
     ];
 
     protected $casts = [
@@ -33,9 +33,10 @@ class ReviewCycle extends Model
         'period_end' => 'date',
         'self_review_due_on' => 'date',
         'manager_review_due_on' => 'date',
+        'includes_self_review' => 'boolean',
     ];
 
-    protected $attributes = ['status' => self::STATUS_DRAFT];
+    protected $attributes = ['status' => self::STATUS_DRAFT, 'includes_self_review' => true];
 
     public function reviews(): HasMany
     {

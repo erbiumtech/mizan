@@ -46,6 +46,28 @@ message that went out after they asked you to stop.
 Sending is a **separate permission** from creating a campaign. Drafting is a writing task;
 sending reaches people outside the company and cannot be undone.
 
+## How it goes out <!-- requires: CampaignSend -->
+
+**Send** hands the campaign to the queue, which sends it in batches at the pace set under
+**Company Settings → Customers → Campaigns** — fifty a minute unless you change it. A campaign
+nobody checked the audience of is checked first, so Send never sends to nobody.
+
+Email goes through the company's mail settings with your subject and body; a blank line starts a
+paragraph and `{name}` becomes each person's name. WhatsApp sends the approved template, with the
+body's lines as its variables, `{{1}}` first — never free text. A WhatsApp provider that cannot
+send templates fails each recipient with that reason rather than sending anything else.
+
+The **Recipients** tab shows every person: sent, failed with the provider's reason, or skipped for
+consent. If sending stops part-way the campaign shows **Paused**: **Resume sending** carries on
+with whoever is still waiting, and nobody is sent the same message twice. **Retry failed** puts
+the failures back in the queue once you have fixed what they failed on.
+
+## Who it goes to <!-- requires: CampaignView -->
+
+**Segments** are the lists a campaign picks from. Consent is recorded on the lead or the customer
+themselves, on their **Consent** tab: record an agreement with where it came from, or a
+withdrawal when they ask to stop.
+
 ## Roles and permissions
 
 **View**: `CampaignView`. **Create / update**: `CampaignCreate`, `CampaignUpdate` — which

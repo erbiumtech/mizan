@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Http;
  * configured template is the real path and the plain document below is for
  * sandbox numbers and for testing before a template clears review.
  */
-class CloudApiWhatsAppSender implements WhatsAppSender
+class CloudApiWhatsAppSender implements SendsTemplates, WhatsAppSender
 {
     public function __construct(
         private string $phoneNumberId,
@@ -65,6 +65,32 @@ class CloudApiWhatsAppSender implements WhatsAppSender
             'to' => $to,
             'type' => 'text',
             'text' => ['preview_url' => true, 'body' => $text],
+        ]);
+
+        $id = $response->json('messages.0.id');
+
+        if (! is_string($id) || $id === '') {
+            throw new WhatsAppException('WhatsApp accepted the request but returned no message id: '.$response->body());
+        }
+
+        return $id;
+    }
+
+    /** An approved template by name, its body variables in order — a campaign message. */
+    public function sendTemplate(string $to, string $template, array $parameters = []): string
+    {
+        $response = $this->post('messages', [
+            'messaging_product' => 'whatsapp',
+            'to' => $to,
+            'type' => 'template',
+            'template' => [
+                'name' => $template,
+                'language' => ['code' => $this->templateLanguage],
+                'components' => $parameters === [] ? [] : [[
+                    'type' => 'body',
+                    'parameters' => array_map(fn (string $text): array => ['type' => 'text', 'text' => $text], array_values($parameters)),
+                ]],
+            ],
         ]);
 
         $id = $response->json('messages.0.id');

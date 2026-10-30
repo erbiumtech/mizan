@@ -26,12 +26,27 @@ class RatingsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
+        // The employee's column is theirs when they can fill it in themselves (My Review): shown beside
+        // the reviewer's, never written over. Somebody with no login cannot, so whoever writes the review
+        // types in the self-assessment they handed over. A cycle with no self-review has no such column.
+        $selfHidden = fn (): bool => ! ($this->review()->cycle?->includes_self_review ?? true);
+        $selfLocked = fn (): bool => $this->review()->selfRatingIsTheEmployees();
+
         return $schema->components([
-            Select::make('self_rating')->label('Employee')->options(ReviewTemplates::scaleOptions())->nullable(),
-            Textarea::make('self_note')->label("Employee's note")->rows(2),
+            Select::make('self_rating')->label('Employee')->options(ReviewTemplates::scaleOptions())->nullable()
+                ->hidden($selfHidden)->disabled($selfLocked)->dehydrated(fn (): bool => ! $selfLocked()),
+            Textarea::make('self_note')->label("Employee's note")->rows(2)
+                ->hidden($selfHidden)->disabled($selfLocked)->dehydrated(fn (): bool => ! $selfLocked()),
             Select::make('manager_rating')->label('Reviewer')->options(ReviewTemplates::scaleOptions())->nullable(),
             Textarea::make('manager_note')->label("Reviewer's note")->rows(2),
         ]);
+    }
+
+    private function review(): Review
+    {
+        $owner = $this->getOwnerRecord();
+
+        return $owner instanceof Review ? $owner->loadMissing('cycle', 'employee') : $owner;
     }
 
     public function table(Table $table): Table
@@ -41,7 +56,8 @@ class RatingsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('competency.name')->label('Competency')->description(fn (ReviewRating $r): ?string => $r->competency?->description),
                 TextColumn::make('competency.weight')->label('Weight')->suffix('%')->alignEnd(),
-                TextColumn::make('self_rating')->label('Employee')->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->self_note),
+                TextColumn::make('self_rating')->label('Employee')->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->self_note)
+                    ->visible(fn (): bool => $this->review()->cycle?->includes_self_review ?? true),
                 TextColumn::make('manager_rating')->label('Reviewer')->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->manager_note),
             ])
             ->recordActions([

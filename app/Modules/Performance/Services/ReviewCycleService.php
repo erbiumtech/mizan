@@ -66,6 +66,15 @@ class ReviewCycleService
                     app(ReviewTemplates::class)->apply($review, $template);
                 }
 
+                // Their half is open from now — §14.6. Told on the bell, where My Review is one click away.
+                if ($cycle->includes_self_review) {
+                    $employee->user?->notify(new \App\Notifications\RecordChanged(
+                        'Your self-review is open',
+                        $cycle->name.': rate yourself on each competency under My Review and submit it'
+                            .($cycle->self_review_due_on ? ' by '.$cycle->self_review_due_on->format('d M Y') : '').'.',
+                    ));
+                }
+
                 $raised++;
             }
         );

@@ -106,9 +106,15 @@ class ReviewResource extends Resource
                         ->options(fn (): array => ReviewTemplate::query()->active()->orderBy('name')->pluck('name', 'id')->all())
                         ->helperText('Its competencies are rated on the tab below; the two ratings here follow from them.'),
 
+                    // The employee's own when they can give it under My Review — §14.6 — so read-only here.
                     Select::make('self_rating')->label('Self rating')->options(ReviewTemplates::scaleOptions())
-                        ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null)
-                        ->helperText(fn (?Review $record): ?string => $record?->review_template_id !== null ? 'Weighted from the competencies.' : null),
+                        ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null || ($record?->selfRatingIsTheEmployees() ?? false))
+                        ->hidden(fn (?Review $record): bool => $record !== null && ! ($record->cycle?->includes_self_review ?? true))
+                        ->helperText(fn (?Review $record): ?string => match (true) {
+                            $record?->review_template_id !== null => 'Weighted from the competencies.',
+                            $record?->selfRatingIsTheEmployees() ?? false => 'The employee gives this under My Review.',
+                            default => null,
+                        }),
                     Select::make('manager_rating')->label('Manager rating')->options(ReviewTemplates::scaleOptions())
                         ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null),
                     Select::make('final_rating')->options(ReviewTemplates::scaleOptions())
@@ -121,6 +127,13 @@ class ReviewResource extends Resource
                         ->options(fn (): array => options('employees.designation'))
                         ->visible(fn (Get $get): bool => (bool) $get('promotion_recommended'))
                         ->helperText('Recorded here only. Record the promotion itself on the employee when it is decided.'),
+
+                    Textarea::make('self_comments')->label("The employee's comments")->rows(3)->columnSpanFull()
+                        ->disabled()->dehydrated(false)
+                        ->visible(fn (?Review $record): bool => filled($record?->self_comments))
+                        ->helperText(fn (?Review $record): ?string => $record?->self_submitted_at
+                            ? 'Submitted '.$record->self_submitted_at->format('d M Y H:i').' with their self-review.'
+                            : 'Not submitted yet.'),
 
                     Textarea::make('strengths')->rows(3)->columnSpanFull(),
                     Textarea::make('improvements')->rows(3)->columnSpanFull(),

@@ -52,7 +52,7 @@ class CampaignReports
         $campaigns = Campaign::query()
             // Anything that has been sent, is going out, or was stopped. A draft has no performance to report
             // and a scheduled one has not started.
-            ->whereIn('status', [Campaign::STATUS_SENDING, Campaign::STATUS_SENT, Campaign::STATUS_CANCELLED])
+            ->whereIn('status', [Campaign::STATUS_SENDING, Campaign::STATUS_PAUSED, Campaign::STATUS_SENT, Campaign::STATUS_CANCELLED])
             ->where(function ($query) use ($period): void {
                 $query
                     ->whereBetween('sent_at', [$period['from'].' 00:00:00', $period['to'].' 23:59:59'])
@@ -163,6 +163,7 @@ class CampaignReports
     {
         $label = match ($campaign->status) {
             Campaign::STATUS_SENDING => 'In flight',
+            Campaign::STATUS_PAUSED => 'Paused — resume to finish',
             Campaign::STATUS_CANCELLED => 'Cancelled',
             default => 'Sent',
         };

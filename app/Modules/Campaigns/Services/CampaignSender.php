@@ -2,15 +2,26 @@
 
 namespace App\Modules\Campaigns\Services;
 
+use App\Modules\Campaigns\Jobs\DeliverCampaign;
+use App\Modules\Campaigns\Mail\CampaignMessage;
 use App\Modules\Campaigns\Models\Campaign;
 use App\Modules\Campaigns\Models\CampaignSend;
 use App\Modules\Campaigns\Models\Consent;
 use App\Modules\Campaigns\Models\Segment;
+use App\Modules\Core\Models\Company;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\WhatsApp\PhoneNumber;
+use App\Support\WhatsApp\SendsTemplates;
+use App\Support\WhatsApp\WhatsAppException;
+use App\Support\WhatsApp\WhatsAppSender;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Resolving an audience and sending to it.
@@ -20,14 +31,16 @@ use InvalidArgumentException;
  * table decorative. A skipped recipient is recorded as `skipped_no_consent` rather than
  * omitted, so a campaign that reached nobody is distinguishable from one that was never sent.
  *
- * **Nothing here transmits.** The rows are prepared and marked, and the actual delivery goes
- * through the existing mail and WhatsApp senders on the queue — which is where retry, failure
- * handling and the template config already live. §6 puts campaigns last precisely because this
- * is the module that can damage a company's reputation, and the narrow job of this class is to
- * make sure nothing leaves that should not.
+ * **Delivery is on the queue, a batch at a time.** `send()` hands the campaign to DeliverCampaign,
+ * which calls `deliverBatch()` at the pace Company Settings → Campaigns sets; each message goes
+ * through the mail or WhatsApp sender this application already has, and every recipient's row says
+ * what happened to them — sent, failed with the provider's reason, or skipped for consent. §6 puts
+ * campaigns last precisely because this is the module that can damage a company's reputation.
  */
 class CampaignSender
 {
+    public function __construct(private readonly WhatsAppSender $whatsApp) {}
+
     /**
      * Who a segment currently matches.
      *
@@ -123,59 +136,185 @@ class CampaignSender
         return ['prepared' => $permitted + $skipped, 'permitted' => $permitted, 'skipped' => $skipped];
     }
 
+    /** Messages per batch, and the pause between batches — Company Settings → Campaigns. */
+    public const DEFAULT_BATCH_SIZE = 50;
+
+    public const DEFAULT_BATCH_INTERVAL_SECONDS = 60;
+
+    public static function batchSize(): int
+    {
+        return max(1, (int) setting('campaigns.send.batch_size', self::DEFAULT_BATCH_SIZE));
+    }
+
+    public static function batchInterval(): int
+    {
+        return max(0, (int) setting('campaigns.send.batch_interval_seconds', self::DEFAULT_BATCH_INTERVAL_SECONDS));
+    }
+
     /**
-     * Mark the permitted sends as sent.
+     * Start sending, or carry on from where a stopped send left off.
      *
-     * **Consent is re-checked here, not trusted from `prepare()`.** Somebody may unsubscribe
-     * between preparing a campaign and sending it, and that gap is exactly when a complaint
-     * comes from — the message that went out after they asked it to stop.
+     * Nothing is delivered here: the campaign is marked `sending` and handed to the queue, where
+     * DeliverCampaign works through it a batch at a time at the company's pace. A campaign nobody
+     * checked the audience of is prepared first, so pressing Send is never a send to nobody.
      *
-     * @return array{sent: int, skipped: int}
+     * What it returns is the position once the first batch has been handed over: everything, where
+     * the queue runs inline; the skips and the number still queued, where a worker has it.
+     *
+     * @return array{sent: int, failed: int, skipped: int, queued: int}
      */
     public function send(Campaign $campaign): array
     {
-        if (! $campaign->isSendable()) {
+        if (! $campaign->isSendable() && ! $campaign->isResumable()) {
             throw new InvalidArgumentException("This campaign is {$campaign->status} and cannot be sent.");
         }
 
-        $campaign->update(['status' => Campaign::STATUS_SENDING]);
-
-        $sent = 0;
-        $skipped = 0;
-
-        foreach ($campaign->sends()->with(['contact', 'lead'])->where('status', CampaignSend::STATUS_PENDING)->get() as $send) {
-            $recipient = $send->recipient();
-
-            if (! $recipient || ! Consent::permits($recipient, $campaign->channel)) {
-                $send->update([
-                    'status' => CampaignSend::STATUS_SKIPPED_NO_CONSENT,
-                    'failed_reason' => CampaignSend::REASON_CONSENT_WITHDRAWN,
-                ]);
-
-                $skipped++;
-
-                continue;
-            }
-
-            // Handed to the queue by whatever channel sender the company has configured. Kept
-            // out of this class deliberately: retry, failure handling and the WhatsApp template
-            // config all already live there, and duplicating any of it here would be a second
-            // place for a send to go wrong.
-            $send->update(['status' => CampaignSend::STATUS_SENT, 'sent_at' => now()]);
-
-            $sent++;
+        if ($campaign->isSendable() && ! $campaign->sends()->exists()) {
+            $this->prepare($campaign);
         }
 
-        $campaign->update(['status' => Campaign::STATUS_SENT, 'sent_at' => now()]);
+        // A worker that died mid-message left its claim behind; nobody knows whether that one went.
+        $this->releaseInterrupted($campaign);
+
+        $campaign->update(['status' => Campaign::STATUS_SENDING]);
 
         activity('Campaign')
             ->performedOn($campaign)
             ->causedBy(auth()->user())
-            ->event('sent')
-            ->withProperties(['sent' => $sent, 'skipped_no_consent' => $skipped])
-            ->log("Campaign \"{$campaign->name}\" sent to {$sent} recipient(s), {$skipped} skipped for consent");
+            ->event('sending')
+            ->log("Campaign \"{$campaign->name}\" handed to the queue");
 
-        return ['sent' => $sent, 'skipped' => $skipped];
+        DeliverCampaign::dispatch($campaign->getKey());
+
+        $outcome = $campaign->refresh()->outcome();
+
+        return ['sent' => $outcome['sent'], 'failed' => $outcome['failed'], 'skipped' => $outcome['skipped'], 'queued' => $outcome['pending']];
+    }
+
+    /** Put the recipients that failed back in the queue, and send on. @return int how many */
+    public function retryFailed(Campaign $campaign): int
+    {
+        $count = $campaign->sends()->where('status', CampaignSend::STATUS_FAILED)
+            ->update(['status' => CampaignSend::STATUS_PENDING, 'failed_reason' => null]);
+
+        if ($count > 0) {
+            $campaign->update(['status' => Campaign::STATUS_PAUSED]);
+            $this->send($campaign->refresh());
+        }
+
+        return $count;
+    }
+
+    /**
+     * Deliver the next batch. Called by DeliverCampaign; returns how many are still pending.
+     *
+     * **Consent is re-checked for every message, not trusted from `prepare()`.** Somebody may
+     * unsubscribe between preparing a campaign and sending it, and that gap is exactly when a
+     * complaint comes from — the message that went out after they asked it to stop.
+     *
+     * One recipient's refusal is recorded against that recipient and the batch goes on. Anything
+     * else — the database, the lock, a bug — pauses the campaign before it is rethrown, so it is never
+     * left saying `sending` with nothing sending it, and Send resumes it.
+     *
+     * **Nobody is sent the same message twice.** Each row is claimed (`sending`) before its message is
+     * handed over and marked after; a row whose batch dies between the two is not resent on resume —
+     * whether it went is unknown — but failed with that reason, for somebody to retry deliberately.
+     */
+    public function deliverBatch(Campaign $campaign): int
+    {
+        if ($campaign->status !== Campaign::STATUS_SENDING) {
+            return 0;
+        }
+
+        // One batch at a time per campaign: a resume pressed while a batch is running must not
+        // send the same pending rows twice.
+        $lock = Cache::lock('campaign-delivery:'.(Company::current()?->getKey() ?? 0).':'.$campaign->getKey(), 600);
+
+        if (! $lock->get()) {
+            return -1;
+        }
+
+        try {
+            $batch = $campaign->sends()
+                ->with(['contact', 'lead'])
+                ->where('status', CampaignSend::STATUS_PENDING)
+                ->orderBy('id')
+                ->limit(self::batchSize())
+                ->get();
+
+            foreach ($batch as $send) {
+                $this->deliver($campaign, $send);
+            }
+
+            $remaining = $campaign->sends()->where('status', CampaignSend::STATUS_PENDING)->count();
+
+            if ($remaining === 0) {
+                $outcome = $campaign->outcome();
+                $campaign->update(['status' => Campaign::STATUS_SENT, 'sent_at' => now()]);
+
+                activity('Campaign')
+                    ->performedOn($campaign)
+                    ->event('sent')
+                    ->withProperties(['sent' => $outcome['sent'], 'failed' => $outcome['failed'], 'skipped_no_consent' => $outcome['skipped']])
+                    ->log("Campaign \"{$campaign->name}\" sent to {$outcome['sent']} recipient(s), {$outcome['failed']} failed, {$outcome['skipped']} skipped for consent");
+            }
+
+            return $remaining;
+        } catch (Throwable $e) {
+            $this->releaseInterrupted($campaign);
+            $campaign->forceFill(['status' => Campaign::STATUS_PAUSED])->save();
+
+            throw $e;
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function releaseInterrupted(Campaign $campaign): void
+    {
+        $campaign->sends()->where('status', CampaignSend::STATUS_SENDING)
+            ->update(['status' => CampaignSend::STATUS_FAILED, 'failed_reason' => CampaignSend::REASON_INTERRUPTED]);
+    }
+
+    private function deliver(Campaign $campaign, CampaignSend $send): void
+    {
+        $recipient = $send->recipient();
+
+        if (! $recipient || ! Consent::permits($recipient, $campaign->channel)) {
+            $send->update(['status' => CampaignSend::STATUS_SKIPPED_NO_CONSENT, 'failed_reason' => CampaignSend::REASON_CONSENT_WITHDRAWN]);
+
+            return;
+        }
+
+        $send->update(['status' => CampaignSend::STATUS_SENDING]);
+
+        $name = trim((string) ($recipient->person_name ?? $recipient->name ?? ''));
+        $fill = fn (?string $text): string => str_replace('{name}', $name, (string) $text);
+
+        try {
+            if ($campaign->isWhatsApp()) {
+                if (! $this->whatsApp instanceof SendsTemplates) {
+                    throw new WhatsAppException(CampaignSend::REASON_NO_TEMPLATES);
+                }
+
+                $this->whatsApp->sendTemplate(
+                    PhoneNumber::e164((string) $send->to) ?? throw new WhatsAppException("{$send->to} is not a number WhatsApp can reach."),
+                    (string) $campaign->template_name,
+                    // The body holds the template's variables, one per line, {{1}} first.
+                    array_values(array_filter(array_map('trim', preg_split('/\R/', $fill($campaign->body)) ?: []), fn (string $line): bool => $line !== '')),
+                );
+            } else {
+                Mail::to((string) $send->to)->send(new CampaignMessage($fill($campaign->subject), $fill($campaign->body)));
+            }
+        } catch (Throwable $e) {
+            // The provider's own words, on the recipient's row — a bounced address is expected, not
+            // an incident, so it is recorded rather than reported.
+            $send->update(['status' => CampaignSend::STATUS_FAILED, 'failed_reason' => Str::limit($e->getMessage(), 250, '')]);
+
+            return;
+        }
+
+        $send->update(['status' => CampaignSend::STATUS_SENT, 'sent_at' => now(), 'failed_reason' => null]);
     }
 
     /**

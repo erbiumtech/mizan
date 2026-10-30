@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
  * is still waiting on a template approval, and the log says exactly what would
  * have gone where.
  */
-class LogWhatsAppSender implements WhatsAppSender
+class LogWhatsAppSender implements SendsTemplates, WhatsAppSender
 {
     public function sendDocument(string $to, WhatsAppDocument $document, string $caption): string
     {
@@ -39,6 +39,15 @@ class LogWhatsAppSender implements WhatsAppSender
         $id = 'log-'.Str::random(16);
 
         Log::info('WhatsApp text (log driver, nothing sent)', ['to' => $to, 'text' => $text, 'message_id' => $id]);
+
+        return $id;
+    }
+
+    public function sendTemplate(string $to, string $template, array $parameters = []): string
+    {
+        $id = 'log-'.Str::random(16);
+
+        Log::info('WhatsApp template (log driver, nothing sent)', ['to' => $to, 'template' => $template, 'parameters' => $parameters, 'message_id' => $id]);
 
         return $id;
     }

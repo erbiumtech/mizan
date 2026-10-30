@@ -47,6 +47,7 @@ class CampaignPolicy
      */
     public function send(User $user, Campaign $record): bool
     {
-        return $user->hasPermissionTo('CampaignSend') && $record->isSendable();
+        // A campaign stopped part-way is sent on from where it stopped, by the same permission.
+        return $user->hasPermissionTo('CampaignSend') && ($record->isSendable() || $record->isResumable());
     }
 }

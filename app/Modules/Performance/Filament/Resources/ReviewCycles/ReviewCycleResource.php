@@ -14,6 +14,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -55,6 +56,14 @@ class ReviewCycleResource extends Resource
             DatePicker::make('period_start')->native(false)->required()
                 ->helperText('The monthly progress reports filed inside this window are read as evidence.'),
             DatePicker::make('period_end')->native(false)->required()->afterOrEqual('period_start'),
+
+            // §14.6: the employee rates themselves first, on My Review. A cycle can leave that out — a
+            // probation check, say — and then there is no employee half to wait for or to show.
+            Toggle::make('includes_self_review')
+                ->label('Ask each employee for a self-review')
+                ->default(true)
+                ->helperText('On, every employee rates themselves on each competency and adds a comment under My Review '
+                    .'before their manager decides; the reviewer sees both side by side. Off, the review is the manager\'s alone.'),
 
             DatePicker::make('self_review_due_on')->native(false),
             DatePicker::make('manager_review_due_on')->native(false),

@@ -183,6 +183,8 @@ class NavigationTree
             'Sales setup' => [
                 'Lead Sources',
                 'Pipelines',
+                // What a deal's Lost action picks from — beside the pipeline it belongs to.
+                'Lost Reasons',
                 'Sales Targets',
                 /*
                  * Who does field visits — plan §14.10.
@@ -193,6 +195,8 @@ class NavigationTree
                  * manager's list, and they are in this column all day.
                  */
                 'Field Visit Staff',
+                // Who a campaign goes to: a list set up once and picked from, like the sources.
+                'Segments',
             ],
         ],
         /*

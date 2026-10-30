@@ -52,6 +52,8 @@ return [
         'App\\Filament\\Resources\\LeadSources\\LeadSourceResource' => \App\Modules\Crm\Filament\Resources\LeadSources\LeadSourceResource::class,
         'App\\Filament\\Resources\\Opportunities\\OpportunityResource' => \App\Modules\Crm\Filament\Resources\Opportunities\OpportunityResource::class,
         'App\\Filament\\Resources\\Pipelines\\PipelineResource' => \App\Modules\Crm\Filament\Resources\Pipelines\PipelineResource::class,
+        // The list a deal's Lost action picks from — there was no screen to add one.
+        'App\\Filament\\Resources\\LostReasons\\LostReasonResource' => \App\Modules\Crm\Filament\Resources\LostReasons\LostReasonResource::class,
         'App\\Filament\\Resources\\NextActions\\NextActionResource' => \App\Modules\Crm\Filament\Resources\NextActions\NextActionResource::class,
         'App\\Filament\\Resources\\SalesTargets\\SalesTargetResource' => \App\Modules\Crm\Filament\Resources\SalesTargets\SalesTargetResource::class,
         'App\\Filament\\Resources\\FieldVisits\\FieldVisitResource' => \App\Modules\Crm\Filament\Resources\FieldVisits\FieldVisitResource::class,
@@ -145,6 +147,28 @@ return [
         ['name' => 'FieldVisitCreate', 'group' => 'FieldVisit'],
         ['name' => 'FieldVisitUpdate', 'group' => 'FieldVisit'],
         ['name' => 'FieldVisitDelete', 'group' => 'FieldVisit'],
+    ],
+
+    /**
+     * Who works the pipeline out of the box.
+     *
+     * Not the Employee role, deliberately — RoleSeeder says why. The Manager runs the sales desk:
+     * leads and deals, the pipeline and its lists, targets and field visits, and closing a deal.
+     * Deleting is the CEO's, as everywhere else. A company that wants its reps in here gives them a
+     * role of its own on the Roles page, and these grants never undo that (see RoleSeeder::apply()).
+     */
+    'role_grants' => [
+        'Manager' => [
+            'LeadView', 'LeadCreate', 'LeadUpdate', 'LeadConvert',
+            'LeadSourceView', 'LeadSourceCreate', 'LeadSourceUpdate',
+            'PipelineView', 'PipelineCreate', 'PipelineUpdate',
+            'OpportunityView', 'OpportunityCreate', 'OpportunityUpdate', 'OpportunityClose',
+            'SalesTargetView', 'SalesTargetUpdate',
+            'FieldVisitView', 'FieldVisitCreate', 'FieldVisitUpdate',
+        ],
+        'CEO' => [
+            'LeadDelete', 'LeadSourceDelete', 'PipelineDelete', 'OpportunityDelete', 'FieldVisitDelete',
+        ],
     ],
 
     /**

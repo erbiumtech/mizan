@@ -11,6 +11,7 @@ use App\Modules\Crm\Filament\Resources\Leads\Schemas\LeadForm;
 use App\Modules\Crm\Filament\Resources\Leads\Tables\LeadsTable;
 use App\Modules\Crm\Models\Lead;
 use App\Support\NavigationBadge;
+use App\Support\ResourceContributions;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -69,6 +70,12 @@ class LeadResource extends Resource
     public static function table(Table $table): Table
     {
         return LeadsTable::configure($table);
+    }
+
+    /** What other modules show on a lead — Campaigns' consent, offered from its own provider. */
+    public static function getRelations(): array
+    {
+        return ResourceContributions::relationManagersFor(static::class);
     }
 
     public static function getPages(): array

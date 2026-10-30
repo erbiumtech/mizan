@@ -39,3 +39,13 @@ a percentage or a new basic wage, and raises a change request an approver
 decides — nothing reaches a payslip on its own. A **promotion
 recommendation** is recorded here and nowhere else: the promotion itself is a
 dated row you record on the employee when it is decided.
+
+## The employee's self-review
+
+When the cycle asks for one, the employee rates themselves under **My Review** and submits it;
+the review shows **Self-review in**, and their ratings and notes sit in the **Employee** column of
+the Competencies tab beside yours. Their column is theirs: you can read it, not change it. The one
+exception is somebody with no login, who cannot open My Review — for them, whoever writes the
+review types in the self-assessment they handed over.
+
+A cycle with **Ask each employee for a self-review** switched off has no employee column at all.

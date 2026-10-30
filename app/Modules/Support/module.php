@@ -77,6 +77,15 @@ return [
     ],
 
     /**
+     * Who answers tickets out of the box: the Manager, and the CEO deletes. A company with a support
+     * desk of its own gives that desk a role on the Roles page; these grants never undo that.
+     */
+    'role_grants' => [
+        'Manager' => ['TicketView', 'TicketCreate', 'TicketUpdate'],
+        'CEO' => ['TicketDelete'],
+    ],
+
+    /**
      * Which domain of the two-level shell this module's screens appear in.
      *
      * Keyed on the navigation group label the resources and pages declare. Labels are shared —

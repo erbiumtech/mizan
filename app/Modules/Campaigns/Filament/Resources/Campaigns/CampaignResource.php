@@ -7,6 +7,7 @@ use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\CreateCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\EditCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\ListCampaigns;
 use App\Modules\Campaigns\Models\Campaign;
+use App\Modules\Campaigns\Models\CampaignSend;
 use App\Modules\Campaigns\Models\Segment;
 use App\Modules\Campaigns\Services\CampaignSender;
 use BackedEnum;
@@ -89,8 +90,8 @@ class CampaignResource extends Resource
                 ->rows(6)
                 ->columnSpanFull()
                 ->helperText(fn (Get $get): string => $get('channel') === Campaign::CHANNEL_WHATSAPP
-                    ? 'Variables for the template, not the message itself.'
-                    : 'The email body.'),
+                    ? 'The template\'s variables, one per line — the first line fills {{1}}. {name} becomes each recipient\'s name.'
+                    : 'The email, as plain text: a blank line starts a paragraph, and {name} becomes each recipient\'s name.'),
 
             DateTimePicker::make('scheduled_at')->native(false),
         ]);
@@ -116,7 +117,7 @@ class CampaignResource extends Resource
                     ->color(fn (string $state): string => match ($state) {
                         Campaign::STATUS_SENT => 'success',
                         Campaign::STATUS_SENDING => 'warning',
-                        Campaign::STATUS_CANCELLED => 'danger',
+                        Campaign::STATUS_PAUSED, Campaign::STATUS_CANCELLED => 'danger',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -134,7 +135,8 @@ class CampaignResource extends Resource
                         }
 
                         return "{$outcome['sent']} sent, {$outcome['skipped']} skipped for consent"
-                            .($outcome['failed'] > 0 ? ", {$outcome['failed']} failed" : '');
+                            .($outcome['failed'] > 0 ? ", {$outcome['failed']} failed" : '')
+                            .($outcome['pending'] > 0 ? ", {$outcome['pending']} to go" : '');
                     })
                     ->wrap(),
 
@@ -145,6 +147,8 @@ class CampaignResource extends Resource
                 SelectFilter::make('status')->options([
                     Campaign::STATUS_DRAFT => 'Draft',
                     Campaign::STATUS_SCHEDULED => 'Scheduled',
+                    Campaign::STATUS_SENDING => 'Sending',
+                    Campaign::STATUS_PAUSED => 'Paused',
                     Campaign::STATUS_SENT => 'Sent',
                     Campaign::STATUS_CANCELLED => 'Cancelled',
                 ]),
@@ -185,12 +189,16 @@ class CampaignResource extends Resource
                     }),
 
                 Action::make('send')
-                    ->label('Send')
+                    ->label(fn (Campaign $record): string => $record->isResumable() ? 'Resume sending' : 'Send')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('Send this campaign?')
-                    ->modalDescription('This reaches people outside your company and cannot be undone. Consent is re-checked for every recipient as it goes, so anybody who unsubscribed since you checked the audience is skipped.')
+                    ->modalHeading(fn (Campaign $record): string => $record->isResumable() ? 'Resume sending this campaign?' : 'Send this campaign?')
+                    ->modalDescription(fn (Campaign $record): string => $record->isResumable()
+                        ? 'Carries on with the recipients still waiting. Nobody already sent to is sent to again.'
+                        : 'This reaches people outside your company and cannot be undone. It goes out in batches at the pace set '
+                            .'under Company Settings → Campaigns, and consent is re-checked for every recipient as it goes, so '
+                            .'anybody who unsubscribed since you checked the audience is skipped.')
                     ->visible(fn (Campaign $record): bool => auth()->user()?->can('send', $record) ?? false)
                     ->action(function (Campaign $record): void {
                         try {
@@ -199,16 +207,53 @@ class CampaignResource extends Resource
                             Notification::make()->danger()->title($e->getMessage())->send();
 
                             return;
+                        } catch (\Throwable $e) {
+                            // Only where the queue runs inline: the batch has paused the campaign already.
+                            report($e);
+                            Notification::make()->danger()->title('Sending stopped part-way and the campaign is paused.')
+                                ->body('Resume sending carries on from where it stopped. '.$e->getMessage())->persistent()->send();
+
+                            return;
                         }
 
                         Notification::make()->success()
-                            ->title("Sent to {$result['sent']}.")
-                            ->body("{$result['skipped']} skipped for consent.")
+                            ->title($result['queued'] > 0 ? "Sending — {$result['queued']} to go." : "Sent to {$result['sent']}.")
+                            ->body("{$result['skipped']} skipped for consent"
+                                .($result['failed'] > 0 ? ", {$result['failed']} failed" : '')
+                                .'. The Recipients tab shows each one.')
                             ->send();
+                    }),
+
+                Action::make('retryFailed')
+                    ->label('Retry failed')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalDescription('Puts the recipients whose message failed back in the queue and sends to them. '
+                        .'Those already sent to are not touched; consent is checked again.')
+                    ->visible(fn (Campaign $record): bool => $record->status === Campaign::STATUS_SENT
+                        && $record->sends()->where('status', CampaignSend::STATUS_FAILED)->exists()
+                        && (auth()->user()?->can('CampaignSend') ?? false))
+                    ->action(function (Campaign $record): void {
+                        try {
+                            $count = app(CampaignSender::class)->retryFailed($record);
+                        } catch (\Throwable $e) {
+                            report($e);
+                            Notification::make()->danger()->title('Sending stopped part-way and the campaign is paused.')->body($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title("{$count} queued again.")->send();
                     }),
 
                 \Filament\Actions\EditAction::make(),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [RelationManagers\RecipientsRelationManager::class];
     }
 
     public static function getPages(): array

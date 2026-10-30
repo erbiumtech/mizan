@@ -63,6 +63,8 @@ return [
         'App\\Filament\\Pages\\RatingsDistribution' => \App\Modules\Performance\Filament\Pages\RatingsDistribution::class,
         'App\\Filament\\Pages\\Scorecards' => \App\Modules\Performance\Filament\Pages\Scorecards::class,
         'App\\Filament\\Pages\\MeritLedgerReport' => \App\Modules\Performance\Filament\Pages\MeritLedgerReport::class,
+        // The employee's half of a review — §14.6.
+        'App\\Filament\\Pages\\MyReview' => \App\Modules\Performance\Filament\Pages\MyReview::class,
     ],
 
     'permission_groups' => [
@@ -116,6 +118,15 @@ return [
             'DailyReportDecide',
             'BadgeView',
             'BadgeAward',
+            // Reviews, goals and one-to-ones (their policies read the Review group): writing the
+            // reviews of the people who report to you — the resources scope the rows to the downline.
+            'ReviewView',
+            'ReviewCreate',
+            'ReviewUpdate',
+            'ReviewPrivateNotes',
+        ],
+        'CEO' => [
+            'ReviewDelete',
         ],
     ],
 
@@ -129,5 +140,13 @@ return [
      */
     'navigation' => [
         'Performance' => 'people',
+    ],
+
+    /**
+     * My Review is in Home beside My Email Signature, for the reason the Employees manifest gives:
+     * it is a screen about the person looking at it, not one for acting on somebody else's record.
+     */
+    'navigation_items' => [
+        \App\Modules\Performance\Filament\Pages\MyReview::class => 'home',
     ],
 ];

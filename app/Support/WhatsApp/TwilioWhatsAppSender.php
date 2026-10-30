@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\Http;
  * checked rather than assumed, because Twilio's refusal for an oversized file
  * arrives as a generic error.
  */
-class TwilioWhatsAppSender implements WhatsAppSender
+class TwilioWhatsAppSender implements SendsTemplates, WhatsAppSender
 {
     /** Twilio's documented ceiling for non-image media. */
     public const MAX_BYTES = 20 * 1024 * 1024;
@@ -77,6 +77,31 @@ class TwilioWhatsAppSender implements WhatsAppSender
             throw new WhatsAppException(
                 'Twilio accepted the request but returned no message sid: '.$response->body()
             );
+        }
+
+        return $sid;
+    }
+
+    /** An approved Content Template: the SID is the template, the variables are numbered from 1. */
+    public function sendTemplate(string $to, string $template, array $parameters = []): string
+    {
+        $variables = [];
+
+        foreach (array_values($parameters) as $index => $text) {
+            $variables[(string) ($index + 1)] = $text;
+        }
+
+        $response = $this->post(array_filter([
+            'From' => $this->channel($this->from),
+            'To' => $this->channel($to),
+            'ContentSid' => $template,
+            'ContentVariables' => $variables === [] ? null : json_encode($variables),
+        ], fn ($value): bool => $value !== null));
+
+        $sid = $response->json('sid');
+
+        if (! is_string($sid) || $sid === '') {
+            throw new WhatsAppException('Twilio accepted the request but returned no message sid: '.$response->body());
         }
 
         return $sid;

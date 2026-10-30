@@ -4,6 +4,8 @@ namespace App\Modules\Campaigns;
 
 use App\Modules\Campaigns\Filament\Pages\CampaignPerformance;
 use App\Modules\Campaigns\Filament\Pages\ConsentRegister;
+use App\Modules\Campaigns\Filament\RelationManagers\ConsentsRelationManager;
+use App\Modules\Campaigns\Filament\Settings\CampaignSendingSettingsSection;
 use App\Modules\Campaigns\Models\Campaign;
 use App\Modules\Campaigns\Models\CampaignSend;
 use App\Modules\Campaigns\Models\Consent;
@@ -14,8 +16,14 @@ use App\Modules\Campaigns\Policies\ConsentPolicy;
 use App\Modules\Campaigns\Policies\SegmentPolicy;
 use App\Modules\Campaigns\Support\CampaignReports;
 use App\Modules\Campaigns\Support\ConsentReports;
+use App\Modules\Crm\Filament\Resources\Leads\LeadResource;
+use App\Modules\Crm\Models\Lead;
+use App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource;
+use App\Modules\Invoicing\Models\Contact;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\ResourceContributions;
+use App\Support\SettingsSections;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,6 +44,27 @@ class CampaignsServiceProvider extends ServiceProvider
         }
 
         $this->registerReports();
+
+        // Company Settings → Customers: how fast a campaign goes out.
+        SettingsSections::register('campaigns.sending', CampaignSendingSettingsSection::class, 78, 'customers');
+
+        $this->contributeConsent();
+    }
+
+    /**
+     * Consent is recorded on the person — the lead and the customer — from here, so neither CRM nor
+     * Invoicing names this module. The relation is resolved rather than declared for the same reason.
+     */
+    private function contributeConsent(): void
+    {
+        Lead::resolveRelationUsing('consents', fn (Lead $lead) => $lead->morphMany(Consent::class, 'subject'));
+        ResourceContributions::addRelationManager(LeadResource::class, ConsentsRelationManager::class);
+
+        // Customers live in Invoicing, which this module does not require — guarded as the sender is.
+        if (class_exists(Contact::class)) {
+            Contact::resolveRelationUsing('consents', fn (Contact $contact) => $contact->morphMany(Consent::class, 'subject'));
+            ResourceContributions::addRelationManager(ContactResource::class, ConsentsRelationManager::class);
+        }
     }
 
     /**

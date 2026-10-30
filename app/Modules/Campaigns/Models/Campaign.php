@@ -35,6 +35,13 @@ class Campaign extends Model
 
     public const STATUS_SENT = 'sent';
 
+    /**
+     * Stopped part-way — a delivery batch hit something it could not get past. Never left in
+     * `sending`: what was delivered stays delivered, what was not stays pending, and Send resumes
+     * from there.
+     */
+    public const STATUS_PAUSED = 'paused';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
@@ -103,6 +110,12 @@ class Campaign extends Model
         return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SCHEDULED], true);
     }
 
+    /** Part-way through: Send picks up the recipients still pending, nobody twice. */
+    public function isResumable(): bool
+    {
+        return in_array($this->status, [self::STATUS_SENDING, self::STATUS_PAUSED], true);
+    }
+
     public function isWhatsApp(): bool
     {
         return $this->channel === self::CHANNEL_WHATSAPP;
@@ -125,6 +138,7 @@ class Campaign extends Model
             'sent' => $sends->where('status', CampaignSend::STATUS_SENT)->count(),
             'failed' => $sends->where('status', CampaignSend::STATUS_FAILED)->count(),
             'skipped' => $sends->where('status', CampaignSend::STATUS_SKIPPED_NO_CONSENT)->count(),
+            'pending' => $sends->where('status', CampaignSend::STATUS_PENDING)->count(),
         ];
     }
 }

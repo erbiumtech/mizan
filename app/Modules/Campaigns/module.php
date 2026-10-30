@@ -31,6 +31,8 @@ return [
 
     'resources' => [
         'App\\Filament\\Resources\\Campaigns\\CampaignResource' => \App\Modules\Campaigns\Filament\Resources\Campaigns\CampaignResource::class,
+        // Who a campaign is for — there was no screen to make one.
+        'App\\Filament\\Resources\\Segments\\SegmentResource' => \App\Modules\Campaigns\Filament\Resources\Segments\SegmentResource::class,
     ],
 
     'pages' => [
@@ -61,6 +63,15 @@ return [
      * different domains throws in ModuleManifest rather than resolving to whichever manifest was
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
+    /**
+     * Drafting and sending out of the box: the Manager, sending included — the CEO deletes. Sending
+     * stays its own permission, so a company can hand drafting to somebody who cannot send.
+     */
+    'role_grants' => [
+        'Manager' => ['CampaignView', 'CampaignCreate', 'CampaignUpdate', 'CampaignSend'],
+        'CEO' => ['CampaignDelete'],
+    ],
+
     'navigation' => [
         'Sales' => 'sales',
     ],

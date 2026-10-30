@@ -35,6 +35,7 @@ class Review extends Model
         'review_cycle_id', 'review_template_id', 'employee_id', 'reviewer_employee_id', 'status',
         'self_rating', 'manager_rating', 'final_rating', 'promotion_recommended', 'promotion_designation',
         'strengths', 'improvements', 'submitted_at', 'shared_at', 'acknowledged_at',
+        'self_submitted_at', 'self_comments',
     ];
 
     protected $casts = [
@@ -45,6 +46,7 @@ class Review extends Model
         'submitted_at' => 'datetime',
         'shared_at' => 'datetime',
         'acknowledged_at' => 'datetime',
+        'self_submitted_at' => 'datetime',
     ];
 
     protected $attributes = ['status' => self::STATUS_PENDING];
@@ -88,6 +90,38 @@ class Review extends Model
      * decides to share it, and showing it before that would make honest drafting
      * impossible.
      */
+    /**
+     * The employee's half is open — docs/saas-launch-plan.md §14.6: the cycle asks for a self-review
+     * and is running, and nobody has submitted anything yet. The manager's submission closes it too:
+     * once the reviewer has decided, a late self-rating would read as an answer to their verdict.
+     */
+    public function awaitsSelfReview(): bool
+    {
+        $cycle = $this->cycle;
+
+        return $cycle !== null
+            && $cycle->includes_self_review
+            && $cycle->status === ReviewCycle::STATUS_OPEN
+            && $this->self_submitted_at === null
+            && $this->submitted_at === null
+            && $this->shared_at === null;
+    }
+
+    public function scopeAwaitingSelfReview(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query
+            ->whereNull('self_submitted_at')
+            ->whereNull('submitted_at')
+            ->whereNull('shared_at')
+            ->whereHas('cycle', fn ($cycle) => $cycle->where('status', ReviewCycle::STATUS_OPEN)->where('includes_self_review', true));
+    }
+
+    /** Whether the self-rating is the employee's to give — so nobody else may write it. */
+    public function selfRatingIsTheEmployees(): bool
+    {
+        return ($this->cycle?->includes_self_review ?? false) && $this->employee?->user_id !== null;
+    }
+
     public function isVisibleToEmployee(): bool
     {
         return $this->shared_at !== null;

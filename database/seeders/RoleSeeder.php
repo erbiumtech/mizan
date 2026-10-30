@@ -95,8 +95,10 @@ class RoleSeeder extends Seeder
     {
         // Administrator holds everything, so it needs no declarations and gains a new module's
         // permissions the moment they are seeded.
-        Role::firstOrCreate(['name' => 'Administrator', 'company_id' => $teamId])
-            ->syncPermissions(Permission::all());
+        $this->apply(
+            Role::firstOrCreate(['name' => 'Administrator', 'company_id' => $teamId]),
+            Permission::query()->pluck('name')->all(),
+        );
 
         $granted = [];
 
@@ -110,8 +112,50 @@ class RoleSeeder extends Seeder
             $names = array_values(array_unique($names));
             $granted[$role] = $names;
 
-            Role::firstOrCreate(['name' => $role, 'company_id' => $teamId])->syncPermissions($names);
+            $this->apply(Role::firstOrCreate(['name' => $role, 'company_id' => $teamId]), $names);
         }
+    }
+
+    /**
+     * Bring a role up to what the code grants it — without undoing what the company did to it.
+     *
+     * This runs on every deploy for every company, and it used to `syncPermissions()`: a Manager the
+     * company had widened or narrowed on the Roles page went back to the code's list with the next
+     * release, which is the opposite of what SystemRoles promises. So the role remembers what was last
+     * granted (`seeded_permissions`) and a later run applies only the difference the code made since —
+     * a new grant reaches every company, a withdrawn one is taken back, and anything the company added
+     * or removed by hand is left exactly as it is.
+     *
+     * A role seeded before that ledger existed has none. Every run before this one synced it, so what it
+     * holds is the old defaults plus the company's own changes since the last deploy: it is given what the
+     * code grants and does not hold, and nothing is revoked.
+     *
+     * @param  array<int, string>  $names
+     */
+    private function apply(Role $role, array $names): void
+    {
+        $names = array_values(array_unique($names));
+        $held = $role->permissions()->pluck('name')->all();
+        $seeded = json_decode((string) $role->getAttribute('seeded_permissions'), true);
+
+        if ($role->wasRecentlyCreated) {
+            $role->syncPermissions($names);
+        } else {
+            $add = is_array($seeded) ? array_diff($names, $seeded, $held) : array_diff($names, $held);
+            // Only what the role still holds: a permission withdrawn from the code may be gone from
+            // the table too, and revoking a name that no longer exists throws.
+            $remove = is_array($seeded) ? array_intersect(array_diff($seeded, $names), $held) : [];
+
+            if ($add !== []) {
+                $role->givePermissionTo(array_values($add));
+            }
+
+            if ($remove !== []) {
+                $role->revokePermissionTo(array_values($remove));
+            }
+        }
+
+        $role->forceFill(['seeded_permissions' => json_encode($names)])->save();
     }
 
     /**

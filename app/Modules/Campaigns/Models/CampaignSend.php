@@ -24,6 +24,9 @@ class CampaignSend extends Model
 
     public const STATUS_SENT = 'sent';
 
+    /** Claimed by a batch and being handed to the provider — a moment, unless the batch dies in it. */
+    public const STATUS_SENDING = 'sending';
+
     public const STATUS_FAILED = 'failed';
 
     public const STATUS_SKIPPED_NO_CONSENT = 'skipped_no_consent';
@@ -42,6 +45,10 @@ class CampaignSend extends Model
     public const REASON_NO_CONSENT = 'No consent on record for this channel. Silence is not consent.';
 
     public const REASON_CONSENT_WITHDRAWN = 'Consent was withdrawn before this was sent.';
+
+    public const REASON_INTERRUPTED = 'Sending stopped while this one was being handed over, so it may or may not have gone. Retry failed sends it again.';
+
+    public const REASON_NO_TEMPLATES = 'The WhatsApp provider configured here cannot send approved templates, and a campaign never falls back to free text.';
 
     protected $fillable = [
         'campaign_id', 'contact_id', 'lead_id', 'channel', 'to',

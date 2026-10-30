@@ -13,7 +13,7 @@ use Throwable;
  * remember to. A failure is logged as a failure and rethrown: the caller still
  * decides what a refusal means.
  */
-class LoggingWhatsAppSender implements WhatsAppSender
+class LoggingWhatsAppSender implements SendsTemplates, WhatsAppSender
 {
     public function __construct(private readonly WhatsAppSender $inner) {}
 
@@ -25,6 +25,18 @@ class LoggingWhatsAppSender implements WhatsAppSender
     public function sendText(string $to, string $text): string
     {
         return $this->logged($to, \Illuminate\Support\Str::limit($text, 80), fn (): string => $this->inner->sendText($to, $text));
+    }
+
+    /** Passed through when the provider underneath can send templates; refused, and logged as such, when not. */
+    public function sendTemplate(string $to, string $template, array $parameters = []): string
+    {
+        return $this->logged($to, 'template: '.$template, function () use ($to, $template, $parameters): string {
+            if (! $this->inner instanceof SendsTemplates) {
+                throw new WhatsAppException('The WhatsApp provider configured here cannot send approved templates.');
+            }
+
+            return $this->inner->sendTemplate($to, $template, $parameters);
+        });
     }
 
     private function logged(string $to, string $subject, callable $send): string
