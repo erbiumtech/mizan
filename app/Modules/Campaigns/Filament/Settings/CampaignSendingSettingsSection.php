@@ -33,7 +33,7 @@ class CampaignSendingSettingsSection implements SettingsSection
                 ->columns(2)
                 ->schema([
                     TextInput::make('campaigns_batch_size')
-                        ->label('Messages per batch')
+                        ->label(__('Messages per batch'))
                         ->numeric()
                         ->integer()
                         ->minValue(1)
@@ -42,7 +42,7 @@ class CampaignSendingSettingsSection implements SettingsSection
                         ->helperText('How many recipients each batch sends to. Fifty unless your provider allows more.'),
 
                     TextInput::make('campaigns_batch_interval_seconds')
-                        ->label('Pause between batches (seconds)')
+                        ->label(__('Pause between batches (seconds)'))
                         ->numeric()
                         ->integer()
                         ->minValue(0)

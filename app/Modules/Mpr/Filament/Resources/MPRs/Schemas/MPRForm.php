@@ -14,55 +14,55 @@ class MPRForm
         return $schema
             ->components([
                 Select::make('user_id')
-                    ->label('User')
+                    ->label(__('User'))
                     ->relationship('user', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
 
                 DatePicker::make('mpr_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->required()
                     ->default(now())
                     ->displayFormat('d-m-Y'),
 
                 RichEditor::make('feedback')
-                    ->label('Feedback')
+                    ->label(__('Feedback'))
                     ->required()
                     ->fileAttachmentsDisk('public')
                     ->fileAttachmentsDirectory('Mpr')
                     ->columnSpanFull(),
 
                 RichEditor::make('topics_scope')
-                    ->label('Topics & Scope')
+                    ->label(__('Topics & Scope'))
                     ->required()
                     ->fileAttachmentsDisk('public')
                     ->fileAttachmentsDirectory('Mpr')
                     ->columnSpanFull(),
 
                 RichEditor::make('recent_module')
-                    ->label('Recent Module')
+                    ->label(__('Recent Module'))
                     ->required()
                     ->fileAttachmentsDisk('public')
                     ->fileAttachmentsDirectory('Mpr')
                     ->columnSpanFull(),
 
                 RichEditor::make('employee_request')
-                    ->label('Employee Request')
+                    ->label(__('Employee Request'))
                     ->required()
                     ->fileAttachmentsDisk('public')
                     ->fileAttachmentsDirectory('Mpr')
                     ->columnSpanFull(),
 
                 RichEditor::make('next_mpr_goal')
-                    ->label('Next Mpr Goal')
+                    ->label(__('Next Mpr Goal'))
                     ->required()
                     ->fileAttachmentsDisk('public')
                     ->fileAttachmentsDirectory('Mpr')
                     ->columnSpanFull(),
 
                 RichEditor::make('current_month_learning')
-                    ->label('What have you learnt this month?')
+                    ->label(__('What have you learnt this month?'))
                     ->required()
                     ->fileAttachmentsDisk('public')
                     ->fileAttachmentsDirectory('Mpr')
