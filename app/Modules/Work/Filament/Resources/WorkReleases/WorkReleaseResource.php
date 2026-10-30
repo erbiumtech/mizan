@@ -7,6 +7,7 @@ use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Filament\Resources\WorkReleases\Pages\ListWorkReleases;
 use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkStatus;
+use App\Modules\Work\Services\CodeHosts;
 use App\Modules\Work\Services\Releases;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -157,6 +158,32 @@ class WorkReleaseResource extends Resource
                         }
 
                         Notification::make()->success()->title($record->name.' is released.')->send();
+                    }),
+
+                /*
+                 * A GitHub release with the notes as its body — §8.6 — on the repository the
+                 * release's items touched most. Only once it has gone out: a release on GitHub
+                 * for a version that has not shipped is a changelog ahead of the code.
+                 */
+                Action::make('publish')
+                    ->label('GitHub release')
+                    ->icon('heroicon-o-arrow-up-on-square')
+                    ->color('gray')
+                    ->visible(fn (WorkRelease $record): bool => $record->isReleased()
+                        && CodeHosts::anyRegistered()
+                        && (auth()->user()?->can('update', $record) ?? false))
+                    ->requiresConfirmation()
+                    ->modalDescription('Creates a release on the linked repository this version\'s items touched most, with the notes as its body.')
+                    ->action(function (WorkRelease $record): void {
+                        try {
+                            $made = app(CodeHosts::class)->createRelease($record);
+                        } catch (RuntimeException $e) {
+                            Notification::make()->danger()->title('Not published')->body($e->getMessage())->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title($record->name.' is on GitHub.')->body($made['url'] ?? '')->send();
                     }),
 
                 Action::make('notes')

@@ -35,4 +35,21 @@ return [
     */
     'merge_moves_to_done' => env('WORK_MERGE_MOVES_TO_DONE', true),
 
+    /*
+    | A branch created for an item in *to do* starts it — §8.4. "The one automation every team
+    | asked for and the one Jira hides behind a setting. It is a setting here too, on by default."
+    */
+    'branch_starts_progress' => env('WORK_BRANCH_STARTS_PROGRESS', true),
+
+    /*
+    | The GitHub App — §8.2. The private key lives here, never in a tenant row; a connection
+    | stores only its installation id. WORK_GITHUB_PRIVATE_KEY may carry the PEM with literal
+    | `\n` for the line breaks, which the client unescapes.
+    */
+    'github' => [
+        'app_id' => env('WORK_GITHUB_APP_ID'),
+        'app_slug' => env('WORK_GITHUB_APP_SLUG'),
+        'private_key' => env('WORK_GITHUB_PRIVATE_KEY'),
+    ],
+
 ];

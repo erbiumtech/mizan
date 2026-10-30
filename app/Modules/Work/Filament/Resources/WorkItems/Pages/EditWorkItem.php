@@ -5,11 +5,16 @@ namespace App\Modules\Work\Filament\Resources\WorkItems\Pages;
 use App\Filament\Support\HelpAction;
 use App\Modules\Work\Filament\Resources\WorkItems\WorkItemResource;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkItemBranch;
+use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Models\WorkStatus;
+use App\Modules\Work\Services\CodeHosts;
 use App\Modules\Work\Services\WorkTime;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -30,10 +35,102 @@ class EditWorkItem extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ActionGroup::make([
+                $this->createBranchAction(),
+                $this->openPullRequestAction(),
+                $this->linkPullRequestAction(),
+            ])
+                ->label('Development')
+                ->icon('heroicon-o-code-bracket')
+                ->button()
+                ->color('gray')
+                ->visible(fn (): bool => app(CodeHosts::class)->repositoriesFor($this->getRecord())->isNotEmpty()
+                    && (auth()->user()?->can('update', $this->getRecord()) ?? false)),
             $this->logTimeAction(),
             DeleteAction::make(),
             HelpAction::make('work-items', 'Work Items: Help'),
         ];
+    }
+
+    /** `WRK-12-short-title` from the repository's default branch — §8.6. */
+    private function createBranchAction(): Action
+    {
+        return Action::make('createBranch')
+            ->label('Create branch')
+            ->icon('heroicon-o-arrow-turn-down-right')
+            ->schema(fn (): array => [
+                Select::make('repository_id')
+                    ->label('Repository')
+                    ->options(fn (): array => app(CodeHosts::class)->repositoriesFor($this->getRecord())->pluck('full_name', 'id')->all())
+                    ->default(fn (): ?int => app(CodeHosts::class)->repositoriesFor($this->getRecord())->first()?->getKey())
+                    ->required()
+                    ->helperText(fn (): string => 'Named '.app(CodeHosts::class)->branchNameFor($this->getRecord()).', from the default branch.'),
+            ])
+            ->action(function (array $data): void {
+                $repository = WorkRepository::query()->with('connection')->findOrFail($data['repository_id']);
+
+                try {
+                    $branch = app(CodeHosts::class)->createBranch($this->getRecord(), $repository, auth()->user());
+                } catch (RuntimeException $e) {
+                    Notification::make()->danger()->title('No branch')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title($branch->name.' is on '.$repository->full_name.'.')->send();
+                $this->refreshFormData([]);
+            });
+    }
+
+    private function openPullRequestAction(): Action
+    {
+        return Action::make('openPullRequest')
+            ->label('Open pull request')
+            ->icon('heroicon-o-arrow-up-on-square')
+            ->visible(fn (): bool => WorkItemBranch::query()->where('work_item_id', $this->getRecord()->getKey())->live()->exists())
+            ->schema(fn (): array => [
+                Select::make('branch_id')
+                    ->label('From branch')
+                    ->options(fn (): array => WorkItemBranch::query()->where('work_item_id', $this->getRecord()->getKey())->live()->pluck('name', 'id')->all())
+                    ->required(),
+                TextInput::make('title')->default(fn (): string => $this->getRecord()->display_label)->required()->maxLength(250),
+                Textarea::make('body')->default(fn (): string => (string) $this->getRecord()->description)->rows(6)
+                    ->helperText('The description, as Markdown. It reads the same on GitHub.'),
+            ])
+            ->action(function (array $data): void {
+                $branch = WorkItemBranch::query()->with('repository.connection')->findOrFail($data['branch_id']);
+
+                try {
+                    $pr = app(CodeHosts::class)->openPullRequest($this->getRecord(), $branch, auth()->user(), $data['title'], $data['body'] ?? null);
+                } catch (RuntimeException $e) {
+                    Notification::make()->danger()->title('Not opened')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Pull request #'.$pr->number.' is open.')->send();
+            });
+    }
+
+    private function linkPullRequestAction(): Action
+    {
+        return Action::make('linkPullRequest')
+            ->label('Link existing pull request')
+            ->icon('heroicon-o-link')
+            ->schema([
+                TextInput::make('url')->label('Pull request URL')->url()->required()->placeholder('https://github.com/org/repo/pull/42'),
+            ])
+            ->action(function (array $data): void {
+                try {
+                    $pr = app(CodeHosts::class)->linkPullRequest($this->getRecord(), (string) $data['url']);
+                } catch (RuntimeException $e) {
+                    Notification::make()->danger()->title('Not linked')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Pull request #'.$pr->number.' is linked.')->send();
+            });
     }
 
     /**

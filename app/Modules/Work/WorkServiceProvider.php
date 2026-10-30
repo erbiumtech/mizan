@@ -26,22 +26,37 @@ use App\Modules\Work\Filament\Pages\WorkVelocity;
 use App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource;
 use App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource;
 use App\Modules\Work\Filament\Settings\WorkDefaultsSettingsSection;
+use App\Modules\Work\Integrations\GitHub\GitHubProvider;
+use App\Modules\Work\Models\IntegrationConnection;
+use App\Modules\Work\Models\IntegrationEvent;
+use App\Modules\Work\Models\IntegrationIdentity;
 use App\Modules\Work\Models\WorkAttachment;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkItemBranch;
+use App\Modules\Work\Models\WorkItemCommit;
 use App\Modules\Work\Models\WorkItemLink;
+use App\Modules\Work\Models\WorkItemPullRequest;
 use App\Modules\Work\Models\WorkLabel;
 use App\Modules\Work\Models\WorkRelease;
+use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Models\WorkWorkflowRule;
+use App\Modules\Work\Policies\IntegrationConnectionPolicy;
+use App\Modules\Work\Policies\IntegrationEventPolicy;
+use App\Modules\Work\Policies\IntegrationIdentityPolicy;
 use App\Modules\Work\Policies\WorkAttachmentPolicy;
 use App\Modules\Work\Policies\WorkBoardPolicy;
+use App\Modules\Work\Policies\WorkItemBranchPolicy;
+use App\Modules\Work\Policies\WorkItemCommitPolicy;
 use App\Modules\Work\Policies\WorkItemLinkPolicy;
 use App\Modules\Work\Policies\WorkItemPolicy;
+use App\Modules\Work\Policies\WorkItemPullRequestPolicy;
 use App\Modules\Work\Policies\WorkLabelPolicy;
 use App\Modules\Work\Policies\WorkReleasePolicy;
+use App\Modules\Work\Policies\WorkRepositoryPolicy;
 use App\Modules\Work\Policies\WorkSprintPolicy;
 use App\Modules\Work\Policies\WorkStatusPolicy;
 use App\Modules\Work\Policies\WorkWorkflowPolicy;
@@ -52,6 +67,7 @@ use App\Modules\Work\Support\WorkReports;
 use App\Modules\Work\Support\WorkWatching;
 use App\Modules\Work\Support\WorkWebhookPayloads;
 use App\Support\CustomFieldSubjects;
+use App\Support\Integrations;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
@@ -88,6 +104,13 @@ class WorkServiceProvider extends ServiceProvider
         WorkBoard::class => WorkBoardPolicy::class,
         WorkSprint::class => WorkSprintPolicy::class,
         WorkRelease::class => WorkReleasePolicy::class,
+        IntegrationConnection::class => IntegrationConnectionPolicy::class,
+        WorkRepository::class => WorkRepositoryPolicy::class,
+        IntegrationEvent::class => IntegrationEventPolicy::class,
+        IntegrationIdentity::class => IntegrationIdentityPolicy::class,
+        WorkItemCommit::class => WorkItemCommitPolicy::class,
+        WorkItemBranch::class => WorkItemBranchPolicy::class,
+        WorkItemPullRequest::class => WorkItemPullRequestPolicy::class,
     ];
 
     public function boot(): void
@@ -115,6 +138,16 @@ class WorkServiceProvider extends ServiceProvider
         $this->registerWebhooks();
         SettingsSections::register('work.defaults', WorkDefaultsSettingsSection::class, 36, 'company');
         $this->commands([SendWorkDigest::class]);
+
+        /*
+         * The code hosts — §8. GitHub first, because it is where most of this company's own code
+         * lives; Bitbucket, GitLab and Clockify join in Phase 8 on the same line. The registry is
+         * shared code and holds a class name; the driver is this module's.
+         */
+        Integrations::register(GitHubProvider::KEY, 'GitHub', Integrations::CODE, GitHubProvider::class, sort: 10);
+
+        // The inbound hook endpoint — §8.3. Public, tenant resolved by its own middleware.
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
     }
 
     /**

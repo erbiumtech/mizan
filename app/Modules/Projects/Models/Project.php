@@ -43,7 +43,7 @@ class Project extends Model
         // The work module's, carried here because they are columns on this table —
         // docs/project-management-plan.md §3.1. Named rather than related: a relation to its
         // workflow would point projects at work, which is the cycle §13.3 avoids.
-        'key', 'next_item_number', 'work_workflow_id',
+        'key', 'next_item_number', 'work_workflow_id', 'work_merge_moves_to_done',
         'manager_employee_id', 'secondary_employee_id',
         'start_date', 'end_date',
         // Which client this project is for, and what an hour on it bills at. Both
@@ -63,6 +63,7 @@ class Project extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'work_merge_moves_to_done' => 'boolean',
     ];
 
     protected static function booted(): void

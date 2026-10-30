@@ -7,8 +7,12 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkItemBranch;
+use App\Modules\Work\Models\WorkItemCommit;
+use App\Modules\Work\Models\WorkItemPullRequest;
 use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkStatus;
+use App\Modules\Work\Services\CodeHosts;
 use App\Modules\Work\Services\WorkTime;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
@@ -163,6 +167,8 @@ class WorkItemForm
                     ...CustomFieldsSchema::form(WorkItem::class),
                 ]),
 
+            self::developmentSection(),
+
             /*
              * Estimate against logged, and what it cost — §9.
              *
@@ -213,6 +219,56 @@ class WorkItemForm
                         )),
                 ]),
         ]);
+    }
+
+    /**
+     * The Development panel — docs/project-management-plan.md §8.6.
+     *
+     * Branches, commits and pull requests with their state and a link out. Absent on create and
+     * absent when the project has no linked repository: a panel that says "nothing" on every item
+     * of a project with no repository is a panel teaching people to ignore it.
+     */
+    public static function developmentSection(): Section
+    {
+        return Section::make('Development')
+            ->hiddenOn('create')
+            ->visible(fn (?WorkItem $record): bool => $record !== null && app(CodeHosts::class)->repositoriesFor($record)->isNotEmpty())
+            ->description('What the repositories say about this item. Create a branch or open a pull request with the buttons above.')
+            ->schema([
+                Placeholder::make('development')
+                    ->hiddenLabel()
+                    ->content(fn (?WorkItem $record): HtmlString => new HtmlString($record === null ? '' : self::developmentTable($record))),
+            ]);
+    }
+
+    private static function developmentTable(WorkItem $item): string
+    {
+        $rows = [];
+
+        foreach (WorkItemPullRequest::query()->where('work_item_id', $item->getKey())->with('repository')->orderByDesc('number')->get() as $pr) {
+            $rows[] = ['Pull request', '#'.$pr->number.' '.$pr->title, ucfirst($pr->state), $pr->repository?->full_name, $pr->url];
+        }
+
+        foreach (WorkItemBranch::query()->where('work_item_id', $item->getKey())->with('repository')->orderBy('name')->get() as $branch) {
+            $rows[] = ['Branch', $branch->name, $branch->isDeleted() ? 'Deleted' : 'Live', $branch->repository?->full_name, $branch->isDeleted() ? null : $branch->url];
+        }
+
+        foreach (WorkItemCommit::query()->where('work_item_id', $item->getKey())->with('repository')->orderByDesc('committed_at')->limit(20)->get() as $commit) {
+            $rows[] = ['Commit', $commit->shortSha().' '.$commit->message, $commit->committed_at?->format('d M') ?? '', $commit->repository?->full_name, $commit->url];
+        }
+
+        if ($rows === []) {
+            return '<span class="fi-board-empty">'.e(__('Nothing from the repositories yet. A commit, branch or pull request naming this key will appear here.')).'</span>';
+        }
+
+        $html = '<table class="fi-sprint-velocity"><thead><tr><th>'.e(__('What')).'</th><th>'.e(__('Which')).'</th><th>'.e(__('State')).'</th><th>'.e(__('Repository')).'</th></tr></thead><tbody>';
+
+        foreach ($rows as [$kind, $label, $state, $repository, $url]) {
+            $link = $url !== null ? '<a href="'.e($url).'" target="_blank" rel="noopener" class="fi-board-card-key">'.e($label).'</a>' : e($label);
+            $html .= '<tr><td>'.e($kind).'</td><td>'.$link.'</td><td>'.e($state).'</td><td>'.e((string) $repository).'</td></tr>';
+        }
+
+        return $html.'</tbody></table>';
     }
 
     /**

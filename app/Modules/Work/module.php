@@ -44,6 +44,14 @@ return [
         'App\\Models\\WorkBoard' => \App\Modules\Work\Models\WorkBoard::class,
         'App\\Models\\WorkSprint' => \App\Modules\Work\Models\WorkSprint::class,
         'App\\Models\\WorkRelease' => \App\Modules\Work\Models\WorkRelease::class,
+        // The repositories that talk to the board — §8.
+        'App\\Models\\IntegrationConnection' => \App\Modules\Work\Models\IntegrationConnection::class,
+        'App\\Models\\IntegrationEvent' => \App\Modules\Work\Models\IntegrationEvent::class,
+        'App\\Models\\IntegrationIdentity' => \App\Modules\Work\Models\IntegrationIdentity::class,
+        'App\\Models\\WorkRepository' => \App\Modules\Work\Models\WorkRepository::class,
+        'App\\Models\\WorkItemCommit' => \App\Modules\Work\Models\WorkItemCommit::class,
+        'App\\Models\\WorkItemBranch' => \App\Modules\Work\Models\WorkItemBranch::class,
+        'App\\Models\\WorkItemPullRequest' => \App\Modules\Work\Models\WorkItemPullRequest::class,
     ],
 
     'pages' => [
@@ -65,6 +73,9 @@ return [
         'App\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource' => \App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource::class,
         'App\\Filament\\Resources\\WorkSprints\\WorkSprintResource' => \App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource::class,
         'App\\Filament\\Resources\\WorkReleases\\WorkReleaseResource' => \App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource::class,
+        // Integrations are a Settings screen: a connection holds a credential to somebody else's
+        // system, which is why §13.1 makes it an administrator's.
+        'App\\Filament\\Resources\\IntegrationConnections\\IntegrationConnectionResource' => \App\Modules\Work\Filament\Resources\IntegrationConnections\IntegrationConnectionResource::class,
     ],
 
     /**
