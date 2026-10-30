@@ -71,7 +71,7 @@ class SafetyIndicators
      * This deliberately restates that method's query rather than calling it, and the duplication is the price of the
      * boundary: `construction_qhse` requires only `construction`, so naming `DailyLogService` would put the field module
      * in this one's import graph and `ModuleBoundaryTest` would be right to fail it. The arithmetic is the same fold —
-     * `hours + overtime_hours` per manpower row, which is what `DailyLog::totalManHours()` sums — and the *rule* is
+     * `headcount × (hours + overtime_hours)` per manpower row, which is what `DailyLog::totalManHours()` sums — and the *rule* is
      * stated in both places on purpose, because a second reader of the same rows that quietly counted drafts would
      * produce two different safety rates from one site.
      */
@@ -100,7 +100,8 @@ class SafetyIndicators
 
         $hours = (float) TenantDb::table('construction_daily_log_manpower')
             ->whereIn('daily_log_id', $logs)
-            ->sum(DB::raw('hours + overtime_hours'));
+            // Hours each, times the people they were each worked by — the form asks per person.
+            ->sum(DB::raw('headcount * (hours + overtime_hours)'));
 
         return $hours <= 0.0
             ? ExposureHours::unavailable(
@@ -208,7 +209,7 @@ class SafetyIndicators
     public function severityRate(Job $job, string $from, string $to, ?int $base = null): SafetyRate
     {
         $exposure = $this->exposureHours($job, $from, $to);
-        $base ??= (int) config('construction.qhse.rate_base', 1_000_000);
+        $base ??= (int) setting('construction.qhse.rate_base', 1_000_000);
 
         if (! $exposure->isAvailable()) {
             return SafetyRate::unavailable('Severity rate', $exposure->reason, $base);
@@ -319,7 +320,7 @@ class SafetyIndicators
      */
     private function rate(Job $job, string $from, string $to, ?int $base, string $label, array $kinds): SafetyRate
     {
-        $base ??= (int) config('construction.qhse.rate_base', 1_000_000);
+        $base ??= (int) setting('construction.qhse.rate_base', 1_000_000);
         $exposure = $this->exposureHours($job, $from, $to);
 
         if (! $exposure->isAvailable()) {

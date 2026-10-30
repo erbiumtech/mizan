@@ -15,10 +15,13 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Who was on site — §16.1, and §17.6's denominator.
@@ -80,7 +83,8 @@ class ManpowerRelationManager extends RelationManager
 
                 TextInput::make('headcount')->numeric()->default(0),
                 TextInput::make('hours')->label('Hours each')->numeric()->default(0),
-                TextInput::make('overtime_hours')->label('Overtime hours')->numeric()->default(0),
+                TextInput::make('overtime_hours')->label('Overtime hours each')->numeric()->default(0)
+                    ->helperText('Per person, like the hours: the man-hours are the headcount times both.'),
                 TextInput::make('notes')->maxLength(255)->columnSpanFull(),
             ]);
     }
@@ -120,14 +124,23 @@ class ManpowerRelationManager extends RelationManager
                     ->alignEnd()
                     ->summarize(Sum::make()->label('On site')),
 
+                // Per person, so a column total of either would add one man's day to the next crew's; the
+                // man-hours column is the one that adds up.
                 TextColumn::make('hours')
-                    ->alignEnd()
-                    ->summarize(Sum::make()->label('Hours')),
+                    ->label('Hours each')
+                    ->alignEnd(),
 
                 TextColumn::make('overtime_hours')
-                    ->label('Overtime')
+                    ->label('Overtime each')
+                    ->alignEnd(),
+
+                TextColumn::make('man_hours')
+                    ->label('Man-hours')
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('Overtime')),
+                    ->getStateUsing(fn (DailyLogManpower $record): float => $record->totalHours())
+                    ->summarize(Summarizer::make()
+                        ->label('Man-hours')
+                        ->using(fn (QueryBuilder $query): float => round((float) $query->sum(DB::raw('headcount * (hours + overtime_hours)')), 2))),
 
                 TextColumn::make('notes')->wrap()->placeholder('—')->toggleable(),
             ])

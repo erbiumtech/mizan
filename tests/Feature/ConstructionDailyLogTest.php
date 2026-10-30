@@ -217,16 +217,22 @@ class ConstructionDailyLogTest extends AccountingTestCase
 
     // ------------------------------------------------------------------ manpower
 
-    /** Man-hours include overtime, and they are §17's exposure denominator. */
-    public function test_man_hours_include_overtime(): void
+    /**
+     * Man-hours are the headcount times the hours each, overtime included — §17's exposure denominator.
+     *
+     * The form asks for hours *each*; reading the per-person figure as the crew's total counted four steel fixers at
+     * nine hours as nine man-hours.
+     */
+    public function test_man_hours_are_headcount_times_hours_each_with_overtime(): void
     {
         $log = $this->day();
 
-        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 32, 'overtime_hours' => 4]);
-        $this->logs->addManpower($log, ['trade_label' => 'Mason', 'headcount' => 2, 'hours' => 16]);
+        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 8, 'overtime_hours' => 1]);
+        $this->logs->addManpower($log, ['trade_label' => 'Mason', 'headcount' => 2, 'hours' => 8]);
 
         $log->refresh()->load('manpower');
 
+        $this->assertSame(36.0, $log->manpower->firstWhere('trade_label', 'Steel fixer')->totalHours());
         $this->assertSame(52.0, $log->totalManHours());
         $this->assertSame(6, $log->totalHeadcount());
     }
@@ -249,7 +255,7 @@ class ConstructionDailyLogTest extends AccountingTestCase
     public function test_exposure_hours_count_only_approved_days(): void
     {
         $open = $this->day('2026-08-20');
-        $this->logs->addManpower($open, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 32]);
+        $this->logs->addManpower($open, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 8]);
 
         $this->assertSame(0.0, $this->logs->exposureHours($this->job), 'a draft day is not evidence');
 
@@ -391,13 +397,30 @@ class ConstructionDailyLogTest extends AccountingTestCase
     public function test_the_register_shows_the_days_figures(): void
     {
         $log = $this->day('2026-08-20', ['working_conditions' => DailyLog::CONDITION_STOPPED, 'weather_hours_lost' => 6]);
-        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 32]);
+        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 8]);
         $this->logs->addPlant($log, ['plant_label' => 'EXC-04', 'idle_hours' => 3]);
 
         Livewire::test(ListDailyLogs::class)
             ->assertCanSeeTableRecords([$log])
             ->assertSee('Stopped')
             ->assertSee('Open');
+    }
+
+    /** The manpower tab totals man-hours, not the per-person hours each row is typed in. */
+    public function test_the_manpower_tab_totals_man_hours(): void
+    {
+        $log = $this->day('2026-08-20');
+        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 14, 'hours' => 8, 'overtime_hours' => 1]);
+        $this->logs->addManpower($log, ['trade_label' => 'Labourer', 'headcount' => 22, 'hours' => 8]);
+
+        Livewire::test(
+            \App\Modules\ConstructionField\Filament\Resources\DailyLogs\RelationManagers\ManpowerRelationManager::class,
+            ['ownerRecord' => $log, 'pageClass' => \App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\EditDailyLog::class],
+        )
+            ->assertSee('Overtime each')
+            ->assertSee('Man-hours')
+            ->assertSee('126')
+            ->assertSee('302');
     }
 
     public function test_the_sign_off_action_locks_the_day(): void
@@ -431,7 +454,7 @@ class ConstructionDailyLogTest extends AccountingTestCase
         modules()->flush();
 
         $log = $this->day();
-        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 32]);
+        $this->logs->addManpower($log, ['trade_label' => 'Steel fixer', 'headcount' => 4, 'hours' => 8]);
         $this->logs->addPlant($log, ['plant_label' => 'EXC-04', 'working_hours' => 8]);
         $this->logs->approve($log->refresh());
 

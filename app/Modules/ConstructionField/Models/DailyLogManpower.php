@@ -50,9 +50,15 @@ class DailyLogManpower extends Model
         return $this->belongsTo(Contact::class, 'contact_id');
     }
 
+    /**
+     * Man-hours on the row: the form asks for hours *each*, so the crew's hours are the headcount times them.
+     *
+     * Summing the per-person figures instead read fourteen steel fixers at eight hours as eight man-hours, and every
+     * safety rate built on it came out a factor of the headcount too high.
+     */
     public function totalHours(): float
     {
-        return round((float) $this->hours + (float) $this->overtime_hours, 2);
+        return round((int) $this->headcount * ((float) $this->hours + (float) $this->overtime_hours), 2);
     }
 
     /** The trade in words: the register's name where the module is there, the written label where it is not. */

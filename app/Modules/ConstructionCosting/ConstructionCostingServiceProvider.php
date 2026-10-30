@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting;
 
 use App\Modules\ConstructionCosting\Console\Commands\Reconcile;
+use App\Modules\ConstructionCosting\Filament\Settings\ConstructionCostingSettingsSection;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Models\ControlAccount;
 use App\Modules\ConstructionCosting\Models\CostEntry;
@@ -37,6 +38,7 @@ use App\Modules\ConstructionCosting\Policies\RequisitionPolicy;
 use App\Modules\ConstructionCosting\Policies\TradePolicy;
 use App\Modules\ConstructionCosting\Policies\WipSnapshotPolicy;
 use App\Modules\ConstructionCosting\Policies\WorkerPolicy;
+use App\Support\SettingsSections;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -80,6 +82,9 @@ class ConstructionCostingServiceProvider extends ServiceProvider
         // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the timetable, and a
         // command nobody registered cannot be run by hand — which is the first thing anybody wants to do with it.
         $this->commands([Reconcile::class]);
+
+        // Job costing's policies on Company Settings, beside the construction account map.
+        SettingsSections::register('construction.costing', ConstructionCostingSettingsSection::class, 71, 'money');
 
     }
 }

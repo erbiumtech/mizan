@@ -74,8 +74,12 @@ readonly class PostingPlan
         }
 
         foreach ($this->skipped as $reason) {
+            // A cancelling group is stamped by the run (see `ConstructionGlPostingService::stamp()`); only an unruled
+            // or unnominated one is left pending.
+            $outcome = str_contains($reason['reason'], 'cancel to nothing') ? ' are settled by posting, with no line.' : ' stay pending.';
+
             $parts[] = $reason['reason'].' '.$reason['count'].' '.Str::plural('entry', $reason['count'])
-                .' worth '.number_format($reason['amount'], 2).' stay pending.';
+                .' worth '.number_format($reason['amount'], 2).$outcome;
         }
 
         return implode(' ', $parts);

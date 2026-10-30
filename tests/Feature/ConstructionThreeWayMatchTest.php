@@ -179,6 +179,43 @@ class ConstructionThreeWayMatchTest extends AccountingTestCase
         $this->assertCount(0, $this->match->variances());
     }
 
+    /**
+     * **Nothing received, invoiced in part** — a plant-hire or subcontract order is never receipted, and its monthly
+     * invoice is a part invoice, not a price variance of everything not yet billed.
+     */
+    public function test_a_part_invoice_on_an_order_nothing_was_received_against_is_not_a_variance(): void
+    {
+        $order = $this->order();
+        $this->invoice($order, 2_500_000, null);
+
+        $match = $this->match->forLine($this->line($order));
+
+        $this->assertSame(0.0, $match['price_variance'], 'not 2,500,000 − 10,000,000');
+        $this->assertSame(ThreeWayMatch::STATUS_MATCHED, $match['status']);
+        $this->assertCount(0, $this->match->variances());
+    }
+
+    /** With nothing received and no quantity stated, billing beyond the order is still the variance. */
+    public function test_billing_beyond_an_order_nothing_was_received_against_is_a_price_variance(): void
+    {
+        $order = $this->order();
+        $this->invoice($order, 10_500_000, null);
+
+        $match = $this->match->forLine($this->line($order));
+
+        $this->assertSame(500_000.0, $match['price_variance']);
+        $this->assertSame(ThreeWayMatch::STATUS_PRICE_VARIANCE, $match['status']);
+    }
+
+    /** Where the invoice states a quantity, the price leg compares it at the order rate even before anything arrived. */
+    public function test_an_invoiced_quantity_is_priced_at_the_order_rate_when_nothing_arrived(): void
+    {
+        $order = $this->order();
+        $this->invoice($order, 2_600_000, 10);
+
+        $this->assertSame(100_000.0, $this->match->forLine($this->line($order))['price_variance'], '10 t at 260,000 against 250,000');
+    }
+
     // ------------------------------------------------------------------ variances
 
     /**
@@ -370,6 +407,24 @@ class ConstructionThreeWayMatchTest extends AccountingTestCase
         $this->assertSame(1.0, MatchTolerances::pricePercent());
         // A literal zero is honoured: it is a company saying it wants to see everything.
         $this->assertSame(0.0, MatchTolerances::minimumAmount());
+    }
+
+    /** The tolerances are typed on Company Settings; a blank line is the shipped default, a zero is honoured. */
+    public function test_the_tolerances_are_set_on_company_settings(): void
+    {
+        $section = app(\App\Modules\ConstructionCosting\Filament\Settings\ConstructionCostingSettingsSection::class);
+
+        $section->save([
+            'construction_costing_manual_gl_treatment' => 'pending',
+            'construction_match_quantity_percent' => 5,
+            'construction_match_price_percent' => '',
+            'construction_match_minimum_amount' => 0,
+        ]);
+
+        $this->assertSame(5.0, MatchTolerances::quantityPercent());
+        $this->assertSame(1.0, MatchTolerances::pricePercent());
+        $this->assertSame(0.0, MatchTolerances::minimumAmount());
+        $this->assertSame(5.0, $section->fill()['construction_match_quantity_percent']);
     }
 
     /** With a wider tolerance the same delivery stops being a variance, which is the point of the setting. */

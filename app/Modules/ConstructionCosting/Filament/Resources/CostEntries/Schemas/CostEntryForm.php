@@ -5,6 +5,7 @@ namespace App\Modules\ConstructionCosting\Filament\Resources\CostEntries\Schemas
 use App\Modules\Construction\Models\CostCode;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\WbsNode;
+use App\Modules\ConstructionCosting\Models\ControlAccount;
 use App\Modules\ConstructionCosting\Models\CostEntry;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -65,13 +66,17 @@ class CostEntryForm
                             ->helperText('Optional. The intersection of this and the cost code is what carries a budget.'),
 
                         Select::make('kind')
-                            ->options([
+                            // A reversal is written by the ledger and is never chosen, but it can be opened to give
+                            // it a posting rule: offered as itself and fixed, or its edit failed "kind is invalid".
+                            ->options(fn (?CostEntry $record): array => [
                                 CostEntry::KIND_ACTUAL => 'Actual',
                                 CostEntry::KIND_ACCRUAL => 'Accrual',
                                 CostEntry::KIND_ALLOCATION => 'Allocation',
                                 CostEntry::KIND_RECLASS => 'Reclassification',
-                            ])
+                            ] + ($record?->kind === CostEntry::KIND_REVERSAL ? [CostEntry::KIND_REVERSAL => 'Reversal'] : []))
                             ->default(CostEntry::KIND_ACTUAL)
+                            ->disabled(fn (?CostEntry $record): bool => $record?->kind === CostEntry::KIND_REVERSAL)
+                            ->dehydrated(fn (?CostEntry $record): bool => $record?->kind !== CostEntry::KIND_REVERSAL)
                             ->selectablePlaceholder(false)
                             ->native(false),
                     ]),
@@ -121,15 +126,44 @@ class CostEntryForm
                                 CostEntry::GL_POSTED => 'Posted — this is the source and it has posted',
                                 CostEntry::GL_MEMO => 'Memo — deliberately never posts',
                             ])
-                            ->default(CostEntry::GL_PENDING)
+                            // The company's own default for a hand-typed cost (Company Settings → Construction costing).
+                            ->default(fn (): string => (string) setting('construction.costing.manual_gl_treatment', CostEntry::GL_PENDING))
                             ->selectablePlaceholder(false)
                             ->native(false)
+                            ->live()
                             ->helperText('Memo is for burden at a rate or a notional comparison: a real cost to the job that is not a ledger event.'),
+
+                        /*
+                         * Which credit the period's posting owes for this cost. Without it a pending manual entry
+                         * matched no posting rule, could never reach the ledger, and held up the month's close until
+                         * somebody forced it. Labour and burden are left optional because the posting infers them
+                         * (site wages payable, burden absorbed); everything else has to say.
+                         */
+                        Select::make('gl_purpose')
+                            ->label('Posting rule')
+                            ->options(ControlAccount::PURPOSES)
+                            ->placeholder('Choose the account this cost credits')
+                            ->native(false)
+                            ->visible(fn (Get $get): bool => $get('gl_treatment') === CostEntry::GL_PENDING)
+                            ->required(fn (Get $get): bool => $get('gl_treatment') === CostEntry::GL_PENDING
+                                && ! static::postingInfersPurpose($get('cost_code_id'), (bool) $get('is_burden')))
+                            ->helperText('The control account the period\'s posting credits for this cost — the job-cost account '
+                                .'is the debit. Nominate the accounts under Control accounts.'),
 
                         Toggle::make('is_burden')
                             ->label('Is burden')
                             ->helperText('Charged at a rate and absorbed elsewhere. Reconciliation reports the gap if it is charged and never absorbed.'),
                     ]),
             ]);
+    }
+
+    /** Whether the GL posting can tell the rule on its own: burden, or a labour-type code (site wages payable). */
+    private static function postingInfersPurpose(mixed $costCodeId, bool $isBurden): bool
+    {
+        if ($isBurden) {
+            return true;
+        }
+
+        return filled($costCodeId) && CostCode::query()->whereKey($costCodeId)->value('cost_type') === CostCode::TYPE_LABOUR;
     }
 }

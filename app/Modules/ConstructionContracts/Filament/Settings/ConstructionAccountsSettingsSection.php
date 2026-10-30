@@ -5,9 +5,8 @@ namespace App\Modules\ConstructionContracts\Filament\Settings;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Support\ConstructionAccounts;
 use App\Support\Contracts\SettingsSection;
-use App\Support\KeyValueState;
 use App\Support\TenantSettings;
-use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Section;
 
 /**
@@ -15,12 +14,13 @@ use Filament\Schemas\Components\Section;
  *
  * **Here rather than in Core**, and §18.2 names the refusal that puts it here: there is deliberately no
  * `'core' => [… 'construction']` coupling, "because the account map belongs on a Construction settings page and
- * `core -> accounting` already exists for having made that mistake once". The `SettingsSection` registry is what
+ * `core -> accounting` already exists for having made that mistake once". The `SettingsSections` registry is what
  * makes that possible — Core keeps the page and the module that owns the setting brings the section.
  *
- * The shape is `PayrollPostingSettingsSection`'s, including its validation and the reason for it: saving a code that
- * does not exist breaks a certificate at the point of use, long after the save, and these keys are not addable so
- * the mistake cannot be undone from this page.
+ * **Each line is chosen from the chart**, by account rather than by a typed code, and there are no shipped account
+ * numbers behind it: those used to live in config, and goods received not invoiced defaulted to 2600, which the
+ * standard chart gives to Customer Advances. `ConstructionAccountsSeeder` creates the accounts and chooses them; this
+ * page is where a company points a line somewhere else.
  *
  * **The one line worth reading twice on this form is retention receivable.** It must point at an *asset*. Retention
  * is money earned and contractually owed, merely not yet payable; netting it off revenue understates turnover for
@@ -29,6 +29,11 @@ use Filament\Schemas\Components\Section;
  */
 class ConstructionAccountsSettingsSection implements SettingsSection
 {
+    private const FIELD = 'construction_account_';
+
+    /** @var array<int, string>|null */
+    private ?array $options = null;
+
     public function key(): string
     {
         return 'construction.accounts';
@@ -36,106 +41,72 @@ class ConstructionAccountsSettingsSection implements SettingsSection
 
     public function components(): array
     {
+        $fields = [];
+
+        foreach (ConstructionAccounts::KEYS as $key => $meaning) {
+            $fields[] = Select::make(self::FIELD.$key)
+                ->label(ucfirst($meaning))
+                ->options(fn (): array => $this->accountOptions())
+                ->searchable()
+                ->placeholder('Not chosen');
+        }
+
         return [
-            Section::make('Construction')
-                /*
-                 * Absent for a company that has not bought the module, which is most of them. Without this the
-                 * block appears on every dental practice's settings page — and, worse, its validation ran against
-                 * a chart with no construction accounts in it and locked the admin out of the whole page over
-                 * values they never typed. §18.1's "smaller, never broken", on a settings form.
-                 */
-                ->visible(fn (): bool => modules()->enabled('construction_contracts'))
-                ->schema([
-                    KeyValue::make('accounting_construction_accounts')
-                        ->label('Construction Account Codes')
-                        ->keyLabel('Line')
-                        ->valueLabel('Account code')
-                        ->addable(false)
-                        ->deletable(false)
-                        ->editableKeys(false)
-                        ->helperText(
-                            'Each line must name a code that exists in the chart of accounts. Leave one blank to '
-                            .'fall back to the shipped default. Retention receivable must be an asset: a '
-                            .'certificate invoices work gross and shows retention as its own line, because '
-                            .'invoicing net understates revenue for the whole life of the job.'
-                        )
-                        ->rule(static function (): callable {
-                            return static function (string $attribute, $value, callable $fail): void {
-                                $codes = collect(KeyValueState::map($value))
-                                    ->filter(fn ($code) => is_scalar($code) && trim((string) $code) !== '')
-                                    ->map(fn ($code) => trim((string) $code));
-
-                                if ($codes->isEmpty()) {
-                                    return;
-                                }
-
-                                // A company whose chart has not been seeded yet would fail on every shipped
-                                // default, locking the admin out of the whole settings page over values they
-                                // never typed.
-                                if (Account::query()->doesntExist()) {
-                                    return;
-                                }
-
-                                /*
-                                 * **A code left at its shipped default is not validated here**, and that is the
-                                 * difference between this section and the payroll one: the payroll defaults are
-                                 * seeded into every chart, while the construction accounts arrive with the
-                                 * construction profile. A company that licensed the module and has not run
-                                 * `ConstructionAccountsSeeder` yet would otherwise be unable to save this page at
-                                 * all — and the refusal it needs belongs at the point of use, where
-                                 * `ConstructionAccounts::id()` names the seeder and the missing code.
-                                 *
-                                 * What this rule is for is a **typo in a code somebody chose**, which is the
-                                 * mistake that cannot be undone from a form whose keys are not addable.
-                                 */
-                                $codes = $codes->reject(
-                                    fn (string $code, string $line): bool => $code === (string) config('accounting.construction_accounts.'.$line),
-                                );
-
-                                if ($codes->isEmpty()) {
-                                    return;
-                                }
-
-                                $existing = Account::query()
-                                    ->whereIn('code', $codes->values()->all())
-                                    ->pluck('code')
-                                    ->all();
-
-                                foreach ($codes as $line => $code) {
-                                    if (! in_array($code, $existing, true)) {
-                                        $fail("Account code {$code} for \"{$line}\" does not exist in the chart of accounts. Seed the construction accounts with ConstructionAccountsSeeder, or point this line at a code you already have.");
-                                    }
-                                }
-                            };
-                        }),
-                ]),
+            Section::make('Construction accounts')
+                ->description('The account each construction line posts to, chosen from your chart. Seeding the '
+                    .'construction accounts creates and chooses them; change a line here to point it elsewhere. A line '
+                    .'left unchosen refuses to post and says which line it is. Retention receivable must be an asset: '
+                    .'a certificate invoices work gross and shows retention as its own line.')
+                // Absent for a company that has not bought construction, which is most of them.
+                ->visible(fn (): bool => modules()->enabled('construction_contracts') || modules()->enabled('construction_costing'))
+                ->collapsible()
+                ->columns(2)
+                ->schema($fields),
         ];
     }
 
-    /**
-     * The saved map, with every key this module answers to present.
-     *
-     * Merged over the shipped defaults rather than shown as saved: the keys are not addable on this form, so a
-     * company that saved the map before a new key existed would otherwise have no way to set it.
-     */
     public function fill(): array
     {
-        $saved = setting('accounting.construction_accounts') ?: [];
-
-        $map = [];
+        $map = ConstructionAccounts::map();
+        $state = [];
 
         foreach (array_keys(ConstructionAccounts::KEYS) as $key) {
-            $map[$key] = $saved[$key] ?? config('accounting.construction_accounts.'.$key);
+            $state[self::FIELD.$key] = $map[$key] ?? null;
         }
 
-        return ['accounting_construction_accounts' => $map];
+        return $state;
     }
 
     public function save(array $state): void
     {
-        app(TenantSettings::class)->set(
-            'accounting.construction_accounts',
-            $state['accounting_construction_accounts'] ?? [],
-        );
+        $first = self::FIELD.array_key_first(ConstructionAccounts::KEYS);
+
+        // The section was not on the page (no construction module): leave the saved map alone.
+        if (! array_key_exists($first, $state)) {
+            return;
+        }
+
+        $map = [];
+
+        foreach (array_keys(ConstructionAccounts::KEYS) as $key) {
+            $id = (int) ($state[self::FIELD.$key] ?? 0);
+
+            if ($id > 0 && Account::query()->whereKey($id)->exists()) {
+                $map[$key] = $id;
+            }
+        }
+
+        app(TenantSettings::class)->set(ConstructionAccounts::SETTING, $map);
+    }
+
+    /** @return array<int, string> */
+    private function accountOptions(): array
+    {
+        return $this->options ??= Account::query()
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'name'])
+            ->mapWithKeys(fn (Account $account): array => [$account->getKey() => "{$account->code} — {$account->name}"])
+            ->all();
     }
 }

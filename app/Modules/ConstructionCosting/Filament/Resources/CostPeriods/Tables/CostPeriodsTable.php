@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use InvalidArgumentException;
 
 class CostPeriodsTable
 {
@@ -162,8 +163,15 @@ class CostPeriodsTable
                             ->helperText('Optional, and kept on the posting run rather than in the journal memo.'),
                     ])
                     ->action(function (CostPeriod $record, array $data): void {
-                        $posting = app(ConstructionGlPostingService::class)
-                            ->post($record->period_start->toDateString(), $data['notes'] ?? null);
+                        // "Nothing to post" is an answer, not an error page.
+                        try {
+                            $posting = app(ConstructionGlPostingService::class)
+                                ->post($record->period_start->toDateString(), $data['notes'] ?? null);
+                        } catch (InvalidArgumentException $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->success()

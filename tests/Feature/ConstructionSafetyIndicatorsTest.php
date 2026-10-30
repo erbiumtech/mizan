@@ -67,7 +67,8 @@ class ConstructionSafetyIndicatorsTest extends AccountingTestCase
     }
 
     /**
-     * An approved diary day carrying man-hours.
+     * An approved diary day carrying `$hours` man-hours: ten people at a tenth of it each, because the row stores hours
+     * *each* and the reader multiplies by the headcount.
      *
      * Written straight to the tables rather than through `DailyLogService`, for the same reason `SafetyIndicators` reads
      * them that way: naming the field module's service from a QHSE test would model a coupling the manifest says does
@@ -87,8 +88,8 @@ class ConstructionSafetyIndicatorsTest extends AccountingTestCase
             'daily_log_id' => $id,
             'trade_label' => 'Steel fixers',
             'headcount' => 10,
-            'hours' => $hours,
-            'overtime_hours' => $overtime,
+            'hours' => $hours / 10,
+            'overtime_hours' => $overtime / 10,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -283,6 +284,36 @@ class ConstructionSafetyIndicatorsTest extends AccountingTestCase
 
         $this->assertSame(200_000, $rate->base);
         $this->assertSame(2.0, $rate->value);
+    }
+
+    /** Exposure is the headcount times the hours each, overtime included — the form asks per person. */
+    public function test_exposure_is_headcount_times_hours_each(): void
+    {
+        $id = $this->diaryDay('2026-08-06', 0);
+        DB::table('construction_daily_log_manpower')->where('daily_log_id', $id)->update(['headcount' => 14, 'hours' => 8, 'overtime_hours' => 1]);
+
+        $this->assertSame(126.0, $this->indicators->exposureHours($this->job, '2026-08-01', '2026-08-31')->hours, '14 × (8 + 1), not 9');
+    }
+
+    /** The base is a company setting: per 200,000 hours when chosen, per 1,000,000 by default. */
+    public function test_the_base_is_a_company_setting(): void
+    {
+        $this->diaryDay('2026-08-06', 100_000);
+        $this->incident();
+
+        $this->assertSame(1_000_000, $this->indicators->lostTimeInjuryFrequencyRate($this->job, '2026-08-01', '2026-08-31')->base, 'the default');
+
+        app(\App\Modules\ConstructionQhse\Filament\Settings\ConstructionQhseSettingsSection::class)->save(['construction_qhse_rate_base' => 200_000]);
+
+        $rate = $this->indicators->lostTimeInjuryFrequencyRate($this->job, '2026-08-01', '2026-08-31');
+        $this->assertSame(200_000, $rate->base);
+        $this->assertSame(2.0, $rate->value);
+        $this->assertSame(200_000, Livewire::test(SafetyIndicatorsReport::class)->instance()->base(), 'the report opens on it');
+        $this->assertSame(['construction_qhse_rate_base' => 200_000], app(\App\Modules\ConstructionQhse\Filament\Settings\ConstructionQhseSettingsSection::class)->fill());
+
+        app(\App\Modules\ConstructionQhse\Filament\Settings\ConstructionQhseSettingsSection::class)->save(['construction_qhse_rate_base' => 1_000_000]);
+
+        $this->assertSame(1_000_000, $this->indicators->lostTimeInjuryFrequencyRate($this->job, '2026-08-01', '2026-08-31')->base);
     }
 
     /**

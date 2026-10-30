@@ -15,6 +15,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /**
@@ -52,6 +53,16 @@ class CostEntryResource extends Resource
         // The list shows job, code and period on every row, so all three are eager-loaded: a cost register runs
         // to tens of thousands of rows and one query per row per relation is the classic way this page dies.
         return parent::getEloquentQuery()->with(['job', 'costCode']);
+    }
+
+    /**
+     * Only an entry the ledger still lets change, whoever is asking. The policy says the same, but a super admin passes
+     * every gate, and `CostLedger::amend()` then refused the save with an exception the page never caught — a 500 on an
+     * entry already posted or in a closed month, instead of no Edit page.
+     */
+    public static function canEdit(Model $record): bool
+    {
+        return $record instanceof CostEntry && $record->isEditable() && parent::canEdit($record);
     }
 
     public static function form(Schema $schema): Schema

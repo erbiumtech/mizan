@@ -189,14 +189,18 @@ class ConstructionCertificateInvoiceTest extends AccountingTestCase
      */
     public function test_a_missing_account_says_where_to_fix_it(): void
     {
-        config(['accounting.construction_accounts.retention_receivable' => '9999']);
+        // A line nobody has chosen an account for — the map holds account ids chosen from the chart, no fallback.
+        app(\App\Support\TenantSettings::class)->set(
+            ConstructionAccounts::SETTING,
+            array_diff_key(ConstructionAccounts::map(), ['retention_receivable' => true]),
+        );
 
         try {
             ConstructionAccounts::id('retention_receivable');
-            $this->fail('A code that is not in the chart should be refused.');
+            $this->fail('A line with no account chosen should be refused.');
         } catch (RuntimeException $e) {
-            $this->assertStringContainsString('9999', $e->getMessage());
-            $this->assertStringContainsString('Company Settings → Construction', $e->getMessage());
+            $this->assertStringContainsString('retention_receivable', $e->getMessage());
+            $this->assertStringContainsString('Company Settings → Money → Construction accounts', $e->getMessage());
             $this->assertStringContainsString('ConstructionAccountsSeeder', $e->getMessage());
         }
     }
@@ -205,7 +209,10 @@ class ConstructionCertificateInvoiceTest extends AccountingTestCase
     public function test_a_group_header_is_refused_with_a_readable_reason(): void
     {
         // 4000 is the income group header, which takes no manual entry.
-        config(['accounting.construction_accounts.contract_revenue' => '4000']);
+        app(\App\Support\TenantSettings::class)->set(
+            ConstructionAccounts::SETTING,
+            ['contract_revenue' => \App\Modules\Accounting\Models\Account::where('code', '4000')->value('id')] + ConstructionAccounts::map(),
+        );
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage("Construction account 'contract_revenue'");
@@ -535,18 +542,18 @@ class ConstructionCertificateInvoiceTest extends AccountingTestCase
         $section = app(\App\Modules\ConstructionContracts\Filament\Settings\ConstructionAccountsSettingsSection::class);
 
         $this->assertSame('construction.accounts', $section->key());
-        $this->assertArrayHasKey('accounting_construction_accounts', $section->fill());
 
-        // Every key the resolver answers to is on the form, or a company could not set one at all — the keys are
-        // deliberately not addable.
+        // Every key the resolver answers to is on the form, one account picker each, or a company could not set one
+        // at all — the keys are deliberately not addable.
         $this->assertSame(
-            array_keys(ConstructionAccounts::KEYS),
-            array_keys($section->fill()['accounting_construction_accounts']),
+            array_map(fn (string $key): string => 'construction_account_'.$key, array_keys(ConstructionAccounts::KEYS)),
+            array_keys($section->fill()),
         );
 
-        $section->save(['accounting_construction_accounts' => ['retention_receivable' => '1600'] + $section->fill()['accounting_construction_accounts']]);
+        $other = \App\Modules\Accounting\Models\Account::where('code', '1600')->value('id');
+        $section->save(['construction_account_retention_receivable' => $other] + $section->fill());
 
-        $this->assertSame('1600', ConstructionAccounts::code('retention_receivable'), 'the saved code wins');
+        $this->assertSame('1600', ConstructionAccounts::code('retention_receivable'), 'the chosen account wins');
     }
 
     /** And it is registered against the page rather than only existing. */

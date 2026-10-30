@@ -143,9 +143,7 @@ class DailyLog extends Model
     /** Total labour hours on the day, which is §17's exposure denominator and dayworks' starting point. */
     public function totalManHours(): float
     {
-        return round((float) $this->manpower->sum(
-            fn (DailyLogManpower $row): float => (float) $row->hours + (float) $row->overtime_hours,
-        ), 2);
+        return round((float) $this->manpower->sum(fn (DailyLogManpower $row): float => $row->totalHours()), 2);
     }
 
     public function totalHeadcount(): int

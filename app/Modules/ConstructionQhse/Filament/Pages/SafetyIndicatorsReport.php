@@ -78,7 +78,7 @@ class SafetyIndicatorsReport extends Page
             // incidents and reads as a trend. The window is editable; the default should not invite the mistake.
             'from' => now()->subYear()->startOfMonth()->toDateString(),
             'to' => now()->toDateString(),
-            'base' => (int) config('construction.qhse.rate_base', 1_000_000),
+            'base' => (int) setting('construction.qhse.rate_base', 1_000_000),
         ]);
     }
 
@@ -133,7 +133,7 @@ class SafetyIndicatorsReport extends Page
 
     public function base(): int
     {
-        return (int) ($this->data['base'] ?? config('construction.qhse.rate_base', 1_000_000));
+        return (int) ($this->data['base'] ?? setting('construction.qhse.rate_base', 1_000_000));
     }
 
     /** The window, defaulted so a half-filled form still computes something honest. */

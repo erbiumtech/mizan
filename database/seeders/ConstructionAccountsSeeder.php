@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Support\ConstructionAccounts;
+use App\Support\TenantSettings;
 use Illuminate\Database\Seeder;
 
 /**
@@ -29,33 +31,37 @@ class ConstructionAccountsSeeder extends Seeder
     /**
      * Keyed by the group header each account hangs under, so this seeder never invents a top-level group.
      *
+     * `key` is the line in {@see ConstructionAccounts::KEYS} the account is chosen for; `code` is only where a new
+     * one is created. Goods received not invoiced asks for 2605 because the standard chart's 2600 is Customer
+     * Advances — and whatever it asks for, a code that already belongs to another account is never borrowed.
+     *
      * @var array<string, array<int, array<string, mixed>>>
      */
     private const ACCOUNTS = [
         '1000' => [
-            ['code' => '1600', 'name' => 'Materials on Site', 'type' => 'asset', 'description' => 'Delivered to site and not yet built in; claimable where the contract allows it'],
-            ['code' => '1610', 'name' => 'Contract Assets', 'type' => 'asset', 'description' => 'Work done and not yet certified — the uncertified half of work in progress'],
-            ['code' => '1620', 'name' => 'Retention Receivable', 'type' => 'asset', 'description' => 'Retention held by the employer: earned, contractually owed, not yet payable'],
-            ['code' => '1630', 'name' => 'Subcontract Advances', 'type' => 'asset', 'description' => 'Advance paid down to a subcontractor, recovered from their certificates. The mirror of 2630, which is an advance received'],
+            ['key' => 'materials_on_site', 'code' => '1600', 'name' => 'Materials on Site', 'type' => 'asset', 'description' => 'Delivered to site and not yet built in; claimable where the contract allows it'],
+            ['key' => 'contract_assets', 'code' => '1610', 'name' => 'Contract Assets', 'type' => 'asset', 'description' => 'Work done and not yet certified — the uncertified half of work in progress'],
+            ['key' => 'retention_receivable', 'code' => '1620', 'name' => 'Retention Receivable', 'type' => 'asset', 'description' => 'Retention held by the employer: earned, contractually owed, not yet payable'],
+            ['key' => 'subcontract_advance', 'code' => '1630', 'name' => 'Subcontract Advances', 'type' => 'asset', 'description' => 'Advance paid down to a subcontractor, recovered from their certificates. The mirror of 2630, which is an advance received'],
         ],
         '2000' => [
-            ['code' => '2600', 'name' => 'Goods Received Not Invoiced', 'type' => 'liability', 'description' => 'Received on site against a purchase order with no supplier invoice yet'],
-            ['code' => '2610', 'name' => 'Accrued Subcontract Costs', 'type' => 'liability', 'description' => 'Subcontract work done and not yet certified or invoiced'],
-            ['code' => '2620', 'name' => 'Retention Payable', 'type' => 'liability', 'description' => 'Retention held from subcontractors, owed back to them'],
-            ['code' => '2630', 'name' => 'Contract Liabilities', 'type' => 'liability', 'description' => 'Advance payments received and certified value in excess of work done'],
-            ['code' => '2640', 'name' => 'Provision for Foreseeable Losses', 'type' => 'liability', 'description' => 'A loss-making contract is provided for in full as soon as it is foreseen (§4.4)'],
+            ['key' => 'goods_received_not_invoiced', 'code' => '2605', 'name' => 'Goods Received Not Invoiced', 'type' => 'liability', 'description' => 'Received on site against a purchase order with no supplier invoice yet'],
+            ['key' => 'accrued_subcontract_costs', 'code' => '2610', 'name' => 'Accrued Subcontract Costs', 'type' => 'liability', 'description' => 'Subcontract work done and not yet certified or invoiced'],
+            ['key' => 'retention_payable', 'code' => '2620', 'name' => 'Retention Payable', 'type' => 'liability', 'description' => 'Retention held from subcontractors, owed back to them'],
+            ['key' => 'contract_liabilities', 'code' => '2630', 'name' => 'Contract Liabilities', 'type' => 'liability', 'description' => 'Advance payments received and certified value in excess of work done'],
+            ['key' => 'foreseeable_losses', 'code' => '2640', 'name' => 'Provision for Foreseeable Losses', 'type' => 'liability', 'description' => 'A loss-making contract is provided for in full as soon as it is foreseen (§4.4)'],
         ],
         '4000' => [
-            ['code' => '4600', 'name' => 'Contract Revenue', 'type' => 'income', 'description' => 'Certified value of construction work, gross of retention'],
+            ['key' => 'contract_revenue', 'code' => '4600', 'name' => 'Contract Revenue', 'type' => 'income', 'description' => 'Certified value of construction work, gross of retention'],
         ],
         '5000' => [
             // Job cost by type, one account each: the labour/material/plant/subcontract split is the first cut
             // anybody asks for, and a single job-cost account cannot answer it (§3.2).
-            ['code' => '5620', 'name' => 'Job Cost — Labour', 'type' => 'expense'],
-            ['code' => '5630', 'name' => 'Job Cost — Material', 'type' => 'expense'],
-            ['code' => '5640', 'name' => 'Job Cost — Plant', 'type' => 'expense'],
-            ['code' => '5650', 'name' => 'Job Cost — Subcontract', 'type' => 'expense'],
-            ['code' => '5660', 'name' => 'Job Cost — Other', 'type' => 'expense'],
+            ['key' => 'job_cost_labour', 'code' => '5620', 'name' => 'Job Cost — Labour', 'type' => 'expense'],
+            ['key' => 'job_cost_material', 'code' => '5630', 'name' => 'Job Cost — Material', 'type' => 'expense'],
+            ['key' => 'job_cost_plant', 'code' => '5640', 'name' => 'Job Cost — Plant', 'type' => 'expense'],
+            ['key' => 'job_cost_subcontract', 'code' => '5650', 'name' => 'Job Cost — Subcontract', 'type' => 'expense'],
+            ['key' => 'job_cost_other', 'code' => '5660', 'name' => 'Job Cost — Other', 'type' => 'expense'],
 
             /*
              * Credit-normal expense accounts, and the oddness is the point (§7.3). Charging a job for internal
@@ -63,14 +69,17 @@ class ConstructionAccountsSeeder extends Seeder
              * plant — so the credit lands against expense rather than income, and what is left over is
              * over/under absorption. Booking these as income would report internal transfers as turnover.
              */
-            ['code' => '5670', 'name' => 'Plant Internal Hire Recovery', 'type' => 'expense', 'normal_balance' => 'credit', 'description' => 'Contra-expense: internal plant hire charged out to jobs'],
-            ['code' => '5680', 'name' => 'Labour Burden Absorbed', 'type' => 'expense', 'normal_balance' => 'credit', 'description' => 'Contra-expense: burden charged to jobs at a rate'],
-            ['code' => '5690', 'name' => 'Over / Under Absorption', 'type' => 'expense', 'description' => 'What is left when what was charged out and what was actually spent do not meet'],
+            ['key' => 'plant_hire_recovery', 'code' => '5670', 'name' => 'Plant Internal Hire Recovery', 'type' => 'expense', 'normal_balance' => 'credit', 'description' => 'Contra-expense: internal plant hire charged out to jobs'],
+            ['key' => 'burden_absorbed', 'code' => '5680', 'name' => 'Labour Burden Absorbed', 'type' => 'expense', 'normal_balance' => 'credit', 'description' => 'Contra-expense: burden charged to jobs at a rate'],
+            ['key' => 'absorption_variance', 'code' => '5690', 'name' => 'Over / Under Absorption', 'type' => 'expense', 'description' => 'What is left when what was charged out and what was actually spent do not meet'],
         ],
     ];
 
     public function run(): void
     {
+        // What the company has already chosen is not this seeder's business: a re-run fills only the gaps.
+        $map = ConstructionAccounts::map();
+
         foreach (self::ACCOUNTS as $parentCode => $accounts) {
             $parent = Account::query()->where('code', $parentCode)->first();
 
@@ -84,14 +93,51 @@ class ConstructionAccountsSeeder extends Seeder
             }
 
             foreach ($accounts as $data) {
-                // firstOrCreate for the reason `ChartOfAccountsSeeder` gives at length: on every run but the
-                // first these codes are a live chart with costs posted against them, and re-asserting a name
-                // or a parent over that is not this seeder's business.
-                Account::firstOrCreate(
-                    ['code' => $data['code']],
-                    $data + ['parent_id' => $parent->id],
-                );
+                $key = $data['key'];
+                unset($data['key']);
+
+                if (isset($map[$key]) && Account::query()->whereKey($map[$key])->exists()) {
+                    continue;
+                }
+
+                $map[$key] = $this->accountFor($data, $parent)->getKey();
             }
         }
+
+        app(TenantSettings::class)->set(ConstructionAccounts::SETTING, $map);
+    }
+
+    /**
+     * The account a line should use: this seeder's own from an earlier run, or a new one.
+     *
+     * Never re-asserted over a live chart — `ChartOfAccountsSeeder`'s reason, since costs are posted against these —
+     * and never another account's code: the first version did `firstOrCreate(['code' => …])`, found 2600 Customer
+     * Advances already there, and quietly left goods received not invoiced pointing at the customers' money.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function accountFor(array $data, Account $parent): Account
+    {
+        $atCode = Account::query()->where('code', $data['code'])->first();
+
+        if ($atCode && $atCode->name === $data['name']) {
+            return $atCode;
+        }
+
+        if ($atCode) {
+            return Account::query()->where('name', $data['name'])->first()
+                ?? Account::create(['code' => $this->nextFreeCode($data['code'])] + $data + ['parent_id' => $parent->id]);
+        }
+
+        return Account::create($data + ['parent_id' => $parent->id]);
+    }
+
+    private function nextFreeCode(string $code): string
+    {
+        do {
+            $code = (string) ((int) $code + 1);
+        } while (Account::query()->where('code', $code)->exists());
+
+        return $code;
     }
 }

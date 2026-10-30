@@ -53,34 +53,28 @@ class ConstructionAccounts
     ];
 
     /**
-     * The account code for a key: the company's setting, then the shipped default.
+     * Where the company's choices live: line key => account id, chosen from the chart on Company Settings.
      *
-     * A blank or zero code means the mapping was saved without this line rather than deliberately pointing at
-     * account "0", so it falls back rather than failing — the same judgement `PayrollAccounts` makes, and for the
-     * same reason: a half-filled settings form should not break a certificate.
+     * Account ids, never codes, and nothing behind them: the shipped defaults used to be account numbers in config
+     * that this class fell back to, and one of them (goods received not invoiced at 2600) was another account's
+     * number in the standard chart. `ConstructionAccountsSeeder` writes the map when it creates the accounts, and a
+     * tenant migration wrote it for every company seeded before.
      */
+    public const SETTING = 'construction.accounts';
+
+    /** @return array<string, int> line key => account id, only the lines that have been chosen */
+    public static function map(): array
+    {
+        return array_filter(
+            array_map(fn ($id): int => (int) $id, array_intersect_key((array) (setting(self::SETTING) ?: []), self::KEYS)),
+            fn (int $id): bool => $id > 0,
+        );
+    }
+
+    /** The code of the account chosen for a key, for display; posting asks for {@see id()}. */
     public static function code(string $key): string
     {
-        if (! array_key_exists($key, self::KEYS)) {
-            throw new RuntimeException(
-                "'{$key}' is not a construction account key. The list is in ConstructionAccounts::KEYS."
-            );
-        }
-
-        $code = data_get(setting('accounting.construction_accounts'), $key);
-
-        if ($code === null || $code === '' || $code === 0 || $code === '0') {
-            $code = config('accounting.construction_accounts.'.$key);
-        }
-
-        if ($code === null || $code === '') {
-            throw new RuntimeException(
-                "Construction account '{$key}' has no account code configured. Set it under Company Settings → "
-                .'Construction → Construction Account Codes.'
-            );
-        }
-
-        return (string) $code;
+        return (string) static::account($key)->code;
     }
 
     /**
@@ -92,28 +86,40 @@ class ConstructionAccounts
      */
     public static function id(string $key): int
     {
-        $code = static::code($key);
-
-        $account = Account::query()->where('code', $code)->first();
-
-        if (! $account) {
-            throw new RuntimeException(
-                "Construction account '{$key}' points at account code {$code}, which does not exist in this "
-                .'company\'s chart of accounts. Either correct it under Company Settings → Construction → '
-                .'Construction Account Codes, or seed the construction accounts with ConstructionAccountsSeeder.'
-            );
-        }
+        $account = static::account($key);
 
         if ($reason = $account->entryRefusalReason()) {
             throw new RuntimeException(
                 "Construction account '{$key}' points at account {$account->code} ({$account->name}), which cannot "
                 ."receive entries because {$reason}. Construction must post to a leaf account: either fix that "
-                .'account under Accounting → Chart of Accounts, or point this line at another code under Company '
-                .'Settings → Construction → Construction Account Codes.'
+                .'account under Accounting → Chart of Accounts, or choose another under Company Settings → Money → '
+                .'Construction accounts.'
             );
         }
 
         return $account->id;
+    }
+
+    private static function account(string $key): Account
+    {
+        if (! array_key_exists($key, self::KEYS)) {
+            throw new RuntimeException(
+                "'{$key}' is not a construction account key. The list is in ConstructionAccounts::KEYS."
+            );
+        }
+
+        $id = static::map()[$key] ?? null;
+        $account = $id === null ? null : Account::query()->find($id);
+
+        if (! $account) {
+            throw new RuntimeException(
+                "No account is chosen for construction line '{$key}' (".self::KEYS[$key].'). Choose one under '
+                .'Company Settings → Money → Construction accounts, or seed the construction accounts with '
+                .'ConstructionAccountsSeeder, which creates them and chooses them for you.'
+            );
+        }
+
+        return $account;
     }
 
     /**

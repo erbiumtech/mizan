@@ -119,14 +119,30 @@ class ThreeWayMatch
             : round($invoicedQuantity - $receivedQuantity, 4);
 
         /*
-         * Price: what was invoiced against what the goods that arrived were ordered at.
+         * Price: what was invoiced against what the same thing was ordered at.
          *
          * Against the **received** value rather than the ordered one, deliberately. An invoice for half an order is
          * not a price variance, it is a part invoice; comparing it to the whole order would flag every staged delivery
-         * on every job. Where nothing has been received, the ordered value stands in.
+         * on every job.
+         *
+         * **Where nothing has been received** — a plant-hire or subcontract order is never receipted — the ordered
+         * value used to stand in, which read the first monthly crane invoice against a six-month order as a price
+         * variance of everything not yet billed. The comparison is instead what the invoice covers at the order rate
+         * where it states a quantity, and otherwise only billing beyond the order: a part invoice is not a variance.
          */
-        $priceBase = $received->isNotEmpty() ? $receivedAmount : $orderedAmount;
-        $priceVariance = $invoicedAmount == 0.0 ? 0.0 : round($invoicedAmount - $priceBase, 2);
+        $priceBase = match (true) {
+            $received->isNotEmpty() => $receivedAmount,
+            $invoicedQuantity !== null && $line->rate !== null => round($invoicedQuantity * (float) $line->rate, 2),
+            default => null,
+        };
+
+        $priceVariance = match (true) {
+            $invoicedAmount == 0.0 => 0.0,
+            $priceBase !== null => round($invoicedAmount - $priceBase, 2),
+            default => round(max(0.0, $invoicedAmount - $orderedAmount), 2),
+        };
+
+        $priceBase ??= $orderedAmount;
 
         $quantityOut = $quantityVariance !== null
             && $quantityVariance != 0.0

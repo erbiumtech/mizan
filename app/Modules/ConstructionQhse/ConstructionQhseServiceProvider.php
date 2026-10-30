@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionQhse;
 
 use App\Modules\ConstructionQhse\Console\Commands\CheckCompetencyExpiry;
+use App\Modules\ConstructionQhse\Filament\Settings\ConstructionQhseSettingsSection;
 use App\Modules\ConstructionQhse\Models\Incident;
 use App\Modules\ConstructionQhse\Models\Inspection;
 use App\Modules\ConstructionQhse\Models\Itp;
@@ -19,6 +20,7 @@ use App\Modules\ConstructionQhse\Policies\PermitPolicy;
 use App\Modules\ConstructionQhse\Policies\QhseActionPolicy;
 use App\Modules\ConstructionQhse\Policies\SitePersonnelPolicy;
 use App\Modules\ConstructionQhse\Policies\ToolboxTalkPolicy;
+use App\Support\SettingsSections;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -52,6 +54,9 @@ class ConstructionQhseServiceProvider extends ServiceProvider
         // Registered as well as scheduled: `Schedule::command()` in routes/console.php only wires the timetable, and a
         // command nobody can invoke by hand is a command nobody can test or re-run after a failed night.
         $this->commands([CheckCompetencyExpiry::class]);
+
+        // The safety-rate base, on Company Settings beside the other people-facing policies.
+        SettingsSections::register('construction.qhse', ConstructionQhseSettingsSection::class, 64, 'people');
 
     }
 }

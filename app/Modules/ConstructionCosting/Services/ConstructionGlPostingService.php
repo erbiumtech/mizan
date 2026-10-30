@@ -138,27 +138,41 @@ class ConstructionGlPostingService
 
         $plan = $this->plan($periodStart);
 
-        if (! $plan->hasSomethingToPost()) {
+        /*
+         * Entries that cancel to nothing are still dealt with on their own.
+         *
+         * An accrual and its reversal — the receipt accrual and the roll that reverses it, a manual entry and its
+         * correction — can be all that is pending in a month. Refusing because there was no journal line to write left
+         * them pending for good, and the close check then blocked the month on 0.00 that had a rule all along.
+         */
+        if (! $plan->hasSomethingToPost() && ! $this->hasCancellingGroups($plan)) {
             throw new InvalidArgumentException('Nothing to post for '.$period->label().'. '.$plan->describe());
         }
 
         return TenantTransaction::run(function () use ($period, $plan, $notes): GlPosting {
-            $entry = $this->journals->create([
-                'entry_date' => $period->period_end->toDateString(),
-                'entry_type' => 'general',
-                'memo' => 'Construction job cost — '.$period->label(),
-            ], $this->journalLines($plan));
+            $entry = null;
 
-            // Approved and posted in one act, like `InventoryService::postSystemEntry()`. A system journal that waited
-            // for a human approval would leave the two ledgers disagreeing until somebody clicked, and the decision was
-            // taken when the cost was approved rather than here.
-            $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);
-            $this->journals->post($entry);
+            if ($plan->hasSomethingToPost()) {
+                $entry = $this->journals->create([
+                    'entry_date' => $period->period_end->toDateString(),
+                    'entry_type' => 'general',
+                    'memo' => 'Construction job cost — '.$period->label(),
+                ], $this->journalLines($plan));
+
+                // Approved and posted in one act, like `InventoryService::postSystemEntry()`. A system journal that
+                // waited for a human approval would leave the two ledgers disagreeing until somebody clicked, and the
+                // decision was taken when the cost was approved rather than here.
+                $entry->update(['status' => JournalEntry::STATUS_APPROVED, 'approved_at' => now()]);
+                $this->journals->post($entry);
+            }
 
             $posting = GlPosting::create([
                 'period_start' => $plan->periodStart,
-                'journal_entry_id' => $entry->getKey(),
-                'entry_count' => $plan->entryCount,
+                'journal_entry_id' => $entry?->getKey(),
+                // The cancelling entries count: they are settled by this run even though they wrote no line.
+                'entry_count' => $plan->entryCount + (int) collect($plan->skipped)
+                    ->filter(fn (array $skipped): bool => str_contains($skipped['reason'], 'cancel to nothing'))
+                    ->sum('count'),
                 'total_amount' => $plan->total,
                 'line_count' => count($plan->lines),
                 'posted_at' => now(),
@@ -396,14 +410,19 @@ class ConstructionGlPostingService
      * runs, `posted` and `mirrored` are both non-null and mean different things — one says this ledger posted it and the
      * other says somebody else did.
      */
-    private function stamp(PostingPlan $plan, JournalEntry $entry): void
+    private function hasCancellingGroups(PostingPlan $plan): bool
+    {
+        return collect($plan->skipped)->contains(fn (array $skipped): bool => str_contains($skipped['reason'], 'cancel to nothing'));
+    }
+
+    private function stamp(PostingPlan $plan, ?JournalEntry $entry): void
     {
         foreach ($plan->lines as $line) {
             CostEntry::query()
                 ->whereIn('id', $line->entryIds)
                 ->update([
                     'gl_treatment' => CostEntry::GL_POSTED,
-                    'journal_entry_id' => $entry->getKey(),
+                    'journal_entry_id' => $entry?->getKey(),
                     'gl_account_id' => $line->debitAccountId,
                     'posted_to_gl_at' => now(),
                 ]);
@@ -431,7 +450,8 @@ class ConstructionGlPostingService
                 ->filter(fn (CostEntry $e): bool => ($this->purposeFor($e) ?? '__unruled__') === $purpose)
                 ->each(fn (CostEntry $e) => $e->update([
                     'gl_treatment' => CostEntry::GL_POSTED,
-                    'journal_entry_id' => $entry->getKey(),
+                    // Null when the run had nothing else to post: there is no journal, because there was no line.
+                    'journal_entry_id' => $entry?->getKey(),
                     'posted_to_gl_at' => now(),
                 ]));
         }

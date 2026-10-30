@@ -35,6 +35,17 @@ return [
     ],
 
     /*
+     * Manual cost entries — `docs/construction-management-plan.md` §11a.
+     *
+     * The GL treatment a cost typed on the Cost entries screen starts with. `pending` is the one that reaches the
+     * ledger: the period's posting picks it up under the posting rule chosen on the entry. A company whose manual
+     * costs are always copies of bills already booked in Accounting sets `mirrored` instead, under Company Settings.
+     */
+    'costing' => [
+        'manual_gl_treatment' => 'pending',
+    ],
+
+    /*
      * Labour terms a rate row may leave unstated — `docs/construction-management-plan.md` §7.
      *
      * `overtime_multiplier` and `burden_percent` are nullable on `construction_labour_rates` so a row can revise the

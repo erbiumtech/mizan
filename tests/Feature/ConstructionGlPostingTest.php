@@ -562,7 +562,8 @@ class ConstructionGlPostingTest extends AccountingTestCase
         $this->assertStringContainsString('cancel to nothing', $plan->describe());
 
         /*
-         * Nothing to post means nothing posts — so the pair is dealt with by a run that has something *else* to post.
+         * Here the pair is dealt with by a run that has something *else* to post; the next test covers a month where
+         * the pair is all there is.
          *
          * A second entry under the same rule would not exercise this at all: it would join the same group, take the
          * total off zero and post normally. The cancellation has to be the whole of one group while another group
@@ -582,6 +583,47 @@ class ConstructionGlPostingTest extends AccountingTestCase
             $this->posting->plan('2026-08-01')->hasSkipped(),
             'and the pair is not reported as owed next month',
         );
+    }
+
+    /**
+     * **A month whose only pending entries cancel still posts — with no journal — and stops blocking its close.**
+     *
+     * The receipt accrual and the roll that reverses it are the ordinary case. Refusing "nothing to post" left them
+     * pending for good, and the close check blocked the month on 0.00 that had a rule all along.
+     */
+    public function test_a_month_of_only_cancelling_entries_is_dealt_with_without_a_journal(): void
+    {
+        $this->nominateForBurden();
+        $charged = $this->burden(50_000);
+        $reversed = $this->burden(-50_000, ['kind' => CostEntry::KIND_REVERSAL, 'reverses_id' => $charged->getKey()]);
+        $journals = JournalEntry::query()->count();
+
+        $posting = $this->posting->post('2026-08-01');
+
+        $this->assertNull($posting->journal_entry_id);
+        $this->assertSame(0, $posting->line_count);
+        $this->assertSame($journals, JournalEntry::query()->count(), 'no zero-value journal');
+        $this->assertSame(CostEntry::GL_POSTED, $charged->refresh()->gl_treatment);
+        $this->assertSame(CostEntry::GL_POSTED, $reversed->refresh()->gl_treatment);
+        $this->assertTrue(
+            collect(app(\App\Modules\ConstructionCosting\Services\PeriodCloseService::class)->checks(CostPeriod::forDate('2026-08-01'))->checks)
+                ->firstWhere('key', 'pending')->passed,
+            'the close no longer waits on them',
+        );
+    }
+
+    /** Pressing Post with nothing postable says so, rather than an error page. */
+    public function test_the_post_action_reports_nothing_to_post(): void
+    {
+        $this->nominate('5100', ControlAccount::KIND_COST, null, 'labour');
+        $this->burden(412_900);
+        CostPeriod::forDate('2026-08-01');
+
+        \Livewire\Livewire::test(\App\Modules\ConstructionCosting\Filament\Resources\CostPeriods\Pages\ListCostPeriods::class)
+            ->callTableAction('post', CostPeriod::forDate('2026-08-01'))
+            ->assertNotified();
+
+        $this->assertSame(0, \App\Modules\ConstructionCosting\Models\GlPosting::query()->count());
     }
 
     /**
