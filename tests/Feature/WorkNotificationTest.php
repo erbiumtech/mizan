@@ -195,6 +195,12 @@ class WorkNotificationTest extends AccountingTestCase
         $blocked = $this->item(['title' => 'Waiting']);
         WorkItemLink::create(['from_item_id' => $blocker->getKey(), 'to_item_id' => $blocked->getKey(), 'kind' => WorkItemLink::BLOCKS]);
 
+        // Assigned long ago and merely retitled today: not "since yesterday". `assigned_at` is what
+        // the digest reads, not `updated_at`.
+        $old = $this->item(['title' => 'Old hat', 'assignee_employee_id' => $this->ahmedEmployee->getKey()]);
+        $old->forceFill(['assigned_at' => now()->subWeek()])->saveQuietly();
+        $old->update(['title' => 'Old hat, retitled']);
+
         $this->artisan(SendWorkDigest::class, ['--tenant' => [$this->tenant->getKey()]])->assertSuccessful();
 
         Notification::assertSentTo($this->ahmed, WorkDigest::class, function (WorkDigest $digest) use ($due, $blocker): bool {

@@ -133,6 +133,18 @@ class WorkReleaseTest extends AccountingTestCase
         $this->assertSame((int) $release->getKey(), (int) $open->fresh()->release_id);
     }
 
+    /** The form's "out of any release": the open items go back to the plain backlog, and the release ships. */
+    public function test_open_items_can_be_taken_out_of_any_release_on_the_way_out(): void
+    {
+        $release = $this->release();
+        $open = $this->item(['title' => 'Not finished', 'release_id' => $release->getKey()]);
+
+        app(Releases::class)->release($release, null, keepOpen: false, clearOpen: true);
+
+        $this->assertTrue($release->fresh()->isReleased());
+        $this->assertNull($open->fresh()->release_id);
+    }
+
     public function test_open_work_cannot_be_moved_into_a_released_release(): void
     {
         $release = $this->release();

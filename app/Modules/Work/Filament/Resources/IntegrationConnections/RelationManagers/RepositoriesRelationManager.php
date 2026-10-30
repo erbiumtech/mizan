@@ -49,8 +49,16 @@ class RepositoriesRelationManager extends RelationManager
                 TextColumn::make('webhook_id')
                     ->label('Hook')
                     ->badge()
-                    ->state(fn (WorkRepository $record): string => filled($record->webhook_id) ? 'Registered' : 'Missing')
-                    ->color(fn (WorkRepository $record): string => filled($record->webhook_id) ? 'success' : 'danger'),
+                    ->state(fn (WorkRepository $record): string => match (true) {
+                        ! $record->isLinked() => 'Unlinked',
+                        filled($record->webhook_id) => 'Registered',
+                        default => 'Missing',
+                    })
+                    ->color(fn (WorkRepository $record): string => match (true) {
+                        ! $record->isLinked() => 'gray',
+                        filled($record->webhook_id) => 'success',
+                        default => 'danger',
+                    }),
                 TextColumn::make('linked_at')->label('Linked')->since(),
             ])
             ->headerActions([
@@ -109,7 +117,7 @@ class RepositoriesRelationManager extends RelationManager
                 Action::make('rehook')
                     ->label('Register hook')
                     ->icon('heroicon-o-arrow-path')
-                    ->visible(fn (WorkRepository $record): bool => blank($record->webhook_id)
+                    ->visible(fn (WorkRepository $record): bool => $record->isLinked() && blank($record->webhook_id)
                         && (auth()->user()?->can('update', $record) ?? false))
                     ->action(function (WorkRepository $record): void {
                         try {
@@ -130,8 +138,8 @@ class RepositoriesRelationManager extends RelationManager
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalDescription('The hook is removed from the provider. Commits, branches and pull requests already attached to items stay.')
-                    ->visible(fn (WorkRepository $record): bool => auth()->user()?->can('delete', $record) ?? false)
+                    ->modalDescription('The hook is removed from the provider and the repository stops delivering. Commits, branches and pull requests already attached to items stay.')
+                    ->visible(fn (WorkRepository $record): bool => $record->isLinked() && (auth()->user()?->can('delete', $record) ?? false))
                     ->action(fn (WorkRepository $record) => app(CodeHosts::class)->unlink($record)),
             ]);
     }

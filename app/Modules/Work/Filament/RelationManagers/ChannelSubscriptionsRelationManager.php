@@ -54,6 +54,11 @@ class ChannelSubscriptionsRelationManager extends RelationManager
                 ->required()
                 ->maxLength(1000)
                 ->url(fn (Get $get): bool => $get('kind') === WorkChannelSubscription::TEAMS)
+                ->rule(fn (Get $get) => $get('kind') !== WorkChannelSubscription::TEAMS ? null : function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! WorkChannelSubscription::isAllowedTeamsDestination((string) $value)) {
+                        $fail('A Teams webhook is an https URL on webhook.office.com or logic.azure.com.');
+                    }
+                })
                 ->helperText(fn (Get $get): string => $get('kind') === WorkChannelSubscription::TEAMS
                     ? 'From the Teams channel\'s connectors. Stored encrypted; it is the whole credential.'
                     : 'The bot must be in the channel. Slack posting needs SLACK_BOT_USER_OAUTH_TOKEN on the server; without it nothing is sent and nothing fails.'),

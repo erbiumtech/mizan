@@ -8,6 +8,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\LogOptions;
 
 /**
  * A company's door to one provider account — docs/project-management-plan.md §8.1.
@@ -63,6 +64,21 @@ class IntegrationConnection extends Model
     protected $hidden = ['webhook_secret'];
 
     protected $attributes = ['status' => self::ACTIVE, 'auth_kind' => self::AUTH_TOKEN];
+
+    /**
+     * `Auditable` logs every fillable attribute, which would copy the decrypted credentials and the
+     * signing secret into a second table the encryption does not cover — and leave every rotated
+     * token behind in the log. Excluded, the way `ProjectEnvironment` excludes its password.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logExcept(['credentials', 'webhook_secret', 'consecutive_failures', 'last_failure', 'last_event_at', 'paused_until'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName(class_basename(static::class));
+    }
 
     protected static function booted(): void
     {

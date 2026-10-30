@@ -85,9 +85,9 @@ class SendWorkDigest extends Command
 
         $dueToday = (clone $open)->whereDate('due_on', today())->get();
 
-        // "Since yesterday" is the last day's worth of changes to who holds it. The item's own
-        // updated_at is the honest proxy: the audit log would say exactly, at a query per item.
-        $assigned = (clone $open)->where('updated_at', '>=', now()->subDay())->get();
+        // "Since yesterday" is the last day's worth of changes to who holds it — `assigned_at`,
+        // stamped when the assignee changes, not `updated_at`, which moves on every edit.
+        $assigned = (clone $open)->where('assigned_at', '>=', now()->subDay())->get();
 
         // Items you hold that something else is waiting on.
         $blocked = (clone $open)

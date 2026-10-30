@@ -42,7 +42,7 @@ class WorkItem extends Model
 
     protected $fillable = [
         'project_id', 'number', 'key', 'type', 'title', 'description',
-        'work_status_id', 'priority', 'assignee_employee_id', 'reporter_user_id',
+        'work_status_id', 'priority', 'assignee_employee_id', 'assigned_at', 'reporter_user_id',
         'parent_id', 'sprint_id', 'carried_over', 'release_id', 'estimate_points', 'estimate_minutes', 'due_on', 'rank',
         'started_at', 'resolved_at', 'resolution', 'archived_at', 'imported_from', 'ai_summary', 'ai_summary_at',
     ];
@@ -55,6 +55,7 @@ class WorkItem extends Model
         'due_on' => 'date',
         'started_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'assigned_at' => 'datetime',
         'archived_at' => 'datetime',
         'ai_summary_at' => 'datetime',
     ];

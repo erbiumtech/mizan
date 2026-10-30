@@ -145,12 +145,19 @@ class WorkReleaseResource extends Resource
                     ->modalDescription('Stamps today as the release date. Nothing moves and no status changes.')
                     ->schema(fn (WorkRelease $record): array => self::releaseSchema($record))
                     ->action(function (WorkRelease $record, array $data): void {
-                        $target = ($data['open_go'] ?? 'move') === 'move' && filled($data['move_to'] ?? null)
+                        $moving = ($data['open_go'] ?? 'move') === 'move';
+                        $target = $moving && filled($data['move_to'] ?? null)
                             ? WorkRelease::query()->find($data['move_to'])
                             : null;
 
                         try {
-                            app(Releases::class)->release($record, $target, keepOpen: ($data['open_go'] ?? null) === 'keep');
+                            app(Releases::class)->release(
+                                $record,
+                                $target,
+                                keepOpen: ($data['open_go'] ?? null) === 'keep',
+                                // "Move" with no release chosen is the form's "out of any release".
+                                clearOpen: $moving && $target === null,
+                            );
                         } catch (RuntimeException $e) {
                             Notification::make()->danger()->title('It did not go out')->body($e->getMessage())->send();
 

@@ -39,7 +39,16 @@ class PullTimeEntries extends Command
         $since = now()->subDays(max(1, (int) $this->option('days')))->startOfDay();
         $held = 0;
 
-        foreach (IntegrationConnection::query()->where('kind', Integrations::TIME)->active()->get() as $connection) {
+        // Not `active()`: a connection the breaker paused stays `paused` on the row until a call
+        // succeeds, and the pull is the only call a webhook-less workspace ever makes. `isOpen()`
+        // is what knows the pause has expired.
+        $connections = IntegrationConnection::query()
+            ->where('kind', Integrations::TIME)
+            ->where('status', '!=', IntegrationConnection::DISCONNECTED)
+            ->get()
+            ->filter(fn (IntegrationConnection $c): bool => $c->isOpen());
+
+        foreach ($connections as $connection) {
             try {
                 $provider = $events->timeProviderFor($connection);
                 $facts = $provider->pull($connection, $since);

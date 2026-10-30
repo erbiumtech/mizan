@@ -46,6 +46,16 @@ class Timeline extends Page
         return __('Timeline');
     }
 
+    /**
+     * The module and the permission. `BelongsToModule::canAccess()` checks the module alone, and a
+     * panel user whose role lacks `WorkItemView` must not read a board through this page when the
+     * item list and the release list refuse them.
+     */
+    public static function canAccess(): bool
+    {
+        return static::moduleIsAvailable() && (auth()->user()?->can('viewAny', WorkItem::class) ?? false);
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('Timeline');

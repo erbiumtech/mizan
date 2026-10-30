@@ -5,6 +5,7 @@ namespace App\Modules\Work\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Projects\Models\Project;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -15,10 +16,21 @@ class WorkRepository extends Model
 
     protected $fillable = [
         'integration_connection_id', 'project_id', 'external_id', 'full_name', 'default_branch',
-        'url', 'webhook_id', 'linked_at',
+        'url', 'webhook_id', 'linked_at', 'unlinked_at',
     ];
 
-    protected $casts = ['linked_at' => 'datetime'];
+    protected $casts = ['linked_at' => 'datetime', 'unlinked_at' => 'datetime'];
+
+    /** Still delivering and still offered — not unlinked. */
+    public function scopeLinked(Builder $query): Builder
+    {
+        return $query->whereNull('unlinked_at');
+    }
+
+    public function isLinked(): bool
+    {
+        return $this->unlinked_at === null;
+    }
 
     public function connection(): BelongsTo
     {

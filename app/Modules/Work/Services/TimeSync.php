@@ -159,6 +159,8 @@ class TimeSync
             'username' => $fact->externalUserId,
             'id' => $fact->externalUserId,
             'email' => $email,
+            // The workspace directory's address is the account's own, which is what makes it safe to match on.
+            'verified' => $email !== null,
         ]);
 
         return $identity?->user();

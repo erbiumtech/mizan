@@ -90,7 +90,13 @@ class ChannelPosts
 
                 Notification::route('slack', $subscription->destination)->notify(new WorkChannelPost($text, $url));
             } else {
-                $response = Http::timeout(10)->post($subscription->destination, [
+                // Checked here as well as on the form: a row written any other way must not become
+                // a request to an address of the writer's choosing.
+                if (! WorkChannelSubscription::isAllowedTeamsDestination($subscription->destination)) {
+                    throw new \RuntimeException('The destination is not a Teams webhook host.');
+                }
+
+                $response = Http::timeout(10)->withOptions(['allow_redirects' => false])->post($subscription->destination, [
                     '@type' => 'MessageCard',
                     '@context' => 'https://schema.org/extensions',
                     'summary' => $text,

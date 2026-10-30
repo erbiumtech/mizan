@@ -55,6 +55,7 @@ class CodeHosts
                 'default_branch' => $repo['default_branch'] ?: 'main',
                 'url' => $repo['url'] ?? null,
                 'linked_at' => now(),
+                'unlinked_at' => null,
             ],
         );
 
@@ -74,16 +75,24 @@ class CodeHosts
         return $repository;
     }
 
+    /**
+     * Unlink: the hook comes off the provider and the row is marked, never deleted.
+     *
+     * The commits, branches and pull requests it recorded are part of how the items got done, and
+     * the fact tables cascade on the repository row — so deleting it would have erased the history
+     * the confirmation promised to keep. An unlinked repository delivers nothing (the handler skips
+     * it) and is offered nowhere; linking it again clears the mark.
+     */
     public function unlink(WorkRepository $repository): void
     {
         try {
             $this->provider($repository->connection)->removeWebhook($repository);
         } catch (RuntimeException) {
             // The hook may already be gone, or the token may have lost the right. The link goes
-            // either way; a stray hook delivers to a 404.
+            // either way; a stray hook delivers to a repository that no longer accepts.
         }
 
-        $repository->delete();
+        $repository->forceFill(['webhook_id' => null, 'unlinked_at' => now()])->save();
     }
 
     /** Where the provider should deliver for this connection. */
@@ -103,6 +112,7 @@ class CodeHosts
     {
         return WorkRepository::query()
             ->where('project_id', $item->project_id)
+            ->linked()
             ->with('connection')
             ->orderBy('full_name')
             ->get();

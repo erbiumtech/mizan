@@ -23,14 +23,31 @@ use App\Support\ModuleMap;
  *
  * Everything else — "a record of yours changed" on the bell — is `RecordAudience` reading
  * `WorkItem::changeAudience()`, which needs no wiring here.
+ *
+ * `created` and `updated` are listened to separately rather than `saved` with `wasRecentlyCreated`:
+ * that flag stays true for the life of the instance, so a title change on an item just created
+ * would have read as a second assignment.
  */
 class WorkWatching
 {
     public static function register(): void
     {
-        WorkItem::saved(function (WorkItem $item): void {
-            self::assigned($item);
-            self::describedMentions($item);
+        WorkItem::created(function (WorkItem $item): void {
+            if ($item->assignee_employee_id !== null) {
+                self::assigned($item);
+            }
+
+            self::notifyMentioned($item, $item->description, 'the description');
+        });
+
+        WorkItem::updated(function (WorkItem $item): void {
+            if ($item->wasChanged('assignee_employee_id') && $item->assignee_employee_id !== null) {
+                self::assigned($item);
+            }
+
+            if ($item->wasChanged('description')) {
+                self::notifyMentioned($item, $item->description, 'the description');
+            }
         });
 
         Comment::created(function (Comment $comment): void {
@@ -40,13 +57,9 @@ class WorkWatching
 
     private static function assigned(WorkItem $item): void
     {
-        if (! $item->wasChanged('assignee_employee_id') && ! ($item->wasRecentlyCreated && $item->assignee_employee_id !== null)) {
-            return;
-        }
-
-        if ($item->assignee_employee_id === null) {
-            return;
-        }
+        // The moment the assignee last changed — what the digest's "since yesterday" reads, because
+        // `updated_at` moves on every edit. Quietly, so this stamp is not itself an update.
+        $item->forceFill(['assigned_at' => now()])->saveQuietly();
 
         $assignee = $item->assignee()->with('user')->first()?->user;
 
@@ -56,7 +69,8 @@ class WorkWatching
 
         $item->watch($assignee);
 
-        WorkItemAssigned::dispatch($item, $item->getOriginal('assignee_employee_id') !== null ? (int) $item->getOriginal('assignee_employee_id') : null);
+        $previous = $item->getOriginal('assignee_employee_id');
+        WorkItemAssigned::dispatch($item, $previous !== null && (int) $previous !== (int) $item->assignee_employee_id ? (int) $previous : null);
 
         $by = auth()->user();
 
@@ -65,15 +79,6 @@ class WorkWatching
         }
 
         $assignee->notify(new WorkItemAssignedNotification($item, $by?->name));
-    }
-
-    private static function describedMentions(WorkItem $item): void
-    {
-        if (! $item->wasChanged('description') && ! $item->wasRecentlyCreated) {
-            return;
-        }
-
-        self::notifyMentioned($item, $item->description, 'the description');
     }
 
     private static function commented(Comment $comment): void
@@ -99,6 +104,10 @@ class WorkWatching
 
     private static function notifyMentioned(WorkItem $item, ?string $text, string $where, ?int $byId = null): void
     {
+        if (blank($text)) {
+            return;
+        }
+
         $byId ??= auth()->id() !== null ? (int) auth()->id() : null;
         $by = $byId !== null ? User::query()->find($byId) : null;
 

@@ -62,7 +62,11 @@ class IntegrationEvents
                 'received_at' => now(),
             ]);
         } catch (UniqueConstraintViolationException) {
-            // Redelivered. Held already, processed or about to be; nothing more to do.
+            // Redelivered. Held already — processed, failed, or queued. A queued one older than a
+            // couple of minutes is one whose dispatch did not survive the first request, and the
+            // redelivery is the chance to queue it again rather than acknowledge it into limbo.
+            $this->requeueIfStranded($connection, $eventId);
+
             return null;
         }
 
@@ -71,6 +75,20 @@ class IntegrationEvents
         ProcessIntegrationEvent::dispatch($event->getKey());
 
         return $event;
+    }
+
+    private function requeueIfStranded(IntegrationConnection $connection, string $eventId): void
+    {
+        $held = IntegrationEvent::query()
+            ->where('integration_connection_id', $connection->getKey())
+            ->where('provider_event_id', $eventId)
+            ->pending()
+            ->where('received_at', '<', now()->subMinutes(2))
+            ->first();
+
+        if ($held !== null) {
+            ProcessIntegrationEvent::dispatch($held->getKey());
+        }
     }
 
     /**

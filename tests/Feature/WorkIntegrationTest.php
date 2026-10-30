@@ -21,6 +21,7 @@ use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Services\CodeHosts;
 use App\Modules\Work\Services\FactHandler;
+use App\Modules\Work\Services\Identities;
 use App\Modules\Work\Services\WorkItems;
 use App\Support\Integrations;
 use Database\Seeders\WorkWorkflowSeeder;
@@ -113,6 +114,16 @@ class WorkIntegrationTest extends AccountingTestCase
         return ['username' => 'ahmedk', 'id' => '77', 'email' => 'ahmed@test.local'];
     }
 
+    private function claimAhmed(): IntegrationIdentity
+    {
+        $identity = IntegrationIdentity::query()->firstOrCreate(
+            ['integration_connection_id' => $this->connection->getKey(), 'provider_username' => 'ahmedk'],
+            ['provider_user_id' => '77', 'email' => 'ahmed@test.local'],
+        );
+
+        return app(Identities::class)->claim($identity, $this->ahmed);
+    }
+
     private function deliver(array $payload, string $event = 'push', ?string $signature = null, ?string $deliveryId = null)
     {
         $body = (string) json_encode($payload);
@@ -188,18 +199,41 @@ class WorkIntegrationTest extends AccountingTestCase
         $this->assertFalse($identity->isMatched());
     }
 
-    /** Matched by verified email on first sight, the same commit moves the item — in Ahmed's name. */
+    /**
+     * A commit's author email is whatever the committer typed. Carrying a colleague's address binds
+     * nobody: the identity is kept with the address for display and waits to be claimed or assigned.
+     */
+    public function test_a_commit_email_does_not_match_a_person_by_itself(): void
+    {
+        $item = $this->item();
+
+        app(FactHandler::class)->handle($this->connection, [
+            new CommitFact('4242', $this->ahmed(), 'abc1234def', $item->key.' #done', now(), null),
+        ]);
+
+        $identity = IntegrationIdentity::query()->where('provider_username', 'ahmedk')->firstOrFail();
+        $this->assertFalse($identity->isMatched(), 'an unvouched email matches nobody');
+        $this->assertSame('ahmed@test.local', $identity->email, 'but is kept, so an administrator can see who to assign');
+        $this->assertSame('To do', $item->fresh()->status->name, 'and the smart commit did not run');
+    }
+
+    /** Claimed or assigned, the same commit moves the item — in Ahmed's name. */
     public function test_a_smart_commit_from_a_matched_identity_moves_the_item_on_the_record(): void
     {
         $item = $this->item();
+
+        $identity = IntegrationIdentity::create([
+            'integration_connection_id' => $this->connection->getKey(),
+            'provider_username' => 'ahmedk', 'provider_user_id' => '77', 'email' => 'ahmed@test.local',
+        ]);
+        app(Identities::class)->claim($identity, $this->ahmed);
 
         app(FactHandler::class)->handle($this->connection, [
             new CommitFact('4242', $this->ahmed(), 'abc1234def', $item->key." #done\n\nFixes the export.", now(), null),
         ]);
 
-        $identity = IntegrationIdentity::query()->where('provider_username', 'ahmedk')->firstOrFail();
-        $this->assertSame((int) $this->ahmed->getKey(), (int) $identity->user_id);
-        $this->assertSame(IntegrationIdentity::BY_EMAIL, $identity->matched_how);
+        $this->assertSame((int) $this->ahmed->getKey(), (int) $identity->fresh()->user_id);
+        $this->assertSame(IntegrationIdentity::BY_CLAIM, $identity->fresh()->matched_how);
 
         $this->assertSame('Done', $item->fresh()->status->name);
         $this->assertNotNull($item->fresh()->resolved_at);
@@ -214,6 +248,7 @@ class WorkIntegrationTest extends AccountingTestCase
     public function test_a_smart_commit_can_comment(): void
     {
         $item = $this->item();
+        $this->claimAhmed();
 
         app(FactHandler::class)->handle($this->connection, [
             new CommitFact('4242', $this->ahmed(), 'abc1234def', $item->key.' #comment the off-by-one was in the pager', now(), null),
@@ -352,6 +387,29 @@ class WorkIntegrationTest extends AccountingTestCase
 
         // And a paused connection accepts no deliveries either.
         $this->deliver(['ref' => 'refs/heads/main', 'repository' => ['id' => 4242], 'commits' => []])->assertStatus(503);
+    }
+
+    /** Unlinking takes the hook off and stops deliveries; what the repository recorded stays. */
+    public function test_unlinking_keeps_the_history_and_stops_deliveries(): void
+    {
+        Http::fake(['*' => Http::response([], 204)]);
+
+        $item = $this->item();
+        app(FactHandler::class)->handle($this->connection, [
+            new CommitFact('4242', $this->ahmed(), 'abc1234def', $item->key.' tidy', now(), null),
+        ]);
+        $this->assertSame(1, WorkItemCommit::query()->count());
+
+        app(CodeHosts::class)->unlink($this->repository);
+
+        $this->assertNotNull($this->repository->fresh()->unlinked_at);
+        $this->assertSame(1, WorkItemCommit::query()->count(), 'the commit it recorded is still history');
+        $this->assertSame(0, app(CodeHosts::class)->repositoriesFor($item)->count(), 'and it is offered nowhere');
+
+        app(FactHandler::class)->handle($this->connection, [
+            new CommitFact('4242', $this->ahmed(), 'def5678abc', $item->key.' more', now(), null),
+        ]);
+        $this->assertSame(1, WorkItemCommit::query()->count(), 'a delivery for an unlinked repository does nothing');
     }
 
     public function test_linking_a_pasted_pull_request_url(): void

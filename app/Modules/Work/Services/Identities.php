@@ -19,7 +19,14 @@ class Identities
     /**
      * The identity for an author, created on first sight.
      *
-     * @param  array{username: ?string, id: ?string, email: ?string}  $author
+     * `verified` says whether the provider itself vouches for the email: GitLab's push payload
+     * names the authenticated pusher's address and Clockify's user directory is the account's, so
+     * both may match a person; a git commit's author email is whatever the committer typed, so a
+     * GitHub or Bitbucket commit carries the address for display and matches nobody — otherwise a
+     * push with a colleague's email in it would bind the pusher to that colleague and run smart
+     * commits in their name.
+     *
+     * @param  array{username: ?string, id: ?string, email: ?string, verified?: bool}  $author
      */
     public function resolve(IntegrationConnection $connection, array $author): ?IntegrationIdentity
     {
@@ -39,14 +46,17 @@ class Identities
             $identity->forceFill(['email' => $author['email']])->save();
         }
 
-        if (! $identity->isMatched()) {
+        if (! $identity->isMatched() && ($author['verified'] ?? false) === true) {
             $this->matchByEmail($identity);
         }
 
         return $identity;
     }
 
-    /** Verified email, and a member of this company: the only automatic match — §8.5. */
+    /**
+     * An email the provider vouches for, against a member whose own address is verified: the only
+     * automatic match — §8.5. Everything else waits to be claimed or assigned.
+     */
     public function matchByEmail(IntegrationIdentity $identity): bool
     {
         if (blank($identity->email)) {

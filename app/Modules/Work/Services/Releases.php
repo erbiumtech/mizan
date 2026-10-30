@@ -29,10 +29,11 @@ class Releases
      *
      * @param  ?WorkRelease  $moveOpenTo  where the unfinished go
      * @param  bool  $keepOpen  ship with the open items still attributed to this release
+     * @param  bool  $clearOpen  take the unfinished out of any release, back to the plain backlog
      *
      * @throws RuntimeException
      */
-    public function release(WorkRelease $release, ?WorkRelease $moveOpenTo = null, bool $keepOpen = false): WorkRelease
+    public function release(WorkRelease $release, ?WorkRelease $moveOpenTo = null, bool $keepOpen = false, bool $clearOpen = false): WorkRelease
     {
         if ($release->isReleased()) {
             throw new RuntimeException($release->name.' went out on '.$release->released_on->format('d M Y').' already.');
@@ -48,14 +49,14 @@ class Releases
 
         $open = $this->open($release)->get();
 
-        if ($open->isNotEmpty() && $moveOpenTo === null && ! $keepOpen) {
+        if ($open->isNotEmpty() && $moveOpenTo === null && ! $keepOpen && ! $clearOpen) {
             throw new RuntimeException($open->count().' item(s) in '.$release->name
-                .' are still open. Move them to another release, or say that they ship open.');
+                .' are still open. Move them to another release, take them out of any release, or say that they ship open.');
         }
 
-        if ($moveOpenTo !== null) {
+        if ($moveOpenTo !== null || $clearOpen) {
             foreach ($open as $item) {
-                $item->forceFill(['release_id' => $moveOpenTo->getKey()])->save();
+                $item->forceFill(['release_id' => $moveOpenTo?->getKey()])->save();
             }
         }
 

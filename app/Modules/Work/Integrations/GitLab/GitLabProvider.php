@@ -74,6 +74,8 @@ class GitLabProvider implements CodeProvider
             'username' => $payload['user_username'] ?? null,
             'id' => isset($payload['user_id']) ? (string) $payload['user_id'] : null,
             'email' => $payload['user_email'] ?? null,
+            // GitLab names the authenticated pusher here, not the commit's author line.
+            'verified' => filled($payload['user_email'] ?? null),
         ];
         $zeros = str_repeat('0', 40);
 
@@ -98,7 +100,9 @@ class GitLabProvider implements CodeProvider
                 [
                     'username' => $actor['username'] ?? ($commit['author']['name'] ?? null),
                     'id' => $actor['id'],
-                    'email' => $commit['author']['email'] ?? $actor['email'],
+                    // The pusher's own address when GitLab gave it; the author line otherwise, unvouched.
+                    'email' => $actor['email'] ?? ($commit['author']['email'] ?? null),
+                    'verified' => $actor['verified'],
                 ],
                 (string) $commit['id'],
                 (string) ($commit['message'] ?? ''),
@@ -128,6 +132,7 @@ class GitLabProvider implements CodeProvider
                 'username' => $payload['user']['username'] ?? null,
                 'id' => isset($payload['user']['id']) ? (string) $payload['user']['id'] : null,
                 'email' => $payload['user']['email'] ?? null,
+                'verified' => filled($payload['user']['email'] ?? null),
             ],
             (int) ($mr['iid'] ?? 0),
             (string) ($mr['title'] ?? ''),

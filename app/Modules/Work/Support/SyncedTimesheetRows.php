@@ -28,10 +28,19 @@ class SyncedTimesheetRows
 {
     private static bool $syncing = false;
 
+    /** What the timesheet itself may stamp on a synced row: who approved it, when, and when it was billed. */
+    public const LEDGER_COLUMNS = ['approved_by', 'approved_at', 'locked_at', 'updated_at'];
+
     public static function register(): void
     {
         TimesheetEntry::updating(function (TimesheetEntry $entry): void {
             if (self::$syncing || WorkTime::isEditable($entry)) {
+                return;
+            }
+
+            // Approving and billing are the ledger's own stamps, not edits to the hour: a synced
+            // row still has to be approved to be invoiced. Only the imported fields are refused.
+            if (array_diff(array_keys($entry->getDirty()), self::LEDGER_COLUMNS) === []) {
                 return;
             }
 

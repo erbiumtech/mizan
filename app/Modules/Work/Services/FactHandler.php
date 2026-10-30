@@ -46,9 +46,10 @@ class FactHandler
     public function handle(IntegrationConnection $connection, array $facts): void
     {
         foreach ($facts as $fact) {
-            $repository = $connection->repositories()->where('external_id', $fact->repositoryExternalId)->first();
+            $repository = $connection->repositories()->linked()->where('external_id', $fact->repositoryExternalId)->first();
 
-            // A delivery for a repository nobody linked: the hook outlived the link. Nothing to do.
+            // A delivery for a repository nobody linked, or one since unlinked: the hook outlived
+            // the link. Nothing to do.
             if ($repository === null) {
                 continue;
             }

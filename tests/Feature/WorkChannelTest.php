@@ -113,6 +113,30 @@ class WorkChannelTest extends AccountingTestCase
             && ($notifiable->routes['slack'] ?? null) === '#website-dev');
     }
 
+    /** A webhook URL on an arbitrary host is not a Teams webhook, and the server never posts to it. */
+    public function test_a_destination_off_the_teams_hosts_is_refused_and_never_posted_to(): void
+    {
+        $this->assertTrue(WorkChannelSubscription::isAllowedTeamsDestination('https://acme.webhook.office.com/webhookb2/abc'));
+        $this->assertTrue(WorkChannelSubscription::isAllowedTeamsDestination('https://prod-12.westeurope.logic.azure.com:443/workflows/x'));
+        $this->assertFalse(WorkChannelSubscription::isAllowedTeamsDestination('http://acme.webhook.office.com/x'), 'https only');
+        $this->assertFalse(WorkChannelSubscription::isAllowedTeamsDestination('https://127.0.0.1/admin'));
+        $this->assertFalse(WorkChannelSubscription::isAllowedTeamsDestination('https://webhook.office.com.evil.example/x'));
+
+        Http::fake();
+
+        $subscription = WorkChannelSubscription::create([
+            'project_id' => $this->project->getKey(),
+            'kind' => WorkChannelSubscription::TEAMS,
+            'destination' => 'https://10.0.0.5/internal',
+            'events' => ['item.created'],
+        ]);
+
+        app(WorkItems::class)->create($this->project, ['title' => 'Never reaches the LAN'], auth()->user());
+
+        Http::assertNothingSent();
+        $this->assertStringContainsString('not a Teams webhook host', $subscription->fresh()->last_failure);
+    }
+
     public function test_an_inactive_subscription_hears_nothing(): void
     {
         Http::fake();

@@ -7,6 +7,7 @@ use App\Modules\Projects\Models\Project;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
 
 /**
  * A project posting a line per event to a chat channel — docs/project-management-plan.md §8.7.
@@ -47,6 +48,48 @@ class WorkChannelSubscription extends Model
     ];
 
     protected $attributes = ['is_active' => true];
+
+    /** The Teams URL is the whole credential, so it never reaches the activity log. */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logExcept(['destination', 'last_posted_at', 'last_failure'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName(class_basename(static::class));
+    }
+
+    /**
+     * Hosts an incoming webhook may live on. A Teams connector URL is on `*.webhook.office.com`;
+     * a Power Automate "post to Teams" flow is on `*.logic.azure.com`. Nothing else, so a
+     * `BoardManage` holder cannot point the server at an internal address and have an item save
+     * make the request — the SSRF the first review named.
+     */
+    public const TEAMS_HOST_SUFFIXES = ['.webhook.office.com', '.logic.azure.com'];
+
+    public static function isAllowedTeamsDestination(?string $url): bool
+    {
+        if (blank($url)) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+
+        if (($parts['scheme'] ?? '') !== 'https' || blank($parts['host'] ?? null)) {
+            return false;
+        }
+
+        $host = strtolower($parts['host']);
+
+        foreach (self::TEAMS_HOST_SUFFIXES as $suffix) {
+            if (str_ends_with($host, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function project(): BelongsTo
     {

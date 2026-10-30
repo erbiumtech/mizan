@@ -58,9 +58,25 @@ class Backlog extends Page
     /** @var array<int, int> */
     public array $selected = [];
 
+    /** A new project is a new list; ticks from the old one must not follow. */
+    public function updatedProject(): void
+    {
+        $this->selected = [];
+    }
+
     public function getTitle(): string|Htmlable
     {
         return __('Backlog');
+    }
+
+    /**
+     * The module and the permission. `BelongsToModule::canAccess()` checks the module alone, and a
+     * panel user whose role lacks `WorkItemView` must not read a board through this page when the
+     * item list and the release list refuse them.
+     */
+    public static function canAccess(): bool
+    {
+        return static::moduleIsAvailable() && (auth()->user()?->can('viewAny', WorkItem::class) ?? false);
     }
 
     public static function getNavigationLabel(): string
@@ -214,6 +230,9 @@ class Backlog extends Page
 
         $moved = WorkItem::query()
             ->whereKey($this->selected)
+            // Only this project's: a tick that survived a change of project must not be edited
+            // into the project now on screen.
+            ->where('project_id', $this->currentProject()?->getKey() ?? 0)
             ->get()
             ->filter(fn (WorkItem $item): bool => auth()->user()?->can('update', $item) ?? false);
 
@@ -237,7 +256,9 @@ class Backlog extends Page
      */
     public function setRelease(?int $release = null): void
     {
-        $target = $release !== null ? WorkRelease::query()->unreleased()->find($release) : null;
+        $target = $release !== null
+            ? WorkRelease::query()->unreleased()->where('project_id', $this->currentProject()?->getKey() ?? 0)->find($release)
+            : null;
 
         if ($release !== null && $target === null) {
             return;
@@ -258,7 +279,9 @@ class Backlog extends Page
      */
     public function setEpic(?int $epic = null): void
     {
-        $target = $epic !== null ? WorkItem::query()->epics()->find($epic) : null;
+        $target = $epic !== null
+            ? WorkItem::query()->epics()->where('project_id', $this->currentProject()?->getKey() ?? 0)->find($epic)
+            : null;
 
         if ($epic !== null && $target === null) {
             return;
@@ -296,6 +319,7 @@ class Backlog extends Page
 
         $items = WorkItem::query()
             ->whereKey($this->selected)
+            ->where('project_id', $this->currentProject()?->getKey() ?? 0)
             ->get()
             ->filter(fn (WorkItem $item): bool => auth()->user()?->can('update', $item) ?? false);
 
