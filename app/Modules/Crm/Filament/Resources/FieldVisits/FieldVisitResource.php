@@ -15,6 +15,7 @@ use App\Modules\Crm\Models\Opportunity;
 use App\Modules\Crm\Services\FieldVisits;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\EmployeeAccess;
 use App\Support\ModuleMap;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -95,7 +96,7 @@ class FieldVisitResource extends Resource
                     ->mapWithKeys(fn (Employee $e): array => [$e->id => $e->display_label])->all())
                 ->searchable()
                 ->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DateTimePicker::make('planned_at')->label('Planned for')->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(10, 0)),
 

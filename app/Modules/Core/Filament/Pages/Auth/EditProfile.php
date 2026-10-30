@@ -5,7 +5,7 @@ namespace App\Modules\Core\Filament\Pages\Auth;
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Support\NotificationPreferences;
-use App\Support\TenantDb;
+use App\Support\EmployeeAccess;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
@@ -111,10 +111,13 @@ class EditProfile extends BaseEditProfile
     /**
      * Does this user have an employee record whose approval flow owns their name?
      *
-     * Queried through TenantDb rather than the Employee model, because Core may
-     * not import a module's models. Only meaningful inside a company with the
-     * Employees module: on the platform panel there is no tenant and no employee,
-     * so the name is the user's own to change.
+     * Asked through App\Support\EmployeeAccess rather than the Employees model,
+     * because Core may not import a module's models — the support class is the
+     * seam that may, and it answers from the request's memo, so this costs
+     * nothing on a panel page that has already built its navigation. Only
+     * meaningful inside a company with the Employees module: on the platform
+     * panel there is no tenant and no employee, so the name is the user's own
+     * to change.
      */
     private function nameManagedByEmployeeRecord(): bool
     {
@@ -127,7 +130,7 @@ class EditProfile extends BaseEditProfile
         }
 
         try {
-            return TenantDb::table('employees')->where('user_id', auth()->id())->exists();
+            return app(EmployeeAccess::class)->isEmployee(auth()->user());
         } catch (Throwable) {
             return false;
         }

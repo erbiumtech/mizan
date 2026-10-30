@@ -33,7 +33,7 @@ class FieldVisitStaffResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Settings';
+    protected static string|UnitEnum|null $navigationGroup = 'Sales';
 
     protected static ?string $navigationLabel = 'Field Visit Staff';
 

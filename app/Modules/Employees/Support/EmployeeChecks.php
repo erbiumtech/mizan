@@ -2,9 +2,11 @@
 
 namespace App\Modules\Employees\Support;
 
+use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Models\EmployeeVerification;
 use App\Modules\Employees\Models\LetterTemplate;
+use App\Support\EmployeeAccess;
 use App\Support\VerificationChecks;
 use App\Support\WhatsApp\WhatsAppDelivery;
 
@@ -75,13 +77,17 @@ final class EmployeeChecks
      */
     public static function employeeFor(?object $user): ?Employee
     {
-        if ($user === null || ! method_exists($user, 'getAuthIdentifier')) {
+        if (! $user instanceof User) {
             return null;
         }
 
-        $id = $user->getAuthIdentifier();
+        // Through the request's memo rather than a query of its own: every per-person
+        // screen asks this while the navigation is built, and they were asking it
+        // separately. `loadMissing` then fills the relation once for the request.
+        $employee = app(EmployeeAccess::class)->employeeFor($user);
+        $employee?->loadMissing('verifications');
 
-        return $id === null ? null : Employee::query()->with('verifications')->where('user_id', $id)->first();
+        return $employee;
     }
 
     private static function unproved(?object $user, string $kind, string $reason): ?string

@@ -77,7 +77,7 @@ class LeadForm
                         ))
                         ->preload()
                         ->visible(fn (): bool => modules()->enabled('employees'))
-                        ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id'))
+                        ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user()))
                         ->helperText('Who is working it. This is also what decides who can see it.'),
 
                     Select::make('status')

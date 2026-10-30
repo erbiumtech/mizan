@@ -5,6 +5,7 @@ namespace App\Modules\Crm\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,7 +63,7 @@ class Activity extends Model
             // number that must be read as effort, not performance — is attributable
             // without asking every time.
             if ($activity->employee_id === null && modules()->enabled('employees')) {
-                $activity->employee_id = Employee::where('user_id', auth()->id())->value('id');
+                $activity->employee_id = app(EmployeeAccess::class)->ownEmployeeId(auth()->user());
             }
         });
     }

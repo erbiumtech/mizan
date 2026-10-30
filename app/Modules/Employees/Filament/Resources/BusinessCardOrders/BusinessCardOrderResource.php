@@ -9,6 +9,7 @@ use App\Modules\Employees\Filament\Resources\BusinessCardOrders\Pages\ListBusine
 use App\Modules\Employees\Models\BusinessCardOrder;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Services\BusinessCards;
+use App\Support\EmployeeAccess;
 use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -78,7 +79,7 @@ class BusinessCardOrderResource extends Resource
                     ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             TextInput::make('quantity')
                 ->label('How many')

@@ -50,7 +50,7 @@ class ConfirmDetails extends Page
 
     public static function canAccess(): bool
     {
-        return static::moduleIsAvailable() && EmployeeChecks::employeeFor(auth()->user()) !== null;
+        return static::moduleIsAvailable() && app(\App\Support\EmployeeAccess::class)->isEmployee(auth()->user());
     }
 
     public function employee(): ?Employee

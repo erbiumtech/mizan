@@ -157,7 +157,7 @@ class ListAttendanceDays extends ListRecords
      */
     private function clockAction(): Action
     {
-        $employee = fn (): ?Employee => Employee::query()->where('user_id', auth()->id())->first();
+        $employee = fn (): ?Employee => app(EmployeeAccess::class)->employeeFor(auth()->user());
         $today = fn (): ?AttendanceDay => ($e = $employee()) ? AttendanceDay::forDate($e->getKey(), now()->startOfDay()) : null;
 
         return Action::make('clock')

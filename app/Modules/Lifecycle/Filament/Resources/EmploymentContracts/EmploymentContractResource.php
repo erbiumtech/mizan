@@ -9,6 +9,7 @@ use App\Modules\Lifecycle\Filament\Resources\EmploymentContracts\Pages\EditEmplo
 use App\Modules\Lifecycle\Filament\Resources\EmploymentContracts\Pages\ListEmploymentContracts;
 use App\Modules\Lifecycle\Models\EmploymentContract;
 use App\Modules\Lifecycle\Services\EmploymentContracts;
+use App\Support\EmployeeAccess;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -62,7 +63,7 @@ class EmploymentContractResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return (auth()->user()?->can('EmployeeDocumentView') ?? false) || Employee::query()->where('user_id', auth()->id())->exists();
+        return (auth()->user()?->can('EmployeeDocumentView') ?? false) || app(EmployeeAccess::class)->isEmployee(auth()->user());
     }
 
     public static function form(Schema $schema): Schema

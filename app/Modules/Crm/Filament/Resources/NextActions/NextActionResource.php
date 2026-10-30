@@ -9,6 +9,7 @@ use App\Modules\Crm\Filament\Resources\NextActions\Pages\EditNextAction;
 use App\Modules\Crm\Filament\Resources\NextActions\Pages\ListNextActions;
 use App\Modules\Crm\Models\NextAction;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -104,7 +105,7 @@ class NextActionResource extends Resource
                     ->all())
                 ->searchable()
                 ->visible(fn (): bool => modules()->enabled('employees'))
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
         ];
     }
 

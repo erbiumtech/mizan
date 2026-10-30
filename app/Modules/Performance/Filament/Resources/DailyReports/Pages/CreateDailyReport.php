@@ -5,9 +5,11 @@ namespace App\Modules\Performance\Filament\Resources\DailyReports\Pages;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Performance\Filament\Resources\DailyReports\DailyReportResource;
 use App\Modules\Performance\Services\DailyReports;
+use App\Support\EmployeeAccess;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use InvalidArgumentException;
 
 /**
@@ -20,7 +22,8 @@ class CreateDailyReport extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
-        $employee = Employee::query()->where('user_id', auth()->id())->firstOrFail();
+        $employee = app(EmployeeAccess::class)->employeeFor(auth()->user())
+            ?? throw (new ModelNotFoundException)->setModel(Employee::class);
 
         try {
             return app(DailyReports::class)->submit($employee, (string) $data['report_date'], (string) $data['body'], auth()->user());

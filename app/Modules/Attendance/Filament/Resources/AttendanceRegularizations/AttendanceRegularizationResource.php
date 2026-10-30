@@ -89,7 +89,7 @@ class AttendanceRegularizationResource extends Resource
                 ))
                 ->preload()
                 ->required()
-                ->default(fn (): ?int => \App\Modules\Employees\Models\Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DatePicker::make('date')
                 ->native(false)

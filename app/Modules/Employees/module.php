@@ -244,4 +244,17 @@ return [
         // Departments and designations as rows — docs/saas-launch-plan.md §14.2.
         'Settings' => 'admin',
     ],
+
+    /**
+     * Pages that register no navigation group, claimed per class.
+     *
+     * My Email Signature is in **Home**, not People, and the reason is the one
+     * NavigationDomains gives for putting Personal there: it is a screen about the person
+     * looking at it rather than about the company, and People is where you go to act on
+     * somebody else's record. It sat in the Employee column for one day and read as
+     * something HR does to you.
+     */
+    'navigation_items' => [
+        \App\Modules\Employees\Filament\Pages\MyEmailSignature::class => 'home',
+    ],
 ];

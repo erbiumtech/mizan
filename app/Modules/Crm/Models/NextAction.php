@@ -6,6 +6,7 @@ use App\Models\Concerns\StoresPlainDates;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,7 +52,7 @@ class NextAction extends Model
             $action->created_by ??= auth()->id();
 
             if ($action->assignee_employee_id === null && modules()->enabled('employees')) {
-                $action->assignee_employee_id = Employee::where('user_id', auth()->id())->value('id');
+                $action->assignee_employee_id = app(EmployeeAccess::class)->ownEmployeeId(auth()->user());
             }
         });
     }

@@ -54,6 +54,63 @@ class EmployeeAccess
     /** @var array<string, Collection<int, int>> user-id sets, keyed by tenant+user */
     protected array $userIdCache = [];
 
+    /** @var array<string, Employee|null> the signed-in person's own record, keyed by tenant+user */
+    protected array $ownRecordCache = [];
+
+    /**
+     * The employee record behind a user, or nothing.
+     *
+     * **Memoised because several screens ask it on every page of the panel.** The
+     * per-person screens — Confirm Your Details, My Email Signature, the forms that
+     * default a picker to "me" — each resolve the signed-in person's own record, and
+     * Filament evaluates every one of their `canAccess()` methods while it builds the
+     * navigation. Measured on the dashboard: six `select exists` and two `select *`
+     * against `employees`, all asking the same question of the same user.
+     *
+     * Returns the model without relations. A caller that needs one does `loadMissing()`
+     * on what comes back, which then loads once for the request rather than once per
+     * screen — and lazy loading is prevented outside production, so it has to be asked
+     * for rather than assumed.
+     *
+     * Null is a cached answer too: somebody with no employee record — an accountant
+     * brought in for the books, the owner — would otherwise be looked up every time.
+     */
+    public function employeeFor(?User $user): ?Employee
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $key = $this->cacheKey($user);
+
+        if (! array_key_exists($key, $this->ownRecordCache)) {
+            $this->ownRecordCache[$key] = Employee::query()->where('user_id', $user->getKey())->first();
+        }
+
+        return $this->ownRecordCache[$key];
+    }
+
+    /** Whether this person has an employee record here at all. */
+    public function isEmployee(?User $user): bool
+    {
+        return $this->employeeFor($user) !== null;
+    }
+
+    /**
+     * The signed-in person's own employee id — what a picker defaulted to "me" wants.
+     *
+     * Every create form that opens on the person filling it in — a leave request, an
+     * expense claim, a timesheet line — used to ask the table for this itself, and a
+     * page carrying two such pickers asked twice. They go through the memo now, which
+     * the navigation has usually already filled by the time a form is built.
+     */
+    public function ownEmployeeId(?User $user): ?int
+    {
+        $id = $this->employeeFor($user)?->getKey();
+
+        return $id === null ? null : (int) $id;
+    }
+
     /**
      * Employee ids the user may access: their own record + all descendants.
      * Empty when the user has no employee record in this tenant.

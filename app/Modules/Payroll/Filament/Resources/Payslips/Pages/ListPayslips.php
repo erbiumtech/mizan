@@ -11,6 +11,7 @@ use App\Modules\Payroll\Filament\Resources\Payslips\PayslipResource;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\MonthlyPayrollService;
 use App\Modules\Payroll\Services\PayrollPreflight;
+use App\Support\EmployeeAccess;
 use App\Support\PayrollMonth;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -57,7 +58,7 @@ class ListPayslips extends ListRecords
      */
     protected function myWithholdingCertificateAction(): Action
     {
-        $employee = fn (): ?Employee => Employee::where('user_id', auth()->id())->first();
+        $employee = fn (): ?Employee => app(EmployeeAccess::class)->employeeFor(auth()->user());
 
         return Action::make('myWithholdingCertificate')
             ->label('My withholding certificate')

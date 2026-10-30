@@ -10,8 +10,15 @@ use UnitEnum;
  *
  * Two of these groups were unusable as flat lists — Employee had twenty entries and Accounting
  * twelve, which is a scroll rather than a menu. This breaks them into named branches, so the People
- * column reads "Employees / Payroll / Leave / Attendance & time / Lifecycle / Projects" and you open
- * the one you want.
+ * column reads "Employees / Job changes / Payroll / Leave / Attendance & time / Lifecycle /
+ * Projects" and you open the one you want.
+ *
+ * **A branch is not a filing cabinet, and it goes the same way a group did if nobody watches it.**
+ * Re-cut on 2026-10-30 after the §14 depth phases: Employee's first branch had reached eleven
+ * entries and Settings' first had reached fourteen, because every phase that added a screen put it
+ * in the branch nearest its subject and nobody counted. Nothing below is longer than eight, which
+ * is the length at which a branch stops being readable at a glance — the same judgement that made
+ * this class exist, applied to what it produced.
  *
  * **Branches are groups, not nested items, and that is a deliberate choice.** Filament does support
  * parent/child navigation items, and it looks closer to a tree — but it has no collapse of its own:
@@ -48,20 +55,24 @@ class NavigationTree
                 'Employees',
                 'Employee Change Requests',
                 'Employee Settings',
-                // The record's depth — docs/saas-launch-plan.md §14.2.
-                'Probations',
-                'Transfers',
-                'Promotions',
-                // What the company tells its people — plan §7.6.
-                'Announcements',
                 // The letter queue — plan §14.7. Beside Change Requests: both are an employee
                 // asking for something and somebody deciding.
                 'Letter Requests',
-                // Brand Studio — plan §14.10. The three things a company puts its name on
-                // and hands to a person.
-                'ID Cards',
-                'Business Cards',
-                'My Email Signature',
+                // What the company tells its people — plan §7.6.
+                'Announcements',
+            ],
+            /*
+             * Probation, transfer, promotion — docs/saas-launch-plan.md §14.2.
+             *
+             * Their own branch since 2026-10-30. They were under Employees, which had reached
+             * eleven entries and was a scroll again — the thing this class exists to prevent.
+             * They belong together and apart: all three write a dated job-history row, and
+             * none of them is where anybody goes to look somebody up.
+             */
+            'Job changes' => [
+                'Probations',
+                'Transfers',
+                'Promotions',
             ],
             'Payroll' => [
                 'Payroll Months',
@@ -91,11 +102,20 @@ class NavigationTree
                 'Rest-day Swaps',
                 'Timesheets',
             ],
-            // Joining and leaving: the documents, the kit and the checklist that tracks both.
+            /*
+             * Joining and leaving: the documents, the kit and the checklist that tracks both.
+             *
+             * The two cards are here rather than in a branch of their own — plan §14.10. A
+             * staff card is issued on the first day and cancelled on the last, which is this
+             * branch's subject exactly; business cards are ordered on the same morning. A
+             * two-entry branch beside this one would be a click in front of a list.
+             */
             'Lifecycle' => [
                 'Checklist Templates',
                 'Employee Documents',
                 'Issued Assets',
+                'ID Cards',
+                'Business Cards',
                 // docs/saas-launch-plan.md §14.5.
                 'Employment Contracts',
                 'Separations',
@@ -116,12 +136,23 @@ class NavigationTree
                 'Scheduled Entries',
                 'Budgets',
             ],
+            // Money moving through a bank: the accounts, who is paid, and what was paid.
             'Banking' => [
                 'Banks',
                 'Company Bank Accounts',
                 'Bank Statements',
                 'Beneficiaries',
                 'Payments',
+            ],
+            /*
+             * The paper and the file formats — split out on 2026-10-30.
+             *
+             * Banking had nine entries and four of them were things somebody sets up once and
+             * then never opens: a cheque layout is measured against a bank's stationery, a bank
+             * file format against what the bank's portal will accept. Sitting among the five
+             * screens a clerk uses daily, they made the branch look longer than it works.
+             */
+            'Cheques & bank files' => [
                 'Cheques',
                 'Cheque Books',
                 'Cheque Layouts',
@@ -153,39 +184,62 @@ class NavigationTree
                 'Lead Sources',
                 'Pipelines',
                 'Sales Targets',
+                /*
+                 * Who does field visits — plan §14.10.
+                 *
+                 * Moved here on 2026-10-30, reversing the day-old decision to file it under
+                 * Settings "beside the other who-may-do-what settings". That reasoning was
+                 * sound about the *kind* of screen and wrong about the person: it is a sales
+                 * manager's list, and they are in this column all day.
+                 */
+                'Field Visit Staff',
             ],
         ],
+        /*
+         * Re-cut on 2026-10-30. Company had reached fourteen entries — a column of its own and
+         * still a scroll — because every phase that added a setting put it there. Four of them
+         * were not about the company at all.
+         */
         'Settings' => [
+            // What this company is, and what it has bought. Identity first, then the two
+            // commercial rows: a reader asking "what are we on" and one asking "what is our
+            // address" are the same person on the same screen.
             'Company' => [
                 'Company Settings',
                 // What the company's own dropdowns offer — App\Support\OptionLists. Beside Company
                 // Settings because that is what it is: the same decision, spread over several lists.
                 'Dropdown Options',
-                'Modules',
-                // What the company pays for — plan §6. Beside Modules: what it has bought.
-                'Subscription',
                 // Branches — plan §7.9. Beside Company Settings: where the company is.
                 'Locations',
                 'Custom Fields',
-                'Email Wording',
-                // The letters, beside the emails — plan §14.7. Same decision in a different
-                // medium: what this company says in its own name.
-                'Letter Templates',
-                // What the application sends without being asked — reports-expansion-plan.md Phase 8. Beside
-                // Email Wording rather than in a branch of its own: both are about the post going out, and a
-                // branch holding one screen is a heading that says the screen's name twice.
-                'Scheduled Reports',
-                // How a designation's score is weighted — plan §14.10.
-                'Scorecard Profiles',
-                // Where this company's own systems listen, and each person's own keys —
-                // plan §14.9. Beside the post going out, which is what they are.
-                'Webhooks',
-                'API Keys',
                 // What the product does about each law — plan §14.10.
                 'Statutory Coverage',
-                // Who does field visits — plan §14.10. Beside the other "who may do what"
-                // settings rather than in the sales tree, which is where the visits are.
-                'Field Visit Staff',
+                'Modules',
+                // What the company pays for — plan §6. Beside Modules: what it has bought.
+                'Subscription',
+            ],
+            /*
+             * Everything the application says in this company's name — plan §14.7, §14.9.
+             *
+             * Its own branch since 2026-10-30. The three were scattered through Company, where
+             * "Email Wording" sat between "Custom Fields" and "Scheduled Reports" and nothing
+             * said they were the same decision in three media.
+             */
+            'Messages' => [
+                'Email Wording',
+                'Letter Templates',
+                'Scheduled Reports',
+            ],
+            /*
+             * Where this company's data goes, and what may come and get it — plan §14.9.
+             *
+             * Two entries, which this class usually says is a click in front of a list. It is a
+             * branch anyway because the alternative was leaving them in Company, where an
+             * administrator reading "what is our address" met "API Keys" on the way.
+             */
+            'Integrations' => [
+                'Webhooks',
+                'API Keys',
             ],
             'Payroll setup' => [
                 'Pay Components',
@@ -199,6 +253,9 @@ class NavigationTree
             'People setup' => [
                 'Departments',
                 'Designations',
+                // Keyed on a designation, so it belongs beside the designations — plan §14.10.
+                // It spent one day in Company, where nothing about it made sense.
+                'Scorecard Profiles',
             ],
             'Calendar & currency' => [
                 'Fiscal Years',

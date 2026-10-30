@@ -149,8 +149,21 @@ class PanelPerformanceTest extends TestCase
      * describes: nineteen separate `select count(*)` statements is where a badge
      * registry collecting them into one round trip per request stops being premature.
      */
+    /*
+     * **The dashboard came down 41 to 40 on 2026-10-30, which is the direction this file
+     * prefers and had not gone in three phases.** Re-cutting the navigation tree cost three
+     * queries, and rather than budget for them the cause was looked at: every per-person
+     * screen — Confirm Your Details, My Email Signature, the badges widget, and each create
+     * form whose employee picker defaults to "me" — resolved the signed-in person's own
+     * employee record with a query of its own, while Filament evaluated all of them building
+     * the navigation. Six `select` statements asking one question of one user.
+     *
+     * `App\Support\EmployeeAccess::employeeFor()` memoises that for the request and
+     * twenty-three call sites go through it. The re-cut's three queries were paid for and one
+     * more came off the top.
+     */
     private const BUDGET = [
-        'dashboard' => ['cold' => 41, 'warm' => 9],
+        'dashboard' => ['cold' => 40, 'warm' => 9],
         'employees' => ['cold' => 38, 'warm' => 11],
         'reports' => ['cold' => 31, 'warm' => 7],
     ];

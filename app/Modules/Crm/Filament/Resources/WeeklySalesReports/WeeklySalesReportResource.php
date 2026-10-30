@@ -9,6 +9,7 @@ use App\Modules\Crm\Filament\Resources\WeeklySalesReports\Pages\EditWeeklySalesR
 use App\Modules\Crm\Filament\Resources\WeeklySalesReports\Pages\ListWeeklySalesReports;
 use App\Modules\Crm\Models\WeeklySalesReport;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -73,7 +74,7 @@ class WeeklySalesReportResource extends Resource
                     ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DatePicker::make('week_starting')
                 ->label('Week starting')

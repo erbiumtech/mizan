@@ -85,7 +85,7 @@ class OneToOneResource extends Resource
                     ->mapWithKeys(fn (Employee $e): array => [$e->id => $e->display_label])
                     ->all())
                 ->searchable()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DatePicker::make('met_on')->native(false)->default(now())->required(),
 

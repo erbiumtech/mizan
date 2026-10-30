@@ -64,7 +64,7 @@ class GoalResource extends Resource
                     ->all())
                 ->searchable()
                 ->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             Select::make('review_cycle_id')
                 ->label('Cycle')

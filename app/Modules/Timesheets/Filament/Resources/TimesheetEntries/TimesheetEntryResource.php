@@ -4,7 +4,6 @@ namespace App\Modules\Timesheets\Filament\Resources\TimesheetEntries;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
-use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\Pages\CreateTimesheetEntry;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\Pages\EditTimesheetEntry;
@@ -79,7 +78,7 @@ class TimesheetEntryResource extends Resource
                 ))
                 ->preload()
                 ->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             Select::make('project_id')
                 ->label('Project')

@@ -72,7 +72,7 @@ class ReviewResource extends Resource
         }
 
         $accessible = static::accessibleEmployeeIds()->all();
-        $ownEmployeeId = \App\Modules\Employees\Models\Employee::where('user_id', auth()->id())->value('id');
+        $ownEmployeeId = app(EmployeeAccess::class)->ownEmployeeId(auth()->user());
 
         return $query->whereIn('employee_id', $accessible)
             ->where(fn (Builder $q) => $q

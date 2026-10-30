@@ -11,6 +11,7 @@ use App\Modules\Employees\Models\LetterRequest;
 use App\Modules\Employees\Models\LetterTemplate;
 use App\Modules\Employees\Services\TemplatedLetters;
 use App\Notifications\DocumentIssued;
+use App\Support\EmployeeAccess;
 use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -68,7 +69,7 @@ class LetterRequestResource extends Resource
             Select::make('employee_id')->label('Employee')
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
             Select::make('kind')->label('Letter')
                 ->options(fn (): array => array_diff_key(LetterTemplate::KINDS, array_flip(LetterTemplate::EVENT_KINDS)))
                 ->required()

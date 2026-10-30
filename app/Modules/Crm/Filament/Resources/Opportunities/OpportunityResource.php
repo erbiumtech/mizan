@@ -16,6 +16,7 @@ use App\Modules\Crm\Models\PipelineStage;
 use App\Modules\Crm\Services\OpportunityService;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\EmployeeAccess;
 use App\Support\NavigationBadge;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -116,7 +117,7 @@ class OpportunityResource extends Resource
                             ->all())
                         ->searchable()
                         ->visible(fn (): bool => modules()->enabled('employees'))
-                        ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id'))
+                        ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user()))
                         ->helperText('Also decides who can see it.'),
                 ])
                 ->columns(2),

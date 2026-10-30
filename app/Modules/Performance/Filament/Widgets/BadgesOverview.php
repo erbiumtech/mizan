@@ -5,6 +5,7 @@ namespace App\Modules\Performance\Filament\Widgets;
 use App\Filament\Concerns\WidgetBelongsToModule;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Performance\Services\Badges;
+use App\Support\EmployeeAccess;
 use App\Support\Reporting\DashboardWidgets;
 use Filament\Widgets\Widget;
 
@@ -34,7 +35,7 @@ class BadgesOverview extends Widget
 
     public static function employee(): ?Employee
     {
-        return auth()->check() ? Employee::query()->where('user_id', auth()->id())->first() : null;
+        return app(EmployeeAccess::class)->employeeFor(auth()->user());
     }
 
     /** @return array{earned: \Illuminate\Support\Collection, locked: \Illuminate\Support\Collection} */

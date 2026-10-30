@@ -9,6 +9,7 @@ use App\Modules\Attendance\Filament\Resources\OvertimeRequests\Pages\ListOvertim
 use App\Modules\Attendance\Models\OvertimeRequest;
 use App\Modules\Attendance\Services\OvertimeRequests;
 use App\Modules\Employees\Models\Employee;
+use App\Support\EmployeeAccess;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -63,7 +64,7 @@ class OvertimeRequestResource extends Resource
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
             DatePicker::make('worked_on')->native(false)->maxDate(now())->default(now())->required(),
             TextInput::make('minutes')->numeric()->minValue(15)->maxValue(720)->required()->helperText('Beyond the pattern\'s hours. 90 is an hour and a half.'),
             TextInput::make('reason')->required()->maxLength(190)->placeholder('Month-end closing; the Karachi shipment'),

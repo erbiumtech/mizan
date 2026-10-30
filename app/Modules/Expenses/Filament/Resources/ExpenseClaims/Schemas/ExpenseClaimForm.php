@@ -34,7 +34,7 @@ class ExpenseClaimForm
                 ->required()
                 // Defaults to the claimant's own record, because most claims are
                 // somebody claiming for themselves.
-                ->default(fn (): ?int => \App\Modules\Employees\Models\Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DatePicker::make('claimed_on')
                 ->label('Spent on')

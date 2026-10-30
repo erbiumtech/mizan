@@ -11,6 +11,7 @@ use App\Modules\Leave\Models\LeaveEncashment;
 use App\Modules\Leave\Models\LeaveType;
 use App\Modules\Leave\Services\LeaveBalance;
 use App\Modules\Leave\Services\LeaveEncashments;
+use App\Support\EmployeeAccess;
 use App\Support\PayrollMonth;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -60,7 +61,7 @@ class LeaveEncashmentResource extends Resource
                 ->searchable()
                 ->required()
                 ->live()
-                ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
             Select::make('leave_type_id')
                 ->label(__('Leave type'))
                 ->options(fn (): array => LeaveType::query()->active()->where('is_encashable', true)->orderBy('sort')->pluck('label', 'id')->all())

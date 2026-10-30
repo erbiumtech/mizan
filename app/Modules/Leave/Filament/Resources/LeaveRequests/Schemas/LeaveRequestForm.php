@@ -40,7 +40,7 @@ class LeaveRequestForm
                         ->required()
                         ->live()
                         // Most leave is somebody filing for themselves.
-                        ->default(fn (): ?int => Employee::where('user_id', auth()->id())->value('id')),
+                        ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
                     Select::make('leave_type_id')
                         ->label(__('Leave type'))
