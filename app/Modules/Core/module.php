@@ -41,6 +41,9 @@ return [
         // every module fires events and none of them owns "where does this company listen".
         'App\\Models\\WebhookEndpoint' => \App\Modules\Core\Models\WebhookEndpoint::class,
         'App\\Models\\WebhookDelivery' => \App\Modules\Core\Models\WebhookDelivery::class,
+        // A person's push subscription — docs/desktop-mobile-plan.md A3. Core because it belongs to the
+        // user, who belongs to no module.
+        'App\\Models\\DeviceToken' => \App\Modules\Core\Models\DeviceToken::class,
         'App\\Models\\Comment' => \App\Modules\Core\Models\Comment::class,
         'App\\Models\\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
         'App\\Models\\Holiday' => \App\Modules\Core\Models\Holiday::class,

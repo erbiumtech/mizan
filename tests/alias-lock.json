@@ -72,6 +72,7 @@
         "App\\Models\\Department": "App\\Modules\\Employees\\Models\\Department",
         "App\\Models\\Designation": "App\\Modules\\Employees\\Models\\Designation",
         "App\\Models\\DevicePunch": "App\\Modules\\Devices\\Models\\DevicePunch",
+        "App\\Models\\DeviceToken": "App\\Modules\\Core\\Models\\DeviceToken",
         "App\\Models\\Document": "App\\Modules\\Construction\\Models\\Document",
         "App\\Models\\DocumentRevision": "App\\Modules\\Construction\\Models\\DocumentRevision",
         "App\\Models\\EmailTemplate": "App\\Modules\\Core\\Models\\EmailTemplate",
