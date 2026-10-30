@@ -48,7 +48,9 @@ class JiraCsvImporter implements CsvImporter
 
     public function columns(): array
     {
-        return ['Issue key', 'Summary', 'Issue Type', 'Status', 'Priority', 'Assignee', 'Reporter', 'Description', 'Created', 'Resolved', 'Parent', 'Story Points'];
+        // Jira's headers are "Issue key", "Issue Type", "Story Points"; CsvImportService lowercases and
+        // underscores every header before matching, so these are those headers as it reads them.
+        return ['issue_key', 'summary', 'issue_type', 'status', 'priority', 'assignee', 'reporter', 'description', 'created', 'resolved', 'parent', 'story_points'];
     }
 
     public function example(): array
@@ -59,8 +61,8 @@ class JiraCsvImporter implements CsvImporter
     public function problemWith(array $row): ?string
     {
         return match (true) {
-            ! preg_match('/^[A-Za-z][A-Za-z0-9]{1,5}-\d+$/', trim($row['Issue key'])) => '"'.$row['Issue key'].'" is not a Jira issue key',
-            trim($row['Summary']) === '' => 'no summary',
+            ! preg_match('/^[A-Za-z][A-Za-z0-9]{1,5}-\d+$/', trim($row['issue_key'])) => '"'.$row['issue_key'].'" is not a Jira issue key',
+            trim($row['summary']) === '' => 'no summary',
             default => null,
         };
     }
@@ -72,10 +74,10 @@ class JiraCsvImporter implements CsvImporter
         $workflows = [];
 
         // Parents first, so a child created afterwards can find its parent by the Jira key.
-        $ordered = $rows->sortBy(fn (array $row): int => trim($row['Parent'] ?? '') === '' ? 0 : 1)->values();
+        $ordered = $rows->sortBy(fn (array $row): int => trim($row['parent'] ?? '') === '' ? 0 : 1)->values();
 
         foreach ($ordered as $row) {
-            $key = strtoupper(trim($row['Issue key']));
+            $key = strtoupper(trim($row['issue_key']));
             $prefix = strtok($key, '-');
 
             $project = $projects[$prefix] ??= Project::query()->where('key', $prefix)->first();
@@ -93,18 +95,18 @@ class JiraCsvImporter implements CsvImporter
                 continue;
             }
 
-            $status = $this->statusFor($workflow, (string) $row['Status']);
-            $assignee = $this->employeeFor((string) ($row['Assignee'] ?? ''));
-            $reporter = $this->userFor((string) ($row['Reporter'] ?? ''));
+            $status = $this->statusFor($workflow, (string) $row['status']);
+            $assignee = $this->employeeFor((string) ($row['assignee'] ?? ''));
+            $reporter = $this->userFor((string) ($row['reporter'] ?? ''));
 
             $attributes = [
-                'title' => mb_substr(trim($row['Summary']), 0, 255),
-                'type' => $this->typeFor((string) ($row['Issue Type'] ?? '')),
-                'priority' => trim((string) ($row['Priority'] ?? '')) ?: 'Medium',
+                'title' => mb_substr(trim($row['summary']), 0, 255),
+                'type' => $this->typeFor((string) ($row['issue_type'] ?? '')),
+                'priority' => trim((string) ($row['priority'] ?? '')) ?: 'Medium',
                 'description' => $this->description($row, $assignee, $reporter),
                 'assignee_employee_id' => $assignee?->getKey(),
-                'estimate_points' => is_numeric($row['Story Points'] ?? null) ? (float) $row['Story Points'] : null,
-                'parent_id' => $this->parentFor((string) ($row['Parent'] ?? '')),
+                'estimate_points' => is_numeric($row['story_points'] ?? null) ? (float) $row['story_points'] : null,
+                'parent_id' => $this->parentFor((string) ($row['parent'] ?? '')),
                 'imported_from' => 'jira:'.$key,
             ];
 
@@ -124,8 +126,8 @@ class JiraCsvImporter implements CsvImporter
 
                 // Jira's own dates, so cycle time and the created-vs-resolved report read history
                 // rather than the day of the import.
-                $created = $this->date($row['Created'] ?? null);
-                $resolved = $this->date($row['Resolved'] ?? null);
+                $created = $this->date($row['created'] ?? null);
+                $resolved = $this->date($row['resolved'] ?? null);
 
                 if ($created !== null || $resolved !== null) {
                     $item->forceFill(array_filter([
@@ -227,12 +229,12 @@ class JiraCsvImporter implements CsvImporter
     private function description(array $row, ?Employee $assignee, ?User $reporter): ?string
     {
         $footer = array_filter([
-            'Imported from Jira as '.strtoupper(trim($row['Issue key'])).', status "'.trim((string) $row['Status']).'".',
-            trim((string) ($row['Assignee'] ?? '')) !== '' && $assignee === null ? 'Jira assignee: '.trim($row['Assignee']) : null,
-            trim((string) ($row['Reporter'] ?? '')) !== '' && $reporter === null ? 'Jira reporter: '.trim($row['Reporter']) : null,
+            'Imported from Jira as '.strtoupper(trim($row['issue_key'])).', status "'.trim((string) $row['status']).'".',
+            trim((string) ($row['assignee'] ?? '')) !== '' && $assignee === null ? 'Jira assignee: '.trim($row['assignee']) : null,
+            trim((string) ($row['reporter'] ?? '')) !== '' && $reporter === null ? 'Jira reporter: '.trim($row['reporter']) : null,
         ]);
 
-        $body = trim((string) ($row['Description'] ?? ''));
+        $body = trim((string) ($row['description'] ?? ''));
 
         return ($body !== '' ? $body."\n\n" : '').'---'."\n".implode("\n", $footer);
     }

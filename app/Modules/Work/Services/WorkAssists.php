@@ -99,7 +99,7 @@ class WorkAssists
      */
     public function summarise(WorkItem $item): ?string
     {
-        $comments = $item->comments()->orderBy('id')->get();
+        $comments = $item->comments()->with('user')->orderBy('id')->get();
 
         $thread = $comments->map(function (Comment $c): string {
             $who = $c->user?->name ?? 'Somebody';

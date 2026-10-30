@@ -86,8 +86,10 @@ class WorkDigest extends Notification implements CategorisedNotification, Should
             }
         }
 
+        $mail = (new MailMessage)->action('Open My Work', MyWork::getUrl());
+
         return TemplatedMail::apply(
-            (new MailMessage)->action('Open My Work', MyWork::getUrl()),
+            $mail,
             'work_digest',
             [
                 'employee_name' => $notifiable->name ?? null,

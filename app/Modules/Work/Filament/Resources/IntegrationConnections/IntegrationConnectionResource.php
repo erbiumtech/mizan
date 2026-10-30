@@ -55,7 +55,7 @@ class IntegrationConnectionResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('Integrations');
+        return __('Connected Services');
     }
 
     public static function form(Schema $schema): Schema

@@ -4,6 +4,7 @@ namespace App\Modules\Work\Support;
 
 use App\Modules\Core\Models\Company;
 use App\Modules\Core\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Support\Collection;
 
 /**
@@ -35,10 +36,12 @@ class Mentions
 
         $ids = collect($matches[1])->map(fn (string $id): int => (int) $id)->unique()->values();
 
-        $company = Company::current();
+        // The tenant middleware makes the company current on a request; inside the panel the tenant is
+        // also Filament's. With neither there is no membership to check against, and nobody is summoned.
+        $company = Company::current() ?? Filament::getTenant();
 
-        if ($company === null) {
-            return $ids;
+        if (! $company instanceof Company) {
+            return collect();
         }
 
         $members = $company->users()->whereIn('users.id', $ids->all())->pluck('users.id')->map(fn ($id): int => (int) $id);

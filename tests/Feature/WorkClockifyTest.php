@@ -279,7 +279,7 @@ class WorkClockifyTest extends AccountingTestCase
         $this->assertNull($summary['cost'], 'no payroll rate, so uncosted — never 99,999 an hour');
         $this->assertSame(1, $summary['uncosted']);
 
-        $report = app(WorkReports::class)->timeBySource(now()->toDateString());
+        $report = app(WorkReports::class)->timeBySource('2026-11-04');
         $this->assertSame('The website', $report['rows'][0][0]);
         $this->assertSame(['—', '1.5', '—', '—'], array_slice($report['rows'][0], 2), 'an hour and a half from the tracker, nothing from the form');
     }

@@ -50,6 +50,12 @@ class WorkNotificationTest extends AccountingTestCase
     {
         parent::setUp();
 
+        // The digest is a TenantAware command; in the single-database suite the connection switch is skipped.
+        config(['multitenancy.switch_tenant_tasks' => [
+            \App\Multitenancy\Tasks\SetPermissionsTeamIdTask::class,
+            \App\Multitenancy\Tasks\SwitchTenantFilesystemTask::class,
+        ]]);
+
         $this->me = $this->makeUser('Administrator', 'me@test.local');
         $this->actingAs($this->me);
         $company = $this->setCurrentTenant();

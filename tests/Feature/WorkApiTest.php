@@ -31,6 +31,8 @@ class WorkApiTest extends AccountingTestCase
     {
         parent::setUp();
 
+        // Filament's TenantSet event wants a signed-in user; the API tests swap in Sanctum users per test.
+        $this->actingAs($this->makeUser('Administrator', 'api-setup@test.local'));
         $company = $this->setCurrentTenant();
         $this->apiCompany = $company;
 

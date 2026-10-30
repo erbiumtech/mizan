@@ -72,7 +72,12 @@ class IntegrationEvents
 
         $connection->forceFill(['last_event_at' => now()])->save();
 
-        ProcessIntegrationEvent::dispatch($event->getKey());
+        try {
+            ProcessIntegrationEvent::dispatch($event->getKey());
+        } catch (Throwable) {
+            // Only the sync queue runs the job here, and process() has already written the failure on
+            // the event. The provider gets its 202 either way: a redelivery would carry the same payload.
+        }
 
         return $event;
     }

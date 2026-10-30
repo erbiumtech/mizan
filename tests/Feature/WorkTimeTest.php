@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Timesheets\Services\BillableHours;
@@ -67,7 +68,7 @@ class WorkTimeTest extends AccountingTestCase
             'name' => 'The website',
             'status' => 'active',
             'work_workflow_id' => WorkWorkflow::default()->getKey(),
-            'contact_id' => 42,
+            'contact_id' => Contact::create(['name' => 'Acme Textiles', 'kind' => Contact::KIND_CUSTOMER, 'is_active' => true])->getKey(),
         ]);
     }
 
@@ -207,7 +208,7 @@ class WorkTimeTest extends AccountingTestCase
             $entry->forceFill(['approved_at' => now(), 'approved_by' => auth()->id()])->saveQuietly();
         }
 
-        $lines = app(BillableHours::class)->linesFor(42, 2026, 11);
+        $lines = app(BillableHours::class)->linesFor((int) $this->project->contact_id, 2026, 11);
 
         $this->assertCount(1, $lines, 'one line per employee per project');
         $this->assertStringContainsString('3 hours at 8,000.00 (WEB-1, WEB-2)', $lines[0]['description']);

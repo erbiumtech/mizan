@@ -222,7 +222,9 @@ class GitLabProvider implements CodeProvider
 
     public function parsePullRequestUrl(string $url): ?array
     {
-        if (preg_match('#/([^/]+(?:/[^/]+)*)/-/merge_requests/(\d+)#i', $url, $m)) {
+        $path = parse_url($url, PHP_URL_PATH) ?? $url;
+
+        if (is_string($path) && preg_match('#^/?(.+?)/-/merge_requests/(\d+)#i', $path, $m)) {
             return [$m[1], (int) $m[2]];
         }
 
