@@ -18,6 +18,47 @@ records.
 A company whose policy forbids installing apps may type a **personal access token** instead. The
 connection records which it is.
 
+**Bitbucket Cloud** connects with an app password (your username and the password) or a workspace
+access token, and the workspace slug. **GitLab** connects with a personal or project access token
+and, for a self-hosted instance, its URL. Both are read exactly as GitHub is once connected: the
+same commits, branches and merge requests, the same rules.
+
+**Clockify** is a different kind of connection — a time tracker rather than a code host. It takes
+the workspace API key your Clockify admin generates and the workspace id. When making the webhook
+in Clockify, paste the URL shown on the connection's page and give it the connection's signing
+token, shown beside it.
+
+## Time from Clockify
+
+Clockify is the stopwatch; the timesheet is the ledger; and an hour exists in the ledger exactly
+once.
+
+A Clockify **project** is linked to a project here from the connection's *Time projects* tab —
+pick one from the workspace, or create one with the same name and the key as its code. A
+Clockify **task** is a work item, named `WEB-12 · title` so it reads the same in both places,
+created the first time somebody starts a timer on the item (or, if the project says so, when the
+item starts). A Clockify **user** is matched to a person here by email, like a git identity, and
+may be claimed.
+
+A stopped entry on a linked task becomes a timesheet row with the item set, marked as from
+Clockify, with the minutes from the interval, billable from Clockify's flag and the description as
+the note. An entry on a linked project with no task is time on the project with no item — still
+true. An entry on an **unlinked** project is held on the connection's deliveries tab, with the
+reason, until the project is linked and it is replayed. A **running** timer is shown on the item
+and written nowhere until it stops: the ledger holds hours, not intentions. An update rewrites the
+row and a delete removes it, both on the activity log as *by Clockify (via …)*.
+
+Entries arrive by webhook and by a pull every fifteen minutes for the last two days (and nightly
+for the last thirty), so a workspace whose plan has no webhooks still syncs; the two paths land in
+the same place and the same entry is never written twice.
+
+**The mode**, under Settings → Work and overridable per project, is which door an hour comes
+through: *here* (Log time on the item; no timer buttons), *Clockify* (the timer buttons; Log time
+only on items with no task, and for people with no linked Clockify account), or *either* (both,
+reconciled in the Time by Source report).
+
+Nothing else flows out. Clockify's own rates are never read: the rate is this application's.
+
 ## Linking a repository
 
 **Link repository** on a connection lists the repositories the token can see; pick one and the
@@ -61,4 +102,5 @@ failed is fixed.
 
 Connecting, linking and assigning identities need **IntegrationManage**, which only Administrators
 hold: a connection holds a credential to somebody else's system. Everybody who may read work
-items sees the commits, branches and pull requests on them.
+items sees the commits, branches and pull requests on them, and anybody with **WorkItemUpdate**
+and a linked Clockify account may start and stop the timer on an item.

@@ -6,12 +6,14 @@ use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Models\IntegrationConnection;
 use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Services\CodeHosts;
+use App\Support\Integrations;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
 /**
@@ -26,6 +28,14 @@ class RepositoriesRelationManager extends RelationManager
     protected static string $relationship = 'repositories';
 
     protected static ?string $title = 'Repositories';
+
+    /** Only a code host has repositories; a time tracker's tab is TimeProjectsRelationManager. */
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord instanceof IntegrationConnection
+            && $ownerRecord->kind === Integrations::CODE
+            && parent::canViewForRecord($ownerRecord, $pageClass);
+    }
 
     public function table(Table $table): Table
     {

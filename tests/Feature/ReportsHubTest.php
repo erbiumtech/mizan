@@ -151,6 +151,8 @@ class ReportsHubTest extends TestCase
             // Work's four (docs/project-management-plan.md §7, Phase 4). Burndown is not among them on
             // purpose: it is a line, and it lives on the sprint's own page — see ViewWorkSprint.
             'Velocity', 'Cycle & Lead Time', 'Created vs Resolved', 'Cumulative Flow',
+            // And §9's sixth, built with §8.8's Clockify: the reconciliation of two doors for one hour.
+            'Time by Source',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }

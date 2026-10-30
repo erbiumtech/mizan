@@ -8,6 +8,7 @@ use App\Modules\Work\Filament\Resources\IntegrationConnections\Pages\ViewIntegra
 use App\Modules\Work\Filament\Resources\IntegrationConnections\RelationManagers\EventsRelationManager;
 use App\Modules\Work\Filament\Resources\IntegrationConnections\RelationManagers\IdentitiesRelationManager;
 use App\Modules\Work\Filament\Resources\IntegrationConnections\RelationManagers\RepositoriesRelationManager;
+use App\Modules\Work\Filament\Resources\IntegrationConnections\RelationManagers\TimeProjectsRelationManager;
 use App\Modules\Work\Models\IntegrationConnection;
 use App\Support\Integrations;
 use BackedEnum;
@@ -62,10 +63,11 @@ class IntegrationConnectionResource extends Resource
         return $schema->components([
             Select::make('provider')
                 ->label('Provider')
-                ->options(fn (): array => Integrations::options(Integrations::CODE))
+                ->options(fn (): array => Integrations::options())
                 ->required()
                 ->native(false)
                 ->live()
+                ->afterStateUpdated(fn ($state, $set) => $set('auth_kind', $state === 'github' ? IntegrationConnection::AUTH_APP : IntegrationConnection::AUTH_TOKEN))
                 ->disabledOn('edit'),
 
             TextInput::make('label')
@@ -78,8 +80,9 @@ class IntegrationConnectionResource extends Resource
              * How it authenticates — §8.2.
              *
              * A GitHub App installation is the way in for an organisation; the personal access token
-             * is for the company whose policy forbids installing apps. The credential is encrypted and
-             * never shown again.
+             * is for the company whose policy forbids installing apps. Bitbucket takes an app password
+             * or a workspace token, GitLab a token, Clockify the workspace API key. Every credential
+             * is encrypted and never shown again.
              */
             Radio::make('auth_kind')
                 ->label('Authenticates as')
@@ -90,33 +93,64 @@ class IntegrationConnectionResource extends Resource
                 ->default(IntegrationConnection::AUTH_APP)
                 ->required()
                 ->live()
+                ->visible(fn (Get $get): bool => $get('provider') === 'github')
                 ->disabledOn('edit'),
 
             TextInput::make('credentials.installation_id')
                 ->label('Installation id')
                 ->numeric()
-                ->visible(fn (Get $get): bool => $get('auth_kind') === IntegrationConnection::AUTH_APP)
-                ->required(fn (Get $get): bool => $get('auth_kind') === IntegrationConnection::AUTH_APP)
+                ->visible(fn (Get $get): bool => $get('provider') === 'github' && $get('auth_kind') === IntegrationConnection::AUTH_APP)
+                ->required(fn (Get $get): bool => $get('provider') === 'github' && $get('auth_kind') === IntegrationConnection::AUTH_APP)
                 ->helperText(fn (): string => filled(config('work.github.app_slug'))
                     ? 'Install the App at https://github.com/apps/'.config('work.github.app_slug').' and copy the installation id from the URL you land on.'
                     : 'The server has no GitHub App configured yet: set WORK_GITHUB_APP_ID and WORK_GITHUB_PRIVATE_KEY, or use a personal access token.'),
 
-            TextInput::make('credentials.token')
-                ->label('Access token')
+            TextInput::make('credentials.username')
+                ->label('Bitbucket username')
+                ->visible(fn (Get $get): bool => $get('provider') === 'bitbucket')
+                ->helperText('With an app password. Leave empty when pasting a workspace access token below.'),
+
+            TextInput::make('credentials.workspace')
+                ->label('Bitbucket workspace')
+                ->visible(fn (Get $get): bool => $get('provider') === 'bitbucket')
+                ->required(fn (Get $get): bool => $get('provider') === 'bitbucket')
+                ->helperText('The workspace slug, as in bitbucket.org/<workspace>/.'),
+
+            TextInput::make('credentials.workspace_id')
+                ->label('Clockify workspace id')
+                ->visible(fn (Get $get): bool => $get('provider') === 'clockify')
+                ->required(fn (Get $get): bool => $get('provider') === 'clockify')
+                ->helperText('From the workspace settings URL in Clockify.'),
+
+            TextInput::make('credentials.api_key')
+                ->label('Clockify API key')
                 ->password()
                 ->revealable()
-                ->visible(fn (Get $get): bool => $get('auth_kind') === IntegrationConnection::AUTH_TOKEN)
-                ->required(fn (Get $get, ?IntegrationConnection $record): bool => $get('auth_kind') === IntegrationConnection::AUTH_TOKEN && $record === null)
+                ->visible(fn (Get $get): bool => $get('provider') === 'clockify')
+                ->required(fn (Get $get, ?IntegrationConnection $record): bool => $get('provider') === 'clockify' && $record === null)
+                ->dehydrated(fn ($state): bool => filled($state))
+                ->afterStateHydrated(fn (TextInput $component) => $component->state(null))
+                ->helperText('The workspace API key your Clockify admin generates. Stored encrypted and never shown again.'),
+
+            TextInput::make('credentials.token')
+                ->label(fn (Get $get): string => $get('provider') === 'bitbucket' ? 'App password or access token' : 'Access token')
+                ->password()
+                ->revealable()
+                ->visible(fn (Get $get): bool => in_array($get('provider'), ['bitbucket', 'gitlab'], true)
+                    || ($get('provider') === 'github' && $get('auth_kind') === IntegrationConnection::AUTH_TOKEN))
+                ->required(fn (Get $get, ?IntegrationConnection $record): bool => $record === null
+                    && (in_array($get('provider'), ['bitbucket', 'gitlab'], true) || $get('auth_kind') === IntegrationConnection::AUTH_TOKEN))
                 ->dehydrated(fn ($state): bool => filled($state))
                 // Never shown back: the field opens blank on edit, and an empty save keeps the stored one.
                 ->afterStateHydrated(fn (TextInput $component) => $component->state(null))
-                ->helperText('Needs repo and admin:repo_hook. Stored encrypted and never shown again; leave empty to keep the current one.'),
+                ->helperText('GitHub: repo and admin:repo_hook. GitLab: api. Bitbucket: repositories and webhooks read/write. Stored encrypted and never shown again; leave empty to keep the current one.'),
 
             TextInput::make('base_url')
-                ->label('API base URL')
+                ->label('Instance URL')
                 ->url()
-                ->placeholder('https://api.github.com')
-                ->helperText('Only for a self-hosted instance. Leave empty for github.com.'),
+                ->visible(fn (Get $get): bool => in_array($get('provider'), ['github', 'gitlab'], true))
+                ->placeholder(fn (Get $get): string => $get('provider') === 'gitlab' ? 'https://gitlab.example.com' : 'https://api.github.com')
+                ->helperText('Only for a self-hosted instance. Leave empty for the public service.'),
         ]);
     }
 
@@ -177,8 +211,11 @@ class IntegrationConnectionResource extends Resource
 
     public static function getRelations(): array
     {
+        // Repositories for a code host, time projects for a tracker; each tab decides for its own
+        // kind in canViewForRecord(). Identities and deliveries belong to both.
         return [
             RepositoriesRelationManager::class,
+            TimeProjectsRelationManager::class,
             IdentitiesRelationManager::class,
             EventsRelationManager::class,
         ];

@@ -52,6 +52,9 @@ return [
         'App\\Models\\WorkItemCommit' => \App\Modules\Work\Models\WorkItemCommit::class,
         'App\\Models\\WorkItemBranch' => \App\Modules\Work\Models\WorkItemBranch::class,
         'App\\Models\\WorkItemPullRequest' => \App\Modules\Work\Models\WorkItemPullRequest::class,
+        // The stopwatch's side — §8.8.
+        'App\\Models\\WorkTimeProject' => \App\Modules\Work\Models\WorkTimeProject::class,
+        'App\\Models\\WorkTimeTask' => \App\Modules\Work\Models\WorkTimeTask::class,
     ],
 
     'pages' => [
@@ -64,6 +67,7 @@ return [
         'App\\Filament\\Pages\\WorkCycleTime' => \App\Modules\Work\Filament\Pages\WorkCycleTime::class,
         'App\\Filament\\Pages\\WorkCreatedVsResolved' => \App\Modules\Work\Filament\Pages\WorkCreatedVsResolved::class,
         'App\\Filament\\Pages\\WorkCumulativeFlow' => \App\Modules\Work\Filament\Pages\WorkCumulativeFlow::class,
+        'App\\Filament\\Pages\\WorkTimeBySource' => \App\Modules\Work\Filament\Pages\WorkTimeBySource::class,
     ],
 
     'resources' => [

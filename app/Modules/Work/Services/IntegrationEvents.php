@@ -3,6 +3,7 @@
 namespace App\Modules\Work\Services;
 
 use App\Modules\Work\Integrations\CodeProvider;
+use App\Modules\Work\Integrations\TimeProvider;
 use App\Modules\Work\Jobs\ProcessIntegrationEvent;
 use App\Modules\Work\Models\IntegrationConnection;
 use App\Modules\Work\Models\IntegrationEvent;
@@ -19,10 +20,17 @@ use Throwable;
  * one is written to `integration_events` and a job is queued; the handler is idempotent on the
  * provider's event id, because every provider redelivers. A paused connection (§8.6) accepts
  * nothing: the provider's redelivery covers the gap.
+ *
+ * One endpoint for both kinds (§8.8: Clockify's webhooks "reach the same endpoint as §8.3"). The
+ * driver says which it is, and processing hands a code provider's facts to `FactHandler` and a
+ * time provider's entries to `TimeSync`.
  */
 class IntegrationEvents
 {
-    public function __construct(private readonly FactHandler $facts) {}
+    public function __construct(
+        private readonly FactHandler $facts,
+        private readonly TimeSync $time,
+    ) {}
 
     /**
      * Accept a delivery, or refuse it.
@@ -33,7 +41,7 @@ class IntegrationEvents
      */
     public function receive(IntegrationConnection $connection, Request $request): ?IntegrationEvent
     {
-        $provider = $this->providerFor($connection);
+        $provider = $this->driverFor($connection);
 
         if (! $provider->verify($connection, $request)) {
             throw new RuntimeException('The signature does not match.', 401);
@@ -65,6 +73,31 @@ class IntegrationEvents
         return $event;
     }
 
+    /**
+     * Hold a pulled entry as an event, so the pull and the webhook are one path — §8.8.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return IntegrationEvent|null null when this exact state of the entry is already held
+     */
+    public function hold(IntegrationConnection $connection, string $eventId, string $type, array $payload): ?IntegrationEvent
+    {
+        try {
+            $event = IntegrationEvent::query()->create([
+                'integration_connection_id' => $connection->getKey(),
+                'provider_event_id' => $eventId,
+                'type' => $type,
+                'payload' => $payload,
+                'received_at' => now(),
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            return null;
+        }
+
+        ProcessIntegrationEvent::dispatch($event->getKey());
+
+        return $event;
+    }
+
     /** Turn one stored delivery into what it says, once. */
     public function process(IntegrationEvent $event): void
     {
@@ -81,8 +114,13 @@ class IntegrationEvents
         }
 
         try {
-            $provider = $this->providerFor($connection);
-            $this->facts->handle($connection, $provider->facts($event));
+            $provider = $this->driverFor($connection);
+
+            if ($provider instanceof TimeProvider) {
+                $this->time->handle($connection, $provider, $provider->entries($event));
+            } else {
+                $this->facts->handle($connection, $provider->facts($event));
+            }
 
             $event->forceFill(['processed_at' => now(), 'failed_at' => null, 'failure' => null])->save();
         } catch (Throwable $e) {
@@ -103,10 +141,34 @@ class IntegrationEvents
     /** @throws RuntimeException */
     public function providerFor(IntegrationConnection $connection): CodeProvider
     {
-        $driver = Integrations::driver($connection->provider);
+        $driver = $this->driverFor($connection);
 
         if (! $driver instanceof CodeProvider) {
-            throw new RuntimeException('No code provider is registered as "'.$connection->provider.'".', 404);
+            throw new RuntimeException('"'.$connection->provider.'" is not a code host.', 404);
+        }
+
+        return $driver;
+    }
+
+    /** @throws RuntimeException */
+    public function timeProviderFor(IntegrationConnection $connection): TimeProvider
+    {
+        $driver = $this->driverFor($connection);
+
+        if (! $driver instanceof TimeProvider) {
+            throw new RuntimeException('"'.$connection->provider.'" is not a time tracker.', 404);
+        }
+
+        return $driver;
+    }
+
+    /** @throws RuntimeException */
+    public function driverFor(IntegrationConnection $connection): CodeProvider|TimeProvider
+    {
+        $driver = Integrations::driver($connection->provider);
+
+        if (! $driver instanceof CodeProvider && ! $driver instanceof TimeProvider) {
+            throw new RuntimeException('No provider is registered as "'.$connection->provider.'".', 404);
         }
 
         return $driver;

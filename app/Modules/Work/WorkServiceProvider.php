@@ -7,6 +7,7 @@ use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource;
 use App\Modules\Timesheets\Models\TimesheetEntry;
+use App\Modules\Work\Console\Commands\PullTimeEntries;
 use App\Modules\Work\Console\Commands\SendWorkDigest;
 use App\Modules\Work\Events\ReleaseReleased;
 use App\Modules\Work\Events\SprintCompleted;
@@ -22,11 +23,16 @@ use App\Modules\Work\Filament\Pages\Epics;
 use App\Modules\Work\Filament\Pages\WorkCreatedVsResolved;
 use App\Modules\Work\Filament\Pages\WorkCumulativeFlow;
 use App\Modules\Work\Filament\Pages\WorkCycleTime;
+use App\Modules\Work\Filament\Pages\WorkTimeBySource;
 use App\Modules\Work\Filament\Pages\WorkVelocity;
+use App\Modules\Work\Filament\Resources\IntegrationConnections\IntegrationConnectionResource;
 use App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource;
 use App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource;
 use App\Modules\Work\Filament\Settings\WorkDefaultsSettingsSection;
+use App\Modules\Work\Integrations\Bitbucket\BitbucketProvider;
+use App\Modules\Work\Integrations\Clockify\ClockifyProvider;
 use App\Modules\Work\Integrations\GitHub\GitHubProvider;
+use App\Modules\Work\Integrations\GitLab\GitLabProvider;
 use App\Modules\Work\Models\IntegrationConnection;
 use App\Modules\Work\Models\IntegrationEvent;
 use App\Modules\Work\Models\IntegrationIdentity;
@@ -42,6 +48,8 @@ use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Models\WorkStatus;
+use App\Modules\Work\Models\WorkTimeProject;
+use App\Modules\Work\Models\WorkTimeTask;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Models\WorkWorkflowRule;
 use App\Modules\Work\Policies\IntegrationConnectionPolicy;
@@ -59,10 +67,13 @@ use App\Modules\Work\Policies\WorkReleasePolicy;
 use App\Modules\Work\Policies\WorkRepositoryPolicy;
 use App\Modules\Work\Policies\WorkSprintPolicy;
 use App\Modules\Work\Policies\WorkStatusPolicy;
+use App\Modules\Work\Policies\WorkTimeProjectPolicy;
+use App\Modules\Work\Policies\WorkTimeTaskPolicy;
 use App\Modules\Work\Policies\WorkWorkflowPolicy;
 use App\Modules\Work\Policies\WorkWorkflowRulePolicy;
 use App\Modules\Work\Services\WorkTime;
 use App\Modules\Work\Support\SyncedTimesheetRows;
+use App\Modules\Work\Support\TimeTaskOnProgress;
 use App\Modules\Work\Support\WorkReports;
 use App\Modules\Work\Support\WorkWatching;
 use App\Modules\Work\Support\WorkWebhookPayloads;
@@ -111,6 +122,8 @@ class WorkServiceProvider extends ServiceProvider
         WorkItemCommit::class => WorkItemCommitPolicy::class,
         WorkItemBranch::class => WorkItemBranchPolicy::class,
         WorkItemPullRequest::class => WorkItemPullRequestPolicy::class,
+        WorkTimeProject::class => WorkTimeProjectPolicy::class,
+        WorkTimeTask::class => WorkTimeTaskPolicy::class,
     ];
 
     public function boot(): void
@@ -137,14 +150,20 @@ class WorkServiceProvider extends ServiceProvider
         WorkWatching::register();
         $this->registerWebhooks();
         SettingsSections::register('work.defaults', WorkDefaultsSettingsSection::class, 36, 'company');
-        $this->commands([SendWorkDigest::class]);
+        $this->commands([SendWorkDigest::class, PullTimeEntries::class]);
 
         /*
-         * The code hosts — §8. GitHub first, because it is where most of this company's own code
-         * lives; Bitbucket, GitLab and Clockify join in Phase 8 on the same line. The registry is
-         * shared code and holds a class name; the driver is this module's.
+         * The providers — §8. Three code hosts and one time tracker; the registry is shared code and
+         * holds a class name, the drivers are this module's. GitHub first because it is where most
+         * of this company's own code lives.
          */
         Integrations::register(GitHubProvider::KEY, 'GitHub', Integrations::CODE, GitHubProvider::class, sort: 10);
+        Integrations::register(BitbucketProvider::KEY, 'Bitbucket', Integrations::CODE, BitbucketProvider::class, sort: 20);
+        Integrations::register(GitLabProvider::KEY, 'GitLab', Integrations::CODE, GitLabProvider::class, sort: 30);
+        Integrations::register(ClockifyProvider::KEY, 'Clockify', Integrations::TIME, ClockifyProvider::class, sort: 40);
+
+        // The tracker's task made as the item starts, where a project asks for it — §8.8.
+        TimeTaskOnProgress::register();
 
         // The inbound hook endpoint — §8.3. Public, tenant resolved by its own middleware.
         $this->loadRoutesFrom(__DIR__.'/routes/web.php');
@@ -251,10 +270,17 @@ class WorkServiceProvider extends ServiceProvider
                 NavigationItem::make(__('Releases'))->icon('heroicon-o-rocket-launch')->url(WorkReleaseResource::getUrl('index', $byProject)),
             ];
 
-            // The hub, opened on the section the four work reports sit in. Only for somebody who may
+            // The hub, opened on the section the work reports sit in. Only for somebody who may
             // read reports at all; the other tabs need no more than reading items.
             if (auth()->user()?->can('ReportView') ?? false) {
                 $items[] = NavigationItem::make(__('Reports'))->icon('heroicon-o-chart-pie')->url(Reports::getUrl(['section' => 'Operations']));
+            }
+
+            // §7's Repositories tab, renamed Connections once a time provider exists (§8.8): the
+            // repositories and tracker projects are linked from the connection's side, so the tab
+            // opens the integrations list. Only for the administrator who may manage one.
+            if (auth()->user()?->can('IntegrationManage') ?? false) {
+                $items[] = NavigationItem::make(__('Connections'))->icon('heroicon-o-link')->url(IntegrationConnectionResource::getUrl('index'));
             }
 
             return $items;
@@ -325,5 +351,9 @@ class WorkServiceProvider extends ServiceProvider
         ReportRenderers::register('WorkCycleTime', fn (string $asOf): array => app(WorkReports::class)->cycleTime($asOf));
         ReportRenderers::register('WorkCreatedVsResolved', fn (string $asOf): array => app(WorkReports::class)->createdVsResolved($asOf));
         ReportRenderers::register('WorkCumulativeFlow', fn (string $asOf): array => app(WorkReports::class)->cumulativeFlow($asOf));
+
+        // §9's sixth report, built with §8.8: the reconciliation that makes `either` allowable.
+        ReportCatalogue::register('Operations', WorkTimeBySource::class, 'Hours logged here against hours synced from a tracker, per person, with the days that have both.');
+        ReportRenderers::register('WorkTimeBySource', fn (string $asOf): array => app(WorkReports::class)->timeBySource($asOf));
     }
 }

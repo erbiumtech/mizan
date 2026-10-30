@@ -272,6 +272,8 @@
         "App\\Models\\WorkRepository": "App\\Modules\\Work\\Models\\WorkRepository",
         "App\\Models\\WorkSprint": "App\\Modules\\Work\\Models\\WorkSprint",
         "App\\Models\\WorkStatus": "App\\Modules\\Work\\Models\\WorkStatus",
+        "App\\Models\\WorkTimeProject": "App\\Modules\\Work\\Models\\WorkTimeProject",
+        "App\\Models\\WorkTimeTask": "App\\Modules\\Work\\Models\\WorkTimeTask",
         "App\\Models\\WorkWorkflow": "App\\Modules\\Work\\Models\\WorkWorkflow",
         "App\\Models\\WorkWorkflowRule": "App\\Modules\\Work\\Models\\WorkWorkflowRule",
         "App\\Models\\Worker": "App\\Modules\\ConstructionCosting\\Models\\Worker"
@@ -554,6 +556,7 @@
         "App\\Filament\\Pages\\WorkCreatedVsResolved": "App\\Modules\\Work\\Filament\\Pages\\WorkCreatedVsResolved",
         "App\\Filament\\Pages\\WorkCumulativeFlow": "App\\Modules\\Work\\Filament\\Pages\\WorkCumulativeFlow",
         "App\\Filament\\Pages\\WorkCycleTime": "App\\Modules\\Work\\Filament\\Pages\\WorkCycleTime",
+        "App\\Filament\\Pages\\WorkTimeBySource": "App\\Modules\\Work\\Filament\\Pages\\WorkTimeBySource",
         "App\\Filament\\Pages\\WorkVelocity": "App\\Modules\\Work\\Filament\\Pages\\WorkVelocity"
     },
     "widgets": {

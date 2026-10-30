@@ -9,6 +9,7 @@ use App\Modules\Work\Models\WorkItemBranch;
 use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Services\CodeHosts;
+use App\Modules\Work\Services\Timers;
 use App\Modules\Work\Services\WorkTime;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -46,10 +47,63 @@ class EditWorkItem extends EditRecord
                 ->color('gray')
                 ->visible(fn (): bool => app(CodeHosts::class)->repositoriesFor($this->getRecord())->isNotEmpty()
                     && (auth()->user()?->can('update', $this->getRecord()) ?? false)),
+            $this->startTimerAction(),
+            $this->stopTimerAction(),
             $this->logTimeAction(),
             DeleteAction::make(),
             HelpAction::make('work-items', 'Work Items: Help'),
         ];
+    }
+
+    /**
+     * Start the stopwatch — §8.8. Creates the tracker's task if it is missing, then starts an
+     * entry on it with the key in the description. Only for a user with a linked identity, and
+     * never in `here` mode.
+     */
+    private function startTimerAction(): Action
+    {
+        return Action::make('startTimer')
+            ->label('Start timer')
+            ->icon('heroicon-o-play')
+            ->color('success')
+            ->visible(fn (): bool => app(Timers::class)->timerAvailable($this->getRecord(), auth()->user())
+                && app(Timers::class)->running($this->getRecord(), auth()->user()) === null
+                && (auth()->user()?->can('update', $this->getRecord()) ?? false))
+            ->action(function (): void {
+                try {
+                    app(Timers::class)->start($this->getRecord(), auth()->user());
+                } catch (RuntimeException $e) {
+                    Notification::make()->danger()->title('The timer did not start')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Running on '.$this->getRecord()->key.'.')->body('Stop it here or in Clockify; the hours land on your timesheet when it stops.')->send();
+            });
+    }
+
+    private function stopTimerAction(): Action
+    {
+        return Action::make('stopTimer')
+            ->label(fn (): string => 'Stop timer'.(($running = app(Timers::class)->running($this->getRecord(), auth()->user())) !== null ? ' · '.Timers::elapsed($running) : ''))
+            ->icon('heroicon-o-stop')
+            ->color('warning')
+            ->visible(fn (): bool => app(Timers::class)->timerAvailable($this->getRecord(), auth()->user())
+                && app(Timers::class)->running($this->getRecord(), auth()->user()) !== null)
+            ->action(function (): void {
+                try {
+                    $stopped = app(Timers::class)->stop($this->getRecord(), auth()->user());
+                } catch (RuntimeException $e) {
+                    Notification::make()->danger()->title('The timer did not stop')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()
+                    ->title($stopped !== null ? WorkTime::duration($stopped->minutes()).' stopped' : 'Nothing was running')
+                    ->body($stopped !== null ? 'It is on your timesheet as a Clockify entry.' : null)
+                    ->send();
+            });
     }
 
     /** `WRK-12-short-title` from the repository's default branch — §8.6. */
@@ -147,7 +201,10 @@ class EditWorkItem extends EditRecord
             ->label('Log time')
             ->icon('heroicon-o-clock')
             ->color('gray')
+            // Absent in Clockify mode on an item with a task, for a user who has the timer — so no
+            // hour has two doors. Present everywhere else — §8.8.
             ->visible(fn (): bool => app(WorkTime::class)->isAvailable()
+                && app(Timers::class)->logTimeAllowed($this->getRecord(), auth()->user())
                 && (auth()->user()?->can('update', $this->getRecord()) ?? false))
             ->modalHeading(fn (): string => 'Log time on '.$this->getRecord()->key)
             ->schema([

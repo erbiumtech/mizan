@@ -3,8 +3,10 @@
 namespace App\Modules\Work\Support;
 
 use App\Modules\Projects\Models\Project;
+use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Services\Sprints;
+use App\Modules\Work\Services\WorkTime;
 use App\Support\Reporting\ReportPeriod;
 use App\Support\Reporting\ReportShapes;
 use Illuminate\Database\Eloquent\Builder;
@@ -314,6 +316,87 @@ class WorkReports
             null,
             'No work items existed in these weeks.',
         );
+    }
+
+    /**
+     * Time by source — §9's sixth report, built with §8.8.
+     *
+     * Per project and per person, hours logged here against hours synced from a tracker, with the
+     * days on which one person has both. It is the reconciliation a manager runs when the mode is
+     * `either`, and the reason `either` is allowed.
+     */
+    public function timeBySource(string $asOf): array
+    {
+        $period = ReportPeriod::toDate($asOf);
+
+        if (! modules()->enabled('timesheets')) {
+            return $this->table(
+                'WorkTimeBySource', 'Time by Source', $this->subtitle($period['from'].' to '.$period['to']),
+                ['Project', 'Person', 'Logged here', 'From a tracker', 'From commits', 'Days with both'],
+                'minmax(0, 12rem) minmax(0, 12rem) 8rem 8rem 8rem 8rem', [2, 3, 4, 5], [], [],
+                'THE TIMESHEETS MODULE IS NOT ENABLED', null, 'There is no timesheet to read.',
+            );
+        }
+
+        // Time on a work item, or time that came through a door other than the form: both are
+        // this report's; an ordinary entry with neither belongs to the timesheet reports.
+        $entries = TimesheetEntry::query()
+            ->with(['project', 'employee.user'])
+            ->where(fn (Builder $q) => $q->whereNotNull('work_item_id')->orWhere('source', '!=', WorkTime::MANUAL))
+            ->whereBetween('date', [$period['from'], $period['to']])
+            ->get();
+
+        $rows = [];
+        $totals = ['here' => 0, 'tracker' => 0, 'commit' => 0, 'both' => 0];
+
+        $groups = $entries
+            ->groupBy(fn (TimesheetEntry $e): string => ($e->project?->name ?? '—').'|'.($e->employee?->display_label ?? '—'))
+            ->sortKeys();
+
+        foreach ($groups as $key => $set) {
+            [$project, $person] = explode('|', $key, 2);
+
+            $here = (int) $set->where('source', WorkTime::MANUAL)->sum('minutes');
+            $tracker = (int) $set->where('source', WorkTime::CLOCKIFY)->sum('minutes');
+            $commit = (int) $set->where('source', WorkTime::SMART_COMMIT)->sum('minutes');
+
+            // A day that has a manual row and a synced row for the same person: the day to look at.
+            $both = $set->groupBy(fn (TimesheetEntry $e): string => $e->date->toDateString())
+                ->filter(fn (Collection $day): bool => $day->where('source', WorkTime::MANUAL)->isNotEmpty()
+                    && $day->where('source', '!=', WorkTime::MANUAL)->isNotEmpty())
+                ->count();
+
+            $rows[] = [$project, $person, $this->hours($here), $this->hours($tracker), $this->hours($commit), $this->count($both)];
+
+            $totals['here'] += $here;
+            $totals['tracker'] += $tracker;
+            $totals['commit'] += $commit;
+            $totals['both'] += $both;
+        }
+
+        return $this->table(
+            'WorkTimeBySource',
+            'Time by Source',
+            $this->subtitle('time on work items between '.$period['from'].' and '.$period['to']),
+            ['Project', 'Person', 'Logged here', 'From a tracker', 'From commits', 'Days with both'],
+            'minmax(0, 12rem) minmax(0, 12rem) 8rem 8rem 8rem 8rem',
+            [2, 3, 4, 5],
+            $rows,
+            [
+                ['label' => 'HOURS FROM A TRACKER', 'value' => round($totals['tracker'] / 60, 1), 'accent' => true],
+                ['label' => 'DAYS WITH BOTH', 'value' => (float) $totals['both'], 'accent' => false],
+            ],
+            $totals['both'] > 0
+                ? mb_strtoupper($totals['both'].' person-days have an hour logged here and an hour synced in; those are the days to reconcile')
+                : 'NO DAY HAS TIME FROM TWO DOORS',
+            $rows === [] ? null : ['Total', '', $this->hours($totals['here']), $this->hours($totals['tracker']), $this->hours($totals['commit']), number_format($totals['both'])],
+            'No time has been logged against a work item in this period.',
+        );
+    }
+
+    private function hours(int $minutes): string
+    {
+        return $minutes === 0 ? '—' : number_format($minutes / 60, 1);
     }
 
     /** @return Collection<int, Project> */

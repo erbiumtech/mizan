@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Work\Console\Commands\PullTimeEntries;
 use App\Modules\Work\Console\Commands\SendWorkDigest;
 use Illuminate\Support\Facades\Schedule;
 
@@ -12,4 +13,16 @@ use Illuminate\Support\Facades\Schedule;
  */
 Schedule::command(SendWorkDigest::class)
     ->hourly()
+    ->withoutOverlapping();
+
+/**
+ * The time tracker pull — §8.8: every fifteen minutes for the last two days, nightly for the last
+ * thirty. The backstop where the workspace sends webhooks and the only path where it cannot.
+ */
+Schedule::command(PullTimeEntries::class, ['--days' => 2])
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
+
+Schedule::command(PullTimeEntries::class, ['--days' => 30])
+    ->dailyAt('03:10')
     ->withoutOverlapping();

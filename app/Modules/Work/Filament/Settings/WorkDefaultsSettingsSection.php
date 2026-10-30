@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Settings;
 
+use App\Modules\Work\Services\Timers;
 use App\Support\Contracts\SettingsSection;
 use App\Support\TenantSettings;
 use Filament\Forms\Components\Select;
@@ -43,6 +44,19 @@ class WorkDefaultsSettingsSection implements SettingsSection
                         ->label('A merged pull request resolves the items it names')
                         ->helperText('Off, a merge moves them to In review instead, if the workflow has one.'),
 
+                    /*
+                     * The stopwatch — §8.8's mode, "the option the owner asked for". Clockify is
+                     * the stopwatch, the timesheet is the ledger, and an hour exists in the ledger
+                     * exactly once; this is which door it comes through.
+                     */
+                    Select::make('work.time_source')
+                        ->label('Time is logged')
+                        ->options(Timers::MODES)
+                        ->required()
+                        ->native(false)
+                        ->columnSpanFull()
+                        ->helperText('A project may override this on its own form. In Clockify mode, Log time is absent on an item that has a Clockify task and present everywhere else, so no hour has two doors.'),
+
                     Toggle::make('work.digest_enabled')
                         ->label('Send the morning digest')
                         ->live()
@@ -63,6 +77,7 @@ class WorkDefaultsSettingsSection implements SettingsSection
         return [
             'work.estimation_unit' => (string) setting('work.estimation_unit', 'hours'),
             'work.merge_moves_to_done' => (bool) setting('work.merge_moves_to_done', true),
+            'work.time_source' => (string) setting('work.time_source', Timers::HERE),
             'work.digest_enabled' => (bool) setting('work.digest_enabled', true),
             'work.digest_time' => (string) setting('work.digest_time', '08:00'),
         ];
@@ -80,6 +95,7 @@ class WorkDefaultsSettingsSection implements SettingsSection
 
         $settings->set('work.estimation_unit', in_array($state['work.estimation_unit'], ['hours', 'points'], true) ? $state['work.estimation_unit'] : 'hours');
         $settings->set('work.merge_moves_to_done', (bool) ($state['work.merge_moves_to_done'] ?? true));
+        $settings->set('work.time_source', array_key_exists($state['work.time_source'] ?? '', Timers::MODES) ? $state['work.time_source'] : Timers::HERE);
         $settings->set('work.digest_enabled', (bool) ($state['work.digest_enabled'] ?? true));
         $settings->set('work.digest_time', substr((string) ($state['work.digest_time'] ?? '08:00'), 0, 5) ?: '08:00');
     }

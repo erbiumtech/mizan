@@ -88,6 +88,12 @@ class IntegrationConnection extends Model
         return $this->hasMany(IntegrationIdentity::class);
     }
 
+    /** A time tracker's projects linked through this connection — §8.8. */
+    public function timeProjects(): HasMany
+    {
+        return $this->hasMany(WorkTimeProject::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::ACTIVE);

@@ -36,6 +36,13 @@ return [
     'merge_moves_to_done' => env('WORK_MERGE_MOVES_TO_DONE', true),
 
     /*
+    | Where time is logged — §8.8: here | clockify | either. "Clockify is the stopwatch, the
+    | timesheet is the ledger, and an hour exists in the ledger exactly once." A project may
+    | override it.
+    */
+    'time_source' => env('WORK_TIME_SOURCE', 'here'),
+
+    /*
     | A branch created for an item in *to do* starts it — §8.4. "The one automation every team
     | asked for and the one Jira hides behind a setting. It is a setting here too, on by default."
     */
