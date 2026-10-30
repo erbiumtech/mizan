@@ -6,6 +6,8 @@ use App\Modules\Core\Models\Company;
 use App\Support\CompanyProfiles;
 use App\Support\TenantDb;
 use App\Support\TenantTransaction;
+use Database\Seeders\LeadSourceSeeder;
+use Database\Seeders\LeaveTypeSeeder;
 use Database\Seeders\SalarySlabSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
@@ -127,6 +129,15 @@ class SeedTenantBaseline extends Command
                 $seeders,
                 fn (string $seeder) => $seeder !== SalarySlabSeeder::class,
             ));
+        }
+
+        // A module licensed after provisioning — by a super admin, or on a company with no
+        // profile — needs the reference data its profile would have seeded. Both are
+        // firstOrCreate, so this stays additive.
+        foreach (['leave' => LeaveTypeSeeder::class, 'crm' => LeadSourceSeeder::class] as $module => $seeder) {
+            if (modules()->licensedFor($company->getKey(), $module) && ! in_array($seeder, $seeders, true)) {
+                $seeders[] = $seeder;
+            }
         }
 
         return $seeders;

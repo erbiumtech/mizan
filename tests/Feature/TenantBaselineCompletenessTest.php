@@ -294,4 +294,26 @@ class TenantBaselineCompletenessTest extends TestCase
             .'so anything else here will destroy data it claims only to top up.',
         );
     }
+
+    public function test_a_module_licensed_after_provisioning_gets_its_reference_data(): void
+    {
+        // No profile, so nothing seeded leave types or lead sources at provisioning.
+        $company = $this->provision(Company::TYPE_BUSINESS);
+        $this->assertSame(0, \App\Modules\Leave\Models\LeaveType::count());
+
+        foreach (['leave', 'crm'] as $module) {
+            \App\Modules\Core\Models\CompanyModule::updateOrCreate(
+                ['company_id' => $company->getKey(), 'module' => $module],
+                ['licensed' => true, 'enabled' => true],
+            );
+        }
+        modules()->flush();
+        Company::forgetCurrent();
+
+        $this->artisan('tenants:seed-baseline', ['--tenant' => $company->getKey()])->assertSuccessful();
+
+        $company->makeCurrent();
+        $this->assertGreaterThan(0, \App\Modules\Leave\Models\LeaveType::count(), 'a company that licensed Leave has no leave types');
+        $this->assertGreaterThan(0, \App\Modules\Crm\Models\LeadSource::count(), 'a company that licensed CRM has no lead sources');
+    }
 }
