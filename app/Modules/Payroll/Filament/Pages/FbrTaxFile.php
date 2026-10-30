@@ -105,7 +105,7 @@ class FbrTaxFile extends Page
         return [
             HelpAction::make('fbr-tax-file', 'FBR Tax File: Help'),
             Action::make('downloadFbrTaxFile')
-                ->label('Download FBR Tax File')
+                ->label(__('Download FBR Tax File'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => $this->getRows()->isNotEmpty())
                 ->action(function () {

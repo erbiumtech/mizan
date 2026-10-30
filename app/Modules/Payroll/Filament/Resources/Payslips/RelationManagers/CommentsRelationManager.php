@@ -112,7 +112,7 @@ class CommentsRelationManager extends RelationManager
                 // Comments are per-tenant, the author is a landlord user — see
                 // LandlordUserColumn.
                 TextColumn::make('user.name')
-                    ->label('Author')
+                    ->label(__('Author'))
                     ->description(fn (Comment $record): ?string => $record->getKey() === $this->getOwnerRecord()->review_objection_comment_id
                         ? 'the objection'
                         : null)
@@ -123,7 +123,7 @@ class CommentsRelationManager extends RelationManager
                     ->searchable(),
 
                 IconColumn::make('resolved_at')
-                    ->label('Resolved')
+                    ->label(__('Resolved'))
                     ->boolean(),
 
                 TextColumn::make('created_at')
@@ -150,7 +150,7 @@ class CommentsRelationManager extends RelationManager
                  * On any other comment it is what it says: this bit of the conversation is dealt with.
                  */
                 Action::make('resolveComment')
-                    ->label('Mark solved')
+                    ->label(__('Mark solved'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (Comment $record): bool => ! $record->isResolved()
@@ -173,7 +173,7 @@ class CommentsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Reply')
+                    ->label(__('Reply'))
                     ->modalHeading(fn (): string => $this->getOwnerRecord()->isRejected()
                         ? 'Reply to the objection'
                         : 'Add a comment')
@@ -183,7 +183,7 @@ class CommentsRelationManager extends RelationManager
                         : null)
                     ->schema([
                         Textarea::make('body')
-                            ->label('Comment')
+                            ->label(__('Comment'))
                             ->required()
                             ->maxLength(1000)
                             ->rows(4),

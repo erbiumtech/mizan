@@ -40,7 +40,7 @@ class JobHistoryRelationManager extends RelationManager
             ->defaultSort('effective_from', 'desc')
             ->columns([
                 TextColumn::make('effective_from')
-                    ->label('From')
+                    ->label(__('From'))
                     ->date('d M Y')
                     ->sortable()
                     // A change agreed now and effective next month is a real row that has not happened yet,
@@ -55,13 +55,13 @@ class JobHistoryRelationManager extends RelationManager
                 TextColumn::make('department')->placeholder('—'),
 
                 TextColumn::make('employment_type')
-                    ->label('Employment type')
+                    ->label(__('Employment type'))
                     ->formatStateUsing(fn (?string $state): string => $state ? str($state)->headline()->value() : '—'),
 
                 // The manager as at that change, not the manager today: reading the current record here
                 // would rewrite every historical row whenever somebody's reporting line moves.
                 TextColumn::make('manager.display_label')
-                    ->label('Reported to')
+                    ->label(__('Reported to'))
                     ->placeholder('—'),
 
                 TextColumn::make('reason')

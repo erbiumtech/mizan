@@ -16,7 +16,7 @@ class FillFromStructureAction
     public static function make(): Action
     {
         return Action::make('fillFromStructure')
-            ->label('Fill from structure')
+            ->label(__('Fill from structure'))
             ->icon('heroicon-o-squares-2x2')
             ->color('gray')
             ->visible(fn (): bool => modules()->enabled('payroll')
@@ -27,11 +27,11 @@ class FillFromStructureAction
             ->modalSubmitActionLabel('Fill')
             ->schema([
                 Select::make('salary_structure_id')
-                    ->label('Structure')
+                    ->label(__('Structure'))
                     ->options(fn (): array => SalaryStructure::query()->active()->orderBy('name')->pluck('name', 'id')->all())
                     ->required(),
                 TextInput::make('gross')
-                    ->label('Monthly gross')
+                    ->label(__('Monthly gross'))
                     ->numeric()
                     ->minValue(1)
                     ->required(),

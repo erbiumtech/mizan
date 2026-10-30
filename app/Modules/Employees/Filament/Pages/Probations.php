@@ -52,20 +52,20 @@ class Probations extends Page implements HasTable
             ->query(fn (): Builder => Employee::query()->with('user')->where('is_active', true)->whereNotNull('probation_ends_on')->whereNull('confirmed_on'))
             ->defaultSort('probation_ends_on')
             ->columns([
-                TextColumn::make('display_label')->label('Employee')->searchable(['employee_id']),
+                TextColumn::make('display_label')->label(__('Employee'))->searchable(['employee_id']),
                 TextColumn::make('designation')->placeholder('—'),
                 TextColumn::make('department')->placeholder('—'),
-                TextColumn::make('date_of_joining')->date('d M Y')->label('Joined'),
-                TextColumn::make('probation_ends_on')->date('d M Y')->label('Probation ends')->sortable()
+                TextColumn::make('date_of_joining')->date('d M Y')->label(__('Joined')),
+                TextColumn::make('probation_ends_on')->date('d M Y')->label(__('Probation ends'))->sortable()
                     ->color(fn (Employee $r): string => $r->probationOverdue() ? 'danger' : 'gray')
                     ->description(fn (Employee $r): ?string => $r->probationOverdue() ? 'overdue '.$r->probation_ends_on->diffForHumans() : null),
             ])
             ->recordActions([
                 Action::make('confirm')
-                    ->label('Confirm')
+                    ->label(__('Confirm'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
-                    ->schema([DatePicker::make('on')->label('Confirmed on')->native(false)->default(now())->required()])
+                    ->schema([DatePicker::make('on')->label(__('Confirmed on'))->native(false)->default(now())->required()])
                     ->action(function (Employee $record, array $data): void {
                         app(EmployeeMoves::class)->confirm($record, $data['on']);
                         Notification::make()->success()->title($record->display_label.' confirmed.')->send();

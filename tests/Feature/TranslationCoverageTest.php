@@ -24,7 +24,7 @@ class TranslationCoverageTest extends TestCase
      *
      * @var array<int, string>
      */
-    private const SWEPT = ['Attendance', 'Core', 'Leave'];
+    private const SWEPT = ['Attendance', 'Core', 'Employees', 'Leave', 'Payroll'];
 
     public function test_a_swept_module_holds_no_literal_label(): void
     {

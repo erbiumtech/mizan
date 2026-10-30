@@ -20,12 +20,12 @@ class AnnualTaxesTable
             ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('employee.employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->formatStateUsing(fn ($state, $record): string => ($record->employee?->employee_id ?? '').' - '.($record->employee?->user?->name ?? ''))
                     // Resolved to employee ids first: `users` lives in the
                     // landlord database, so a whereHas through it would emit a
@@ -35,39 +35,39 @@ class AnnualTaxesTable
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('total_net_income')
-                    ->label('Total Net Income')
+                    ->label(__('Total Net Income'))
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('annual_income_tax')
-                    ->label('Annual Taxable Income')
+                    ->label(__('Annual Taxable Income'))
                     ->numeric()
                     ->sortable(),
 
                 TextColumn::make('total_annual_tax')
-                    ->label('Total Annual Tax')
+                    ->label(__('Total Annual Tax'))
                     ->numeric()
                     ->sortable(),
 
                 TextColumn::make('paid_tax')
-                    ->label('Paid Tax')
+                    ->label(__('Paid Tax'))
                     ->numeric()
                     ->sortable(),
 
                 TextColumn::make('leftover_tax')
-                    ->label('Leftover Tax')
+                    ->label(__('Leftover Tax'))
                     ->numeric()
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                         ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -75,7 +75,7 @@ class AnnualTaxesTable
                     ->preload(),
 
                 SelectFilter::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name')
                     ->searchable()
                     ->preload(),

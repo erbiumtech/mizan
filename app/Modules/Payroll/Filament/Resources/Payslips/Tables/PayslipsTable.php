@@ -56,7 +56,7 @@ class PayslipsTable
              */
             ->columns([
                 TextColumn::make('employee.employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     // Resolved to employee ids first: `users` lives in the
                     // landlord database, so a whereHas through it would emit a
@@ -72,69 +72,69 @@ class PayslipsTable
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('basic_wage')
-                    ->label('Basic Salary')
+                    ->label(__('Basic Salary'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('medical_allowance')
-                    ->label('Medical Allowance')
+                    ->label(__('Medical Allowance'))
                     ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('petrol_allowance')
-                    ->label('Petrol Allowance')
+                    ->label(__('Petrol Allowance'))
                     ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('bonus')
-                    ->label('Bonus')
+                    ->label(__('Bonus'))
                     ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('extra_work_hours')
-                    ->label('Extra Work Hours')
+                    ->label(__('Extra Work Hours'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('expense_reimbursement')
-                    ->label('Expense Reimbursment')
+                    ->label(__('Expense Reimbursment'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('advances')
-                    ->label('Advances')
+                    ->label(__('Advances'))
                     ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('meal_deduction')
-                    ->label('Meal Deduction')
+                    ->label(__('Meal Deduction'))
                     ->money(CompanyCurrency::code())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('withholding_tax')
-                    ->label('Withholding Tax')
+                    ->label(__('Withholding Tax'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('total_deductions')
-                    ->label('Total Deductions')
+                    ->label(__('Total Deductions'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('net_salary')
-                    ->label('Net Salary')
+                    ->label(__('Net Salary'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 // Whether the employee has been sent it at all, which the review
                 // state cannot say: a payslip nobody sent is "pending" too.
                 TextColumn::make('sent_at')
-                    ->label('Sent')
+                    ->label(__('Sent'))
                     ->badge()
                     ->state(fn (Payslip $record): string => $record->wasSent() ? 'sent' : 'not sent')
                     ->color(fn (Payslip $record): string => $record->wasSent() ? 'success' : 'gray')
@@ -142,7 +142,7 @@ class PayslipsTable
                     ->sortable(),
 
                 TextColumn::make('employee_review')
-                    ->label('Employee Review')
+                    ->label(__('Employee Review'))
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
                         'pending' => 'warning',
@@ -175,13 +175,13 @@ class PayslipsTable
                     ->sortable(),
             ])
             ->groups([
-                Group::make('month')->label('Month'),
-                Group::make('fiscalYear.name')->label('Fiscal Year'),
-                Group::make('employee_review')->label('Review Status'),
+                Group::make('month')->label(__('Month')),
+                Group::make('fiscalYear.name')->label(__('Fiscal Year')),
+                Group::make('employee_review')->label(__('Review Status')),
             ])
             ->filters([
                 SelectFilter::make('employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                         ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -189,14 +189,14 @@ class PayslipsTable
                     ->preload(),
 
                 SelectFilter::make('month')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->options(collect([
                         'January', 'February', 'March', 'April', 'May', 'June',
                         'July', 'August', 'September', 'October', 'November', 'December',
                     ])->mapWithKeys(fn (string $m) => [$m => $m])->toArray()),
 
                 SelectFilter::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name')
                     ->searchable()
                     ->preload(),
@@ -210,7 +210,7 @@ class PayslipsTable
                 // it exists for: at the end of a run, *which objections are still waiting on somebody* —
                 // which is Rejected on its own, and would be unanswerable if answering one left it there.
                 SelectFilter::make('employee_review')
-                    ->label('Employee Review')
+                    ->label(__('Employee Review'))
                     ->options([
                         Payslip::REVIEW_PENDING => 'Pending',
                         Payslip::REVIEW_ACCEPTED => 'Accepted',
@@ -221,7 +221,7 @@ class PayslipsTable
                 // "Who has not had theirs yet" is the question at the end of a
                 // payroll run, and it is unanswerable from the review column.
                 TernaryFilter::make('sent_at')
-                    ->label('Sent to employee')
+                    ->label(__('Sent to employee'))
                     ->nullable()
                     ->placeholder('All')
                     ->trueLabel('Sent')
@@ -303,7 +303,7 @@ class PayslipsTable
     protected static function fillWorkingDaysBulkAction(): BulkAction
     {
         return BulkAction::make('fillWorkingDaysBulk')
-            ->label('Fill in working days')
+            ->label(__('Fill in working days'))
             ->icon('heroicon-o-calendar-days')
             ->requiresConfirmation()
             ->modalHeading('Fill in working days')
@@ -345,7 +345,7 @@ class PayslipsTable
     protected static function sendBulkAction(): BulkAction
     {
         return BulkAction::make('sendPayslipBulk')
-            ->label('Send to employees')
+            ->label(__('Send to employees'))
             ->icon('heroicon-o-paper-airplane')
             ->requiresConfirmation()
             ->modalHeading('Send payslips')
@@ -441,7 +441,7 @@ class PayslipsTable
     protected static function downloadZipBulkAction(): BulkAction
     {
         return BulkAction::make('downloadPayslipsZip')
-            ->label('Download as zip')
+            ->label(__('Download as zip'))
             ->icon('heroicon-o-archive-box-arrow-down')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->can('PayslipView') ?? false)
@@ -474,7 +474,7 @@ class PayslipsTable
     protected static function downloadAction(): Action
     {
         return Action::make('downloadPayslip')
-            ->label('Download Payslip')
+            ->label(__('Download Payslip'))
             ->icon('heroicon-o-arrow-down-tray')
             ->visible(fn (Payslip $record): bool => auth()->user()?->can('runAction', $record) ?? false)
             ->action(function (Payslip $record) {
@@ -558,7 +558,7 @@ class PayslipsTable
     protected static function acceptAction(): Action
     {
         return Action::make('acceptPayslip')
-            ->label('Accept Payslip')
+            ->label(__('Accept Payslip'))
             ->icon('heroicon-o-check-circle')
             ->color('success')
             ->requiresConfirmation()
@@ -577,13 +577,13 @@ class PayslipsTable
     protected static function rejectAction(): Action
     {
         return Action::make('rejectPayslip')
-            ->label('Reject Payslip')
+            ->label(__('Reject Payslip'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(fn (Payslip $record): bool => self::canReview($record))
             ->schema([
                 Textarea::make('reason')
-                    ->label('Reason')
+                    ->label(__('Reason'))
                     ->required()
                     ->maxLength(255)
                     ->helperText('Tell the accounts team what looks wrong'),
@@ -601,7 +601,7 @@ class PayslipsTable
     protected static function acceptBulkAction(): BulkAction
     {
         return BulkAction::make('acceptPayslipBulk')
-            ->label('Accept Payslip')
+            ->label(__('Accept Payslip'))
             ->icon('heroicon-o-check-circle')
             ->color('success')
             ->visible(fn (): bool => self::reviewsOwnPayslips())
@@ -626,13 +626,13 @@ class PayslipsTable
     protected static function rejectBulkAction(): BulkAction
     {
         return BulkAction::make('rejectPayslipBulk')
-            ->label('Reject Payslip')
+            ->label(__('Reject Payslip'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(fn (): bool => self::reviewsOwnPayslips())
             ->schema([
                 Textarea::make('reason')
-                    ->label('Reason')
+                    ->label(__('Reason'))
                     ->required()
                     ->maxLength(255)
                     ->helperText('Tell the accounts team what looks wrong'),

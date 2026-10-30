@@ -44,7 +44,7 @@ class PayComponentForm
             // Who bears it. An employer contribution — EOBI, social security, a provident-fund match — is a cost on
             // top of pay: never taken from the employee, posted as an expense against the payable below.
             Select::make('paid_by')
-                ->label('Who pays')
+                ->label(__('Who pays'))
                 ->options([
                     PayComponent::PAID_BY_EMPLOYEE => 'The employee — taken off their pay',
                     PayComponent::PAID_BY_EMPLOYER => 'The employer — a cost on top of pay',
@@ -57,7 +57,7 @@ class PayComponentForm
                 ->helperText('The employer\'s share never reduces net pay. The payslip, the register and the run show it as employer cost.'),
 
             Toggle::make('is_taxable')
-                ->label('Taxable')
+                ->label(__('Taxable'))
                 ->default(true)
                 ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_EARNING)
                 ->helperText('Off for money that is not income — a reimbursement of the employee\'s own spending.'),
@@ -65,7 +65,7 @@ class PayComponentForm
             // What the amount is per — docs/bexio-gap-plan.md Phase 5, item 20. Not offered on the
             // column-backed components: their arithmetic is payroll's own.
             Select::make('basis')
-                ->label('The amount is')
+                ->label(__('The amount is'))
                 ->options([
                     PayComponent::BASIS_MONTHLY => 'Per month — paid as it stands',
                     PayComponent::BASIS_PER_HOUR => 'Per hour — times the hours attendance recorded',
@@ -82,7 +82,7 @@ class PayComponentForm
                 }),
 
             Select::make('pays_in_month')
-                ->label('Paid in')
+                ->label(__('Paid in'))
                 ->options(array_combine(PayComponent::MONTHS, PayComponent::MONTHS))
                 ->visible(fn (Get $get): bool => $get('basis') === PayComponent::BASIS_ANNUAL)
                 ->required(fn (Get $get): bool => $get('basis') === PayComponent::BASIS_ANNUAL),
@@ -91,7 +91,7 @@ class PayComponentForm
             // never pro-rates by attendance — being away does not reduce what somebody
             // owes — so the flag would be a switch with no effect.
             Toggle::make('prorates')
-                ->label('Reduce this for unpaid absence')
+                ->label(__('Reduce this for unpaid absence'))
                 ->default(false)
                 ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_EARNING
                     && modules()->enabled('attendance'))
@@ -100,7 +100,7 @@ class PayComponentForm
                     : 'Has no effect until "Reduce pay for unpaid absence" is switched on in Company Settings, which it is not. Setting it now decides what happens if that is ever turned on.'),
 
             Select::make('expense_account_id')
-                ->label('Expensed to')
+                ->label(__('Expensed to'))
                 ->options(fn (): array => Account::where('allow_manual_entry', true)
                     ->where('type', 'expense')
                     ->orderBy('code')
@@ -114,7 +114,7 @@ class PayComponentForm
                 ->helperText('The company\'s cost of this contribution. Required unless an expense key is given below.'),
 
             TextInput::make('expense_account_key')
-                ->label('Expense account key')
+                ->label(__('Expense account key'))
                 ->maxLength(64)
                 ->default(fn (): ?string => PayComponent::query()->where('paid_by', PayComponent::PAID_BY_EMPLOYER)->whereNotNull('expense_account_key')->value('expense_account_key'))
                 ->visible(fn (Get $get): bool => $get('kind') === PayComponent::KIND_DEDUCTION && $get('paid_by') === PayComponent::PAID_BY_EMPLOYER)
@@ -122,7 +122,7 @@ class PayComponentForm
                 ->helperText('Or a line of the payroll account mapping, e.g. basic_wage — the shipped contributions start there.'),
 
             Select::make('account_id')
-                ->label('Posts to')
+                ->label(__('Posts to'))
                 ->options(fn (): array => Account::where('allow_manual_entry', true)
                     ->orderBy('code')
                     ->get()
@@ -132,7 +132,7 @@ class PayComponentForm
                 ->helperText('Where it lands in the ledger. Required unless a payroll account key is given below — a component with nowhere to post makes a payslip impossible to post.'),
 
             TextInput::make('account_key')
-                ->label('Payroll account key')
+                ->label(__('Payroll account key'))
                 ->maxLength(64)
                 ->helperText('Optional: reuse an existing payroll mapping, e.g. bonus_overtime, instead of naming an account.'),
 
@@ -142,7 +142,7 @@ class PayComponentForm
                 ->helperText('Order on the payslip. The shipped components run 10–140.'),
 
             Toggle::make('is_active')
-                ->label('Active')
+                ->label(__('Active'))
                 ->default(true)
                 ->helperText('Switch off to stop paying it, without touching payslips that already did.'),
 
