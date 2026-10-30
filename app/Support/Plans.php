@@ -167,6 +167,39 @@ class Plans
     }
 
     /**
+     * Does moving from one plan to another keep every module the first sold?
+     *
+     * The test a self-serve plan change has to pass (§12.3: downgrades are
+     * support's). A plan covers another when its full module set — includes
+     * followed — is a superset of the other's; a plan covers itself. Licences
+     * are only ever granted by a change (never revoked), so a move to a plan that
+     * does not cover the current one would be billed at the smaller price while
+     * keeping the larger plan's modules.
+     */
+    public static function covers(?string $from, string $to): bool
+    {
+        if ($from === null || $from === $to) {
+            return true;
+        }
+
+        $had = static::modules($from) ?? [];
+        $gets = static::modules($to) ?? [];
+
+        return array_diff($had, $gets) === [];
+    }
+
+    /**
+     * The plans a company on $from may move to by itself: every one that covers
+     * it, in the file's order, itself included so the select has a default.
+     *
+     * @return array<string, string>
+     */
+    public static function upgradesFrom(?string $from): array
+    {
+        return array_filter(static::options(), fn (string $label, string $plan): bool => static::covers($from, $plan), ARRAY_FILTER_USE_BOTH);
+    }
+
+    /**
      * Plans as Filament select options, in the order the file lists them —
      * which is cheapest first.
      *
