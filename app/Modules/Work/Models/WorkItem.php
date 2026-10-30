@@ -41,12 +41,13 @@ class WorkItem extends Model
     protected $fillable = [
         'project_id', 'number', 'key', 'type', 'title', 'description',
         'work_status_id', 'priority', 'assignee_employee_id', 'reporter_user_id',
-        'parent_id', 'estimate_points', 'estimate_minutes', 'due_on', 'rank',
+        'parent_id', 'sprint_id', 'carried_over', 'estimate_points', 'estimate_minutes', 'due_on', 'rank',
         'started_at', 'resolved_at', 'resolution', 'archived_at',
     ];
 
     protected $casts = [
         'number' => 'integer',
+        'carried_over' => 'integer',
         'estimate_points' => 'decimal:1',
         'estimate_minutes' => 'integer',
         'due_on' => 'date',
@@ -80,6 +81,17 @@ class WorkItem extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
+    }
+
+    public function sprint(): BelongsTo
+    {
+        return $this->belongsTo(WorkSprint::class, 'sprint_id');
+    }
+
+    /** Open, unarchived, and in nobody's sprint — what a backlog is. */
+    public function scopeBacklog(Builder $query): Builder
+    {
+        return $query->open()->whereNull('sprint_id');
     }
 
     public function labels(): BelongsToMany

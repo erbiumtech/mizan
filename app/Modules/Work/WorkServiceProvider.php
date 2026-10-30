@@ -7,6 +7,7 @@ use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkItemLink;
 use App\Modules\Work\Models\WorkLabel;
+use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Models\WorkWorkflowRule;
@@ -15,6 +16,7 @@ use App\Modules\Work\Policies\WorkBoardPolicy;
 use App\Modules\Work\Policies\WorkItemLinkPolicy;
 use App\Modules\Work\Policies\WorkItemPolicy;
 use App\Modules\Work\Policies\WorkLabelPolicy;
+use App\Modules\Work\Policies\WorkSprintPolicy;
 use App\Modules\Work\Policies\WorkStatusPolicy;
 use App\Modules\Work\Policies\WorkWorkflowPolicy;
 use App\Modules\Work\Policies\WorkWorkflowRulePolicy;
@@ -41,6 +43,7 @@ class WorkServiceProvider extends ServiceProvider
         WorkAttachment::class => WorkAttachmentPolicy::class,
         WorkItemLink::class => WorkItemLinkPolicy::class,
         WorkBoard::class => WorkBoardPolicy::class,
+        WorkSprint::class => WorkSprintPolicy::class,
     ];
 
     public function boot(): void

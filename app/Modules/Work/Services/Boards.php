@@ -6,6 +6,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkItemLink;
+use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Support\Rank;
 use App\Support\EmployeeAccess;
@@ -153,6 +154,20 @@ class Boards
         // Subtasks are shown under their parent unless the board asks for them as cards — §5.4.
         if (! $board->shows_subtasks) {
             $query->where('type', '!=', WorkItem::TYPE_SUBTASK);
+        }
+
+        /*
+         * A Scrum board is the active sprint — §5.1, and the whole difference between the two kinds.
+         *
+         * With no sprint running it shows nothing rather than everything: a team between sprints has
+         * an empty board, which is the truth, where a board quietly falling back to the backlog would
+         * be the commitment they have not made yet.
+         */
+        if ($board->kind === WorkBoard::SCRUM && $board->project_id !== null) {
+            $query->where('sprint_id', WorkSprint::query()
+                ->where('project_id', $board->project_id)
+                ->active()
+                ->value('id') ?? 0);
         }
 
         $this->applyFilters($query, array_merge($board->filters ?? [], $filters));

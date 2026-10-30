@@ -262,6 +262,7 @@
         "App\\Models\\WorkLocation": "App\\Modules\\Core\\Models\\WorkLocation",
         "App\\Models\\WorkPattern": "App\\Modules\\Attendance\\Models\\WorkPattern",
         "App\\Models\\WorkPatternDay": "App\\Modules\\Attendance\\Models\\WorkPatternDay",
+        "App\\Models\\WorkSprint": "App\\Modules\\Work\\Models\\WorkSprint",
         "App\\Models\\WorkStatus": "App\\Modules\\Work\\Models\\WorkStatus",
         "App\\Models\\WorkWorkflow": "App\\Modules\\Work\\Models\\WorkWorkflow",
         "App\\Models\\WorkWorkflowRule": "App\\Modules\\Work\\Models\\WorkWorkflowRule",
@@ -426,6 +427,7 @@
         "App\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource": "App\\Modules\\Crm\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource",
         "App\\Filament\\Resources\\WorkItems\\WorkItemResource": "App\\Modules\\Work\\Filament\\Resources\\WorkItems\\WorkItemResource",
         "App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource": "App\\Modules\\Attendance\\Filament\\Resources\\WorkPatterns\\WorkPatternResource",
+        "App\\Filament\\Resources\\WorkSprints\\WorkSprintResource": "App\\Modules\\Work\\Filament\\Resources\\WorkSprints\\WorkSprintResource",
         "App\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource": "App\\Modules\\Work\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource"
     },
     "pages": {
@@ -442,6 +444,7 @@
         "App\\Filament\\Pages\\AssetsInHand": "App\\Modules\\Lifecycle\\Filament\\Pages\\AssetsInHand",
         "App\\Filament\\Pages\\AttendanceRegister": "App\\Modules\\Attendance\\Filament\\Pages\\AttendanceRegister",
         "App\\Filament\\Pages\\Auth\\EditProfile": "App\\Modules\\Core\\Filament\\Pages\\Auth\\EditProfile",
+        "App\\Filament\\Pages\\Backlog": "App\\Modules\\Work\\Filament\\Pages\\Backlog",
         "App\\Filament\\Pages\\BalanceSheet": "App\\Modules\\Accounting\\Filament\\Pages\\BalanceSheet",
         "App\\Filament\\Pages\\BankPaymentFile": "App\\Modules\\Accounting\\Filament\\Pages\\BankPaymentFile",
         "App\\Filament\\Pages\\BankReconciliationStatement": "App\\Modules\\Accounting\\Filament\\Pages\\BankReconciliationStatement",

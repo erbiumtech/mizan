@@ -42,11 +42,13 @@ return [
         'App\\Models\\WorkAttachment' => \App\Modules\Work\Models\WorkAttachment::class,
         'App\\Models\\WorkItemLink' => \App\Modules\Work\Models\WorkItemLink::class,
         'App\\Models\\WorkBoard' => \App\Modules\Work\Models\WorkBoard::class,
+        'App\\Models\\WorkSprint' => \App\Modules\Work\Models\WorkSprint::class,
     ],
 
     'pages' => [
         'App\\Filament\\Pages\\Board' => \App\Modules\Work\Filament\Pages\Board::class,
         'App\\Filament\\Pages\\MyWork' => \App\Modules\Work\Filament\Pages\MyWork::class,
+        'App\\Filament\\Pages\\Backlog' => \App\Modules\Work\Filament\Pages\Backlog::class,
     ],
 
     'resources' => [
@@ -54,6 +56,7 @@ return [
         // Workflows are a Settings screen rather than a board one: a workflow governs every board
         // the company has, which is why §13.1 makes it an administrator's.
         'App\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource' => \App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource::class,
+        'App\\Filament\\Resources\\WorkSprints\\WorkSprintResource' => \App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource::class,
     ],
 
     /**
