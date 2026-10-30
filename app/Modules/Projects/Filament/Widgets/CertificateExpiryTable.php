@@ -66,18 +66,18 @@ class CertificateExpiryTable extends TableWidget
             ->query(static::baseQuery()->with('project'))
             ->columns([
                 TextColumn::make('project.name')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->url(fn (ProjectEnvironment $record): string => ProjectResource::getUrl('view', ['record' => $record->project_id])),
 
                 TextColumn::make('kind')
-                    ->label('Environment')
+                    ->label(__('Environment'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ProjectEnvironment::KINDS[$state] ?? $state),
 
-                TextColumn::make('ssl_expires_at')->label('Expires')->dateTime(),
+                TextColumn::make('ssl_expires_at')->label(__('Expires'))->dateTime(),
 
                 TextColumn::make('days_left')
-                    ->label('Days left')
+                    ->label(__('Days left'))
                     ->badge()
                     ->state(fn (ProjectEnvironment $record): string => (string) max(0, (int) $record->sslDaysRemaining()))
                     ->color(fn (ProjectEnvironment $record): string => match (true) {
@@ -86,7 +86,7 @@ class CertificateExpiryTable extends TableWidget
                         default => 'gray',
                     }),
 
-                TextColumn::make('ssl_issuer')->label('Issuer')->placeholder('—'),
+                TextColumn::make('ssl_issuer')->label(__('Issuer'))->placeholder('—'),
             ])
             ->defaultSort('ssl_expires_at')
             ->paginated([5, 10]);

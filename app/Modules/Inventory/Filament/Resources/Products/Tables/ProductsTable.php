@@ -28,7 +28,7 @@ class ProductsTable
             ->header(view('filament.tables.saved-views-bar'))
             ->columns([
                 TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('SKU'))
                     ->sortable()
                     ->searchable(),
 
@@ -37,7 +37,7 @@ class ProductsTable
                     ->searchable(),
 
                 TextColumn::make('valuation_method')
-                    ->label('Valuation')
+                    ->label(__('Valuation'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => strtoupper($state))
                     ->color(fn (string $state): string => match ($state) {
@@ -49,22 +49,22 @@ class ProductsTable
                     ->sortable(),
 
                 TextColumn::make('on_hand')
-                    ->label('On Hand')
+                    ->label(__('On Hand'))
                     ->state(fn (Product $record): float => round((float) ($record->on_hand_qty ?? 0), 2)),
 
                 TextColumn::make('stock_value')
-                    ->label('Stock Value')
+                    ->label(__('Stock Value'))
                     ->money(CompanyCurrency::code())
                     ->state(fn (Product $record): float => round((float) ($record->stock_in_value ?? 0) - (float) ($record->stock_out_value ?? 0), 2)),
 
                 TextColumn::make('stock_status')
-                    ->label('Stock Status')
+                    ->label(__('Stock Status'))
                     ->badge()
                     ->state(fn (Product $record): string => round((float) ($record->on_hand_qty ?? 0), 2) <= (float) $record->reorder_level ? 'low' : 'ok')
                     ->color(fn (string $state): string => $state === 'low' ? 'danger' : 'success'),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
@@ -76,8 +76,8 @@ class ProductsTable
                 ...CustomFieldsSchema::tableColumns(Product::class),
             ])
             ->groups([
-                Group::make('valuation_method')->label('Valuation Method'),
-                Group::make('is_active')->label('Active'),
+                Group::make('valuation_method')->label(__('Valuation Method')),
+                Group::make('is_active')->label(__('Active')),
             ])
             ->filters([
                 ...CustomFieldsSchema::tableFilters(Product::class),
@@ -103,21 +103,21 @@ class ProductsTable
     {
         return [
             Action::make('receiveStock')
-                ->label('Receive Stock')
+                ->label(__('Receive Stock'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => auth()->user()?->can('StockMove') ?? false)
                 ->schema(self::receiveFields())
                 ->action(fn (array $data, Product $record) => self::run(fn (InventoryService $s) => $s->purchase($record, (float) $data['quantity'], (float) $data['unit_cost'], $data['date'], $data['reference'] ?? null), 'Receive Stock')),
 
             Action::make('recordSale')
-                ->label('Record Sale')
+                ->label(__('Record Sale'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->visible(fn (): bool => auth()->user()?->can('StockMove') ?? false)
                 ->schema(self::saleFields())
                 ->action(fn (array $data, Product $record) => self::run(fn (InventoryService $s) => $s->sale($record, (float) $data['quantity'], (float) $data['unit_price'], $data['date'], $data['reference'] ?? null), 'Record Sale')),
 
             Action::make('adjustStock')
-                ->label('Adjust Stock')
+                ->label(__('Adjust Stock'))
                 ->icon('heroicon-o-adjustments-horizontal')
                 ->visible(fn (): bool => auth()->user()?->can('StockAdjust') ?? false)
                 ->schema(self::adjustFields())
@@ -134,21 +134,21 @@ class ProductsTable
     {
         return [
             BulkAction::make('receiveStockBulk')
-                ->label('Receive Stock')
+                ->label(__('Receive Stock'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => auth()->user()?->can('StockMove') ?? false)
                 ->schema(self::receiveFields())
                 ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InventoryService $s, Product $p) => $s->purchase($p, (float) $data['quantity'], (float) $data['unit_cost'], $data['date'], $data['reference'] ?? null), 'Receive Stock')),
 
             BulkAction::make('recordSaleBulk')
-                ->label('Record Sale')
+                ->label(__('Record Sale'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->visible(fn (): bool => auth()->user()?->can('StockMove') ?? false)
                 ->schema(self::saleFields())
                 ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InventoryService $s, Product $p) => $s->sale($p, (float) $data['quantity'], (float) $data['unit_price'], $data['date'], $data['reference'] ?? null), 'Record Sale')),
 
             BulkAction::make('adjustStockBulk')
-                ->label('Adjust Stock')
+                ->label(__('Adjust Stock'))
                 ->icon('heroicon-o-adjustments-horizontal')
                 ->visible(fn (): bool => auth()->user()?->can('StockAdjust') ?? false)
                 ->schema(self::adjustFields())
@@ -161,7 +161,7 @@ class ProductsTable
         return [
             DatePicker::make('date')->required()->default(now()->toDateString()),
             TextInput::make('quantity')->numeric()->step(0.01)->required()->minValue(0.01),
-            TextInput::make('unit_cost')->label('Unit Cost')->numeric()->step(0.01)->required()->minValue(0),
+            TextInput::make('unit_cost')->label(__('Unit Cost'))->numeric()->step(0.01)->required()->minValue(0),
             TextInput::make('reference')->nullable(),
         ];
     }
@@ -171,7 +171,7 @@ class ProductsTable
         return [
             DatePicker::make('date')->required()->default(now()->toDateString()),
             TextInput::make('quantity')->numeric()->step(0.01)->required()->minValue(0.01),
-            TextInput::make('unit_price')->label('Unit Price')->numeric()->step(0.01)->required()->minValue(0),
+            TextInput::make('unit_price')->label(__('Unit Price'))->numeric()->step(0.01)->required()->minValue(0),
             TextInput::make('reference')->nullable(),
         ];
     }
@@ -181,7 +181,7 @@ class ProductsTable
         return [
             DatePicker::make('date')->required()->default(now()->toDateString()),
             TextInput::make('quantity')->numeric()->step(0.01)->required(),
-            TextInput::make('unit_cost')->label('Unit Cost')->numeric()->step(0.01)->nullable()->minValue(0)
+            TextInput::make('unit_cost')->label(__('Unit Cost'))->numeric()->step(0.01)->nullable()->minValue(0)
                 ->helperText('Required for positive adjustments'),
             TextInput::make('reference')->nullable(),
         ];

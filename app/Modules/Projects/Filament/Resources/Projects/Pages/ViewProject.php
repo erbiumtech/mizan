@@ -36,13 +36,13 @@ class ViewProject extends ViewRecord
     {
         return [
             ActionGroup::make($this->checkNowActions())
-                ->label('Check now')
+                ->label(__('Check now'))
                 ->icon('heroicon-m-signal')
                 ->button()
                 ->visible(fn (): bool => auth()->user()?->can('ProjectHealthCheck') ?? false),
 
             ActionGroup::make($this->muteActions())
-                ->label('Mute alerts')
+                ->label(__('Mute alerts'))
                 ->icon('heroicon-m-bell-slash')
                 ->button()
                 ->color('gray')
@@ -106,7 +106,7 @@ class ViewProject extends ViewRecord
             },
             schema: [
                 Select::make('duration')
-                    ->label('Mute for')
+                    ->label(__('Mute for'))
                     ->options([
                         '1h' => '1 hour',
                         '4h' => '4 hours',

@@ -25,7 +25,7 @@ class ExpenseApprovalSettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('expenses'))
                 ->schema([
                     TagsInput::make('expenses_approval_chain')
-                        ->label('Then, in order')
+                        ->label(__('Then, in order'))
                         ->suggestions(fn (): array => Role::query()->orderBy('name')->pluck('name')->all())
                         ->placeholder('Add a role'),
                 ]),

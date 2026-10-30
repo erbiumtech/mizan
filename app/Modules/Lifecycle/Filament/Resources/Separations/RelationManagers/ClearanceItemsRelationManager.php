@@ -37,21 +37,21 @@ class ClearanceItemsRelationManager extends RelationManager
                 TextColumn::make('title'),
                 TextColumn::make('source')->badge()->color('gray')->placeholder('manual'),
                 TextColumn::make('amount')->numeric(2)->placeholder('—')->alignRight(),
-                TextColumn::make('state')->label('State')->state(fn (ClearanceItem $i): string => match (true) {
+                TextColumn::make('state')->label(__('State'))->state(fn (ClearanceItem $i): string => match (true) {
                     $i->cleared_at !== null => 'cleared',
                     $i->waived_at !== null => 'waived: '.$i->waive_reason,
                     default => 'open',
                 })->color(fn (ClearanceItem $i): string => $i->isClear() ? 'success' : 'warning'),
             ])
-            ->headerActions([CreateAction::make()->label('Add an item')->mutateDataUsing(fn (array $data): array => $data + ['kind' => ClearanceItem::KIND_MANUAL])])
+            ->headerActions([CreateAction::make()->label(__('Add an item'))->mutateDataUsing(fn (array $data): array => $data + ['kind' => ClearanceItem::KIND_MANUAL])])
             ->recordActions([
-                Action::make('clear')->label('Clear')->icon('heroicon-o-check')->color('success')
+                Action::make('clear')->label(__('Clear'))->icon('heroicon-o-check')->color('success')
                     ->visible(fn (ClearanceItem $i): bool => ! $i->isClear())
                     ->action(function (ClearanceItem $record): void {
                         app(Separations::class)->clear($record, auth()->user());
                         Notification::make()->success()->title('Cleared.')->send();
                     }),
-                Action::make('waive')->label('Waive')->icon('heroicon-o-hand-raised')->color('gray')
+                Action::make('waive')->label(__('Waive'))->icon('heroicon-o-hand-raised')->color('gray')
                     ->visible(fn (ClearanceItem $i): bool => ! $i->isClear())
                     ->schema([Textarea::make('reason')->required()->rows(2)])
                     ->action(function (ClearanceItem $record, array $data): void {

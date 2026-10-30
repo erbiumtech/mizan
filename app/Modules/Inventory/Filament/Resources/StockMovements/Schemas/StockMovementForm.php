@@ -16,7 +16,7 @@ class StockMovementForm
         return $schema
             ->components([
                 Select::make('product_id')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->relationship('product', 'name')
                     ->searchable()
                     ->preload()
@@ -35,34 +35,34 @@ class StockMovementForm
                     ->disabled(),
 
                 TextInput::make('unit_cost')
-                    ->label('Unit Cost')
+                    ->label(__('Unit Cost'))
                     ->numeric()
                     ->disabled(),
 
                 TextInput::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('Unit Price'))
                     ->numeric()
                     ->disabled(),
 
                 TextInput::make('total_cost')
-                    ->label('COGS')
+                    ->label(__('COGS'))
                     ->numeric()
                     ->disabled(),
 
                 TextInput::make('remaining_quantity')
-                    ->label('Lot Remaining')
+                    ->label(__('Lot Remaining'))
                     ->numeric()
                     ->disabled(),
 
                 DatePicker::make('movement_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->disabled(),
 
                 TextInput::make('reference')
                     ->disabled(),
 
                 Select::make('journal_entry_id')
-                    ->label('Journal Entry')
+                    ->label(__('Journal Entry'))
                     ->relationship('journalEntry', 'entry_number')
                     ->searchable()
                     ->preload()

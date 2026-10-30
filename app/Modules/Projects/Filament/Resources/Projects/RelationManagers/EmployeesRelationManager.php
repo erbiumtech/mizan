@@ -43,7 +43,7 @@ class EmployeesRelationManager extends RelationManager
             ->recordTitleAttribute('employee_id')
             ->columns([
                 TextColumn::make('employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->formatStateUsing(fn (Employee $record): string => $record->display_label)
                     ->searchable()
                     ->sortable(),
@@ -53,31 +53,31 @@ class EmployeesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('pivot.role')
-                    ->label('Project role')
+                    ->label(__('Project role'))
                     ->placeholder('—'),
 
                 TextColumn::make('pivot.allocation_pct')
-                    ->label('Allocation')
+                    ->label(__('Allocation'))
                     ->formatStateUsing(fn ($state): string => $state === null ? '—' : rtrim(rtrim(number_format((float) $state, 2), '0'), '.').'%'),
 
                 TextColumn::make('pivot.from_date')
-                    ->label('From')
+                    ->label(__('From'))
                     ->date(),
 
                 TextColumn::make('pivot.to_date')
-                    ->label('To')
+                    ->label(__('To'))
                     ->date()
                     ->placeholder('open'),
 
                 TextColumn::make('stint_status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->state(fn (Employee $record): string => self::isCurrent($record) ? 'current' : 'ended')
                     ->color(fn (string $state): string => $state === 'current' ? 'success' : 'gray'),
             ])
             ->filters([
                 Filter::make('current_only')
-                    ->label('Current assignments only')
+                    ->label(__('Current assignments only'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->where(function (Builder $query) {
                         $query->whereNull('project_employee.to_date')
@@ -86,7 +86,7 @@ class EmployeesRelationManager extends RelationManager
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Assign employee')
+                    ->label(__('Assign employee'))
                     ->preloadRecordSelect()
                     ->recordSelectOptionsQuery(fn (Builder $query) => $query->where('is_active', true)->with('user'))
                     ->schema(fn (AttachAction $action): array => [
@@ -124,11 +124,11 @@ class EmployeesRelationManager extends RelationManager
                                 },
                             ]),
                         TextInput::make('role')
-                            ->label('Project role')
+                            ->label(__('Project role'))
                             ->maxLength(255)
                             ->placeholder('Backend lead'),
                         TextInput::make('allocation_pct')
-                            ->label('Allocation %')
+                            ->label(__('Allocation %'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
@@ -166,11 +166,11 @@ class EmployeesRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Edit stint')
+                    ->label(__('Edit stint'))
                     ->schema([
-                        TextInput::make('role')->label('Project role')->maxLength(255),
+                        TextInput::make('role')->label(__('Project role'))->maxLength(255),
                         TextInput::make('allocation_pct')
-                            ->label('Allocation %')
+                            ->label(__('Allocation %'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
@@ -180,7 +180,7 @@ class EmployeesRelationManager extends RelationManager
                     ]),
 
                 Action::make('endAssignment')
-                    ->label('End assignment')
+                    ->label(__('End assignment'))
                     ->icon('heroicon-m-user-minus')
                     ->color('warning')
                     ->requiresConfirmation()

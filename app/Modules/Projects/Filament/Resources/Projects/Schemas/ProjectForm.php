@@ -26,7 +26,7 @@ class ProjectForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('code')
-                            ->label('Code')
+                            ->label(__('Code'))
                             ->required()
                             ->maxLength(50)
                             ->unique(table: Project::class, column: 'code', ignoreRecord: true)
@@ -58,7 +58,7 @@ class ProjectForm
                     ->description('Two people are recorded as running the project; the secondary is the one to go to when the primary is unavailable.')
                     ->schema([
                         Select::make('manager_employee_id')
-                            ->label('Primary manager')
+                            ->label(__('Primary manager'))
                             ->relationship('manager', 'employee_id')
                             ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                             ->searchable()
@@ -70,7 +70,7 @@ class ProjectForm
                             ->nullable(),
 
                         Select::make('secondary_employee_id')
-                            ->label('Secondary manager')
+                            ->label(__('Secondary manager'))
                             ->relationship('secondaryManager', 'employee_id')
                             ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                             ->searchable()
@@ -84,7 +84,7 @@ class ProjectForm
                         // the timesheet reports read, which no screen could set. Contacts by name through
                         // TenantDb, as the timesheet reports read them: Projects does not import Invoicing.
                         Select::make('contact_id')
-                            ->label('Client')
+                            ->label(__('Client'))
                             ->options(fn (?Project $record): array => TenantDb::table('contacts')
                                 ->where(fn ($query) => $query->whereIn('kind', ['customer', 'both'])->where('is_active', true))
                                 ->when($record?->contact_id, fn ($query, $id) => $query->orWhere('id', $id))
@@ -98,7 +98,7 @@ class ProjectForm
                             ->helperText('Leave empty for internal work. A client is what bills this project\'s hours.'),
 
                         TextInput::make('hourly_rate')
-                            ->label('Hourly rate')
+                            ->label(__('Hourly rate'))
                             ->numeric()
                             ->minValue(0)
                             ->nullable()
@@ -146,36 +146,36 @@ class ProjectForm
                                     ->placeholder('VPN requirement, bastion host, seeded test users…'),
 
                                 Toggle::make('is_monitored')
-                                    ->label('Health checks')
+                                    ->label(__('Health checks'))
                                     ->default(true)
                                     ->helperText("Turn off for URLs the server can't reach, e.g. localhost."),
 
                                 Toggle::make('alerts_enabled')
-                                    ->label('Alert on outage')
+                                    ->label(__('Alert on outage'))
                                     ->default(true)
                                     ->helperText('Emails the primary and secondary manager once an outage is confirmed.'),
 
                                 TextInput::make('check_interval_min')
-                                    ->label('Check every (minutes)')
+                                    ->label(__('Check every (minutes)'))
                                     ->numeric()
                                     ->minValue(1)
                                     ->maxValue(1440)
                                     ->placeholder(config('projects.health.default_interval')),
 
                                 TextInput::make('expected_content')
-                                    ->label('Body must contain')
+                                    ->label(__('Body must contain'))
                                     ->maxLength(255)
                                     ->helperText('Optional. Catches a 200 that renders an error page.'),
 
                                 TextInput::make('expected_status')
-                                    ->label('Expected HTTP status')
+                                    ->label(__('Expected HTTP status'))
                                     ->numeric()
                                     ->minValue(100)
                                     ->maxValue(599)
                                     ->placeholder('2xx / 3xx / 401 / 403'),
 
                                 Toggle::make('is_public')
-                                    ->label('Show on public status page')
+                                    ->label(__('Show on public status page'))
                                     ->default(false)
                                     ->helperText('Only the status and uptime are published — never the URL or credentials.'),
                             ]),

@@ -88,7 +88,7 @@ class MyProjectsOverview extends TableWidget
                     }),
 
                 TextColumn::make('my_role')
-                    ->label('My role')
+                    ->label(__('My role'))
                     ->state(function (Project $record) use ($employee): string {
                         $roles = [];
 
@@ -108,7 +108,7 @@ class MyProjectsOverview extends TableWidget
                     }),
 
                 TextColumn::make('health')
-                    ->label('Environments')
+                    ->label(__('Environments'))
                     ->badge()
                     ->state(fn (Project $record): string => $record->worstEnvironmentStatus())
                     ->color(fn (string $state): string => match ($state) {

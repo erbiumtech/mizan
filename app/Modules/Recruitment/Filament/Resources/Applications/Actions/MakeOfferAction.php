@@ -14,14 +14,14 @@ class MakeOfferAction
     public static function make(): Action
     {
         return Action::make('makeOffer')
-            ->label('Make an offer')
+            ->label(__('Make an offer'))
             ->icon('heroicon-o-document-text')
             ->color('info')
             ->visible(fn (Application $record): bool => $record->isOpen()
                 && ! $record->offer
                 && (auth()->user()?->can('update', $record) ?? false))
             ->schema([
-                TextInput::make('salary')->numeric()->required()->label('Basic salary'),
+                TextInput::make('salary')->numeric()->required()->label(__('Basic salary')),
                 DatePicker::make('joining_date')->native(false)->required(),
             ])
             ->action(function (Application $record, array $data): void {

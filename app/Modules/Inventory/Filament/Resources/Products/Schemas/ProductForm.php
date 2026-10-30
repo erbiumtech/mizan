@@ -17,7 +17,7 @@ class ProductForm
         return $schema
             ->components([
                 TextInput::make('sku')
-                    ->label('SKU')
+                    ->label(__('SKU'))
                     ->required()
                     ->maxLength(50)
                     ->unique(table: Product::class, column: 'sku', ignoreRecord: true),
@@ -34,7 +34,7 @@ class ProductForm
                     ->maxLength(20),
 
                 TextInput::make('list_price')
-                    ->label('List price')
+                    ->label(__('List price'))
                     ->numeric()
                     ->step(0.01)
                     ->minValue(0)
@@ -42,7 +42,7 @@ class ProductForm
                     ->helperText('What a quote or invoice line starts at when this product is chosen, less the customer\'s standing discount. Leave blank for something only ever bought.'),
 
                 Select::make('valuation_method')
-                    ->label('Valuation Method')
+                    ->label(__('Valuation Method'))
                     ->options([
                         'fifo' => 'FIFO',
                         'lifo' => 'LIFO',
@@ -58,7 +58,7 @@ class ProductForm
                     ->default(0),
 
                 Select::make('inventory_account_id')
-                    ->label('Inventory Account')
+                    ->label(__('Inventory Account'))
                     ->relationship('inventoryAccount', 'name')
                     ->searchable()
                     ->preload()
@@ -66,7 +66,7 @@ class ProductForm
                     ->helperText('Defaults to 1300'),
 
                 Select::make('cogs_account_id')
-                    ->label('COGS Account')
+                    ->label(__('COGS Account'))
                     ->relationship('cogsAccount', 'name')
                     ->searchable()
                     ->preload()
@@ -74,7 +74,7 @@ class ProductForm
                     ->helperText('Defaults to 5050'),
 
                 Select::make('revenue_account_id')
-                    ->label('Revenue Account')
+                    ->label(__('Revenue Account'))
                     ->relationship('revenueAccount', 'name')
                     ->searchable()
                     ->preload()
@@ -82,7 +82,7 @@ class ProductForm
                     ->helperText('Defaults to 4200'),
 
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
 
                 ...CustomFieldsSchema::form(Product::class),

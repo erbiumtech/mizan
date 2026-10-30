@@ -27,18 +27,18 @@ class RequiredDocumentsSettingsSection implements SettingsSection
                     .'has to have on file before they are let in.')
                 ->schema([
                     CheckboxList::make('lifecycle_documents_required')
-                        ->label('Required of every employee')
+                        ->label(__('Required of every employee'))
                         ->options(EmployeeDocument::KINDS_LABELLED)
                         ->columns(4)
                         ->helperText('A kind counts as held once there is a document of that kind that has not '
                             .'been refused and has not lapsed.'),
                     CheckboxList::make('lifecycle_documents_formats')
-                        ->label('Accepted file types')
+                        ->label(__('Accepted file types'))
                         ->options(['pdf' => 'PDF', 'jpg' => 'JPG', 'png' => 'PNG'])
                         ->columns(3)
                         ->helperText('A scan of a passport is usually a photo; a contract is usually a PDF.'),
                     TextInput::make('lifecycle_documents_max_kb')
-                        ->label('Largest upload (KB)')
+                        ->label(__('Largest upload (KB)'))
                         ->numeric()
                         ->minValue(256)
                         ->maxValue(20480)
