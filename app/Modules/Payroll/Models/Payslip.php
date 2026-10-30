@@ -150,6 +150,48 @@ class Payslip extends Model
         return $this->save();
     }
 
+    /**
+     * Does this save carry typed input the store does not already hold?
+     *
+     * An override alone dirties no column, so a save whose only dirty columns are review fields would
+     * otherwise be classed review-only — the calculation skipped, the locked-run guard bypassed, and the
+     * input the caller supplied dropped on `saved`. Compared against the store rather than taken as "set",
+     * because the edit page hands over every override on every save, changed or not, and a review-only
+     * save through it must stay review-only.
+     */
+    public function carriesNewInput(): bool
+    {
+        if ($this->typedOverrides === null) {
+            return false;
+        }
+
+        $stored = app(PayslipService::class)->typedOverridesOf($this);
+
+        foreach (PayslipService::OVERRIDE_KEYS as $key) {
+            $typed = $this->typedOverrides[$key] ?? null;
+            $held = $stored[$key] ?? null;
+
+            // Null and a blank both mean "not overridden"; a stored 0 is a deliberate zero and so does not.
+            $typedIsNothing = $typed === null || $typed === '';
+
+            if ($typedIsNothing !== ($held === null)) {
+                // A typed value where nothing is stored only counts when it is positive: a typed 0 against
+                // no row is the form's "clear", which clears nothing.
+                if ($held === null && round((float) $typed, 2) === 0.0) {
+                    continue;
+                }
+
+                return true;
+            }
+
+            if (! $typedIsNothing && abs(round((float) $typed, 2) - round((float) $held, 2)) > 0.005) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** Company setting: whether an employee's own follow-up counts as the reply to their objection — B13. */
     public const OBJECTION_EMPLOYEE_REPLY_COUNTS = 'payroll.objection_employee_reply_counts';
 
@@ -695,7 +737,7 @@ class Payslip extends Model
             // An employee accepting or rejecting their payslip is not a change to the
             // month's figures, and refusing it would leave them unable to respond to
             // something already sent to them.
-            if (static::isReviewOnlyChange($payslip->getDirty())) {
+            if (static::isReviewOnlyChange($payslip->getDirty()) && ! $payslip->carriesNewInput()) {
                 return;
             }
 
@@ -727,7 +769,7 @@ class Payslip extends Model
         $calculate = function ($payslip) {
             // Employee accept/reject only touches review columns; the
             // figures and ledger posting must stay as issued.
-            if ($payslip->exists && static::isReviewOnlyChange($payslip->getDirty())) {
+            if ($payslip->exists && static::isReviewOnlyChange($payslip->getDirty()) && ! $payslip->carriesNewInput()) {
                 return;
             }
 

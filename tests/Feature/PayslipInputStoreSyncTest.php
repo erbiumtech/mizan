@@ -113,6 +113,41 @@ class PayslipInputStoreSyncTest extends AccountingTestCase
         $this->assertSame(5000.0, (float) $payslip->device_allowance, 'the 5,000 setting is back');
     }
 
+    /**
+     * The lift, on one instance: input set on the row itself — an attribute, then update([...]) — is taken off
+     * the row and onto the store, and a transient left over from the previous save does not mask it.
+     */
+    public function test_input_set_on_the_row_is_lifted_onto_the_store_and_a_stale_transient_does_not_mask_it(): void
+    {
+        $payslip = $this->payslip(['device_allowance' => 7000]);
+
+        $payslip->saveWithInputs(['device_allowance' => 8000]);
+        $this->assertSame(['device_allowance' => 8000.0], $this->stored($payslip));
+
+        // Same instance, the column assigned directly: lifted, stored, computed.
+        $payslip->device_allowance = 9000;
+        $payslip->save();
+        $this->assertSame(['device_allowance' => 9000.0], $this->stored($payslip));
+        $this->assertSame(9000.0, (float) $payslip->fresh()->device_allowance);
+
+        // Same instance again, cleared through update([...]): the row goes and the setting returns.
+        $payslip->update(['device_allowance' => 0]);
+        $this->assertSame([], $this->stored($payslip));
+        $this->assertSame(5000.0, (float) $payslip->fresh()->device_allowance);
+    }
+
+    /** A review field and a new override saved together: the override is not discarded as review-only. */
+    public function test_a_review_change_saved_with_new_input_still_applies_the_input(): void
+    {
+        $payslip = $this->payslip(['device_allowance' => 7000]);
+
+        $payslip->fill(['employee_rejection_reason' => 'Corrected'])->saveWithInputs(['device_allowance' => 9000]);
+
+        $this->assertSame(['device_allowance' => 9000.0], $this->stored($payslip));
+        $this->assertSame(9000.0, (float) $payslip->fresh()->device_allowance);
+        $this->assertSame('Corrected', $payslip->fresh()->employee_rejection_reason);
+    }
+
     public function test_populating_the_store_moves_no_figure(): void
     {
         $payslip = $this->payslip(['device_allowance' => 7000]);
