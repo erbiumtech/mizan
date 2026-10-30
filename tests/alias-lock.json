@@ -262,6 +262,7 @@
         "App\\Models\\WorkLocation": "App\\Modules\\Core\\Models\\WorkLocation",
         "App\\Models\\WorkPattern": "App\\Modules\\Attendance\\Models\\WorkPattern",
         "App\\Models\\WorkPatternDay": "App\\Modules\\Attendance\\Models\\WorkPatternDay",
+        "App\\Models\\WorkRelease": "App\\Modules\\Work\\Models\\WorkRelease",
         "App\\Models\\WorkSprint": "App\\Modules\\Work\\Models\\WorkSprint",
         "App\\Models\\WorkStatus": "App\\Modules\\Work\\Models\\WorkStatus",
         "App\\Models\\WorkWorkflow": "App\\Modules\\Work\\Models\\WorkWorkflow",
@@ -427,6 +428,7 @@
         "App\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource": "App\\Modules\\Crm\\Filament\\Resources\\WeeklySalesReports\\WeeklySalesReportResource",
         "App\\Filament\\Resources\\WorkItems\\WorkItemResource": "App\\Modules\\Work\\Filament\\Resources\\WorkItems\\WorkItemResource",
         "App\\Filament\\Resources\\WorkPatterns\\WorkPatternResource": "App\\Modules\\Attendance\\Filament\\Resources\\WorkPatterns\\WorkPatternResource",
+        "App\\Filament\\Resources\\WorkReleases\\WorkReleaseResource": "App\\Modules\\Work\\Filament\\Resources\\WorkReleases\\WorkReleaseResource",
         "App\\Filament\\Resources\\WorkSprints\\WorkSprintResource": "App\\Modules\\Work\\Filament\\Resources\\WorkSprints\\WorkSprintResource",
         "App\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource": "App\\Modules\\Work\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource"
     },
@@ -474,6 +476,7 @@
         "App\\Filament\\Pages\\DocumentsExpiring": "App\\Modules\\Lifecycle\\Filament\\Pages\\DocumentsExpiring",
         "App\\Filament\\Pages\\EnvironmentHealth": "App\\Modules\\Projects\\Filament\\Pages\\EnvironmentHealth",
         "App\\Filament\\Pages\\EobiReturnFile": "App\\Modules\\Payroll\\Filament\\Pages\\EobiReturnFile",
+        "App\\Filament\\Pages\\Epics": "App\\Modules\\Work\\Filament\\Pages\\Epics",
         "App\\Filament\\Pages\\ExpenseClaimsReport": "App\\Modules\\Expenses\\Filament\\Pages\\ExpenseClaimsReport",
         "App\\Filament\\Pages\\FbrInvoiceReporting": "App\\Modules\\Invoicing\\Filament\\Pages\\FbrInvoiceReporting",
         "App\\Filament\\Pages\\FbrTaxFile": "App\\Modules\\Payroll\\Filament\\Pages\\FbrTaxFile",
@@ -539,7 +542,11 @@
         "App\\Filament\\Pages\\VisitsPerRep": "App\\Modules\\Crm\\Filament\\Pages\\VisitsPerRep",
         "App\\Filament\\Pages\\WeeklySales": "App\\Modules\\Crm\\Filament\\Pages\\WeeklySales",
         "App\\Filament\\Pages\\WinLoss": "App\\Modules\\Crm\\Filament\\Pages\\WinLoss",
-        "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement"
+        "App\\Filament\\Pages\\WithholdingStatement": "App\\Modules\\Accounting\\Filament\\Pages\\WithholdingStatement",
+        "App\\Filament\\Pages\\WorkCreatedVsResolved": "App\\Modules\\Work\\Filament\\Pages\\WorkCreatedVsResolved",
+        "App\\Filament\\Pages\\WorkCumulativeFlow": "App\\Modules\\Work\\Filament\\Pages\\WorkCumulativeFlow",
+        "App\\Filament\\Pages\\WorkCycleTime": "App\\Modules\\Work\\Filament\\Pages\\WorkCycleTime",
+        "App\\Filament\\Pages\\WorkVelocity": "App\\Modules\\Work\\Filament\\Pages\\WorkVelocity"
     },
     "widgets": {
         "App\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart": "App\\Modules\\Projects\\Filament\\Resources\\Projects\\Widgets\\ProjectHealthChart",

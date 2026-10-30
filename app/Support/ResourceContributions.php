@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Relation managers one module contributes to another module's resource.
@@ -128,6 +129,61 @@ class ResourceContributions
         return array_values(array_map(fn (Closure $factory) => $factory(), self::$headerActions[$page] ?? []));
     }
 
+    /**
+     * Sub-navigation one module contributes to another module's record pages — the project page's
+     * tabs (docs/project-management-plan.md §7). The page is Projects', the Board, Backlog, Sprints,
+     * Epics and Releases behind the tabs are Work's, and `work` requires `projects`, so the reference
+     * has to run this way. Each factory is handed the record and returns the `NavigationItem`s it wants
+     * beside the resource's own, so a tab can carry the record's id in its URL and be absent for a
+     * record it does not apply to.
+     *
+     * @var array<class-string, array<string, Closure(Model): array<int, mixed>>>
+     */
+    private static array $subNavigation = [];
+
+    /**
+     * @param  class-string  $resource  the resource whose record pages get the items
+     * @param  Closure(Model): array<int, mixed>  $factory  builds the items for one record
+     */
+    public static function addSubNavigation(string $resource, string $name, Closure $factory): void
+    {
+        self::$subNavigation[$resource][$name] = $factory;
+    }
+
+    /**
+     * @param  class-string  $resource
+     * @return array<int, mixed> freshly built navigation items, in registration order
+     */
+    public static function subNavigationFor(string $resource, Model $record): array
+    {
+        return array_merge([], ...array_map(
+            fn (Closure $factory): array => $factory($record),
+            array_values(self::$subNavigation[$resource] ?? []),
+        ));
+    }
+
+    /**
+     * Table columns one module contributes to another module's list — the first are the project
+     * list's three work figures (§7): open items, items done this month, the active sprint. Hidden
+     * by default by the contributor, because a column computed per row is a cost the list should
+     * only pay when somebody asks to see it.
+     *
+     * @var array<class-string, array<string, Closure(): mixed>>
+     */
+    private static array $tableColumns = [];
+
+    /** @param  Closure(): mixed  $factory  builds a fresh Column each time the table is configured */
+    public static function addTableColumn(string $resource, string $name, Closure $factory): void
+    {
+        self::$tableColumns[$resource][$name] = $factory;
+    }
+
+    /** @return array<int, mixed> */
+    public static function tableColumnsFor(string $resource): array
+    {
+        return array_values(array_map(fn (Closure $factory) => $factory(), self::$tableColumns[$resource] ?? []));
+    }
+
     /** For tests that need to assert what a resource looks like without contributions. */
     public static function flush(): void
     {
@@ -135,5 +191,7 @@ class ResourceContributions
         self::$recordActions = [];
         self::$bulkActions = [];
         self::$headerActions = [];
+        self::$subNavigation = [];
+        self::$tableColumns = [];
     }
 }

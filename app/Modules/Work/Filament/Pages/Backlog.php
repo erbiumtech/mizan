@@ -6,6 +6,7 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Services\WorkItems;
 use App\Modules\Work\Support\Rank;
@@ -98,9 +99,37 @@ class Backlog extends Page
         return WorkItem::query()
             ->where('project_id', $project->getKey())
             ->backlog()
-            ->with(['assignee.user', 'status', 'labels'])
+            ->with(['assignee.user', 'status', 'labels', 'release'])
             ->orderBy('rank')
             ->get();
+    }
+
+    /** Releases the ticked items may be promised into: anything not yet out — §6.4. */
+    public function releases(): array
+    {
+        $project = $this->currentProject();
+
+        return $project === null ? [] : WorkRelease::query()
+            ->where('project_id', $project->getKey())
+            ->unreleased()
+            ->orderBy('planned_on')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    /** Open Epics the ticked items may be put under — §6.3. */
+    public function epics(): array
+    {
+        $project = $this->currentProject();
+
+        return $project === null ? [] : WorkItem::query()
+            ->where('project_id', $project->getKey())
+            ->open()
+            ->epics()
+            ->orderBy('rank')
+            ->get()
+            ->mapWithKeys(fn (WorkItem $epic): array => [$epic->getKey() => $epic->display_label])
+            ->all();
     }
 
     /** Sprints this backlog can be fed into: anything not closed. */
@@ -198,5 +227,84 @@ class Backlog extends Page
             ->title($moved->count().' item(s) moved')
             ->body($target !== null ? 'Into '.$target->name.'.' : 'Back to the backlog.')
             ->send();
+    }
+
+    /**
+     * Whatever is ticked, promised to a release — or to none.
+     *
+     * Only an unreleased one is offered, and the service refuses the rest: promising work into a
+     * version that has shipped is a changelog that rewrites itself.
+     */
+    public function setRelease(?int $release = null): void
+    {
+        $target = $release !== null ? WorkRelease::query()->unreleased()->find($release) : null;
+
+        if ($release !== null && $target === null) {
+            return;
+        }
+
+        $changed = $this->applyToSelected(fn (WorkItem $item) => $item->forceFill(['release_id' => $target?->getKey()])->save());
+
+        Notification::make()->success()
+            ->title($changed.' item(s) '.($target !== null ? 'promised to '.$target->name : 'taken out of any release'))
+            ->send();
+    }
+
+    /**
+     * Whatever is ticked, under an Epic — or under none.
+     *
+     * The model's own rule still applies to each: a Subtask cannot go under an Epic and an Epic
+     * cannot go under anything, so those are skipped and said so rather than thrown over.
+     */
+    public function setEpic(?int $epic = null): void
+    {
+        $target = $epic !== null ? WorkItem::query()->epics()->find($epic) : null;
+
+        if ($epic !== null && $target === null) {
+            return;
+        }
+
+        $skipped = 0;
+
+        $changed = $this->applyToSelected(function (WorkItem $item) use ($target, &$skipped): void {
+            if ($target !== null && ($item->isEpic() || $item->isOfType(WorkItem::TYPE_SUBTASK))) {
+                $skipped++;
+
+                return;
+            }
+
+            $item->forceFill(['parent_id' => $target?->getKey()])->save();
+        });
+
+        Notification::make()->success()
+            ->title(($changed - $skipped).' item(s) '.($target !== null ? 'put under '.$target->key : 'taken out from under their epic'))
+            ->body($skipped > 0 ? $skipped.' skipped: an epic or a subtask cannot sit under an epic.' : null)
+            ->send();
+    }
+
+    /**
+     * Run one change over the ticked items the reader may update, then clear the ticks.
+     *
+     * @param  callable(WorkItem): void  $change
+     * @return int how many were handed to the change
+     */
+    private function applyToSelected(callable $change): int
+    {
+        if ($this->selected === []) {
+            return 0;
+        }
+
+        $items = WorkItem::query()
+            ->whereKey($this->selected)
+            ->get()
+            ->filter(fn (WorkItem $item): bool => auth()->user()?->can('update', $item) ?? false);
+
+        foreach ($items as $item) {
+            $change($item);
+        }
+
+        $this->selected = [];
+
+        return $items->count();
     }
 }

@@ -41,7 +41,7 @@ class WorkItem extends Model
     protected $fillable = [
         'project_id', 'number', 'key', 'type', 'title', 'description',
         'work_status_id', 'priority', 'assignee_employee_id', 'reporter_user_id',
-        'parent_id', 'sprint_id', 'carried_over', 'estimate_points', 'estimate_minutes', 'due_on', 'rank',
+        'parent_id', 'sprint_id', 'carried_over', 'release_id', 'estimate_points', 'estimate_minutes', 'due_on', 'rank',
         'started_at', 'resolved_at', 'resolution', 'archived_at',
     ];
 
@@ -88,10 +88,80 @@ class WorkItem extends Model
         return $this->belongsTo(WorkSprint::class, 'sprint_id');
     }
 
+    /** The version this ships in — its *fix version*, §6.4. */
+    public function release(): BelongsTo
+    {
+        return $this->belongsTo(WorkRelease::class, 'release_id');
+    }
+
     /** Open, unarchived, and in nobody's sprint — what a backlog is. */
     public function scopeBacklog(Builder $query): Builder
     {
         return $query->open()->whereNull('sprint_id');
+    }
+
+    /**
+     * Items of a type, compared without case.
+     *
+     * The option list stores what the company typed — `Epic`, `Subtask` — and the two constants the
+     * model reasons with are lowercase, so a plain `where('type', ...)` matched neither direction.
+     * One scope for both callers, so the hierarchy meaning of a type cannot depend on its spelling.
+     */
+    public function scopeOfType(Builder $query, string $type): Builder
+    {
+        return $query->whereRaw('LOWER(type) = ?', [strtolower($type)]);
+    }
+
+    public function scopeNotOfType(Builder $query, string $type): Builder
+    {
+        return $query->whereRaw('LOWER(type) != ?', [strtolower($type)]);
+    }
+
+    public function scopeEpics(Builder $query): Builder
+    {
+        return $query->ofType(self::TYPE_EPIC);
+    }
+
+    public function isEpic(): bool
+    {
+        return $this->isOfType(self::TYPE_EPIC);
+    }
+
+    public function isOfType(string $type): bool
+    {
+        return strtolower((string) $this->type) === strtolower($type);
+    }
+
+    /**
+     * How far an Epic has got: done children over all children, by count and by points — §3.4.
+     *
+     * Computed, never stored, from the children's status categories, so a company's own statuses
+     * count without configuration and a child reopened after the fact takes the figure back down.
+     * An Epic is not *done* when this reaches the whole — that is the company's call (§6.3) — but
+     * this is what the call is made on.
+     *
+     * @return array{total: int, done: int, points: float, points_done: float, percent: int}
+     */
+    public function progress(): array
+    {
+        $children = $this->relationLoaded('children')
+            ? $this->children
+            : $this->children()->with('status')->whereNull('archived_at')->get();
+
+        $done = $children->filter(fn (self $child): bool => $child->isDone());
+
+        $points = (float) $children->sum(fn (self $child): float => (float) ($child->estimate_points ?? 0));
+        $pointsDone = (float) $done->sum(fn (self $child): float => (float) ($child->estimate_points ?? 0));
+
+        return [
+            'total' => $children->count(),
+            'done' => $done->count(),
+            'points' => $points,
+            'points_done' => $pointsDone,
+            // By count rather than by points, because the children of an unestimated Epic still
+            // get finished one at a time.
+            'percent' => $children->isEmpty() ? 0 : (int) round($done->count() / $children->count() * 100),
+        ];
     }
 
     public function labels(): BelongsToMany
@@ -359,11 +429,11 @@ class WorkItem extends Model
                 return;
             }
 
-            if ($parent->type === self::TYPE_SUBTASK) {
+            if ($parent->isOfType(self::TYPE_SUBTASK)) {
                 throw new RuntimeException('A subtask cannot have children of its own.');
             }
 
-            if ($item->type === self::TYPE_EPIC) {
+            if ($item->isEpic()) {
                 throw new RuntimeException('An epic sits at the top; it has no parent.');
             }
         });

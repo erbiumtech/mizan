@@ -7,6 +7,8 @@
 <x-filament-panels::page>
     @php($items = $this->items())
     @php($sprints = $this->sprints())
+    @php($releases = $this->releases())
+    @php($epics = $this->epics())
 
     <div class="fi-board-bar">
         <select wire:model.live="project" class="fi-board-project" aria-label="{{ __('Project') }}">
@@ -27,6 +29,29 @@
                 <button type="button" wire:click="moveToSprint" class="fi-board-toggle">
                     {{ __('Out of a sprint') }}
                 </button>
+
+                {{-- The other two bulk changes §6.1 asks for: a release and an epic, each as a pick. --}}
+                @if ($releases !== [])
+                    <select class="fi-board-project" aria-label="{{ __('Release') }}"
+                            x-on:change="$wire.setRelease($event.target.value === '' ? null : parseInt($event.target.value)); $event.target.value = '-'">
+                        <option value="-" selected disabled>{{ __('Release…') }}</option>
+                        @foreach ($releases as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                        <option value="">{{ __('No release') }}</option>
+                    </select>
+                @endif
+
+                @if ($epics !== [])
+                    <select class="fi-board-project" aria-label="{{ __('Epic') }}"
+                            x-on:change="$wire.setEpic($event.target.value === '' ? null : parseInt($event.target.value)); $event.target.value = '-'">
+                        <option value="-" selected disabled>{{ __('Epic…') }}</option>
+                        @foreach ($epics as $id => $label)
+                            <option value="{{ $id }}">{{ $label }}</option>
+                        @endforeach
+                        <option value="">{{ __('No epic') }}</option>
+                    </select>
+                @endif
             </div>
         @endif
     </div>
@@ -74,6 +99,10 @@
 
                         @if ($item->estimate_points !== null)
                             <span class="fi-board-chip">{{ $item->estimate_points }}</span>
+                        @endif
+
+                        @if ($item->release)
+                            <span class="fi-board-chip" title="{{ __('Promised to this release') }}">{{ $item->release->name }}</span>
                         @endif
 
                         @if ($item->carried_over > 0)

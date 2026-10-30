@@ -3526,3 +3526,95 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
         border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
     }
 }
+
+/*
+ * ============================================================================
+ * Epics and releases
+ * ============================================================================
+ *
+ * An Epic card is a sprint's figures with a bar above them, so it borrows `.fi-sprint-figure`
+ * and adds only the bar and the two child lists. The release notes are a `<pre>` because they
+ * are Markdown meant to be copied as typed, not rendered.
+ */
+
+.fi-epics {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fi-epic-progress {
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-800);
+    }
+}
+
+.fi-epic-progress-bar {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background-color: var(--color-primary-600);
+    transition: width 200ms ease-out;
+}
+
+.fi-epic-figures {
+    margin-top: 0.75rem;
+}
+
+.fi-epic-children {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.fi-epic-children-heading {
+    margin: 0 0 0.375rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+}
+
+.fi-epic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    & li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}
+
+.fi-epic-list-done .fi-backlog-title {
+    text-decoration: line-through;
+    color: var(--color-gray-500);
+}
+
+.fi-release-notes {
+    max-height: 60vh;
+    overflow: auto;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-gray-50);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    color: var(--color-gray-950);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-900);
+        color: var(--color-gray-100);
+    }
+}

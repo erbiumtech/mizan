@@ -6,6 +6,7 @@ use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkStatus;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
@@ -13,6 +14,7 @@ use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 /**
@@ -83,7 +85,7 @@ class WorkItemForm
                         ->label('Parent')
                         ->options(fn (?WorkItem $record): array => WorkItem::query()
                             ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
-                            ->where('type', '!=', WorkItem::TYPE_SUBTASK)
+                            ->notOfType(WorkItem::TYPE_SUBTASK)
                             ->orderByDesc('id')
                             ->limit(100)
                             ->get()
@@ -92,6 +94,22 @@ class WorkItemForm
                         ->searchable()
                         ->placeholder('None')
                         ->helperText('An epic over a story, or a story over a subtask. One level each way.'),
+
+                    // The fix version — §6.4. Only releases of the item's own project that have not
+                    // gone out yet: promising an item into something already shipped is a changelog
+                    // that rewrites itself.
+                    Select::make('release_id')
+                        ->label('Release')
+                        ->options(fn (Get $get, ?WorkItem $record): array => WorkRelease::query()
+                            ->when($get('project_id'), fn ($q, $project) => $q->where('project_id', $project))
+                            ->where(fn ($q) => $q->whereNull('released_on')
+                                ->when($record?->release_id, fn ($qq, $id) => $qq->orWhere('id', $id)))
+                            ->orderBy('planned_on')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->searchable()
+                        ->placeholder('Not promised to one')
+                        ->helperText('The version it ships in. Releasing stamps a date and moves nothing.'),
 
                     Select::make('resolution')
                         ->label('Resolution')

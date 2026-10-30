@@ -148,6 +148,9 @@ class ReportsHubTest extends TestCase
             'Timesheet Utilisation', 'Plan vs Actual', 'Documents Expiring', 'Payroll Register', 'Leave Liability',
             'Advances Outstanding', 'Expense Claims', 'Attendance Register', 'Hiring Funnel',
             'Headcount Movement', "Assets in Employees' Hands", 'Final Settlements', 'Onboarding / Offboarding Progress', 'Consent Register', 'Campaign Performance', 'Review Cycle Progress', 'Environment Health & Incidents',
+            // Work's four (docs/project-management-plan.md §7, Phase 4). Burndown is not among them on
+            // purpose: it is a line, and it lives on the sprint's own page — see ViewWorkSprint.
+            'Velocity', 'Cycle & Lead Time', 'Created vs Resolved', 'Cumulative Flow',
         ] as $report) {
             $this->assertContains($report, $this->hubLabels());
         }
