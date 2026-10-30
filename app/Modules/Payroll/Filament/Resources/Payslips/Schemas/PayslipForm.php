@@ -12,6 +12,7 @@ use App\Support\EmployeeOptions;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -72,212 +73,242 @@ class PayslipForm
     {
         return $schema
             ->components([
-                /*
-                 * **What the employee said, at the top of the screen that answers it.**
-                 *
-                 * A rejection reached the payroll team as an email and a red badge on the list; the screen
-                 * where somebody actually corrects the figures said nothing at all, so the objection had to
-                 * be carried in from another window. It is read-only and it is a *summary*: the objection
-                 * itself is the first comment in the Comments tab below, which is where both sides reply.
-                 * Absent entirely on a payslip nobody has objected to, which is nearly all of them.
-                 *
-                 * `columnSpanFull()` because the form is a three-column grid of figures and a sentence
-                 * wrapped into a third of a row is a sentence nobody reads.
-                 */
-                Placeholder::make('employee_objection')
-                    ->label('Employee objection')
-                    ->columnSpanFull()
-                    ->visible(fn (?Payslip $record): bool => $record !== null
-                        && in_array($record->employee_review, [Payslip::REVIEW_REJECTED, Payslip::REVIEW_OVERRIDDEN], true))
-                    ->content(fn (?Payslip $record): HtmlString => self::objection($record)),
+                Section::make('Whose payslip, and for when')
+                    ->description('The employee and the month. Changing either recalculates everything below.')
+                    ->columns(2)
+                    ->schema([
+                        /*
+                     * **What the employee said, at the top of the screen that answers it.**
+                     *
+                     * A rejection reached the payroll team as an email and a red badge on the list; the screen
+                     * where somebody actually corrects the figures said nothing at all, so the objection had to
+                     * be carried in from another window. It is read-only and it is a *summary*: the objection
+                     * itself is the first comment in the Comments tab below, which is where both sides reply.
+                     * Absent entirely on a payslip nobody has objected to, which is nearly all of them.
+                     *
+                     * `columnSpanFull()` because the figures are laid out in columns and a sentence
+                     * wrapped into half a row is a sentence nobody reads.
+                     */
+                        Placeholder::make('employee_objection')
+                            ->label('Employee objection')
+                            ->columnSpanFull()
+                            ->visible(fn (?Payslip $record): bool => $record !== null
+                                && in_array($record->employee_review, [Payslip::REVIEW_REJECTED, Payslip::REVIEW_OVERRIDDEN], true))
+                            ->content(fn (?Payslip $record): HtmlString => self::objection($record)),
 
-                // --- SELECTORS (drive the calculation) ---
-                Select::make('employee_id')
-                    ->label('Employee')
-                    ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
-                        ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
-                    ->searchable()
-                    // The label shows the user's name, so the search must match it too;
-                    // Filament would otherwise search only the employee_id title attribute.
-                    ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search(
-                        $search,
-                        EmployeeOptions::accessibleScope(),
-                    ))
-                    ->preload()
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    // Uniqueness parity with the Nova custom rule: one payslip per
-                    // employee + month + fiscal year.
-                    ->rule(function (Get $get, ?Payslip $record) {
-                        return function (string $attribute, $value, \Closure $fail) use ($get, $record) {
-                            $exists = Payslip::where('employee_id', $value)
-                                ->where('month', $get('month'))
-                                ->where('fiscal_year_id', $get('fiscal_year_id'))
-                                ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
-                                ->exists();
+                        // --- SELECTORS (drive the calculation) ---
 
-                            if ($exists) {
-                                $fail('Payslip for this month and fiscal year of this employee is already created. Please update the old one');
-                            }
-                        };
-                    }),
+                        Select::make('employee_id')
+                            ->label('Employee')
+                            ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
+                                ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
+                            ->searchable()
+                            // The label shows the user's name, so the search must match it too;
+                            // Filament would otherwise search only the employee_id title attribute.
+                            ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search(
+                                $search,
+                                EmployeeOptions::accessibleScope(),
+                            ))
+                            ->preload()
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            // Uniqueness parity with the Nova custom rule: one payslip per
+                            // employee + month + fiscal year.
+                            ->rule(function (Get $get, ?Payslip $record) {
+                                return function (string $attribute, $value, \Closure $fail) use ($get, $record) {
+                                    $exists = Payslip::where('employee_id', $value)
+                                        ->where('month', $get('month'))
+                                        ->where('fiscal_year_id', $get('fiscal_year_id'))
+                                        ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
+                                        ->exists();
 
-                Select::make('month')
-                    ->label('Month')
-                    ->options([
-                        'January' => 'January', 'February' => 'February', 'March' => 'March',
-                        'April' => 'April', 'May' => 'May', 'June' => 'June',
-                        'July' => 'July', 'August' => 'August', 'September' => 'September',
-                        'October' => 'October', 'November' => 'November', 'December' => 'December',
-                    ])
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                                    if ($exists) {
+                                        $fail('Payslip for this month and fiscal year of this employee is already created. Please update the old one');
+                                    }
+                                };
+                            }),
 
-                Select::make('fiscal_year_id')
-                    ->label('Fiscal Year')
-                    ->relationship('fiscalYear', 'name', fn ($query) => $query->where('is_active', true))
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                        Select::make('month')
+                            ->label('Month')
+                            ->options([
+                                'January' => 'January', 'February' => 'February', 'March' => 'March',
+                                'April' => 'April', 'May' => 'May', 'June' => 'June',
+                                'July' => 'July', 'August' => 'August', 'September' => 'September',
+                                'October' => 'October', 'November' => 'November', 'December' => 'December',
+                            ])
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
-                // --- ATTENDANCE (text w/ numeric validation, hidden from index) ---
-                // Pre-filled by recalculate() on create; editable, because the record can be wrong.
-                TextInput::make('total_working_days')
-                    ->label('Total Working Days')
-                    ->numeric()
-                    ->minValue(0)
-                    ->required()
-                    ->default(0)
-                    ->helperText('Filled in from the work pattern — or, without Attendance, the calendar and the company\'s weekend — once employee, month and year are chosen. Correct by hand if the record is wrong.'),
+                        Select::make('fiscal_year_id')
+                            ->label('Fiscal Year')
+                            ->relationship('fiscalYear', 'name', fn ($query) => $query->where('is_active', true))
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
-                TextInput::make('paid_days')
-                    ->label('Paid Days')
-                    ->numeric()
-                    ->minValue(0)
-                    ->required()
-                    ->default(0),
+                        // --- ATTENDANCE (text w/ numeric validation, hidden from index) ---
+                        // Pre-filled by recalculate() on create; editable, because the record can be wrong.
+                    ]),
 
-                TextInput::make('lop_days')
-                    ->label('LOP Days')
-                    ->numeric()
-                    ->minValue(0)
-                    ->required()
-                    ->default(0),
+                Section::make('Days')
+                    ->description('What the month was worth in days, before any figure is applied to it.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('total_working_days')
+                            ->label('Total Working Days')
+                            ->numeric()
+                            ->minValue(0)
+                            ->required()
+                            ->default(0)
+                            ->helperText('Filled in from the work pattern — or, without Attendance, the calendar and the company\'s weekend — once employee, month and year are chosen. Correct by hand if the record is wrong.'),
 
-                TextInput::make('leaves_taken')
-                    ->label('Leaves Taken')
-                    ->numeric()
-                    ->minValue(0)
-                    ->required()
-                    ->default(0),
+                        TextInput::make('paid_days')
+                            ->label('Paid Days')
+                            ->numeric()
+                            ->minValue(0)
+                            ->required()
+                            ->default(0),
 
-                // --- READONLY calculated-from-settings ---
-                TextInput::make('basic_wage')
-                    ->label('Basic Wage')
-                    ->numeric()
-                    ->readOnly(),
+                        TextInput::make('lop_days')
+                            ->label('LOP Days')
+                            ->numeric()
+                            ->minValue(0)
+                            ->required()
+                            ->default(0),
 
-                TextInput::make('medical_allowance')
-                    ->label('Medical Allowance')
-                    ->numeric()
-                    ->readOnly(),
+                        TextInput::make('leaves_taken')
+                            ->label('Leaves Taken')
+                            ->numeric()
+                            ->minValue(0)
+                            ->required()
+                            ->default(0),
 
-                // --- EDITABLE inputs that feed the calculation ---
-                TextInput::make('device_allowance')
-                    ->label('Device Allowance')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'device_allowance', $state)),
+                        // --- READONLY calculated-from-settings ---
+                    ]),
 
-                TextInput::make('petrol_allowance')
-                    ->label('Petrol Allowance')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'petrol_allowance', $state)),
+                Section::make('Earnings')
+                    ->description('What is added.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('basic_wage')
+                            ->label('Basic Wage')
+                            ->numeric()
+                            ->readOnly(),
 
-                TextInput::make('bonus')
-                    ->label('Bonus')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'bonus', $state)),
+                        TextInput::make('medical_allowance')
+                            ->label('Medical Allowance')
+                            ->numeric()
+                            ->readOnly(),
 
-                TextInput::make('extra_work_hours')
-                    ->label('Extra Work Hours')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'extra_work_hours', $state)),
+                        // --- EDITABLE inputs that feed the calculation ---
 
-                TextInput::make('expense_reimbursement')
-                    ->label('Expense Reimbursement')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                        TextInput::make('device_allowance')
+                            ->label('Device Allowance')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'device_allowance', $state)),
 
-                TextInput::make('advances')
-                    ->label('Advances')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'advances', $state)),
+                        TextInput::make('petrol_allowance')
+                            ->label('Petrol Allowance')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'petrol_allowance', $state)),
 
-                TextInput::make('meal_deduction')
-                    ->label('Meal Deduction')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'meal_deduction', $state)),
+                        TextInput::make('bonus')
+                            ->label('Bonus')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'bonus', $state)),
 
-                TextInput::make('esi_health_insurance')
-                    ->label('ESI / Health Insurance')
-                    ->numeric()
-                    ->minValue(0)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
-                    ->hintColor('warning')
-                    ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'esi_health_insurance', $state)),
+                        TextInput::make('extra_work_hours')
+                            ->label('Extra Work Hours')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'extra_work_hours', $state)),
 
-                // --- READONLY calculated totals ---
-                TextInput::make('withholding_tax')
-                    ->label('Withholding Tax')
-                    ->numeric()
-                    ->readOnly(),
+                        TextInput::make('expense_reimbursement')
+                            ->label('Expense Reimbursement')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
+                    ]),
 
-                TextInput::make('total_earnings')
-                    ->label('Total Earnings')
-                    ->numeric()
-                    ->readOnly(),
+                Section::make('Deductions')
+                    ->description('What is taken off, including the tax withheld for the month.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('advances')
+                            ->label('Advances')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'advances', $state)),
 
-                TextInput::make('total_deductions')
-                    ->label('Total Deductions')
-                    ->numeric()
-                    ->readOnly(),
+                        TextInput::make('meal_deduction')
+                            ->label('Meal Deduction')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'meal_deduction', $state)),
 
-                TextInput::make('net_salary')
-                    ->label('Net Salary')
-                    ->numeric()
-                    ->readOnly(),
+                        TextInput::make('esi_health_insurance')
+                            ->label('ESI / Health Insurance')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record))
+                            ->hintColor('warning')
+                            ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'esi_health_insurance', $state)),
+
+                        // --- READONLY calculated totals ---
+
+                        TextInput::make('withholding_tax')
+                            ->label('Withholding Tax')
+                            ->numeric()
+                            ->readOnly(),
+                    ]),
+
+                Section::make('What it comes to')
+                    ->description('Earnings less deductions. These are what the payslip prints and what the bank file is paid on.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('total_earnings')
+                            ->label('Total Earnings')
+                            ->numeric()
+                            ->readOnly(),
+
+                        TextInput::make('total_deductions')
+                            ->label('Total Deductions')
+                            ->numeric()
+                            ->readOnly(),
+
+                        TextInput::make('net_salary')
+                            ->label('Net Salary')
+                            ->numeric()
+                            ->readOnly(),
+                    ]),
             ]);
     }
 
