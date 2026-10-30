@@ -3,6 +3,8 @@
 namespace App\Modules\Work\Services;
 
 use App\Modules\Projects\Models\Project;
+use App\Modules\Work\Events\SprintCompleted;
+use App\Modules\Work\Events\SprintStarted;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Models\WorkStatus;
@@ -60,6 +62,8 @@ class Sprints
             'started_at' => now(),
         ])->save();
 
+        SprintStarted::dispatch($sprint);
+
         return $sprint;
     }
 
@@ -102,6 +106,8 @@ class Sprints
             'state' => WorkSprint::CLOSED,
             'closed_at' => now(),
         ])->save();
+
+        SprintCompleted::dispatch($sprint, $moveTo);
 
         return $sprint;
     }

@@ -7,6 +7,15 @@ use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\TimesheetEntryResource;
 use App\Modules\Timesheets\Models\TimesheetEntry;
+use App\Modules\Work\Console\Commands\SendWorkDigest;
+use App\Modules\Work\Events\ReleaseReleased;
+use App\Modules\Work\Events\SprintCompleted;
+use App\Modules\Work\Events\SprintStarted;
+use App\Modules\Work\Events\WorkItemAssigned;
+use App\Modules\Work\Events\WorkItemCommented;
+use App\Modules\Work\Events\WorkItemCreated;
+use App\Modules\Work\Events\WorkItemMoved;
+use App\Modules\Work\Events\WorkItemResolved;
 use App\Modules\Work\Filament\Pages\Backlog;
 use App\Modules\Work\Filament\Pages\Board;
 use App\Modules\Work\Filament\Pages\Epics;
@@ -16,6 +25,7 @@ use App\Modules\Work\Filament\Pages\WorkCycleTime;
 use App\Modules\Work\Filament\Pages\WorkVelocity;
 use App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource;
 use App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource;
+use App\Modules\Work\Filament\Settings\WorkDefaultsSettingsSection;
 use App\Modules\Work\Models\WorkAttachment;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
@@ -39,11 +49,15 @@ use App\Modules\Work\Policies\WorkWorkflowRulePolicy;
 use App\Modules\Work\Services\WorkTime;
 use App\Modules\Work\Support\SyncedTimesheetRows;
 use App\Modules\Work\Support\WorkReports;
+use App\Modules\Work\Support\WorkWatching;
+use App\Modules\Work\Support\WorkWebhookPayloads;
 use App\Support\CustomFieldSubjects;
 use App\Support\ModuleMap;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
+use App\Support\SettingsSections;
+use App\Support\Webhooks;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
@@ -94,6 +108,46 @@ class WorkServiceProvider extends ServiceProvider
         $this->contributeToProjects();
         $this->contributeToTimesheets();
         $this->registerReports();
+
+        // Who hears what — §10. Watching rules on the models, the eight webhook types, the company
+        // defaults block, and the digest command the schedule in routes/console.php runs.
+        WorkWatching::register();
+        $this->registerWebhooks();
+        SettingsSections::register('work.defaults', WorkDefaultsSettingsSection::class, 36, 'company');
+        $this->commands([SendWorkDigest::class]);
+    }
+
+    /**
+     * The eight outgoing webhooks — docs/project-management-plan.md §10.4.
+     *
+     * Each with a named payload from `WorkWebhookPayloads`: the key, the project key, the status and
+     * its category, the assignee's email — and never the description, which is the one field a
+     * subscriber should fetch rather than be sent. Core wires a listener per type once every
+     * provider has booted, so registering here is the whole of the work.
+     */
+    private function registerWebhooks(): void
+    {
+        $item = fn (object $event): array => WorkWebhookPayloads::item($event->item);
+
+        Webhooks::register('work_item.created', 'A work item was filed', WorkItemCreated::class, $item, sort: 60);
+        Webhooks::register('work_item.moved', 'A work item changed status', WorkItemMoved::class, fn (object $event): array => [
+            ...WorkWebhookPayloads::item($event->item),
+            'from' => $event->from?->name,
+            'from_category' => $event->from?->category,
+        ], sort: 61);
+        Webhooks::register('work_item.assigned', 'A work item was assigned', WorkItemAssigned::class, $item, sort: 62);
+        Webhooks::register('work_item.resolved', 'A work item was resolved', WorkItemResolved::class, $item, sort: 63);
+        Webhooks::register('work_item.commented', 'Somebody commented on a work item', WorkItemCommented::class, fn (object $event): array => [
+            ...WorkWebhookPayloads::item($event->item),
+            'comment_id' => (int) $event->comment->getKey(),
+            'commented_by' => $event->comment->user?->email,
+        ], sort: 64);
+        Webhooks::register('sprint.started', 'A sprint started', SprintStarted::class, fn (object $event): array => WorkWebhookPayloads::sprint($event->sprint), sort: 65);
+        Webhooks::register('sprint.completed', 'A sprint was completed', SprintCompleted::class, fn (object $event): array => [
+            ...WorkWebhookPayloads::sprint($event->sprint),
+            'unfinished_moved_to' => $event->movedTo?->name,
+        ], sort: 66);
+        Webhooks::register('release.released', 'A release went out', ReleaseReleased::class, fn (object $event): array => WorkWebhookPayloads::release($event->release), sort: 67);
     }
 
     /**

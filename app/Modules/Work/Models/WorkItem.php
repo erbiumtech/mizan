@@ -8,6 +8,8 @@ use App\Modules\Core\Models\Comment;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Work\Events\WorkItemMoved;
+use App\Modules\Work\Events\WorkItemResolved;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -337,6 +339,14 @@ class WorkItem extends Model
         // So the caller reading `$item->status` straight afterwards gets where it went, not where
         // it was — the same staleness the guard above had to stop trusting.
         $this->unsetRelation('status');
+
+        // The two of §10.4's events a transition fires. Resolved is its own event rather than a
+        // field on moved, because "it is done" is what most subscribers want and nothing else.
+        WorkItemMoved::dispatch($this, $from, $target);
+
+        if ($target->isDone()) {
+            WorkItemResolved::dispatch($this);
+        }
 
         return $this;
     }

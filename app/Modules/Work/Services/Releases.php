@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Services;
 
+use App\Modules\Work\Events\ReleaseReleased;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkStatus;
@@ -59,6 +60,8 @@ class Releases
         }
 
         $release->forceFill(['released_on' => today()])->save();
+
+        ReleaseReleased::dispatch($release);
 
         return $release;
     }
