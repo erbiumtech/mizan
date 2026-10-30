@@ -105,10 +105,64 @@ class Interviews
         return $interview->refresh();
     }
 
+    /**
+     * Every round on an application, oldest first, with what a reader needs to see.
+     *
+     * **Built here rather than in the view** because three screens ask the same question — the
+     * candidate page, the interviews list and the panel's own feedback form — and a round that
+     * reads "Round 2 · Passed · 2 of 3" on one of them and something else on another is the kind
+     * of difference nobody notices until they are comparing two tabs.
+     *
+     * The panel's names are resolved in one lookup for every round at once. Asking per round was
+     * an N+1 across a table that lives in the landlord database, which is the expensive kind.
+     *
+     * @return array<int, array{id: int, round: int, when: ?\Illuminate\Support\Carbon, mode: string,
+     *     location: ?string, panel: array<int, string>, outcome: string, outcomeLabel: string,
+     *     decided: bool, notes: ?string, feedback: array{given: int, of: int, average: ?float}}>
+     */
+    public function rounds(Application $application): array
+    {
+        $interviews = Interview::query()
+            ->where('application_id', $application->getKey())
+            ->with('feedback')
+            ->orderBy('round')
+            ->get();
+
+        $names = User::query()
+            ->whereIn('id', $interviews
+                ->flatMap(fn (Interview $i): array => (array) ($i->interviewer_user_ids ?? []))
+                ->unique()
+                ->all())
+            ->pluck('name', 'id');
+
+        return $interviews->map(fn (Interview $i): array => [
+            'id' => (int) $i->getKey(),
+            'round' => (int) $i->round,
+            'when' => $i->scheduled_at,
+            'mode' => Interview::MODES[$i->mode] ?? $i->mode,
+            'location' => $i->location,
+            // A panel member whose account has since gone is named as gone rather than dropped:
+            // "with two people" when the record says three is a quieter lie than an awkward word.
+            'panel' => collect((array) ($i->interviewer_user_ids ?? []))
+                ->map(fn ($id): string => $names[$id] ?? 'A former colleague')
+                ->all(),
+            'outcome' => $i->outcome,
+            'outcomeLabel' => Interview::OUTCOMES[$i->outcome] ?? $i->outcome,
+            'decided' => $i->isDecided(),
+            'notes' => $i->notes,
+            'feedback' => $this->feedbackSummary($i),
+        ])->all();
+    }
+
     /** @return array{given: int, of: int, average: ?float} */
     public function feedbackSummary(Interview $interview): array
     {
-        $rows = InterviewFeedback::query()->where('interview_id', $interview->getKey())->get();
+        // The loaded relation when there is one. The interviews list eager-loads `feedback` and this
+        // was querying per row anyway — twice per row, in fact, because the column asked once for the
+        // text and once for the colour.
+        $rows = $interview->relationLoaded('feedback')
+            ? $interview->feedback
+            : InterviewFeedback::query()->where('interview_id', $interview->getKey())->get();
         $given = $rows->whereNotNull('submitted_at');
 
         return [

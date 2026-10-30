@@ -3,34 +3,30 @@
 namespace App\Modules\Recruitment\Filament\Resources\Applications;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Modules\Recruitment\Filament\Resources\Applications\Actions\HireAction;
+use App\Modules\Recruitment\Filament\Resources\Applications\Actions\MakeOfferAction;
+use App\Modules\Recruitment\Filament\Resources\Applications\Actions\OfferLetterAction;
+use App\Modules\Recruitment\Filament\Resources\Applications\Actions\RejectAction;
+use App\Modules\Recruitment\Filament\Resources\Applications\Actions\ScheduleInterviewAction;
 use App\Modules\Recruitment\Filament\Resources\Applications\Pages\CreateApplication;
 use App\Modules\Recruitment\Filament\Resources\Applications\Pages\EditApplication;
 use App\Modules\Recruitment\Filament\Resources\Applications\Pages\ListApplications;
+use App\Modules\Recruitment\Filament\Resources\Applications\Pages\ViewApplication;
 use App\Modules\Recruitment\Models\Applicant;
 use App\Modules\Recruitment\Models\Application;
 use App\Modules\Recruitment\Models\Offer;
 use App\Modules\Recruitment\Models\Vacancy;
-use App\Modules\Recruitment\Notifications\OfferIssued;
-use App\Modules\Recruitment\Services\HireService;
-use App\Modules\Recruitment\Services\OfferLetter;
 use App\Support\NavigationBadge;
 use BackedEnum;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use InvalidArgumentException;
-use RuntimeException;
 use UnitEnum;
 
 /**
@@ -54,6 +50,18 @@ class ApplicationResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         return NavigationBadge::of(static::class, fn (): int => static::getEloquentQuery()->open()->count());
+    }
+
+    /**
+     * The applicant and the vacancy come with the row.
+     *
+     * Both are named on every line of the list and in the heading of the candidate page, and both
+     * were being fetched per row. It survived only because the fixtures were short: one row never
+     * arms the lazy-loading guard.
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with(['applicant', 'vacancy']);
     }
 
     public static function form(Schema $schema): Schema
@@ -134,196 +142,30 @@ class ApplicationResource extends Resource
                     ->label('Vacancy')
                     ->options(fn (): array => Vacancy::orderBy('title')->pluck('title', 'id')->all()),
             ])
-            ->recordActions([
-                // Schedule an interview — docs/saas-launch-plan.md §14.6. Scheduling one reaches the
-                // interview stage; the panel's feedback and the outcome live on the interview.
-                Action::make('scheduleInterview')
-                    ->label('Schedule interview')
-                    ->icon('heroicon-o-calendar-days')
-                    ->color('gray')
-                    ->visible(fn (\App\Modules\Recruitment\Models\Application $record): bool => in_array($record->stage, \App\Modules\Recruitment\Models\Application::OPEN_STAGES, true)
-                        && (auth()->user()?->can('ApplicantUpdate') ?? false))
-                    ->schema([
-                        \Filament\Forms\Components\DateTimePicker::make('scheduled_at')->label('When')->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(11, 0)),
-                        \Filament\Forms\Components\Select::make('interviewers')
-                            ->label('Interviewers')
-                            ->multiple()
-                            ->options(fn (): array => \App\Modules\Core\Models\User::query()->where('status', 1)->orderBy('name')->pluck('name', 'id')->all())
-                            ->searchable()
-                            ->required(),
-                        \Filament\Forms\Components\Select::make('mode')->options(['in_person' => 'In person', 'phone' => 'Phone', 'video' => 'Video'])->default('in_person')->required(),
-                        \Filament\Forms\Components\TextInput::make('location')->maxLength(190)->placeholder('Head office, meeting room 2; or a link'),
-                    ])
-                    ->action(function (\App\Modules\Recruitment\Models\Application $record, array $data): void {
-                        try {
-                            $interview = app(\App\Modules\Recruitment\Services\Interviews::class)->schedule($record, $data['scheduled_at'], (array) $data['interviewers'], $data['mode'], $data['location'] ?? null);
-                        } catch (\InvalidArgumentException $e) {
-                            Notification::make()->danger()->title($e->getMessage())->send();
+            // Rows open the candidate rather than the edit form: the page answers the question
+            // somebody clicking a name actually has, and Edit is one button away on it.
+            ->recordUrl(fn (Application $record): string => ViewApplication::getUrl([$record]))
+            ->recordActions(static::pipelineActions());
+    }
 
-                            return;
-                        }
-
-                        Notification::make()->success()
-                            ->title('Round '.$interview->round.' scheduled.')
-                            ->body('The panel has been told, and each has a feedback form on the interview.')
-                            ->send();
-                    }),
-
-                Action::make('makeOffer')
-                    ->label('Make an offer')
-                    ->icon('heroicon-o-document-text')
-                    ->color('info')
-                    ->visible(fn (Application $record): bool => $record->isOpen()
-                        && ! $record->offer
-                        && (auth()->user()?->can('update', $record) ?? false))
-                    ->schema([
-                        TextInput::make('salary')->numeric()->required()->label('Basic salary'),
-                        DatePicker::make('joining_date')->native(false)->required(),
-                    ])
-                    ->action(function (Application $record, array $data): void {
-                        Offer::create([
-                            'application_id' => $record->getKey(),
-                            'salary' => $data['salary'],
-                            'joining_date' => $data['joining_date'],
-                            'status' => Offer::STATUS_ISSUED,
-                            'issued_at' => now(),
-                        ]);
-
-                        $record->update(['stage' => Application::STAGE_OFFER]);
-
-                        Notification::make()->success()->title('Offer recorded.')->send();
-                    }),
-                /**
-                 * The offer as a letter — plan §7.2. Rendered from the offer each time,
-                 * refused when the record cannot back it, and optionally emailed to the
-                 * candidate with the PDF attached: until this there was no email at all,
-                 * only "Offer recorded" on the screen.
-                 */
-                Action::make('offerLetter')
-                    ->label('Offer letter')
-                    ->icon('heroicon-o-envelope')
-                    ->color('gray')
-                    ->visible(fn (Application $record): bool => $record->offer !== null
-                        && (auth()->user()?->can('view', $record) ?? false))
-                    ->schema([
-                        TextInput::make('valid_days')
-                            ->label('Valid for (days)')
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(90)
-                            ->default(7)
-                            ->required(),
-                        Toggle::make('email_candidate')
-                            ->label('Email it to the candidate')
-                            ->helperText(fn (Application $record): string => $record->applicant?->email
-                                ? 'Sends the letter as a PDF to '.$record->applicant->email.'.'
-                                : 'The applicant has no email address on record.')
-                            ->disabled(fn (Application $record): bool => blank($record->applicant?->email)),
-                    ])
-                    ->modalSubmitActionLabel('Download')
-                    ->action(function (Application $record, array $data) {
-                        $letters = app(OfferLetter::class);
-                        $missing = $letters->missingFor($record->offer);
-
-                        if ($missing !== []) {
-                            Notification::make()
-                                ->danger()
-                                ->title('The letter is missing facts it cannot invent')
-                                ->body('Add '.implode('; ', $missing).'.')
-                                ->persistent()
-                                ->send();
-
-                            return null;
-                        }
-
-                        $input = ['valid_days' => (int) $data['valid_days']];
-
-                        if (($data['email_candidate'] ?? false) && filled($record->applicant?->email)) {
-                            \Illuminate\Support\Facades\Notification::route('mail', $record->applicant->email)
-                                ->notify(new OfferIssued($record->offer, $input));
-
-                            Notification::make()->success()
-                                ->title('Offer emailed to '.$record->applicant->email)
-                                ->send();
-                        }
-
-                        $pdf = $letters->renderPdf($record->offer, $input);
-
-                        return response()->streamDownload(
-                            fn () => print ($pdf->raw()),
-                            $letters->filename($record->offer),
-                        );
-                    }),
-
-                /**
-                 * Hire: the conversion.
-                 *
-                 * Creates the employee, the optional login and the salary package in ONE
-                 * transaction — a company left with an employee who has no package, or a
-                 * package with no employee, is worse off than one whose button errored.
-                 *
-                 * Absent, not disabled, without the Employees module: a company hiring
-                 * its very first person has nothing for the offer to become yet.
-                 */
-                Action::make('hire')
-                    ->label('Accept and hire')
-                    ->icon('heroicon-o-user-plus')
-                    ->color('success')
-                    ->visible(fn (Application $record): bool => $record->offer
-                        && (auth()->user()?->can('hire', $record->offer) ?? false))
-                    ->schema([
-                        TextInput::make('employee_code')
-                            ->label('Employee code')
-                            ->maxLength(50)
-                            ->helperText('Leave blank for the next in sequence. Companies have their own conventions.'),
-
-                        Checkbox::make('with_login')
-                            ->label('Create a login as well')
-                            ->helperText('Needs an email address. A factory floor usually does not get accounts — employees without a login are supported.'),
-                    ])
-                    ->modalDescription('This creates the employee, their salary package from the offer, and optionally a login — all or nothing.')
-                    ->action(function (Application $record, array $data): void {
-                        try {
-                            $employee = app(HireService::class)->hire(
-                                $record->offer,
-                                (bool) ($data['with_login'] ?? false),
-                                $data['employee_code'] ?: null,
-                            );
-                        } catch (InvalidArgumentException|RuntimeException $e) {
-                            Notification::make()->danger()->title($e->getMessage())->send();
-
-                            return;
-                        }
-
-                        Notification::make()->success()
-                            ->title("Hired as {$employee->employee_id}.")
-                            ->body('The application keeps the trail from vacancy to payroll.')
-                            ->send();
-                    }),
-
-                Action::make('reject')
-                    ->label('Reject')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn (Application $record): bool => $record->isOpen()
-                        && (auth()->user()?->can('update', $record) ?? false))
-                    ->schema([
-                        Textarea::make('reason')
-                            ->label('Reason')
-                            ->required()
-                            ->rows(2)
-                            ->helperText('Kept on the record. It is also what starts the two-year retention clock on the applicant.'),
-                    ])
-                    ->action(function (Application $record, array $data): void {
-                        $record->update([
-                            'stage' => Application::STAGE_REJECTED,
-                            'rejected_reason' => $data['reason'],
-                            'rejected_at' => now(),
-                        ]);
-
-                        Notification::make()->success()->title('Rejected, with the reason recorded.')->send();
-                    }),
-            ]);
+    /**
+     * Moving a candidate along: schedule, offer, letter, hire, reject.
+     *
+     * One list, used by the applications table and by the candidate page's header. They were written
+     * into the table, so the page would have had to copy them — and five buttons that each decide
+     * something irreversible are exactly the five that must not drift into two versions.
+     *
+     * @return array<int, \Filament\Actions\Action>
+     */
+    public static function pipelineActions(): array
+    {
+        return [
+            ScheduleInterviewAction::make(),
+            MakeOfferAction::make(),
+            OfferLetterAction::make(),
+            HireAction::make(),
+            RejectAction::make(),
+        ];
     }
 
     public static function getPages(): array
@@ -331,6 +173,7 @@ class ApplicationResource extends Resource
         return [
             'index' => ListApplications::route('/'),
             'create' => CreateApplication::route('/create'),
+            'view' => ViewApplication::route('/{record}'),
             'edit' => EditApplication::route('/{record}/edit'),
         ];
     }

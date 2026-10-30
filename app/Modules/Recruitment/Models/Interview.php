@@ -19,6 +19,24 @@ class Interview extends Model
 
     public const OUTCOME_NO_SHOW = 'no_show';
 
+    /** How the round is held — the three the scheduler offers. */
+    public const MODES = ['in_person' => 'In person', 'phone' => 'Phone', 'video' => 'Video'];
+
+    /**
+     * What happened, as a reader sees it.
+     *
+     * `pending` reads as **Scheduled**, because that is what it means to anybody looking at the
+     * candidate: the round is in the diary and nobody has decided yet. "Pending" describes the state
+     * of the column rather than the state of the thing, and the two screens that showed it raw made
+     * a booked interview look like an outstanding task.
+     */
+    public const OUTCOMES = [
+        self::OUTCOME_PENDING => 'Scheduled',
+        self::OUTCOME_PASSED => 'Passed',
+        self::OUTCOME_FAILED => 'Failed',
+        self::OUTCOME_NO_SHOW => 'Did not attend',
+    ];
+
     protected $fillable = [
         'application_id', 'round', 'scheduled_at', 'mode', 'panel',
         'location', 'outcome', 'notes', 'interviewer_employee_id', 'interviewer_user_ids',

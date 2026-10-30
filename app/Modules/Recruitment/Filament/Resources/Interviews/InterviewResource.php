@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
@@ -57,27 +58,79 @@ class InterviewResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            /*
+             * **Grouped by candidate, ordered by round.** Flat and sorted by date, a second round sat
+             * wherever the calendar put it — often pages from the first, with other people's rounds in
+             * between — so the one thing this screen is for, how somebody's interviews are going, was
+             * the one thing it would not show. Grouped, each candidate's rounds read as the sequence
+             * they are.
+             */
+            ->groups([
+                Group::make('application.applicant.name')
+                    ->label('Candidate')
+                    ->collapsible(),
+            ])
+            ->defaultGroup('application.applicant.name')
             ->columns([
-                TextColumn::make('scheduled_at')->dateTime('d M Y H:i')->sortable(),
-                TextColumn::make('application.applicant.name')->label('Candidate')->searchable(),
-                TextColumn::make('application.vacancy.title')->label('Vacancy')->placeholder('—'),
-                TextColumn::make('round')->alignCenter(),
-                TextColumn::make('mode')->badge()->color('gray'),
-                TextColumn::make('panel_feedback')->label('Feedback')
+                TextColumn::make('round')
+                    ->label('Round')
+                    ->badge()
+                    ->color('gray')
+                    ->formatStateUsing(fn ($state): string => 'Round '.$state)
+                    ->sortable(),
+
+                TextColumn::make('scheduled_at')->label('When')->dateTime('d M Y H:i')->sortable(),
+
+                TextColumn::make('application.vacancy.title')->label('Vacancy')->placeholder('—')->toggleable(),
+
+                TextColumn::make('mode')
+                    ->badge()
+                    ->color('gray')
+                    ->formatStateUsing(fn ($state): string => Interview::MODES[$state] ?? (string) $state),
+
+                // The size of the panel, not its names: the names would be a lookup per row, and
+                // whoever is triaging a list wants to know three people are expected to reply.
+                TextColumn::make('panel_size')
+                    ->label('Panel')
+                    ->state(fn (Interview $record): string => (string) count((array) ($record->interviewer_user_ids ?? [])))
+                    ->alignCenter()
+                    ->toggleable(),
+
+                TextColumn::make('panel_feedback')
+                    ->label('Feedback')
+                    ->badge()
                     ->state(function (Interview $record): string {
                         $summary = app(Interviews::class)->feedbackSummary($record);
 
-                        return $summary['given'].' of '.$summary['of'].($summary['average'] !== null ? ' · avg '.$summary['average'] : '');
+                        return $summary['given'].' of '.$summary['of']
+                            .($summary['average'] !== null ? ' · '.$summary['average'].'/5' : '');
                     })
-                    ->color(fn (Interview $r): string => app(Interviews::class)->feedbackSummary($r)['given'] > 0 ? 'success' : 'warning'),
-                TextColumn::make('outcome')->badge()->color(fn (string $state): string => match ($state) {
-                    'passed' => 'success', 'failed', 'no_show' => 'danger', default => 'warning'
-                }),
+                    ->color(function (Interview $record): string {
+                        $summary = app(Interviews::class)->feedbackSummary($record);
+
+                        return match (true) {
+                            $summary['of'] === 0 => 'gray',
+                            $summary['given'] >= $summary['of'] => 'success',
+                            $summary['given'] > 0 => 'info',
+                            default => 'warning',
+                        };
+                    }),
+
+                TextColumn::make('outcome')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => Interview::OUTCOMES[$state] ?? (string) $state)
+                    ->color(fn (string $state): string => match ($state) {
+                        Interview::OUTCOME_PASSED => 'success',
+                        Interview::OUTCOME_FAILED, Interview::OUTCOME_NO_SHOW => 'danger',
+                        default => 'warning',
+                    }),
             ])
             ->filters([
-                SelectFilter::make('outcome')->options(['pending' => 'Pending', 'passed' => 'Passed', 'failed' => 'Failed', 'no_show' => 'No show']),
+                SelectFilter::make('outcome')->options(Interview::OUTCOMES),
             ])
-            ->defaultSort('scheduled_at', 'desc')
+            // Within a candidate, the order they happened in. The group header carries the name, so
+            // sorting by date across everybody no longer has a job to do.
+            ->defaultSort('round')
             ->recordActions([
                 Action::make('feedback')
                     ->label('My feedback')
