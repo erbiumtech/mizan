@@ -174,6 +174,9 @@ class NavigationTree
                 'API Keys',
                 // What the product does about each law — plan §14.10.
                 'Statutory Coverage',
+                // Who does field visits — plan §14.10. Beside the other "who may do what"
+                // settings rather than in the sales tree, which is where the visits are.
+                'Field Visit Staff',
             ],
             'Payroll setup' => [
                 'Pay Components',

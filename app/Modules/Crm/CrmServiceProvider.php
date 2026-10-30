@@ -70,6 +70,9 @@ class CrmServiceProvider extends ServiceProvider
         NextAction::class => NextActionPolicy::class,
         SalesTarget::class => SalesTargetPolicy::class,
         FieldVisit::class => FieldVisitPolicy::class,
+        \App\Modules\Crm\Models\FieldVisitPlace::class => \App\Modules\Crm\Policies\FieldVisitPlacePolicy::class,
+        \App\Modules\Crm\Models\FieldVisitStaff::class => \App\Modules\Crm\Policies\FieldVisitStaffPolicy::class,
+        \App\Modules\Crm\Models\FieldVisitRefusal::class => \App\Modules\Crm\Policies\FieldVisitRefusalPolicy::class,
     ];
 
     public function boot(): void

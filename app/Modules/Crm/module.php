@@ -38,6 +38,11 @@ return [
         'App\\Models\\NextAction' => \App\Modules\Crm\Models\NextAction::class,
         'App\\Models\\SalesTarget' => \App\Modules\Crm\Models\SalesTarget::class,
         'App\\Models\\FieldVisit' => \App\Modules\Crm\Models\FieldVisit::class,
+        // Field visits, judged — docs/saas-launch-plan.md §14.10. The pin a visit is judged
+        // against, who may be sent on one, and the clock-ins that were turned away.
+        'App\\Models\\FieldVisitPlace' => \App\Modules\Crm\Models\FieldVisitPlace::class,
+        'App\\Models\\FieldVisitStaff' => \App\Modules\Crm\Models\FieldVisitStaff::class,
+        'App\\Models\\FieldVisitRefusal' => \App\Modules\Crm\Models\FieldVisitRefusal::class,
     ],
 
     'resources' => [
@@ -48,6 +53,8 @@ return [
         'App\\Filament\\Resources\\NextActions\\NextActionResource' => \App\Modules\Crm\Filament\Resources\NextActions\NextActionResource::class,
         'App\\Filament\\Resources\\SalesTargets\\SalesTargetResource' => \App\Modules\Crm\Filament\Resources\SalesTargets\SalesTargetResource::class,
         'App\\Filament\\Resources\\FieldVisits\\FieldVisitResource' => \App\Modules\Crm\Filament\Resources\FieldVisits\FieldVisitResource::class,
+        'App\\Filament\\Resources\\FieldVisitStaff\\FieldVisitStaffResource' => \App\Modules\Crm\Filament\Resources\FieldVisitStaff\FieldVisitStaffResource::class,
+        'App\\Filament\\Resources\\FieldVisitRefusals\\FieldVisitRefusalResource' => \App\Modules\Crm\Filament\Resources\FieldVisitRefusals\FieldVisitRefusalResource::class,
     ],
 
     /**

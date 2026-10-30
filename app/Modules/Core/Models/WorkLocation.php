@@ -84,13 +84,10 @@ class WorkLocation extends Model
     /** Great-circle distance from a point to this location, in metres. */
     public function distanceTo(float $latitude, float $longitude): float
     {
-        $earth = 6371000.0;
-        $dLat = deg2rad($latitude - (float) $this->latitude);
-        $dLng = deg2rad($longitude - (float) $this->longitude);
-        $a = sin($dLat / 2) ** 2
-            + cos(deg2rad((float) $this->latitude)) * cos(deg2rad($latitude)) * sin($dLng / 2) ** 2;
-
-        return round($earth * 2 * atan2(sqrt($a), sqrt(1 - $a)), 1);
+        // The arithmetic moved to App\Support\Geo when field visits needed the same
+        // thing against a different pin — docs/saas-launch-plan.md §14.10. One haversine,
+        // one radius of the earth.
+        return \App\Support\Geo::metresBetween((float) $this->latitude, (float) $this->longitude, $latitude, $longitude);
     }
 
     /** Inside the fence? Null when there is no fence to ask about. */

@@ -8,6 +8,8 @@ use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\CreateFieldVisit;
 use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\EditFieldVisit;
 use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\ListFieldVisits;
 use App\Modules\Crm\Models\FieldVisit;
+use App\Modules\Crm\Models\FieldVisitPlace;
+use App\Modules\Crm\Models\FieldVisitStaff;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\Opportunity;
 use App\Modules\Crm\Services\FieldVisits;
@@ -19,8 +21,10 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -83,7 +87,11 @@ class FieldVisitResource extends Resource
 
             Select::make('employee_id')
                 ->label('Visitor')
-                ->options(fn (): array => Employee::query()->where('is_active', true)->get()
+                // Only the enrolled, where a company has switched enrolment on —
+                // docs/saas-launch-plan.md §14.10. Off, this is every active employee,
+                // exactly as before.
+                ->options(fn (): array => Employee::query()->where('is_active', true)
+                    ->whereIn('id', FieldVisitStaff::allowedEmployeeIds())->get()
                     ->mapWithKeys(fn (Employee $e): array => [$e->id => $e->display_label])->all())
                 ->searchable()
                 ->required()
@@ -119,7 +127,35 @@ class FieldVisitResource extends Resource
                     ->url(fn (FieldVisit $record): ?string => $record->mapLink(), shouldOpenInNewTab: true)
                     ->description(fn (FieldVisit $record): ?string => $record->mapLink() ? 'map' : null),
                 TextColumn::make('checked_out_at')->label('Out')->dateTime('H:i')->placeholder('—'),
+
+                /*
+                 * Where the check-in stood against the client's pin — §14.10.
+                 *
+                 * Blank where nothing judged it, which is deliberately not the same as
+                 * "away": a reader has to be able to tell "we looked and they were not
+                 * there" from "we never looked".
+                 */
+                TextColumn::make('in_verdict')
+                    ->label('Position')
+                    ->badge()
+                    ->placeholder('—')
+                    ->formatStateUsing(fn (?string $state): string => FieldVisit::VERDICTS[$state] ?? '')
+                    ->color(fn (?string $state): string => match ($state) {
+                        FieldVisit::VERDICT_HERE => 'success',
+                        FieldVisit::VERDICT_AWAY => 'danger',
+                        FieldVisit::VERDICT_UNVERIFIED => 'warning',
+                        default => 'gray',
+                    })
+                    ->description(fn (FieldVisit $record): ?string => $record->in_distance_m === null
+                        ? null
+                        : number_format($record->in_distance_m).'m from the pin'),
                 TextColumn::make('outcome')->badge()->formatStateUsing(fn (?string $state): string => FieldVisit::OUTCOMES[$state] ?? '')->placeholder('—'),
+                TextColumn::make('rating')
+                    ->label('Rated')
+                    ->placeholder('—')
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? '' : $state.'/5')
+                    ->description(fn (FieldVisit $record): ?string => $record->rating_comment)
+                    ->toggleable(),
                 IconColumn::make('confirmed_at')->label('Confirmed')->boolean()->getStateUsing(fn (FieldVisit $record): bool => $record->isConfirmed())
                     ->tooltip(fn (FieldVisit $record): ?string => $record->confirmed_name ? 'by '.$record->confirmed_name : ($record->confirmation_sent_to ? 'sent to '.$record->confirmation_sent_to : null)),
             ])
@@ -133,6 +169,7 @@ class FieldVisitResource extends Resource
                 static::checkInAction(),
                 static::checkOutAction(),
                 static::resendAction(),
+                static::pinPlaceAction(),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
@@ -174,16 +211,91 @@ class FieldVisitResource extends Resource
                 ViewField::make('position')->label('Location')->view('filament.forms.geolocation'),
                 Select::make('outcome')->options(FieldVisit::OUTCOMES)->required(),
                 Textarea::make('notes')->rows(3),
+                // §14.10. Optional: a visit without a photo is still a visit, and a rep
+                // in a basement with no signal should not be stopped from checking out.
+                FileUpload::make('photo_path')
+                    ->label('Photo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('field-visits')
+                    ->maxSize(4096)
+                    ->imageResizeTargetWidth('1200')
+                    ->helperText('Optional. The shop front, the meeting, the delivery — whatever makes the visit '
+                        .'recognisable later.'),
             ])
             ->action(function (FieldVisit $record, array $data): void {
                 try {
                     $visit = app(FieldVisits::class)->checkOut($record, static::position($data), $data['notes'] ?? null, $data['outcome'] ?? null);
+
+                    if (filled($data['photo_path'] ?? null)) {
+                        $visit->update(['photo_path' => $data['photo_path']]);
+                    }
+
                     Notification::make()->title('Checked out.')
                         ->body($visit->confirmation_sent_to ? 'Confirmation link sent to '.$visit->confirmation_sent_to.'.' : 'No confirmation link was sent: no address, or links are switched off.')
                         ->success()->send();
                 } catch (InvalidArgumentException $e) {
                     Notification::make()->title($e->getMessage())->danger()->send();
                 }
+            });
+    }
+
+    /**
+     * Drop the pin on the client — docs/saas-launch-plan.md §14.10.
+     *
+     * A contact carries an address, not a point, and a distance to an address is a
+     * geocoder and a dependency. This is the other answer: somebody standing at the
+     * place saves where they are, once, and every visit to that client afterwards is
+     * judged against it.
+     *
+     * Defaulted from this visit's own check-in, because the person pressing it is
+     * usually the person who just arrived.
+     */
+    public static function pinPlaceAction(): Action
+    {
+        return Action::make('pinPlace')
+            ->label(fn (FieldVisit $record): string => FieldVisitPlace::forSubject($record->subject_type, $record->subject_id) ? 'Move the pin' : 'Pin this place')
+            ->icon('heroicon-o-map')
+            ->color('gray')
+            ->visible(fn (FieldVisit $record): bool => auth()->user()?->can('update', $record) ?? false)
+            ->modalHeading('Where this client is')
+            ->modalDescription('Visits to this client are judged against this point. Nothing is judged until it is set.')
+            ->fillForm(function (FieldVisit $record): array {
+                $place = FieldVisitPlace::forSubject($record->subject_type, $record->subject_id);
+
+                return [
+                    'latitude' => $place?->latitude ?? $record->in_latitude,
+                    'longitude' => $place?->longitude ?? $record->in_longitude,
+                    'radius_m' => $place?->radius_m ?? FieldVisitPlace::DEFAULT_RADIUS_M,
+                    'note' => $place?->note,
+                ];
+            })
+            ->schema([
+                TextInput::make('latitude')->numeric()->required(),
+                TextInput::make('longitude')->numeric()->required(),
+                TextInput::make('radius_m')
+                    ->label('How close counts as here (metres)')
+                    ->numeric()
+                    ->minValue(20)
+                    ->maxValue(5000)
+                    ->required()
+                    ->helperText('A shop front is twenty metres. A factory with its office at the back of the '
+                        .'yard is two hundred.'),
+                TextInput::make('note')->label('Note')->maxLength(190)->placeholder('Gate 2, behind the workshop'),
+            ])
+            ->action(function (FieldVisit $record, array $data): void {
+                FieldVisitPlace::updateOrCreate(
+                    ['subject_type' => $record->subject_type, 'subject_id' => $record->subject_id],
+                    [
+                        'latitude' => $data['latitude'],
+                        'longitude' => $data['longitude'],
+                        'radius_m' => (int) $data['radius_m'],
+                        'note' => $data['note'] ?? null,
+                        'pinned_by' => auth()->id(),
+                    ],
+                );
+
+                Notification::make()->success()->title('Pinned. Visits here are judged against it from now on.')->send();
             });
     }
 

@@ -32,6 +32,23 @@ class FieldVisit extends Model
 
     public const OUTCOME_NOT_MET = 'not_met';
 
+    /** Where the check-in stood against the client's pin — docs/saas-launch-plan.md §14.10. */
+    public const VERDICT_HERE = 'here';
+
+    public const VERDICT_AWAY = 'away';
+
+    /** The reading was too vague to say either way. */
+    public const VERDICT_UNVERIFIED = 'unverified';
+
+    public const VERDICTS = [
+        self::VERDICT_HERE => 'At the place',
+        self::VERDICT_AWAY => 'Away from the place',
+        self::VERDICT_UNVERIFIED => 'Could not tell',
+    ];
+
+    /** How a client rated the visit, where they said anything. */
+    public const RATINGS = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very good', 5 => 'Excellent'];
+
     public const OUTCOMES = [
         self::OUTCOME_POSITIVE => 'Positive',
         self::OUTCOME_FOLLOW_UP => 'Follow up',
@@ -44,6 +61,8 @@ class FieldVisit extends Model
         'checked_in_at', 'in_latitude', 'in_longitude', 'in_accuracy_m',
         'checked_out_at', 'out_latitude', 'out_longitude', 'notes', 'outcome',
         'confirmation_sent_to', 'confirmed_at', 'confirmed_name', 'next_action_id', 'created_by',
+        // docs/saas-launch-plan.md §14.10.
+        'in_verdict', 'in_distance_m', 'photo_path', 'rating', 'rating_comment',
     ];
 
     protected $casts = [
@@ -171,5 +190,16 @@ class FieldVisit extends Model
         }
 
         return 'https://www.google.com/maps?q='.$this->in_latitude.','.$this->in_longitude;
+    }
+
+    /** What the check-in was judged to be, in words, or nothing where nothing judged it. */
+    public function verdictLabel(): ?string
+    {
+        return $this->in_verdict === null ? null : (self::VERDICTS[$this->in_verdict] ?? $this->in_verdict);
+    }
+
+    public function ratingLabel(): ?string
+    {
+        return $this->rating === null ? null : (self::RATINGS[$this->rating] ?? (string) $this->rating);
     }
 }

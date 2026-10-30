@@ -19,10 +19,17 @@ class FieldVisitConfirmationController extends Controller
 
     public function store(Request $request, string $company, int $visit, FieldVisits $visits)
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:120']]);
+        // The rating is optional — docs/saas-launch-plan.md §14.10. A required one is how
+        // a confirmation rate falls: the page is asking a favour of somebody who was not
+        // expecting to be asked for anything.
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'rating_comment' => ['nullable', 'string', 'max:190'],
+        ]);
 
         return $this->withTenant($request, $visit, function (FieldVisit $visit, Company $current) use ($visits, $data) {
-            $visits->confirm($visit, $data['name']);
+            $visits->confirm($visit, $data['name'], $data['rating'] ?? null, $data['rating_comment'] ?? null);
 
             return response()->view('crm.visit-confirm', $this->view($visit->refresh(), $current));
         });
@@ -53,6 +60,9 @@ class FieldVisitConfirmationController extends Controller
             'visitedOn' => $visit->checked_out_at->format('l d F Y'),
             'confirmed' => $visit->isConfirmed(),
             'confirmedName' => $visit->confirmed_name,
+            // docs/saas-launch-plan.md §14.10.
+            'ratings' => FieldVisit::RATINGS,
+            'rating' => $visit->ratingLabel(),
             'action' => request()->fullUrl(),
         ];
     }

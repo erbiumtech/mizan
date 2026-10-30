@@ -368,7 +368,19 @@ class PanelPerformanceTest extends TestCase
     {
         $pages = [
             'dashboard' => [Filament::getPanel('admin')->getUrl($this->company), 350],
-            'employees' => [EmployeeResource::getUrl('index'), 400],
+            // Moved 400 to 420 on 2026-10-30. Six screens joined the shell in phases 22 to 25
+            // — Webhooks, API Keys, Statutory Coverage, Field Visit Staff, Letter Templates,
+            // Letter Requests — and the flyout repeats one `<li>` per screen of every
+            // licensed module on every page, so screens cost bytes by design. That is the
+            // sanctioned kind of move rather than the kind this file usually fixes instead:
+            // the icons themselves were collapsed into a sprite the last time this was hit,
+            // and what is left per item is the link and its label.
+            //
+            // The next lever, when this is reached again: every sprite reference repeats
+            // Filament's full icon class string, which is some thirty bytes times two
+            // hundred items. One class on the parent and a bare `<svg><use>` would reclaim
+            // most of it.
+            'employees' => [EmployeeResource::getUrl('index'), 420],
             'reports' => [Reports::getUrl(), 360],
         ];
 

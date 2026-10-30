@@ -42,6 +42,36 @@ return [
     'field_visits' => [
         'enabled' => env('CRM_FIELD_VISITS_ENABLED', false),
         'confirmation_link_hours' => env('CRM_FIELD_VISIT_LINK_HOURS', 24),
+
+        /*
+        | Judging where a check-in happened — docs/saas-launch-plan.md §14.10.
+        |
+        | `off` records the coordinates and judges nothing, which is how this worked
+        | before. `flag` writes a verdict and lets the check-in through. `refuse` turns
+        | away a check-in that is not at the place.
+        |
+        | `flag` is the default because a company that has not thought about it wants to
+        | see the problem rather than have its reps locked out of their own calls on a
+        | day the signal is poor. Per company through TenantSettings.
+        |
+        | Nothing is judged until somebody has pinned the place, whatever this says.
+        */
+        'geofence_mode' => env('CRM_FIELD_VISIT_GEOFENCE_MODE', 'flag'),
+
+        /*
+        | How vague a phone's reading may be and still be judged, in metres. Anything
+        | vaguer is recorded as "could not tell" rather than called away — indoors, that
+        | is most readings, and calling a rep absent for standing inside a shop would be
+        | the fastest way to have the whole feature switched off.
+        */
+        'accuracy_limit_m' => env('CRM_FIELD_VISIT_ACCURACY_LIMIT_M', 100),
+
+        /*
+        | Whether only enrolled staff may be sent on visits. Off, as it has always been:
+        | a company of eighty with six reps turns it on to stop the other seventy-four
+        | filling the picker.
+        */
+        'enrolment_required' => env('CRM_FIELD_VISIT_ENROLMENT_REQUIRED', false),
     ],
 
 ];
