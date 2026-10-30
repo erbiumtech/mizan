@@ -21,6 +21,7 @@ use App\Modules\Work\Events\WorkItemResolved;
 use App\Modules\Work\Filament\Pages\Backlog;
 use App\Modules\Work\Filament\Pages\Board;
 use App\Modules\Work\Filament\Pages\Epics;
+use App\Modules\Work\Filament\Pages\Timeline;
 use App\Modules\Work\Filament\Pages\WorkCreatedVsResolved;
 use App\Modules\Work\Filament\Pages\WorkCumulativeFlow;
 use App\Modules\Work\Filament\Pages\WorkCycleTime;
@@ -294,6 +295,7 @@ class WorkServiceProvider extends ServiceProvider
                 NavigationItem::make(__('Sprints'))->icon('heroicon-o-arrow-path')->url(WorkSprintResource::getUrl('index', $byProject)),
                 NavigationItem::make(__('Epics'))->icon('heroicon-o-flag')->url(Epics::getUrl(['project' => $id])),
                 NavigationItem::make(__('Releases'))->icon('heroicon-o-rocket-launch')->url(WorkReleaseResource::getUrl('index', $byProject)),
+                NavigationItem::make(__('Timeline'))->icon('heroicon-o-calendar-days')->url(Timeline::getUrl(['project' => $id])),
             ];
 
             // The hub, opened on the section the work reports sit in. Only for somebody who may

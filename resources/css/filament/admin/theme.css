@@ -3618,3 +3618,169 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
         color: var(--color-gray-100);
     }
 }
+
+/*
+ * ============================================================================
+ * Timeline, and the generated summary
+ * ============================================================================
+ *
+ * Every position on the timeline is a percentage the page computed, so the CSS is only the
+ * shapes: a ruler of months, a track per row, a bar with its done part, ticks and markers.
+ */
+
+.fi-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-x: auto;
+}
+
+.fi-timeline-months {
+    position: relative;
+    height: 1.25rem;
+    margin-inline-start: 14rem;
+    border-bottom: 1px solid var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
+    }
+}
+
+.fi-timeline-month {
+    position: absolute;
+    top: 0;
+    padding-inline-start: 0.25rem;
+    border-inline-start: 1px solid var(--color-gray-200);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    color: var(--color-gray-500);
+}
+
+.fi-timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.75rem;
+}
+
+.fi-timeline-label {
+    flex: 0 0 13.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+.fi-timeline-track {
+    position: relative;
+    flex: 1 1 auto;
+    height: 1.25rem;
+}
+
+.fi-timeline-bar {
+    position: absolute;
+    top: 0.25rem;
+    height: 0.75rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: var(--color-gray-200);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-800);
+    }
+}
+
+.fi-timeline-bar-done {
+    display: block;
+    height: 100%;
+    background-color: var(--color-primary-600);
+}
+
+.fi-timeline-tick {
+    position: absolute;
+    top: 1.05rem;
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-inline-start: -0.2rem;
+    border: 1px solid var(--color-primary-600);
+    border-radius: 9999px;
+    background-color: var(--color-white, #fff);
+
+    &.fi-done {
+        background-color: var(--color-primary-600);
+    }
+}
+
+.fi-timeline-sprint {
+    position: absolute;
+    top: 0.125rem;
+    height: 1rem;
+    padding-inline: 0.25rem;
+    overflow: hidden;
+    border-radius: 0.25rem;
+    background-color: var(--color-gray-100);
+    font-size: 0.625rem;
+    line-height: 1rem;
+    white-space: nowrap;
+    color: var(--color-gray-500);
+
+    &.fi-timeline-sprint-active {
+        background-color: color-mix(in oklab, var(--color-primary-400) 18%, transparent);
+        color: var(--color-primary-700);
+    }
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-900);
+    }
+}
+
+.fi-timeline-release {
+    position: absolute;
+    top: 0;
+    width: 0;
+    height: 1.25rem;
+    border-inline-start: 2px solid var(--color-warning-500, #f59e0b);
+
+    &.fi-done {
+        border-color: var(--color-success-600, #16a34a);
+    }
+}
+
+.fi-timeline-release-label {
+    position: absolute;
+    top: 0;
+    padding-inline-start: 0.25rem;
+    font-size: 0.6875rem;
+    white-space: nowrap;
+    color: var(--color-gray-600);
+}
+
+/* The thread summary, marked as what it is. */
+.fi-ai-summary {
+    position: relative;
+    padding: 0.75rem 0.75rem 1.5rem;
+    border-inline-start: 3px solid var(--color-primary-600);
+    border-radius: 0.375rem;
+    background-color: var(--color-gray-50);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+
+    &:where(.dark, .dark *) {
+        background-color: var(--color-gray-900);
+    }
+}
+
+.fi-ai-summary-mark {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.375rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+}

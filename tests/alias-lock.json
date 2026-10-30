@@ -544,6 +544,7 @@
         "App\\Filament\\Pages\\TaxEstimate": "App\\Modules\\PersonalFinance\\Filament\\Pages\\TaxEstimate",
         "App\\Filament\\Pages\\TaxSummary": "App\\Modules\\Payroll\\Filament\\Pages\\TaxSummary",
         "App\\Filament\\Pages\\TaxWithheldByCustomers": "App\\Modules\\Invoicing\\Filament\\Pages\\TaxWithheldByCustomers",
+        "App\\Filament\\Pages\\Timeline": "App\\Modules\\Work\\Filament\\Pages\\Timeline",
         "App\\Filament\\Pages\\TimesheetUtilisation": "App\\Modules\\Timesheets\\Filament\\Pages\\TimesheetUtilisation",
         "App\\Filament\\Pages\\Transfers": "App\\Modules\\Employees\\Filament\\Pages\\Transfers",
         "App\\Filament\\Pages\\TrialBalance": "App\\Modules\\Accounting\\Filament\\Pages\\TrialBalance",

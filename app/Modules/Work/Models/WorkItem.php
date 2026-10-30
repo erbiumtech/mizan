@@ -44,7 +44,7 @@ class WorkItem extends Model
         'project_id', 'number', 'key', 'type', 'title', 'description',
         'work_status_id', 'priority', 'assignee_employee_id', 'reporter_user_id',
         'parent_id', 'sprint_id', 'carried_over', 'release_id', 'estimate_points', 'estimate_minutes', 'due_on', 'rank',
-        'started_at', 'resolved_at', 'resolution', 'archived_at', 'imported_from',
+        'started_at', 'resolved_at', 'resolution', 'archived_at', 'imported_from', 'ai_summary', 'ai_summary_at',
     ];
 
     protected $casts = [
@@ -56,6 +56,7 @@ class WorkItem extends Model
         'started_at' => 'datetime',
         'resolved_at' => 'datetime',
         'archived_at' => 'datetime',
+        'ai_summary_at' => 'datetime',
     ];
 
     protected $attributes = ['type' => 'task', 'priority' => 'medium', 'rank' => ''];

@@ -84,7 +84,7 @@ class WorkProjectPageTest extends AccountingTestCase
     public function test_the_project_page_has_the_work_tabs(): void
     {
         $this->assertSame(
-            ['View', 'Edit', 'Board', 'Backlog', 'Sprints', 'Epics', 'Releases', 'Reports', 'Connections'],
+            ['View', 'Edit', 'Board', 'Backlog', 'Sprints', 'Epics', 'Releases', 'Timeline', 'Reports', 'Connections'],
             $this->tabLabels(),
         );
     }

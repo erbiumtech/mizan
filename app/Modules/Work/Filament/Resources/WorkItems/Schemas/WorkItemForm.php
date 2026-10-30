@@ -64,6 +64,17 @@ class WorkItemForm
                         ->columnSpanFull()
                         ->placeholder('Export fails on Safari when the month has no payslips'),
 
+                    // The thread summary — §12, assist 2. Marked as generated, with when; absent
+                    // until somebody asked for one.
+                    Placeholder::make('ai_summary')
+                        ->label('Thread, summarised')
+                        ->columnSpanFull()
+                        ->visible(fn (?WorkItem $record): bool => $record?->ai_summary !== null)
+                        ->content(fn (?WorkItem $record): HtmlString => new HtmlString(
+                            '<div class="fi-ai-summary">'.nl2br(e((string) $record?->ai_summary)).'<span class="fi-ai-summary-mark">'
+                            .e(__('Generated').($record?->ai_summary_at ? ' · '.$record->ai_summary_at->diffForHumans() : '')).'</span></div>',
+                        )),
+
                     MarkdownEditor::make('description')
                         ->label('Description')
                         ->columnSpanFull()

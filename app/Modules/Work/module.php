@@ -64,6 +64,7 @@ return [
         'App\\Filament\\Pages\\MyWork' => \App\Modules\Work\Filament\Pages\MyWork::class,
         'App\\Filament\\Pages\\Backlog' => \App\Modules\Work\Filament\Pages\Backlog::class,
         'App\\Filament\\Pages\\Epics' => \App\Modules\Work\Filament\Pages\Epics::class,
+        'App\\Filament\\Pages\\Timeline' => \App\Modules\Work\Filament\Pages\Timeline::class,
         // The four reports of §7, reached from the Reports hub rather than the sidebar.
         'App\\Filament\\Pages\\WorkVelocity' => \App\Modules\Work\Filament\Pages\WorkVelocity::class,
         'App\\Filament\\Pages\\WorkCycleTime' => \App\Modules\Work\Filament\Pages\WorkCycleTime::class,

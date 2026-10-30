@@ -10,6 +10,7 @@ use App\Modules\Work\Models\WorkRepository;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Services\CodeHosts;
 use App\Modules\Work\Services\Timers;
+use App\Modules\Work\Services\WorkAssists;
 use App\Modules\Work\Services\WorkTime;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -22,6 +23,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HtmlString;
 use RuntimeException;
 
 class EditWorkItem extends EditRecord
@@ -50,9 +52,74 @@ class EditWorkItem extends EditRecord
             $this->startTimerAction(),
             $this->stopTimerAction(),
             $this->logTimeAction(),
+            $this->summariseAction(),
+            $this->suggestEstimateAction(),
             DeleteAction::make(),
             HelpAction::make('work-items', 'Work Items: Help'),
         ];
+    }
+
+    /**
+     * Summarise the thread — docs/project-management-plan.md §12, assist 2.
+     *
+     * Offered past ten comments, regenerated on request, stored and shown marked as generated.
+     */
+    private function summariseAction(): Action
+    {
+        return Action::make('summarise')
+            ->label(fn (): string => $this->getRecord()->ai_summary !== null ? 'Summarise again' : 'Summarise thread')
+            ->icon('heroicon-o-sparkles')
+            ->color('gray')
+            ->visible(fn (): bool => app(WorkAssists::class)->canSummarise($this->getRecord()))
+            ->action(function (): void {
+                $summary = app(WorkAssists::class)->summarise($this->getRecord());
+
+                if ($summary === null) {
+                    Notification::make()->warning()->title('No summary')->body('The model did not answer. The thread is unchanged.')->send();
+
+                    return;
+                }
+
+                $this->refreshFormData(['ai_summary', 'ai_summary_at']);
+                Notification::make()->success()->title('Summarised')->body('Three lines, at the top of the item, marked as generated.')->send();
+            });
+    }
+
+    /**
+     * Suggest the estimate — §12, assist 3. A number beside the field with the three items it was
+     * drawn from; never written. The person types it or does not.
+     */
+    private function suggestEstimateAction(): Action
+    {
+        return Action::make('suggestEstimate')
+            ->label('Suggest estimate')
+            ->icon('heroicon-o-light-bulb')
+            ->color('gray')
+            ->visible(fn (): bool => app(WorkAssists::class)->isAvailable()
+                && (auth()->user()?->can('update', $this->getRecord()) ?? false))
+            ->modalHeading(fn (): string => 'An estimate for '.$this->getRecord()->key)
+            ->modalContent(function (): HtmlString {
+                $suggestion = app(WorkAssists::class)->estimate($this->getRecord());
+
+                if ($suggestion === null) {
+                    return new HtmlString('<p class="fi-board-empty">'.e(__('Nothing to draw on: no finished item on this project has a similar title and an estimate.')).'</p>');
+                }
+
+                $figure = $suggestion['unit'] === 'points'
+                    ? $suggestion['estimate'].' '.__('points')
+                    : WorkTime::duration((int) $suggestion['estimate']);
+
+                $rows = collect($suggestion['drawn_from'])->map(fn (array $n): string => '<li><span class="fi-board-card-key">'.e($n['key']).'</span> '.e($n['title']).' — '.e((string) $n['estimate']).'</li>')->implode('');
+
+                return new HtmlString(
+                    '<p class="fi-sprint-figure-value">'.e($figure).'</p>'
+                    .'<p>'.e($suggestion['reason']).'</p>'
+                    .'<p class="fi-epic-children-heading">'.e(__('Drawn from')).'</p><ul class="fi-epic-list">'.$rows.'</ul>'
+                    .'<p class="fi-board-empty">'.e(__('Suggested, not written. Type it into the estimate field if it looks right.')).'</p>'
+                );
+            })
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close');
     }
 
     /**
