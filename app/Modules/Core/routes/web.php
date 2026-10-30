@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Core\Http\Controllers\SignupController;
+use App\Modules\Core\Http\Controllers\Site\SiteController;
 use App\Modules\Core\Http\Controllers\VerificationController;
 use App\Modules\Core\Http\Middleware\ResolveVerificationTenant;
 use Illuminate\Support\Facades\Route;
@@ -45,3 +46,22 @@ Route::get('/domains/check', function (\Illuminate\Http\Request $request) {
 
     return response('OK', 200, ['Content-Type' => 'text/plain']);
 })->middleware('throttle:signup')->name('domains.check');
+
+/*
+ * The public site — docs/company-website-plan.md. Generated from config/plans.php and the module
+ * manifests, with the few hand-written pages edited in the platform panel. Every route answers
+ * 404 when `site.enabled` is off (the controller checks it), and `/` — in routes/web.php — falls
+ * back to the old redirect into the admin panel.
+ */
+Route::middleware('web')->group(function (): void {
+    Route::get('/pricing', [SiteController::class, 'pricing'])->name('site.pricing');
+    Route::get('/features', [SiteController::class, 'features'])->name('site.features');
+    Route::get('/features/{module}', [SiteController::class, 'feature'])->where('module', '[a-z_]+')->name('site.feature');
+    Route::get('/p/{slug}', [SiteController::class, 'show'])->where('slug', '[a-z0-9-]+')->name('site.page');
+    Route::get('/contact', [SiteController::class, 'contact'])->name('site.contact');
+    // Not behind `throttle:`, for the signup door's reason: the controller throttles silently.
+    Route::post('/contact', [SiteController::class, 'send'])->name('site.contact.send');
+});
+
+Route::get('/sitemap.xml', [SiteController::class, 'sitemap'])->name('site.sitemap');
+Route::get('/robots.txt', [SiteController::class, 'robots'])->name('site.robots');
