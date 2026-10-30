@@ -390,7 +390,11 @@ class RoleGrantsTest extends AccountingTestCase
          *
          * Manager and CEO move by more than the others because both compose on the role beneath them.
          */
-        'Employee' => 73,
+        // 77 since 2026-10-30: the work module's four — docs/project-management-plan.md §13.1. Every
+        // employee works the board, because a tool where filing a bug needs a permission is a tool
+        // where bugs get filed in chat instead. `WorkItemMove` is split from `WorkItemUpdate` so a
+        // board can be shared with somebody who may read it and not drag on it.
+        'Employee' => 77,
         'Accountant' => 160,
         // 196 since 2026-09-21: InvoiceOverrideCreditLimit — docs/erpnext-gap-plan.md §4 item 5.
         // 197 since 2026-10-26: ConstructionDocumentRestrictedView, beside Publish — construction plan §15.2.
@@ -399,12 +403,17 @@ class RoleGrantsTest extends AccountingTestCase
         // modules nobody could — CRM +19 (leads, sources, pipeline, deals, targets, field visits), Support
         // +3 (tickets), Campaigns +4 (drafting and sending), Performance +4 (reviews, goals, one-to-ones
         // and their private notes). Employee is untouched: CRM stays out of it on purpose.
-        'Manager' => 263,
+        // 266 since 2026-10-30: the work module's three — BoardManage, SprintManage, ReleaseManage.
+        // The shape of the board and the sprint boundaries are a manager's; the items on it are not.
+        'Manager' => 266,
         // 217 since 2026-09-21: CEO composes on Manager, so InvoiceOverrideCreditLimit reaches here too;
         // 218 since 2026-10-26 for the same reason. 254 by 2026-10-30 (Phase 24-25, as above); 292 since,
         // the Manager's +30 plus the deletes that are the CEO's: LeadDelete, LeadSourceDelete,
         // PipelineDelete, OpportunityDelete, FieldVisitDelete, TicketDelete, CampaignDelete, ReviewDelete.
-        'CEO' => 292,
+        // 296 since 2026-10-30: the Manager's +3 above, plus WorkItemDelete, which is the CEO's for the
+        // same reason every other delete is. Workflows and integrations are Administrator's alone —
+        // both reach outside one project, and an integration holds a credential to another system.
+        'CEO' => 296,
     ];
 
     protected function setUp(): void

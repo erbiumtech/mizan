@@ -124,7 +124,7 @@ return [
         'label' => 'Services / Consultancy',
         'description' => 'Billable people on client work: projects, monthly progress reports, expense claims and salary advances.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'advances', 'leave', 'crm', 'timesheets', 'lifecycle', 'recruitment', 'performance', 'quotations', 'support', 'campaigns'],
+        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'advances', 'leave', 'crm', 'timesheets', 'work', 'lifecycle', 'recruitment', 'performance', 'quotations', 'support', 'campaigns'],
         'seeders' => $businessWithLeave,
     ],
 
@@ -145,7 +145,7 @@ return [
         'label' => 'Software House / Agency',
         'description' => 'Project delivery with environment health and certificate tracking. Services without the advances.',
         'type' => Company::TYPE_BUSINESS,
-        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'leave', 'crm', 'timesheets', 'lifecycle', 'recruitment', 'performance', 'quotations', 'support'],
+        'modules' => ['accounting', 'employees', 'payroll', 'invoicing', 'projects', 'mpr', 'expenses', 'leave', 'crm', 'timesheets', 'work', 'lifecycle', 'recruitment', 'performance', 'quotations', 'support'],
         'seeders' => $businessWithLeave,
     ],
 

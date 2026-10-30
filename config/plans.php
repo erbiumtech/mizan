@@ -62,10 +62,10 @@ return [
 
         'growth' => [
             'label' => 'HR and payroll',
-            'description' => 'Starter plus payroll with the FBR and EOBI files, advances, expense claims, recruitment, appraisals, projects and timesheets.',
+            'description' => 'Starter plus payroll with the FBR and EOBI files, advances, expense claims, recruitment, appraisals, projects with work items on a board, and timesheets.',
             'includes' => 'starter',
             // `devices` joins this list when the module lands (plan §8.7).
-            'modules' => ['payroll', 'advances', 'expenses', 'recruitment', 'performance', 'projects', 'timesheets'],
+            'modules' => ['payroll', 'advances', 'expenses', 'recruitment', 'performance', 'projects', 'timesheets', 'work'],
             'prices' => ['PKR' => 800, 'USD' => 6, 'EUR' => 6],
         ],
 

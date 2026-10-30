@@ -45,6 +45,9 @@ return [
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
     'navigation' => [
-        'Employee' => 'people',
+        // Beside Projects in the Work domain — docs/project-management-plan.md §2.3. A monthly progress
+        // report is a report on a project, which is what it was doing in the Employee group's Projects
+        // branch before the domain existed to hold it properly.
+        'Projects' => 'work',
     ],
 ];

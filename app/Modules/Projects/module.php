@@ -89,6 +89,8 @@ return [
      * read last. The six domains themselves are App\Support\NavigationDomains.
      */
     'navigation' => [
-        'Employee' => 'people',
+        // Moved out of People on 2026-10-30 — docs/project-management-plan.md §2.3. Projects are not
+        // an employment record; the rail's Work domain is where the work itself lives.
+        'Projects' => 'work',
     ],
 ];

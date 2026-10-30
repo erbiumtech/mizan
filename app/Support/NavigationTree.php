@@ -121,12 +121,6 @@ class NavigationTree
                 'Separations',
                 'Checklist Items',
             ],
-            // Both are about what people are working on rather than about their employment, and they
-            // are the two entries in this group that a payroll clerk never opens.
-            'Projects' => [
-                'Projects',
-                'MPR',
-            ],
         ],
         'Accounting' => [
             'Ledger' => [

@@ -72,6 +72,21 @@ class NavigationDomains
         // never buys construction nothing, because `rail()` omits a domain whose groups are all empty.
         // docs/construction-management-plan.md §18.2 and its Phase 0.
         'construction' => ['label' => 'Construction', 'icon' => 'heroicon-o-building-office-2'],
+        /*
+         * The eighth, added 2026-10-30 for the work module — docs/project-management-plan.md §2.3.
+         *
+         * Projects and the monthly progress report lived under People → Employee → Projects, which was
+         * never where they belonged: they landed there because employees are assigned to projects, and
+         * this file's own tree carried the admission — *"both are about what people are working on
+         * rather than about their employment, and they are the two entries in this group that a payroll
+         * clerk never opens"*. A team that runs its day on a board needs it one click from anywhere,
+         * which is what the rail is for, and People is where you go to act on somebody's employment.
+         *
+         * Before Construction rather than after it: this is the general case and construction is the
+         * specialised one, and a rail reads better general-to-specialised. Costs a company that licenses
+         * neither nothing — `rail()` omits a domain whose groups are all empty.
+         */
+        'work' => ['label' => 'Work', 'icon' => 'heroicon-o-rectangle-stack'],
         'people' => ['label' => 'People', 'icon' => 'heroicon-o-users'],
         'sales' => ['label' => 'Sales', 'icon' => 'heroicon-o-presentation-chart-line'],
         'admin' => ['label' => 'Admin', 'icon' => 'heroicon-o-cog-6-tooth'],

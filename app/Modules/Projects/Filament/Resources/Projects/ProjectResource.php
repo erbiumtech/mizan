@@ -27,7 +27,7 @@ class ProjectResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Employee';
+    protected static string|UnitEnum|null $navigationGroup = 'Projects';
 
     protected static ?string $recordTitleAttribute = 'name';
 

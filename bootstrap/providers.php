@@ -37,6 +37,7 @@ return [
     App\Modules\Recruitment\RecruitmentServiceProvider::class,
     App\Modules\Support\SupportServiceProvider::class,
     App\Modules\Timesheets\TimesheetsServiceProvider::class,
+    App\Modules\Work\WorkServiceProvider::class,
     App\Providers\AppServiceProvider::class,
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\PlatformPanelProvider::class,

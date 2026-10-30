@@ -186,12 +186,21 @@ class NavigationGroupsTest extends TestCase
         $this->assertContains('Payslips', $navigation['Employee'] ?? []);
     }
 
-    public function test_mpr_sits_with_the_other_employee_records(): void
+    /**
+     * The monthly progress report sits with the project it reports on, not with the employee who wrote it.
+     *
+     * It was under `Employee` until 2026-10-30 — docs/project-management-plan.md §2.3 — on the same
+     * reasoning that put Projects there: somebody is assigned to it. What it is *about* is a project,
+     * and a payroll clerk opening the Employee group never wanted it.
+     */
+    public function test_mpr_sits_with_the_project_it_reports_on(): void
     {
         $navigation = $this->navigation();
 
         $this->assertArrayNotHasKey('MPR', $navigation);
-        $this->assertContains('MPR', $navigation['Employee'] ?? []);
+        $this->assertContains('MPR', $navigation['Projects'] ?? []);
+        $this->assertContains('Projects', $navigation['Projects'] ?? []);
+        $this->assertNotContains('MPR', $navigation['Employee'] ?? []);
     }
 
     public function test_gnucash_import_sits_with_the_other_import(): void
@@ -290,6 +299,21 @@ class NavigationGroupsTest extends TestCase
             'Hiring',
             'Invoicing & Inventory',
             'Performance',
+            /*
+             * `Projects` is its own group, and its own rail domain, since 2026-10-30 —
+             * docs/project-management-plan.md §2.3.
+             *
+             * It was two entries inside `Employee`, and NavigationTree's own comment on them was the
+             * argument for moving them: *"both are about what people are working on rather than about
+             * their employment, and they are the two entries in this group that a payroll clerk never
+             * opens."* Everything else under Employee is about somebody the company employs — their
+             * payslip, their leave, their attendance, their kit. A project is not about a person at all.
+             *
+             * The group rather than the domain is what this list asserts, and they arrived together: a
+             * domain whose groups are all empty is omitted from the rail, so Work needed a group and
+             * Projects needed a home that was not an employment record.
+             */
+            'Projects',
             // `Quality & Safety` is the fourth construction group, added with `construction_qhse` in Phase 10a, and the
             // measurement is §18.2's again. Site already carries the diary, the delay register, RFIs, submittals, punch
             // lists, the programme and its import — seven entries, already past the threshold `NavigationTree` keeps
