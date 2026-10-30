@@ -6,8 +6,10 @@ use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\AttendanceRegularizationResource;
 use App\Modules\Attendance\Models\AttendanceRegularization;
 use App\Modules\Attendance\Services\RegularizationService;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 class CreateAttendanceRegularization extends CreateRecord
 {
@@ -18,13 +20,18 @@ class CreateAttendanceRegularization extends CreateRecord
     /**
      * Through the service, which refuses what cannot be corrected before anything is
      * written: a day covered by approved leave, and a day inside a payroll month that
-     * has been signed off.
+     * has been signed off. A refusal is a message on the form, not an error page.
      */
     protected function handleRecordCreation(array $data): Model
     {
-        return app(RegularizationService::class)->submit(
-            new AttendanceRegularization($data),
-            auth()->user(),
-        );
+        try {
+            return app(RegularizationService::class)->submit(
+                new AttendanceRegularization($data),
+                auth()->user(),
+            );
+        } catch (InvalidArgumentException $e) {
+            Notification::make()->danger()->title($e->getMessage())->send();
+            $this->halt();
+        }
     }
 }

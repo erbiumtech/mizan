@@ -3,6 +3,7 @@
 namespace App\Modules\Leave\Filament\Resources\LeaveEncashments;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Leave\Filament\Resources\LeaveEncashments\Pages\CreateLeaveEncashment;
@@ -34,6 +35,7 @@ use UnitEnum;
 class LeaveEncashmentResource extends Resource
 {
     use BelongsToModule;
+    use ScopesToAccessibleEmployees;
 
     protected static ?string $model = LeaveEncashment::class;
 
@@ -47,9 +49,16 @@ class LeaveEncashmentResource extends Resource
 
     protected static ?int $navigationSort = 34;
 
+    /** Own and downline unless privileged, like every employee-keyed list — what a colleague is paid out is not everyone's to read. */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['employee.user', 'leaveType', 'fiscalYear']);
+        $query = parent::getEloquentQuery()->with(['employee.user', 'leaveType', 'fiscalYear']);
+
+        if (! static::userIsPrivileged()) {
+            $query->whereIn('employee_id', static::accessibleEmployeeIds()->all());
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema
@@ -57,7 +66,8 @@ class LeaveEncashmentResource extends Resource
         return $schema->components([
             Select::make('employee_id')
                 ->label(__('Employee'))
-                ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
+                // Own record and downline, unless privileged: a picker of every colleague let anyone file in another's name.
+                ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
                 ->live()
@@ -96,7 +106,7 @@ class LeaveEncashmentResource extends Resource
                 TextColumn::make('days')->numeric(1),
                 TextColumn::make('amount')->numeric(2)->alignRight(),
                 TextColumn::make('month')->description(fn (LeaveEncashment $r): ?string => $r->fiscalYear?->name),
-                TextColumn::make('status')->badge()->color(fn (string $s): string => match ($s) {
+                TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'approved' => 'success', 'refused' => 'danger', default => 'warning'
                 })
                     ->description(fn (LeaveEncashment $r): ?string => $r->refusal_reason),

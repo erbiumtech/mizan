@@ -1022,6 +1022,25 @@ class CompanySettings extends Page
             $settings->set($key, $now);
         }
 
+        // The roles that approve after the first approval, in order. The field was filled and shown but
+        // never written, so the chain could not be set from here. A name that is not a role in this
+        // company is dropped, as the field's helper text promises.
+        $roles = Role::query()
+            ->where('company_id', app(PermissionRegistrar::class)->getPermissionsTeamId())
+            ->pluck('name')
+            ->all();
+        $chain = array_values(array_filter(
+            array_map(fn (mixed $role): string => trim((string) $role), (array) ($state['leave_approval_chain'] ?? [])),
+            fn (string $role): bool => in_array($role, $roles, true),
+        ));
+        $wasChain = array_values((array) setting('leave.approval_chain', []));
+
+        if ($wasChain !== $chain) {
+            $changed['leave.approval_chain'] = ['from' => $wasChain, 'to' => $chain];
+        }
+
+        $settings->set('leave.approval_chain', $chain);
+
         if ($changed !== []) {
             activity('CompanySettings')
                 ->causedBy(auth()->user())

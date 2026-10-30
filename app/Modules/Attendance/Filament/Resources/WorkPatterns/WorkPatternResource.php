@@ -101,9 +101,10 @@ class WorkPatternResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
 
+                // Counted in the query: reading `days` per row was a lazy load for every pattern.
                 TextColumn::make('days_count')
                     ->label(__('Working days / week'))
-                    ->state(fn (WorkPattern $record): int => $record->days->where('is_working', true)->count()),
+                    ->counts(['days' => fn ($query) => $query->where('is_working', true)]),
 
                 IconColumn::make('is_default')->label(__('Default'))->boolean(),
 

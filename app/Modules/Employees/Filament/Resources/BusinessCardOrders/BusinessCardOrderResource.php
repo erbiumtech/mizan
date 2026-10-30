@@ -74,7 +74,8 @@ class BusinessCardOrderResource extends Resource
         return $schema->components([
             Select::make('employee_id')
                 ->label('For')
-                ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')
+                // Own record and downline, unless privileged: a picker of every colleague let anyone order in another's name.
+                ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')
                     ->orderBy('employee_id')->get()
                     ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()

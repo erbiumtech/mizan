@@ -34,6 +34,10 @@ class Employee extends Model
         'left_on', 'leaving_reason', 'notice_served_until',
         'date_of_joining', 'date_of_birth', 'nic', 'nic_front', 'nic_back', 'bank_id', 'bank_code', 'bank_short_code', 'bank_account_no', 'iban_no',
         'address_line_1', 'address_line_2',
+        // Not columns: the form's Name and Company Email, which the saving hook routes to the user,
+        // a change request or — with no login — the `name` column. Not fillable, fill() dropped them
+        // before the hook ran, so the form's edits to either were silently discarded.
+        'user_name', 'user_email',
     ];
 
     protected $casts = [
@@ -426,6 +430,9 @@ class Employee extends Model
                     'name' => $userChanges['user_name'] ?? $this->user?->name,
                     'email' => $userChanges['user_email'] ?? $this->user?->email,
                 ]);
+            } elseif (isset($userChanges['user_name'])) {
+                // No login: the name lives on the row itself — see fullName().
+                $this->attributes['name'] = $userChanges['user_name'];
             }
 
             return;

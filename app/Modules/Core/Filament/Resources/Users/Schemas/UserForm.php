@@ -48,10 +48,16 @@ class UserForm
                 // call to make. Their own company is attached automatically on
                 // create (see UserResource::$isScopedToTenant), which is the only
                 // membership this page needs.
+                //
+                // Defaulted to the current company because saving this select
+                // syncs the relation: left empty, it detached the membership
+                // Filament had just attached, leaving a user with roles here,
+                // no access and no employee record.
                 Select::make('companies')
                     ->label('Company Access')
                     ->multiple()
                     ->relationship('companies', 'name')
+                    ->default(fn (): array => array_filter([Filament::getTenant()?->getKey()]))
                     ->preload()
                     ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false)
                     ->helperText('Companies this user can sign in to. Switch companies to set roles for each.'),

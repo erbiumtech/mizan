@@ -4,6 +4,7 @@ namespace App\Modules\Leave\Filament\Resources\LeaveRequests\Tables;
 
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Modules\Leave\Models\LeaveType;
+use App\Modules\Leave\Services\LeaveApprovalChain;
 use App\Modules\Leave\Services\LeaveRequestService;
 use App\Support\LandlordUserColumn;
 use Filament\Actions\Action;
@@ -117,15 +118,18 @@ class LeaveRequestsTable
                     ->visible(fn (LeaveRequest $record): bool => auth()->user()?->can('decide', $record) ?? false)
                     ->action(function (LeaveRequest $record): void {
                         try {
-                            app(LeaveRequestService::class)->approve($record, auth()->user());
+                            $record = app(LeaveRequestService::class)->approve($record, auth()->user());
                         } catch (InvalidArgumentException $e) {
                             Notification::make()->danger()->title($e->getMessage())->send();
 
                             return;
                         }
 
+                        // A step of an approval chain is not the decision: nothing is recorded until the last.
                         Notification::make()->success()
-                            ->title('Approved — the days it uses are recorded against this leave year.')
+                            ->title($record->isPending()
+                                ? 'Approved at this step — '.app(LeaveApprovalChain::class)->awaitingLabel($record).'.'
+                                : 'Approved — the days it uses are recorded against this leave year.')
                             ->send();
                     }),
 

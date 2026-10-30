@@ -19,12 +19,17 @@ class HolidayForm
             ->components([
                 // Unique in the database as well. Validating it here too is what
                 // turns a duplicate into a message on the field instead of a
-                // 500 on save.
+                // 500 on save. Compared as a date: SQLite stores the cast value as
+                // `Y-m-d 00:00:00`, which a plain `unique` rule never matches.
                 DatePicker::make('date')
                     ->label('Date')
                     ->native(false)
                     ->required()
-                    ->unique(ignoreRecord: true),
+                    ->rule(fn (?Holiday $record) => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                        if (Holiday::query()->whereDate('date', $value)->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))->exists()) {
+                            $fail('There is already a holiday on this date.');
+                        }
+                    }),
 
                 TextInput::make('name')
                     ->label('Name')

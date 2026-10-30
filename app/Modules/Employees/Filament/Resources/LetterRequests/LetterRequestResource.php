@@ -67,7 +67,8 @@ class LetterRequestResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')->label('Employee')
-                ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
+                // Own record and downline, unless privileged: a picker of every colleague let anyone file in another's name.
+                ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required()
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
             Select::make('kind')->label('Letter')
@@ -84,9 +85,9 @@ class LetterRequestResource extends Resource
             ->columns([
                 TextColumn::make('created_at')->label('Asked')->date('d M Y')->sortable(),
                 TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('kind')->label('Letter')->formatStateUsing(fn (string $s): string => LetterTemplate::KINDS[$s] ?? $s),
+                TextColumn::make('kind')->label('Letter')->formatStateUsing(fn (string $state): string => LetterTemplate::KINDS[$state] ?? $state),
                 TextColumn::make('purpose')->limit(40)->placeholder('—'),
-                TextColumn::make('status')->badge()->color(fn (string $s): string => match ($s) {
+                TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'issued' => 'success', 'refused' => 'danger', default => 'warning'
                 })
                     ->description(fn (LetterRequest $r): ?string => $r->refusal_reason),

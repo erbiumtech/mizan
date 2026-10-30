@@ -127,6 +127,11 @@ class RegularizationService
             );
         }
 
+        // The leave itself, not only a day row linked to it: a day with no row yet — or one written
+        // before the leave was approved — carries no link, and the correction was filed only to be
+        // refused at approval by this same check in the recorder.
+        $this->recorder->validate($request->employee, $date, $request->requested_status);
+
         if ($this->monthIsSettled($date->year, $date->month)) {
             throw new InvalidArgumentException(
                 $date->format('F Y').' has been paid and signed off, so its attendance can no longer be changed. '

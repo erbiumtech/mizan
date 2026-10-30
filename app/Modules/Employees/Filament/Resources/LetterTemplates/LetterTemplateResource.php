@@ -73,7 +73,7 @@ class LetterTemplateResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->description(fn (LetterTemplate $t): string => $t->kindLabel()),
-                TextColumn::make('locale')->label('Language')->formatStateUsing(fn (string $s): string => Locales::AVAILABLE[$s]['label'] ?? $s),
+                TextColumn::make('locale')->label('Language')->formatStateUsing(fn (string $state): string => Locales::AVAILABLE[$state]['label'] ?? $state),
                 TextColumn::make('subject')->limit(50)->placeholder('—'),
                 TextColumn::make('issues')->label('Issues itself')
                     ->state(fn (LetterTemplate $t): string => in_array($t->kind, LetterTemplate::EVENT_KINDS, true) ? 'on the event' : 'on request'),

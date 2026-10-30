@@ -61,12 +61,12 @@ class SeparationResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('type')->formatStateUsing(fn (string $s): string => Separation::TYPES[$s] ?? $s),
+                TextColumn::make('type')->formatStateUsing(fn (string $state): string => Separation::TYPES[$state] ?? $state),
                 TextColumn::make('notice_on')->date('d M Y')->placeholder('—'),
                 TextColumn::make('last_working_day')->date('d M Y')->sortable(),
                 TextColumn::make('clearance')->label('Clearance')->state(fn (Separation $s): string => ($c = $s->clearance())['clear'].' of '.$c['total'])
                     ->color(fn (Separation $s): string => $s->isCleared() ? 'success' : 'warning'),
-                TextColumn::make('status')->badge()->color(fn (string $s): string => $s === 'closed' ? 'gray' : 'warning'),
+                TextColumn::make('status')->badge()->color(fn (string $state): string => $state === 'closed' ? 'gray' : 'warning'),
             ])
             ->filters([SelectFilter::make('status')->options(['open' => 'Open', 'closed' => 'Closed'])])
             ->defaultSort('last_working_day', 'desc')

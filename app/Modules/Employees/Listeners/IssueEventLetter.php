@@ -49,8 +49,14 @@ class IssueEventLetter
         return true;
     }
 
-    /** A dated job-history row — a transfer or a promotion — writes its own letter. */
-    public function fromJobHistory(EmployeeJobHistory $row): bool
+    /**
+     * A dated job-history row — a transfer or a promotion — writes its own letter.
+     *
+     * `$oldValue` is what the caller read before recording the row. Read from the employee here it
+     * is already the new value — the row's projection has been saved by then — and the letter said
+     * "from Senior to Senior".
+     */
+    public function fromJobHistory(EmployeeJobHistory $row, ?string $oldValue = null): bool
     {
         $kind = match ($row->kind) {
             EmployeeJobHistory::KIND_PROMOTION => 'promotion',
@@ -65,7 +71,7 @@ class IssueEventLetter
         return $this->issue($row->employee, $kind, [
             'effective_from' => $row->effective_from?->format('d F Y') ?? '',
             'new_value' => $kind === 'promotion' ? (string) $row->designation : trim((string) $row->department.' '.(string) ($row->location?->name ?? '')),
-            'old_value' => $kind === 'promotion' ? (string) $row->employee->getOriginal('designation') : (string) $row->employee->getOriginal('department'),
+            'old_value' => $oldValue ?? ($kind === 'promotion' ? (string) $row->employee->getOriginal('designation') : (string) $row->employee->getOriginal('department')),
         ]);
     }
 }

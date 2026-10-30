@@ -47,30 +47,63 @@ class LeaveRequestService
             'submitted_by' => $submitter->getKey(),
         ]);
 
-        // Planned before anything is written, so a request that could never be
-        // approved is never filed. plan() itself throws on a malformed half day or a
-        // reversed range; an empty plan is refused here rather than there, because
-        // planning legitimately answers "nothing" for a caller only asking the cost.
-        $planned = $this->generator->plan($request);
-
-        if ($planned === []) {
-            throw new InvalidArgumentException(LeaveDayGenerator::NO_WORKING_DAYS);
-        }
-
-        $this->assertNoticeGiven($request);
-        $this->assertNoOverlap($request);
-        $this->assertEligible($request, array_sum(array_column($planned, 'portion')));
+        $days = $this->checkedDays($request);
 
         $request->save();
 
         // Written now, not at approval, so the form and the approver's queue can
         // show what the request will cost. Regenerated at approval from the
         // calendar as it stands then, which is the figure that counts.
-        $request->forceFill(['days' => array_sum(array_column($planned, 'portion'))])->saveQuietly();
+        $request->forceFill(['days' => $days])->saveQuietly();
 
         $this->notifyApprovers($request);
 
         return $request->refresh();
+    }
+
+    /**
+     * Save an edit to a request still waiting for a decision.
+     *
+     * The same checks as filing, and the cost worked out again — an edit saved straight from the form
+     * skipped both, so a casual day could become five days of a type the person may not take while the
+     * approver's queue still showed one. Who filed it stays as it was, and the approvers already told
+     * are not told twice.
+     */
+    public function resubmit(LeaveRequest $request): LeaveRequest
+    {
+        $this->assertPending($request, 'changed');
+
+        // The edit may have changed who or which type; relations loaded before it would answer for the old.
+        $request->unsetRelation('employee')->unsetRelation('leaveType');
+
+        $request->forceFill(['days' => $this->checkedDays($request)])->save();
+
+        return $request->refresh();
+    }
+
+    /**
+     * What the request costs, once everything that would refuse it has been asked.
+     *
+     * Planned before anything is written, so a request that could never be
+     * approved is never filed. plan() itself throws on a malformed half day or a
+     * reversed range; an empty plan is refused here rather than there, because
+     * planning legitimately answers "nothing" for a caller only asking the cost.
+     */
+    private function checkedDays(LeaveRequest $request): float
+    {
+        $planned = $this->generator->plan($request);
+
+        if ($planned === []) {
+            throw new InvalidArgumentException(LeaveDayGenerator::NO_WORKING_DAYS);
+        }
+
+        $days = (float) array_sum(array_column($planned, 'portion'));
+
+        $this->assertNoticeGiven($request);
+        $this->assertNoOverlap($request);
+        $this->assertEligible($request, $days);
+
+        return $days;
     }
 
     /**

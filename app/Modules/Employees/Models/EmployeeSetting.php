@@ -171,8 +171,12 @@ class EmployeeSetting extends Model
     {
         $fiscalYearRecord = $fiscalYearId ? FiscalYear::find($fiscalYearId) : null;
 
-        $startYear = 2026;
-        $endYear = 2027;
+        // No fiscal year given: the July–June year the date itself falls in. This was a fixed
+        // 2026-2027, so a 2024 date matched the 2026 package (an appointment letter printing
+        // today's salary as the joining one) and every date after June 2027 a year too early.
+        $dateYear = Carbon::parse($date)->year;
+        $startYear = Carbon::parse($date)->month >= 7 ? $dateYear : $dateYear - 1;
+        $endYear = $startYear + 1;
 
         if ($fiscalYearRecord && str_contains($fiscalYearRecord->name, '-')) {
             $parts = explode('-', $fiscalYearRecord->name);

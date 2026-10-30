@@ -83,9 +83,16 @@ class AttendanceImport
 
         // Resolved once rather than per row: a month for forty people is 900 rows, and
         // a lookup each would be 900 queries.
-        $employees = Employee::query()
-            ->get()
-            ->keyBy(fn (Employee $employee): string => strtolower(trim((string) $employee->employee_id)));
+        $all = Employee::query()->get();
+        $employees = $all->keyBy(fn (Employee $employee): string => strtolower(trim((string) $employee->employee_id)));
+
+        // A device knows people by the user number enrolled on it, which is the record's Device PIN —
+        // the same match the push folder makes. Tried first for the device's own export, with the
+        // employee code as the fallback for an office that enrolled staff by their code.
+        $pins = $preset === self::PRESET_ZKTECO
+            ? $all->filter(fn (Employee $employee): bool => filled($employee->device_pin))
+                ->keyBy(fn (Employee $employee): string => ltrim(trim((string) $employee->device_pin), '0') ?: '0')
+            : collect();
 
         $accepted = 0;
         $errors = [];
@@ -93,7 +100,8 @@ class AttendanceImport
 
         foreach ($rows as $line => $row) {
             try {
-                $employee = $employees->get(strtolower(trim((string) ($row['employee_id'] ?? ''))));
+                $code = strtolower(trim((string) ($row['employee_id'] ?? '')));
+                $employee = ($code !== '' ? $pins->get(ltrim($code, '0') ?: '0') : null) ?? $employees->get($code);
 
                 if (! $employee) {
                     // Named, not counted. "12 rows failed" sends somebody hunting

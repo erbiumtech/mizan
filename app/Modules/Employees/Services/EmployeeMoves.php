@@ -32,11 +32,14 @@ class EmployeeMoves
             throw new InvalidArgumentException('A transfer changes the department, the location or the manager; pick at least one.');
         }
 
+        // What it was, read before recording moves the record — the letter's {old_value}.
+        $was = (string) $employee->department;
+
         $row = $this->history->record($employee, $changes, $effectiveFrom, $reason, EmployeeJobHistory::KIND_TRANSFER);
 
         // The letter that records it — docs/saas-launch-plan.md §14.7. Nothing is issued
         // without a template the company wrote.
-        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->fromJobHistory($row);
+        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->fromJobHistory($row, $was);
 
         return $row;
     }
@@ -47,8 +50,9 @@ class EmployeeMoves
             throw new InvalidArgumentException('A promotion is to a designation.');
         }
 
+        $was = (string) $employee->designation;
         $row = $this->history->record($employee, ['designation' => $designation], $effectiveFrom, $reason, EmployeeJobHistory::KIND_PROMOTION);
-        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->fromJobHistory($row);
+        app(\App\Modules\Employees\Listeners\IssueEventLetter::class)->fromJobHistory($row, $was);
 
         return $row;
     }

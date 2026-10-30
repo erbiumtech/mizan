@@ -61,7 +61,8 @@ class OvertimeRequestResource extends Resource
         return $schema->components([
             Select::make('employee_id')
                 ->label(__('Employee'))
-                ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
+                // Own record and downline, unless privileged: a picker of every colleague let anyone file in another's name.
+                ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required()
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
@@ -79,7 +80,7 @@ class OvertimeRequestResource extends Resource
                 TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('minutes')->suffix(' min')->alignRight(),
                 TextColumn::make('reason')->limit(40),
-                TextColumn::make('status')->badge()->color(fn (string $s): string => match ($s) {
+                TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'approved' => 'success', 'refused' => 'danger', default => 'warning'
                 })
                     ->description(fn (OvertimeRequest $r): string => $r->paymentNote()),

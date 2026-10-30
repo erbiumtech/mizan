@@ -88,15 +88,15 @@ class EmploymentContractResource extends Resource
             ->columns([
                 TextColumn::make('number')->searchable()->sortable(),
                 TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('type')->formatStateUsing(fn (string $s): string => EmploymentContract::TYPES[$s] ?? $s),
+                TextColumn::make('type')->formatStateUsing(fn (string $state): string => EmploymentContract::TYPES[$state] ?? $state),
                 TextColumn::make('starts_on')->date('d M Y'),
                 TextColumn::make('ends_on')->date('d M Y')->placeholder('open-ended'),
                 TextColumn::make('gross')->numeric(0)->alignRight(),
-                TextColumn::make('status')->badge()->color(fn (string $s): string => match ($s) {
+                TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'active' => 'success', 'ended' => 'gray', default => 'warning'
                 })
                     ->description(fn (EmploymentContract $c): ?string => $c->isAccepted() ? 'accepted '.$c->accepted_at->format('d M Y H:i').($c->accepted_ip ? ' from '.$c->accepted_ip : '') : null),
-                TextColumn::make('signedDocument.file_path')->label('Signed scan')->formatStateUsing(fn ($s): string => $s ? 'attached' : '')->placeholder('—'),
+                TextColumn::make('signedDocument.file_path')->label('Signed scan')->formatStateUsing(fn ($state): string => $state ? 'attached' : '')->placeholder('—'),
             ])
             ->filters([SelectFilter::make('status')->options(['draft' => 'Draft', 'active' => 'Active', 'ended' => 'Ended'])])
             ->defaultSort('id', 'desc')

@@ -79,7 +79,9 @@ class EmployeeForm
                             )
                             ->searchable()
                             ->preload()
-                            ->required()
+                            // Not required: nobody can fill a disabled field, and Filament
+                            // validates it anyway — which made Create impossible and every
+                            // employee without a login uneditable.
                             ->disabled()
                             ->dehydrated(false),
 
@@ -92,7 +94,8 @@ class EmployeeForm
                             ->required()
                             ->maxLength(255)
                             ->dehydrated()
-                            ->afterStateHydrated(fn (TextInput $component, ?Employee $record) => $component->state($record?->user?->name)),
+                            // Staff with no login keep their name on the row (see Employee::fullName()).
+                            ->afterStateHydrated(fn (TextInput $component, ?Employee $record) => $component->state($record?->user?->name ?? $record?->name)),
 
                         // The company address is also the login, so it lives on the
                         // linked user; the personal one is a plain employee column.
@@ -102,6 +105,9 @@ class EmployeeForm
                             ->helperText('Used to sign in.')
                             ->email()
                             ->required()
+                            // Only where there is a login to sign in with: this form creates none,
+                            // and an address typed for somebody without one would be dropped.
+                            ->visible(fn (?Employee $record): bool => $record?->user_id !== null)
                             ->dehydrated()
                             ->afterStateHydrated(fn (TextInput $component, ?Employee $record) => $component->state($record?->user?->email))
                             ->rule(fn (?Employee $record) => Rule::unique(User::class, 'email')->ignore($record?->user_id)),

@@ -42,6 +42,11 @@ class EmployeeChangeRequest extends Model
         'user_name', 'user_email', 'personal_email', 'nic', 'nic_front', 'nic_back',
         'date_of_joining', 'date_of_birth', 'phone', 'secondary_phone', 'gender',
         'bank_id', 'bank_account_no', 'iban_no', 'address_line_1', 'address_line_2',
+        // The record's depth — docs/saas-launch-plan.md §14.2 — which the form offers the person
+        // to change and which were dropped until listed here. The two structured addresses are
+        // still absent: they are array casts, and a request would carry their raw JSON.
+        'father_name', 'ntn', 'nationality', 'marital_status',
+        'emergency_contact_name', 'emergency_contact_relation', 'emergency_contact_phone',
     ];
 
     /**
