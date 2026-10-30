@@ -40,7 +40,7 @@ class RfiForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -51,7 +51,7 @@ class RfiForm
                             ->dehydrated(),
 
                         Select::make('contract_id')
-                            ->label('Under contract')
+                            ->label(__('Under contract'))
                             ->options(fn (callable $get): array => static::contracts($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts'))
@@ -69,7 +69,7 @@ class RfiForm
                             ->columnSpanFull(),
 
                         Textarea::make('proposed_solution')
-                            ->label('What we propose')
+                            ->label(__('What we propose'))
                             ->rows(3)
                             ->columnSpanFull()
                             ->helperText('A question with a proposal is a yes-or-no. A question without one is homework for somebody who did not ask for it — and it comes back slower.'),
@@ -79,17 +79,17 @@ class RfiForm
                     ->columns(2)
                     ->schema([
                         Select::make('drawing_document_id')
-                            ->label('Drawing')
+                            ->label(__('Drawing'))
                             ->options(fn (callable $get): array => static::drawings($get('job_id')))
                             ->searchable()
                             ->helperText('From the document register, so the answer can be read against the revision that prompted it.'),
 
                         TextInput::make('specification_reference')
-                            ->label('Specification reference')
+                            ->label(__('Specification reference'))
                             ->maxLength(255),
 
                         Select::make('location_id')
-                            ->label('Where')
+                            ->label(__('Where'))
                             ->options(fn (callable $get): array => static::locations($get('job_id')))
                             ->searchable(),
 
@@ -105,7 +105,7 @@ class RfiForm
                          * "seventeen RFIs outstanding, four of them against activities that should have started".
                          */
                         Select::make('activity_id')
-                            ->label('Blocks activity')
+                            ->label(__('Blocks activity'))
                             ->options(fn (callable $get): array => static::activities($get('job_id')))
                             ->searchable()
                             ->columnSpanFull()
@@ -122,14 +122,14 @@ class RfiForm
                          * changes three times over a two-year job and the role does not.
                          */
                         Select::make('ball_in_court')
-                            ->label('Ball in court')
+                            ->label(__('Ball in court'))
                             ->options(Rfi::COURTS)
                             ->default('architect')
                             ->required()
                             ->helperText('The role, which is what "seventeen RFIs with the Architect" counts.'),
 
                         Select::make('ball_in_court_contact_id')
-                            ->label('With whom')
+                            ->label(__('With whom'))
                             ->relationship('ballInCourtContact', 'name')
                             ->searchable()
                             ->preload()
@@ -139,13 +139,13 @@ class RfiForm
                             ->helperText('The named individual, which is who a chase goes to.'),
 
                         DatePicker::make('raised_on')
-                            ->label('Raised on')
+                            ->label(__('Raised on'))
                             ->native(false)
                             ->default(now())
                             ->required(),
 
                         DatePicker::make('required_by')
-                            ->label('Answer needed by')
+                            ->label(__('Answer needed by'))
                             ->native(false)
                             ->helperText('What makes this register a clock rather than a list. An RFI with no date is one nobody is chasing.'),
                     ]),
@@ -155,27 +155,27 @@ class RfiForm
                     ->description('Flags now, figures when somebody knows. A number typed at raise time becomes a column of zeros that later reads as "no impact" when it meant "not yet assessed".')
                     ->schema([
                         Select::make('cost_impact_flag')
-                            ->label('Cost impact')
+                            ->label(__('Cost impact'))
                             ->options(Rfi::IMPACTS)
                             ->default(Rfi::IMPACT_NONE)
                             ->required()
                             ->live(),
 
                         TextInput::make('cost_impact_estimate')
-                            ->label('Estimated cost')
+                            ->label(__('Estimated cost'))
                             ->numeric()
                             ->visible(fn (callable $get): bool => $get('cost_impact_flag') !== Rfi::IMPACT_NONE)
                             ->helperText('Leave blank until there is a figure.'),
 
                         Select::make('time_impact_flag')
-                            ->label('Time impact')
+                            ->label(__('Time impact'))
                             ->options(Rfi::IMPACTS)
                             ->default(Rfi::IMPACT_NONE)
                             ->required()
                             ->live(),
 
                         TextInput::make('time_impact_days')
-                            ->label('Estimated days')
+                            ->label(__('Estimated days'))
                             ->numeric()
                             ->visible(fn (callable $get): bool => $get('time_impact_flag') !== Rfi::IMPACT_NONE),
 
@@ -186,7 +186,7 @@ class RfiForm
                          * raises the event at that date rather than today.
                          */
                         Placeholder::make('delay_warning')
-                            ->label('')
+                            ->label(__(''))
                             ->columnSpanFull()
                             ->visible(fn (callable $get, ?Rfi $record): bool => $get('time_impact_flag') === Rfi::IMPACT_YES
                                 && $record?->delay_event_id === null)

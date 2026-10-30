@@ -80,7 +80,7 @@ class ProgrammeImportPage extends Page implements HasForms
             ->statePath('data')
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -88,7 +88,7 @@ class ProgrammeImportPage extends Page implements HasForms
                     ->required(),
 
                 FileUpload::make('file')
-                    ->label('Programme export')
+                    ->label(__('Programme export'))
                     ->acceptedFileTypes(['text/xml', 'application/xml', 'text/plain', 'application/octet-stream'])
                     ->maxSize(51200)
                     ->storeFiles(false)
@@ -102,7 +102,7 @@ class ProgrammeImportPage extends Page implements HasForms
                  * anything a claim depends on.
                  */
                 Radio::make('mode')
-                    ->label('What this file is')
+                    ->label(__('What this file is'))
                     ->options([
                         ProgrammeImport::MODE_UPDATE => 'A progress update — leave the accepted programme alone',
                         ProgrammeImport::MODE_BASELINE => 'The accepted programme — set the baseline from this file',
@@ -116,7 +116,7 @@ class ProgrammeImportPage extends Page implements HasForms
                     ->live(),
 
                 TextInput::make('baseline_revision')
-                    ->label('Baseline revision')
+                    ->label(__('Baseline revision'))
                     ->maxLength(255)
                     ->visible(fn (callable $get): bool => $get('mode') === ProgrammeImport::MODE_BASELINE)
                     ->helperText('Recorded against every activity this file touches, so a later argument can say which accepted programme a date came from.'),

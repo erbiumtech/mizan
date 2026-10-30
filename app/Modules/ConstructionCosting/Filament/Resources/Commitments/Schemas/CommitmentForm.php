@@ -25,7 +25,7 @@ class CommitmentForm
             ->columns(2)
             ->components([
                 Select::make('type')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->options([
                         Commitment::TYPE_PURCHASE_ORDER => 'Purchase order',
                         Commitment::TYPE_SUBCONTRACT => 'Subcontract order',
@@ -41,12 +41,12 @@ class CommitmentForm
                     ->dehydrated(),
 
                 TextInput::make('number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->maxLength(255)
                     ->helperText('Left blank, the next in this year\'s series. It is what comes back on the invoice.'),
 
                 Select::make('contact_id')
-                    ->label('Supplier')
+                    ->label(__('Supplier'))
                     ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     // Absent without Invoicing, which owns Contacts (§18.1). A commitment to somebody with no
@@ -55,7 +55,7 @@ class CommitmentForm
                     ->helperText('Who the order goes to.'),
 
                 TextInput::make('supplier_reference')
-                    ->label('Their reference')
+                    ->label(__('Their reference'))
                     ->maxLength(255)
                     ->helperText('The quote or order number the supplier will quote back.'),
 
@@ -65,18 +65,18 @@ class CommitmentForm
                     ->helperText('What this order is for, in one line — it is the register\'s description.'),
 
                 DatePicker::make('order_date')
-                    ->label('Order date')
+                    ->label(__('Order date'))
                     ->default(now()),
 
                 DatePicker::make('required_by')
-                    ->label('Required on site by'),
+                    ->label(__('Required on site by')),
 
                 TextInput::make('payment_terms_days')
-                    ->label('Payment terms (days)')
+                    ->label(__('Payment terms (days)'))
                     ->numeric(),
 
                 TextInput::make('retention_percent')
-                    ->label('Retention %')
+                    ->label(__('Retention %'))
                     ->numeric()
                     ->visible(fn (callable $get): bool => $get('type') === Commitment::TYPE_SUBCONTRACT)
                     ->helperText('Held from each certificate against this subcontract.'),

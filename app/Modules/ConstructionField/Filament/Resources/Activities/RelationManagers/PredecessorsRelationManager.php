@@ -47,7 +47,7 @@ class PredecessorsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('predecessor_activity_id')
-                    ->label('Has to happen first')
+                    ->label(__('Has to happen first'))
                     ->options(fn (): array => $this->candidates())
                     ->searchable()
                     ->required()
@@ -59,7 +59,7 @@ class PredecessorsRelationManager extends RelationManager
                     ->required(),
 
                 TextInput::make('lag_days')
-                    ->label('Lag (days)')
+                    ->label(__('Lag (days)'))
                     ->numeric()
                     ->default(0)
                     ->helperText('A negative lag is a lead — how overlapping trades are programmed. Recorded so the network round-trips; nothing here moves a date because of it.'),
@@ -89,16 +89,16 @@ class PredecessorsRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 TextColumn::make('predecessor.code')
-                    ->label('Id')
+                    ->label(__('Id'))
                     ->sortable(),
 
                 TextColumn::make('predecessor.name')
-                    ->label('Activity')
+                    ->label(__('Activity'))
                     ->wrap()
                     ->limit(50),
 
                 TextColumn::make('relationship')
-                    ->label('Link')
+                    ->label(__('Link'))
                     ->badge()
                     ->getStateUsing(fn (ProgrammeActivityPredecessor $record): string => $record->describe())
                     ->tooltip('Stored so an imported network round-trips. No date in this application is calculated from it.'),
@@ -107,7 +107,7 @@ class PredecessorsRelationManager extends RelationManager
                  * The column the tab exists for: which of these is not finished.
                  */
                 TextColumn::make('blocking')
-                    ->label('Blocking')
+                    ->label(__('Blocking'))
                     ->badge()
                     ->getStateUsing(fn (ProgrammeActivityPredecessor $record): ?string => match (true) {
                         $record->predecessor === null => null,

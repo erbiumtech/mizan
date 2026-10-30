@@ -74,7 +74,7 @@ class WipReport extends Page
             ->columns(2)
             ->components([
                 Select::make('period_start')
-                    ->label('Cost month')
+                    ->label(__('Cost month'))
                     ->options(fn (): array => CostPeriod::query()->orderByDesc('period_start')->get()
                         ->mapWithKeys(fn (CostPeriod $p): array => [
                             $p->period_start->toDateString() => $p->label().' — '.$p->status,
@@ -97,7 +97,7 @@ class WipReport extends Page
              * stop the other forty from having a position, and a company setting the module up has all forty unset.
              */
             Action::make('recompute')
-                ->label('Recompute every job')
+                ->label(__('Recompute every job'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -135,7 +135,7 @@ class WipReport extends Page
              * closed on figures nobody froze, or frozen figures sit against a month still taking cost.
              */
             Action::make('lockAll')
-                ->label('Lock the month')
+                ->label(__('Lock the month'))
                 ->icon('heroicon-o-lock-closed')
                 ->color('primary')
                 ->requiresConfirmation()
@@ -168,7 +168,7 @@ class WipReport extends Page
              * entry into the general ledger. §4.1's boundary does not soften for WIP.
              */
             Action::make('postMovements')
-                ->label('Post the movement')
+                ->label(__('Post the movement'))
                 ->icon('heroicon-o-book-open')
                 ->color('primary')
                 ->requiresConfirmation()

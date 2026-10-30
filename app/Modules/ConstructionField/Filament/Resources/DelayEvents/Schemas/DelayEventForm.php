@@ -37,7 +37,7 @@ class DelayEventForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -46,7 +46,7 @@ class DelayEventForm
                             ->live(),
 
                         Select::make('contract_id')
-                            ->label('Under contract')
+                            ->label(__('Under contract'))
                             ->options(fn (callable $get): array => static::contracts($get('job_id')))
                             ->searchable()
                             ->live()
@@ -63,7 +63,7 @@ class DelayEventForm
                             ->helperText('What a reader in six months needs to recognise it by. "Delay" on its own is a row nobody can assess.'),
 
                         Select::make('cause_category')
-                            ->label('Cause')
+                            ->label(__('Cause'))
                             ->options(DelayEvent::CAUSES)
                             ->required()
                             ->searchable()
@@ -71,7 +71,7 @@ class DelayEventForm
                             ->helperText('Employer risk usually buys time and money; contractor risk buys neither; neutral usually buys time alone.'),
 
                         DatePicker::make('occurred_on')
-                            ->label('Occurred on')
+                            ->label(__('Occurred on'))
                             ->native(false)
                             ->required()
                             ->default(now())
@@ -87,7 +87,7 @@ class DelayEventForm
                     ->description('§13: a valid claim lost to a missed notice is the commonest way a contractor gives money away, and it fails in silence. This is the date that stops it.')
                     ->schema([
                         Placeholder::make('notice_clock')
-                            ->label('Notice will be due')
+                            ->label(__('Notice will be due'))
                             ->content(fn (callable $get, ?DelayEvent $record): string => static::clock($get, $record)),
                     ]),
 
@@ -96,15 +96,15 @@ class DelayEventForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('claimed_days')
-                            ->label('Days claimed')
+                            ->label(__('Days claimed'))
                             ->numeric(),
 
                         TextInput::make('cost_claimed')
-                            ->label('Cost claimed')
+                            ->label(__('Cost claimed'))
                             ->numeric(),
 
                         Select::make('concurrent_with_delay_event_id')
-                            ->label('Concurrent with')
+                            ->label(__('Concurrent with'))
                             ->options(fn (callable $get, ?DelayEvent $record): array => DelayEvent::query()
                                 ->where('job_id', $get('job_id'))
                                 ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))

@@ -18,7 +18,7 @@ class JobBudgetForm
             ->columns(2)
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -30,13 +30,13 @@ class JobBudgetForm
                     ->dehydrated(),
 
                 TextInput::make('name')
-                    ->label('Version name')
+                    ->label(__('Version name'))
                     ->required()
                     ->maxLength(255)
                     ->helperText('What this version is: Tender, Contract award, Rev 3 post VO-12.'),
 
                 Select::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->options([
                         JobBudget::KIND_ESTIMATE => 'Estimate',
                         JobBudget::KIND_ORIGINAL => 'Original budget',
@@ -46,7 +46,7 @@ class JobBudgetForm
                     ->required(),
 
                 DatePicker::make('effective_from')
-                    ->label('Effective from')
+                    ->label(__('Effective from'))
                     ->helperText('Left blank, approval fills it in with the day it was approved.'),
 
                 Textarea::make('notes')

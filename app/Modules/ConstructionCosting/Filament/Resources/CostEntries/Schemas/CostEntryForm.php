@@ -34,7 +34,7 @@ class CostEntryForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->live()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -43,7 +43,7 @@ class CostEntryForm
                             ->live(),
 
                         Select::make('cost_code_id')
-                            ->label('Cost code')
+                            ->label(__('Cost code'))
                             // Only bookable codes: a heading would double-count in every rolled-up total, and
                             // a switched-off code is one the company retired on purpose.
                             ->options(fn (): array => CostCode::query()->bookable()->orderBy('code')->get()
@@ -54,7 +54,7 @@ class CostEntryForm
                             ->helperText('Only bookable codes appear — a heading cannot carry cost.'),
 
                         Select::make('wbs_node_id')
-                            ->label('Work breakdown')
+                            ->label(__('Work breakdown'))
                             // Scoped to the chosen job: a node from another job's breakdown would file this
                             // cost against scope it has nothing to do with.
                             ->options(fn (Get $get): array => $get('job_id')
@@ -95,11 +95,11 @@ class CostEntryForm
                             ->helperText('12.5 tonnes, 90 m³.'),
 
                         TextInput::make('unit_of_measure')
-                            ->label('Unit')
+                            ->label(__('Unit'))
                             ->maxLength(16),
 
                         DatePicker::make('incurred_on')
-                            ->label('Incurred on')
+                            ->label(__('Incurred on'))
                             ->native(false)
                             ->default(now())
                             ->required()
@@ -119,7 +119,7 @@ class CostEntryForm
                     ->columns(2)
                     ->schema([
                         Select::make('gl_treatment')
-                            ->label('Treatment')
+                            ->label(__('Treatment'))
                             ->options([
                                 CostEntry::GL_PENDING => 'Pending — should post and has not yet',
                                 CostEntry::GL_MIRRORED => 'Mirrored — the ledger posting is the source',
@@ -140,7 +140,7 @@ class CostEntryForm
                          * (site wages payable, burden absorbed); everything else has to say.
                          */
                         Select::make('gl_purpose')
-                            ->label('Posting rule')
+                            ->label(__('Posting rule'))
                             ->options(ControlAccount::PURPOSES)
                             ->placeholder('Choose the account this cost credits')
                             ->native(false)
@@ -151,7 +151,7 @@ class CostEntryForm
                                 .'is the debit. Nominate the accounts under Control accounts.'),
 
                         Toggle::make('is_burden')
-                            ->label('Is burden')
+                            ->label(__('Is burden'))
                             ->helperText('Charged at a rate and absorbed elsewhere. Reconciliation reports the gap if it is charged and never absorbed.'),
                     ]),
             ]);

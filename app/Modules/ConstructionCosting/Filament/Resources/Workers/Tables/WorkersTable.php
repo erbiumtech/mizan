@@ -25,7 +25,7 @@ class WorkersTable
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->searchable()
                     ->sortable(),
 
@@ -34,13 +34,13 @@ class WorkersTable
                     ->sortable(),
 
                 TextColumn::make('trade.code')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('engagement')
-                    ->label('Engaged as')
+                    ->label(__('Engaged as'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         // Neither colour is a warning: all three are ordinary on a site, which is the point.
@@ -52,7 +52,7 @@ class WorkersTable
                     ->sortable(),
 
                 TextColumn::make('supplier.name')
-                    ->label('Supplied by')
+                    ->label(__('Supplied by'))
                     ->placeholder('—')
                     ->toggleable(),
 
@@ -61,36 +61,36 @@ class WorkersTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('started_on')
-                    ->label('Started')
+                    ->label(__('Started'))
                     ->date()
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('ended_on')
-                    ->label('Left')
+                    ->label(__('Left'))
                     ->date()
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable(),
 
                 IconColumn::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->boolean()
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('engagement')
-                    ->label('Engaged as')
+                    ->label(__('Engaged as'))
                     ->options(Worker::ENGAGEMENTS),
 
                 SelectFilter::make('trade_id')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->relationship('trade', 'name')
                     ->searchable(),
 
                 Filter::make('active')
-                    ->label('In use only')
+                    ->label(__('In use only'))
                     ->query(fn (Builder $query) => $query->active())
                     ->default()
                     ->toggle(),

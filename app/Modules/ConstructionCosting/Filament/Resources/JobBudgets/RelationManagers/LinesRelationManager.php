@@ -62,7 +62,7 @@ class LinesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('cost_code_id')
-                    ->label('Cost code')
+                    ->label(__('Cost code'))
                     // Only bookable codes: a heading with codes under it would be counted twice in every
                     // rolled-up total, which is the same rule the cost ledger keeps.
                     ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
@@ -80,7 +80,7 @@ class LinesRelationManager extends RelationManager
                     }),
 
                 Select::make('wbs_node_id')
-                    ->label('WBS element')
+                    ->label(__('WBS element'))
                     ->options(fn (): array => WbsNode::query()
                         ->where('job_id', $version->job_id)
                         ->orderBy('path')->get()
@@ -96,11 +96,11 @@ class LinesRelationManager extends RelationManager
                     ->afterStateUpdated(fn ($state, callable $get, callable $set) => static::recomputeAmount($get, $set)),
 
                 TextInput::make('unit_of_measure')
-                    ->label('Unit')
+                    ->label(__('Unit'))
                     ->maxLength(16),
 
                 TextInput::make('unit_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->numeric()
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn ($state, callable $get, callable $set) => static::recomputeAmount($get, $set)),
@@ -111,7 +111,7 @@ class LinesRelationManager extends RelationManager
                     ->helperText('Quantity times rate, and editable — a lump sum has no quantity.'),
 
                 DatePicker::make('period_start')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->helperText('Which month this budget belongs to. Left blank on every line, schedule variance reads "unavailable" rather than zero.'),
 
                 TextInput::make('description')
@@ -142,18 +142,18 @@ class LinesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->description(fn (JobBudgetLine $record): ?string => $record->costCode?->name)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('wbsNode.code')
-                    ->label('WBS')
+                    ->label(__('WBS'))
                     ->placeholder('Whole job')
                     ->toggleable(),
 
                 TextColumn::make('cost_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge(),
 
                 TextColumn::make('quantity')
@@ -161,12 +161,12 @@ class LinesRelationManager extends RelationManager
                     ->placeholder('—'),
 
                 TextColumn::make('unit_of_measure')
-                    ->label('Unit')
+                    ->label(__('Unit'))
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('unit_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->alignEnd()
                     ->placeholder('—'),
 
@@ -177,7 +177,7 @@ class LinesRelationManager extends RelationManager
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('period_start')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->formatStateUsing(fn ($state): string => $state->format('M Y'))
                     // The em dash is the honest answer and the tooltip says what it costs.
                     ->placeholder('—')

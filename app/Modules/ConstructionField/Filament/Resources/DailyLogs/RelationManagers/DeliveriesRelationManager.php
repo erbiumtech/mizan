@@ -56,25 +56,25 @@ class DeliveriesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 TextInput::make('docket_number')
-                    ->label('Docket')
+                    ->label(__('Docket'))
                     ->maxLength(255)
                     ->helperText('Leave it blank if the load came with no paperwork — the table will say so rather than hide it.'),
 
                 TimePicker::make('received_at')
-                    ->label('Time in')
+                    ->label(__('Time in'))
                     ->seconds(false),
 
                 Textarea::make('description')
-                    ->label('What arrived')
+                    ->label(__('What arrived'))
                     ->required()
                     ->rows(2)
                     ->columnSpanFull(),
 
                 TextInput::make('quantity')->numeric(),
-                TextInput::make('unit_of_measure')->label('Unit')->maxLength(16),
+                TextInput::make('unit_of_measure')->label(__('Unit'))->maxLength(16),
 
                 Select::make('supplier_contact_id')
-                    ->label('Supplier')
+                    ->label(__('Supplier'))
                     ->relationship('supplier', 'name')
                     ->searchable()
                     ->preload()
@@ -83,36 +83,36 @@ class DeliveriesRelationManager extends RelationManager
                     ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                 TextInput::make('supplier_label')
-                    ->label('Supplier, in words')
+                    ->label(__('Supplier, in words'))
                     ->maxLength(255)
                     ->helperText('Whatever is printed on the docket.'),
 
                 TextInput::make('order_reference')
-                    ->label('Order reference')
+                    ->label(__('Order reference'))
                     ->maxLength(255)
                     ->helperText('The order number as written on the docket. The priced order lives in cost control; this is what site can read.'),
 
                 Select::make('contract_item_id')
-                    ->label('Contract item')
+                    ->label(__('Contract item'))
                     ->options(fn (): array => $this->contractItems())
                     ->searchable()
                     ->visible(fn (): bool => modules()->enabled('construction_contracts')),
 
                 Select::make('condition')
-                    ->label('Condition')
+                    ->label(__('Condition'))
                     ->options(DailyLogDelivery::CONDITIONS)
                     ->default(DailyLogDelivery::CONDITION_ACCEPTED)
                     ->required()
                     ->live(),
 
                 TextInput::make('condition_notes')
-                    ->label('Condition notes')
+                    ->label(__('Condition notes'))
                     ->maxLength(255)
                     ->visible(fn (callable $get): bool => $get('condition') !== DailyLogDelivery::CONDITION_ACCEPTED)
                     ->helperText('Taken anyway because the pour was booked? Say so here — that is the fact that disappears otherwise.'),
 
                 Toggle::make('is_materials_on_site')
-                    ->label('Still standing on site, unconsumed')
+                    ->label(__('Still standing on site, unconsumed'))
                     ->columnSpanFull()
                     ->helperText('Evidence for the materials-on-site line. Where you keep a site store the claimed figure comes from stock, which goes down as material is used; this is the site record beside it.'),
 
@@ -161,13 +161,13 @@ class DeliveriesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('docket_number')
-                    ->label('Docket')
+                    ->label(__('Docket'))
                     // Said out loud rather than left blank: the docket is the first thing anybody asks for.
                     ->placeholder('no docket')
                     ->description(fn (DailyLogDelivery $record): ?string => $record->received_at),
 
                 TextColumn::make('description')
-                    ->label('What arrived')
+                    ->label(__('What arrived'))
                     ->wrap()
                     ->limit(60),
 
@@ -177,7 +177,7 @@ class DeliveriesRelationManager extends RelationManager
                     ->description(fn (DailyLogDelivery $record): ?string => $record->unit_of_measure),
 
                 TextColumn::make('supplier_label')
-                    ->label('Supplier')
+                    ->label(__('Supplier'))
                     ->getStateUsing(fn (DailyLogDelivery $record): string => $record->supplierName()),
 
                 TextColumn::make('condition')
@@ -191,11 +191,11 @@ class DeliveriesRelationManager extends RelationManager
                     ->description(fn (DailyLogDelivery $record): ?string => $record->condition_notes),
 
                 IconColumn::make('is_materials_on_site')
-                    ->label('On site')
+                    ->label(__('On site'))
                     ->boolean(),
 
                 TextColumn::make('goods_receipt_id')
-                    ->label('Priced receipt')
+                    ->label(__('Priced receipt'))
                     ->getStateUsing(fn (DailyLogDelivery $record): ?string => $record->goods_receipt_id === null
                         ? null
                         : TenantDb::table('construction_goods_receipts')->where('id', $record->goods_receipt_id)->value('number'))
@@ -206,12 +206,12 @@ class DeliveriesRelationManager extends RelationManager
             ])
             ->filters([
                 Filter::make('unreceipted')
-                    ->label('Not yet receipted by accounts')
+                    ->label(__('Not yet receipted by accounts'))
                     ->query(fn (Builder $query): Builder => $query->unreceipted())
                     ->visible(fn (): bool => modules()->enabled('construction_costing')),
 
                 Filter::make('on_site')
-                    ->label('Standing on site')
+                    ->label(__('Standing on site'))
                     ->query(fn (Builder $query): Builder => $query->onSite()),
             ])
             ->headerActions([
@@ -230,14 +230,14 @@ class DeliveriesRelationManager extends RelationManager
                  * Absent without `construction_costing`, because there are no goods receipts to point at.
                  */
                 Action::make('linkReceipt')
-                    ->label('Link priced receipt')
+                    ->label(__('Link priced receipt'))
                     ->icon('heroicon-o-link')
                     ->visible(fn (DailyLogDelivery $record): bool => modules()->enabled('construction_costing')
                         && ($record->goods_receipt_id === null)
                         && (auth()->user()?->can('update', $this->log()) ?? false))
                     ->schema(fn (DailyLogDelivery $record): array => [
                         Select::make('goods_receipt_id')
-                            ->label('Goods receipt')
+                            ->label(__('Goods receipt'))
                             ->options($this->goodsReceipts())
                             ->default($this->suggestedReceipt($record))
                             ->searchable()

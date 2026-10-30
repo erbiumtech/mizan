@@ -35,32 +35,32 @@ class LabourRecordsTable
         return $table
             ->columns([
                 TextColumn::make('worked_on')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('worker.name')
-                    ->label('Worker')
+                    ->label(__('Worker'))
                     ->description(fn (LabourRecord $record): ?string => $record->worker?->code)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->toggleable(),
 
                 TextColumn::make('trade.code')
-                    ->label('As')
+                    ->label(__('As'))
                     ->placeholder('usual trade')
                     ->toggleable(),
 
                 TextColumn::make('hours')
-                    ->label('Hours')
+                    ->label(__('Hours'))
                     ->alignEnd()
                     ->getStateUsing(fn (LabourRecord $record): float => $record->hours())
                     ->description(fn (LabourRecord $record): ?string => $record->overtime_minutes > 0
@@ -68,7 +68,7 @@ class LabourRecordsTable
                         : null),
 
                 TextColumn::make('cost_rate_per_hour')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Not a dash: a draft has no rate *yet*, which is a different fact from a rate of nothing.
@@ -76,19 +76,19 @@ class LabourRecordsTable
                     ->toggleable(),
 
                 TextColumn::make('labour_amount')
-                    ->label('Labour')
+                    ->label(__('Labour'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
-                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Labour')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label(__('Labour'))),
 
                 TextColumn::make('burden_amount')
-                    ->label('Burden')
+                    ->label(__('Burden'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // §7.3's separability, on a screen: labour and burden are two figures and stay two figures.
                     ->placeholder('—')
-                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Burden'))
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label(__('Burden')))
                     ->toggleable(),
 
                 TextColumn::make('status')
@@ -103,19 +103,19 @@ class LabourRecordsTable
                     ->sortable(),
 
                 TextColumn::make('reversal_reason')
-                    ->label('Reversed because')
+                    ->label(__('Reversed because'))
                     ->wrap()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
                 SelectFilter::make('worker_id')
-                    ->label('Worker')
+                    ->label(__('Worker'))
                     ->relationship('worker', 'name')
                     ->searchable(),
 
@@ -128,7 +128,7 @@ class LabourRecordsTable
 
                 // The queue. Time worked that the job is not carrying yet.
                 Filter::make('awaiting_approval')
-                    ->label('Awaiting approval')
+                    ->label(__('Awaiting approval'))
                     ->query(fn (Builder $query) => $query->draft())
                     ->toggle(),
             ])
@@ -138,7 +138,7 @@ class LabourRecordsTable
                     ->visible(fn (LabourRecord $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -152,14 +152,14 @@ class LabourRecordsTable
                     )),
 
                 Action::make('reverse')
-                    ->label('Reverse')
+                    ->label(__('Reverse'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->modalHeading('Take this day back off the job')
                     ->modalDescription('Both entries are reversed as a pair — reversing the labour and leaving the burden would leave the job carrying burden on work it is no longer charged for. The rows stay on the ledger, which is what explains the pair.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required()
                             ->helperText('The cost report will show both rows. This is the only thing that explains them.'),

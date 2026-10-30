@@ -63,7 +63,7 @@ class PhotosRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 FileUpload::make('file_path')
-                    ->label('Photograph')
+                    ->label(__('Photograph'))
                     ->image()
                     ->imageEditor()
                     ->disk('public')
@@ -86,13 +86,13 @@ class PhotosRelationManager extends RelationManager
                     ->helperText('Concealed work is the one that carries money — before the pour, before the screed, before the backfill.'),
 
                 Select::make('location_id')
-                    ->label('Where')
+                    ->label(__('Where'))
                     ->options(fn (): array => $this->locations())
                     ->searchable()
                     ->helperText('From the job\'s location tree, so "every open item in this room" stays answerable.'),
 
                 Select::make('delivery_id')
-                    ->label('Of which delivery')
+                    ->label(__('Of which delivery'))
                     ->options(fn (): array => $this->log()->deliveries()
                         ->pluck('description', 'id')
                         ->all())
@@ -135,7 +135,7 @@ class PhotosRelationManager extends RelationManager
             ->contentGrid(['md' => 2, 'xl' => 3])
             ->columns([
                 ImageColumn::make('file_path')
-                    ->label('')
+                    ->label(__(''))
                     ->disk('public')
                     ->height(140),
 
@@ -149,12 +149,12 @@ class PhotosRelationManager extends RelationManager
                     ->color(fn (DailyLogPhoto $record): string => $record->isEvidential() ? 'warning' : 'gray'),
 
                 TextColumn::make('location.name')
-                    ->label('Where')
+                    ->label(__('Where'))
                     ->getStateUsing(fn (DailyLogPhoto $record): ?string => $record->location?->fullName())
                     ->placeholder('—'),
 
                 TextColumn::make('promoted_document_id')
-                    ->label('In the register')
+                    ->label(__('In the register'))
                     ->getStateUsing(fn (DailyLogPhoto $record): ?string => $record->promotedDocument?->information_container_id)
                     ->placeholder(fn (DailyLogPhoto $record): string => $record->needsPromoting()
                         // Named rather than blank: evidence of covered work that only exists in a diary is findable by
@@ -167,7 +167,7 @@ class PhotosRelationManager extends RelationManager
                 SelectFilter::make('subject')->options(DailyLogPhoto::SUBJECTS),
 
                 Filter::make('needs_promoting')
-                    ->label('Evidence not in the register')
+                    ->label(__('Evidence not in the register'))
                     ->query(fn (Builder $query): Builder => $query->evidential()->whereNull('promoted_document_id')),
             ])
             ->headerActions([
@@ -184,19 +184,19 @@ class PhotosRelationManager extends RelationManager
                  * again, and a promotion that published would be a way around it.
                  */
                 Action::make('promote')
-                    ->label('Promote to register')
+                    ->label(__('Promote to register'))
                     ->icon('heroicon-o-arrow-up-on-square')
                     ->visible(fn (DailyLogPhoto $record): bool => ! $record->isPromoted()
                         && (auth()->user()?->can('ConstructionDocumentCreate') ?? false))
                     ->schema(fn (DailyLogPhoto $record): array => [
                         TextInput::make('title')
-                            ->label('Container title')
+                            ->label(__('Container title'))
                             ->default($record->caption)
                             ->required()
                             ->maxLength(255),
 
                         Toggle::make('is_contractual')
-                            ->label('Contractual evidence')
+                            ->label(__('Contractual evidence'))
                             ->helperText('Mark it where somebody will rely on this photograph in an account or a dispute.')
                             ->default(fn (): bool => $record->isEvidential()),
                     ])

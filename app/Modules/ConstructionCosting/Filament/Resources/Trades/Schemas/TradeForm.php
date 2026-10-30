@@ -16,7 +16,7 @@ class TradeForm
             ->columns(2)
             ->components([
                 TextInput::make('code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->required()
                     ->maxLength(32)
                     ->helperText('Short, and yours: STF, MASON, CARP. This is what appears on a site sheet.'),
@@ -30,7 +30,7 @@ class TradeForm
                     ->columnSpanFull(),
 
                 Select::make('default_cost_code_id')
-                    ->label('Usual cost code')
+                    ->label(__('Usual cost code'))
                     ->options(fn (): array => CostCode::query()
                         ->where('is_leaf', true)->where('is_active', true)
                         ->orderBy('code')->get()
@@ -42,7 +42,7 @@ class TradeForm
                     ->helperText('Filled in for you on a site sheet, and changeable there. Leave blank if you code labour by activity rather than by trade.'),
 
                 Toggle::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->default(true)
                     // Not a delete: the rates hanging off a trade are the history of what it cost, and §2.2 says that
                     // history is what prices the next tender.

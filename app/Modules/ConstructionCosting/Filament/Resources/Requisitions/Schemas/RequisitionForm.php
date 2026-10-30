@@ -29,7 +29,7 @@ class RequisitionForm
             ->columns(2)
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->live()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -41,11 +41,11 @@ class RequisitionForm
                     ->dehydrated(),
 
                 DatePicker::make('required_by')
-                    ->label('Needed on site by')
+                    ->label(__('Needed on site by'))
                     ->helperText('What orders the buyer\'s queue. A date rather than a priority, because a date can be planned against.'),
 
                 Select::make('wbs_node_id')
-                    ->label('WBS element')
+                    ->label(__('WBS element'))
                     ->options(fn (callable $get): array => WbsNode::query()
                         ->where('job_id', $get('job_id'))
                         ->orderBy('path')->get()
@@ -55,7 +55,7 @@ class RequisitionForm
                     ->placeholder('Whole job'),
 
                 Select::make('location_id')
-                    ->label('Deliver to')
+                    ->label(__('Deliver to'))
                     ->options(fn (callable $get): array => Location::query()
                         ->where('job_id', $get('job_id'))
                         ->orderBy('path')->get()

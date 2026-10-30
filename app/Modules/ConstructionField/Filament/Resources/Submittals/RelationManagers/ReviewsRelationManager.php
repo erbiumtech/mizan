@@ -54,18 +54,18 @@ class ReviewsRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['delayEvent']))
             ->defaultSort('round')
             ->columns([
-                TextColumn::make('round')->label('Round')->badge(),
+                TextColumn::make('round')->label(__('Round'))->badge(),
 
                 TextColumn::make('revision')->placeholder('—'),
 
                 TextColumn::make('reviewer_label')
-                    ->label('Reviewer')
+                    ->label(__('Reviewer'))
                     ->getStateUsing(fn (SubmittalReview $record): string => $record->reviewerName()),
 
-                TextColumn::make('sent_on')->label('Sent')->date('d M Y'),
+                TextColumn::make('sent_on')->label(__('Sent'))->date('d M Y'),
 
                 TextColumn::make('returned_on')
-                    ->label('Returned')
+                    ->label(__('Returned'))
                     ->date('d M Y')
                     // Named rather than blank: a round still out is the fact somebody is looking for.
                     ->placeholder('still out'),
@@ -75,7 +75,7 @@ class ReviewsRelationManager extends RelationManager
                  * computed against fourteen days keeps saying fourteen whatever the contract is renegotiated to.
                  */
                 TextColumn::make('turnaround')
-                    ->label('Turnaround')
+                    ->label(__('Turnaround'))
                     ->badge()
                     ->getStateUsing(fn (SubmittalReview $record): string => $record->turnaroundDays()
                         .' of '.$record->review_period_days)
@@ -97,7 +97,7 @@ class ReviewsRelationManager extends RelationManager
                     ->description(fn (SubmittalReview $record): ?string => $record->comments),
 
                 TextColumn::make('delay_event_id')
-                    ->label('Notified')
+                    ->label(__('Notified'))
                     ->badge()
                     ->getStateUsing(fn (SubmittalReview $record): ?string => match (true) {
                         $record->delay_event_id !== null => $record->delayEvent?->reference,
@@ -115,7 +115,7 @@ class ReviewsRelationManager extends RelationManager
                  * taken somebody else's programme, and that belongs to the round it happened in.
                  */
                 Action::make('notifyOverrun')
-                    ->label('Notify')
+                    ->label(__('Notify'))
                     ->icon('heroicon-o-clock')
                     ->color('danger')
                     ->requiresConfirmation()

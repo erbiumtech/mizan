@@ -38,7 +38,7 @@ class ActivityForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -49,13 +49,13 @@ class ActivityForm
                             ->dehydrated(),
 
                         Select::make('wbs_node_id')
-                            ->label('WBS node')
+                            ->label(__('WBS node'))
                             ->options(fn (callable $get): array => static::wbsNodes($get('job_id')))
                             ->searchable()
                             ->helperText('The commercial breakdown this work belongs to.'),
 
                         TextInput::make('code')
-                            ->label('Activity id')
+                            ->label(__('Activity id'))
                             ->required()
                             ->maxLength(255)
                             ->helperText('As printed on the planner\'s programme, so the two can be read side by side.'),
@@ -71,7 +71,7 @@ class ActivityForm
                             ->columnSpanFull(),
 
                         Select::make('parent_id')
-                            ->label('Within')
+                            ->label(__('Within'))
                             ->options(fn (callable $get, ?ProgrammeActivity $record): array => static::activities(
                                 $get('job_id'),
                                 $record?->getKey(),
@@ -80,7 +80,7 @@ class ActivityForm
                             ->placeholder('Top level'),
 
                         Select::make('responsible_contact_id')
-                            ->label('Owned by')
+                            ->label(__('Owned by'))
                             ->relationship('responsible', 'name')
                             ->searchable()
                             ->preload()
@@ -113,7 +113,7 @@ class ActivityForm
                             ->helperText('Must be 100 exactly when there is an actual finish, and below it when there is not.'),
 
                         DatePicker::make('data_date')
-                            ->label('Progress as at')
+                            ->label(__('Progress as at'))
                             ->native(false)
                             ->helperText('40% as at the 1st and as at the 30th are different facts. Without this neither can be compared with last month.'),
 
@@ -128,15 +128,15 @@ class ActivityForm
                     ->columns(2)
                     ->schema([
                         Toggle::make('is_contract_milestone')
-                            ->label('A milestone the contract names')
+                            ->label(__('A milestone the contract names'))
                             ->helperText('Extension of time moves it. Not every finish milestone on a programme is one — most are the planner\'s markers.'),
 
                         Toggle::make('ld_applies')
-                            ->label('Liquidated damages apply')
+                            ->label(__('Liquidated damages apply'))
                             ->helperText('Kept separate on purpose: a contract names dates it does not price. This flag is what turns lateness into money.'),
 
                         Select::make('milestone_payment_item_id')
-                            ->label('Paid against contract item')
+                            ->label(__('Paid against contract item'))
                             ->options(fn (callable $get): array => static::contractItems($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts'))
@@ -160,12 +160,12 @@ class ActivityForm
                             ->helperText('Imported, never calculated. There is no float solver here and there will not be one.'),
 
                         Toggle::make('is_critical')
-                            ->label('On the critical path')
+                            ->label(__('On the critical path'))
                             ->disabled(fn (?ProgrammeActivity $record): bool => $record?->isImported() ?? false)
                             ->helperText('Imported from the scheduling tool. Nothing in this application derives it.'),
 
                         Placeholder::make('imported_note')
-                            ->label('')
+                            ->label(__(''))
                             ->columnSpanFull()
                             ->visible(fn (?ProgrammeActivity $record): bool => $record?->isImported() ?? false)
                             ->content(fn (?ProgrammeActivity $record): string => 'Imported from '

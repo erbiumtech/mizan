@@ -40,7 +40,7 @@ class ActivitiesTable
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label('Id')
+                    ->label(__('Id'))
                     ->sortable()
                     ->searchable(),
 
@@ -51,32 +51,32 @@ class ActivitiesTable
                     ->description(fn (ProgrammeActivity $record): ?string => $record->job?->code),
 
                 IconColumn::make('is_contract_milestone')
-                    ->label('Milestone')
+                    ->label(__('Milestone'))
                     ->boolean()
                     ->tooltip('A date the contract names. Extension of time moves it.'),
 
                 TextColumn::make('baseline_finish')
-                    ->label('Baseline')
+                    ->label(__('Baseline'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->sortable(),
 
                 TextColumn::make('planned_finish')
-                    ->label('Planned')
+                    ->label(__('Planned'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->toggleable()
                     ->sortable(),
 
                 TextColumn::make('actual_finish')
-                    ->label('Actual')
+                    ->label(__('Actual'))
                     ->date('d M Y')
                     // Named rather than blank: an activity with a baseline in the past and no actual is the finding.
                     ->placeholder(fn (ProgrammeActivity $record): string => $record->hasStarted() ? 'in progress' : 'not started')
                     ->sortable(),
 
                 TextColumn::make('percent_complete')
-                    ->label('%')
+                    ->label(__('%'))
                     ->alignEnd()
                     ->sortable()
                     ->description(fn (ProgrammeActivity $record): ?string => $record->data_date
@@ -90,7 +90,7 @@ class ActivitiesTable
                  * re-programmed around its own delays, which is the number a claim cannot be built from.
                  */
                 TextColumn::make('late')
-                    ->label('Late')
+                    ->label(__('Late'))
                     ->badge()
                     ->getStateUsing(function (ProgrammeActivity $record): ?string {
                         $days = $record->daysLateAgainstBaseline();
@@ -105,7 +105,7 @@ class ActivitiesTable
                  * **Liquidated damages accruing.** Lateness the contract has not excused, on a milestone it prices.
                  */
                 TextColumn::make('exposure')
-                    ->label('Exposure')
+                    ->label(__('Exposure'))
                     ->badge()
                     ->getStateUsing(function (ProgrammeActivity $record): ?string {
                         $days = $record->unexcusedLateDays();
@@ -117,7 +117,7 @@ class ActivitiesTable
                     ->tooltip('Days late with no extension of time awarded, on a milestone that carries liquidated damages.'),
 
                 TextColumn::make('total_float_days')
-                    ->label('Float')
+                    ->label(__('Float'))
                     ->alignEnd()
                     ->placeholder('—')
                     // The source, always beside it: these are somebody else's numbers.
@@ -126,29 +126,29 @@ class ActivitiesTable
                     ->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
 
                 SelectFilter::make('source')->options(ProgrammeActivity::SOURCES),
 
                 SelectFilter::make('activity_type')->options(ProgrammeActivity::TYPES),
 
                 Filter::make('milestones')
-                    ->label('Contract milestones')
+                    ->label(__('Contract milestones'))
                     ->query(fn (Builder $query): Builder => $query->milestones())
                     ->toggle(),
 
                 Filter::make('critical')
-                    ->label('On the critical path (imported)')
+                    ->label(__('On the critical path (imported)'))
                     ->query(fn (Builder $query): Builder => $query->where('is_critical', true))
                     ->toggle(),
 
                 Filter::make('incomplete')
-                    ->label('Not finished')
+                    ->label(__('Not finished'))
                     ->query(fn (Builder $query): Builder => $query->incomplete())
                     ->toggle(),
 
                 Filter::make('late_to_start')
-                    ->label('Should have started')
+                    ->label(__('Should have started'))
                     ->query(fn (Builder $query): Builder => $query->notStarted()
                         ->whereNotNull('planned_start')
                         ->whereDate('planned_start', '<', now()->toDateString()))
@@ -166,7 +166,7 @@ class ActivitiesTable
                  * reports 80% is not usually the person who owns the consequence of it being 60%.
                  */
                 Action::make('progress')
-                    ->label('Record progress')
+                    ->label(__('Record progress'))
                     ->icon('heroicon-o-chart-bar')
                     ->color('info')
                     ->modalHeading('Record progress')
@@ -176,7 +176,7 @@ class ActivitiesTable
                         DatePicker::make('actual_finish')->native(false)->default($record->actual_finish),
                         TextInput::make('percent_complete')->numeric()->default($record->percent_complete)->required(),
                         DatePicker::make('data_date')
-                            ->label('Progress as at')
+                            ->label(__('Progress as at'))
                             ->native(false)
                             ->default($record->data_date ?? now())
                             ->required(),
