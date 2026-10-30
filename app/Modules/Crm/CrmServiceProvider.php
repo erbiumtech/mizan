@@ -96,8 +96,8 @@ class CrmServiceProvider extends ServiceProvider
 
         // 79: with the other public-endpoint plumbing, directly before the status page
         // (80), which the CompanySettings comment puts last as "the least consequential".
-        SettingsSections::register('crm.lead-capture', LeadCaptureSettingsSection::class, 79);
-        SettingsSections::register('crm.field-visits', FieldVisitsSettingsSection::class, 78);
+        SettingsSections::register('crm.lead-capture', LeadCaptureSettingsSection::class, 79, 'public');
+        SettingsSections::register('crm.field-visits', FieldVisitsSettingsSection::class, 78, 'public');
 
         $this->contributeToContacts();
     }

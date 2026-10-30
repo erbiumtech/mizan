@@ -288,11 +288,11 @@ class AccountingServiceProvider extends ServiceProvider
         // This module's blocks of the Company Settings screen, which Core used to write itself and so needed
         // `Currency`, `JournalEntryLine` and `Account` for — see App\Support\SettingsSections. Currency first
         // on that page: it is what every other figure there means.
-        SettingsSections::register('accounting.currency', CurrencySettingsSection::class, 10);
-        SettingsSections::register('accounting.payroll-posting', PayrollPostingSettingsSection::class, 60);
+        SettingsSections::register('accounting.currency', CurrencySettingsSection::class, 10, 'money');
+        SettingsSections::register('accounting.payroll-posting', PayrollPostingSettingsSection::class, 60, 'money');
         // Closing off a period — `docs/erpnext-gap-plan.md` Phase 3. After the currency and before payroll
         // posting: it is a decision about the books rather than about a module's own behaviour.
-        SettingsSections::register('accounting.ledger-freeze', LedgerFreezeSettingsSection::class, 20);
+        SettingsSections::register('accounting.ledger-freeze', LedgerFreezeSettingsSection::class, 20, 'money');
 
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);

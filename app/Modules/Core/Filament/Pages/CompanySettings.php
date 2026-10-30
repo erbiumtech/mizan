@@ -21,6 +21,8 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -75,6 +77,35 @@ class CompanySettings extends Page
         'processing_mode' => ['pattern' => '/^[A-Za-z]{2,4}$/', 'expects' => 'a processing mode, e.g. ON'],
         'invoice_format' => ['pattern' => '/^[0-9]{1,2}$/', 'expects' => 'a one or two digit format number'],
         'purpose_of_payment' => ['pattern' => '/^[0-9]{1,6}$/', 'expects' => 'a numeric purpose-of-payment code, e.g. 104'],
+    ];
+
+    /**
+     * The tabs, in reading order, and what each one is for.
+     *
+     * **Twenty-eight sections in one column was a page nobody reached the end of.** It grew that
+     * way honestly — every module that owns a setting contributes its own block, and each arrival
+     * was one more section on a screen already past its useful length. An administrator looking
+     * for the overtime multiplier scrolled past the letterhead, the ledger freeze, the dunning
+     * schedule and the careers page to find it.
+     *
+     * Five, chosen by who is asking rather than by which module owns it, which is why a module
+     * declares its tab at registration and this page does not keep a list of module keys:
+     *
+     *  - **company**    what this company is and how it looks on paper
+     *  - **money**      the books, and what is paid out of them
+     *  - **people**     employment policy — leave, hours, pay rules, what staff must confirm
+     *  - **customers**  how the company behaves towards the people it invoices
+     *  - **public**     every door the outside world can open without signing in
+     *
+     * A tab with nothing in it is not rendered: a company without Invoicing or CRM has no
+     * customers tab rather than an empty one.
+     */
+    public const TABS = [
+        'company' => 'Company',
+        'money' => 'Money',
+        'people' => 'People',
+        'customers' => 'Customers',
+        'public' => 'Public pages',
     ];
 
     public static function canAccess(): bool
@@ -152,45 +183,103 @@ class CompanySettings extends Page
     }
 
     /**
-     * This page's own sections and the contributed ones, in one reading order.
+     * This page's own sections and the contributed ones, dealt into the tabs and ordered within them.
      *
      * Keyed by sort rather than written in order, because the two Accounting sections are inserted at
      * positions 10 and 60 by `App\Support\SettingsSections` and the order has to be a stated decision on both
      * sides — currency first because it is what every other figure on the page means, the status page last
      * because it is the least consequential. Gaps are left so a module can land between two of these.
      *
+     * **The sort still means what it meant.** Tabs did not replace the order, they cut it into five: a
+     * section's number decides where it sits among the others sharing its tab, and the numbers were already
+     * grouped roughly the way the tabs are, which is what made five of them the obvious cut rather than a
+     * rearrangement. The one section that moved against its number is the document layout (86), which reads
+     * beside the letterhead rather than after the public doors.
+     *
      * @return array<int, mixed>
      */
     protected function sections(): array
     {
         $sections = [
-            12 => [$this->letterheadSection()],
-            // Languages — docs/saas-launch-plan.md §8.10. Beside the letterhead: both are how the
-            // company presents itself, on screen and on the documents it hands out.
-            13 => [$this->languageSection()],
-            15 => [$this->reportsSection()],
-            16 => [$this->notificationsSection()],
-            20 => [$this->pettyCashSection()],
-            30 => [$this->approvalsSection()],
-            40 => [$this->leaveSection()],
-            45 => [$this->workingWeekSection()],
-            50 => [$this->attendanceAndPaySection()],
-            70 => [$this->ipaymentsSection()],
-            80 => [$this->statusPageSection()],
+            'company' => [
+                12 => [$this->letterheadSection()],
+                // Languages — docs/saas-launch-plan.md §8.10. Beside the letterhead: both are how the
+                // company presents itself, on screen and on the documents it hands out.
+                13 => [$this->languageSection()],
+                15 => [$this->reportsSection()],
+                16 => [$this->notificationsSection()],
+            ],
+            'money' => [
+                20 => [$this->pettyCashSection()],
+                30 => [$this->approvalsSection()],
+                70 => [$this->ipaymentsSection()],
+            ],
+            'people' => [
+                40 => [$this->leaveSection()],
+                45 => [$this->workingWeekSection()],
+                50 => [$this->attendanceAndPaySection()],
+            ],
+            'public' => [
+                80 => [$this->statusPageSection()],
+            ],
         ];
 
         foreach (SettingsSections::sorted() as $contributed) {
+            // An unknown tab name lands on the first rather than nowhere. A module that misspells it
+            // should see its section in the wrong place, which is reported; a silently missing block
+            // is a setting nobody can reach and nobody knows to look for.
+            $tab = array_key_exists($contributed['tab'], self::TABS) ? $contributed['tab'] : array_key_first(self::TABS);
+
             // Merged rather than assigned: a collision would otherwise drop one silently, and a module
             // choosing a sort cannot see what is already there.
-            $sections[$contributed['sort']] = array_merge(
-                $sections[$contributed['sort']] ?? [],
+            $sections[$tab][$contributed['sort']] = array_merge(
+                $sections[$tab][$contributed['sort']] ?? [],
                 $contributed['section']->components(),
             );
         }
 
-        ksort($sections);
+        $tabs = [];
 
-        return array_merge(...array_values($sections));
+        foreach (self::TABS as $key => $label) {
+            $bySort = $sections[$key] ?? [];
+            ksort($bySort);
+
+            $components = $bySort === [] ? [] : array_merge(...array_values($bySort));
+
+            // Nothing contributed and nothing of our own: a company without Invoicing or CRM gets
+            // four tabs, not five with one empty.
+            if ($components === []) {
+                continue;
+            }
+
+            $tabs[] = Tab::make($label)->schema($components);
+        }
+
+        return [
+            Tabs::make('settings')
+                ->tabs($tabs)
+                // So a link to a setting still lands on it, and a reload after saving comes back to
+                // the tab that was being read rather than to the first one.
+                ->persistTabInQueryString(),
+        ];
+    }
+
+    /**
+     * Say what is wrong when a save is refused, because a tab can hide the reason.
+     *
+     * Filament renders a validation message under its own field and scrolls to it, which was enough
+     * while this page was one column — the field was always somewhere on it. With the sections in
+     * tabs the field may be on a tab that is not open, and pressing Save then looked exactly like
+     * pressing nothing at all. The message itself is repeated here rather than a count, because the
+     * iPayments rules are the ones that fire and they name the field and what it expects.
+     */
+    protected function onValidationError(\Illuminate\Validation\ValidationException $exception): void
+    {
+        Notification::make()
+            ->danger()
+            ->title('Nothing was saved')
+            ->body($exception->validator->errors()->first())
+            ->send();
     }
 
     /**

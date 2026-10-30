@@ -260,9 +260,9 @@ class InvoicingServiceProvider extends ServiceProvider
          * is the least consequential", and sharing a sort would have put this after it. Off by default, which
          * is what makes shipping it safe.
          */
-        SettingsSections::register('invoicing.dunning', DunningSettingsSection::class, 75);
-        SettingsSections::register('invoicing.credit-control', CreditControlSettingsSection::class, 76);
-        SettingsSections::register('invoicing.statements', StatementSettingsSection::class, 77);
+        SettingsSections::register('invoicing.dunning', DunningSettingsSection::class, 75, 'customers');
+        SettingsSections::register('invoicing.credit-control', CreditControlSettingsSection::class, 76, 'customers');
+        SettingsSections::register('invoicing.statements', StatementSettingsSection::class, 77, 'customers');
 
         /*
          * What an invoice's postings were for — `docs/erpnext-gap-plan.md` Phase 1.

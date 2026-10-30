@@ -2,18 +2,30 @@
 
 ## What this is
 
-The per-company settings that don't belong on any single resource: the base
-currency, the petty cash float, payroll posting behaviour, the salary bank
-file's header defaults, and the public status page.
+The per-company settings that do not belong on any single resource. There are
+twenty-eight of them, which is why they are in five tabs rather than one column:
 
-## Currency
+- **Company** — what this company is, and how it looks on anything it hands out.
+- **Money** — the books, and what is paid out of them.
+- **People** — employment policy, and what staff must confirm before they are let in.
+- **Customers** — how the company behaves towards the people it invoices.
+- **Public pages** — every door the outside world can open without signing in.
 
-**Base currency** is what every amount in this company's ledger means. It can
-still be changed freely until the first journal entry line is ever posted —
-after that it's locked, because changing it would reinterpret every posted
-amount rather than restate it.
+A tab you do not have is a module you do not have: every section of the customers
+tab is Invoicing's, so a company without it sees four tabs rather than an empty
+fifth.
 
-## Letterhead
+Not every setting here is written up below. The ones that are a policy in their own
+right — leave, the working week, attendance and pay — are explained on the screens
+they govern.
+
+## Company
+
+Who this company is to anybody outside it: the name and address that print on a
+letterhead, the language it writes in, what its documents leave out, and whether the
+bell tells people when a record of theirs changes.
+
+### Letterhead
 
 The company as somebody outside it reads it: the **registered name** (with its suffix, not the
 short name the panel uses), the **registered office address**, the **NTN** and the
@@ -50,51 +62,13 @@ The typeface is a choice from four rather than a name you type, because a PDF ha
 font: a free-text name produces a card that looks right in the browser and falls back to Times in
 the PDF. A colour that is not six hex digits is ignored rather than printed.
 
-## Payslips and letters
+### Language
 
-Two lines of your own wording, and which parts of a payslip print.
+The interface default for everybody, and the language each kind of document
+is written in. See the Language help for what is translated and why Urdu
+needs the Chromium renderer.
 
-**Line under the letterhead** and **line in the footer** appear on every document the company
-issues — payslips, certificates, letters. The usual ones are a registration statement and
-"computer-generated; no signature required".
-
-**Leave these off the payslip** drops a block from the payslip: bank account and IBAN, the
-working-days box, or the signature lines. Everything prints unless you say otherwise. Bank
-details are the usual one to drop, because a payslip is forwarded to a landlord or an embassy
-more often than people expect and the account number is the part nobody meant to send.
-
-What you cannot do here is change the design itself, and that is deliberate. Documents are
-rendered by one of two PDF engines depending on what the server has installed, and the templates
-carry per-engine corrections for the differences between them. Markup typed into a settings box
-would bypass those corrections and print correctly in testing and wrongly in production.
-
-## Employee documents
-
-Which documents every employee must have on file, what file types you accept, and
-how large an upload may be. Nothing is required until you tick it, which is the
-shipped state.
-
-What you tick here is what the *Document Compliance* report counts. A kind counts as
-held once there is a document of that kind that has not been refused and has not
-lapsed.
-
-## Before somebody is let in
-
-What a person must have confirmed before they can use anything but the *Confirm Your
-Details* screen. They can still sign in — that is the point, because that screen is
-where they finish it.
-
-**The list only offers checks this installation can actually perform.** A phone check
-needs a WhatsApp provider configured; an address check needs an address verification
-letter template written; a document check needs some documents to be required. Where
-the means is missing the check is not shown, is not required, and can never be the
-reason somebody is refused — whatever was ticked before. A company that loses its
-WhatsApp credentials for a week does not lock its own staff out of payroll.
-
-A check you ticked while it was available stays ticked if it later becomes
-unavailable. It simply stops being enforced until the means comes back.
-
-## Notifications
+### Notifications
 
 The bell in the top right carries two kinds of thing.
 
@@ -119,13 +93,43 @@ Three things it deliberately does not do:
 New records are not announced either: whoever created it already knows, and an import of five
 thousand rows would otherwise be five thousand notifications.
 
-## Petty Cash
+### Payslips and letters
+
+Two lines of your own wording, and which parts of a payslip print.
+
+**Line under the letterhead** and **line in the footer** appear on every document the company
+issues — payslips, certificates, letters. The usual ones are a registration statement and
+"computer-generated; no signature required".
+
+**Leave these off the payslip** drops a block from the payslip: bank account and IBAN, the
+working-days box, or the signature lines. Everything prints unless you say otherwise. Bank
+details are the usual one to drop, because a payslip is forwarded to a landlord or an embassy
+more often than people expect and the account number is the part nobody meant to send.
+
+What you cannot do here is change the design itself, and that is deliberate. Documents are
+rendered by one of two PDF engines depending on what the server has installed, and the templates
+carry per-engine corrections for the differences between them. Markup typed into a settings box
+would bypass those corrections and print correctly in testing and wrongly in production.
+
+## Money
+
+The ledger's own decisions: what its amounts mean, who has to sign an entry off, how
+payroll posts, and the header the bank expects on a salary file.
+
+### Currency
+
+**Base currency** is what every amount in this company's ledger means. It can
+still be changed freely until the first journal entry line is ever posted —
+after that it's locked, because changing it would reinterpret every posted
+amount rather than restate it.
+
+### Petty Cash
 
 **Float Amount** is the imprest the petty cash box is restored to on
 replenishment — see the Petty Cash Book help for how that plays out day to
 day.
 
-## Approvals
+### Approvals
 
 **Require a second person to approve journal entries** — on by default, and it
 should stay on wherever two people are available.
@@ -156,7 +160,7 @@ The toggle starts wherever this installation was set up
 here is this company answering the question for itself, and that answer stands
 whatever the installation is later changed to.
 
-## Payroll
+### Payroll
 
 **Auto-post payroll journal entries**: on, a payroll run's journal entry is
 approved and posted the moment it's created; off, it waits for Manager/CEO
@@ -168,7 +172,7 @@ every code you do enter actually exists in the chart of accounts — a typo
 here would otherwise only surface when payroll posting fails, long after this
 page was saved.
 
-## iPayments (Salary Bank File)
+### iPayments (Salary Bank File)
 
 Header defaults for the salary bank file upload — account and bank
 identifiers, currency, payment type codes, and so on. Each field is validated
@@ -177,7 +181,44 @@ against the exact pattern the bank expects (an 8/11-character SWIFT code, a
 since a malformed header otherwise gets discovered only when the bank rejects
 the whole file.
 
-## Chasing overdue invoices
+## People
+
+Employment policy. Leave, the working week, attendance and pay are explained on the
+screens they govern; what is written up here is what every employee must have on file,
+and what they must confirm before they are let in.
+
+### Employee documents
+
+Which documents every employee must have on file, what file types you accept, and
+how large an upload may be. Nothing is required until you tick it, which is the
+shipped state.
+
+What you tick here is what the *Document Compliance* report counts. A kind counts as
+held once there is a document of that kind that has not been refused and has not
+lapsed.
+
+### Before somebody is let in
+
+What a person must have confirmed before they can use anything but the *Confirm Your
+Details* screen. They can still sign in — that is the point, because that screen is
+where they finish it.
+
+**The list only offers checks this installation can actually perform.** A phone check
+needs a WhatsApp provider configured; an address check needs an address verification
+letter template written; a document check needs some documents to be required. Where
+the means is missing the check is not shown, is not required, and can never be the
+reason somebody is refused — whatever was ticked before. A company that loses its
+WhatsApp credentials for a week does not lock its own staff out of payroll.
+
+A check you ticked while it was available stays ticked if it later becomes
+unavailable. It simply stops being enforced until the means comes back.
+
+## Customers
+
+How this company behaves towards the people it invoices — chasing, credit control and
+statements. All three arrive with the Invoicing module.
+
+### Chasing overdue invoices
 
 Whether this company emails customers whose invoices are past due, after how many
 days, and how often to chase the same invoice again.
@@ -198,7 +239,13 @@ before it means anything.
 Before switching it on, run `php artisan invoicing:send-overdue-reminders --dry-run`
 to see exactly who would be chased.
 
-## Public Status Page
+## Public pages
+
+Every door the outside world can open without signing in: the careers page, lead
+capture, field-visit confirmation, document verification and the status page. Each is a
+switch or a token on this page rather than something a deploy turns on.
+
+### Public Status Page
 
 Publishes the up/down state and uptime of project environments marked "Show
 on public status page" — never URLs, credentials, or error details. Off by
@@ -209,9 +256,3 @@ the URL itself.
 ## Roles and permissions
 
 Administrator only.
-
-## Language
-
-The interface default for everybody, and the language each kind of document
-is written in. See the Language help for what is translated and why Urdu
-needs the Chromium renderer.

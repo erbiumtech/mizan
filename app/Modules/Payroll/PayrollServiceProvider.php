@@ -117,7 +117,7 @@ class PayrollServiceProvider extends ServiceProvider
             'Reports → EOBI Return File',
         );
         // The run's switches — docs/saas-launch-plan.md §14.1. 61: right after payroll posting (60).
-        \App\Support\SettingsSections::register('payroll.run', \App\Modules\Payroll\Filament\Settings\PayrollRunSettingsSection::class, 61);
+        \App\Support\SettingsSections::register('payroll.run', \App\Modules\Payroll\Filament\Settings\PayrollRunSettingsSection::class, 61, 'people');
 
         /*
          * The payroll slice of a subject-access disclosure — plan §14.8.

@@ -48,7 +48,7 @@ class RecruitmentServiceProvider extends ServiceProvider
         }
 
         // The careers page — plan §7.4: its two gates on Company Settings, its routes.
-        SettingsSections::register('recruitment.careers', CareersSettingsSection::class, 80);
+        SettingsSections::register('recruitment.careers', CareersSettingsSection::class, 80, 'public');
 
         // The offer letter's verification code — plan §7.5.
         DocumentVerification::register('offer-letter', fn (int $id): ?array => ($offer = Offer::query()->find($id))

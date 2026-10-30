@@ -212,14 +212,14 @@ class CoreServiceProvider extends ServiceProvider
         });
 
         // Document verification — plan §7.5: the two gates on Company Settings.
-        SettingsSections::register('documents.verification', DocumentVerificationSettingsSection::class, 85);
+        SettingsSections::register('documents.verification', DocumentVerificationSettingsSection::class, 85, 'public');
 
         // How documents are laid out — plan §14.7. Beside verification: both are about
         // the paper rather than the figures on it.
-        SettingsSections::register('documents.layout', DocumentLayoutSettingsSection::class, 86);
+        SettingsSections::register('documents.layout', DocumentLayoutSettingsSection::class, 86, 'company');
 
         // What somebody must have confirmed before they are let in — plan §14.8.
-        SettingsSections::register('verification.checks', VerificationChecksSettingsSection::class, 87);
+        SettingsSections::register('verification.checks', VerificationChecksSettingsSection::class, 87, 'people');
 
         // The sign-in log — plan §7.7: three rows on the landlord activity log, no table.
         Event::listen([Login::class, Logout::class, Failed::class], LogAuthenticationEvent::class);

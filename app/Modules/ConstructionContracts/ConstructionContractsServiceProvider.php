@@ -69,7 +69,7 @@ class ConstructionContractsServiceProvider extends ServiceProvider
          * `'core' => [… 'construction']` is what the `SettingsSections` registry exists to make possible. Sorted
          * after payroll posting, which is the other account-map block on that page.
          */
-        SettingsSections::register('construction.accounts', ConstructionAccountsSettingsSection::class, 70);
+        SettingsSections::register('construction.accounts', ConstructionAccountsSettingsSection::class, 70, 'money');
 
         // The printed certificate (§10.5). Its own route rather than a panel action returning a response,
         // because a direct URL never consults `canAccess()` — the licence gate belongs on the route.

@@ -109,6 +109,81 @@ class SettingsSectionsTest extends AccountingTestCase
     }
 
     /**
+     * Which tab each module's settings belong under — an exact map, for the same reason the list above
+     * is exact.
+     *
+     * **2026-10-30** — the page was twenty-eight sections in one column, which is a screen nobody
+     * reaches the end of, and it grew that way one honest contribution at a time. They are dealt into
+     * five tabs chosen by who is asking rather than by which module owns the block, so a module says
+     * which one it belongs under at registration: it is the only thing that knows what its settings
+     * are about, and the page keeping a list of every module's keys is the coupling this registry
+     * exists to avoid.
+     *
+     * The groupings worth stating, because they are judgements rather than module names:
+     *
+     *  - the four **public doors** — lead capture, field visits, the careers page and document
+     *    verification — sit with the status page rather than with the modules behind them. They are
+     *    the same decision in five places: whether somebody outside the company may open this
+     *    without signing in.
+     *  - **attendance devices** is people, not integrations: it is read by whoever sets the hours.
+     *  - **what somebody must confirm before being let in** is people for the same reason.
+     *  - the **document layout** is company, beside the letterhead, which is the other half of the
+     *    same question — it is the one section placed against its sort number.
+     */
+    public function test_each_module_says_which_tab_its_settings_belong_under(): void
+    {
+        $this->assertSame(
+            [
+                'accounting.currency' => 'money',
+                'accounting.ledger-freeze' => 'money',
+                'accounting.payroll-posting' => 'money',
+                'payroll.run' => 'people',
+                'lifecycle.documents' => 'people',
+                'expenses.approval-chain' => 'people',
+                'construction.accounts' => 'money',
+                'invoicing.dunning' => 'customers',
+                'invoicing.credit-control' => 'customers',
+                'devices.devices' => 'people',
+                'invoicing.statements' => 'customers',
+                'crm.field-visits' => 'public',
+                'crm.lead-capture' => 'public',
+                'recruitment.careers' => 'public',
+                'documents.verification' => 'public',
+                'documents.layout' => 'company',
+                'verification.checks' => 'people',
+            ],
+            SettingsSections::tabs(),
+        );
+
+        $this->assertSame(
+            [],
+            array_diff(SettingsSections::tabs(), array_keys(CompanySettings::TABS)),
+            'a module asked for a tab this page does not have',
+        );
+    }
+
+    /**
+     * A tab with nothing left in it is not rendered.
+     *
+     * Every section of the customers tab is contributed — dunning, credit control and statements are all
+     * Invoicing's — so a company without the module would otherwise open Company Settings and find a
+     * heading with nothing under it, which reads as something broken rather than something absent.
+     */
+    public function test_a_tab_with_nothing_in_it_is_not_rendered(): void
+    {
+        SettingsSections::flush();
+
+        try {
+            Livewire::test(CompanySettings::class)
+                ->assertSuccessful()
+                ->assertSee('Public pages')      // still has the status page, which is this page's own
+                ->assertDontSee('Customers');    // had only Invoicing's three
+        } finally {
+            $this->app->register(AccountingServiceProvider::class, true);
+        }
+    }
+
+    /**
      * A company with no accounting module gets the rest of the page, not an error.
      *
      * This is the failure the inversion exists to prevent: with the sections written into the page, rendering

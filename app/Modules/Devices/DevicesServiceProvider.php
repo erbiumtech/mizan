@@ -32,6 +32,6 @@ class DevicesServiceProvider extends ServiceProvider
         $this->commands([FoldDevicePunches::class, CheckDeviceSilence::class]);
 
         // 77: with the other public doors, directly before field visits (78).
-        SettingsSections::register('devices.devices', DevicesSettingsSection::class, 77);
+        SettingsSections::register('devices.devices', DevicesSettingsSection::class, 77, 'people');
     }
 }

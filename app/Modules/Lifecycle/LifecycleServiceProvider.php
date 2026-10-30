@@ -111,7 +111,7 @@ class LifecycleServiceProvider extends ServiceProvider
             : null);
 
         // What a company insists on, and what it will accept — plan §14.8.
-        \App\Support\SettingsSections::register('lifecycle.documents', \App\Modules\Lifecycle\Filament\Settings\RequiredDocumentsSettingsSection::class, 62);
+        \App\Support\SettingsSections::register('lifecycle.documents', \App\Modules\Lifecycle\Filament\Settings\RequiredDocumentsSettingsSection::class, 62, 'people');
 
         /*
          * Documents as a condition of being let in — plan §14.8.
