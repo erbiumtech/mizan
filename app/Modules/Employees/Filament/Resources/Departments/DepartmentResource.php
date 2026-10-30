@@ -41,7 +41,7 @@ class DepartmentResource extends Resource
             TextInput::make('name')->required()->maxLength(80)->unique(ignoreRecord: true)->helperText('Renaming follows the employees who hold it.'),
             TextInput::make('code')->maxLength(20),
             Select::make('parent_id')->label(__('Part of'))->relationship('parent', 'name', fn ($query, ?Department $record) => $query->when($record, fn ($q) => $q->whereKeyNot($record->getKey())))->nullable(),
-            Select::make('head_employee_id')->label(__('Head'))
+            Select::make('head_employee_id')->label(__('Department head'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->nullable(),
             Toggle::make('is_active')->default(true),
@@ -55,7 +55,7 @@ class DepartmentResource extends Resource
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('code')->placeholder('—'),
                 TextColumn::make('parent.name')->label(__('Part of'))->placeholder('—'),
-                TextColumn::make('head.display_label')->label(__('Head'))->placeholder('—'),
+                TextColumn::make('head.display_label')->label(__('Department head'))->placeholder('—'),
                 TextColumn::make('employees_count')->counts('employees')->label(__('People')),
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
