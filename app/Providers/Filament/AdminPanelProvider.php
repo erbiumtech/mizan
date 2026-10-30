@@ -292,6 +292,12 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_AFTER,
                 fn (): string => view('filament.partials.table-context-menu-toggle')->render(),
             )
+            // The manifest, the worker and the theme colour that make the panel installable —
+            // docs/desktop-mobile-plan.md M1. In the head because the manifest link has to be.
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.partials.pwa-head')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::LAYOUT_START,
                 fn (): string => view('filament.partials.domain-rail')->render(),

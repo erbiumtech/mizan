@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DeliveryTestMediaController;
+use App\Http\Controllers\PwaController;
 use App\Http\Controllers\TenantFileController;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
@@ -9,6 +10,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect(Filament::getPanel('admin')->getUrl());
 });
+
+// The panel as an installable app — docs/desktop-mobile-plan.md M1. The manifest wears the company named
+// by ?company= (or by the host, on a custom domain); the worker has to be served from the root to control it.
+Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
+Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.worker');
+Route::get('/offline', [PwaController::class, 'offline'])->name('pwa.offline');
 
 // The public status page lives in app/Modules/Projects/routes/web.php.
 
