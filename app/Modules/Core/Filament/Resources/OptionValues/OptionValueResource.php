@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Resources\OptionValues;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\OptionValues\Pages\CreateOptionValue;
 use App\Modules\Core\Filament\Resources\OptionValues\Pages\EditOptionValue;
 use App\Modules\Core\Filament\Resources\OptionValues\Pages\ListOptionValues;
@@ -42,6 +43,9 @@ class OptionValueResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = OptionValue::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
 

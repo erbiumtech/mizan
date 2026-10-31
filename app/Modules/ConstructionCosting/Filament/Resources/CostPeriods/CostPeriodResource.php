@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\CostPeriods;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\CostPeriods\Pages\ListCostPeriods;
 use App\Modules\ConstructionCosting\Filament\Resources\CostPeriods\Tables\CostPeriodsTable;
 use App\Modules\ConstructionCosting\Models\CostPeriod;
@@ -33,6 +34,9 @@ class CostPeriodResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = CostPeriod::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 

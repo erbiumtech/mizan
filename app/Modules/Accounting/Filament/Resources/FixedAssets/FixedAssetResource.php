@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\FixedAssets;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\Pages\CreateFixedAsset;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\Pages\EditFixedAsset;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\Pages\ListFixedAssets;
@@ -23,6 +24,9 @@ class FixedAssetResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = FixedAsset::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
 

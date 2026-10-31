@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\Contracts;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Pages\CreateContract;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Pages\EditContract;
 use App\Modules\ConstructionContracts\Filament\Resources\Contracts\Pages\ListContracts;
@@ -34,6 +35,9 @@ class ContractResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Contract::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 

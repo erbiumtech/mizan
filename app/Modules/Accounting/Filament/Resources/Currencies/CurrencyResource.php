@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Currencies;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\Currencies\Pages\CreateCurrency;
 use App\Modules\Accounting\Filament\Resources\Currencies\Pages\EditCurrency;
 use App\Modules\Accounting\Filament\Resources\Currencies\Pages\ListCurrencies;
@@ -29,6 +30,9 @@ class CurrencyResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Currency::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
 

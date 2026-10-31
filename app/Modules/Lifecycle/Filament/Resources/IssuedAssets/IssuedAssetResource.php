@@ -4,6 +4,7 @@ namespace App\Modules\Lifecycle\Filament\Resources\IssuedAssets;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\CreateIssuedAsset;
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\EditIssuedAsset;
@@ -41,6 +42,9 @@ class IssuedAssetResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = IssuedAsset::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDevicePhoneMobile;
 

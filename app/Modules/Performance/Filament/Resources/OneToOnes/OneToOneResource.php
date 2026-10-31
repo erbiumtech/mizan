@@ -4,6 +4,7 @@ namespace App\Modules\Performance\Filament\Resources\OneToOnes;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Performance\Filament\Resources\OneToOnes\Pages\CreateOneToOne;
 use App\Modules\Performance\Filament\Resources\OneToOnes\Pages\EditOneToOne;
@@ -37,6 +38,9 @@ class OneToOneResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = OneToOne::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 

@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\WorkPatterns;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\WorkPatterns\Pages\CreateWorkPattern;
 use App\Modules\Attendance\Filament\Resources\WorkPatterns\Pages\EditWorkPattern;
 use App\Modules\Attendance\Filament\Resources\WorkPatterns\Pages\ListWorkPatterns;
@@ -33,6 +34,9 @@ class WorkPatternResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = WorkPattern::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendar;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Employees\Filament\Resources\LetterTemplates;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\LetterTemplates\Pages\CreateLetterTemplate;
 use App\Modules\Employees\Filament\Resources\LetterTemplates\Pages\EditLetterTemplate;
 use App\Modules\Employees\Filament\Resources\LetterTemplates\Pages\ListLetterTemplates;
@@ -37,6 +38,9 @@ class LetterTemplateResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = LetterTemplate::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelopeOpen;
 

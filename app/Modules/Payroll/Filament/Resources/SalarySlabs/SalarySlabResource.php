@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\SalarySlabs;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Payroll\Filament\Resources\SalarySlabs\Pages\CreateSalarySlab;
 use App\Modules\Payroll\Filament\Resources\SalarySlabs\Pages\EditSalarySlab;
 use App\Modules\Payroll\Filament\Resources\SalarySlabs\Pages\ListSalarySlabs;
@@ -21,6 +22,9 @@ class SalarySlabResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = SalarySlab::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTableCells;
 

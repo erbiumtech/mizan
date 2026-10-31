@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\Announcements;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\CreateAnnouncement;
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\EditAnnouncement;
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\ListAnnouncements;
@@ -42,6 +43,9 @@ class AnnouncementResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Announcement::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 

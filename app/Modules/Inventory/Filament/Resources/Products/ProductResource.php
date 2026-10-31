@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Filament\Resources\Products;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Inventory\Filament\Resources\Products\Pages\CreateProduct;
 use App\Modules\Inventory\Filament\Resources\Products\Pages\EditProduct;
 use App\Modules\Inventory\Filament\Resources\Products\Pages\ListProducts;
@@ -24,6 +25,9 @@ class ProductResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Product::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

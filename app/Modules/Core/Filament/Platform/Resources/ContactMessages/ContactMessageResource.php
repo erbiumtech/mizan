@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\ContactMessages;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\ContactMessages\Pages\ListContactMessages;
 use App\Modules\Core\Models\ContactMessage;
 use BackedEnum;
@@ -26,6 +27,9 @@ use UnitEnum;
 class ContactMessageResource extends Resource
 {
     protected static ?string $model = ContactMessage::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 

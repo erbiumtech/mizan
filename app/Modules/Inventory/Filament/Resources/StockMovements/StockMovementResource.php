@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Filament\Resources\StockMovements;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Inventory\Filament\Resources\StockMovements\Pages\ListStockMovements;
 use App\Modules\Inventory\Filament\Resources\StockMovements\Schemas\StockMovementForm;
 use App\Modules\Inventory\Filament\Resources\StockMovements\Tables\StockMovementsTable;
@@ -19,6 +20,9 @@ class StockMovementResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = StockMovement::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 

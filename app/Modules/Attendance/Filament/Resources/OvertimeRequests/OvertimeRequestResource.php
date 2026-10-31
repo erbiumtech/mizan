@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\OvertimeRequests;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\OvertimeRequests\Pages\CreateOvertimeRequest;
 use App\Modules\Attendance\Filament\Resources\OvertimeRequests\Pages\ListOvertimeRequests;
 use App\Modules\Attendance\Models\OvertimeRequest;
@@ -34,6 +35,9 @@ class OvertimeRequestResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = OvertimeRequest::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 

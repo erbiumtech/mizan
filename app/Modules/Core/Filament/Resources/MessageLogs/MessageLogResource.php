@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\MessageLogs;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\MessageLogs\Pages\ListMessageLogs;
 use App\Modules\Core\Models\MessageLog;
 use BackedEnum;
@@ -24,6 +25,9 @@ use UnitEnum;
 class MessageLogResource extends Resource
 {
     protected static ?string $model = MessageLog::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
 

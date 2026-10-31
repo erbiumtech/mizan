@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\ChequeBooks;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\ChequeBooks\Pages\CreateChequeBook;
 use App\Modules\Accounting\Filament\Resources\ChequeBooks\Pages\EditChequeBook;
 use App\Modules\Accounting\Filament\Resources\ChequeBooks\Pages\ListChequeBooks;
@@ -28,6 +29,9 @@ class ChequeBookResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ChequeBook::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 

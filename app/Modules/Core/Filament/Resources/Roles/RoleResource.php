@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Roles;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\Roles\Pages\CreateRole;
 use App\Modules\Core\Filament\Resources\Roles\Pages\EditRole;
 use App\Modules\Core\Filament\Resources\Roles\Pages\ListRoles;
@@ -19,6 +20,9 @@ use UnitEnum;
 class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 

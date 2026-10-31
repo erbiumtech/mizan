@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionQhse\Filament\Resources\ToolboxTalks;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionQhse\Filament\Resources\ToolboxTalks\Pages\CreateToolboxTalk;
 use App\Modules\ConstructionQhse\Filament\Resources\ToolboxTalks\Pages\EditToolboxTalk;
 use App\Modules\ConstructionQhse\Filament\Resources\ToolboxTalks\Pages\ListToolboxTalks;
@@ -32,6 +33,9 @@ class ToolboxTalkResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ToolboxTalk::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 

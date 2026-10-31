@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\ReportSchedules;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\ReportSchedules\Pages\CreateReportSchedule;
 use App\Modules\Core\Filament\Resources\ReportSchedules\Pages\EditReportSchedule;
 use App\Modules\Core\Filament\Resources\ReportSchedules\Pages\ListReportSchedules;
@@ -29,6 +30,9 @@ use UnitEnum;
 class ReportScheduleResource extends Resource
 {
     protected static ?string $model = ReportSchedule::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
 

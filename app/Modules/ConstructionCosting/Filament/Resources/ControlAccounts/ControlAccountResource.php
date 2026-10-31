@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\ControlAccounts;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\ControlAccounts\Pages\CreateControlAccount;
 use App\Modules\ConstructionCosting\Filament\Resources\ControlAccounts\Pages\EditControlAccount;
 use App\Modules\ConstructionCosting\Filament\Resources\ControlAccounts\Pages\ListControlAccounts;
@@ -41,6 +42,9 @@ class ControlAccountResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ControlAccount::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Users;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\Users\Pages\CreatePlatformUser;
 use App\Modules\Core\Filament\Platform\Resources\Users\Pages\EditPlatformUser;
 use App\Modules\Core\Filament\Platform\Resources\Users\Pages\ListPlatformUsers;
@@ -33,6 +34,9 @@ use UnitEnum;
 class PlatformUserResource extends Resource
 {
     protected static ?string $model = User::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 

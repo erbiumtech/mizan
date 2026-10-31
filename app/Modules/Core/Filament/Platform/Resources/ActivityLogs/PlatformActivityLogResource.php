@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\ActivityLogs;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\ActivityLogs\Pages\ListPlatformActivityLogs;
 use App\Modules\Core\Filament\Platform\Resources\ActivityLogs\Pages\ViewPlatformActivityLog;
 use App\Modules\Core\Filament\Resources\ActivityLogs\Schemas\ActivityLogInfolist;
@@ -33,6 +34,9 @@ use UnitEnum;
 class PlatformActivityLogResource extends Resource
 {
     protected static ?string $model = Activity::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

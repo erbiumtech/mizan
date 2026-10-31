@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Resources\Designations\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Employees\Filament\Resources\Designations\DesignationResource;
 use Filament\Actions\CreateAction;
@@ -9,6 +10,8 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListDesignations extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = DesignationResource::class;
 
     protected function getHeaderActions(): array

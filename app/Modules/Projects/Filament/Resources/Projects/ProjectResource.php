@@ -3,12 +3,14 @@
 namespace App\Modules\Projects\Filament\Resources\Projects;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\CreateProject;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\EditProject;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\ListProjects;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\ViewProject;
 use App\Modules\Projects\Filament\Resources\Projects\RelationManagers\EmployeesRelationManager;
 use App\Modules\Projects\Filament\Resources\Projects\Schemas\ProjectForm;
+use App\Modules\Projects\Filament\Resources\Projects\Schemas\ProjectInfolist;
 use App\Modules\Projects\Filament\Resources\Projects\Tables\ProjectsTable;
 use App\Modules\Projects\Models\Project;
 use App\Support\ResourceContributions;
@@ -27,6 +29,9 @@ class ProjectResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Project::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::SheetView;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBriefcase;
 
@@ -62,6 +67,15 @@ class ProjectResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return ProjectForm::configure($schema);
+    }
+
+    /**
+     * The same infolist as the view page, here too so the list's view sheet shows it rather than a
+     * disabled form — docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return ProjectInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

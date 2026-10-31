@@ -4,6 +4,7 @@ namespace App\Modules\Crm\Filament\Resources\WeeklySalesReports;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\WeeklySalesReports\Pages\CreateWeeklySalesReport;
 use App\Modules\Crm\Filament\Resources\WeeklySalesReports\Pages\EditWeeklySalesReport;
 use App\Modules\Crm\Filament\Resources\WeeklySalesReports\Pages\ListWeeklySalesReports;
@@ -42,6 +43,9 @@ class WeeklySalesReportResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = WeeklySalesReport::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 

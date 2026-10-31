@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Roles;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\Roles\Pages\ListPlatformRoles;
 use App\Modules\Core\Filament\Platform\Resources\Roles\Tables\PlatformRolesTable;
 use App\Modules\Core\Models\Company;
@@ -37,6 +38,9 @@ use UnitEnum;
 class PlatformRoleResource extends Resource
 {
     protected static ?string $model = Role::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 

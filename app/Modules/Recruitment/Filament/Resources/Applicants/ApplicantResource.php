@@ -3,6 +3,7 @@
 namespace App\Modules\Recruitment\Filament\Resources\Applicants;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Recruitment\Filament\Resources\Applicants\Pages\CreateApplicant;
 use App\Modules\Recruitment\Filament\Resources\Applicants\Pages\EditApplicant;
 use App\Modules\Recruitment\Filament\Resources\Applicants\Pages\ListApplicants;
@@ -32,6 +33,9 @@ class ApplicantResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Applicant::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 

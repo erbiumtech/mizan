@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\Commitments;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\Commitments\Pages\CreateCommitment;
 use App\Modules\ConstructionCosting\Filament\Resources\Commitments\Pages\EditCommitment;
 use App\Modules\ConstructionCosting\Filament\Resources\Commitments\Pages\ListCommitments;
@@ -33,6 +34,9 @@ class CommitmentResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Commitment::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 

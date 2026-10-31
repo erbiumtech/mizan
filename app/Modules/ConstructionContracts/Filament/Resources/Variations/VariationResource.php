@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\Variations;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionContracts\Filament\Resources\Variations\Pages\CreateVariation;
 use App\Modules\ConstructionContracts\Filament\Resources\Variations\Pages\EditVariation;
 use App\Modules\ConstructionContracts\Filament\Resources\Variations\Pages\ListVariations;
@@ -34,6 +35,9 @@ class VariationResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Variation::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\BackCharges;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionContracts\Filament\Resources\BackCharges\Pages\CreateBackCharge;
 use App\Modules\ConstructionContracts\Filament\Resources\BackCharges\Pages\EditBackCharge;
 use App\Modules\ConstructionContracts\Filament\Resources\BackCharges\Pages\ListBackCharges;
@@ -34,6 +35,9 @@ class BackChargeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = BackCharge::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUturnLeft;
 

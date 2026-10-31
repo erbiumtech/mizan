@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues\Pages\CreateMaterialIssue;
 use App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues\Pages\EditMaterialIssue;
 use App\Modules\ConstructionCosting\Filament\Resources\MaterialIssues\Pages\ListMaterialIssues;
@@ -32,6 +33,9 @@ class MaterialIssueResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = MaterialIssue::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 

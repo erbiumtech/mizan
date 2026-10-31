@@ -4,6 +4,7 @@ namespace App\Modules\Core\Filament\Resources\WorkLocations;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\WorkLocations\Pages\CreateWorkLocation;
 use App\Modules\Core\Filament\Resources\WorkLocations\Pages\EditWorkLocation;
 use App\Modules\Core\Filament\Resources\WorkLocations\Pages\ListWorkLocations;
@@ -32,6 +33,9 @@ class WorkLocationResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = WorkLocation::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Filament\Resources\EmailTemplates;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\EmailTemplates\Pages\CreateEmailTemplate;
 use App\Modules\Core\Filament\Resources\EmailTemplates\Pages\EditEmailTemplate;
 use App\Modules\Core\Filament\Resources\EmailTemplates\Pages\ListEmailTemplates;
@@ -28,6 +29,9 @@ class EmailTemplateResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = EmailTemplate::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
 

@@ -4,6 +4,7 @@ namespace App\Modules\Crm\Filament\Resources\FieldVisits;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\CreateFieldVisit;
 use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\EditFieldVisit;
 use App\Modules\Crm\Filament\Resources\FieldVisits\Pages\ListFieldVisits;
@@ -48,6 +49,9 @@ class FieldVisitResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = FieldVisit::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Recruitment\Filament\Resources\Interviews;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Recruitment\Filament\Resources\Interviews\Pages\ListInterviews;
 use App\Modules\Recruitment\Models\Interview;
 use App\Modules\Recruitment\Models\InterviewFeedback;
@@ -30,6 +31,9 @@ class InterviewResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Interview::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 

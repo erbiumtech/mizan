@@ -4,6 +4,7 @@ namespace App\Modules\Recruitment\Filament\Resources\Vacancies;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Recruitment\Filament\Resources\Vacancies\Pages\CreateVacancy;
 use App\Modules\Recruitment\Filament\Resources\Vacancies\Pages\EditVacancy;
@@ -27,6 +28,9 @@ class VacancyResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Vacancy::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 

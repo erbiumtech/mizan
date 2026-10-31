@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Filament\Resources\SalaryStructures;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Payroll\Filament\Resources\SalaryStructures\Pages\CreateSalaryStructure;
 use App\Modules\Payroll\Filament\Resources\SalaryStructures\Pages\EditSalaryStructure;
 use App\Modules\Payroll\Filament\Resources\SalaryStructures\Pages\ListSalaryStructures;
@@ -32,6 +33,9 @@ class SalaryStructureResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = SalaryStructure::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 

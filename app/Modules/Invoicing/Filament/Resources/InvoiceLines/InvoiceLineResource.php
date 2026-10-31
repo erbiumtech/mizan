@@ -3,6 +3,7 @@
 namespace App\Modules\Invoicing\Filament\Resources\InvoiceLines;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Invoicing\Filament\Resources\InvoiceLines\Pages\CreateInvoiceLine;
 use App\Modules\Invoicing\Filament\Resources\InvoiceLines\Pages\EditInvoiceLine;
 use App\Modules\Invoicing\Filament\Resources\InvoiceLines\Pages\ListInvoiceLines;
@@ -20,6 +21,9 @@ class InvoiceLineResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = InvoiceLine::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|UnitEnum|null $navigationGroup = 'Invoicing & Inventory';
 

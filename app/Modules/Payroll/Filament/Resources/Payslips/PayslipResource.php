@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Filament\Resources\Payslips;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\CreatePayslip;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\EditPayslip;
 use App\Modules\Payroll\Filament\Resources\Payslips\Pages\ListPayslips;
@@ -26,6 +27,9 @@ class PayslipResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Payslip::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

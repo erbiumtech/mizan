@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Holidays\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Resources\Holidays\HolidayResource;
 use App\Modules\Core\Models\Holiday;
@@ -14,6 +15,8 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListHolidays extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = HolidayResource::class;
 
     protected function getHeaderActions(): array

@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionField\Filament\Resources\DailyLogs;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\CreateDailyLog;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\EditDailyLog;
 use App\Modules\ConstructionField\Filament\Resources\DailyLogs\Pages\ListDailyLogs;
@@ -34,6 +35,9 @@ class DailyLogResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = DailyLog::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 

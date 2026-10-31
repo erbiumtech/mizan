@@ -3,6 +3,7 @@
 namespace App\Modules\Recruitment\Filament\Resources\Applications;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Recruitment\Filament\Resources\Applications\Actions\HireAction;
 use App\Modules\Recruitment\Filament\Resources\Applications\Actions\MakeOfferAction;
 use App\Modules\Recruitment\Filament\Resources\Applications\Actions\OfferLetterAction;
@@ -41,6 +42,9 @@ class ApplicationResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Application::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleGroup;
 

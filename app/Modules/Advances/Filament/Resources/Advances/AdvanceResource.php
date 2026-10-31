@@ -4,6 +4,7 @@ namespace App\Modules\Advances\Filament\Resources\Advances;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Advances\Filament\Resources\Advances\Pages\CreateAdvance;
 use App\Modules\Advances\Filament\Resources\Advances\Pages\EditAdvance;
 use App\Modules\Advances\Filament\Resources\Advances\Pages\ListAdvances;
@@ -24,6 +25,9 @@ class AdvanceResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Advance::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

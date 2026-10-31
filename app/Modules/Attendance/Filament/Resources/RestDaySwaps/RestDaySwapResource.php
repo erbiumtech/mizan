@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\RestDaySwaps;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\RestDaySwaps\Pages\CreateRestDaySwap;
 use App\Modules\Attendance\Filament\Resources\RestDaySwaps\Pages\ListRestDaySwaps;
 use App\Modules\Attendance\Models\RestDaySwap;
@@ -29,6 +30,9 @@ class RestDaySwapResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = RestDaySwap::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Payments;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\Payments\Pages\CreatePayment;
 use App\Modules\Accounting\Filament\Resources\Payments\Pages\EditPayment;
 use App\Modules\Accounting\Filament\Resources\Payments\Pages\ListPayments;
@@ -21,6 +22,9 @@ class PaymentResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Payment::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

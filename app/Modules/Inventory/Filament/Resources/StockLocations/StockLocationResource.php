@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Filament\Resources\StockLocations;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Inventory\Filament\Resources\StockLocations\Pages\CreateStockLocation;
 use App\Modules\Inventory\Filament\Resources\StockLocations\Pages\EditStockLocation;
 use App\Modules\Inventory\Filament\Resources\StockLocations\Pages\ListStockLocations;
@@ -31,6 +32,9 @@ class StockLocationResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = StockLocation::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Budgets;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\Budgets\Pages\CreateBudget;
 use App\Modules\Accounting\Filament\Resources\Budgets\Pages\EditBudget;
 use App\Modules\Accounting\Filament\Resources\Budgets\Pages\ListBudgets;
@@ -23,6 +24,9 @@ class BudgetResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Budget::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalculator;
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\FiscalYears;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\FiscalYears\Pages\CreateFiscalYear;
 use App\Modules\Core\Filament\Resources\FiscalYears\Pages\EditFiscalYear;
 use App\Modules\Core\Filament\Resources\FiscalYears\Pages\ListFiscalYears;
@@ -18,6 +19,9 @@ use UnitEnum;
 class FiscalYearResource extends Resource
 {
     protected static ?string $model = FiscalYear::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 

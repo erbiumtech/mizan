@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionField\Filament\Resources\DelayEvents;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionField\Filament\Resources\DelayEvents\Pages\CreateDelayEvent;
 use App\Modules\ConstructionField\Filament\Resources\DelayEvents\Pages\EditDelayEvent;
 use App\Modules\ConstructionField\Filament\Resources\DelayEvents\Pages\ListDelayEvents;
@@ -34,6 +35,9 @@ class DelayEventResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = DelayEvent::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 

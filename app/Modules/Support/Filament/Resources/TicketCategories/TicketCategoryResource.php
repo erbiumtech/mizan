@@ -4,6 +4,7 @@ namespace App\Modules\Support\Filament\Resources\TicketCategories;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Support\Filament\Resources\TicketCategories\Pages\CreateTicketCategory;
 use App\Modules\Support\Filament\Resources\TicketCategories\Pages\EditTicketCategory;
 use App\Modules\Support\Filament\Resources\TicketCategories\Pages\ListTicketCategories;
@@ -35,6 +36,9 @@ class TicketCategoryResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = TicketCategory::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
 

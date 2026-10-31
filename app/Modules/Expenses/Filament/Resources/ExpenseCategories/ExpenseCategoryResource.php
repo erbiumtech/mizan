@@ -4,6 +4,7 @@ namespace App\Modules\Expenses\Filament\Resources\ExpenseCategories;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Expenses\Filament\Resources\ExpenseCategories\Pages\CreateExpenseCategory;
 use App\Modules\Expenses\Filament\Resources\ExpenseCategories\Pages\EditExpenseCategory;
@@ -29,6 +30,9 @@ class ExpenseCategoryResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ExpenseCategory::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
 

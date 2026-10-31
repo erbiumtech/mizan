@@ -2,12 +2,15 @@
 
 namespace App\Modules\Leave\Filament\Resources\LeaveTypes\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Leave\Filament\Resources\LeaveTypes\LeaveTypeResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListLeaveTypes extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = LeaveTypeResource::class;
 
     protected function getHeaderActions(): array

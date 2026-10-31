@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Companies;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\CreateCompany;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\EditCompany;
 use App\Modules\Core\Filament\Platform\Resources\Companies\Pages\ListCompanies;
@@ -18,6 +19,9 @@ use UnitEnum;
 class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
 

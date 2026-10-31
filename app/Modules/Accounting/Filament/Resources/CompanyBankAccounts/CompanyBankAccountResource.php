@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\CompanyBankAccounts;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Pages\CreateCompanyBankAccount;
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Pages\EditCompanyBankAccount;
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Pages\ListCompanyBankAccounts;
@@ -21,6 +22,9 @@ class CompanyBankAccountResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = CompanyBankAccount::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

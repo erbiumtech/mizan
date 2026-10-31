@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\Designations;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\Designations\Pages\CreateDesignation;
 use App\Modules\Employees\Filament\Resources\Designations\Pages\EditDesignation;
 use App\Modules\Employees\Filament\Resources\Designations\Pages\ListDesignations;
@@ -27,6 +28,9 @@ class DesignationResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Designation::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 

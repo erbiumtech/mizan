@@ -4,6 +4,7 @@ namespace App\Modules\Timesheets\Filament\Resources\TimesheetEntries;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\Pages\CreateTimesheetEntry;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\Pages\EditTimesheetEntry;
@@ -44,6 +45,9 @@ class TimesheetEntryResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = TimesheetEntry::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

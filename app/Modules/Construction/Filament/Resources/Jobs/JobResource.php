@@ -3,6 +3,7 @@
 namespace App\Modules\Construction\Filament\Resources\Jobs;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Construction\Filament\Resources\Jobs\Pages\CreateJob;
 use App\Modules\Construction\Filament\Resources\Jobs\Pages\EditJob;
 use App\Modules\Construction\Filament\Resources\Jobs\Pages\ListJobs;
@@ -33,6 +34,9 @@ class JobResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Job::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
 

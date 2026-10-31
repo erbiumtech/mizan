@@ -1484,6 +1484,205 @@ summary.fi-nav-drawer-item::after {
     }
 }
 
+/* ===================================================================== side sheets
+ *
+ * Material's modal side sheet, for a record opened from its list — docs/side-sheets.md and
+ * App\Filament\Support\RecordSheetActions. Filament's slide-over underneath; this draws it:
+ *
+ *  - a surface-container-low sheet, its header and footer pinned while the body scrolls;
+ *  - the header on one row — title, status badge, then the sheet's tools (copy link, open the full
+ *    page) and Filament's close button, all 40px icon buttons. The tools arrive in the modal's
+ *    description slot, which Filament puts under the heading; the row here lifts them beside it;
+ *  - the body's form sections stay the cards the rest of the panel draws;
+ *  - on a phone the sheet takes the whole screen.
+ *
+ * The selectors go through the modal's own chain because Filament's sticky header and footer rules
+ * do, and a shorter selector here would lose to them.
+ */
+.fi-modal.fi-modal-slide-over > .fi-modal-window-ctn > .fi-modal-window.fi-record-sheet {
+    --md-field-notch: var(--md-sys-color-surface-container-low);
+    background-color: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-on-surface);
+
+    & > .fi-modal-header {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 4rem;
+        padding-block: 12px;
+        padding-inline: 24px 64px;
+        border-block-end: 1px solid var(--md-sys-color-outline-variant);
+        background-color: var(--md-sys-color-surface-container-low);
+
+        & > div {
+            display: flex;
+            flex: 1 1 auto;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        & .fi-modal-heading {
+            display: flex;
+            flex: 1 1 auto;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            margin: 0;
+            font-size: 1.375rem;
+            font-weight: 400;
+            line-height: 1.75rem;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        & .fi-modal-description {
+            flex: none;
+            margin: 0;
+        }
+
+        /* Centred on the 64px row: (64 - 40) / 2, without the icon button's own -6px pull. */
+        & .fi-modal-close-btn {
+            margin: 0;
+            inset-block-start: 12px;
+            inset-inline-end: 12px;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--md-sys-shape-full);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+    }
+
+    & > .fi-modal-content {
+        gap: 16px;
+        padding: 16px 24px 24px;
+    }
+
+    /*
+     * The sheet is already surface-container-low, the tone the panel gives a form section, so its
+     * sections step one tone up to stay cards — with the notch behind field labels to match.
+     */
+    & .fi-section:not(.fi-section-not-contained) {
+        --md-field-notch: var(--md-sys-color-surface-container);
+        border-radius: var(--md-sys-shape-large);
+        background-color: var(--md-sys-color-surface-container);
+        box-shadow: none;
+    }
+
+    & > .fi-modal-footer {
+        position: sticky;
+        inset-block-end: 0;
+        z-index: 10;
+        padding: 16px 24px;
+        border-block-start: 1px solid var(--md-sys-color-outline-variant);
+        background-color: var(--md-sys-color-surface-container-low);
+    }
+}
+
+.fi-record-sheet-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-record-sheet-badge {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    height: 1.5rem;
+    padding-inline: 8px;
+    border-radius: var(--md-sys-shape-small);
+    background-color: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+
+    /* Success and warning are semantic, as the status chips draw them: Filament's ramps, not the seed. */
+    &[data-tone='success'] {
+        background-color: var(--success-100);
+        color: var(--success-800);
+
+        &:where(.dark, .dark *) {
+            background-color: color-mix(in srgb, var(--success-500) 24%, transparent);
+            color: var(--success-200);
+        }
+    }
+
+    &[data-tone='warning'] {
+        background-color: var(--warning-100);
+        color: var(--warning-800);
+
+        &:where(.dark, .dark *) {
+            background-color: color-mix(in srgb, var(--warning-500) 24%, transparent);
+            color: var(--warning-200);
+        }
+    }
+
+    &[data-tone='danger'] {
+        background-color: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
+    }
+
+    &[data-tone='info'],
+    &[data-tone='primary'] {
+        background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+    }
+}
+
+.fi-record-sheet-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.fi-record-sheet-tool {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: var(--md-sys-shape-full);
+    background-color: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 8%, transparent);
+        color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+    }
+}
+
+/* A phone: the sheet is the screen, square-cornered, as Material's full-screen dialog. */
+@media (max-width: 599px) {
+    .fi-modal.fi-modal-slide-over > .fi-modal-window-ctn > .fi-modal-window.fi-record-sheet {
+        width: 100%;
+        max-width: none;
+        border-radius: 0;
+
+        & > .fi-modal-header {
+            padding-inline: 16px 56px;
+        }
+
+        & > .fi-modal-content {
+            padding-inline: 16px;
+        }
+
+        & > .fi-modal-footer {
+            padding-inline: 16px;
+        }
+    }
+}
+
 /* ===================================================================== top app bar
  *
  * Material's top app bar, as the design's dashboard draws it: the full search bar on the left taking the

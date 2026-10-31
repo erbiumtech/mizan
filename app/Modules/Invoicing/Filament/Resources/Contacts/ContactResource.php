@@ -3,6 +3,7 @@
 namespace App\Modules\Invoicing\Filament\Resources\Contacts;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\CreateContact;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\EditContact;
 use App\Modules\Invoicing\Filament\Resources\Contacts\Pages\ListContacts;
@@ -25,6 +26,9 @@ class ContactResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Contact::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::SheetView;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 

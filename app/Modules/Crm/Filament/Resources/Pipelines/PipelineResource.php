@@ -4,6 +4,7 @@ namespace App\Modules\Crm\Filament\Resources\Pipelines;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\Pipelines\Pages\CreatePipeline;
 use App\Modules\Crm\Filament\Resources\Pipelines\Pages\EditPipeline;
 use App\Modules\Crm\Filament\Resources\Pipelines\Pages\ListPipelines;
@@ -31,6 +32,9 @@ class PipelineResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Pipeline::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedViewColumns;
 

@@ -4,6 +4,7 @@ namespace App\Modules\Performance\Filament\Resources\RecurringTasks;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Models\WorkLocation;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Rules\RuleForm;
@@ -41,6 +42,9 @@ class RecurringTaskResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = RecurringTask::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowPathRoundedSquare;
 

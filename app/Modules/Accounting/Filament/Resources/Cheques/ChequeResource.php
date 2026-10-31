@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Cheques;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\Cheques\Pages\ListCheques;
 use App\Modules\Accounting\Models\Cheque;
 use App\Modules\Accounting\Services\ChequePrinter;
@@ -26,6 +27,9 @@ class ChequeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Cheque::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentCheck;
 
