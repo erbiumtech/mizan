@@ -110,3 +110,20 @@ Header actions map through Filament's colours. `->outlined()` gives an outlined 
 - **Drawer item height** is 48px rather than Material's 56px, because a domain lists up to thirty screens. To use the spec height, change `--md-nav-item-height` to `3.5rem`.
 - **Report explorer, board, backlog, hiring pipeline and other custom components** in `theme.css` use the panel's gray and primary ramps. They follow the new colours but keep their own shapes.
 - **Floating action button.** Filament has no slot for one. Each page's primary header action is a filled pill instead.
+
+## Record detail pages
+
+The design's "Record detail (Invoice)" board is built from a few reusable classes in `material.css`. The invoice page (`ViewInvoice`, from `InvoiceInfolist`) is the first page to use them.
+
+| Class | Put it on | What it does |
+|---|---|---|
+| `md-detail-heading`, `md-status-chip` + `-error` / `-success` / `-neutral` / `-tonal` | The page heading (`getHeading()` returning an `HtmlString`) | The record's number with a status chip beside it |
+| `md-detail-tabs` | The infolist's `Tabs` (`->contained(false)`) | Primary tabs that start at the left of the row |
+| `md-detail-main`, with `md-detail-meta` on a `Grid` and `md-detail-lines` on a `RepeatableEntry::table()` | The main `Section` | A metadata row above a flush line table |
+| `md-detail-aside` | A `Group` that is `->grow(false)` inside a `Flex::make()->from('lg')` | A 20rem column on the right from the large breakpoint |
+| `md-detail-summary`, `md-detail-summary-total` | A `Section` of `->inlineLabel()` money entries, and on the total's `extraEntryWrapperAttributes` | A filled summary card with the total under a divider |
+| `md-timeline` | A `RepeatableEntry` of events | A dot per item, the latest in the primary colour |
+
+Every `RepeatableEntry::table()` also gets the list tables' header tint and hairline rows, with no column dividers.
+
+To give another record the same layout, add a `ViewRecord` page with an infolist built from these pieces. Reuse the list's record actions in the page header, so permissions stay in one place. Load the relations the tabs read in `resolveRecord()`.

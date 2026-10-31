@@ -1555,3 +1555,202 @@ form .fi-sc-actions:last-child {
     font-size: 0.75rem;
     line-height: 1rem;
 }
+
+/* ================================================================ record detail pages
+ *
+ * The design's "Record detail (Invoice)" board, as reusable pieces: a status chip beside the page heading, a
+ * main card holding a metadata grid above a line table, and an aside on the right with a filled summary card
+ * and a timeline. ViewInvoice is the first page built from them; another record page opts in with the same
+ * classes on its infolist sections (`md-detail-main`, `md-detail-aside`, `md-detail-summary`, `md-timeline`)
+ * and the chip markup in its heading. Tokens only.
+ */
+
+.md-detail-heading {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* A status chip: 8px corners, label-large type, the tone's container colour pair. */
+.md-status-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--md-sys-shape-small);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.md-status-chip-error {
+    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+}
+
+.md-status-chip-tonal {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-status-chip-neutral {
+    background-color: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Success is semantic, not from the seed: Filament's success ramp, light container and dark text. */
+.md-status-chip-success {
+    background-color: var(--success-100);
+    color: var(--success-800);
+
+    &:where(.dark, .dark *) {
+        background-color: color-mix(in srgb, var(--success-500) 24%, transparent);
+        color: var(--success-200);
+    }
+}
+
+/* The main card: the metadata row sits on a hairline above the lines, which run flush to the card's edges. */
+.md-detail-main {
+    & .md-detail-meta {
+        padding-block-end: 1rem;
+        border-block-end: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    & .md-detail-meta .fi-in-entry-label {
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & .md-detail-meta .fi-in-text {
+        font-size: 1rem;
+    }
+
+    & .md-detail-lines > table {
+        border-radius: 0;
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
+/* Tables built from repeatable entries read like the list tables: a tinted header row and hairline rows. */
+.fi-in-table-repeatable > table {
+    border-radius: var(--md-sys-shape-medium);
+    background-color: var(--md-sys-color-surface-container-lowest);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+    border-color: var(--md-sys-color-outline-variant);
+
+    & > thead > tr > th {
+        border-color: var(--md-sys-color-outline-variant);
+        border-inline-end-width: 0;
+        background-color: var(--md-sys-color-surface-container-low);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & > tbody,
+    & > tbody > tr {
+        border-color: var(--md-sys-color-outline-variant);
+    }
+
+    & .fi-in-text {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+/* A record page's primary tabs run from the start of the row, as on the board, not centred. */
+.md-detail-tabs > .fi-tabs {
+    width: 100%;
+    margin-inline: 0;
+    justify-content: flex-start;
+}
+
+/* The aside: a fixed column beside the main card from the large breakpoint, full width below it. */
+.md-detail-aside {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+
+    @media (min-width: 64rem) {
+        width: 20rem;
+    }
+
+    /* Its cards' titles sit on the card, with no rule under them. */
+    & .fi-section-header,
+    & .fi-section-content-ctn {
+        border-block: 0;
+    }
+
+    & .fi-section-header-heading {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+}
+
+/* Summary: a filled card, label left and figure right, the balance under a divider. */
+.fi-section.md-detail-summary:not(.fi-section-not-contained) {
+    background-color: var(--md-sys-color-surface-container);
+    box-shadow: none;
+
+    & .fi-in-entry-has-inline-label {
+        grid-template-columns: 1fr auto;
+        align-items: baseline;
+
+        & .fi-in-entry-content-col {
+            grid-column: auto;
+        }
+    }
+
+    & .fi-in-entry-label {
+        font-weight: 400;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & .fi-in-text {
+        font-variant-numeric: tabular-nums;
+    }
+
+    & .md-detail-summary-total {
+        margin-block-start: 0.25rem;
+        padding-block-start: 0.75rem;
+        border-block-start: 1px solid var(--md-sys-color-outline-variant);
+
+        & .fi-in-entry-label {
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+        }
+    }
+}
+
+/* A timeline: a dot per event, the description over the time. */
+.md-timeline {
+    & > .fi-in-repeatable-item,
+    & .fi-in-repeatable-item {
+        position: relative;
+        padding-inline-start: 1.25rem;
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset-inline-start: 0;
+            inset-block-start: 0.4rem;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: var(--md-sys-shape-full);
+            background-color: var(--md-sys-color-primary);
+        }
+
+        & .fi-sc {
+            gap: 0.125rem;
+        }
+    }
+
+    & .fi-in-repeatable-item + .fi-in-repeatable-item::before {
+        background-color: var(--md-sys-color-outline);
+    }
+}

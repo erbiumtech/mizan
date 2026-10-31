@@ -6,9 +6,11 @@ use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\CreateInvoice;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\EditInvoice;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\ListInvoices;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Pages\ViewInvoice;
 use App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers\HistoryRelationManager;
 use App\Modules\Invoicing\Filament\Resources\Invoices\RelationManagers\LinesRelationManager;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Schemas\InvoiceForm;
+use App\Modules\Invoicing\Filament\Resources\Invoices\Schemas\InvoiceInfolist;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Tables\InvoicesTable;
 use App\Modules\Invoicing\Models\Invoice;
 use BackedEnum;
@@ -46,6 +48,11 @@ class InvoiceResource extends Resource
         return InvoiceForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return InvoiceInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return InvoicesTable::configure($table);
@@ -64,6 +71,8 @@ class InvoiceResource extends Resource
         return [
             'index' => ListInvoices::route('/'),
             'create' => CreateInvoice::route('/create'),
+            // The invoice, read: the list's rows open it and a new invoice lands on it (CreateInvoice).
+            'view' => ViewInvoice::route('/{record}'),
             'edit' => EditInvoice::route('/{record}/edit'),
         ];
     }
