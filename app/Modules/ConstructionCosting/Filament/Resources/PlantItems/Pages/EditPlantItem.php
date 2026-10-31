@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\PlantItems\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionCosting\Filament\Resources\PlantItems\PlantItemResource;
@@ -15,6 +16,6 @@ class EditPlantItem extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('construction-plant', 'Plant: Help')];
+        return [HelpAction::make('construction-plant', 'Plant: Help'), ReplicateRecordAction::make()];
     }
 }

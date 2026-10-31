@@ -87,3 +87,5 @@ every earned-value figure on the job is measured against.
 
 Everyone with `ConstructionBudgetView` can read a budget, including the site team
 — a figure people can't see is a figure they can't work to.
+
+**Replicate** opens the next draft version of the same job's budget with every line. It becomes current only when it is approved.

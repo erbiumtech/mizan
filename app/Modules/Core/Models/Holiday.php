@@ -4,7 +4,11 @@ namespace App\Modules\Core\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Services\HolidayCalendar;
+use App\Support\Replication\RecordReplicator;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 
 /**
  * One day the company does not work.
@@ -13,9 +17,9 @@ use App\Traits\Auditable;
  * Whether a *weekend* is a working day comes from work patterns, which belong to
  * attendance — asking this model would mean answering with a guess.
  */
-class Holiday extends Model
+class Holiday extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /** Closed for everyone; offered but not closed; closed for some — docs/saas-launch-plan.md §14.4. */
     public const KIND_PUBLIC = 'public';
@@ -65,5 +69,27 @@ class Holiday extends Model
 
         static::saved($flush);
         static::deleted($flush);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * The same holiday on another date: name, kind, location and notes. The date is unique, so the
+     * copy asks for one, suggesting the same day a year on (Independence Day next year), or the next
+     * free day after that.
+     */
+    public function replicationUniqueFields(): array
+    {
+        return ['date' => static function (EloquentModel $original): ?string {
+            $date = $original->date?->copy()->addYear();
+
+            for ($attempt = 0; $date !== null && $attempt < 31; $attempt++, $date->addDay()) {
+                if (! RecordReplicator::valueIsTaken($original, 'date', $date->toDateString())) {
+                    return $date->toDateString();
+                }
+            }
+
+            return null;
+        }];
     }
 }

@@ -71,3 +71,5 @@ rate: a forecast that read the live rate would rewrite last quarter's numbers ev
 steps. **Win or lose**: `OpportunityClose`, separate because it is what targets are measured
 on. **Delete**: `OpportunityDelete`, and not once a deal is closed — win/loss has already
 counted it.
+
+**Replicate** opens another deal with the same lead or customer, in the pipeline's first stage, with no outcome. The stage history starts afresh.

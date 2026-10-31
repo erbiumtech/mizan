@@ -76,3 +76,5 @@ it is being written; **Submit** tells the approvers. Approval can be more than
 one step: the first by anyone who may approve, then the roles named under
 Company Settings → Expense claim approval, in order. The status shows who it
 is waiting for.
+
+**Replicate** starts a repeat claim, such as the same monthly travel, as a draft dated today with the same lines. It reaches no approver and posts nothing until it is submitted, and it carries no receipts: attach the new ones before submitting.

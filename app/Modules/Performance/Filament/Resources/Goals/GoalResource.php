@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\Goals;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Support\RecordSheet;
@@ -139,7 +140,7 @@ class GoalResource extends Resource
                     Goal::STATUS_DROPPED => 'Dropped',
                 ]),
             ])
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

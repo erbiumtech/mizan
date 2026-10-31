@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\PlantItems\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\ConstructionCosting\Models\PlantItem;
 use App\Modules\ConstructionCosting\Services\PlantHireMatch;
 use App\Support\CompanyCurrency;
@@ -131,6 +132,7 @@ class PlantItemsTable
                         && (auth()->user()?->can('view', $record) ?? false))
                     ->modalDescription(fn (PlantItem $record): string => static::matchSummary($record))
                     ->action(fn () => null),
+                ReplicateRecordAction::make(),
             ])
             ->emptyStateHeading('No plant registered')
             ->emptyStateDescription('Owned machines charge jobs internal hire from their logs. Hired machines are costed by their supplier invoice, and their logs are what checks it.');

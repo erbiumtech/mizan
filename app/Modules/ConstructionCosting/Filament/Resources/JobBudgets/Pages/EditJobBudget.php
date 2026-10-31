@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\JobBudgets\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionCosting\Filament\Resources\JobBudgets\JobBudgetResource;
@@ -15,6 +16,6 @@ class EditJobBudget extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('construction-budget', 'Job budget: Help')];
+        return [HelpAction::make('construction-budget', 'Job budget: Help'), ReplicateRecordAction::make()];
     }
 }

@@ -4,11 +4,13 @@ namespace App\Modules\Accounting\Models;
 
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 
-class FixedAsset extends Model
+class FixedAsset extends Model implements Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     public const STATUS_ACTIVE = 'active';
 
@@ -103,5 +105,23 @@ class FixedAsset extends Model
     public function isDepreciable(): bool
     {
         return $this->status === self::STATUS_ACTIVE && $this->remainingDepreciable() > 0;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * Another asset like this one, for a batch bought together: same account, cost, method, life and
+     * salvage. It starts with its own tag (the creating hook draws the next `FA-` code), nothing
+     * depreciated, active, and linked to no purchase entry, so its book value is its cost.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'asset_code' => null,
+            'accumulated_depreciation' => 0,
+            'status' => self::STATUS_ACTIVE,
+            'disposed_at' => null,
+            'journal_entry_id' => null,
+        ];
     }
 }

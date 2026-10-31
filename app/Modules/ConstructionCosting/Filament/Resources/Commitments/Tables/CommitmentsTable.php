@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\Commitments\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Services\CommitmentService;
@@ -210,6 +211,7 @@ class CommitmentsTable
                         'Cancelled.',
                         'The commitment is off the cost report.',
                     )),
+                ReplicateRecordAction::make(),
             ]);
     }
 

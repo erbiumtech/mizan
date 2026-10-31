@@ -74,3 +74,5 @@ This list only ever answers whether a specific date is a holiday.
 **View**: `HolidayView` — held by every role that needs to know which days are
 closed. **Create**: `HolidayCreate`. **Update**: `HolidayUpdate`. **Delete**:
 `HolidayDelete`. Setting the company calendar is the Administrator's.
+
+**Replicate** puts the same holiday on another date. It asks for the date, suggesting the same day a year on, and refuses a date that already has a holiday.

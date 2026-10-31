@@ -57,8 +57,16 @@ class ReplicableCoverageTest extends TestCase
             $model = $import[1];
             $offers = $this->directoryMentions(dirname($resource), 'ReplicateRecordAction');
 
-            if (in_array($model, $replicable, true) && ! $offers) {
-                $withoutAction[] = basename($resource).' ('.$model.')';
+            if (in_array($model, $replicable, true)) {
+                // Both places a person meets the record: its row in the list (the table, which the resource
+                // or its Tables class defines) and its own page's header, when it has an edit or view page.
+                $onList = $this->listMentions(dirname($resource), 'ReplicateRecordAction');
+                $hasRecordPage = (bool) glob(dirname($resource).'/Pages/{Edit,View}*.php', GLOB_BRACE);
+                $onPage = ! $hasRecordPage || $this->directoryMentions(dirname($resource).'/Pages', 'ReplicateRecordAction', '/^(Edit|View)/');
+
+                if (! $onList || ! $onPage) {
+                    $withoutAction[] = basename($resource).' ('.$model.')'.(! $onList ? ' — not on the list' : '').(! $onPage ? ' — not on its page' : '');
+                }
             }
 
             if (! in_array($model, $replicable, true) && $offers) {
@@ -123,13 +131,61 @@ class ReplicableCoverageTest extends TestCase
         return $models;
     }
 
-    private function directoryMentions(string $directory, string $needle): bool
+    private function directoryMentions(string $directory, string $needle, ?string $basenamePattern = null): bool
+    {
+        if (! is_dir($directory)) {
+            return false;
+        }
+
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS));
+
+        foreach ($files as $file) {
+            if ($file->getExtension() !== 'php' || ($basenamePattern && ! preg_match($basenamePattern, $file->getBasename()))) {
+                continue;
+            }
+
+            if (str_contains((string) file_get_contents($file->getPathname()), $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** The list's row actions: a `recordActions([...])` call naming the action, outside the record pages. */
+    private function listMentions(string $directory, string $needle): bool
     {
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS));
 
         foreach ($files as $file) {
-            if ($file->getExtension() === 'php' && str_contains((string) file_get_contents($file->getPathname()), $needle)) {
-                return true;
+            if ($file->getExtension() !== 'php' || str_contains($file->getPathname(), '/RelationManagers/')) {
+                continue;
+            }
+
+            $source = (string) file_get_contents($file->getPathname());
+            $offset = 0;
+
+            while (($at = strpos($source, '->recordActions(', $offset)) !== false) {
+                $offset = $at + 1;
+                $open = strpos($source, '(', $at);
+                $depth = 0;
+
+                // The call's own parentheses, so a nested closure or array does not end it early.
+                for ($i = $open, $length = strlen($source); $i < $length; $i++) {
+                    $depth += match ($source[$i]) {
+                        '(' => 1,
+                        ')' => -1,
+                        default => 0,
+                    };
+
+                    if ($depth === 0) {
+                        break;
+                    }
+                }
+
+                if (str_contains(substr($source, $open, $i - $open), $needle)) {
+                    return true;
+                }
             }
         }
 

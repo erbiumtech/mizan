@@ -2,6 +2,7 @@
 
 namespace App\Modules\Crm\Filament\Resources\Opportunities;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
 use App\Filament\Support\RecordSheet;
@@ -364,6 +365,7 @@ class OpportunityResource extends Resource
                     }),
 
                 \Filament\Actions\EditAction::make(),
+                ReplicateRecordAction::make(),
             ]);
     }
 
