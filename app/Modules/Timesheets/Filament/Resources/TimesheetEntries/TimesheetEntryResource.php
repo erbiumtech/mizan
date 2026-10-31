@@ -13,6 +13,7 @@ use App\Modules\Timesheets\Services\TimesheetService;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use App\Support\LandlordUserColumn;
+use App\Support\ResourceContributions;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -84,7 +85,13 @@ class TimesheetEntryResource extends Resource
                 ->label(__('Project'))
                 ->options(fn (): array => Project::orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
-                ->required(),
+                ->required()
+                // Live so a component contributed below it can offer what belongs to this project.
+                ->live(),
+
+            // What another module adds to this form — the work item picker, when there is a board
+            // (App\Support\ResourceContributions). This file never learns what fills the slot.
+            ...ResourceContributions::formComponentsFor(static::class),
 
             DatePicker::make('date')->native(false)->required()->default(now()),
 
@@ -179,6 +186,8 @@ class TimesheetEntryResource extends Resource
                     }),
 
                 EditAction::make(),
+
+                ...ResourceContributions::recordActionsFor(static::class),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

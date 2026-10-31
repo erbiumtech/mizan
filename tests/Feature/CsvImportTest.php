@@ -50,6 +50,9 @@ class CsvImportTest extends AccountingTestCase
     /** Past payslips as paid — docs/saas-launch-plan.md §14.1, at 60. */
     private const SALARY_HISTORY = 'salary_history';
 
+    // Work items from a Jira export — docs/project-management-plan.md §8.9, registered by Work at 60.
+    private const JIRA = 'jira';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -330,7 +333,7 @@ class CsvImportTest extends AccountingTestCase
         $this->assertSame(
             [
                 self::CONTACTS, self::EMPLOYEES, self::PRODUCTS, self::OPENING_BALANCES, self::HOLIDAYS, self::COST_CODES,
-                self::OPENING_INVOICES, self::OPENING_STOCK, self::SALARY_HISTORY,
+                self::OPENING_INVOICES, self::OPENING_STOCK, self::SALARY_HISTORY, self::JIRA,
             ],
             CsvImporters::keys(),
         );

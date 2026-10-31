@@ -238,6 +238,8 @@ class NavigationTree
             'Integrations' => [
                 'Webhooks',
                 'API Keys',
+                // Code hosts, chat and time trackers a company has connected — docs/project-management-plan.md §8.
+                'Connected Services',
             ],
             'Payroll setup' => [
                 'Pay Components',
