@@ -125,7 +125,11 @@ class RecordSheetTest extends AccountingTestCase
             ->test(ListTaxRates::class)
             ->assertSet('defaultTableAction', 'edit')
             ->call('mountAction', 'edit', [], ['table' => true, 'recordKey' => (string) $this->rate->getKey(), 'mountedFromUrl' => true])
-            ->assertActionMounted(TestAction::make('edit')->table($this->rate))
+            // Asserted on the mounted action itself: assertActionMounted() compares the whole context, and a
+            // URL mount carries the key as a string plus `mountedFromUrl`, which TestAction::table() never has.
+            ->assertSet('mountedActions.0.name', 'edit')
+            ->assertSet('mountedActions.0.context.recordKey', (string) $this->rate->getKey())
+            ->assertSet('mountedActions.0.context.mountedFromUrl', true)
             ->assertActionDataSet(['name' => 'GST 18%']);
     }
 
