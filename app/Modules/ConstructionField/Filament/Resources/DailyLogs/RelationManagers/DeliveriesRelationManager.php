@@ -159,6 +159,8 @@ class DeliveriesRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('description')
+            // The supplier column falls back to the linked contact's name when no label was typed.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('supplier'))
             ->columns([
                 TextColumn::make('docket_number')
                     ->label(__('Docket'))
