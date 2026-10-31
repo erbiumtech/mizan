@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\Requisitions\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionCosting\Filament\Resources\Requisitions\RequisitionResource;
@@ -15,6 +16,6 @@ class EditRequisition extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('construction-requisitions', 'Requisitions: Help')];
+        return [HelpAction::make('construction-requisitions', 'Requisitions: Help'), ReplicateRecordAction::make()];
     }
 }

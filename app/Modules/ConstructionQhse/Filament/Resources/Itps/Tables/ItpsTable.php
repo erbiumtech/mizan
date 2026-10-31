@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionQhse\Filament\Resources\Itps\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\ConstructionQhse\Models\Itp;
 use App\Modules\ConstructionQhse\Services\ItpService;
 use Filament\Actions\Action;
@@ -128,6 +129,7 @@ class ItpsTable
 
                 DeleteAction::make()
                     ->visible(fn (Itp $record): bool => auth()->user()?->can('delete', $record) ?? false),
+                ReplicateRecordAction::make(),
             ])
             ->emptyStateHeading('No inspection and test plans')
             ->emptyStateDescription('Hold, witness and review are three different commercial positions. An ITP that does not distinguish them is a formality.');

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Holidays\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Core\Filament\Resources\Holidays\HolidayResource;
 use Filament\Actions\DeleteAction;
@@ -17,6 +18,7 @@ class EditHoliday extends EditRecord
     {
         return [
             DeleteAction::make(),
+            ReplicateRecordAction::make(),
         ];
     }
 }

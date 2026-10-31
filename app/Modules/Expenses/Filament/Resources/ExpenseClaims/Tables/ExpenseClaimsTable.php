@@ -2,6 +2,7 @@
 
 namespace App\Modules\Expenses\Filament\Resources\ExpenseClaims\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Modules\Expenses\Services\ExpenseClaimBankPayment;
@@ -207,6 +208,7 @@ class ExpenseClaimsTable
                     }),
 
                 EditAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

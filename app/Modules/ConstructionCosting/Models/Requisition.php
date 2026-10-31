@@ -6,6 +6,9 @@ use App\Models\TenantModel as Model;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\Location;
 use App\Modules\Construction\Models\WbsNode;
+use App\Modules\ConstructionCosting\Services\RequisitionService;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,9 +25,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * report. What it has instead is an outstanding quantity per line — `requested − ordered` — derived from the
  * commitment lines that name it, the same way open commitment is derived from reliefs rather than stored.
  */
-class Requisition extends Model
+class Requisition extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const STATUS_DRAFT = 'draft';
 
@@ -125,5 +128,32 @@ class Requisition extends Model
     public function displayName(): string
     {
         return $this->number;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A new draft request like this one, with its lines, for the same job. It takes the year's next
+     * `REQ-` number, is requested by whoever copied it today, and has no approval or refusal. Nothing on
+     * it is ordered yet: the ordered quantity is read off the order lines that name a requisition line,
+     * and no order names the copy's.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'number' => fn (): string => app(RequisitionService::class)->nextNumber(),
+            'status' => self::STATUS_DRAFT,
+            'requested_by' => fn (): ?int => auth()->id(),
+            'requested_on' => fn (): string => now()->toDateString(),
+            'required_by' => null,
+            'approved_at' => null,
+            'approved_by' => null,
+            'rejection_reason' => null,
+        ];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines'];
     }
 }

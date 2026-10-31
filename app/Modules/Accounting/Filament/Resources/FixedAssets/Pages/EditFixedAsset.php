@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\FixedAssets\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\InteractsWithCustomFields;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\FixedAssetResource;
@@ -18,6 +19,7 @@ class EditFixedAsset extends EditRecord
     {
         return [
             DeleteAction::make(),
+            ReplicateRecordAction::make(),
         ];
     }
 }

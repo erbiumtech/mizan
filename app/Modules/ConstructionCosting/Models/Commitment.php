@@ -3,6 +3,9 @@
 namespace App\Modules\ConstructionCosting\Models;
 
 use App\Models\TenantModel as Model;
+use App\Modules\ConstructionCosting\Services\CommitmentService;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,9 +27,9 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * for the same figure to live, and the first thing that goes wrong is a receipt that relieves and a stored total
  * that does not move.
  */
-class Commitment extends Model
+class Commitment extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const TYPE_PURCHASE_ORDER = 'purchase_order';
 
@@ -171,5 +174,37 @@ class Commitment extends Model
     public function displayName(): string
     {
         return $this->number.($this->description ? " — {$this->description}" : '');
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A new draft order like this one, for a supplier ordered from again: same type, supplier, currency,
+     * terms, retention and lines. It takes the year's next number for its type and today's order date,
+     * and has no approval, issue or closing. It belongs to no contract and none of its lines comes from
+     * a requisition, so it commits nothing until it is approved and issued like any other order.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'number' => fn (self $original): string => app(CommitmentService::class)->nextNumber($original->type),
+            'status' => self::STATUS_DRAFT,
+            'contract_id' => null,
+            'order_date' => fn (): string => now()->toDateString(),
+            'required_by' => null,
+            'supplier_reference' => null,
+            'approved_at' => null,
+            'approved_by' => null,
+            'issued_at' => null,
+            'issued_by' => null,
+            'closed_at' => null,
+            'closed_by' => null,
+            'close_reason' => null,
+        ];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines' => ['requisition_line_id', 'variance_accepted_at', 'variance_accepted_by', 'variance_reason']];
     }
 }

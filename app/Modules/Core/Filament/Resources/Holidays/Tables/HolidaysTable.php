@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Holidays\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Core\Models\Holiday;
 use App\Modules\Core\Models\WorkLocation;
 use Filament\Actions\BulkActionGroup;
@@ -57,6 +58,7 @@ class HolidaysTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

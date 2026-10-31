@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\Requisitions\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Models\Requisition;
 use App\Modules\ConstructionCosting\Models\RequisitionLine;
@@ -200,6 +201,7 @@ class RequisitionsTable
                             app(RequisitionService::class)->order($record, $commitment);
                         }, 'Ordered.', 'The order is a draft: approve and issue it to commit the money.');
                     }),
+                ReplicateRecordAction::make(),
             ]);
     }
 

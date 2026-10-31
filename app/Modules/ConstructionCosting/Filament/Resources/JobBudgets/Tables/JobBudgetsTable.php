@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\JobBudgets\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\ConstructionCosting\Models\JobBudget;
 use App\Modules\ConstructionCosting\Services\BudgetService;
 use App\Support\CompanyCurrency;
@@ -162,6 +163,7 @@ class JobBudgetsTable
                         'Revision opened.',
                         'A draft copying this version\'s lines. Approve it when it is ready.',
                     )),
+                ReplicateRecordAction::make(),
             ]);
     }
 

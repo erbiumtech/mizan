@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\FixedAssets\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Accounting\Services\DepreciationService;
@@ -83,6 +84,7 @@ class FixedAssetsTable
             ->recordActions([
                 EditAction::make(),
                 ...self::assetActions(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

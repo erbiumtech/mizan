@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Resources\WorkWorkflows\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\HelpAction;
 use App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource;
 use Filament\Actions\DeleteAction;
@@ -23,6 +24,7 @@ class EditWorkWorkflow extends EditRecord
         return [
             HelpAction::make('work-workflows', 'Workflows: Help'),
             DeleteAction::make(),
+            ReplicateRecordAction::make(),
         ];
     }
 }

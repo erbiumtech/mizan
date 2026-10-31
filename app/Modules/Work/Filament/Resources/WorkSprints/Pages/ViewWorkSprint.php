@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Resources\WorkSprints\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\HelpAction;
 use App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource;
 use App\Modules\Work\Models\WorkItem;
@@ -41,6 +42,7 @@ class ViewWorkSprint extends ViewRecord
     {
         return [
             HelpAction::make('work-sprints', 'Sprints: Help'),
+            ReplicateRecordAction::make(),
         ];
     }
 

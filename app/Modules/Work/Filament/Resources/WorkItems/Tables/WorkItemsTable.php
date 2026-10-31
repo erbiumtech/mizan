@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Resources\WorkItems\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkStatus;
 use Filament\Tables\Columns\TextColumn;
@@ -144,6 +145,8 @@ class WorkItemsTable
                         'linkedFrom',
                         fn (Builder $l) => $l->where('kind', 'blocks'),
                     )),
-            ]);
+            ])
+            // The row opens the item; Replicate makes a similar one with the next key (docs/replicate-records.md).
+            ->recordActions([ReplicateRecordAction::make()]);
     }
 }

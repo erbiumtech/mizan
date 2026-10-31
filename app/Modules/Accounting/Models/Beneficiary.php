@@ -5,11 +5,13 @@ namespace App\Modules\Accounting\Models;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\Bank;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 
-class Beneficiary extends Model
+class Beneficiary extends Model implements Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     protected $fillable = [
         'name', 'bank_id', 'account_no', 'iban', 'id_type', 'id_number',
@@ -103,5 +105,28 @@ class Beneficiary extends Model
     public function payments()
     {
         return $this->morphMany(Payment::class, 'payable');
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A payee "like this one": same bank, payment type, transaction type and withholding treatment, never
+     * the same person. The account number, IBAN, ID number, contact details and address are left for
+     * whoever fills the copy in, so nobody is paid into someone else's account by accident.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'account_no' => null,
+            'iban' => null,
+            'id_number' => null,
+            'email' => null,
+            'phone' => null,
+            'address_line_1' => null,
+            'address_line_2' => null,
+            'is_petty_cash_custodian' => false,
+            'engaged_on' => null,
+            'engagement_ended_on' => null,
+        ];
     }
 }
