@@ -79,7 +79,7 @@ class WorkBoardSettingsTest extends AccountingTestCase
         parent::tearDown();
     }
 
-    private function status(string $name): int
+    private function statusId(string $name): int
     {
         return (int) WorkStatus::query()->where('work_workflow_id', $this->workflow->getKey())->where('name', $name)->value('id');
     }
@@ -110,9 +110,9 @@ class WorkBoardSettingsTest extends AccountingTestCase
                 'swimlane' => 'assignee',
                 'shows_subtasks' => true,
                 'columns' => [
-                    ['label' => 'Ready', 'status_ids' => [$this->status('To do')], 'limit' => null],
-                    ['label' => 'Doing', 'status_ids' => [$this->status('In progress'), $this->status('In review')], 'limit' => 3],
-                    ['label' => 'Finished', 'status_ids' => [$this->status('Done')], 'limit' => null],
+                    ['label' => 'Ready', 'status_ids' => [$this->statusId('To do')], 'limit' => null],
+                    ['label' => 'Doing', 'status_ids' => [$this->statusId('In progress'), $this->statusId('In review')], 'limit' => 3],
+                    ['label' => 'Finished', 'status_ids' => [$this->statusId('Done')], 'limit' => null],
                 ],
             ])
             ->assertHasNoActionErrors();
@@ -123,7 +123,7 @@ class WorkBoardSettingsTest extends AccountingTestCase
         $this->assertSame('assignee', $board->swimlane);
         $this->assertTrue($board->shows_subtasks);
         $this->assertSame(['Ready', 'Doing', 'Finished'], array_column($board->columns, 'label'));
-        $this->assertSame([$this->status('In progress'), $this->status('In review')], $board->columns[1]['status_ids']);
+        $this->assertSame([$this->statusId('In progress'), $this->statusId('In review')], $board->columns[1]['status_ids']);
         $this->assertSame(3, $board->limitFor(1));
         $this->assertNull($board->limitFor(0));
     }
@@ -151,7 +151,7 @@ class WorkBoardSettingsTest extends AccountingTestCase
 
     public function test_a_status_may_be_in_one_column_only(): void
     {
-        $todo = $this->status('To do');
+        $todo = $this->statusId('To do');
 
         Livewire::test(Board::class, ['project' => $this->project->getKey()])
             ->callAction('boardSettings', data: [
@@ -161,7 +161,7 @@ class WorkBoardSettingsTest extends AccountingTestCase
                 'shows_subtasks' => false,
                 'columns' => [
                     ['label' => 'First', 'status_ids' => [$todo], 'limit' => null],
-                    ['label' => 'Second', 'status_ids' => [$todo, $this->status('Done')], 'limit' => null],
+                    ['label' => 'Second', 'status_ids' => [$todo, $this->statusId('Done')], 'limit' => null],
                 ],
             ])
             ->assertHasActionErrors(['columns']);
@@ -186,16 +186,16 @@ class WorkBoardSettingsTest extends AccountingTestCase
         $settings = app(BoardSettings::class);
 
         $this->assertStringContainsString('shows no status', (string) $settings->columnProblem([['label' => 'Empty', 'status_ids' => []]], $this->workflow));
-        $this->assertStringContainsString('whole number', (string) $settings->columnProblem([['label' => 'Doing', 'status_ids' => [$this->status('To do')], 'limit' => 0]], $this->workflow));
+        $this->assertStringContainsString('whole number', (string) $settings->columnProblem([['label' => 'Doing', 'status_ids' => [$this->statusId('To do')], 'limit' => 0]], $this->workflow));
         $this->assertStringContainsString('at least one column', (string) $settings->columnProblem([], $this->workflow));
         $this->assertStringContainsString('not in this project', (string) $settings->columnProblem([['label' => 'Other', 'status_ids' => [999999]]], $this->workflow));
-        $this->assertNull($settings->columnProblem([['label' => 'Only to do', 'status_ids' => [$this->status('To do')], 'limit' => '2']], $this->workflow), 'a status in no column is allowed');
+        $this->assertNull($settings->columnProblem([['label' => 'Only to do', 'status_ids' => [$this->statusId('To do')], 'limit' => '2']], $this->workflow), 'a status in no column is allowed');
     }
 
     public function test_reset_goes_back_to_one_column_per_status_with_no_limits(): void
     {
         $this->board->update([
-            'columns' => [['label' => 'Everything', 'status_ids' => [$this->status('To do'), $this->status('Done')]]],
+            'columns' => [['label' => 'Everything', 'status_ids' => [$this->statusId('To do'), $this->statusId('Done')]]],
             'wip_limits' => ['0' => 2],
         ]);
 
