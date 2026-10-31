@@ -2,6 +2,7 @@
 
 namespace App\Modules\Crm\Filament\Resources\Pipelines;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Crm\Filament\Resources\Pipelines\Pages\CreatePipeline;
 use App\Modules\Crm\Filament\Resources\Pipelines\Pages\EditPipeline;
@@ -94,7 +95,7 @@ class PipelineResource extends Resource
                 IconColumn::make('is_default')->label(__('Default'))->boolean(),
                 IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

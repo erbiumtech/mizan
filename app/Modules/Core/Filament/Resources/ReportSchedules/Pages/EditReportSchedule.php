@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\ReportSchedules\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Core\Filament\Resources\ReportSchedules\ReportScheduleResource;
 use Filament\Actions\DeleteAction;
@@ -16,6 +17,7 @@ class EditReportSchedule extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

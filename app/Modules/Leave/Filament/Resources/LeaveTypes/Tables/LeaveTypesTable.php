@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave\Filament\Resources\LeaveTypes\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Leave\Models\LeaveType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -79,7 +80,7 @@ class LeaveTypesTable
                 TernaryFilter::make('is_active')->label(__('Active')),
                 TernaryFilter::make('is_paid')->label(__('Paid')),
             ])
-            ->recordActions([EditAction::make()])
+            ->recordActions([EditAction::make(), ReplicateRecordAction::make()])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

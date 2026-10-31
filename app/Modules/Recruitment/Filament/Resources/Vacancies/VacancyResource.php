@@ -2,6 +2,7 @@
 
 namespace App\Modules\Recruitment\Filament\Resources\Vacancies;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Recruitment\Filament\Resources\Vacancies\Pages\CreateVacancy;
@@ -132,7 +133,7 @@ class VacancyResource extends Resource
                     Vacancy::STATUS_CLOSED => 'Closed',
                 ]),
             ])
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

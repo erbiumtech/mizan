@@ -2,6 +2,7 @@
 
 namespace App\Modules\Expenses\Filament\Resources\ExpenseCategories;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Models\TransactionType;
 use App\Modules\Expenses\Filament\Resources\ExpenseCategories\Pages\CreateExpenseCategory;
@@ -61,7 +62,7 @@ class ExpenseCategoryResource extends Resource
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->defaultSort('name')
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

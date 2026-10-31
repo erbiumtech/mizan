@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\PayComponents\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,6 @@ class EditPayComponent extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\DeleteAction::make()];
+        return [\Filament\Actions\DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

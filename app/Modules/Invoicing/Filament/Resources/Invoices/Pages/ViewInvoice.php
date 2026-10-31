@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\Invoices\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Schemas\InvoiceInfolist;
 use App\Modules\Invoicing\Filament\Resources\Invoices\Tables\InvoicesTable;
@@ -82,6 +83,7 @@ class ViewInvoice extends ViewRecord
             ActionGroup::make(array_values(array_filter([
                 EditAction::make(),
                 ...$actions->values()->all(),
+                ReplicateRecordAction::make(),
                 DeleteAction::make(),
             ])))
                 ->label(__('More actions'))

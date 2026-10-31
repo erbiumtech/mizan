@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\WorkLocations;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Core\Filament\Resources\WorkLocations\Pages\CreateWorkLocation;
 use App\Modules\Core\Filament\Resources\WorkLocations\Pages\EditWorkLocation;
@@ -117,6 +118,7 @@ class WorkLocationResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ]);
     }
 

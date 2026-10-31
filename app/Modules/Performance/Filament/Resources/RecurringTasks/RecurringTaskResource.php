@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\RecurringTasks;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Core\Models\WorkLocation;
 use App\Modules\Employees\Models\Employee;
@@ -155,7 +156,7 @@ class RecurringTaskResource extends Resource
             ])
             ->defaultSort('title')
             ->filters([TernaryFilter::make('is_active')->label(__('Active'))])
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

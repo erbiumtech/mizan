@@ -2,6 +2,7 @@
 
 namespace App\Modules\Expenses\Filament\Resources\ExpenseCategories\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Expenses\Filament\Resources\ExpenseCategories\ExpenseCategoryResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditExpenseCategory extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

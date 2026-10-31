@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\ChequeLayouts\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Accounting\Filament\Resources\ChequeLayouts\ChequeLayoutResource;
 use Filament\Actions\DeleteAction;
@@ -17,6 +18,7 @@ class EditChequeLayout extends EditRecord
     {
         return [
             ChequeLayoutResource::testPrintAction()->record($this->getRecord()),
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

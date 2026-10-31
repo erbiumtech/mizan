@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\ScheduledTransactions\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Accounting\Models\ScheduledTransaction;
 use App\Modules\Accounting\Services\ScheduledTransactionService;
 use Carbon\CarbonImmutable;
@@ -138,6 +139,7 @@ class ScheduledTransactionsTable
 
                 EditAction::make(),
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

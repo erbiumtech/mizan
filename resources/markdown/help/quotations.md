@@ -56,3 +56,7 @@ price rather than the argument that produced it.
 **View**: `QuotationView`. **Create / update**: `QuotationCreate`, `QuotationUpdate` — drafts
 only. **Delete**: `QuotationDelete`, and never once a quote has become an invoice. **Raise the
 invoice**: `QuotationConvert`, separate because of what issuing later means.
+
+**Replicate** makes a new draft at version 1 from any quotation, with the same customer and lines,
+a new number, today's issue date and the same validity. Whether the original was accepted, declined
+or invoiced does not carry over. It needs `QuotationCreate`.

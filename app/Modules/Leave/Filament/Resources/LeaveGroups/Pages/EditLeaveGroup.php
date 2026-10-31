@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave\Filament\Resources\LeaveGroups\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Leave\Filament\Resources\LeaveGroups\LeaveGroupResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditLeaveGroup extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

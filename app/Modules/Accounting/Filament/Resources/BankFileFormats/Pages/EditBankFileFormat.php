@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\BankFileFormatResource;
 use Filament\Actions\DeleteAction;
@@ -17,6 +18,7 @@ class EditBankFileFormat extends EditRecord
     {
         return [
             BankFileFormatResource::previewAction()->record($this->getRecord()),
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

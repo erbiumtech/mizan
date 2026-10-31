@@ -2,6 +2,7 @@
 
 namespace App\Modules\Construction\Filament\Resources\CostCodes\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Construction\Filament\Resources\CostCodes\CostCodeResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditCostCode extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

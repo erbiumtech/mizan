@@ -2,6 +2,7 @@
 
 namespace App\Modules\Campaigns\Filament\Resources\Campaigns\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\CampaignResource;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,6 @@ class EditCampaign extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\DeleteAction::make()];
+        return [\Filament\Actions\DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\SalarySlabs\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Payroll\Filament\Resources\SalarySlabs\SalarySlabResource;
 use Filament\Actions\DeleteAction;
@@ -16,6 +17,7 @@ class EditSalarySlab extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

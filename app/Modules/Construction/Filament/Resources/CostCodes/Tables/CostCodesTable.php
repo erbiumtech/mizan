@@ -2,6 +2,7 @@
 
 namespace App\Modules\Construction\Filament\Resources\CostCodes\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Construction\Models\CostCode;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -126,7 +127,7 @@ class CostCodesTable
                     ->query(fn (Builder $query) => $query->unmappedFor('nrm_code')),
             ])
             ->defaultSort('code')
-            ->recordActions([EditAction::make()])
+            ->recordActions([EditAction::make(), ReplicateRecordAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 }

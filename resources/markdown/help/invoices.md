@@ -248,3 +248,9 @@ Yes, if the company reports invoices. It's a separate document to FBR, and it
 shows in FBR Invoice Reporting under "Issued but never reported" until it's been
 sent. Whether a credit note is a sufficient correction in law is a question for
 the company's tax advisor.
+
+**How do I raise an invoice like one I've already sent?**
+Open it and choose **Replicate** from the ⋮ menu, or from its row in the list. The copy is a new
+draft with the same customer, lines and terms, a new number, today's date and the same number of
+days to pay. Nothing paid, posted or reported to FBR is copied, and the original does not change.
+Credit and debit notes cannot be replicated — they only exist against the invoice they correct.

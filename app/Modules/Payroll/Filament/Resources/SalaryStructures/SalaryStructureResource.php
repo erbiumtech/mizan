@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\SalaryStructures;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Payroll\Filament\Resources\SalaryStructures\Pages\CreateSalaryStructure;
 use App\Modules\Payroll\Filament\Resources\SalaryStructures\Pages\EditSalaryStructure;
@@ -80,7 +81,7 @@ class SalaryStructureResource extends Resource
                 TextColumn::make('lines_count')->counts('lines')->label(__('Components')),
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

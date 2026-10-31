@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\ChequeLayouts;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Filament\Resources\ChequeLayouts\Pages\CreateChequeLayout;
 use App\Modules\Accounting\Filament\Resources\ChequeLayouts\Pages\EditChequeLayout;
@@ -91,6 +92,7 @@ class ChequeLayoutResource extends Resource
                 static::testPrintAction(),
                 EditAction::make(),
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\Pages\CreateChecklistTemplate;
 use App\Modules\Lifecycle\Filament\Resources\ChecklistTemplates\Pages\EditChecklistTemplate;
@@ -111,7 +112,7 @@ class ChecklistTemplateResource extends Resource
                 TextColumn::make('items_count')->label(__('Items'))->counts('items')->alignEnd(),
                 IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

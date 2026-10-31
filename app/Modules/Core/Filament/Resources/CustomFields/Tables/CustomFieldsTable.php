@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\CustomFields\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Core\Filament\Resources\CustomFields\CustomFieldResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -36,6 +37,7 @@ class CustomFieldsTable
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

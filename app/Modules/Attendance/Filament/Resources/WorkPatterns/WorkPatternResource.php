@@ -2,6 +2,7 @@
 
 namespace App\Modules\Attendance\Filament\Resources\WorkPatterns;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Attendance\Filament\Resources\WorkPatterns\Pages\CreateWorkPattern;
 use App\Modules\Attendance\Filament\Resources\WorkPatterns\Pages\EditWorkPattern;
@@ -113,7 +114,7 @@ class WorkPatternResource extends Resource
                     ->counts('assignments')
                     ->alignEnd(),
             ])
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

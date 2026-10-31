@@ -2,6 +2,7 @@
 
 namespace App\Modules\Campaigns\Filament\Resources\Segments;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Campaigns\Filament\Resources\Segments\Pages\CreateSegment;
 use App\Modules\Campaigns\Filament\Resources\Segments\Pages\EditSegment;
@@ -81,7 +82,7 @@ class SegmentResource extends Resource
                 IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->defaultSort('name')
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

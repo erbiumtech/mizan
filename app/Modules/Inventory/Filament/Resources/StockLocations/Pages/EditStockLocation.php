@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\StockLocations\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\Inventory\Filament\Resources\StockLocations\StockLocationResource;
@@ -15,6 +16,6 @@ class EditStockLocation extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('stock-locations', 'Stock locations: Help')];
+        return [HelpAction::make('stock-locations', 'Stock locations: Help'), ReplicateRecordAction::make()];
     }
 }

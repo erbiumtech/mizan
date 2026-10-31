@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Resources\Departments;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Employees\Filament\Resources\Departments\Pages\CreateDepartment;
 use App\Modules\Employees\Filament\Resources\Departments\Pages\EditDepartment;
@@ -60,7 +61,7 @@ class DepartmentResource extends Resource
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->defaultSort('name')
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

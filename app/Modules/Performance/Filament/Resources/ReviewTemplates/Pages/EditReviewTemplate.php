@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\ReviewTemplates\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Performance\Filament\Resources\ReviewTemplates\ReviewTemplateResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditReviewTemplate extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

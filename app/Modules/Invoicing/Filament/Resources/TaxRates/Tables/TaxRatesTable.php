@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\TaxRates\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Invoicing\Models\TaxRate;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -57,7 +58,7 @@ class TaxRatesTable
                 IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->defaultSort('rate', 'desc')
-            ->recordActions([EditAction::make()])
+            ->recordActions([EditAction::make(), ReplicateRecordAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 }

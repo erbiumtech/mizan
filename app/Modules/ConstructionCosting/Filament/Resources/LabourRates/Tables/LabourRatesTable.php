@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRates\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\ConstructionCosting\Models\LabourRate;
 use App\Support\CompanyCurrency;
 use Filament\Actions\DeleteAction;
@@ -122,6 +123,7 @@ class LabourRatesTable
                     // Only a rate that has not started: once one has been in force, a labour record has probably
                     // frozen its figure and a deleted row leaves that snapshot with nothing to explain it.
                     ->visible(fn (LabourRate $record): bool => auth()->user()?->can('delete', $record) ?? false),
+                ReplicateRecordAction::make(),
             ])
             ->emptyStateHeading('No rates set')
             ->emptyStateDescription('Until a rate exists, labour cannot be costed at all — nothing here guesses one, because a week of labour costing 0.00 looks like a healthy figure and is not. Start with a company default, then add trades.');

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Accounts\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -84,6 +85,7 @@ class AccountsTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Crm\Filament\Resources\LeadSources;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Crm\Filament\Resources\LeadSources\Pages\CreateLeadSource;
 use App\Modules\Crm\Filament\Resources\LeadSources\Pages\EditLeadSource;
@@ -64,7 +65,7 @@ class LeadSourceResource extends Resource
                 IconColumn::make('is_active')->label(__('Active'))->boolean()->sortable(),
             ])
             ->defaultSort('sort')
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

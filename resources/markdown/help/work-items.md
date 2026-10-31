@@ -84,3 +84,10 @@ assignment, prioritisation and sprint planning are deliberately not offered.
 Everybody who works the board may view, create, update and move items — filing a bug should never
 need a permission. Deleting is the CEO's. **Moving** is a separate permission from **updating**, so
 a board can be shared with somebody who may read every card and drag none of them.
+
+## Replicating an item
+
+**Replicate** on a row or on the item makes a copy in the same project with the next key, at the
+start of the workflow, out of any sprint, with the same labels. Who it is assigned to and its
+estimate are kept; when it started, resolved or was archived is not. Anybody who may create items
+may replicate one.

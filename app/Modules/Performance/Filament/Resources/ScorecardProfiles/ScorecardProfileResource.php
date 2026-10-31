@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\ScorecardProfiles;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Performance\Filament\Resources\ScorecardProfiles\Pages\CreateScorecardProfile;
 use App\Modules\Performance\Filament\Resources\ScorecardProfiles\Pages\EditScorecardProfile;
@@ -92,7 +93,7 @@ class ScorecardProfileResource extends Resource
                 IconColumn::make('is_active')->label(__('In use'))->boolean(),
             ])
             ->defaultSort('designation')
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

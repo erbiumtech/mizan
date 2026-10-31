@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\Products\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Services\InventoryService;
@@ -85,6 +86,7 @@ class ProductsTable
             ->recordActions([
                 EditAction::make(),
                 ...self::stockActions(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

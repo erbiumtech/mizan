@@ -39,9 +39,16 @@ class ReplicateRecordAction extends ReplicateAction
 
         $this->label(__('Replicate'));
 
+        // All three: the parent sets its own table and grouped icons, which would win over icon().
         $this->icon(Heroicon::OutlinedDocumentDuplicate);
+        $this->tableIcon(Heroicon::OutlinedDocumentDuplicate);
+        $this->groupedIcon(Heroicon::OutlinedDocumentDuplicate);
 
         $this->color('gray');
+
+        // With nothing unique to ask, the modal is only a confirmation; with fields, a confirmation
+        // still frames them, so pressing the button never copies anything without a second click.
+        $this->requiresConfirmation();
 
         $this->visible(fn (?Model $record): bool => static::allowsReplicating($record));
 
@@ -55,7 +62,7 @@ class ReplicateRecordAction extends ReplicateAction
 
         $this->schema(fn (Model $record): array => collect(static::uniqueFields($record))
             ->map(fn (Closure $suggest, string $attribute): TextInput => TextInput::make($attribute)
-                ->label(__(Str::headline($attribute)))
+                ->label(__($attribute === 'sku' ? 'SKU' : Str::headline($attribute)))
                 ->required()
                 ->maxLength(191)
                 ->rules([

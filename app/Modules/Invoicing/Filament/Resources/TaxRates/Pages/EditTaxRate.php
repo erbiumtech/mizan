@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\TaxRates\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Invoicing\Filament\Resources\TaxRates\TaxRateResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditTaxRate extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

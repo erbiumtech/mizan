@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\Contacts\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\InteractsWithCustomFields;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Invoicing\Filament\Resources\Contacts\ContactResource;
@@ -18,6 +19,7 @@ class EditContact extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

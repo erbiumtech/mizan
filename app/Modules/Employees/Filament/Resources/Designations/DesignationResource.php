@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Resources\Designations;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Employees\Filament\Resources\Designations\Pages\CreateDesignation;
 use App\Modules\Employees\Filament\Resources\Designations\Pages\EditDesignation;
@@ -59,7 +60,7 @@ class DesignationResource extends Resource
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->defaultSort('level')
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

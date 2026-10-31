@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\Products\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\InteractsWithCustomFields;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Inventory\Filament\Resources\Products\ProductResource;
@@ -17,6 +18,7 @@ class EditProduct extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

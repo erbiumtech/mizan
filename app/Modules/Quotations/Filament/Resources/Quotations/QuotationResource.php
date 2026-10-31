@@ -2,6 +2,7 @@
 
 namespace App\Modules\Quotations\Filament\Resources\Quotations;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Inventory\Models\Product;
@@ -333,6 +334,7 @@ class QuotationResource extends Resource
                     }),
 
                 \Filament\Actions\EditAction::make(),
+                ReplicateRecordAction::make(),
             ]);
     }
 

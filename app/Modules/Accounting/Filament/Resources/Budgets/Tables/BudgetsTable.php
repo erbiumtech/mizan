@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Budgets\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Accounting\Models\Budget;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -64,6 +65,7 @@ class BudgetsTable
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

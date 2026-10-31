@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\Invoices\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\InteractsWithCustomFields;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Invoicing\Filament\Resources\Invoices\InvoiceResource;
@@ -19,6 +20,7 @@ class EditInvoice extends EditRecord
     {
         return [
             ViewAction::make(),
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }
