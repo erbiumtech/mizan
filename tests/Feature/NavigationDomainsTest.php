@@ -257,7 +257,8 @@ class NavigationDomainsTest extends TestCase
         $this->assertSame(['finance'], $visible);
 
         // The branch holding the screen is open, and the screen is marked.
-        $this->assertMatchesRegularExpression('/<details class="fi-nav-drawer-branch"\s+open>/', $html);
+        // Blade writes the attribute as ` open ` before the `>`: whitespace either side is the same HTML.
+        $this->assertMatchesRegularExpression('/<details class="fi-nav-drawer-branch"\s+open\s*>/', $html);
         $this->assertMatchesRegularExpression('/fi-nav-drawer-item fi-active"[^>]*aria-current="page"/', $html);
     }
 

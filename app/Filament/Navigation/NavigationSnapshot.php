@@ -28,12 +28,23 @@ class NavigationSnapshot
     private ?array $rail = null;
 
     /**
+     * The request the cached answers belong to. `scoped()` clears this object when the container
+     * forgets its scoped instances - Octane and the queue worker do, but nothing does between two
+     * requests the test client sends through one application, so a second request was answered out
+     * of the first one's navigation (the Employees page marked Finance after an Accounts page).
+     * Keying on the request makes that impossible whatever the container does.
+     */
+    private ?object $request = null;
+
+    /**
      * Every group, unfiltered — including the domains the current request is not in.
      *
      * @return array<NavigationGroup>
      */
     public function groups(): array
     {
+        $this->forgetIfAnotherRequest();
+
         return $this->groups ??= DomainNavigationManager::withoutFiltering(
             fn (): array => Filament::getCurrentOrDefaultPanel()?->getNavigation() ?? [],
         );
@@ -49,6 +60,19 @@ class NavigationSnapshot
      */
     public function rail(): array
     {
+        $this->forgetIfAnotherRequest();
+
         return $this->rail ??= \App\Support\NavigationDomains::rail($this->groups());
+    }
+
+    private function forgetIfAnotherRequest(): void
+    {
+        $request = app('request');
+
+        if ($this->request !== $request) {
+            $this->request = $request;
+            $this->groups = null;
+            $this->rail = null;
+        }
     }
 }
