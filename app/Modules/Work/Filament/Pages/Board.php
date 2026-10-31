@@ -159,9 +159,9 @@ class Board extends Page
         return [
             HelpAction::make('work-board', 'Board: Help'),
             $this->boardSettingsAction(),
+            $this->editWorkflowAction(),
             ActionGroup::make([
                 $this->newBoardAction(),
-                $this->editWorkflowAction(),
                 $this->resetColumnsAction(),
                 $this->deleteBoardAction(),
             ])
@@ -209,8 +209,10 @@ class Board extends Page
                     ->helperText(__('Off, a subtask is counted on its parent\'s card instead.')),
                 Repeater::make('columns')
                     ->label(__('Columns'))
-                    // A column can only hold statuses the workflow has; a new one is added there. A new tab,
-                    // so the settings typed here so far are not lost.
+                    // A column can only hold statuses the workflow has; a new one is added there. Said in
+                    // words for everybody (a Manager may set up boards but not edit workflows), and a link
+                    // in a new tab for whoever may, so the settings typed here so far are not lost.
+                    ->helperText(fn (): ?string => $this->statusesSourceText())
                     ->hintAction(
                         Action::make('editWorkflowFromSettings')
                             ->label(__('Edit workflow'))
@@ -407,8 +409,24 @@ class Board extends Page
         return Action::make('editWorkflow')
             ->label(__('Edit workflow'))
             ->icon('heroicon-o-arrow-path-rounded-square')
+            // A text button beside Board settings, not inside the ⋮ menu, so it is found.
+            ->link()
             ->url(fn (): ?string => $this->workflowEditUrl())
             ->visible(fn (): bool => $this->workflowEditUrl() !== null);
+    }
+
+    /** Where a column's statuses come from, and who can add one. */
+    private function statusesSourceText(): ?string
+    {
+        $workflow = $this->workflow();
+
+        if ($workflow === null) {
+            return null;
+        }
+
+        return $this->workflowEditUrl() !== null
+            ? __('Statuses come from the :workflow workflow. Add or rename them with Edit workflow.', ['workflow' => $workflow->name])
+            : __('Statuses come from the :workflow workflow. To add one, ask someone who manages workflows.', ['workflow' => $workflow->name]);
     }
 
     private function workflowEditUrl(): ?string

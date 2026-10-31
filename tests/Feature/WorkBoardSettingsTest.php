@@ -277,6 +277,16 @@ class WorkBoardSettingsTest extends AccountingTestCase
             ->assertActionHasUrl('editWorkflow', WorkWorkflowResource::getUrl('edit', ['record' => $this->workflow]));
     }
 
+    /** A Manager sets up boards but does not edit workflows: settings, yes; the workflow link, no. */
+    public function test_a_manager_may_configure_the_board_but_not_edit_the_workflow(): void
+    {
+        $this->actingAs($this->makeUser('Manager', 'manager@test.local'));
+
+        Livewire::test(Board::class, ['project' => $this->project->getKey()])
+            ->assertActionVisible('boardSettings')
+            ->assertActionHidden('editWorkflow');
+    }
+
     public function test_the_workflow_field_is_offered_only_where_the_company_has_work(): void
     {
         Livewire::test(EditProject::class, ['record' => $this->project->getKey()])
