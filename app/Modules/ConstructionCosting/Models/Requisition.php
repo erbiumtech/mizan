@@ -26,6 +26,12 @@ class Requisition extends Model
 {
     use Auditable;
 
+    /**
+     * The state that means "waiting for someone to approve it": its list puts these rows first
+     * (App\Filament\Support\PendingFirst). [column, values], or [column, null] for "while empty".
+     */
+    public const PENDING_APPROVAL = ['status', [self::STATUS_SUBMITTED]];
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_SUBMITTED = 'submitted';

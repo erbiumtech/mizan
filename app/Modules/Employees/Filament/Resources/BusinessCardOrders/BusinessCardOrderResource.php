@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\BusinessCardOrders;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\PendingFirst;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\BusinessCardOrders\Pages\CreateBusinessCardOrder;
 use App\Modules\Employees\Filament\Resources\BusinessCardOrders\Pages\ListBusinessCardOrders;
@@ -136,7 +137,7 @@ class BusinessCardOrderResource extends Resource
                     })
                     ->description(fn (BusinessCardOrder $record): ?string => $record->refusal_reason),
             ])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(BusinessCardOrder::class))
             ->filters([SelectFilter::make('status')->options(BusinessCardOrder::STATUSES)])
             ->recordActions([
                 Action::make('proof')

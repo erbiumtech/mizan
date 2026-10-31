@@ -24,6 +24,12 @@ class TimesheetEntry extends Model
     use Auditable;
     use StoresPlainDates;
 
+    /**
+     * The state that means "waiting for someone to approve it": its list puts these rows first
+     * (App\Filament\Support\PendingFirst). [column, values], or [column, null] for "while empty".
+     */
+    public const PENDING_APPROVAL = ['approved_at', null];
+
     protected array $plainDates = ['date'];
 
     protected $fillable = [

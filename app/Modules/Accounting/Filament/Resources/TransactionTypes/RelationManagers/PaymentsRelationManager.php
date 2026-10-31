@@ -2,6 +2,8 @@
 
 namespace App\Modules\Accounting\Filament\Resources\TransactionTypes\RelationManagers;
 
+use App\Filament\Support\PendingFirst;
+use App\Modules\Accounting\Models\Payment;
 use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -17,6 +19,7 @@ class PaymentsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('reference')
+            ->defaultSort(PendingFirst::sort(Payment::class, 'id', 'asc'))
             ->columns([
                 TextColumn::make('reference')
                     ->searchable(),

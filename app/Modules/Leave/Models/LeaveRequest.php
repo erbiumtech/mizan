@@ -34,6 +34,12 @@ class LeaveRequest extends Model
     /** Stored as plain dates so overlapping() compares like with like on either driver. */
     protected array $plainDates = ['from_date', 'to_date'];
 
+    /**
+     * The state that means "waiting for someone to approve it": its list puts these rows first
+     * (App\Filament\Support\PendingFirst). [column, values], or [column, null] for "while empty".
+     */
+    public const PENDING_APPROVAL = ['status', [self::STATUS_PENDING]];
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_APPROVED = 'approved';

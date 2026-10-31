@@ -32,6 +32,12 @@ class Submittal extends Model
 {
     use Auditable;
 
+    /**
+     * The state that means "waiting for someone to approve it": its list puts these rows first
+     * (App\Filament\Support\PendingFirst). [column, values], or [column, null] for "while empty".
+     */
+    public const PENDING_APPROVAL = ['status', [self::STATUS_SUBMITTED, self::STATUS_UNDER_REVIEW]];
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_SUBMITTED = 'submitted';

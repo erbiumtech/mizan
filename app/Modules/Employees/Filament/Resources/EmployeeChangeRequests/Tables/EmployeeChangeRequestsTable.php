@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -18,6 +19,7 @@ class EmployeeChangeRequestsTable
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
+            ->defaultSort(PendingFirst::sort(EmployeeChangeRequest::class, 'id', 'asc'))
             ->columns([
                 TextColumn::make('id')
                     ->label(__('ID'))

@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\LetterRequests;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\PendingFirst;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\LetterRequests\Pages\CreateLetterRequest;
 use App\Modules\Employees\Filament\Resources\LetterRequests\Pages\ListLetterRequests;
@@ -103,7 +104,7 @@ class LetterRequestResource extends Resource
                     ->description(fn (LetterRequest $r): ?string => $r->refusal_reason),
             ])
             ->filters([SelectFilter::make('status')->options(['pending' => 'Pending', 'issued' => 'Issued', 'refused' => 'Refused'])])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(LetterRequest::class))
             ->recordActions([
                 Action::make('issue')
                     ->label(__('Issue'))

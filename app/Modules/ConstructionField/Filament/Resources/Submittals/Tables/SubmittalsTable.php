@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionField\Filament\Resources\Submittals\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionField\Models\Submittal;
 use App\Modules\ConstructionField\Models\SubmittalReview;
 use App\Modules\ConstructionField\Services\SubmittalService;
@@ -160,7 +161,7 @@ class SubmittalsTable
                     ->query(fn (Builder $query): Builder => $query->has('reviews', '>', 1))
                     ->toggle(),
             ])
-            ->defaultSort('required_on_site_date')
+            ->defaultSort(PendingFirst::sort(Submittal::class, 'required_on_site_date', 'asc'))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (Submittal $record): bool => auth()->user()?->can('update', $record) ?? false),

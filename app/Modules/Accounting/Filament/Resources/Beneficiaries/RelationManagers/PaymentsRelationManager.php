@@ -2,6 +2,8 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Beneficiaries\RelationManagers;
 
+use App\Filament\Support\PendingFirst;
+use App\Modules\Accounting\Models\Payment;
 use App\Support\CompanyCurrency;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -45,6 +47,6 @@ class PaymentsRelationManager extends RelationManager
                     })
                     ->sortable(),
             ])
-            ->defaultSort('value_date', 'desc');
+            ->defaultSort(PendingFirst::sort(Payment::class, 'value_date'));
     }
 }

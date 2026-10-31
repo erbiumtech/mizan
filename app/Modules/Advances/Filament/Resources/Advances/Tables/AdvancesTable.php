@@ -2,6 +2,7 @@
 
 namespace App\Modules\Advances\Filament\Resources\Advances\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\Advances\Models\Advance;
 use App\Modules\Advances\Services\AdvanceApplications;
 use App\Modules\Advances\Services\AdvanceService;
@@ -58,7 +59,7 @@ class AdvancesTable
                 TextColumn::make('started_on')->label(__('Given on'))->date('d M Y')->sortable()->toggleable(),
                 TextColumn::make('reference')->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('started_on', 'desc')
+            ->defaultSort(PendingFirst::sort(Advance::class, 'started_on'))
             ->filters([
                 SelectFilter::make('status')->options([
                     Advance::STATUS_ACTIVE => 'Active',
