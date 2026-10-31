@@ -177,9 +177,19 @@ class IntegrationConnection extends Model
         ])->save();
     }
 
-    /** How many inbound events are waiting on an identity match — what the page says. */
+    /**
+     * How many deliveries are waiting — what the connection page says.
+     *
+     * Two kinds, and the page's helper text names both: received and not yet processed (queued), and
+     * failed with a reason a person can fix — an unlinked project, an unmatched user — after which a
+     * replay lands them. The second is the common case: a held entry is recorded as a failure with its
+     * reason, so counting only the queued ones would show 0 while four entries sat waiting on a link.
+     */
     public function eventsWaitingOnIdentity(): int
     {
-        return $this->events()->whereNull('processed_at')->whereNull('failed_at')->count();
+        return $this->events()
+            ->whereNull('processed_at')
+            ->where(fn ($query) => $query->whereNull('failed_at')->orWhere('failure', 'like', '%held until%'))
+            ->count();
     }
 }
