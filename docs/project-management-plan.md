@@ -266,11 +266,28 @@ A **Kanban** board shows every open item matching its filter. A **Scrum** board 
 sprint's items and has a backlog view beside it (§6). The difference is the `where`, not the
 screen.
 
+**Board settings — built 2026-10-31** (`WorkBoardSettingsTest`). Phase 2 shipped the board with
+only its first-view mapping and no screen to edit it, and a project form with no way to choose its
+workflow. Now: a **Board settings** action on the board (`BoardManage`) edits name, kind, lanes,
+subtasks-as-cards and the columns — label, statuses, an optional card limit, reorderable, the limit
+travelling with its column. A save is refused, with the reason, for a column without a status, a
+status in two columns, or a limit that is not a whole number of at least one; a status in no column
+is allowed and named above the board as before. **Reset columns from workflow** goes back to one
+column per status. A project may have several boards (**New board**, **Delete this board** — never
+the last), chosen by a second picker carried in the address as `board`; the first stays the
+default, and `GET /work/projects/{key}/board` takes `?board=` the same way. The project form
+gains **Workflow**, contributed by Work through `ResourceContributions::addFormComponent()` so
+Projects still names nothing of this module's. The change rule is the strict one, in
+`BoardSettings`: a project changes workflow only while none of its items is in a status the new
+workflow lacks — in practice, before it has items — with nothing remapped silently; a model guard
+refuses the same change made any other way, and when it goes through every board of the project is
+redrawn from the new workflow with its limits cleared.
+
 ### 5.2 The columns are statuses, mapped
 
 A column shows the items whose status it lists. Two statuses may share a column (*In review*
 and *In QA* under "Review"); a status in no column is hidden from that board and said so in the
-board's settings, because a status that silently swallows cards is the first thing a team
+board's settings and above the board, because a status that silently swallows cards is the first thing a team
 blames the tool for. Dropping a card into a column with several statuses moves it to the first;
 the card's menu offers the others.
 

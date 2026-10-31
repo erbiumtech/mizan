@@ -6,6 +6,11 @@ them. Your company starts with one, called *Default*: To do → In progress → 
 A project uses one workflow. Most companies never need a second; a company that runs client
 approvals differently from internal work writes one more.
 
+A project picks its workflow on its own form, under **Workflow**; empty means the company default.
+The choice can be changed only while none of the project's items is in a status the new workflow
+lacks — in practice, before the project has items — and changing it redraws the project's boards
+from the new statuses. Nothing is remapped silently.
+
 ## Statuses, and the category that matters
 
 Every status is in one of three categories — **To do**, **In progress**, **Done** — and this is the
