@@ -30,7 +30,7 @@ class PaymentsRelationManager extends RelationManager
                     ->sortable(),
 
                 TextColumn::make('value_date')
-                    ->label('Value Date')
+                    ->label(__('Value Date'))
                     ->date()
                     ->sortable(),
             ]);

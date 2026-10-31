@@ -23,21 +23,21 @@ class OfferLetterAction
     public static function make(): Action
     {
         return Action::make('offerLetter')
-            ->label('Offer letter')
+            ->label(__('Offer letter'))
             ->icon('heroicon-o-envelope')
             ->color('gray')
             ->visible(fn (Application $record): bool => $record->offer !== null
                 && (auth()->user()?->can('view', $record) ?? false))
             ->schema([
                 TextInput::make('valid_days')
-                    ->label('Valid for (days)')
+                    ->label(__('Valid for (days)'))
                     ->numeric()
                     ->minValue(1)
                     ->maxValue(90)
                     ->default(7)
                     ->required(),
                 Toggle::make('email_candidate')
-                    ->label('Email it to the candidate')
+                    ->label(__('Email it to the candidate'))
                     ->helperText(fn (Application $record): string => $record->applicant?->email
                         ? 'Sends the letter as a PDF to '.$record->applicant->email.'.'
                         : 'The applicant has no email address on record.')

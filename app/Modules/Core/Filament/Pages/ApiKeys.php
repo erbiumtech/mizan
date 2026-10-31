@@ -68,19 +68,19 @@ class ApiKeys extends Page implements HasTable
                 ->where('tokenable_type', auth()->user()?->getMorphClass())
                 ->where('tokenable_id', auth()->id()))
             ->columns([
-                TextColumn::make('name')->label('What it is for')->searchable(),
+                TextColumn::make('name')->label(__('What it is for'))->searchable(),
                 TextColumn::make('abilities')
-                    ->label('Scopes')
+                    ->label(__('Scopes'))
                     ->state(fn (PersonalAccessToken $record): string => collect((array) $record->abilities)
                         ->map(fn (string $ability): string => ApiAbilities::all()[$ability] ?? $ability)
                         ->implode(', ')),
-                TextColumn::make('created_at')->label('Made')->dateTime('d M Y')->sortable(),
+                TextColumn::make('created_at')->label(__('Made'))->dateTime('d M Y')->sortable(),
                 // The column people actually come here for: a key nobody has used in a year
                 // is a key nobody will miss, and a key used this morning is one to ask about
                 // before revoking.
-                TextColumn::make('last_used_at')->label('Last used')->dateTime('d M Y H:i')->placeholder('never')->sortable(),
+                TextColumn::make('last_used_at')->label(__('Last used'))->dateTime('d M Y H:i')->placeholder('never')->sortable(),
                 TextColumn::make('expires_at')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->dateTime('d M Y')
                     ->placeholder('never')
                     ->color(fn (?string $state): string => $state !== null && now()->gt($state) ? 'danger' : 'gray')
@@ -89,7 +89,7 @@ class ApiKeys extends Page implements HasTable
             ->defaultSort('id', 'desc')
             ->recordActions([
                 Action::make('revoke')
-                    ->label('Revoke')
+                    ->label(__('Revoke'))
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->requiresConfirmation()
@@ -109,25 +109,25 @@ class ApiKeys extends Page implements HasTable
         return [
             HelpAction::make('api-keys', 'API Keys: Help'),
             Action::make('newKey')
-                ->label('New key')
+                ->label(__('New key'))
                 ->icon('heroicon-o-plus')
                 ->modalHeading('Make an API key')
                 ->modalSubmitActionLabel('Make the key')
                 ->schema([
                     TextInput::make('name')
-                        ->label('What it is for')
+                        ->label(__('What it is for'))
                         ->required()
                         ->maxLength(120)
                         ->placeholder('Attendance sync on the office server')
                         ->helperText('Name it after the thing that will use it, not after yourself. In a year this '
                             .'is all anybody will have to decide whether it is still needed.'),
                     CheckboxList::make('abilities')
-                        ->label('Scopes')
+                        ->label(__('Scopes'))
                         ->options(ApiAbilities::all())
                         ->default(['api'])
                         ->helperText('Every key can use the API; there is nothing narrower to give yet.'),
                     Select::make('days')
-                        ->label('Good for')
+                        ->label(__('Good for'))
                         ->options(self::LIFETIMES)
                         ->default('90')
                         ->required()

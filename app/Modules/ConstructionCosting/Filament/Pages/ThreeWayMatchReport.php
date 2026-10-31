@@ -67,7 +67,7 @@ class ThreeWayMatchReport extends Page
             ->statePath('data')
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -121,7 +121,7 @@ class ThreeWayMatchReport extends Page
     public function acceptAction(): Action
     {
         return Action::make('accept')
-            ->label('Accept')
+            ->label(__('Accept'))
             ->icon('heroicon-o-check')
             ->color('warning')
             ->visible(fn (): bool => auth()->user()?->can('ConstructionVarianceAccept') ?? false)
@@ -129,7 +129,7 @@ class ThreeWayMatchReport extends Page
             ->modalDescription('It stops appearing on this report and keeps your name and your reason. That record is the answer when somebody asks in six months why the job carries more than it was ordered at.')
             ->schema([
                 Textarea::make('reason')
-                    ->label('Why it is acceptable')
+                    ->label(__('Why it is acceptable'))
                     ->rows(3)
                     ->required()
                     ->helperText('"Supplier substituted 20mm for 16mm at our request, agreed with the QS on the 14th" — not "ok".'),

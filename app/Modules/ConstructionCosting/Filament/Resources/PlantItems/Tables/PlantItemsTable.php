@@ -28,7 +28,7 @@ class PlantItemsTable
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label('Plant no.')
+                    ->label(__('Plant no.'))
                     ->searchable()
                     ->sortable(),
 
@@ -41,7 +41,7 @@ class PlantItemsTable
                     ->toggleable(),
 
                 TextColumn::make('ownership')
-                    ->label('Held')
+                    ->label(__('Held'))
                     ->badge()
                     ->color(fn (string $state): string => $state === PlantItem::OWNERSHIP_OWNED ? 'success' : 'info')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
@@ -52,12 +52,12 @@ class PlantItemsTable
                     ->sortable(),
 
                 TextColumn::make('supplier.name')
-                    ->label('From')
+                    ->label(__('From'))
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('working_rate')
-                    ->label('Working rate')
+                    ->label(__('Working rate'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Not a dash: a machine with no rate cannot be approved against at all, and that is worth seeing
@@ -66,49 +66,49 @@ class PlantItemsTable
                     ->sortable(),
 
                 TextColumn::make('idle_rate')
-                    ->label('Idle')
+                    ->label(__('Idle'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('not charged')
                     ->toggleable(),
 
                 TextColumn::make('standby_rate')
-                    ->label('Standby')
+                    ->label(__('Standby'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('not charged')
                     ->toggleable(),
 
                 TextColumn::make('commitment.number')
-                    ->label('Hire order')
+                    ->label(__('Hire order'))
                     // The absence is the finding on a hired machine: without an order, nothing checks the invoice.
                     ->placeholder(fn (PlantItem $record): string => $record->isOwned() ? '—' : 'none linked')
                     ->toggleable(),
 
                 IconColumn::make('is_active')
-                    ->label('In fleet')
+                    ->label(__('In fleet'))
                     ->boolean()
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('ownership')
-                    ->label('How it is held')
+                    ->label(__('How it is held'))
                     ->options(PlantItem::OWNERSHIPS),
 
                 Filter::make('active')
-                    ->label('In the fleet only')
+                    ->label(__('In the fleet only'))
                     ->query(fn (Builder $query) => $query->active())
                     ->default()
                     ->toggle(),
 
                 // The exposure: a hired machine whose invoices nothing is checking.
                 Filter::make('hired_without_order')
-                    ->label('Hired, no order linked')
+                    ->label(__('Hired, no order linked'))
                     ->query(fn (Builder $query) => $query->hired()->whereNull('commitment_id'))
                     ->toggle(),
 
                 Filter::make('no_rate')
-                    ->label('No rate set')
+                    ->label(__('No rate set'))
                     ->query(fn (Builder $query) => $query
                         ->where(fn (Builder $q) => $q->whereNull('working_rate')->orWhere('working_rate', 0))
                         ->where(fn (Builder $q) => $q->whereNull('idle_rate')->orWhere('idle_rate', 0))
@@ -121,7 +121,7 @@ class PlantItemsTable
                     ->visible(fn (PlantItem $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('checkInvoices')
-                    ->label('Check against invoices')
+                    ->label(__('Check against invoices'))
                     ->icon('heroicon-o-scale')
                     ->color('gray')
                     ->modalHeading('Days on site against what has been invoiced')

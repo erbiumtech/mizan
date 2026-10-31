@@ -24,11 +24,11 @@ class TransactionTypesTable
                     ->searchable(),
 
                 TextColumn::make('account.name')
-                    ->label('Default Account')
+                    ->label(__('Default Account'))
                     ->sortable(),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
             ])

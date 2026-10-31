@@ -43,7 +43,7 @@ class MembersRelationManager extends RelationManager
                 TextColumn::make('email')->searchable(),
 
                 TextColumn::make('roles')
-                    ->label('Roles here')
+                    ->label(__('Roles here'))
                     ->badge()
                     ->state(fn (User $record): array => $this->rolesOf($record))
                     ->placeholder('none — cannot use the panel'),
@@ -55,7 +55,7 @@ class MembersRelationManager extends RelationManager
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Add member')
+                    ->label(__('Add member'))
                     // Any account in the installation, not only this company's: adding
                     // somebody who already works for another company is the ordinary case
                     // for an accountant or a contractor.
@@ -66,7 +66,7 @@ class MembersRelationManager extends RelationManager
             ->recordActions([
                 $this->setRolesAction(),
                 DetachAction::make()
-                    ->label('Remove')
+                    ->label(__('Remove'))
                     ->before(fn (User $record) => $this->withTeam(fn () => $record->syncRoles([]))),
             ]);
     }
@@ -82,12 +82,12 @@ class MembersRelationManager extends RelationManager
     protected function setRolesAction(): Action
     {
         return Action::make('setRoles')
-            ->label('Set roles')
+            ->label(__('Set roles'))
             ->icon('heroicon-o-shield-check')
             ->color('gray')
             ->schema([
                 Select::make('roles')
-                    ->label('Roles in this company')
+                    ->label(__('Roles in this company'))
                     ->multiple()
                     ->options(fn (): array => $this->companyRoles())
                     ->helperText('Administrator can do anything within this company. Leave empty to remove every role.'),

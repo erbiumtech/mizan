@@ -19,7 +19,7 @@ class LinesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('transaction_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date()
                     ->sortable(),
 
@@ -36,7 +36,7 @@ class LinesRelationManager extends RelationManager
                     ->sortable(),
 
                 TextColumn::make('match_status')
-                    ->label('Match Status')
+                    ->label(__('Match Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'unmatched' => 'danger',

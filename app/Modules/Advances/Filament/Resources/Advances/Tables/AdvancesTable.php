@@ -26,22 +26,22 @@ class AdvancesTable
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('total_amount')->label('Advance')->money(CompanyCurrency::code())->sortable(),
-                TextColumn::make('monthly_instalment')->label('Per month')->money(CompanyCurrency::code()),
+                TextColumn::make('total_amount')->label(__('Advance'))->money(CompanyCurrency::code())->sortable(),
+                TextColumn::make('monthly_instalment')->label(__('Per month'))->money(CompanyCurrency::code()),
 
                 // Derived from the recovery ledger, so they cannot disagree with
                 // what payroll actually took.
                 TextColumn::make('recovered')
-                    ->label('Recovered')
+                    ->label(__('Recovered'))
                     ->state(fn (Advance $record): string => number_format($record->recoveredAmount(), 2))
                     ->alignEnd(),
 
                 TextColumn::make('remaining')
-                    ->label('Remaining')
+                    ->label(__('Remaining'))
                     ->state(fn (Advance $record): string => number_format($record->remainingAmount(), 2))
                     ->weight('bold')
                     ->alignEnd(),
@@ -55,7 +55,7 @@ class AdvancesTable
                     })
                     ->sortable(),
 
-                TextColumn::make('started_on')->label('Given on')->date('d M Y')->sortable()->toggleable(),
+                TextColumn::make('started_on')->label(__('Given on'))->date('d M Y')->sortable()->toggleable(),
                 TextColumn::make('reference')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('started_on', 'desc')
@@ -69,7 +69,7 @@ class AdvancesTable
             ->recordActions([
                 // Money handed back outside payroll — cash, or a correction.
                 Action::make('approveAdvance')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -86,7 +86,7 @@ class AdvancesTable
                         Notification::make()->success()->title('Approved; recovery starts with the next payslip.')->send();
                     }),
                 Action::make('refuseAdvance')
-                    ->label('Refuse')
+                    ->label(__('Refuse'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_REQUESTED && (auth()->user()?->can('AdvanceUpdate') ?? false))
@@ -96,7 +96,7 @@ class AdvancesTable
                         Notification::make()->warning()->title('Refused, with your reason sent to the employee.')->send();
                     }),
                 Action::make('pauseAdvance')
-                    ->label('Pause')
+                    ->label(__('Pause'))
                     ->icon('heroicon-o-pause-circle')
                     ->color('gray')
                     ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_ACTIVE && (auth()->user()?->can('AdvanceUpdate') ?? false))
@@ -106,7 +106,7 @@ class AdvancesTable
                         Notification::make()->success()->title('Paused. Nothing is deducted until it is resumed.')->send();
                     }),
                 Action::make('resumeAdvance')
-                    ->label('Resume')
+                    ->label(__('Resume'))
                     ->icon('heroicon-o-play-circle')
                     ->color('success')
                     ->visible(fn (Advance $record): bool => $record->status === Advance::STATUS_PAUSED && (auth()->user()?->can('AdvanceUpdate') ?? false))
@@ -115,7 +115,7 @@ class AdvancesTable
                         Notification::make()->success()->title('Resumed.')->send();
                     }),
                 Action::make('recordRecovery')
-                    ->label('Record repayment')
+                    ->label(__('Record repayment'))
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
                     ->visible(fn (Advance $record): bool => $record->remainingAmount() > 0

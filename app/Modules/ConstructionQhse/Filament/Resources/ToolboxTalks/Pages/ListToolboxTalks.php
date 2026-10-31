@@ -15,7 +15,7 @@ class ListToolboxTalks extends ListRecords
     {
         return [
             HelpAction::make('construction-site-personnel', 'Site personnel: Help'),
-            CreateAction::make()->label('Record a talk'),
+            CreateAction::make()->label(__('Record a talk')),
         ];
     }
 }

@@ -44,7 +44,7 @@ class ViewEmployee extends ViewRecord
              * built to stream from the start; this joins them.
              */
             Action::make('downloadPdf')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-document-arrow-down')
                 ->action(function (Employee $record) {
                     $pdf = Pdf::view('pdfs.employee', ['employee' => $record->load('user', 'bank', 'manager.user')])
@@ -86,13 +86,13 @@ class ViewEmployee extends ViewRecord
     protected function appointmentLetterAction(): Action
     {
         return Action::make('appointmentLetter')
-            ->label('Appointment letter')
+            ->label(__('Appointment letter'))
             ->icon('heroicon-o-document-check')
             ->color('gray')
             ->visible(fn (Employee $record): bool => auth()->user()?->can('view', $record) ?? false)
             ->schema([
                 TextInput::make('probation_months')
-                    ->label('Probation (months)')
+                    ->label(__('Probation (months)'))
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(12)
@@ -135,7 +135,7 @@ class ViewEmployee extends ViewRecord
     protected function customLetterAction(): Action
     {
         return Action::make('customLetter')
-            ->label('Custom letter')
+            ->label(__('Custom letter'))
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->isAdministrator() ?? false)
@@ -145,20 +145,20 @@ class ViewEmployee extends ViewRecord
             ->modalSubmitActionLabel('Download')
             ->schema([
                 TextInput::make('to')
-                    ->label('Addressed to')
+                    ->label(__('Addressed to'))
                     ->maxLength(160)
                     ->default(fn (Employee $record): string => $record->fullName())
                     ->helperText('Printed above the subject. "To whom it may concern" works too; '
                         .'leave blank to omit the line.'),
 
                 TextInput::make('subject')
-                    ->label('Subject')
+                    ->label(__('Subject'))
                     ->required()
                     ->maxLength(160)
                     ->placeholder('Letter of Appreciation / Warning Letter / No Objection Certificate'),
 
                 Textarea::make('body')
-                    ->label('Body')
+                    ->label(__('Body'))
                     ->required()
                     ->rows(12)
                     ->maxLength(8000)
@@ -206,7 +206,7 @@ class ViewEmployee extends ViewRecord
     protected function experienceLetterAction(): Action
     {
         return Action::make('experienceLetter')
-            ->label('Experience letter')
+            ->label(__('Experience letter'))
             ->icon('heroicon-o-document-check')
             ->color('gray')
             ->visible(fn (Employee $record): bool => auth()->user()?->can('view', $record) ?? false)
@@ -216,7 +216,7 @@ class ViewEmployee extends ViewRecord
             ->modalSubmitActionLabel('Download')
             ->schema([
                 Select::make('conduct')
-                    ->label('Conduct and performance were found to be')
+                    ->label(__('Conduct and performance were found to be'))
                     ->options(fn (): array => options('employees.conduct'))
                     ->default('satisfactory')
                     ->selectablePlaceholder(false)
@@ -225,18 +225,18 @@ class ViewEmployee extends ViewRecord
                     ->helperText('Your company\'s own wording — edit the list under Settings, Dropdown Options.'),
 
                 Textarea::make('duties')
-                    ->label('Principal duties')
+                    ->label(__('Principal duties'))
                     ->rows(2)
                     ->maxLength(400)
                     ->helperText('One or two lines. Left blank, the sentence is omitted.'),
 
                 TextInput::make('purpose')
-                    ->label('What is it for? (optional)')
+                    ->label(__('What is it for? (optional)'))
                     ->maxLength(160)
                     ->placeholder('future employment / a visa application'),
 
                 Toggle::make('include_salary')
-                    ->label('Include the salary')
+                    ->label(__('Include the salary'))
                     ->helperText('Off by default, and worth leaving off: what somebody earned here is theirs '
                         .'to disclose at their next negotiation. Turn it on only when the recipient has '
                         .'actually asked for a last-drawn figure.'),
@@ -283,7 +283,7 @@ class ViewEmployee extends ViewRecord
     protected function incomeCertificateAction(): Action
     {
         return Action::make('incomeCertificate')
-            ->label('Income certificate')
+            ->label(__('Income certificate'))
             ->icon('heroicon-o-identification')
             ->color('gray')
             ->visible(fn (Employee $record): bool => auth()->user()?->can('view', $record) ?? false)
@@ -293,7 +293,7 @@ class ViewEmployee extends ViewRecord
             ->modalSubmitActionLabel('Download')
             ->schema([
                 TextInput::make('purpose')
-                    ->label('What is it for?')
+                    ->label(__('What is it for?'))
                     ->required()
                     ->maxLength(160)
                     ->placeholder('a visa application / opening a bank account / loan processing')
@@ -307,7 +307,7 @@ class ViewEmployee extends ViewRecord
                         .'embassies match it against the CNIC; leave it blank to omit the clause.'),
 
                 TextInput::make('residence')
-                    ->label('Residential address')
+                    ->label(__('Residential address'))
                     ->maxLength(255)
                     ->default(fn (Employee $record): string => trim(implode(', ', array_filter([
                         $record->address_line_1,
@@ -316,7 +316,7 @@ class ViewEmployee extends ViewRecord
                     ->helperText('From the employee record. Correct it here for this letter only.'),
 
                 Textarea::make('duties')
-                    ->label('Principal duties')
+                    ->label(__('Principal duties'))
                     ->rows(2)
                     ->maxLength(400)
                     ->helperText('One or two lines. Left blank, the sentence is omitted rather than filled '
@@ -352,14 +352,14 @@ class ViewEmployee extends ViewRecord
     protected function transferAction(): Action
     {
         return Action::make('recordTransfer')
-            ->label('Record a transfer')
+            ->label(__('Record a transfer'))
             ->icon('heroicon-o-arrows-right-left')
             ->color('gray')
             ->visible(fn (Employee $record): bool => $record->is_active && (auth()->user()?->can('EmployeeUpdate') ?? false))
             ->schema([
                 \Filament\Forms\Components\Select::make('department')->options(fn (): array => options('employees.department'))->nullable(),
-                \Filament\Forms\Components\Select::make('location_id')->label('Location')->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())->nullable(),
-                \Filament\Forms\Components\Select::make('manager_id')->label('Manager')
+                \Filament\Forms\Components\Select::make('location_id')->label(__('Location'))->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())->nullable(),
+                \Filament\Forms\Components\Select::make('manager_id')->label(__('Manager'))
                     ->options(fn (Employee $record): array => Employee::query()->where('is_active', true)->whereKeyNot($record->getKey())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                     ->searchable()->nullable(),
                 \Filament\Forms\Components\DatePicker::make('effective_from')->native(false)->default(now())->required(),
@@ -381,7 +381,7 @@ class ViewEmployee extends ViewRecord
     protected function promotionAction(): Action
     {
         return Action::make('recordPromotion')
-            ->label('Record a promotion')
+            ->label(__('Record a promotion'))
             ->icon('heroicon-o-arrow-trending-up')
             ->color('gray')
             ->visible(fn (Employee $record): bool => $record->is_active && (auth()->user()?->can('EmployeeUpdate') ?? false))
@@ -435,13 +435,13 @@ class ViewEmployee extends ViewRecord
     protected function rehireAction(): Action
     {
         return Action::make('rehire')
-            ->label('Rehire')
+            ->label(__('Rehire'))
             ->icon('heroicon-o-arrow-path')
             ->color('success')
             ->visible(fn (Employee $record): bool => ! $record->is_active && (auth()->user()?->can('EmployeeUpdate') ?? false))
             ->modalDescription('Reopens the record as a new spell of employment. The old one stays in the job history.')
             ->schema([
-                \Filament\Forms\Components\DatePicker::make('joined_on')->label('Rejoined on')->native(false)->default(now())->required(),
+                \Filament\Forms\Components\DatePicker::make('joined_on')->label(__('Rejoined on'))->native(false)->default(now())->required(),
                 \Filament\Forms\Components\TextInput::make('reason')->maxLength(190),
             ])
             ->action(function (Employee $record, array $data): void {

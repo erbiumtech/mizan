@@ -26,13 +26,13 @@ class PlatformUsersTable
                 TextColumn::make('email')->searchable()->sortable(),
 
                 IconColumn::make('is_super_admin')
-                    ->label('Platform')
+                    ->label(__('Platform'))
                     ->boolean(),
 
                 // The question this screen is for: who is this person, across the
                 // installation. On the company panel the answer is always "here".
                 TextColumn::make('companies.name')
-                    ->label('Companies')
+                    ->label(__('Companies'))
                     ->badge()
                     ->placeholder('none — cannot sign in anywhere')
                     ->limitList(3)
@@ -48,19 +48,19 @@ class PlatformUsersTable
             ])
             ->filters([
                 SelectFilter::make('companies')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->relationship('companies', 'name')
                     ->searchable()
                     ->preload(),
 
                 Filter::make('is_super_admin')
-                    ->label('Platform admins')
+                    ->label(__('Platform admins'))
                     ->query(fn ($query) => $query->where('is_super_admin', true)),
 
                 // An account attached to nothing can sign in nowhere, which is easy to
                 // create by forgetting the last field on the form and invisible afterwards.
                 Filter::make('no_company')
-                    ->label('In no company')
+                    ->label(__('In no company'))
                     ->query(fn ($query) => $query->whereDoesntHave('companies')),
             ])
             ->recordActions([
@@ -100,7 +100,7 @@ class PlatformUsersTable
     protected static function impersonateAction(): Action
     {
         return Action::make('impersonate')
-            ->label('Log in as')
+            ->label(__('Log in as'))
             ->icon('heroicon-o-arrow-right-end-on-rectangle')
             ->color('warning')
             ->requiresConfirmation()

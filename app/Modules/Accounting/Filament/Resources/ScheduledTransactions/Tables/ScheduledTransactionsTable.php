@@ -27,23 +27,23 @@ class ScheduledTransactionsTable
                     ->sortable(),
 
                 TextColumn::make('interval_months')
-                    ->label('Every')
+                    ->label(__('Every'))
                     ->formatStateUsing(fn (ScheduledTransaction $record): string => $record->intervalLabel())
                     ->badge()
                     ->color('gray'),
 
                 TextColumn::make('day_of_month')
-                    ->label('On day')
+                    ->label(__('On day'))
                     ->alignCenter(),
 
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->state(fn (ScheduledTransaction $record): float => $record->totalDebits())
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd(),
 
                 TextColumn::make('next_due')
-                    ->label('Next due')
+                    ->label(__('Next due'))
                     ->state(function (ScheduledTransaction $record): string {
                         if (! $record->is_active) {
                             return 'paused';
@@ -60,7 +60,7 @@ class ScheduledTransactionsTable
                     ->color(fn (string $state): string => in_array($state, ['paused', 'finished'], true) ? 'gray' : 'primary'),
 
                 TextColumn::make('outstanding')
-                    ->label('Waiting')
+                    ->label(__('Waiting'))
                     ->state(fn (ScheduledTransaction $record): int => $record->is_active
                         ? count(app(ScheduledTransactionService::class)->outstandingFor($record))
                         : 0)
@@ -69,7 +69,7 @@ class ScheduledTransactionsTable
                     ->tooltip('Due dates that have no entry yet. They are raised on the nightly run.'),
 
                 IconColumn::make('balanced')
-                    ->label('Balances')
+                    ->label(__('Balances'))
                     ->state(fn (ScheduledTransaction $record): bool => $record->isBalanced())
                     ->boolean()
                     ->tooltip(fn (ScheduledTransaction $record): ?string => $record->isBalanced()
@@ -77,21 +77,21 @@ class ScheduledTransactionsTable
                         : 'Debits and credits differ, so nothing is being raised from this schedule.'),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
 
                 TextColumn::make('ends_on')
-                    ->label('Stops after')
+                    ->label(__('Stops after'))
                     ->date('d M Y')
                     ->placeholder('open-ended')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('is_active')->label('Active'),
+                TernaryFilter::make('is_active')->label(__('Active')),
             ])
             ->recordActions([
                 Action::make('runNow')
-                    ->label('Raise now')
+                    ->label(__('Raise now'))
                     ->icon('heroicon-o-play')
                     ->color('gray')
                     ->authorize('runNow')

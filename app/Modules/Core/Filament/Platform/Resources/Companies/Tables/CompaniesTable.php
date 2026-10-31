@@ -28,7 +28,7 @@ class CompaniesTable
                 // which, and the type is fixed at creation — so noticing later
                 // means re-provisioning.
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn (Company $record): string => $record->typeLabel())
                     ->color(fn (Company $record): string => $record->isPersonal() ? 'warning' : 'gray')
@@ -39,7 +39,7 @@ class CompaniesTable
                 // because it is null for every company created before profiles
                 // existed and a column of dashes helps nobody.
                 TextColumn::make('profile')
-                    ->label('Profile')
+                    ->label(__('Profile'))
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn (Company $record): string => $record->profileLabel())
@@ -47,12 +47,12 @@ class CompaniesTable
                     ->sortable(),
 
                 TextColumn::make('slug')->searchable()->toggleable(),
-                TextColumn::make('users_count')->label('Members')->counts('users')->sortable(),
+                TextColumn::make('users_count')->label(__('Members'))->counts('users')->sortable(),
 
                 // A company with no roles cannot give anybody anything to do, and nothing
                 // else on this screen would say so.
                 TextColumn::make('roles_count')
-                    ->label('Roles')
+                    ->label(__('Roles'))
                     ->counts('roles')
                     ->badge()
                     ->color(fn ($state): string => $state ? 'gray' : 'danger')
@@ -65,12 +65,12 @@ class CompaniesTable
             ])
             ->filters([
                 \Filament\Tables\Filters\SelectFilter::make('type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->options(Company::TYPE_LABELS),
             ])
             ->recordActions([
                 Action::make('open')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->color('gray')
                     // Into the other panel, where the whole request is that company's.
@@ -99,12 +99,12 @@ class CompaniesTable
     protected static function assignAdminAction(): Action
     {
         return Action::make('assignAdmin')
-            ->label('Assign Admin')
+            ->label(__('Assign Admin'))
             ->icon('heroicon-o-user-plus')
             ->color('gray')
             ->schema([
                 Select::make('user_id')
-                    ->label('User')
+                    ->label(__('User'))
                     // Any user, not just the current company's — see User::scopeAcrossCompanies().
                     ->options(fn () => User::acrossCompanies()->orderBy('name')->pluck('name', 'id'))
                     ->searchable()

@@ -48,7 +48,7 @@ class PlantRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('plant_item_id')
-                    ->label('Machine')
+                    ->label(__('Machine'))
                     ->options(fn (): array => static::plant())
                     ->searchable()
                     ->visible(fn (): bool => modules()->enabled('construction_costing'))
@@ -60,18 +60,18 @@ class PlantRelationManager extends RelationManager
                     }),
 
                 TextInput::make('plant_label')
-                    ->label('Machine, in words')
+                    ->label(__('Machine, in words'))
                     ->maxLength(255)
                     ->helperText('Filled in from the fleet register where you have one.'),
 
-                TextInput::make('working_hours')->label('Working')->numeric()->default(0),
-                TextInput::make('idle_hours')->label('Idle')->numeric()->default(0)
+                TextInput::make('working_hours')->label(__('Working'))->numeric()->default(0),
+                TextInput::make('idle_hours')->label(__('Idle'))->numeric()->default(0)
                     ->helperText('On site, available, not working. This is the standing-time figure.'),
-                TextInput::make('breakdown_hours')->label('Broken down')->numeric()->default(0)
+                TextInput::make('breakdown_hours')->label(__('Broken down'))->numeric()->default(0)
                     ->helperText('Kept apart from idle: breakdown is usually your own risk and idle usually is not.'),
 
                 TextInput::make('idle_reason')
-                    ->label('Why it stood')
+                    ->label(__('Why it stood'))
                     ->maxLength(255)
                     ->columnSpanFull()
                     ->helperText('Waiting on another trade, no operator, no access, weather. Idle hours with no reason are the ones nobody can recover.'),
@@ -100,26 +100,26 @@ class PlantRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('plant_label')
             ->columns([
-                TextColumn::make('plant_label')->label('Machine')->placeholder('—'),
+                TextColumn::make('plant_label')->label(__('Machine'))->placeholder('—'),
 
                 TextColumn::make('working_hours')
-                    ->label('Working')
+                    ->label(__('Working'))
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('Working')),
+                    ->summarize(Sum::make()->label(__('Working'))),
 
                 TextColumn::make('idle_hours')
-                    ->label('Idle')
+                    ->label(__('Idle'))
                     ->alignEnd()
                     ->description(fn (DailyLogPlant $record): ?string => $record->isUnexplainedIdle()
                         // Named rather than left blank: this is the hour nobody recovers.
                         ? 'no reason given'
                         : $record->idle_reason)
-                    ->summarize(Sum::make()->label('Idle')),
+                    ->summarize(Sum::make()->label(__('Idle'))),
 
                 TextColumn::make('breakdown_hours')
-                    ->label('Broken')
+                    ->label(__('Broken'))
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('Broken')),
+                    ->summarize(Sum::make()->label(__('Broken'))),
             ])
             ->headerActions([
                 CreateAction::make()

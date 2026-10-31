@@ -15,7 +15,7 @@ class ListWeeklySalesReports extends ListRecords
     {
         return [
             HelpAction::make('weekly-sales-form', 'Weekly Sales Form: Help'),
-            CreateAction::make()->label('Send this week'),
+            CreateAction::make()->label(__('Send this week')),
         ];
     }
 }

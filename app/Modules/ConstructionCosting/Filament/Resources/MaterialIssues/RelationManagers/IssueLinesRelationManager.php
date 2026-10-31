@@ -56,7 +56,7 @@ class IssueLinesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('product_id')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->options(fn (): array => Product::query()->orderBy('sku')->get()
                         ->mapWithKeys(fn (Product $product): array => [
                             $product->getKey() => "{$product->sku} — {$product->name}",
@@ -68,7 +68,7 @@ class IssueLinesRelationManager extends RelationManager
                     ->helperText(fn (callable $get): string => static::onHand($get, $this->issue())),
 
                 Select::make('job_id')
-                    ->label('To job')
+                    ->label(__('To job'))
                     ->options(fn (): array => Job::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -79,7 +79,7 @@ class IssueLinesRelationManager extends RelationManager
                     ->helperText('One docket can serve several jobs off the same store.'),
 
                 Select::make('cost_code_id')
-                    ->label('Used on')
+                    ->label(__('Used on'))
                     ->options(fn (): array => CostCode::query()
                         ->where('is_leaf', true)->where('is_active', true)
                         ->orderBy('code')->get()
@@ -90,7 +90,7 @@ class IssueLinesRelationManager extends RelationManager
                     ->helperText('Where the cost moves to. It has to be the same cost type as the code the material was received against.'),
 
                 Select::make('wbs_node_id')
-                    ->label('WBS element')
+                    ->label(__('WBS element'))
                     ->options(fn (callable $get): array => $get('job_id') === null ? [] : WbsNode::query()
                         ->where('job_id', $get('job_id'))
                         ->orderBy('path')->get()
@@ -105,13 +105,13 @@ class IssueLinesRelationManager extends RelationManager
                     ->helperText('Everything that left the store, wastage included.'),
 
                 TextInput::make('wastage_quantity')
-                    ->label('Of which wasted')
+                    ->label(__('Of which wasted'))
                     ->numeric()
                     ->default(0)
                     ->helperText('Part of the quantity, not on top of it. It leaves as a separate waste movement so it can be totalled.'),
 
                 TextInput::make('wastage_reason')
-                    ->label('Wasted because')
+                    ->label(__('Wasted because'))
                     ->maxLength(255)
                     ->columnSpanFull(),
 
@@ -149,46 +149,46 @@ class IssueLinesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('product.sku')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->description(fn (MaterialIssueLine $record): ?string => $record->product?->name)
                     ->searchable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->toggleable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Used on')
+                    ->label(__('Used on'))
                     ->toggleable(),
 
                 TextColumn::make('quantity')
                     ->alignEnd(),
 
                 TextColumn::make('wastage_quantity')
-                    ->label('Wasted')
+                    ->label(__('Wasted'))
                     ->alignEnd()
                     ->description(fn (MaterialIssueLine $record): ?string => $record->wastage_reason)
                     // Zero rather than a dash: wastage of nothing is a fact worth stating on a material docket.
-                    ->summarize(Sum::make()->label('Wasted')),
+                    ->summarize(Sum::make()->label(__('Wasted'))),
 
                 TextColumn::make('returned_quantity')
-                    ->label('Back')
+                    ->label(__('Back'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('unit_cost')
-                    ->label('At')
+                    ->label(__('At'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('at posting'),
 
                 TextColumn::make('amount')
-                    ->label('Value')
+                    ->label(__('Value'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
-                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Moved')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label(__('Moved'))),
             ])
             ->headerActions([
                 CreateAction::make()
@@ -208,7 +208,7 @@ class IssueLinesRelationManager extends RelationManager
                         && (auth()->user()?->can('update', $this->issue()) ?? false)),
 
                 Action::make('return')
-                    ->label('Return')
+                    ->label(__('Return'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('gray')
                     ->modalHeading('Material back into the store')

@@ -66,12 +66,12 @@ class QuotationResource extends Resource
                 ->description('A customer or a lead. A quote to a lead cannot become an invoice until the lead is converted — an invoice needs a party the ledger can bill.')
                 ->schema([
                     Select::make('contact_id')
-                        ->label('Customer')
+                        ->label(__('Customer'))
                         ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                         ->searchable(),
 
                     Select::make('lead_id')
-                        ->label('Lead')
+                        ->label(__('Lead'))
                         ->options(fn (): array => Lead::query()
                             ->open()
                             ->orderByDesc('id')
@@ -93,7 +93,7 @@ class QuotationResource extends Resource
                         ->default(now()->addDays(30))
                         ->helperText('After this it cannot be accepted — the prices may no longer hold. Expiring happens once, not as a daily reminder.'),
 
-                    TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder(CompanyCurrency::code()),
+                    TextInput::make('currency_code')->label(__('Currency'))->maxLength(3)->placeholder(CompanyCurrency::code()),
                     TextInput::make('exchange_rate')->numeric(),
 
                     Textarea::make('terms')->rows(2)->columnSpanFull(),
@@ -102,10 +102,10 @@ class QuotationResource extends Resource
 
             Repeater::make('lines')
                 ->relationship()
-                ->label('Lines')
+                ->label(__('Lines'))
                 ->schema([
                     Select::make('product_id')
-                        ->label('Product')
+                        ->label(__('Product'))
                         ->options(fn (): array => Product::query()->orderBy('name')->pluck('name', 'id')->all())
                         ->searchable()
                         ->visible(fn (): bool => modules()->enabled('inventory'))
@@ -138,13 +138,13 @@ class QuotationResource extends Resource
                     TextInput::make('unit_price')->numeric()->default(0)->required(),
 
                     TextInput::make('discount_pct')
-                        ->label('Discount %')
+                        ->label(__('Discount %'))
                         ->numeric()
                         ->default(fn (callable $get): float => (float) (Contact::query()->find($get('../../contact_id'))?->default_discount_pct ?? 0))
                         ->helperText('Starts at the customer\'s standing discount. The invoice carries the resulting price, not the negotiation.'),
 
                     Select::make('tax_rate_id')
-                        ->label('Tax')
+                        ->label(__('Tax'))
                         ->options(fn (): array => TaxRate::query()->orderBy('name')->pluck('name', 'id')->all())
                         ->helperText('The same rates invoices use, so a converted line carries the same treatment rather than a recalculation.'),
                 ])
@@ -171,14 +171,14 @@ class QuotationResource extends Resource
                         : null),
 
                 TextColumn::make('party')
-                    ->label('For')
+                    ->label(__('For'))
                     ->state(fn (Quotation $record): string => $record->partyLabel())
                     ->searchable(false),
 
                 TextColumn::make('total')->money(CompanyCurrency::code())->alignEnd()->sortable(),
 
                 TextColumn::make('valid_until')
-                    ->label('Valid to')
+                    ->label(__('Valid to'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->color(fn (Quotation $record): string => $record->hasExpired() ? 'danger' : 'gray')
@@ -211,7 +211,7 @@ class QuotationResource extends Resource
             ])
             ->recordActions([
                 Action::make('pdf')
-                    ->label('PDF')
+                    ->label(__('PDF'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('gray')
                     ->visible(fn (Quotation $record): bool => auth()->user()?->can('view', $record) ?? false)
@@ -234,7 +234,7 @@ class QuotationResource extends Resource
                  * assumes it was.
                  */
                 Action::make('send')
-                    ->label('Send')
+                    ->label(__('Send'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('info')
                     ->requiresConfirmation()
@@ -270,7 +270,7 @@ class QuotationResource extends Resource
                     }),
 
                 Action::make('accept')
-                    ->label('Accepted')
+                    ->label(__('Accepted'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (Quotation $record): bool => $record->isSent()
@@ -288,7 +288,7 @@ class QuotationResource extends Resource
                     }),
 
                 Action::make('revise')
-                    ->label('Revise')
+                    ->label(__('Revise'))
                     ->icon('heroicon-o-document-duplicate')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -311,7 +311,7 @@ class QuotationResource extends Resource
                     }),
 
                 Action::make('convert')
-                    ->label('Raise the invoice')
+                    ->label(__('Raise the invoice'))
                     ->icon('heroicon-o-receipt-percent')
                     ->color('success')
                     ->requiresConfirmation()

@@ -43,7 +43,7 @@ class WorkItemForm
                 ->columns(2)
                 ->schema([
                     Select::make('project_id')
-                        ->label('Project')
+                        ->label(__('Project'))
                         ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())
                         ->searchable()
                         ->required()
@@ -53,7 +53,7 @@ class WorkItemForm
                         ->live(),
 
                     Select::make('type')
-                        ->label('Type')
+                        ->label(__('Type'))
                         ->options(fn (?WorkItem $record): array => options('work.type', $record?->type))
                         ->default('Task')
                         ->required(),
@@ -76,7 +76,7 @@ class WorkItemForm
                         )),
 
                     MarkdownEditor::make('description')
-                        ->label('Description')
+                        ->label(__('Description'))
                         ->columnSpanFull()
                         // Markdown rather than a rich editor: a description is pasted into pull
                         // requests and chat, and Markdown is what survives the trip.
@@ -87,7 +87,7 @@ class WorkItemForm
                 ->columns(2)
                 ->schema([
                     Select::make('work_status_id')
-                        ->label('Status')
+                        ->label(__('Status'))
                         ->options(fn (): array => WorkStatus::query()
                             ->orderBy('sort')
                             ->get()
@@ -97,12 +97,12 @@ class WorkItemForm
                         ->helperText('Moving it here goes through the same rules the board does.'),
 
                     Select::make('priority')
-                        ->label('Priority')
+                        ->label(__('Priority'))
                         ->options(fn (?WorkItem $record): array => options('work.priority', $record?->priority))
                         ->default('Medium'),
 
                     Select::make('parent_id')
-                        ->label('Parent')
+                        ->label(__('Parent'))
                         ->options(fn (?WorkItem $record): array => WorkItem::query()
                             ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
                             ->notOfType(WorkItem::TYPE_SUBTASK)
@@ -132,7 +132,7 @@ class WorkItemForm
                         ->helperText('The version it ships in. Releasing stamps a date and moves nothing.'),
 
                     Select::make('resolution')
-                        ->label('Resolution')
+                        ->label(__('Resolution'))
                         ->options(fn (?WorkItem $record): array => options('work.resolution', $record?->resolution))
                         ->placeholder('Not resolved')
                         ->helperText('How it ended. Some statuses ask for this before they will take it.'),
@@ -142,7 +142,7 @@ class WorkItemForm
                 ->columns(2)
                 ->schema([
                     Select::make('assignee_employee_id')
-                        ->label('Assignee')
+                        ->label(__('Assignee'))
                         ->options(fn (): array => Employee::query()
                             ->where('is_active', true)
                             ->with('user')
@@ -155,7 +155,7 @@ class WorkItemForm
                         ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
                     DatePicker::make('due_on')
-                        ->label('Due')
+                        ->label(__('Due'))
                         ->native(false),
                 ]),
 
@@ -164,13 +164,13 @@ class WorkItemForm
                 ->description('Both are optional, and a company uses one or the other — see Settings.')
                 ->schema([
                     TextInput::make('estimate_points')
-                        ->label('Points')
+                        ->label(__('Points'))
                         ->numeric()
                         ->minValue(0)
                         ->step(0.5),
 
                     TextInput::make('estimate_minutes')
-                        ->label('Estimate (minutes)')
+                        ->label(__('Estimate (minutes)'))
                         ->numeric()
                         ->minValue(0)
                         ->helperText('90 is an hour and a half. Time logged against it is a timesheet entry.'),

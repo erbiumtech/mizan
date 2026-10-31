@@ -33,21 +33,21 @@ class ListRetentionMovements extends ListRecords
             HelpAction::make('construction-retention', 'Retention: Help'),
 
             Action::make('release')
-                ->label('Release')
+                ->label(__('Release'))
                 ->icon('heroicon-o-lock-open')
                 ->color('success')
                 ->modalHeading('Release retention')
                 ->modalDescription('The amount offered is what the contract\'s release rule says is due at that stage. Releasing before the trigger date is allowed — sectional taking-over is ordinary — but it needs a reason.')
                 ->schema([
                     Select::make('contract_id')
-                        ->label('Contract')
+                        ->label(__('Contract'))
                         ->options(fn (): array => static::contractOptions())
                         ->searchable()
                         ->required()
                         ->live(),
 
                     Select::make('stage')
-                        ->label('Stage')
+                        ->label(__('Stage'))
                         ->options([
                             RetentionMovement::STAGE_FIRST_RELEASE => 'First release — at completion',
                             RetentionMovement::STAGE_FINAL_RELEASE => 'Final release — at the end of the defects period',
@@ -75,20 +75,20 @@ class ListRetentionMovements extends ListRecords
                 }),
 
             Action::make('adjust')
-                ->label('Forfeit or adjust')
+                ->label(__('Forfeit or adjust'))
                 ->icon('heroicon-o-scale')
                 ->color('warning')
                 ->modalHeading('Record a movement')
                 ->modalDescription('A forfeit against uncorrected defects, a bond substituting for cash, or an agreed adjustment. Each of these is a decision rather than arithmetic, which is why this ledger exists at all.')
                 ->schema([
                     Select::make('contract_id')
-                        ->label('Contract')
+                        ->label(__('Contract'))
                         ->options(fn (): array => static::contractOptions())
                         ->searchable()
                         ->required(),
 
                     Select::make('kind')
-                        ->label('Kind')
+                        ->label(__('Kind'))
                         ->options([
                             RetentionMovement::KIND_FORFEITED => 'Forfeited — against uncorrected defects',
                             RetentionMovement::KIND_SUBSTITUTED_BY_BOND => 'Substituted by a bond',

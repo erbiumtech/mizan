@@ -34,57 +34,57 @@ class PlantLogsTable
         return $table
             ->columns([
                 TextColumn::make('logged_on')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('plantItem.code')
-                    ->label('Machine')
+                    ->label(__('Machine'))
                     ->description(fn (PlantLog $record): ?string => $record->plantItem?->name)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->toggleable(),
 
                 TextColumn::make('working_units')
-                    ->label('Working')
+                    ->label(__('Working'))
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('idle_units')
-                    ->label('Idle')
+                    ->label(__('Idle'))
                     ->alignEnd()
                     ->description(fn (PlantLog $record): ?string => $record->downtime_reason)
                     ->toggleable(),
 
                 TextColumn::make('standby_units')
-                    ->label('Standby')
+                    ->label(__('Standby'))
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('meter_movement')
-                    ->label('Meter')
+                    ->label(__('Meter'))
                     ->alignEnd()
                     ->getStateUsing(fn (PlantLog $record): ?float => $record->meterMovement())
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('charge_amount')
-                    ->label('Charge')
+                    ->label(__('Charge'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('at approval')
-                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Charged')),
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label(__('Charged'))),
 
                 TextColumn::make('books_cost')
-                    ->label('Books cost')
+                    ->label(__('Books cost'))
                     ->badge()
                     ->getStateUsing(fn (PlantLog $record): string => $record->plantItem?->isOwned()
                         ? 'Internal hire'
@@ -104,12 +104,12 @@ class PlantLogsTable
             ])
             ->filters([
                 SelectFilter::make('plant_item_id')
-                    ->label('Machine')
+                    ->label(__('Machine'))
                     ->relationship('plantItem', 'name')
                     ->searchable(),
 
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
@@ -121,14 +121,14 @@ class PlantLogsTable
                     ]),
 
                 Filter::make('awaiting_approval')
-                    ->label('Awaiting approval')
+                    ->label(__('Awaiting approval'))
                     ->query(fn (Builder $query) => $query->draft())
                     ->toggle(),
 
                 // Standing plant, which is often somebody else's cost and almost never recovered because nobody
                 // totals it.
                 Filter::make('standing')
-                    ->label('Stood idle or on standby')
+                    ->label(__('Stood idle or on standby'))
                     ->query(fn (Builder $query) => $query
                         ->where(fn (Builder $q) => $q->where('idle_units', '>', 0)->orWhere('standby_units', '>', 0)))
                     ->toggle(),
@@ -139,7 +139,7 @@ class PlantLogsTable
                     ->visible(fn (PlantLog $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -155,13 +155,13 @@ class PlantLogsTable
                     )),
 
                 Action::make('reverse')
-                    ->label('Reverse')
+                    ->label(__('Reverse'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->modalHeading('Take this log back')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required(),
                     ])

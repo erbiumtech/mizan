@@ -25,7 +25,7 @@ class ActivityLogFields
                 ->required(),
             TextInput::make('outcome')->maxLength(255)->placeholder('Send pricing')
                 ->helperText('What came of it. This is what makes an activity more than a comment.'),
-            TextInput::make('duration_minutes')->label('Minutes')->numeric(),
+            TextInput::make('duration_minutes')->label(__('Minutes'))->numeric(),
             Textarea::make('body')->rows(2),
         ];
     }

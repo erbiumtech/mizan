@@ -38,7 +38,7 @@ class PermitsTable
         return $table
             ->columns([
                 TextColumn::make('permit_number')
-                    ->label('No.')
+                    ->label(__('No.'))
                     ->sortable()
                     ->searchable()
                     ->description(fn (Permit $record): ?string => $record->isExtension()
@@ -63,7 +63,7 @@ class PermitsTable
                  * **The column the register exists for.**
                  */
                 TextColumn::make('window')
-                    ->label('Window')
+                    ->label(__('Window'))
                     ->badge()
                     ->getStateUsing(fn (Permit $record): string => match (true) {
                         $record->isExpiredAndOpen() => 'EXPIRED, still open',
@@ -82,7 +82,7 @@ class PermitsTable
                     ->tooltip('An expired permit that nobody has closed is the failure mode this register exists to make visible.'),
 
                 TextColumn::make('accepted_at')
-                    ->label('Accepted')
+                    ->label(__('Accepted'))
                     ->dateTime('d M H:i')
                     // Named: a permit nobody accepted is a piece of paper rather than an authorisation.
                     ->placeholder(fn (Permit $record): string => $record->issuedButNotAccepted() ? 'not accepted' : '—')
@@ -104,7 +104,7 @@ class PermitsTable
                     ->sortable(),
 
                 TextColumn::make('area_made_safe')
-                    ->label('Made safe')
+                    ->label(__('Made safe'))
                     ->badge()
                     ->getStateUsing(fn (Permit $record): ?string => match (true) {
                         ! $record->isClosed() => null,
@@ -118,22 +118,22 @@ class PermitsTable
                     ->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
                 SelectFilter::make('type')->options(Permit::TYPES),
                 SelectFilter::make('status')->options(Permit::STATUSES),
 
                 Filter::make('expired_open')
-                    ->label('Expired and still open')
+                    ->label(__('Expired and still open'))
                     ->query(fn (Builder $query): Builder => $query->expiredAndOpen())
                     ->toggle(),
 
                 Filter::make('in_force')
-                    ->label('Authorising work now')
+                    ->label(__('Authorising work now'))
                     ->query(fn (Builder $query): Builder => $query->inForceAt())
                     ->toggle(),
 
                 Filter::make('not_accepted')
-                    ->label('Issued, not accepted')
+                    ->label(__('Issued, not accepted'))
                     ->query(fn (Builder $query): Builder => $query->authorising()
                         ->whereNotNull('issued_at')
                         ->whereNull('accepted_at'))
@@ -148,7 +148,7 @@ class PermitsTable
                  * **The act that authorises high-risk work**, and its own permission.
                  */
                 Action::make('issue')
-                    ->label('Issue')
+                    ->label(__('Issue'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
@@ -162,13 +162,13 @@ class PermitsTable
                     )),
 
                 Action::make('accept')
-                    ->label('Record acceptance')
+                    ->label(__('Record acceptance'))
                     ->icon('heroicon-o-hand-raised')
                     ->color('info')
                     ->modalDescription('A permit nobody accepted is a piece of paper rather than an authorisation.')
                     ->schema([
-                        TextInput::make('accepted_by')->label('Accepted by')->required()->maxLength(255),
-                        DateTimePicker::make('at')->label('At')->seconds(false)->default(now()),
+                        TextInput::make('accepted_by')->label(__('Accepted by'))->required()->maxLength(255),
+                        DateTimePicker::make('at')->label(__('At'))->seconds(false)->default(now()),
                     ])
                     ->visible(fn (Permit $record): bool => auth()->user()?->can('accept', $record) ?? false)
                     ->action(fn (Permit $record, array $data) => static::run(
@@ -178,7 +178,7 @@ class PermitsTable
                     )),
 
                 Action::make('suspend')
-                    ->label('Suspend')
+                    ->label(__('Suspend'))
                     ->icon('heroicon-o-pause')
                     ->color('warning')
                     ->modalDescription('Stops the work without ending the authorisation. The reason stays on the record, because whoever comes back to it needs to know what has to change before work restarts.')
@@ -193,7 +193,7 @@ class PermitsTable
                     )),
 
                 Action::make('resume')
-                    ->label('Resume')
+                    ->label(__('Resume'))
                     ->icon('heroicon-o-play')
                     ->color('success')
                     ->requiresConfirmation()
@@ -209,14 +209,14 @@ class PermitsTable
                  * **An extension is a new row.** Never a mutated end time.
                  */
                 Action::make('extend')
-                    ->label('Extend')
+                    ->label(__('Extend'))
                     ->icon('heroicon-o-clock')
                     ->color('primary')
                     ->modalHeading('Extend the permit')
                     ->modalDescription('This creates a new permit starting where this one ends, and closes this one. Overwriting the end time would destroy the record of what was authorised when — which is the question a regulator asks after something happens.')
                     ->schema([
                         DateTimePicker::make('valid_to')
-                            ->label('New end of the window')
+                            ->label(__('New end of the window'))
                             ->seconds(false)
                             ->required(),
                         Textarea::make('reason')->rows(2),
@@ -229,17 +229,17 @@ class PermitsTable
                     )),
 
                 Action::make('close')
-                    ->label('Close out')
+                    ->label(__('Close out'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('gray')
                     ->modalHeading('Close the permit out')
                     ->modalDescription('The area made safe is the point of the close-out. A permit closed with nobody having walked the area is the sequence that burns a building down an hour after everybody has gone home — so closing without it needs a sentence saying why.')
                     ->schema([
-                        Toggle::make('area_made_safe')->label('The area was walked and made safe')->default(true)->live(),
+                        Toggle::make('area_made_safe')->label(__('The area was walked and made safe'))->default(true)->live(),
                         Textarea::make('notes')
                             ->rows(2)
                             ->required(fn (callable $get): bool => ! $get('area_made_safe'))
-                            ->label('Close-out notes'),
+                            ->label(__('Close-out notes')),
                     ])
                     ->visible(fn (Permit $record): bool => auth()->user()?->can('close', $record) ?? false)
                     ->action(fn (Permit $record, array $data) => static::run(
@@ -253,7 +253,7 @@ class PermitsTable
                     )),
 
                 Action::make('cancel')
-                    ->label('Cancel')
+                    ->label(__('Cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->schema([

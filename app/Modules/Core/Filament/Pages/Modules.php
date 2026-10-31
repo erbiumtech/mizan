@@ -93,7 +93,7 @@ class Modules extends Page
                     // fiscal-year close modal, which lists every blocker up front
                     // instead of failing one attempt at a time.
                     Placeholder::make('consequences')
-                        ->label('On save')
+                        ->label(__('On save'))
                         ->content(fn (Get $get) => new HtmlString($this->consequenceSummary($get)))
                         ->live(),
                 ]),

@@ -33,7 +33,7 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('employee_id')
-                            ->label('Employee ID')
+                            ->label(__('Employee ID'))
                             ->required()
                             ->disabled($adminOnly)
                             ->dehydrated(fn (): bool => ! $adminOnly()),
@@ -42,7 +42,7 @@ class EmployeeForm
                         // when a device can push, because without one it is a number nobody has.
 
                         TextInput::make('device_pin')
-                            ->label('Device PIN')
+                            ->label(__('Device PIN'))
                             ->maxLength(32)
                             ->unique(ignoreRecord: true)
                             ->helperText('The user number enrolled on the attendance device. Punches with this PIN become this employee\'s days.')
@@ -60,7 +60,7 @@ class EmployeeForm
                         // validation on save — on a field nobody can even edit.
 
                         Select::make('user_id')
-                            ->label('Employee Name')
+                            ->label(__('Employee Name'))
                             ->relationship(
                                 'user',
                                 'name',
@@ -90,7 +90,7 @@ class EmployeeForm
                         // saving hook routes them to the user or a change request).
 
                         TextInput::make('user_name')
-                            ->label('Name')
+                            ->label(__('Name'))
                             ->required()
                             ->maxLength(255)
                             ->dehydrated()
@@ -101,7 +101,7 @@ class EmployeeForm
                         // linked user; the personal one is a plain employee column.
 
                         TextInput::make('user_email')
-                            ->label('Company Email')
+                            ->label(__('Company Email'))
                             ->helperText('Used to sign in.')
                             ->email()
                             ->required()
@@ -118,7 +118,7 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         Select::make('status')
-                            ->label('Status')
+                            ->label(__('Status'))
                             ->options(Employee::STATUSES)
                             ->default(Employee::STATUS_ACTIVE)
                             ->disabled($adminOnly)
@@ -144,7 +144,7 @@ class EmployeeForm
                         // same gate; the site's holidays and its geofence follow from it.
 
                         Select::make('location_id')
-                            ->label('Location')
+                            ->label(__('Location'))
                             ->options(fn (): array => WorkLocation::options())
                             ->placeholder('Not recorded')
                             ->nullable()
@@ -163,7 +163,7 @@ class EmployeeForm
                         // what the list is seeded with.
 
                         Select::make('employment_type')
-                            ->label('Employment Type')
+                            ->label(__('Employment Type'))
                             ->options(fn (?Employee $record): array => options('employees.employment_type', $record?->employment_type))
                             ->placeholder('Not recorded')
                             ->disabled($adminOnly)
@@ -175,7 +175,7 @@ class EmployeeForm
                         // enforces the same on save.
 
                         Select::make('manager_id')
-                            ->label('Manager')
+                            ->label(__('Manager'))
                             ->helperText('The employee this person reports to.')
                             ->options(function (?Employee $record) {
                                 $exclude = $record
@@ -212,13 +212,13 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         DatePicker::make('date_of_joining')
-                            ->label('Date of Joining'),
+                            ->label(__('Date of Joining')),
 
                         // Which bundle of leave types applies — docs/saas-launch-plan.md §14.4. Options come from
                         // Leave's table by name, so this form names no Leave class.
 
                         Select::make('leave_group_id')
-                            ->label('Leave group')
+                            ->label(__('Leave group'))
                             // TenantDb, not DB: the table is per company, and the default connection is the
                             // landlord database in production even though they are the same under test.
                             ->options(fn (): array => \App\Support\TenantDb::hasTable('leave_groups') ? \App\Support\TenantDb::table('leave_groups')->orderBy('name')->pluck('name', 'id')->all() : [])
@@ -229,14 +229,14 @@ class EmployeeForm
                             ->dehydrated(fn (): bool => ! $adminOnly()),
 
                         DatePicker::make('probation_ends_on')
-                            ->label('Probation ends')
+                            ->label(__('Probation ends'))
                             ->afterOrEqual('date_of_joining')
                             ->disabled($adminOnly)
                             ->dehydrated(fn (): bool => ! $adminOnly())
                             ->helperText('Listed under Probations until confirmed.'),
 
                         DatePicker::make('confirmed_on')
-                            ->label('Confirmed on')
+                            ->label(__('Confirmed on'))
                             ->disabled($adminOnly)
                             ->dehydrated(fn (): bool => ! $adminOnly()),
 
@@ -258,7 +258,7 @@ class EmployeeForm
                      */
 
                         DatePicker::make('left_on')
-                            ->label('Termination / Last Working Day')
+                            ->label(__('Termination / Last Working Day'))
                             ->helperText('The last day of employment. Leave blank while they are still employed. '
                                 .'Once set, the experience letter and the income certificate are written in the past '
                                 .'tense and bounded by this date — the Status above is a separate switch.')
@@ -274,7 +274,7 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         DatePicker::make('date_of_birth')
-                            ->label('Date of Birth')
+                            ->label(__('Date of Birth'))
                             ->native(false)
                             ->displayFormat('d-m-Y')
                             // A birth date in the future or beyond a working lifetime is
@@ -283,7 +283,7 @@ class EmployeeForm
                             ->minDate(now()->subYears(100)),
 
                         TextInput::make('nic')
-                            ->label('NIC')
+                            ->label(__('NIC'))
                             ->required(),
 
                         // The record's depth — docs/saas-launch-plan.md §14.2. Contact details, like the phone
@@ -291,18 +291,18 @@ class EmployeeForm
 
                         TextInput::make('father_name')->label("Father's name")->maxLength(120),
 
-                        TextInput::make('ntn')->label('NTN')->maxLength(20),
+                        TextInput::make('ntn')->label(__('NTN'))->maxLength(20),
 
                         TextInput::make('nationality')->maxLength(60)->default('Pakistani'),
 
                         Select::make('marital_status')->options(Employee::MARITAL_STATUSES)->nullable(),
 
                         Select::make('gender')
-                            ->label('Gender')
+                            ->label(__('Gender'))
                             ->options(fn (?Employee $record): array => options('employees.gender', $record?->gender)),
 
                         FileUpload::make('photo_path')
-                            ->label('Photo')
+                            ->label(__('Photo'))
                             ->image()
                             ->disk('public')
                             ->directory('employee-photos')
@@ -315,7 +315,7 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('personal_email')
-                            ->label('Personal Email')
+                            ->label(__('Personal Email'))
                             ->email()
                             ->maxLength(255),
 
@@ -328,7 +328,7 @@ class EmployeeForm
                             ->validationMessages(['unique' => 'This phone number is already used by another employee.']),
 
                         TextInput::make('secondary_phone')
-                            ->label('Secondary Phone')
+                            ->label(__('Secondary Phone'))
                             ->tel()
                             ->required(),
 
@@ -339,31 +339,31 @@ class EmployeeForm
                         Fieldset::make('Emergency contact')
                             ->columns(3)
                             ->schema([
-                                TextInput::make('emergency_contact_name')->label('Name')->maxLength(120),
-                                TextInput::make('emergency_contact_relation')->label('Relation')->maxLength(40)->placeholder('Spouse, brother, …'),
-                                TextInput::make('emergency_contact_phone')->label('Phone')->maxLength(40),
+                                TextInput::make('emergency_contact_name')->label(__('Name'))->maxLength(120),
+                                TextInput::make('emergency_contact_relation')->label(__('Relation'))->maxLength(40)->placeholder('Spouse, brother, …'),
+                                TextInput::make('emergency_contact_phone')->label(__('Phone'))->maxLength(40),
                             ])
                             ->columnSpanFull(),
 
                         Fieldset::make('Current address')
                             ->columns(2)
                             ->schema([
-                                TextInput::make('current_address.line_1')->label('Line 1')->maxLength(190),
-                                TextInput::make('current_address.line_2')->label('Line 2')->maxLength(190),
-                                TextInput::make('current_address.city')->label('City')->maxLength(80),
-                                TextInput::make('current_address.province')->label('Province')->maxLength(80),
-                                TextInput::make('current_address.postal_code')->label('Postal code')->maxLength(20),
+                                TextInput::make('current_address.line_1')->label(__('Line 1'))->maxLength(190),
+                                TextInput::make('current_address.line_2')->label(__('Line 2'))->maxLength(190),
+                                TextInput::make('current_address.city')->label(__('City'))->maxLength(80),
+                                TextInput::make('current_address.province')->label(__('Province'))->maxLength(80),
+                                TextInput::make('current_address.postal_code')->label(__('Postal code'))->maxLength(20),
                             ])
                             ->columnSpanFull(),
 
                         Fieldset::make('Permanent address')
                             ->columns(2)
                             ->schema([
-                                TextInput::make('permanent_address.line_1')->label('Line 1')->maxLength(190),
-                                TextInput::make('permanent_address.line_2')->label('Line 2')->maxLength(190),
-                                TextInput::make('permanent_address.city')->label('City')->maxLength(80),
-                                TextInput::make('permanent_address.province')->label('Province')->maxLength(80),
-                                TextInput::make('permanent_address.postal_code')->label('Postal code')->maxLength(20),
+                                TextInput::make('permanent_address.line_1')->label(__('Line 1'))->maxLength(190),
+                                TextInput::make('permanent_address.line_2')->label(__('Line 2'))->maxLength(190),
+                                TextInput::make('permanent_address.city')->label(__('City'))->maxLength(80),
+                                TextInput::make('permanent_address.province')->label(__('Province'))->maxLength(80),
+                                TextInput::make('permanent_address.postal_code')->label(__('Postal code'))->maxLength(20),
                             ])
                             ->columnSpanFull(),
                     ]),
@@ -373,7 +373,7 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         FileUpload::make('nic_front')
-                            ->label('NIC (Front)')
+                            ->label(__('NIC (Front)'))
                             ->image()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->disk('public')
@@ -386,7 +386,7 @@ class EmployeeForm
                             ->maxSize(4096),
 
                         FileUpload::make('nic_back')
-                            ->label('NIC (Back)')
+                            ->label(__('NIC (Back)'))
                             ->image()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->disk('public')
@@ -411,7 +411,7 @@ class EmployeeForm
                     ->columns(2)
                     ->schema([
                         Select::make('bank_id')
-                            ->label('Bank')
+                            ->label(__('Bank'))
                             ->relationship('bank', 'bank_name')
                             ->searchable()
                             ->preload()
@@ -420,7 +420,7 @@ class EmployeeForm
                                 .'our own bank is not in this directory — and fill in the short code instead.'),
 
                         TextInput::make('bank_short_code')
-                            ->label('Bank short code')
+                            ->label(__('Bank short code'))
                             ->maxLength(20)
                             ->visible(fn (Get $get): bool => blank($get('bank_id')))
                             ->required(fn (Get $get): bool => blank($get('bank_id')))
@@ -428,7 +428,7 @@ class EmployeeForm
                                 .'It is what the bank file carries in the beneficiary bank column.'),
 
                         TextInput::make('bank_code')
-                            ->label('Bank code')
+                            ->label(__('Bank code'))
                             ->maxLength(20)
                             ->visible(fn (Get $get): bool => blank($get('bank_id')))
                             ->helperText('Optional. Only used when no bank is chosen.'),
@@ -442,13 +442,13 @@ class EmployeeForm
                      */
 
                         TextInput::make('bank_account_no')
-                            ->label('Bank A/C No')
+                            ->label(__('Bank A/C No'))
                             ->live(onBlur: true)
                             ->required(fn (Get $get): bool => blank($get('iban_no')))
                             ->helperText('What a transfer inside our own bank is sent on.'),
 
                         TextInput::make('iban_no')
-                            ->label('IBAN No')
+                            ->label(__('IBAN No'))
                             ->live(onBlur: true)
                             ->required(fn (Get $get): bool => blank($get('bank_account_no')))
                             ->helperText('What a transfer to another bank is sent on.'),

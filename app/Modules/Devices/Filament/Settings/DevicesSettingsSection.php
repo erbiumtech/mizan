@@ -36,18 +36,18 @@ class DevicesSettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('devices'))
                 ->schema([
                     Placeholder::make('devices_endpoint')
-                        ->label('Cloud server address')
+                        ->label(__('Cloud server address'))
                         ->content(fn (): string => parse_url(url('/'), PHP_URL_HOST) ?: url('/')),
 
                     Repeater::make('devices_registry')
-                        ->label('Devices')
+                        ->label(__('Devices'))
                         ->schema([
-                            TextInput::make('serial_no')->label('Serial number')->required()->maxLength(64),
+                            TextInput::make('serial_no')->label(__('Serial number'))->required()->maxLength(64),
                             TextInput::make('name')->required()->maxLength(80)->placeholder('Main gate'),
                             TextInput::make('model')->maxLength(80)->placeholder('ZKTeco K40'),
-                            Toggle::make('is_active')->label('Active')->default(true),
+                            Toggle::make('is_active')->label(__('Active'))->default(true),
                             Placeholder::make('last_seen')
-                                ->label('Last seen')
+                                ->label(__('Last seen'))
                                 ->content(fn ($get): string => ($seen = $get('last_seen_at')) ? \Illuminate\Support\Carbon::parse($seen)->diffForHumans() : 'never'),
                         ])
                         ->columns(5)
@@ -55,7 +55,7 @@ class DevicesSettingsSection implements SettingsSection
                         ->defaultItems(0),
 
                     Placeholder::make('devices_unmapped')
-                        ->label('Punching with no employee')
+                        ->label(__('Punching with no employee'))
                         ->content(function (): HtmlString {
                             $rows = app(DevicePunchFolder::class)->unmapped();
 

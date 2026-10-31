@@ -30,7 +30,7 @@ class StatementSettingsSection implements SettingsSection
                     .'from their row.')
                 ->schema([
                     Toggle::make('invoicing.statements_enabled')
-                        ->label('Send monthly statements')
+                        ->label(__('Send monthly statements'))
                         ->helperText('Run php artisan invoicing:send-statements --dry-run first to see who would receive one.'),
                 ]),
         ];

@@ -39,7 +39,7 @@ class ConstructionCostingSettingsSection implements SettingsSection
                 ->columns(2)
                 ->schema([
                     Select::make('construction_costing_manual_gl_treatment')
-                        ->label('A cost typed on the Cost entries screen starts as')
+                        ->label(__('A cost typed on the Cost entries screen starts as'))
                         ->options(self::MANUAL_TREATMENTS)
                         ->selectablePlaceholder(false)
                         ->columnSpanFull()
@@ -49,20 +49,20 @@ class ConstructionCostingSettingsSection implements SettingsSection
                             .'can still change it on the entry.'),
 
                     TextInput::make('construction_match_quantity_percent')
-                        ->label('Three-way match: quantity tolerance (%)')
+                        ->label(__('Three-way match: quantity tolerance (%)'))
                         ->numeric()
                         ->minValue(0)
                         ->helperText('How far what was billed may differ from what arrived before the line needs '
                             .'somebody to accept it.'),
 
                     TextInput::make('construction_match_price_percent')
-                        ->label('Three-way match: price tolerance (%)')
+                        ->label(__('Three-way match: price tolerance (%)'))
                         ->numeric()
                         ->minValue(0)
                         ->helperText('How far an invoice may differ from the order rate for what it covers.'),
 
                     TextInput::make('construction_match_minimum_amount')
-                        ->label('Three-way match: ignore differences under')
+                        ->label(__('Three-way match: ignore differences under'))
                         ->numeric()
                         ->minValue(0)
                         ->helperText('An absolute floor in your own currency: a smaller difference is never flagged, '

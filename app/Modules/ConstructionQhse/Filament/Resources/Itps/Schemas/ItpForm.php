@@ -29,7 +29,7 @@ class ItpForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -40,7 +40,7 @@ class ItpForm
                             ->dehydrated(),
 
                         Select::make('contract_id')
-                            ->label('Under contract')
+                            ->label(__('Under contract'))
                             ->options(fn (callable $get): array => static::contracts($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts'))
@@ -58,7 +58,7 @@ class ItpForm
                             ->helperText('Civil, structural, mechanical — whatever this project calls them.'),
 
                         Select::make('wbs_node_id')
-                            ->label('WBS node')
+                            ->label(__('WBS node'))
                             ->options(fn (callable $get): array => static::wbsNodes($get('job_id')))
                             ->searchable(),
 

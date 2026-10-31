@@ -31,7 +31,7 @@ class CreditControlSettingsSection implements SettingsSection
                     .'itself is set per customer, on their contact record.')
                 ->schema([
                     TextInput::make(self::OVERDUE_DAYS)
-                        ->label('Block new invoices when anything is overdue by')
+                        ->label(__('Block new invoices when anything is overdue by'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(365)

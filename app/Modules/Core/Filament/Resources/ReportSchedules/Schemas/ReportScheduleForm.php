@@ -38,7 +38,7 @@ class ReportScheduleForm
         return $schema
             ->components([
                 Select::make('report_key')
-                    ->label('Report')
+                    ->label(__('Report'))
                     ->options(fn (): array => collect(Reports::catalogue())
                         ->map(fn (array $report): string => $report['label'].' · '.$report['section'])
                         ->all())
@@ -47,7 +47,7 @@ class ReportScheduleForm
                     ->helperText('Every report you can open, including the ones you have built.'),
 
                 Select::make('period')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->options(RelativePeriod::PERIODS)
                     ->default(RelativePeriod::LAST_MONTH)
                     ->required()
@@ -63,7 +63,7 @@ class ReportScheduleForm
                  * silently never runs.
                  */
                 Select::make('timetable_preset')
-                    ->label('Timetable')
+                    ->label(__('Timetable'))
                     ->options(ReportSchedule::TIMETABLES)
                     ->dehydrated(false)
                     ->live()
@@ -75,7 +75,7 @@ class ReportScheduleForm
                     ->helperText('Pick one, or write your own expression below.'),
 
                 TextInput::make('cron')
-                    ->label('Cron expression')
+                    ->label(__('Cron expression'))
                     ->placeholder('0 7 * * 1')
                     ->default(array_key_first(ReportSchedule::TIMETABLES))
                     ->required()
@@ -86,7 +86,7 @@ class ReportScheduleForm
                     }),
 
                 Select::make('timezone')
-                    ->label('Timezone')
+                    ->label(__('Timezone'))
                     ->options(fn (): array => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
                     ->default(config('app.timezone'))
                     ->searchable()
@@ -94,19 +94,19 @@ class ReportScheduleForm
                     ->helperText('Whose 07:00 the timetable means.'),
 
                 Select::make('format')
-                    ->label('Format')
+                    ->label(__('Format'))
                     ->options(ReportSchedule::FORMATS)
                     ->default(ReportSchedule::FORMAT_PDF)
                     ->required(),
 
                 TagsInput::make('recipients')
-                    ->label('Recipients')
+                    ->label(__('Recipients'))
                     ->placeholder('name@company.com')
                     ->required()
                     ->helperText('Checked against this company\'s members each time it runs. An address with no account here needs permission to send outside the company.'),
 
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
 
                 /*

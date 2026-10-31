@@ -79,7 +79,7 @@ class CertificateDeductionsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     // The automatic kinds are absent from this list rather than disabled: an option that always
                     // refuses is one people choose and then complain about.
                     ->options([
@@ -126,12 +126,12 @@ class CertificateDeductionsRelationManager extends RelationManager
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 IconColumn::make('is_automatic')
-                    ->label('Computed')
+                    ->label(__('Computed'))
                     ->boolean()
                     ->tooltip('Computed from the contract terms, and rewritten on every recompute.'),
 
                 TextColumn::make('source_type')
-                    ->label('From')
+                    ->label(__('From'))
                     ->placeholder('—')
                     ->formatStateUsing(fn (?string $state): string => $state === null ? '—' : class_basename($state))
                     ->toggleable(),
@@ -139,7 +139,7 @@ class CertificateDeductionsRelationManager extends RelationManager
             ->defaultSort('id')
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add deduction')
+                    ->label(__('Add deduction'))
                     ->visible(fn (): bool => $this->isDraft())
                     // Through the service, which refuses the computed kinds and recomputes the bottom line.
                     ->using(fn (array $data): Model => app(CertificationService::class)
@@ -161,7 +161,7 @@ class CertificateDeductionsRelationManager extends RelationManager
                  * not a button worth showing.
                  */
                 Action::make('takeNcrDeduction')
-                    ->label('Offered non-conformances')
+                    ->label(__('Offered non-conformances'))
                     ->icon('heroicon-o-exclamation-triangle')
                     ->color('warning')
                     ->badge(fn (): ?string => ($count = $this->offers()->count()) > 0 ? (string) $count : null)
@@ -170,7 +170,7 @@ class CertificateDeductionsRelationManager extends RelationManager
                     ->visible(fn (): bool => $this->isDraft() && $this->offers()->isNotEmpty())
                     ->schema(fn (): array => [
                         Select::make('ncr_id')
-                            ->label('Non-conformance')
+                            ->label(__('Non-conformance'))
                             ->options(fn (): array => $this->offers()
                                 ->mapWithKeys(fn ($ncr): array => [
                                     $ncr->getKey() => $ncr->ncr_number.' — '.str($ncr->description)->limit(50)
@@ -185,12 +185,12 @@ class CertificateDeductionsRelationManager extends RelationManager
                                 $set('amount', $proposed === null ? null : (float) $proposed);
                             }),
                         TextInput::make('amount')
-                            ->label('Amount to withhold')
+                            ->label(__('Amount to withhold'))
                             ->numeric()
                             ->required()
                             ->helperText('Defaults to what was proposed. Withhold less if that is what was agreed — the figure on the certificate is your decision, not the quality team\'s.'),
                         TextInput::make('reason')
-                            ->label('Note on the certificate')
+                            ->label(__('Note on the certificate'))
                             ->maxLength(255),
                     ])
                     ->action(function (array $data): void {

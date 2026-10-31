@@ -29,7 +29,7 @@ class RatesRelationManager extends RelationManager
     {
         return $schema->components([
             DatePicker::make('effective_on')
-                ->label('From')
+                ->label(__('From'))
                 ->native(false)
                 ->default(now())
                 ->required()
@@ -53,7 +53,7 @@ class RatesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('effective_on')
             ->columns([
-                TextColumn::make('effective_on')->label('From')->date('d M Y')->sortable(),
+                TextColumn::make('effective_on')->label(__('From'))->date('d M Y')->sortable(),
 
                 TextColumn::make('rate')
                     ->formatStateUsing(fn ($state): string => number_format((float) $state, 4))

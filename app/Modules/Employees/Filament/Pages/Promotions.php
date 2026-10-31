@@ -41,12 +41,12 @@ class Promotions extends Page implements HasTable
             ->query(fn (): Builder => EmployeeJobHistory::query()->with(['employee.user', 'manager.user', 'location'])->where('kind', 'promotion'))
             ->defaultSort('effective_from', 'desc')
             ->columns([
-                TextColumn::make('effective_from')->date('d M Y')->label('Effective')->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('effective_from')->date('d M Y')->label(__('Effective'))->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('designation')->placeholder('—'),
                 TextColumn::make('department')->placeholder('—'),
-                TextColumn::make('location.name')->label('Location')->placeholder('—'),
-                TextColumn::make('manager.display_label')->label('Manager')->placeholder('—'),
+                TextColumn::make('location.name')->label(__('Location'))->placeholder('—'),
+                TextColumn::make('manager.display_label')->label(__('Manager'))->placeholder('—'),
                 TextColumn::make('reason')->limit(50)->placeholder('—'),
             ]);
     }

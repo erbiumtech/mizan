@@ -60,7 +60,7 @@ class ReceiptLinesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('commitment_line_id')
-                    ->label('Order line')
+                    ->label(__('Order line'))
                     ->options(fn (): array => CommitmentLine::query()
                         ->where('commitment_id', $receipt->commitment_id)
                         ->with('costCode')
@@ -91,7 +91,7 @@ class ReceiptLinesRelationManager extends RelationManager
                     ->helperText('Picking one fills in the job, the code and the rate from the order.'),
 
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->live()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -99,7 +99,7 @@ class ReceiptLinesRelationManager extends RelationManager
                     ->required(),
 
                 Select::make('cost_code_id')
-                    ->label('Cost code')
+                    ->label(__('Cost code'))
                     ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
                         ->orderBy('code')->get()
                         ->mapWithKeys(fn (CostCode $code): array => [$code->getKey() => "{$code->code} — {$code->name}"])
@@ -119,11 +119,11 @@ class ReceiptLinesRelationManager extends RelationManager
                     ->helperText('What actually arrived. More than was ordered is allowed — the order will read as over-relieved.'),
 
                 TextInput::make('unit_of_measure')
-                    ->label('Unit')
+                    ->label(__('Unit'))
                     ->maxLength(16),
 
                 TextInput::make('unit_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->numeric()
                     ->helperText('The order rate. The accrual is raised at this, and the invoice may disagree.'),
             ]);
@@ -135,11 +135,11 @@ class ReceiptLinesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->sortable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->description(fn (GoodsReceiptLine $record): ?string => $record->costCode?->name),
 
                 TextColumn::make('description')
@@ -147,29 +147,29 @@ class ReceiptLinesRelationManager extends RelationManager
                     ->searchable(),
 
                 TextColumn::make('quantity')
-                    ->label('Received')
+                    ->label(__('Received'))
                     ->alignEnd()
                     ->description(fn (GoodsReceiptLine $record): ?string => $record->unit_of_measure),
 
                 TextColumn::make('unit_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('amount')
-                    ->label('Value')
+                    ->label(__('Value'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('commitmentLine.commitment.number')
-                    ->label('Order')
+                    ->label(__('Order'))
                     ->placeholder('Unordered')
                     ->toggleable(),
 
                 TextColumn::make('cost_entry_id')
-                    ->label('Accrued')
+                    ->label(__('Accrued'))
                     // The accrual this line raised, which is what makes posting idempotent and traceable.
                     ->formatStateUsing(fn ($state): string => $state ? 'Yes' : 'No')
                     ->toggleable(),

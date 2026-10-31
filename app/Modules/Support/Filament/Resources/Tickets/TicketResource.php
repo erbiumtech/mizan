@@ -73,7 +73,7 @@ class TicketResource extends Resource
             TextInput::make('subject')->required()->maxLength(255),
 
             Select::make('category_id')
-                ->label('Category')
+                ->label(__('Category'))
                 ->options(fn (): array => TicketCategory::query()->active()->pluck('name', 'id')->all())
                 ->helperText('Carries the SLA commitment and the default priority.')
                 ->live(),
@@ -81,13 +81,13 @@ class TicketResource extends Resource
             // Guarded: `support` requires nothing, so a company without Invoicing records the
             // customer's name in the subject and leaves this empty.
             Select::make('contact_id')
-                ->label('Customer')
+                ->label(__('Customer'))
                 ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->visible(fn (): bool => modules()->enabled('invoicing')),
 
             Select::make('project_id')
-                ->label('Project')
+                ->label(__('Project'))
                 ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->visible(fn (): bool => modules()->enabled('projects')),
@@ -107,7 +107,7 @@ class TicketResource extends Resource
                 ->required(),
 
             Select::make('assignee_employee_id')
-                ->label('Assigned to')
+                ->label(__('Assigned to'))
                 ->options(fn (): array => Employee::query()
                     ->where('is_active', true)
                     ->get()
@@ -133,7 +133,7 @@ class TicketResource extends Resource
                     ->wrap()
                     ->description(fn (Ticket $record): ?string => $record->contact?->name),
 
-                TextColumn::make('category.name')->label('Category')->placeholder('—')->toggleable(),
+                TextColumn::make('category.name')->label(__('Category'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('priority')
                     ->badge()
@@ -160,12 +160,12 @@ class TicketResource extends Resource
 
                 // Reported, and said to be reported. Nothing is blocked by it.
                 TextColumn::make('sla')
-                    ->label('SLA')
+                    ->label(__('SLA'))
                     ->state(fn (Ticket $record): string => $record->slaNote() ?? 'within commitment')
                     ->color(fn (Ticket $record): string => $record->slaNote() ? 'danger' : 'success')
                     ->wrap(),
 
-                TextColumn::make('opened_at')->label('Opened')->dateTime('d M Y H:i')->sortable()->toggleable(),
+                TextColumn::make('opened_at')->label(__('Opened'))->dateTime('d M Y H:i')->sortable()->toggleable(),
             ])
             ->defaultSort('opened_at', 'desc')
             ->filters([
@@ -178,25 +178,25 @@ class TicketResource extends Resource
                 ]),
 
                 SelectFilter::make('category_id')
-                    ->label('Category')
+                    ->label(__('Category'))
                     ->options(fn (): array => TicketCategory::pluck('name', 'id')->all()),
 
                 Filter::make('open')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->open()),
             ])
             ->recordActions([
                 Action::make('reply')
-                    ->label('Reply')
+                    ->label(__('Reply'))
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->color('info')
                     ->visible(fn (Ticket $record): bool => auth()->user()?->can('update', $record) ?? false)
                     ->schema([
-                        Textarea::make('body')->label('Reply')->required()->rows(4),
+                        Textarea::make('body')->label(__('Reply'))->required()->rows(4),
 
                         Toggle::make('is_internal')
-                            ->label('Internal note — not for the customer')
+                            ->label(__('Internal note — not for the customer'))
                             ->helperText('An internal note does NOT start the response clock: a company must not be able to meet its commitment by writing to itself. It is also never shown to a customer, which matters the day a portal exists.'),
                     ])
                     ->action(function (Ticket $record, array $data): void {
@@ -217,7 +217,7 @@ class TicketResource extends Resource
                     }),
 
                 Action::make('resolve')
-                    ->label('Resolved')
+                    ->label(__('Resolved'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -231,7 +231,7 @@ class TicketResource extends Resource
                     }),
 
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('warning')
                     ->visible(fn (Ticket $record): bool => ! $record->isOpen()

@@ -59,7 +59,7 @@ class ActivitiesRelationManager extends RelationManager
                 TextInput::make('sequence')->numeric()->helperText('Left blank, it goes on the end.'),
 
                 Select::make('point_type')
-                    ->label('Point type')
+                    ->label(__('Point type'))
                     ->options(ItpActivity::POINT_TYPES)
                     ->default(ItpActivity::POINT_REVIEW)
                     ->required()
@@ -67,7 +67,7 @@ class ActivitiesRelationManager extends RelationManager
                     ->helperText('The entire reason the document exists. A hold point stops work; a witness point does not.'),
 
                 Textarea::make('activity_description')
-                    ->label('Activity')
+                    ->label(__('Activity'))
                     ->required()
                     ->rows(2)
                     ->columnSpanFull(),
@@ -90,11 +90,11 @@ class ActivitiesRelationManager extends RelationManager
                 TextInput::make('record_form')->maxLength(255),
 
                 TextInput::make('notice_hours')
-                    ->label('Notice required (hours)')
+                    ->label(__('Notice required (hours)'))
                     ->numeric()
                     ->helperText('A term of this plan for this activity: 24 hours for a rebar inspection, a week for a third-party load test. Snapshotted onto every inspection raised against this point.'),
 
-                Toggle::make('is_active')->label('Active')->default(true),
+                Toggle::make('is_active')->label(__('Active'))->default(true),
             ]);
     }
 
@@ -106,10 +106,10 @@ class ActivitiesRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['parties']))
             ->defaultSort('sequence')
             ->columns([
-                TextColumn::make('sequence')->label('#')->sortable(),
+                TextColumn::make('sequence')->label(__('#'))->sortable(),
 
                 TextColumn::make('activity_description')
-                    ->label('Activity')
+                    ->label(__('Activity'))
                     ->wrap()
                     ->limit(60)
                     ->description(fn (ItpActivity $record): ?string => $record->reference_standard),
@@ -118,7 +118,7 @@ class ActivitiesRelationManager extends RelationManager
                  * Coloured by what it *does*: red stops work, amber invites somebody, grey is paperwork.
                  */
                 TextColumn::make('point_type')
-                    ->label('Point')
+                    ->label(__('Point'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         ItpActivity::POINT_HOLD => 'Hold',
@@ -134,7 +134,7 @@ class ActivitiesRelationManager extends RelationManager
                     ->tooltip(fn (ItpActivity $record): string => $record->pointLabel()),
 
                 TextColumn::make('notice_hours')
-                    ->label('Notice')
+                    ->label(__('Notice'))
                     ->formatStateUsing(fn (?int $state): ?string => $state === null ? null : "{$state} h")
                     // Named rather than blank: a hold point with no notice period stops work the day somebody
                     // remembers it.
@@ -144,7 +144,7 @@ class ActivitiesRelationManager extends RelationManager
                         : 'gray'),
 
                 TextColumn::make('parties')
-                    ->label('Who attends')
+                    ->label(__('Who attends'))
                     ->getStateUsing(fn (ItpActivity $record): ?string => $record->parties->isEmpty()
                         ? null
                         : $record->parties->map(fn (ItpActivityParty $p): string => $p->describe())->implode('; '))
@@ -159,7 +159,7 @@ class ActivitiesRelationManager extends RelationManager
             ])
             ->filters([
                 Filter::make('hold')
-                    ->label('Hold points only')
+                    ->label(__('Hold points only'))
                     ->query(fn (Builder $query): Builder => $query->holdPoints())
                     ->toggle(),
             ])
@@ -176,7 +176,7 @@ class ActivitiesRelationManager extends RelationManager
                  * verifies, the Employer approves*, and that sentence is what a hold point on a structural pour means.
                  */
                 Action::make('addParty')
-                    ->label('Add party')
+                    ->label(__('Add party'))
                     ->icon('heroicon-o-user-plus')
                     ->visible(fn (): bool => auth()->user()?->can('update', $this->itp()) ?? false)
                     ->schema([
@@ -187,14 +187,14 @@ class ActivitiesRelationManager extends RelationManager
                             ->required()
                             ->helperText('Separate from the party: one point can need the Engineer to approve and a laboratory to verify.'),
                         Toggle::make('attendance_mandatory')
-                            ->label('Attendance mandatory')
+                            ->label(__('Attendance mandatory'))
                             ->helperText('At a witness point, leaving this off is what lets work proceed when they do not come.'),
                         Select::make('contact_id')
-                            ->label('Named individual')
+                            ->label(__('Named individual'))
                             ->options(fn (): array => static::contacts())
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
-                        TextInput::make('party_label')->label('Party, in words')->maxLength(255),
+                        TextInput::make('party_label')->label(__('Party, in words'))->maxLength(255),
                     ])
                     ->action(fn (ItpActivity $record, array $data) => static::run(
                         fn () => app(ItpService::class)->addParty($record, $data),
@@ -207,14 +207,14 @@ class ActivitiesRelationManager extends RelationManager
                  * notice period onto it.
                  */
                 Action::make('requestInspection')
-                    ->label('Request inspection')
+                    ->label(__('Request inspection'))
                     ->icon('heroicon-o-magnifying-glass')
                     ->color('info')
                     ->visible(fn (ItpActivity $record): bool => $this->itp()->isInForce()
                         && $record->is_active
                         && (auth()->user()?->can('ConstructionInspectionUpdate') ?? false))
                     ->schema([
-                        Textarea::make('activity_description')->label('What is being inspected')->rows(2),
+                        Textarea::make('activity_description')->label(__('What is being inspected'))->rows(2),
                         TextInput::make('reference')->maxLength(255)->helperText('Left blank, it is numbered for you.'),
                     ])
                     ->action(fn (ItpActivity $record, array $data) => static::run(

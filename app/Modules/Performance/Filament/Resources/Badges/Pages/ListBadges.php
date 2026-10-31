@@ -32,7 +32,7 @@ class ListBadges extends ListRecords
              * — so pressing it twice is safe, which is what makes it a button at all.
              */
             Action::make('awardNow')
-                ->label('Award badges now')
+                ->label(__('Award badges now'))
                 ->icon('heroicon-o-sparkles')
                 ->color('gray')
                 ->requiresConfirmation()

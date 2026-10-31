@@ -44,9 +44,9 @@ class ChequeResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('cheque_no')->label('Cheque no')->searchable()->sortable(),
-                TextColumn::make('companyBankAccount.title')->label('Bank account'),
-                TextColumn::make('payee_name')->label('Payee')->searchable(),
+                TextColumn::make('cheque_no')->label(__('Cheque no'))->searchable()->sortable(),
+                TextColumn::make('companyBankAccount.title')->label(__('Bank account')),
+                TextColumn::make('payee_name')->label(__('Payee'))->searchable(),
                 TextColumn::make('amount')->numeric(2)->alignRight(),
                 TextColumn::make('cheque_date')->date('d-m-Y')->sortable(),
                 IconColumn::make('crossed')->boolean(),
@@ -55,9 +55,9 @@ class ChequeResource extends Resource
                     Cheque::STATUS_CLEARED => 'success',
                     default => 'gray',
                 }),
-                TextColumn::make('payment.id')->label('Payment')->prefix('#'),
-                TextColumn::make('printedBy.name')->label('Printed by')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('void_reason')->label('Reason')->limit(40)->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('payment.id')->label(__('Payment'))->prefix('#'),
+                TextColumn::make('printedBy.name')->label(__('Printed by'))->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('void_reason')->label(__('Reason'))->limit(40)->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')->options([
@@ -66,12 +66,12 @@ class ChequeResource extends Resource
                     Cheque::STATUS_VOID => 'Void',
                     Cheque::STATUS_STOPPED => 'Stopped',
                 ]),
-                SelectFilter::make('company_bank_account_id')->label('Bank account')->relationship('companyBankAccount', 'title'),
+                SelectFilter::make('company_bank_account_id')->label(__('Bank account'))->relationship('companyBankAccount', 'title'),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
                 Action::make('download')
-                    ->label('PDF')
+                    ->label(__('PDF'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (Cheque $record): bool => $record->status !== Cheque::STATUS_VOID)
                     ->action(function (Cheque $record) {
@@ -87,7 +87,7 @@ class ChequeResource extends Resource
     public static function voidAction(): Action
     {
         return Action::make('void')
-            ->label('Void')
+            ->label(__('Void'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->requiresConfirmation()
@@ -107,7 +107,7 @@ class ChequeResource extends Resource
     public static function reprintAction(): Action
     {
         return Action::make('reprint')
-            ->label('Reprint')
+            ->label(__('Reprint'))
             ->icon('heroicon-o-printer')
             ->requiresConfirmation()
             ->modalDescription('Voids this number and prints the next one for the same payment.')

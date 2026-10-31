@@ -37,17 +37,17 @@ class PaymentCertificatesTable
         return $table
             ->columns([
                 TextColumn::make('certificate_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->description(fn (PaymentCertificate $record): ?string => $record->contract?->job?->code)
                     ->toggleable(),
 
                 TextColumn::make('period_end')
-                    ->label('Valued to')
+                    ->label(__('Valued to'))
                     ->date()
                     ->sortable(),
 
@@ -61,26 +61,26 @@ class PaymentCertificatesTable
                     }),
 
                 TextColumn::make('gross_value_to_date')
-                    ->label('Gross to date')
+                    ->label(__('Gross to date'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('this_period')
-                    ->label('This period')
+                    ->label(__('This period'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (PaymentCertificate $record): float => $record->grossThisPeriod())
                     ->tooltip('Gross to date less previously certified — derived, never stored.'),
 
                 TextColumn::make('retention_to_date')
-                    ->label('Retention held')
+                    ->label(__('Retention held'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('current_due')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Computed on a draft, frozen once issued — the whole rule, in one column.
@@ -89,14 +89,14 @@ class PaymentCertificatesTable
                     ->sortable(),
 
                 TextColumn::make('due_on')
-                    ->label('Payable by')
+                    ->label(__('Payable by'))
                     ->date()
                     ->placeholder('—')
                     ->tooltip('Issue date plus the contract payment terms.')
                     ->toggleable(),
 
                 TextColumn::make('invoice_id')
-                    ->label('Invoiced')
+                    ->label(__('Invoiced'))
                     ->formatStateUsing(fn ($state): string => $state ? 'Yes' : 'No')
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -107,7 +107,7 @@ class PaymentCertificatesTable
                  * an override nobody is accountable for, which is the state the reason field exists to prevent.
                  */
                 TextColumn::make('compliance_override_at')
-                    ->label('Compliance')
+                    ->label(__('Compliance'))
                     ->badge()
                     ->color('warning')
                     /*
@@ -123,7 +123,7 @@ class PaymentCertificatesTable
             ])
             ->filters([
                 SelectFilter::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->relationship('contract', 'contract_number')
                     ->searchable(),
 
@@ -141,7 +141,7 @@ class PaymentCertificatesTable
                     ->visible(fn (PaymentCertificate $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('recompute')
-                    ->label('Recompute')
+                    ->label(__('Recompute'))
                     ->icon('heroicon-o-arrow-path')
                     ->modalHeading('Recompute this draft')
                     ->modalDescription('Re-reads the schedule, the agreed variations and the contract terms, and rewrites the automatic deductions. Manual deductions are left alone.')
@@ -155,7 +155,7 @@ class PaymentCertificatesTable
                     )),
 
                 Action::make('certify')
-                    ->label('Certify')
+                    ->label(__('Certify'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
@@ -163,7 +163,7 @@ class PaymentCertificatesTable
                     ->modalDescription('The figures freeze, the payment period starts, and the other party gets a document they will rely on. Correcting it afterwards means voiding it or letting the next certificate absorb the difference.')
                     ->schema([
                         DatePicker::make('issued_on')
-                            ->label('Issued on')
+                            ->label(__('Issued on'))
                             ->default(now())
                             ->helperText('The payment due date is computed from this and the contract terms.'),
                     ])
@@ -182,14 +182,14 @@ class PaymentCertificatesTable
                  * against this certificate alone — it clears nothing later.
                  */
                 Action::make('overrideCompliance')
-                    ->label('Override compliance')
+                    ->label(__('Override compliance'))
                     ->icon('heroicon-o-shield-exclamation')
                     ->color('warning')
                     ->modalHeading('Certify despite the compliance block')
                     ->modalDescription('This says the company will pay a subcontractor whose paperwork is not in order. It applies to this certificate only, and the reason is kept against it.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(3)
                             ->required()
                             ->helperText('Read by whoever asks later why this payment went out. Write the sentence that answers them.'),
@@ -203,7 +203,7 @@ class PaymentCertificatesTable
                     )),
 
                 Action::make('print')
-                    ->label('Print')
+                    ->label(__('Print'))
                     ->icon('heroicon-o-printer')
                     ->openUrlInNewTab()
                     // A route rather than an action returning a response: a direct URL never consults
@@ -215,7 +215,7 @@ class PaymentCertificatesTable
                     ->visible(fn (PaymentCertificate $record): bool => auth()->user()?->can('view', $record) ?? false),
 
                 Action::make('invoice')
-                    ->label('Raise invoice')
+                    ->label(__('Raise invoice'))
                     ->icon('heroicon-o-receipt-percent')
                     ->color('info')
                     ->requiresConfirmation()
@@ -233,14 +233,14 @@ class PaymentCertificatesTable
                     )),
 
                 Action::make('void')
-                    ->label('Void')
+                    ->label(__('Void'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->modalHeading('Void this certificate')
                     ->modalDescription('The number stays on the register — a gap in the series is a question at adjudication, and "voided on the 14th" is an answer. The next certificate absorbs the difference automatically.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(3)
                             ->required()
                             ->helperText('Somebody outside this company has a copy of this certificate.'),

@@ -47,18 +47,18 @@ class FieldVisitRefusalResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('created_at')->label('When')->dateTime('d M Y H:i')->sortable(),
-                TextColumn::make('employee.display_label')->label('Who')->placeholder('—')->searchable(),
+                TextColumn::make('created_at')->label(__('When'))->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Who'))->placeholder('—')->searchable(),
                 TextColumn::make('reason')
                     ->badge()
                     ->color(fn (string $state): string => $state === FieldVisitRefusal::REASON_AWAY ? 'danger' : 'warning')
                     ->formatStateUsing(fn (string $state): string => FieldVisitRefusal::REASONS[$state] ?? $state),
                 TextColumn::make('distance_m')
-                    ->label('How far')
+                    ->label(__('How far'))
                     ->formatStateUsing(fn (?int $state): string => $state === null ? '—' : number_format($state).'m')
                     ->alignRight(),
                 TextColumn::make('accuracy_m')
-                    ->label('Reading')
+                    ->label(__('Reading'))
                     ->formatStateUsing(fn (?int $state): string => $state === null ? '—' : '±'.number_format($state).'m')
                     ->alignRight()
                     // The column that separates "they were not there" from "the phone could

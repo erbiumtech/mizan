@@ -27,12 +27,12 @@ class EmployeeSettingsTable
              */
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('employee.employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     // Resolved to employee ids first: `users` lives in the
                     // landlord database, so a whereHas through it would emit a
@@ -42,69 +42,69 @@ class EmployeeSettingsTable
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('start_date')
-                    ->label('Start Date')
+                    ->label(__('Start Date'))
                     ->date('m/Y')
                     ->placeholder('-')
                     ->sortable(),
 
                 TextColumn::make('end_date')
-                    ->label('End Date')
+                    ->label(__('End Date'))
                     ->date('m/Y')
                     ->placeholder('-')
                     ->sortable(),
 
                 TextColumn::make('basic_wage')
-                    ->label('Basic Wage')
+                    ->label(__('Basic Wage'))
                     ->numeric(),
 
                 TextColumn::make('medical_allowance')
-                    ->label('Medical Allowance')
+                    ->label(__('Medical Allowance'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('device_allowance')
-                    ->label('Device Allowance')
+                    ->label(__('Device Allowance'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('petrol_allowance')
-                    ->label('Petrol Allowance')
+                    ->label(__('Petrol Allowance'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('bonus')
-                    ->label('Bonus')
+                    ->label(__('Bonus'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('extra_work_hours')
-                    ->label('Extra Work Hours')
+                    ->label(__('Extra Work Hours'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('meal_deduction')
-                    ->label('Meal Deduction')
+                    ->label(__('Meal Deduction'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('advances')
-                    ->label('Advances')
+                    ->label(__('Advances'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('esi_health_insurance')
-                    ->label('ESI / Health Insurance')
+                    ->label(__('ESI / Health Insurance'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->options(fn (): array => app(EmployeeAccess::class)
                         ->scopeAccessibleEmployees(Employee::with('user'), auth()->user())
                         ->get()
@@ -114,7 +114,7 @@ class EmployeeSettingsTable
                         ->toArray()),
 
                 SelectFilter::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name'),
             ])
             ->recordActions([

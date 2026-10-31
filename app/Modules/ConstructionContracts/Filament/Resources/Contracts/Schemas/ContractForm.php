@@ -36,7 +36,7 @@ class ContractForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -61,7 +61,7 @@ class ContractForm
                             ->columnSpanFull(),
 
                         Select::make('side')
-                            ->label('Side')
+                            ->label(__('Side'))
                             ->options([
                                 Contract::SIDE_RECEIVABLE => 'Receivable — we bill the employer',
                                 Contract::SIDE_PAYABLE => 'Payable — we pay a subcontractor',
@@ -72,7 +72,7 @@ class ContractForm
                             ->dehydrated(),
 
                         Select::make('contact_id')
-                            ->label('Other party')
+                            ->label(__('Other party'))
                             ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
                             // Absent without Invoicing, which owns Contacts — §18.1's guarded coupling. The
@@ -81,7 +81,7 @@ class ContractForm
                             ->helperText('The employer, or the subcontractor. Nullable until award.'),
 
                         Select::make('contract_standard')
-                            ->label('Contract family')
+                            ->label(__('Contract family'))
                             ->options(ContractVocabulary::options())
                             ->default(ContractVocabulary::FIDIC)
                             ->selectablePlaceholder(false)
@@ -89,7 +89,7 @@ class ContractForm
                             ->helperText('Drives the vocabulary, the numbering series and the printed form. Frozen once anything is certified.'),
 
                         Select::make('fidic_book')
-                            ->label('FIDIC book')
+                            ->label(__('FIDIC book'))
                             ->options([
                                 'red' => 'Red — building and engineering works designed by the employer',
                                 'yellow' => 'Yellow — plant and design-build',
@@ -102,7 +102,7 @@ class ContractForm
                             ->helperText('Printed clause references, and nothing else.'),
 
                         Select::make('measurement_basis')
-                            ->label('Measurement basis')
+                            ->label(__('Measurement basis'))
                             ->options([
                                 Contract::BASIS_LUMP_SUM => 'Lump sum',
                                 Contract::BASIS_REMEASURED => 'Remeasured',
@@ -116,7 +116,7 @@ class ContractForm
                             ->helperText('Whether quantities are remeasured. Not a consequence of the contract family.'),
 
                         Select::make('parent_contract_id')
-                            ->label('Under head contract')
+                            ->label(__('Under head contract'))
                             ->options(fn (?Contract $record): array => Contract::query()
                                 ->receivable()
                                 ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
@@ -141,32 +141,32 @@ class ContractForm
                             ->helperText('Original. The revised sum is computed from agreed variations.'),
 
                         TextInput::make('currency_code')
-                            ->label('Currency')
+                            ->label(__('Currency'))
                             ->maxLength(3),
 
                         TextInput::make('minimum_certificate_amount')
-                            ->label('Minimum certificate')
+                            ->label(__('Minimum certificate'))
                             ->numeric()
                             ->helperText('Below this, the value rolls into the next certificate.'),
 
                         TextInput::make('retention_percent')
-                            ->label('Retention %')
+                            ->label(__('Retention %'))
                             ->numeric(),
 
                         TextInput::make('retention_limit_percent')
-                            ->label('Retention limit %')
+                            ->label(__('Retention limit %'))
                             ->numeric()
                             ->helperText('Of the contract sum. Retention stops accruing here.'),
 
                         TextInput::make('retention_limit_amount')
-                            ->label('Retention limit')
+                            ->label(__('Retention limit'))
                             ->numeric()
                             // Both exist because contracts say it both ways, and converting one into the other
                             // would stop tracking a percentage cap when the sum moves on a remeasured job.
                             ->helperText('In money, where the contract states a figure instead.'),
 
                         Select::make('retention_release_rule')
-                            ->label('Release rule')
+                            ->label(__('Release rule'))
                             ->options([
                                 Contract::RELEASE_FIDIC_TWO_STAGE => 'Two stage — half at taking-over, half at the end of the defects period',
                                 Contract::RELEASE_AIA_SUBSTANTIAL => 'At substantial completion, less a punch-list holdback',
@@ -177,35 +177,35 @@ class ContractForm
                             ->helperText('Seeded from the contract family, and negotiable — a FIDIC contract with a single-stage release is ordinary.'),
 
                         TextInput::make('retention_first_release_pct')
-                            ->label('First release %')
+                            ->label(__('First release %'))
                             ->numeric()
                             ->helperText('Of the balance held. 50 under FIDIC.'),
 
                         TextInput::make('materials_retention_percent')
-                            ->label('Materials retention %')
+                            ->label(__('Materials retention %'))
                             ->numeric()
                             ->helperText('Materials on site are often retained at a different rate, or not at all.'),
 
                         TextInput::make('advance_payment_amount')
-                            ->label('Advance payment')
+                            ->label(__('Advance payment'))
                             ->numeric(),
 
                         TextInput::make('advance_recovery_start_pct')
-                            ->label('Recovery starts at %')
+                            ->label(__('Recovery starts at %'))
                             ->numeric()
                             ->helperText('Of the contract sum certified.'),
 
                         TextInput::make('advance_recovery_rate_pct')
-                            ->label('Recovery rate %')
+                            ->label(__('Recovery rate %'))
                             ->numeric()
                             ->helperText('Of each certificate, until repaid.'),
 
                         TextInput::make('liquidated_damages_per_day')
-                            ->label('Damages per day')
+                            ->label(__('Damages per day'))
                             ->numeric(),
 
                         TextInput::make('liquidated_damages_cap_pct')
-                            ->label('Damages cap %')
+                            ->label(__('Damages cap %'))
                             ->numeric(),
                     ]),
 
@@ -216,14 +216,14 @@ class ContractForm
                         DatePicker::make('commencement_date'),
 
                         TextInput::make('time_for_completion_days')
-                            ->label('Time for completion (days)')
+                            ->label(__('Time for completion (days)'))
                             ->numeric(),
 
                         DatePicker::make('contract_completion_date')
-                            ->label('Completion date'),
+                            ->label(__('Completion date')),
 
                         DatePicker::make('extended_completion_date')
-                            ->label('Extended completion')
+                            ->label(__('Extended completion'))
                             ->helperText('Moves only through an approved extension of time.'),
 
                         DatePicker::make('practical_completion_date')
@@ -244,12 +244,12 @@ class ContractForm
                         DatePicker::make('final_completion_date'),
 
                         TextInput::make('payment_terms_days')
-                            ->label('Payment terms (days)')
+                            ->label(__('Payment terms (days)'))
                             ->numeric()
                             ->helperText("FIDIC's 56. Statute, not code — so it lives here."),
 
                         TextInput::make('certification_period_days')
-                            ->label('Certification period (days)')
+                            ->label(__('Certification period (days)'))
                             ->numeric()
                             ->helperText("FIDIC's 28."),
                     ]),

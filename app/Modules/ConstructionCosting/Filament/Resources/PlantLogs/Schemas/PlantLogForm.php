@@ -31,7 +31,7 @@ class PlantLogForm
                     ->columns(2)
                     ->schema([
                         Select::make('plant_item_id')
-                            ->label('Machine')
+                            ->label(__('Machine'))
                             ->options(fn (): array => PlantItem::query()->active()->orderBy('code')->get()
                                 ->mapWithKeys(fn (PlantItem $item): array => [$item->getKey() => $item->displayName()])
                                 ->all())
@@ -40,13 +40,13 @@ class PlantLogForm
                             ->live(),
 
                         DatePicker::make('logged_on')
-                            ->label('Date')
+                            ->label(__('Date'))
                             ->native(false)
                             ->required()
                             ->default(now()),
 
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -55,7 +55,7 @@ class PlantLogForm
                             ->live(),
 
                         Select::make('cost_code_id')
-                            ->label('Cost code')
+                            ->label(__('Cost code'))
                             ->options(fn (): array => CostCode::query()
                                 ->where('is_leaf', true)->where('is_active', true)
                                 ->orderBy('code')->get()
@@ -65,7 +65,7 @@ class PlantLogForm
                             ->required(),
 
                         Select::make('wbs_node_id')
-                            ->label('WBS element')
+                            ->label(__('WBS element'))
                             ->options(fn (callable $get): array => $get('job_id') === null ? [] : WbsNode::query()
                                 ->where('job_id', $get('job_id'))
                                 ->orderBy('path')->get()
@@ -75,7 +75,7 @@ class PlantLogForm
                             ->placeholder('Whole job'),
 
                         Select::make('operator_worker_id')
-                            ->label('Operator')
+                            ->label(__('Operator'))
                             ->options(fn (): array => Worker::query()->active()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Worker $worker): array => [$worker->getKey() => $worker->displayName()])
                                 ->all())
@@ -91,24 +91,24 @@ class PlantLogForm
                     ->columns(3)
                     ->schema([
                         TextInput::make('working_units')
-                            ->label('Working')
+                            ->label(__('Working'))
                             ->numeric()
                             ->default(8)
                             ->required(),
 
                         TextInput::make('idle_units')
-                            ->label('Idle')
+                            ->label(__('Idle'))
                             ->numeric()
                             ->default(0)
                             ->helperText('On site, available, not working.'),
 
                         TextInput::make('standby_units')
-                            ->label('Standby')
+                            ->label(__('Standby'))
                             ->numeric()
                             ->default(0),
 
                         Placeholder::make('rates')
-                            ->label('What this machine charges')
+                            ->label(__('What this machine charges'))
                             ->content(fn (callable $get): string => static::rates($get))
                             ->columnSpanFull(),
                     ]),
@@ -118,15 +118,15 @@ class PlantLogForm
                     ->columns(3)
                     ->schema([
                         TextInput::make('meter_start')
-                            ->label('Meter at start')
+                            ->label(__('Meter at start'))
                             ->numeric(),
 
                         TextInput::make('meter_end')
-                            ->label('Meter at end')
+                            ->label(__('Meter at end'))
                             ->numeric(),
 
                         TextInput::make('fuel_quantity')
-                            ->label('Fuel issued')
+                            ->label(__('Fuel issued'))
                             ->numeric()
                             ->helperText('Litres issued to this machine today.'),
                     ]),
@@ -135,7 +135,7 @@ class PlantLogForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('downtime_reason')
-                            ->label('Why it stood')
+                            ->label(__('Why it stood'))
                             ->maxLength(255)
                             // Idle time with no reason is idle time nobody will ever explain, and standing plant is
                             // among the most recoverable costs on a job.

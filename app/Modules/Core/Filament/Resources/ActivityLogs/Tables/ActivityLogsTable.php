@@ -19,16 +19,16 @@ class ActivityLogsTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('log_name')
-                    ->label('Model')
+                    ->label(__('Model'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('event')
-                    ->label('Event')
+                    ->label(__('Event'))
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'created' => 'Created',
                         'updated' => 'Updated',
@@ -38,7 +38,7 @@ class ActivityLogsTable
                     ->sortable(),
 
                 TextColumn::make('causer')
-                    ->label('Causer')
+                    ->label(__('Causer'))
                     // Eager-loaded by ActivityLogResource::getEloquentQuery(); see there.
                     //
                     // Not sortable, and cannot be: `causer` is a morphTo with no
@@ -49,7 +49,7 @@ class ActivityLogsTable
                     ->state(fn (Activity $record): string => $record->causer?->name ?? 'System'),
 
                 TextColumn::make('created_at')
-                    ->label('When')
+                    ->label(__('When'))
                     ->dateTime()
                     ->sortable(),
             ])
@@ -63,7 +63,7 @@ class ActivityLogsTable
              */
             ->filters([
                 SelectFilter::make('log_name')
-                    ->label('Record')
+                    ->label(__('Record'))
                     ->options(fn (): array => Activity::query()
                         ->whereNotNull('log_name')
                         ->distinct()
@@ -75,14 +75,14 @@ class ActivityLogsTable
                     ->options(['created' => 'Created', 'updated' => 'Updated', 'deleted' => 'Deleted']),
 
                 SelectFilter::make('causer_id')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->searchable()
                     ->options(fn (): array => User::query()->inCurrentCompany()->orderBy('name')->pluck('name', 'id')->all()),
 
                 Filter::make('when')
                     ->schema([
-                        DatePicker::make('from')->label('From')->native(false),
-                        DatePicker::make('until')->label('Until')->native(false),
+                        DatePicker::make('from')->label(__('From'))->native(false),
+                        DatePicker::make('until')->label(__('Until'))->native(false),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query
                         ->when($data['from'] ?? null, fn (Builder $q, string $from): Builder => $q->whereDate('created_at', '>=', $from))

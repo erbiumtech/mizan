@@ -53,7 +53,7 @@ class CommitmentLinesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->live()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -64,7 +64,7 @@ class CommitmentLinesRelationManager extends RelationManager
                     ->helperText('Each line can be a different job — one order, three sites.'),
 
                 Select::make('cost_code_id')
-                    ->label('Cost code')
+                    ->label(__('Cost code'))
                     // Only bookable codes: committing against a heading would double-count in every rolled-up
                     // total, exactly as booking cost to one would.
                     ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
@@ -76,7 +76,7 @@ class CommitmentLinesRelationManager extends RelationManager
                     ->helperText('What the money is committed against. The cost type is taken from the code and kept.'),
 
                 Select::make('wbs_node_id')
-                    ->label('WBS element')
+                    ->label(__('WBS element'))
                     ->options(fn (callable $get): array => WbsNode::query()
                         ->where('job_id', $get('job_id'))
                         ->orderBy('path')->get()
@@ -97,7 +97,7 @@ class CommitmentLinesRelationManager extends RelationManager
                     ->afterStateUpdated(fn ($state, callable $get, callable $set) => static::recomputeAmount($get, $set)),
 
                 TextInput::make('unit_of_measure')
-                    ->label('Unit')
+                    ->label(__('Unit'))
                     ->maxLength(16),
 
                 TextInput::make('rate')
@@ -128,12 +128,12 @@ class CommitmentLinesRelationManager extends RelationManager
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->description(fn (CommitmentLine $record): ?string => $record->job?->name)
                     ->sortable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->description(fn (CommitmentLine $record): ?string => $record->costCode?->name),
 
                 TextColumn::make('description')
@@ -141,7 +141,7 @@ class CommitmentLinesRelationManager extends RelationManager
                     ->searchable(),
 
                 TextColumn::make('cost_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->toggleable(),
 
@@ -155,20 +155,20 @@ class CommitmentLinesRelationManager extends RelationManager
                     ->toggleable(),
 
                 TextColumn::make('amount')
-                    ->label('Ordered')
+                    ->label(__('Ordered'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('relieved')
-                    ->label('Received / invoiced')
+                    ->label(__('Received / invoiced'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (CommitmentLine $record): float => $record->relievedTotal())
                     ->toggleable(),
 
                 TextColumn::make('open')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->weight('bold')

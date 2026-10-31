@@ -47,7 +47,7 @@ class CommitmentsTable
                     ->toggleable(),
 
                 TextColumn::make('contact.name')
-                    ->label('Supplier')
+                    ->label(__('Supplier'))
                     ->placeholder('—')
                     ->searchable()
                     ->toggleable(),
@@ -73,20 +73,20 @@ class CommitmentsTable
                         : null),
 
                 TextColumn::make('ordered')
-                    ->label('Ordered')
+                    ->label(__('Ordered'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Commitment $record): float => $record->orderedTotal()),
 
                 TextColumn::make('relieved')
-                    ->label('Received / invoiced')
+                    ->label(__('Received / invoiced'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Commitment $record): float => $record->relievedTotal())
                     ->toggleable(),
 
                 TextColumn::make('open')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->weight('bold')
@@ -100,13 +100,13 @@ class CommitmentsTable
                         : null),
 
                 TextColumn::make('required_by')
-                    ->label('Required by')
+                    ->label(__('Required by'))
                     ->date()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('close_reason')
-                    ->label('Closed because')
+                    ->label(__('Closed because'))
                     ->wrap()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -135,7 +135,7 @@ class CommitmentsTable
 
                 // What is still promised: the list somebody works from when a job looks overspent.
                 Filter::make('open')
-                    ->label('Still open')
+                    ->label(__('Still open'))
                     ->query(fn (Builder $query) => $query->open())
                     ->toggle(),
             ])
@@ -145,7 +145,7 @@ class CommitmentsTable
                     ->visible(fn (Commitment $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->requiresConfirmation()
@@ -159,7 +159,7 @@ class CommitmentsTable
                     )),
 
                 Action::make('issue')
-                    ->label('Issue')
+                    ->label(__('Issue'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
                     ->requiresConfirmation()
@@ -173,13 +173,13 @@ class CommitmentsTable
                     )),
 
                 Action::make('close')
-                    ->label('Close')
+                    ->label(__('Close'))
                     ->icon('heroicon-o-archive-box')
                     ->modalHeading('Close this order')
                     ->modalDescription('Whatever is still open is written off and comes off the committed column. This is an intentional act with your name on it — an order that quietly stops changing is a commitment nobody will ever clear.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required()
                             ->helperText('"Delivered short and agreed to leave it" reads very differently from "somebody forgot".'),
@@ -192,14 +192,14 @@ class CommitmentsTable
                     )),
 
                 Action::make('cancel')
-                    ->label('Cancel')
+                    ->label(__('Cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->modalHeading('Cancel this order')
                     ->modalDescription('Says it should never have been placed. Everything still open comes off the committed column.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required(),
                     ])

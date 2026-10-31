@@ -27,29 +27,29 @@ class ReportSchedulesTable
         return $table
             ->columns([
                 TextColumn::make('report_key')
-                    ->label('Report')
+                    ->label(__('Report'))
                     ->state(fn (ReportSchedule $record): string => app(ReportDeliveryService::class)->titleFor($record))
                     ->description(fn (ReportSchedule $record): string => RelativePeriod::label($record->period))
                     ->searchable(),
 
                 TextColumn::make('cron')
-                    ->label('Timetable')
+                    ->label(__('Timetable'))
                     ->state(fn (ReportSchedule $record): string => $record->timetable()),
 
                 TextColumn::make('format')
-                    ->label('Format')
+                    ->label(__('Format'))
                     ->state(fn (ReportSchedule $record): string => ReportSchedule::FORMATS[$record->format] ?? (string) $record->format),
 
                 TextColumn::make('recipients')
-                    ->label('Recipients')
+                    ->label(__('Recipients'))
                     ->state(fn (ReportSchedule $record): string => (string) count((array) $record->recipients)),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
 
                 TextColumn::make('suspended_at')
-                    ->label('State')
+                    ->label(__('State'))
                     ->badge()
                     ->state(fn (ReportSchedule $record): string => $record->isSuspended() ? 'Suspended' : 'Running')
                     ->color(fn (ReportSchedule $record): string => $record->isSuspended() ? 'danger' : 'success')
@@ -57,7 +57,7 @@ class ReportSchedulesTable
                     ->description(fn (ReportSchedule $record): ?string => $record->suspended_reason),
 
                 TextColumn::make('last_run_at')
-                    ->label('Last sent')
+                    ->label(__('Last sent'))
                     ->dateTime('j M Y H:i')
                     ->placeholder('Never'),
             ])
@@ -73,7 +73,7 @@ class ReportSchedulesTable
                  * same reason, which is a better answer than a schedule that keeps retrying quietly.
                  */
                 Action::make('resume')
-                    ->label('Resume')
+                    ->label(__('Resume'))
                     ->icon('heroicon-m-play')
                     ->color('gray')
                     ->visible(fn (ReportSchedule $record): bool => $record->isSuspended())

@@ -81,7 +81,7 @@ class EmployeeDocumentResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -109,13 +109,13 @@ class EmployeeDocumentResource extends Resource
                 ->visible(fn (Get $get): bool => $get('kind') === EmployeeDocument::KIND_INSURANCE),
 
             TextInput::make('cover_amount')
-                ->label('Sum insured')
+                ->label(__('Sum insured'))
                 ->numeric()
                 ->minValue(0)
                 ->visible(fn (Get $get): bool => $get('kind') === EmployeeDocument::KIND_INSURANCE),
 
             TextInput::make('premium')
-                ->label('Annual premium')
+                ->label(__('Annual premium'))
                 ->numeric()
                 ->minValue(0)
                 ->visible(fn (Get $get): bool => $get('kind') === EmployeeDocument::KIND_INSURANCE)
@@ -130,7 +130,7 @@ class EmployeeDocumentResource extends Resource
                 ->helperText('Leave blank for a document that never lapses — a degree, a CNIC copy. Warnings are sent once at 60, 30 and 7 days, not every day.'),
 
             FileUpload::make('file_path')
-                ->label('Scan')
+                ->label(__('Scan'))
                 ->disk('public')
                 ->directory('employee-documents')
                 // What the company accepts, not what the framework can take —
@@ -152,7 +152,7 @@ class EmployeeDocumentResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
@@ -163,7 +163,7 @@ class EmployeeDocumentResource extends Resource
                 TextColumn::make('insurer')->placeholder('—')->toggleable(),
 
                 TextColumn::make('expires_on')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->date('d M Y')
                     ->placeholder('never')
                     // "Expired 40 days ago" and "expires in 40 days" are different
@@ -190,7 +190,7 @@ class EmployeeDocumentResource extends Resource
                 // nobody has looked at is the company's job, and one that was refused is
                 // the employee's, and a tick cannot say which.
                 TextColumn::make('review')
-                    ->label('Review')
+                    ->label(__('Review'))
                     ->badge()
                     ->state(fn (EmployeeDocument $record): string => match (true) {
                         $record->isVerified() => 'Verified',
@@ -210,17 +210,17 @@ class EmployeeDocumentResource extends Resource
                     ->options(array_combine(EmployeeDocument::KINDS, array_map('ucfirst', EmployeeDocument::KINDS))),
 
                 Filter::make('expiring')
-                    ->label('Lapsing or lapsed')
+                    ->label(__('Lapsing or lapsed'))
                     ->query(fn (Builder $query): Builder => $query->expiring()
                         ->whereDate('expires_on', '<=', now()->addDays(60)->toDateString())),
 
                 Filter::make('awaiting')
-                    ->label('Awaiting review')
+                    ->label(__('Awaiting review'))
                     ->query(fn (Builder $query): Builder => $query->whereNull('verified_at')->whereNull('rejected_at')),
             ])
             ->recordActions([
                 Action::make('verify')
-                    ->label('Verify')
+                    ->label(__('Verify'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
@@ -232,13 +232,13 @@ class EmployeeDocumentResource extends Resource
                     }),
 
                 Action::make('reject')
-                    ->label('Refuse')
+                    ->label(__('Refuse'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (EmployeeDocument $record): bool => auth()->user()?->can('verify', $record) ?? false)
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->required()
                             ->rows(2)
                             ->helperText('The employee is told this, so write what they have to do: "the back of the '

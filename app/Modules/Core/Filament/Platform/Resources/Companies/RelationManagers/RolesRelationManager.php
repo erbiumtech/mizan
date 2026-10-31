@@ -43,12 +43,12 @@ class RolesRelationManager extends RelationManager
                 TextColumn::make('name')->searchable()->sortable(),
 
                 TextColumn::make('permissions_count')
-                    ->label('Permissions')
+                    ->label(__('Permissions'))
                     ->counts('permissions')
                     ->badge(),
 
                 TextColumn::make('users_count')
-                    ->label('Users here')
+                    ->label(__('Users here'))
                     ->counts('users')
                     ->badge()
                     ->color('gray'),

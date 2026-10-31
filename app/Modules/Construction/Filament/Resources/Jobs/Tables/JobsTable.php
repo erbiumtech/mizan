@@ -25,7 +25,7 @@ class JobsTable
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label('Job no.')
+                    ->label(__('Job no.'))
                     ->searchable()
                     ->sortable(),
 
@@ -35,13 +35,13 @@ class JobsTable
                     ->wrap(),
 
                 TextColumn::make('client.name')
-                    ->label('Client')
+                    ->label(__('Client'))
                     ->searchable()
                     ->placeholder('Not awarded')
                     ->toggleable(),
 
                 TextColumn::make('site_city')
-                    ->label('Site')
+                    ->label(__('Site'))
                     ->searchable()
                     ->toggleable(),
 
@@ -58,7 +58,7 @@ class JobsTable
                     ->sortable(),
 
                 TextColumn::make('contract_standard')
-                    ->label('Standard')
+                    ->label(__('Standard'))
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         Job::STANDARD_FIDIC => 'FIDIC',
                         Job::STANDARD_AIA => 'AIA',
@@ -67,7 +67,7 @@ class JobsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('contract_sum')
-                    ->label('Contract sum')
+                    ->label(__('Contract sum'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
@@ -75,7 +75,7 @@ class JobsTable
 
                 // The date in force, so a job with an approved extension of time does not read as late.
                 TextColumn::make('planned_completion_date')
-                    ->label('Completion')
+                    ->label(__('Completion'))
                     ->state(fn (Job $record) => $record->completionDate())
                     ->date()
                     ->placeholder('—')
@@ -113,7 +113,7 @@ class JobsTable
                 // Default view is the jobs somebody is actually running: a contractor's closed and lost
                 // list grows forever and is not what the screen is for.
                 TernaryFilter::make('live')
-                    ->label('Live jobs')
+                    ->label(__('Live jobs'))
                     ->placeholder('Live only')
                     ->trueLabel('Live only')
                     ->falseLabel('Closed, cancelled and lost')

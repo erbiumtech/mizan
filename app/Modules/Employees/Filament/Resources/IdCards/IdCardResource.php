@@ -57,16 +57,16 @@ class IdCardResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('serial')->label('Card no.')->searchable()->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee')->searchable(),
-                TextColumn::make('issued_on')->label('Issued')->date('d M Y')->sortable(),
+                TextColumn::make('serial')->label(__('Card no.'))->searchable()->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Employee'))->searchable(),
+                TextColumn::make('issued_on')->label(__('Issued'))->date('d M Y')->sortable(),
                 TextColumn::make('expires_on')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->date('d M Y')
                     ->placeholder('never')
                     ->sortable(),
                 TextColumn::make('state')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->state(fn (EmployeeIdCard $record): string => $record->state())
                     ->color(fn (string $state): string => match ($state) {
@@ -79,13 +79,13 @@ class IdCardResource extends Resource
             ->defaultSort('id', 'desc')
             ->filters([
                 Filter::make('live')
-                    ->label('Still valid')
+                    ->label(__('Still valid'))
                     ->query(fn (Builder $query): Builder => $query->live()
                         ->where(fn (Builder $q) => $q->whereNull('expires_on')->orWhereDate('expires_on', '>=', now()->toDateString()))),
             ])
             ->recordActions([
                 Action::make('print')
-                    ->label('Print')
+                    ->label(__('Print'))
                     ->icon('heroicon-o-printer')
                     ->color('gray')
                     ->action(function (EmployeeIdCard $record) {
@@ -95,14 +95,14 @@ class IdCardResource extends Resource
                     }),
 
                 Action::make('revoke')
-                    ->label('Cancel')
+                    ->label(__('Cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (EmployeeIdCard $record): bool => ! $record->isRevoked()
                         && (auth()->user()?->can('update', $record) ?? false))
                     ->modalDescription('The card stops verifying immediately. Whoever is holding it keeps holding '
                         .'it, which is why the reason matters: the verify page shows it.')
-                    ->schema([Textarea::make('reason')->label('Why')->required()->rows(2)->placeholder('Lost on site')])
+                    ->schema([Textarea::make('reason')->label(__('Why'))->required()->rows(2)->placeholder('Lost on site')])
                     ->action(function (EmployeeIdCard $record, array $data): void {
                         app(IdCards::class)->revoke($record, $data['reason']);
                         Notification::make()->warning()->title('Cancelled.')->send();
@@ -110,7 +110,7 @@ class IdCardResource extends Resource
             ])
             ->headerActions([
                 Action::make('issue')
-                    ->label('Issue a card')
+                    ->label(__('Issue a card'))
                     ->icon('heroicon-o-plus')
                     ->visible(fn (): bool => auth()->user()?->can('create', EmployeeIdCard::class) ?? false)
                     ->modalHeading('Issue an ID card')
@@ -118,14 +118,14 @@ class IdCardResource extends Resource
                         .'a lost card stops verifying the moment its replacement exists.')
                     ->schema([
                         Select::make('employee_id')
-                            ->label('Employee')
+                            ->label(__('Employee'))
                             ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')
                                 ->orderBy('employee_id')->get()
                                 ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                             ->searchable()
                             ->required(),
                         DatePicker::make('expires_on')
-                            ->label('Valid to')
+                            ->label(__('Valid to'))
                             ->native(false)
                             ->default(fn (): string => app(IdCards::class)->expiryFor())
                             ->helperText('Leave blank for a card that does not expire. Three years is the default.'),
@@ -149,7 +149,7 @@ class IdCardResource extends Resource
                     // A sheet, because these are printed on an office printer and cut with
                     // scissors — see IdCards::sheet().
                     BulkAction::make('sheet')
-                        ->label('Print a sheet')
+                        ->label(__('Print a sheet'))
                         ->icon('heroicon-o-printer')
                         ->deselectRecordsAfterCompletion()
                         ->action(function (Collection $records) {

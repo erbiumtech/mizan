@@ -45,21 +45,21 @@ class PunchListsTable
                     ->sortable(),
 
                 TextColumn::make('location.name')
-                    ->label('Area')
+                    ->label(__('Area'))
                     ->getStateUsing(fn (PunchList $record): ?string => $record->location?->fullName())
                     ->placeholder('—')
                     ->toggleable(),
 
-                TextColumn::make('opened_on')->label('Walked')->date('d M Y')->sortable(),
+                TextColumn::make('opened_on')->label(__('Walked'))->date('d M Y')->sortable(),
 
                 TextColumn::make('target_completion_date')
-                    ->label('Clear by')
+                    ->label(__('Clear by'))
                     ->date('d M Y')
                     ->placeholder('no date')
                     ->toggleable(),
 
                 TextColumn::make('open_items')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->badge()
                     ->getStateUsing(fn (PunchList $record): string => (string) $record->openItems())
                     ->color(fn (PunchList $record): string => $record->openItems() > 0 ? 'warning' : 'success'),
@@ -69,7 +69,7 @@ class PunchListsTable
                  * so it is shown apart from the open count rather than folded into it.
                  */
                 TextColumn::make('blocking')
-                    ->label('Blocking')
+                    ->label(__('Blocking'))
                     ->badge()
                     ->getStateUsing(fn (PunchList $record): ?string => $record->blockingItems() > 0
                         ? (string) $record->blockingItems()
@@ -85,17 +85,17 @@ class PunchListsTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
 
                 SelectFilter::make('kind')->options(PunchList::KINDS),
 
                 Filter::make('open')
-                    ->label('Still open')
+                    ->label(__('Still open'))
                     ->query(fn (Builder $query): Builder => $query->open())
                     ->toggle(),
 
                 Filter::make('external')
-                    ->label('Not internal sweeps')
+                    ->label(__('Not internal sweeps'))
                     ->query(fn (Builder $query): Builder => $query->external())
                     ->toggle(),
             ])
@@ -105,7 +105,7 @@ class PunchListsTable
                     ->visible(fn (PunchList $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('close')
-                    ->label('Close list')
+                    ->label(__('Close list'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()

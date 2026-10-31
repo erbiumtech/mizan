@@ -16,15 +16,15 @@ class InvoiceLinesTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('invoice.invoice_number')
-                    ->label('Invoice')
+                    ->label(__('Invoice'))
                     ->sortable(),
 
                 TextColumn::make('product.name')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->sortable(),
 
                 TextColumn::make('description'),
@@ -33,11 +33,11 @@ class InvoiceLinesTable
                     ->numeric(),
 
                 TextColumn::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('Unit Price'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('line_total')
-                    ->label('Line Total')
+                    ->label(__('Line Total'))
                     ->money(CompanyCurrency::code()),
             ])
             ->filters([

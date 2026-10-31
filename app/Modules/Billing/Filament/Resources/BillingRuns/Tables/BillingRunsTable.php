@@ -40,20 +40,20 @@ class BillingRunsTable
             // periodLabel() reads the fiscal year; loaded with the rest, not once per row.
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['contact', 'invoice', 'fiscalYear']))
             ->columns([
-                TextColumn::make('contact.name')->label('Client')->searchable()->sortable(),
+                TextColumn::make('contact.name')->label(__('Client'))->searchable()->sortable(),
 
                 TextColumn::make('month')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->state(fn (BillingRun $record): string => $record->periodLabel())
                     ->sortable(),
 
                 TextColumn::make('invoice.invoice_number')
-                    ->label('Invoice')
+                    ->label(__('Invoice'))
                     ->placeholder('Not built')
                     ->searchable(),
 
                 TextColumn::make('invoice.total')
-                    ->label('Total')
+                    ->label(__('Total'))
                     ->money(CompanyCurrency::code())
                     ->placeholder('—')
                     ->alignEnd(),
@@ -61,14 +61,14 @@ class BillingRunsTable
                 // What the client is actually asked for, at the rate agreed for
                 // the month.
                 TextColumn::make('client_total')
-                    ->label('Quoted')
+                    ->label(__('Quoted'))
                     ->state(fn (BillingRun $record): string => $record->totalInClientCurrency() === null
                         ? '—'
                         : $record->currency.' '.number_format($record->totalInClientCurrency(), 2))
                     ->alignEnd(),
 
                 TextColumn::make('invoice.status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->placeholder('draft')
                     ->color(fn (?string $state): string => match ($state) {
@@ -82,7 +82,7 @@ class BillingRunsTable
             ])
             ->defaultSort('invoice_date', 'desc')
             ->filters([
-                SelectFilter::make('contact')->relationship('contact', 'name')->label('Client'),
+                SelectFilter::make('contact')->relationship('contact', 'name')->label(__('Client')),
             ])
             ->recordActions([
                 // What the month contains, before committing to it. Reading the
@@ -94,13 +94,13 @@ class BillingRunsTable
                 // client is sent, it is read beside their own, and it wants the
                 // width. New tab, so the month's list is still there behind it.
                 Action::make('statement')
-                    ->label('Statement')
+                    ->label(__('Statement'))
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->url(fn (BillingRun $record): string => self::statementUrl($record), shouldOpenInNewTab: true),
 
                 Action::make('statementPdf')
-                    ->label('PDF')
+                    ->label(__('PDF'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('gray')
                     ->url(fn (BillingRun $record): string => self::statementUrl($record, ['format' => 'pdf']), shouldOpenInNewTab: true),

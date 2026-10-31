@@ -37,7 +37,7 @@ class ListHolidays extends ListRecords
         $years = PakistanPublicHolidays::years();
 
         return Action::make('addPakistanHolidays')
-            ->label('Add Pakistan public holidays')
+            ->label(__('Add Pakistan public holidays'))
             ->icon('heroicon-o-calendar-days')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->can('create', Holiday::class) ?? false)
@@ -49,7 +49,7 @@ class ListHolidays extends ListRecords
             ->modalSubmitActionLabel('Add them')
             ->schema([
                 Select::make('year')
-                    ->label('Year')
+                    ->label(__('Year'))
                     ->options(array_combine($years, $years))
                     ->default(in_array((int) now()->year, $years, true) ? (int) now()->year : ($years[0] ?? null))
                     ->selectablePlaceholder(false)

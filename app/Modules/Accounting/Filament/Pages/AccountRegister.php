@@ -118,17 +118,17 @@ class AccountRegister extends Page
         return $schema
             ->components([
                 Select::make('account_id')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->options($this->registerAccounts()->mapWithKeys(fn (Account $a) => [$a->id => $a->code.' '.$a->name])->all())
                     ->selectablePlaceholder(false)
                     ->native(false)
                     ->live(),
                 DatePicker::make('from')
-                    ->label('From')
+                    ->label(__('From'))
                     ->native(false)
                     ->live(),
                 DatePicker::make('to')
-                    ->label('To')
+                    ->label(__('To'))
                     // Filled with today in mount(). Not ->default(now()), which
                     // puts a Carbon in the state and carries a time of day into a
                     // date filter.
@@ -206,7 +206,7 @@ class AccountRegister extends Page
         return $schema
             ->components([
                 DatePicker::make('date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->hiddenLabel()
                     ->native(false)
                     ->required()
@@ -217,14 +217,14 @@ class AccountRegister extends Page
                     ->columnSpan(2),
 
                 TextInput::make('num')
-                    ->label('Num')
+                    ->label(__('Num'))
                     ->hiddenLabel()
                     ->placeholder('Num')
                     ->maxLength(50)
                     ->columnSpan(1),
 
                 TextInput::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->hiddenLabel()
                     ->placeholder('Description')
                     ->required()
@@ -232,7 +232,7 @@ class AccountRegister extends Page
                     ->columnSpan(3),
 
                 Select::make('transfer_account_id')
-                    ->label('Transfer')
+                    ->label(__('Transfer'))
                     ->hiddenLabel()
                     ->placeholder('Transfer account')
                     ->options(fn (): array => $this->transferOptions()->groupBy('type')->mapWithKeys(fn ($opts, $type): array => [
@@ -249,7 +249,7 @@ class AccountRegister extends Page
                     ->columnSpan(3),
 
                 TextInput::make('debit')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->hiddenLabel()
                     ->placeholder('Debit (in)')
                     ->numeric()
@@ -258,7 +258,7 @@ class AccountRegister extends Page
                     ->columnSpan(1),
 
                 TextInput::make('credit')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->hiddenLabel()
                     ->placeholder('Credit (out)')
                     ->numeric()
@@ -268,13 +268,13 @@ class AccountRegister extends Page
 
                 Actions::make([
                     FormAction::make('book')
-                        ->label('Book')
+                        ->label(__('Book'))
                         ->icon('heroicon-m-check')
                         ->color('success')
                         ->size('sm')
                         ->action('saveNewRow'),
                     FormAction::make('clearRow')
-                        ->label('Clear')
+                        ->label(__('Clear'))
                         ->icon('heroicon-m-x-mark')
                         ->color('gray')
                         ->size('sm')
@@ -440,7 +440,7 @@ class AccountRegister extends Page
     public function editRowAction(): Action
     {
         return Action::make('editRow')
-            ->label('Edit transaction')
+            ->label(__('Edit transaction'))
             ->icon('heroicon-m-pencil-square')
             ->iconButton()
             ->color('gray')
@@ -510,7 +510,7 @@ class AccountRegister extends Page
     public function deleteRowAction(): Action
     {
         return Action::make('deleteRow')
-            ->label('Delete transaction')
+            ->label(__('Delete transaction'))
             ->icon('heroicon-m-trash')
             ->iconButton()
             ->color('danger')
@@ -550,7 +550,7 @@ class AccountRegister extends Page
     public function reverseRowAction(): Action
     {
         return Action::make('reverseRow')
-            ->label('Reverse transaction')
+            ->label(__('Reverse transaction'))
             ->icon('heroicon-m-arrow-uturn-left')
             ->iconButton()
             ->color('warning')
@@ -594,13 +594,13 @@ class AccountRegister extends Page
                 ->native(false)
                 ->default(now()),
             TextInput::make('num')
-                ->label('Num')
+                ->label(__('Num'))
                 ->maxLength(50),
             TextInput::make('description')
                 ->required()
                 ->maxLength(255),
             Select::make('transfer_account_id')
-                ->label('Transfer')
+                ->label(__('Transfer'))
                 ->options(fn () => $this->transferOptions()->groupBy('type')->mapWithKeys(fn ($opts, $type) => [
                     ucfirst($type) => $opts->pluck('label', 'id')->all(),
                 ])->all())
@@ -608,12 +608,12 @@ class AccountRegister extends Page
                 ->native(false)
                 ->searchable(),
             TextInput::make('debit')
-                ->label('Debit (in)')
+                ->label(__('Debit (in)'))
                 ->numeric()
                 ->minValue(0)
                 ->step(0.01),
             TextInput::make('credit')
-                ->label('Credit (out)')
+                ->label(__('Credit (out)'))
                 ->numeric()
                 ->minValue(0)
                 ->step(0.01),
@@ -629,21 +629,21 @@ class AccountRegister extends Page
             // direction, and leaving that to whoever is typing is how the same money
             // came to be recorded two different ways.
             Action::make('transfer')
-                ->label('Transfer')
+                ->label(__('Transfer'))
                 ->icon('heroicon-o-arrows-right-left')
                 ->color('gray')
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntryCreate') && auth()->user()?->can('RegisterPost'))
                 ->modalDescription('Moves money between the company\'s own cash and bank accounts. Money leaving the company is a payment, not a transfer.')
                 ->schema(fn (): array => [
                     Select::make('from_account_id')
-                        ->label('Out of')
+                        ->label(__('Out of'))
                         ->options(fn (): array => app(BankTransferService::class)->accounts()
                             ->mapWithKeys(fn (Account $a): array => [$a->id => $a->code.' '.$a->name])->all())
                         ->default(fn () => $this->currentAccount()->id)
                         ->required()
                         ->native(false),
                     Select::make('to_account_id')
-                        ->label('Into')
+                        ->label(__('Into'))
                         ->options(fn (): array => app(BankTransferService::class)->accounts()
                             ->mapWithKeys(fn (Account $a): array => [$a->id => $a->code.' '.$a->name])->all())
                         ->required()
@@ -651,9 +651,9 @@ class AccountRegister extends Page
                         ->different('from_account_id'),
                     TextInput::make('amount')->numeric()->minValue(0.01)->required(),
                     DatePicker::make('date')->native(false)->default(now())->required(),
-                    TextInput::make('reference')->label('Reference')->maxLength(50),
+                    TextInput::make('reference')->label(__('Reference'))->maxLength(50),
                     TextInput::make('note')
-                        ->label('Description')
+                        ->label(__('Description'))
                         ->maxLength(255)
                         ->helperText('Left empty, it reads "Transfer 1100 → 1150".'),
                 ])
@@ -677,7 +677,7 @@ class AccountRegister extends Page
                 }),
 
             Action::make('addTransaction')
-                ->label('Add Transaction')
+                ->label(__('Add Transaction'))
                 ->icon('heroicon-o-plus')
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntryCreate') && auth()->user()?->can('RegisterPost'))
                 ->modalDescription(fn (): string => 'Enter the amount in Debit for money into '.$this->currentAccount()->name

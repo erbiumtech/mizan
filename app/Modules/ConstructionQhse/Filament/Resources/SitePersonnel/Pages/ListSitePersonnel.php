@@ -15,7 +15,7 @@ class ListSitePersonnel extends ListRecords
     {
         return [
             HelpAction::make('construction-site-personnel', 'Site personnel: Help'),
-            CreateAction::make()->label('Add somebody'),
+            CreateAction::make()->label(__('Add somebody')),
         ];
     }
 }

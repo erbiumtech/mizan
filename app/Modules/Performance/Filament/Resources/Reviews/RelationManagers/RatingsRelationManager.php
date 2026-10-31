@@ -33,11 +33,11 @@ class RatingsRelationManager extends RelationManager
         $selfLocked = fn (): bool => $this->review()->selfRatingIsTheEmployees();
 
         return $schema->components([
-            Select::make('self_rating')->label('Employee')->options(ReviewTemplates::scaleOptions())->nullable()
+            Select::make('self_rating')->label(__('Employee'))->options(ReviewTemplates::scaleOptions())->nullable()
                 ->hidden($selfHidden)->disabled($selfLocked)->dehydrated(fn (): bool => ! $selfLocked()),
             Textarea::make('self_note')->label("Employee's note")->rows(2)
                 ->hidden($selfHidden)->disabled($selfLocked)->dehydrated(fn (): bool => ! $selfLocked()),
-            Select::make('manager_rating')->label('Reviewer')->options(ReviewTemplates::scaleOptions())->nullable(),
+            Select::make('manager_rating')->label(__('Reviewer'))->options(ReviewTemplates::scaleOptions())->nullable(),
             Textarea::make('manager_note')->label("Reviewer's note")->rows(2),
         ]);
     }
@@ -54,15 +54,15 @@ class RatingsRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with('competency')->join('review_competencies', 'review_competencies.id', '=', 'review_ratings.review_competency_id')->orderBy('review_competencies.sort')->select('review_ratings.*'))
             ->columns([
-                TextColumn::make('competency.name')->label('Competency')->description(fn (ReviewRating $r): ?string => $r->competency?->description),
-                TextColumn::make('competency.weight')->label('Weight')->suffix('%')->alignEnd(),
-                TextColumn::make('self_rating')->label('Employee')->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->self_note)
+                TextColumn::make('competency.name')->label(__('Competency'))->description(fn (ReviewRating $r): ?string => $r->competency?->description),
+                TextColumn::make('competency.weight')->label(__('Weight'))->suffix('%')->alignEnd(),
+                TextColumn::make('self_rating')->label(__('Employee'))->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->self_note)
                     ->visible(fn (): bool => $this->review()->cycle?->includes_self_review ?? true),
-                TextColumn::make('manager_rating')->label('Reviewer')->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->manager_note),
+                TextColumn::make('manager_rating')->label(__('Reviewer'))->placeholder('—')->description(fn (ReviewRating $r): ?string => $r->manager_note),
             ])
             ->recordActions([
                 Action::make('rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->icon('heroicon-o-star')
                     ->schema(fn (): array => $this->form(\Filament\Schemas\Schema::make())->getComponents())
                     ->fillForm(fn (ReviewRating $record): array => $record->only(['self_rating', 'self_note', 'manager_rating', 'manager_note']))
@@ -74,7 +74,7 @@ class RatingsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Action::make('recalculate')
-                    ->label('Recalculate')
+                    ->label(__('Recalculate'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->action(function (): void {

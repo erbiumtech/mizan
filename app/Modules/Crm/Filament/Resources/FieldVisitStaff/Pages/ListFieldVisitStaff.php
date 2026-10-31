@@ -15,7 +15,7 @@ class ListFieldVisitStaff extends ListRecords
     {
         return [
             HelpAction::make('field-visit-staff', 'Field Visit Staff: Help'),
-            CreateAction::make()->label('Enrol somebody'),
+            CreateAction::make()->label(__('Enrol somebody')),
         ];
     }
 }

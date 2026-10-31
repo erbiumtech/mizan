@@ -47,7 +47,7 @@ class AccountForm
                 // individual schedules, so the field would be a question with no
                 // purpose on every account it has.
                 Select::make('tax_regime')
-                    ->label('Taxed as')
+                    ->label(__('Taxed as'))
                     ->options(TaxRegimes::ALL)
                     ->visible(fn ($get) => $get('type') === 'income'
                         && ((Filament::getTenant() ?? Company::current())?->isPersonal() ?? false))
@@ -60,7 +60,7 @@ class AccountForm
                 // child (Account::canHaveChildren), and the resulting failure shows
                 // up far away, in the next payroll or invoice posting.
                 Select::make('parent_id')
-                    ->label('Parent Account')
+                    ->label(__('Parent Account'))
                     ->relationship(
                         'parent',
                         'name',
@@ -75,12 +75,12 @@ class AccountForm
 
                 // Nova: Boolean is_active (Active).
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
 
                 // Nova: Boolean allow_manual_entry — hideFromIndex (form only here).
                 Toggle::make('allow_manual_entry')
-                    ->label('Allow Manual Entry')
+                    ->label(__('Allow Manual Entry'))
                     ->default(true),
 
                 // Nova: Textarea description — nullable, hideFromIndex.

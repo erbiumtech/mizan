@@ -35,12 +35,12 @@ class DelayEventsTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Ref')
+                    ->label(__('Ref'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->sortable()
                     ->toggleable(),
 
@@ -51,13 +51,13 @@ class DelayEventsTable
                     ->searchable(),
 
                 TextColumn::make('occurred_on')
-                    ->label('Occurred')
+                    ->label(__('Occurred'))
                     ->date()
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('notice_required_by')
-                    ->label('Notice due')
+                    ->label(__('Notice due'))
                     ->date()
                     ->sortable(),
 
@@ -66,7 +66,7 @@ class DelayEventsTable
                  * is the whole point — "in 3 days" is actionable where "14 Sep" is a fact.
                  */
                 TextColumn::make('clock')
-                    ->label('Clock')
+                    ->label(__('Clock'))
                     ->badge()
                     ->getStateUsing(function (DelayEvent $record): string {
                         if ($record->noticeGiven()) {
@@ -98,7 +98,7 @@ class DelayEventsTable
                         ->orderBy('notice_required_by', $direction)),
 
                 TextColumn::make('claimed_days')
-                    ->label('Claimed')
+                    ->label(__('Claimed'))
                     ->alignEnd()
                     // Not a dash: nothing claimed yet is the ordinary state early on, and it is what the notice
                     // protects — the whole entitlement rather than a figure.
@@ -106,7 +106,7 @@ class DelayEventsTable
                     ->toggleable(),
 
                 TextColumn::make('awarded_days')
-                    ->label('Awarded')
+                    ->label(__('Awarded'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
@@ -119,12 +119,12 @@ class DelayEventsTable
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
                 SelectFilter::make('cause_category')
-                    ->label('Cause')
+                    ->label(__('Cause'))
                     ->options(DelayEvent::CAUSES),
 
                 SelectFilter::make('status')
@@ -135,7 +135,7 @@ class DelayEventsTable
                     ])->mapWithKeys(fn (string $s): array => [$s => ucfirst(str_replace('_', ' ', $s))])->all()),
 
                 Filter::make('awaiting_notice')
-                    ->label('Awaiting notice')
+                    ->label(__('Awaiting notice'))
                     ->query(fn (Builder $query) => $query->awaitingNotice())
                     ->toggle(),
 
@@ -144,7 +144,7 @@ class DelayEventsTable
                  * un-notified back-charge filter settled.
                  */
                 Filter::make('time_barred')
-                    ->label('Time-barred — notice missed')
+                    ->label(__('Time-barred — notice missed'))
                     ->query(fn (Builder $query) => $query->awaitingNotice()
                         ->whereDate('notice_required_by', '<', now()->toDateString()))
                     ->toggle(),
@@ -155,14 +155,14 @@ class DelayEventsTable
                     ->visible(fn (DelayEvent $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('giveNotice')
-                    ->label('Record notice')
+                    ->label(__('Record notice'))
                     ->icon('heroicon-o-megaphone')
                     ->color('success')
                     ->modalHeading('Record the notice served')
                     ->modalDescription('The date the notice went to the Engineer, not the date you are typing. A late notice is recorded as late rather than refused — whether lateness bars the claim is a contractual argument, and no notice at all never survives one.')
                     ->schema([
                         DatePicker::make('notice_given_on')
-                            ->label('Served on')
+                            ->label(__('Served on'))
                             ->native(false)
                             ->default(now())
                             ->required(),
@@ -175,15 +175,15 @@ class DelayEventsTable
                     )),
 
                 Action::make('particulars')
-                    ->label('Submit particulars')
+                    ->label(__('Submit particulars'))
                     ->icon('heroicon-o-document-text')
                     ->color('info')
                     ->modalHeading('Record the particulars submitted')
                     ->schema([
                         DatePicker::make('particulars_submitted_on')
-                            ->label('Submitted on')->native(false)->default(now())->required(),
-                        TextInput::make('claimed_days')->label('Days claimed')->numeric(),
-                        TextInput::make('cost_claimed')->label('Cost claimed')->numeric(),
+                            ->label(__('Submitted on'))->native(false)->default(now())->required(),
+                        TextInput::make('claimed_days')->label(__('Days claimed'))->numeric(),
+                        TextInput::make('cost_claimed')->label(__('Cost claimed'))->numeric(),
                     ])
                     ->visible(fn (DelayEvent $record): bool => auth()->user()?->can('submitParticulars', $record) ?? false)
                     ->action(fn (DelayEvent $record, array $data) => static::run(
@@ -198,19 +198,19 @@ class DelayEventsTable
                     )),
 
                 Action::make('determine')
-                    ->label('Determine')
+                    ->label(__('Determine'))
                     ->icon('heroicon-o-scale')
                     ->color('warning')
                     ->modalHeading('Award time, money, or neither')
                     ->modalDescription('This moves the completion date and decides whether liquidated damages can be levied. Awarding nothing is a rejection and is recorded as one — a determined event showing zero days reads as an oversight to whoever finds it next year.')
                     ->schema([
                         TextInput::make('awarded_days')
-                            ->label('Days awarded')
+                            ->label(__('Days awarded'))
                             ->numeric()
                             ->helperText('More than was claimed is refused: that would be a different event, needing its own notice.'),
-                        TextInput::make('cost_awarded')->label('Cost awarded')->numeric(),
+                        TextInput::make('cost_awarded')->label(__('Cost awarded'))->numeric(),
                         Textarea::make('reason')
-                            ->label('Grounds')
+                            ->label(__('Grounds'))
                             ->rows(3)
                             ->required()
                             ->helperText('The other party will read this. "0 days" with no grounds is the sentence that goes to adjudication.'),
@@ -229,12 +229,12 @@ class DelayEventsTable
                     )),
 
                 Action::make('withdraw')
-                    ->label('Withdraw')
+                    ->label(__('Withdraw'))
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->modalHeading('Withdraw this event')
                     ->modalDescription('The row and its reference stay: a gap in the series is a question at adjudication, and "withdrawn on the 14th" is an answer.')
-                    ->schema([Textarea::make('reason')->label('Why')->rows(2)->required()])
+                    ->schema([Textarea::make('reason')->label(__('Why'))->rows(2)->required()])
                     ->visible(fn (DelayEvent $record): bool => auth()->user()?->can('withdraw', $record) ?? false)
                     ->action(fn (DelayEvent $record, array $data) => static::run(
                         fn () => app(DelayEventService::class)->withdraw($record, $data['reason']),

@@ -40,14 +40,14 @@ class DunningSettingsSection implements SettingsSection
                     .'second and final wording.')
                 ->schema([
                     Toggle::make('invoicing.dunning_enabled')
-                        ->label('Send overdue reminders')
+                        ->label(__('Send overdue reminders'))
                         ->helperText('The only thing in this application that emails somebody outside the company. '
                             .'Run php artisan invoicing:send-overdue-reminders --dry-run first to see who would '
                             .'be chased.')
                         ->live(),
 
                     TextInput::make('invoicing.dunning_after_days')
-                        ->label('First reminder after')
+                        ->label(__('First reminder after'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(365)
@@ -56,7 +56,7 @@ class DunningSettingsSection implements SettingsSection
                         ->visible(fn (callable $get): bool => (bool) $get('invoicing.dunning_enabled')),
 
                     TextInput::make('invoicing.dunning_repeat_days')
-                        ->label('Chase again every')
+                        ->label(__('Chase again every'))
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(365)

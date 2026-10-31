@@ -54,7 +54,7 @@ class LostReasonResource extends Resource
                 ->default(true)
                 ->helperText('Switch off rather than delete: deals already lost for this reason keep it.'),
 
-            TextInput::make('sort')->label('Order in lists')->numeric()->default(0),
+            TextInput::make('sort')->label(__('Order in lists'))->numeric()->default(0),
         ]);
     }
 
@@ -63,8 +63,8 @@ class LostReasonResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('opportunities_count')->label('Deals lost')->counts('opportunities')->alignEnd()->sortable(),
-                IconColumn::make('is_active')->label('Active')->boolean()->sortable(),
+                TextColumn::make('opportunities_count')->label(__('Deals lost'))->counts('opportunities')->alignEnd()->sortable(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean()->sortable(),
             ])
             ->defaultSort('sort')
             ->recordActions([\Filament\Actions\EditAction::make()]);
