@@ -1422,6 +1422,8 @@
     width: 3.25rem;
     height: 2rem;
     flex-shrink: 0;
+    /* The browser's own button padding (6px a side) would shift the handle off its marks. */
+    padding: 0;
     border: 2px solid var(--md-sys-color-outline);
     border-radius: var(--md-sys-shape-full);
     background-color: var(--md-sys-color-surface-container-highest);
@@ -1440,14 +1442,23 @@
         border-radius: var(--md-sys-shape-full);
         background-color: var(--md-sys-color-outline);
         box-shadow: none;
-        /* Filament positions the handle with Tailwind's `translate` property; one mechanism, not two. */
-        translate: none;
-        transform: translateX(0.375rem);
-        transition: transform 150ms, width 150ms, height 150ms, background-color 150ms;
+        /* Filament positions the handle with Tailwind's `translate` property, so the handle is moved with
+         * that same property, set again in every state rule so it outranks Filament's, and `transform` is
+         * cleared. The offset lives in a custom property because the CSS minifier folds a literal
+         * `translate` into `transform` — which left Filament's 20px shift stacked on ours and pushed the
+         * handle out of the track onto the label. */
+        --md-switch-handle-x: 0.375rem;
+        transform: none;
+        translate: var(--md-switch-handle-x) 0;
+        transition: translate 150ms, width 150ms, height 150ms, background-color 150ms;
+    }
+
+    &.fi-toggle-off > :first-child {
+        translate: var(--md-switch-handle-x) 0;
     }
 
     &:dir(rtl) > :first-child {
-        transform: translateX(-0.375rem);
+        --md-switch-handle-x: -0.375rem;
     }
 }
 
@@ -1460,12 +1471,135 @@
         width: 1.5rem;
         height: 1.5rem;
         background-color: var(--md-sys-color-on-primary);
-        transform: translateX(1.375rem);
+        --md-switch-handle-x: 1.375rem;
+        translate: var(--md-switch-handle-x) 0;
     }
 
     &:dir(rtl) > :first-child {
-        transform: translateX(-1.375rem);
+        --md-switch-handle-x: -1.375rem;
     }
+}
+
+/* ================================================================== date picker
+ *
+ * Filament's own picker (the browser's is switched off in AppServiceProvider) drawn as Material's docked
+ * date picker: the display field matches the outlined text fields, the panel is a surface-container-high
+ * sheet with large corners, days are 40px circles, the selected day filled primary and today outlined.
+ */
+.fi-fo-date-time-picker {
+    & .fi-fo-date-time-picker-display-text-input {
+        min-height: 2.75rem;
+        padding-inline: 1rem;
+        color: var(--md-sys-color-on-surface);
+        cursor: pointer;
+
+        &::placeholder {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+    }
+
+    & .fi-fo-date-time-picker-panel {
+        min-width: 20rem;
+        padding: 12px 12px 16px;
+        border-radius: var(--md-sys-shape-large);
+        background-color: var(--md-sys-color-surface-container-high);
+        color: var(--md-sys-color-on-surface);
+        box-shadow: var(--md-sys-elevation-3, var(--md-sys-elevation-2));
+        --tw-ring-shadow: 0 0 #0000;
+
+        & .fi-fo-date-time-picker-panel-header {
+            gap: 8px;
+            padding: 4px 8px 8px;
+        }
+    }
+
+    & .fi-fo-date-time-picker-month-select,
+    & .fi-fo-date-time-picker-year-input {
+        height: 2.5rem;
+        border-radius: var(--md-sys-shape-full);
+        background-color: transparent;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--md-sys-color-on-surface-variant);
+
+        &:hover {
+            background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        }
+    }
+
+    & .fi-fo-date-time-picker-month-select {
+        padding-inline: 12px 2rem;
+    }
+
+    & .fi-fo-date-time-picker-year-input {
+        width: 5rem;
+        padding-inline: 12px;
+        text-align: center;
+    }
+
+    & .fi-fo-date-time-picker-calendar-header,
+    & .fi-fo-date-time-picker-calendar {
+        grid-template-columns: repeat(7, 2.5rem);
+        gap: 2px 0;
+        justify-content: center;
+    }
+
+    & .fi-fo-date-time-picker-calendar-header-day {
+        height: 2.5rem;
+        line-height: 2.5rem;
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: var(--md-sys-color-on-surface);
+    }
+
+    & .fi-fo-date-time-picker-calendar .fi-fo-date-time-picker-calendar-day {
+        width: 2.5rem;
+        height: 2.5rem;
+        line-height: 2.5rem;
+        border-radius: var(--md-sys-shape-full);
+        font-size: 0.875rem;
+        color: var(--md-sys-color-on-surface);
+        background-color: transparent;
+
+        &.fi-focused:not(.fi-selected):not(.fi-disabled) {
+            background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        }
+
+        &.fi-fo-date-time-picker-calendar-day-today:not(.fi-selected) {
+            color: var(--md-sys-color-primary);
+            box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+        }
+
+        &.fi-selected {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        &.fi-disabled {
+            color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+            opacity: 1;
+        }
+    }
+
+    & .fi-fo-date-time-picker-time-inputs {
+        padding-top: 8px;
+        border-top: 1px solid var(--md-sys-color-outline-variant);
+
+        & input {
+            width: 3rem;
+            height: 2.5rem;
+            border-radius: var(--md-sys-shape-small);
+            background-color: var(--md-sys-color-surface-container-highest);
+            font-size: 1rem;
+            color: var(--md-sys-color-on-surface);
+        }
+    }
+}
+
+.fi-fo-field .fi-fo-date-time-picker .fi-fo-date-time-picker-display-text-input {
+    min-height: 3.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
 }
 
 /* Filament renders a hidden "on" placeholder beside each toggle; the display above must not reveal it. */

@@ -37,6 +37,7 @@ use App\Support\WhatsApp\LogWhatsAppSender;
 use App\Support\WhatsApp\TwilioWhatsAppSender;
 use App\Support\WhatsApp\WhatsAppSender;
 use Filament\Events\TenantSet;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Resources\Resource;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
@@ -397,6 +398,14 @@ class AppServiceProvider extends ServiceProvider
          * in this file. `TableContextMenuTest` holds the other half of that — it fails the day a table
          * declares link attributes, so whoever writes them is pointed at this question.
          */
+        /*
+         * Date, date-time and time fields use Filament's own picker rather than the browser's. The native
+         * control cannot be styled: Safari draws its own calendar popover and puts the value at the top of a
+         * 56px Material field. Filament's picker is plain markup, so `material.css` draws it as Material's
+         * docked date picker. A field that sets `->native()` itself still wins, since it runs after this.
+         */
+        DateTimePicker::configureUsing(fn (DateTimePicker $picker) => $picker->native(false));
+
         Table::configureUsing(function (Table $table): void {
             /*
              * `Model|array`, matching Filament's own `getExtraRecordLinkAttributes()` signature rather
