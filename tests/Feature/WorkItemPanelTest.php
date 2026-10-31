@@ -136,7 +136,9 @@ class WorkItemPanelTest extends AccountingTestCase
         $this->assertCount(2, $panel['subtasks']);
         $this->assertSame(['blocks', 'relates to'], array_column($panel['links'], 'relation'));
         $this->assertSame(['Second', 'First'], array_column($panel['comments'], 'body'));
-        $this->assertSame('Sana Malik', $panel['assignee_name']);
+        // Employee::fullName() names a person by their login when they have one; this employee is
+        // the signed-in user, so the panel shows the user's name, as everywhere else in the panel.
+        $this->assertSame(auth()->user()->name, $panel['assignee_name']);
         $this->assertTrue($panel['is_mine']);
     }
 

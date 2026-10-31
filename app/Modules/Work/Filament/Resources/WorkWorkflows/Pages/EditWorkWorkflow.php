@@ -19,6 +19,12 @@ class EditWorkWorkflow extends EditRecord
 {
     protected static string $resource = WorkWorkflowResource::class;
 
+    /** Back to the list after a save, like every other edit page (CrudRedirectsToListingTest). */
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

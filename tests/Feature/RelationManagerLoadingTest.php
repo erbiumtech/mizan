@@ -54,12 +54,12 @@ class RelationManagerLoadingTest extends AccountingTestCase
         $this->former = Employee::create(['employee_id' => 'EMP-22', 'name' => 'Bilal Raza', 'gender' => 'Male', 'is_active' => true]);
 
         $this->project->employees()->attach($this->current->getKey(), [
-            'role' => 'backend',
+            'role' => 'Ledger integration',
             'allocation_pct' => 10,
             'from_date' => today()->subDay()->toDateString(),
         ]);
         $this->project->employees()->attach($this->former->getKey(), [
-            'role' => 'frontend',
+            'role' => 'Mobile shell',
             'allocation_pct' => 50,
             'from_date' => today()->subMonths(3)->toDateString(),
             'to_date' => today()->subMonth()->toDateString(),
@@ -75,7 +75,9 @@ class RelationManagerLoadingTest extends AccountingTestCase
         $this->get(ProjectResource::getUrl('edit', ['record' => $this->project]))
             ->assertOk()
             ->assertSee('fi-loading-section', false)
-            ->assertDontSee('EMP-21');
+            // Not the employee code: the form's manager selects preload every employee, so EMP-21 is on
+            // the page with or without the table. The project role is only in the team table's rows.
+            ->assertDontSee('Ledger integration');
     }
 
     /** Choosing another tab is a Livewire property change on the same page, not a navigation. */
