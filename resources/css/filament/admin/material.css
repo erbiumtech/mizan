@@ -222,13 +222,6 @@
  * Tokens only; inline-start/end throughout so Urdu mirrors the whole arrangement.
  */
 
-/* The rail's own button folds the drawer, so the topbar's copy of it goes wherever the rail is drawn. */
-@media (width >= 840px) {
-    body:has(.fi-domain-rail) .fi-topbar-collapse-sidebar-btn-ctn {
-        display: none;
-    }
-}
-
 @media (width < 840px) {
     :root {
         --fi-domain-rail-width: 0px;
@@ -263,35 +256,6 @@ body:not(:has(.fi-main-ctn-sidebar-open)) .fi-domain-rail {
     border-inline-end: 0;
     border-start-end-radius: var(--md-sys-shape-large);
     border-end-end-radius: var(--md-sys-shape-large);
-}
-
-.fi-domain-rail-search {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 3.5rem;
-    height: 3.5rem;
-    margin-block-end: 1.25rem;
-    border: 0;
-    border-radius: var(--md-sys-shape-large);
-    background-color: var(--md-sys-color-tertiary-container);
-    color: var(--md-sys-color-on-tertiary-container);
-    cursor: pointer;
-    transition: box-shadow 150ms;
-
-    & .fi-icon {
-        width: 1.5rem;
-        height: 1.5rem;
-    }
-
-    &:hover {
-        box-shadow: var(--md-sys-elevation-1);
-    }
-
-    &:focus-visible {
-        outline: 2px solid var(--md-sys-color-primary);
-        outline-offset: 2px;
-    }
 }
 
 .fi-domain-rail-items {
