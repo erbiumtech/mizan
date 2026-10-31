@@ -88,15 +88,26 @@ class PlatformPanelProvider extends PanelProvider
             ->darkModeBrandLogo(asset('images/logo-dark.png'))
             ->brandLogoHeight('3rem')
             ->favicon(asset('images/favicon.png'))
-            // Deliberately not the admin panel's green: the whole value of a separate
-            // panel is knowing which one you are in without reading the URL.
+            // Deliberately not the admin panel's indigo: the whole value of a separate panel is
+            // knowing which one you are in without reading the URL. Material 3 tonal palettes of the
+            // teal seed #006A6A, generated the way AdminPanelProvider's are; its full scheme, as
+            // tokens, is the .fi-panel-platform block in material.css.
             ->colors([
-                'primary' => Color::Indigo,
-                'success' => Color::Emerald,
+                'primary' => [
+                    50 => '#C1FFFE', 100 => '#A7FDFC', 200 => '#9CF1F0', 300 => '#80D5D4',
+                    400 => '#64B9B8', 500 => '#479E9D', 600 => '#006A6A', 700 => '#004F4F',
+                    800 => '#003737', 900 => '#002B2B', 950 => '#002020',
+                ],
+                'success' => Color::Green,
                 'warning' => Color::Amber,
-                'gray' => Color::Slate,
+                'danger' => Color::Red,
+                'gray' => [
+                    50 => '#EBF6F5', 100 => '#E0EAE9', 200 => '#D2DCDB', 300 => '#BEC9C8',
+                    400 => '#889392', 500 => '#626D6C', 600 => '#566060', 700 => '#3F4948',
+                    800 => '#293232', 900 => '#182121', 950 => '#0C1515',
+                ],
             ])
-            // The admin panel's Material typeface; its indigo Material scheme is in material.css.
+            // The admin panel's Material typeface.
             ->font('Roboto Flex', provider: GoogleFontProvider::class)
             ->globalSearch(false)
             // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
