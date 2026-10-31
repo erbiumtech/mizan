@@ -1074,7 +1074,11 @@ form .fi-sc-actions:last-child {
     }
 }
 
-.fi-fo-field:not(.fi-fo-field-has-inline-label):has(> .fi-fo-field-label-col > .fi-fo-field-label-ctn:only-child > .fi-fo-field-label:only-child):has(> .fi-fo-field-content-col > .fi-input-wrp:is(.fi-fo-text-input, .fi-fo-select, .fi-fo-textarea, .fi-fo-date-time-picker):not(:has(> .fi-input-wrp-prefix-has-label, > .fi-input-wrp-suffix-has-label))):not(:has(.fi-fo-field-content-col .fi-fo-field)) {
+/*
+ * Each condition is its own top-level :has(). CSS does not allow a :has() inside another :has(), and a
+ * selector that tries is dropped whole — which is how the first version of this rule never applied.
+ */
+.fi-fo-field:not(.fi-fo-field-has-inline-label):has(> .fi-fo-field-label-col > .fi-fo-field-label-ctn:only-child > .fi-fo-field-label:only-child):has(> .fi-fo-field-content-col > .fi-input-wrp:is(.fi-fo-text-input, .fi-fo-select, .fi-fo-textarea, .fi-fo-date-time-picker)):not(:has(> .fi-fo-field-content-col > .fi-input-wrp > :is(.fi-input-wrp-prefix-has-label, .fi-input-wrp-suffix-has-label))):not(:has(.fi-fo-field-content-col .fi-fo-field)) {
     position: relative;
     row-gap: 0;
 
