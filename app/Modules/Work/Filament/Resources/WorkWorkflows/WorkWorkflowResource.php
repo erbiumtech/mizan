@@ -4,6 +4,7 @@ namespace App\Modules\Work\Filament\Resources\WorkWorkflows;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\RecordSheet;
+use App\Modules\Work\Filament\Resources\WorkWorkflows\Pages\EditWorkWorkflow;
 use App\Modules\Work\Filament\Resources\WorkWorkflows\Pages\ListWorkWorkflows;
 use App\Modules\Work\Filament\Resources\WorkWorkflows\RelationManagers\StatusesRelationManager;
 use App\Modules\Work\Models\WorkWorkflow;
@@ -92,6 +93,7 @@ class WorkWorkflowResource extends Resource
     {
         return [
             'index' => ListWorkWorkflows::route('/'),
+            'edit' => EditWorkWorkflow::route('/{record}/edit'),
         ];
     }
 }
