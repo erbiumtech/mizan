@@ -193,7 +193,9 @@ class ReplicateMoreRecordsTest extends AccountingTestCase
 
     public function test_a_record_opened_in_its_sheet_offers_replicate_there_too(): void
     {
-        $rate = TaxRate::query()->firstOrFail();
+        // Made here: nothing in this suite seeds tax rates. A second row so the list hydrates a collection.
+        $rate = TaxRate::create(['name' => 'GST 18%', 'rate' => 18, 'is_default' => true, 'is_active' => true]);
+        TaxRate::create(['name' => 'Reduced 5%', 'rate' => 5, 'is_active' => true]);
 
         Livewire::test(ListTaxRates::class)
             ->mountAction(TestAction::make('edit')->table($rate))
