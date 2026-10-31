@@ -511,7 +511,8 @@ class ImpersonationTest extends TestCase
         $this->get(\Filament\Facades\Filament::getPanel('admin')->getUrl($this->company))
             ->assertOk()
             ->assertSee('You are signed in as', escape: false)
-            ->assertSee($employee->name, escape: false)
+            // Escaped like the banner prints it: a generated name such as "O'Kon" is HTML-escaped there.
+            ->assertSee($employee->name)
             ->assertSee('Stop impersonating', escape: false)
             ->assertSee(route('impersonate.stop'), escape: false);
     }
