@@ -38,24 +38,7 @@ class AttendanceController extends Controller
             return ApiResponse::error($e->getMessage(), 422);
         }
 
-        return ApiResponse::success(['data' => $this->payload($day)], $day->check_out_at ? 200 : 201);
-    }
-
-    /** @return array<string, mixed> */
-    private function payload(AttendanceDay $day): array
-    {
-        return [
-            'date' => $day->date->toDateString(),
-            'status' => $day->status,
-            'check_in_at' => $day->check_in_at?->toIso8601String(),
-            'check_out_at' => $day->check_out_at?->toIso8601String(),
-            'worked_minutes' => $day->worked_minutes,
-            'late_minutes' => $day->late_minutes,
-            'overtime_minutes' => $day->overtime_minutes,
-            'latitude' => $day->latitude !== null ? (float) $day->latitude : null,
-            'longitude' => $day->longitude !== null ? (float) $day->longitude : null,
-            'accuracy_m' => $day->accuracy_m,
-            'source' => $day->source,
-        ];
+        // The same shape the sync read hands back — AttendanceDay::toClient().
+        return ApiResponse::success(['data' => $day->toClient()], $day->check_out_at ? 200 : 201);
     }
 }

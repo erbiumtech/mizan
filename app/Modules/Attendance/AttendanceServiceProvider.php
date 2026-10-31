@@ -17,9 +17,11 @@ use App\Modules\Attendance\Policies\WorkPatternPolicy;
 use App\Modules\Attendance\Rules\AttendanceMetrics;
 use App\Modules\Attendance\Services\WorkPatternResolver;
 use App\Modules\Attendance\Support\AttendanceReports;
+use App\Modules\Attendance\Sync\AttendancePunchWorkflow;
 use App\Modules\Employees\Rules\RuleRegistry;
 use App\Support\Reporting\ReportCatalogue;
 use App\Support\Reporting\ReportRenderers;
+use App\Support\Sync\SyncWorkflows;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -77,6 +79,11 @@ class AttendanceServiceProvider extends ServiceProvider
 
         // The phone's clock-in — plan §7.1. Loaded the way Leave loads its own.
         $this->loadRoutesFrom(__DIR__.'/routes/api.php');
+
+        // Punches made offline — docs/desktop-mobile-plan.md O1: the workflow the sync inbox applies them
+        // through, and the session route the panel's offline page replays them on.
+        $this->app->make(SyncWorkflows::class)->register(AttendancePunchWorkflow::KEY, AttendancePunchWorkflow::class);
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
     }
 
     /**
