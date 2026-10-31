@@ -6,6 +6,7 @@ use App\Modules\Core\CorePlatformPlugin;
 use App\Modules\Core\Filament\Pages\Auth\EditProfile;
 use App\Modules\Core\Models\User;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\FontProviders\GoogleFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -95,6 +96,8 @@ class PlatformPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
                 'gray' => Color::Slate,
             ])
+            // The admin panel's Material typeface; its indigo Material scheme is in material.css.
+            ->font('Roboto Flex', provider: GoogleFontProvider::class)
             ->globalSearch(false)
             // Bell icon in the topbar. Echo (config/filament.php) pushes new ones
             // instantly; polling is just the fallback if a socket drops.

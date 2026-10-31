@@ -13,7 +13,7 @@
     onclick="window.dispatchEvent(new CustomEvent('open-command-palette'))"
     title="Search (⌘K)"
     aria-label="Search"
-    class="hidden h-9 w-56 items-center gap-2 rounded-lg bg-white pe-2 ps-3 text-sm text-gray-400 ring-1 ring-gray-950/10 transition hover:ring-gray-950/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 md:flex lg:w-72 dark:bg-white/5 dark:text-gray-500 dark:ring-white/10 dark:hover:ring-white/20"
+    class="fi-command-palette-trigger hidden h-9 w-56 items-center gap-2 rounded-lg bg-white pe-2 ps-3 text-sm text-gray-400 ring-1 ring-gray-950/10 transition hover:ring-gray-950/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 md:flex lg:w-72 dark:bg-white/5 dark:text-gray-500 dark:ring-white/10 dark:hover:ring-white/20"
 >
     <x-filament::icon
         icon="heroicon-m-magnifying-glass"
