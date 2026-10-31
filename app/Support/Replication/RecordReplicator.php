@@ -43,7 +43,11 @@ class RecordReplicator
         $original->loadMissing(array_keys($relations));
 
         $copy = DB::connection($original->getConnectionName())->transaction(function () use ($original, $values, $relations): Model {
-            $copy = $original->replicate(array_values(array_unique([...self::ALWAYS_EXCEPT, ...$original->replicationExcept()])));
+            $copy = $original->replicate(array_values(array_unique([
+                ...self::ALWAYS_EXCEPT,
+                ...$original->replicationExcept(),
+                ...$this->notColumns($original),
+            ])));
 
             foreach ($original->replicationResets() as $attribute => $value) {
                 $copy->setAttribute($attribute, $value instanceof Closure ? $value($original, $copy) : $value);
@@ -82,6 +86,20 @@ class RecordReplicator
             ->log('Replicated from '.$original->replicationLabel());
 
         return $copy;
+    }
+
+    /**
+     * Attributes the original carries that are not columns of its table — `withSum()` / `withCount()`
+     * aggregates a list query added (a tax rate's `lines_sum_tax_amount`), selected aliases. Copied as
+     * they are, the insert names a column that does not exist.
+     *
+     * @return array<int, string>
+     */
+    private function notColumns(Model $original): array
+    {
+        $columns = $original->getConnection()->getSchemaBuilder()->getColumnListing($original->getTable());
+
+        return array_values(array_diff(array_keys($original->getAttributes()), $columns));
     }
 
     /**

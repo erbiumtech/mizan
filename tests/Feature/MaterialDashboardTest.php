@@ -194,7 +194,9 @@ class MaterialDashboardTest extends AccountingTestCase
         Livewire::test(WaitingForYou::class)
             ->assertSee('Sana Iqbal')
             ->callAction(TestAction::make('approve')->arguments(['key' => 'leave:'.$leave->getKey()]))
-            ->assertHasNoActionErrors()
+            // Nothing is mounted once the action has run, and a widget has no default form for
+            // assertHasNoActionErrors() to fall back to; Livewire's own check says the same thing.
+            ->assertHasNoErrors()
             ->assertNotified()
             ->assertDontSee('Sana Iqbal')
             ->assertSee('Nothing is waiting for you.');
@@ -214,7 +216,7 @@ class MaterialDashboardTest extends AccountingTestCase
 
         Livewire::test(WaitingForYou::class)
             ->callAction(TestAction::make('refuse')->arguments(['key' => 'leave:'.$leave->getKey()]), ['reason' => 'Audit week'])
-            ->assertHasNoActionErrors()
+            ->assertHasNoErrors()
             ->assertDontSee('Sana Iqbal');
 
         $this->assertSame(LeaveRequest::STATUS_REFUSED, $leave->fresh()->status);

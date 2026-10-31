@@ -40,7 +40,8 @@ class PasswordChangeTest extends TestCase
 
         $this->get('/admin/profile')
             ->assertSuccessful()
-            ->assertSee('My Profile');
+            // Renamed "My settings" in #74; it holds the person's own settings, not only a profile.
+            ->assertSee(__('My settings'));
     }
 
     public function test_employee_can_change_their_own_password(): void
