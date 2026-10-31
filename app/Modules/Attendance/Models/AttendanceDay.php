@@ -172,6 +172,32 @@ class AttendanceDay extends Model
         return $this->leave_request_id !== null;
     }
 
+    /**
+     * The day as the API tells it — the clock-in's answer and a row of the sync read alike, so a
+     * client holds one shape of an attendance day however it came by it.
+     *
+     * @return array<string, mixed>
+     */
+    public function toClient(): array
+    {
+        return [
+            'id' => $this->getKey(),
+            'employee_id' => $this->employee_id,
+            'date' => $this->date->toDateString(),
+            'status' => $this->status,
+            'check_in_at' => $this->check_in_at?->toIso8601String(),
+            'check_out_at' => $this->check_out_at?->toIso8601String(),
+            'worked_minutes' => $this->worked_minutes,
+            'late_minutes' => $this->late_minutes,
+            'overtime_minutes' => $this->overtime_minutes,
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+            'accuracy_m' => $this->accuracy_m,
+            'source' => $this->source,
+            'updated_at' => $this->updated_at?->toIso8601String(),
+        ];
+    }
+
     public static function forDate(int $employeeId, string|Carbon $date): ?self
     {
         return static::query()

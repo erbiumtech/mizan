@@ -164,7 +164,26 @@ class AttendanceRecorder
      */
     public function clock(Employee $employee, ?array $position = null, string $source = AttendanceDay::SOURCE_SELF_SERVICE): AttendanceDay
     {
-        $now = Carbon::now();
+        return $this->punch($employee, Carbon::now(), $position, $source);
+    }
+
+    /**
+     * A punch at a given moment — what clock() is once the moment is not "now".
+     *
+     * The offline sync (docs/desktop-mobile-plan.md O1) replays punches made hours before, possibly
+     * out of order: a phone that was dark all day sends the evening's punch and the morning's in
+     * whichever order its outbox holds them. So the rule is not "first punch in, second out" but
+     * "the earlier moment is the check-in and the later the check-out", which comes to the same
+     * thing online and the right thing offline. A punch within a minute of the check-in it would
+     * pair with is the same tap twice and changes nothing; a third distinct punch is refused, as
+     * before. Everything else — the leave contradiction, lateness, overtime, the fence — is
+     * record()'s and the geofence's, judged exactly as for a punch made now.
+     *
+     * @param  array{latitude: float|string, longitude: float|string, accuracy_m?: int|string|null}|null  $position
+     */
+    public function punch(Employee $employee, Carbon $at, ?array $position = null, string $source = AttendanceDay::SOURCE_SELF_SERVICE, ?string $note = null): AttendanceDay
+    {
+        $now = $at->copy()->setTimezone(config('app.timezone'));
         $existing = AttendanceDay::forDate($employee->getKey(), $now->copy()->startOfDay());
 
         if ($existing?->check_in_at && $existing->check_out_at) {
@@ -190,17 +209,21 @@ class AttendanceRecorder
             );
         }
 
+        if ($existing?->check_in_at && abs($existing->check_in_at->diffInSeconds($now, false)) < 60) {
+            return $existing;
+        }
+
         $day = $existing?->check_in_at
             ? $this->record(
                 $employee,
                 $now,
                 $existing->status === AttendanceDay::STATUS_NOT_MARKED ? AttendanceDay::STATUS_PRESENT : $existing->status,
-                $existing->check_in_at->format('H:i:s'),
-                $now->format('H:i:s'),
+                $existing->check_in_at->min($now)->format('H:i:s'),
+                $existing->check_in_at->max($now)->format('H:i:s'),
                 $source,
-                $existing->note,
+                $existing->note ?? $note,
             )
-            : $this->record($employee, $now, AttendanceDay::STATUS_PRESENT, $now->format('H:i:s'), null, $source);
+            : $this->record($employee, $now, AttendanceDay::STATUS_PRESENT, $now->format('H:i:s'), null, $source, $note);
 
         if ($position !== null && $day->latitude === null) {
             $day->forceFill([
