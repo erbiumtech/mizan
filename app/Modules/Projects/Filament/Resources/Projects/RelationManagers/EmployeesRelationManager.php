@@ -42,11 +42,20 @@ class EmployeesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('employee_id')
             ->columns([
+                // Qualified: the pivot (project_employee) has an employee_id of its own, so a bare
+                // `employee_id` in the search or the sort is ambiguous and the database refuses it.
                 TextColumn::make('employee_id')
                     ->label(__('Employee'))
                     ->formatStateUsing(fn (Employee $record): string => $record->display_label)
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where(
+                        (new Employee)->qualifyColumn('employee_id'),
+                        'like',
+                        '%'.$search.'%',
+                    ))
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderBy(
+                        (new Employee)->qualifyColumn('employee_id'),
+                        $direction,
+                    )),
 
                 TextColumn::make('designation')
                     ->placeholder('—')
