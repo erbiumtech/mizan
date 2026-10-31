@@ -119,7 +119,7 @@ class Board extends Page
                     : null,
                 'current' => false,
             ],
-            ['label' => __('Board'), 'url' => null, 'current' => true],
+            ['label' => __('Board'), 'url' => static::getUrl($project !== null ? ['project' => $project] : []), 'current' => true],
             [
                 'label' => __('Timeline'),
                 'url' => Timeline::canAccess() ? Timeline::getUrl($project !== null ? ['project' => $project] : []) : null,

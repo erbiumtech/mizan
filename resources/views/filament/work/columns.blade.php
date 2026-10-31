@@ -30,8 +30,8 @@
                     'fi-board-column-dot-'.str_replace('_', '-', (string) ($column['category'] ?? 'todo')),
                 ]) aria-hidden="true"></span>
                 <span class="fi-board-column-name">{{ $column['label'] }}</span>
-                <span @class(['fi-board-column-count', 'fi-over' => $column['over'] || ($column['limit'] && $column['total'] >= $column['limit'])])>
-                    {{ $column['total'] }}@if ($column['limit']) / {{ $column['limit'] }}@endif
+                <span @class(['fi-board-column-count', 'fi-over' => $column['full'] ?? $column['over']])>
+                    {{ $column['total'] }}@if ($column['limit'] !== null) / {{ $column['limit'] }}@endif
                 </span>
             </header>
 
