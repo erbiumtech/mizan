@@ -64,6 +64,28 @@ class PwaController extends Controller
         ]);
     }
 
+    /**
+     * The outbox, as a file the panel links to — docs/desktop-mobile-plan.md O1.
+     *
+     * The panel used to inline its 18 KB into every page, which PanelPerformanceTest's page-size budget
+     * caught. Linked with a content hash in the URL, a browser fetches it once per release and keeps it.
+     * The offline page still inlines it (pwa/outbox-script): it is served from the worker's cache with no
+     * network, where a linked file would not be.
+     */
+    public function outbox(): Response
+    {
+        return response(File::get(resource_path('pwa/outbox.js')), 200, [
+            'Content-Type' => 'application/javascript; charset=utf-8',
+            'Cache-Control' => 'public, max-age=31536000, immutable',
+        ]);
+    }
+
+    /** The outbox's URL, versioned by its content so a release is fetched afresh and nothing else is. */
+    public static function outboxUrl(): string
+    {
+        return route('pwa.outbox', ['v' => substr(md5_file(resource_path('pwa/outbox.js')), 0, 12)]);
+    }
+
     public function offline(): View
     {
         return view('pwa.offline');

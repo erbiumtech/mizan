@@ -23,6 +23,7 @@ Route::get('/', function () {
 Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
 Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.worker');
 Route::get('/offline', [PwaController::class, 'offline'])->name('pwa.offline');
+Route::get('/pwa/outbox.js', [PwaController::class, 'outbox'])->name('pwa.outbox');
 
 // The panel subscribing itself to push — docs/desktop-mobile-plan.md M2. The same controller the API
 // clients use, reached with the session instead of a token: a person at the panel has no bearer token and

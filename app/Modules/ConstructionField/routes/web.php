@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\SyncController;
+use App\Modules\ConstructionField\Http\Controllers\SiteDiaryJobsController;
 use App\Modules\ConstructionField\Sync\PunchItemWorkflow;
 use App\Modules\ConstructionField\Sync\SiteDiaryWorkflow;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,11 @@ Route::middleware(['web', 'auth', 'company', 'module:construction_field'])
         Route::post('/sync/site-diary/blobs', [SyncController::class, 'blob'])
             ->defaults('workflow', SiteDiaryWorkflow::KEY)
             ->name('site-diary.blobs');
+
+        // The jobs a line may name, fetched by the outbox after a panel page loads rather than rendered
+        // into every page — see SiteDiaryJobsController.
+        Route::get('/sync/site-diary/jobs', SiteDiaryJobsController::class)
+            ->name('site-diary.jobs');
 
         Route::post('/sync/punch-items', [SyncController::class, 'receive'])
             ->defaults('workflow', PunchItemWorkflow::KEY)
