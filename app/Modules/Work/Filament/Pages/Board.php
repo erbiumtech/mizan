@@ -9,11 +9,21 @@ use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Services\Boards;
+use App\Modules\Work\Services\BoardSettings;
 use BackedEnum;
+use Closure;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use InvalidArgumentException;
 use Livewire\Attributes\Url;
 use RuntimeException;
 use UnitEnum;
@@ -42,6 +52,13 @@ class Board extends Page
 
     #[Url]
     public ?int $project = null;
+
+    /**
+     * Which of the project's boards — in the address as `board`, like the project and the filters,
+     * so a link opens the board it was copied from. Empty is the project's first board.
+     */
+    #[Url(as: 'board')]
+    public ?int $boardId = null;
 
     #[Url]
     public bool $mine = false;
@@ -80,7 +97,239 @@ class Board extends Page
     {
         return [
             HelpAction::make('work-board', 'Board: Help'),
+            $this->boardSettingsAction(),
+            ActionGroup::make([
+                $this->newBoardAction(),
+                $this->resetColumnsAction(),
+                $this->deleteBoardAction(),
+            ])
+                ->label(__('Boards'))
+                ->icon('heroicon-o-ellipsis-vertical')
+                ->button()
+                ->color('gray'),
         ];
+    }
+
+    /**
+     * The board's shape: its name, its kind, the lanes, and the columns with the statuses each holds
+     * and how many cards each takes. `BoardSettings` keeps the rules; the repeater's own rule says
+     * them before anything is saved.
+     */
+    protected function boardSettingsAction(): Action
+    {
+        return Action::make('boardSettings')
+            ->label(__('Board settings'))
+            ->icon('heroicon-o-adjustments-horizontal')
+            ->color('gray')
+            ->visible(fn (): bool => ($board = $this->board()) !== null && (auth()->user()?->can('update', $board) ?? false))
+            ->modalHeading(fn (): string => __('Settings for :board', ['board' => $this->board()?->name ?? __('Board')]))
+            ->modalWidth(Width::FourExtraLarge)
+            ->fillForm(fn (): array => app(BoardSettings::class)->formState($this->board()))
+            ->schema([
+                TextInput::make('name')
+                    ->label(__('Name'))
+                    ->required()
+                    ->maxLength(255),
+                Select::make('kind')
+                    ->label(__('Kind'))
+                    ->options(self::kinds())
+                    ->required()
+                    ->native(false)
+                    ->helperText(__('A Scrum board shows the active sprint\'s items; a Kanban board shows every open item.')),
+                Select::make('swimlane')
+                    ->label(__('Lanes'))
+                    ->options(fn (): array => array_map(fn (string $label): string => __($label), WorkBoard::SWIMLANES))
+                    ->required()
+                    ->native(false),
+                Toggle::make('shows_subtasks')
+                    ->label(__('Show subtasks as cards'))
+                    ->helperText(__('Off, a subtask is counted on its parent\'s card instead.')),
+                Repeater::make('columns')
+                    ->label(__('Columns'))
+                    ->schema([
+                        TextInput::make('label')
+                            ->label(__('Column name'))
+                            ->required()
+                            ->maxLength(60),
+                        Select::make('status_ids')
+                            ->label(__('Statuses'))
+                            ->multiple()
+                            ->options(fn (): array => $this->statusOptions())
+                            ->required()
+                            ->native(false),
+                        TextInput::make('limit')
+                            ->label(__('Card limit'))
+                            ->integer()
+                            ->minValue(1)
+                            ->nullable()
+                            ->placeholder(__('No limit')),
+                    ])
+                    ->columns(3)
+                    ->reorderable()
+                    ->minItems(1)
+                    ->addActionLabel(__('Add column'))
+                    ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
+                    ->rules([
+                        fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                            $workflow = $this->workflow();
+
+                            if ($workflow !== null && ($problem = app(BoardSettings::class)->columnProblem(is_array($value) ? $value : [], $workflow))) {
+                                $fail($problem);
+                            }
+                        },
+                    ])
+                    ->helperText(__('A status may be in one column only. A status in no column is named above the board, so its cards are never lost silently.')),
+            ])
+            ->action(function (array $data): void {
+                $board = $this->board();
+                $workflow = $this->workflow();
+
+                if ($board === null || $workflow === null) {
+                    return;
+                }
+
+                try {
+                    app(BoardSettings::class)->save($board, $data, $workflow);
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title(__('The board was not saved'))->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title(__('Board saved'))->send();
+            });
+    }
+
+    /** A further board on this project, starting from one column per status. */
+    protected function newBoardAction(): Action
+    {
+        return Action::make('newBoard')
+            ->label(__('New board'))
+            ->icon('heroicon-o-plus')
+            ->visible(fn (): bool => $this->currentProject() !== null && $this->workflow() !== null
+                && (auth()->user()?->can('create', WorkBoard::class) ?? false))
+            ->schema([
+                TextInput::make('name')
+                    ->label(__('Name'))
+                    ->required()
+                    ->maxLength(255),
+                Select::make('kind')
+                    ->label(__('Kind'))
+                    ->options(self::kinds())
+                    ->default(WorkBoard::KANBAN)
+                    ->required()
+                    ->native(false),
+            ])
+            ->action(function (array $data): void {
+                $project = $this->currentProject();
+                $workflow = $this->workflow();
+
+                if ($project === null || $workflow === null) {
+                    return;
+                }
+
+                try {
+                    $board = app(BoardSettings::class)->create($project, (string) $data['name'], (string) $data['kind'], $workflow);
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title(__('The board was not created'))->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                $this->boardId = (int) $board->getKey();
+                Notification::make()->success()->title(__('Board created'))->send();
+            });
+    }
+
+    /** Back to one column per status, limits cleared. */
+    protected function resetColumnsAction(): Action
+    {
+        return Action::make('resetColumns')
+            ->label(__('Reset columns from workflow'))
+            ->icon('heroicon-o-arrow-path')
+            ->requiresConfirmation()
+            ->modalDescription(__('Every column is replaced by one per status of the project\'s workflow, in order, and every card limit is cleared. Cards do not move.'))
+            ->visible(fn (): bool => ($board = $this->board()) !== null && (auth()->user()?->can('update', $board) ?? false))
+            ->action(function (): void {
+                $board = $this->board();
+                $workflow = $this->workflow();
+
+                if ($board === null || $workflow === null) {
+                    return;
+                }
+
+                app(BoardSettings::class)->reset($board, $workflow);
+                Notification::make()->success()->title(__('Columns reset from the workflow'))->send();
+            });
+    }
+
+    /** Any board but the project's last one. */
+    protected function deleteBoardAction(): Action
+    {
+        return Action::make('deleteBoard')
+            ->label(__('Delete this board'))
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalDescription(__('Only the board goes: its items, statuses and history stay, and show on the project\'s other boards.'))
+            ->visible(fn (): bool => ($board = $this->board()) !== null
+                && count($this->boards()) > 1
+                && (auth()->user()?->can('delete', $board) ?? false))
+            ->action(function (): void {
+                $board = $this->board();
+
+                if ($board === null) {
+                    return;
+                }
+
+                try {
+                    app(BoardSettings::class)->delete($board);
+                } catch (InvalidArgumentException $e) {
+                    Notification::make()->danger()->title(__('The board was not deleted'))->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                $this->boardId = null;
+                Notification::make()->success()->title(__('Board deleted'))->send();
+            });
+    }
+
+    /** @return array<string, string> */
+    private static function kinds(): array
+    {
+        return [WorkBoard::KANBAN => __('Kanban'), WorkBoard::SCRUM => __('Scrum')];
+    }
+
+    /** @return array<int, string> the project's workflow statuses, in order */
+    private function statusOptions(): array
+    {
+        return $this->workflow()?->statuses->mapWithKeys(fn ($status): array => [(int) $status->getKey() => $status->name])->all() ?? [];
+    }
+
+    /** A different project starts on that project's first board. */
+    public function updatedProject(): void
+    {
+        $this->boardId = null;
+    }
+
+    /** @return array<int, string> this project's boards, the default first */
+    public function boards(): array
+    {
+        $project = $this->currentProject();
+
+        if ($project === null || $this->board() === null) {
+            return [];
+        }
+
+        return WorkBoard::query()->where('project_id', $project->getKey())->orderBy('id')->pluck('name', 'id')->all();
+    }
+
+    private function workflow(): ?WorkWorkflow
+    {
+        $project = $this->currentProject();
+
+        return $project === null ? null : WorkWorkflow::forProject($project);
     }
 
     /** Projects this reader may pick between, which is also what the empty state is about. */
@@ -89,23 +338,26 @@ class Board extends Page
         return Project::query()->orderBy('name')->pluck('name', 'id')->all();
     }
 
+    /**
+     * The board on screen: the one the address names, if it is this project's, else the project's
+     * first — made on first view if the project has none.
+     */
     public function board(): ?WorkBoard
     {
         $project = $this->currentProject();
+        $workflow = $this->workflow();
 
-        if ($project === null) {
+        if ($project === null || $workflow === null) {
             return null;
         }
 
-        $workflow = $project->work_workflow_id !== null
-            ? WorkWorkflow::query()->with('statuses')->whereKey($project->work_workflow_id)->first()
-            : WorkWorkflow::default()?->load('statuses');
+        $default = WorkBoard::defaultFor($project, $workflow);
 
-        if ($workflow === null) {
-            return null;
+        if ($this->boardId === null) {
+            return $default;
         }
 
-        return WorkBoard::defaultFor($project, $workflow);
+        return WorkBoard::query()->where('project_id', $project->getKey())->whereKey($this->boardId)->first() ?? $default;
     }
 
     private function currentProject(): ?Project
@@ -145,17 +397,9 @@ class Board extends Page
     public function unmapped(): array
     {
         $board = $this->board();
-        $project = $this->currentProject();
+        $workflow = $this->workflow();
 
-        if ($board === null || $project === null) {
-            return [];
-        }
-
-        $workflow = $project->work_workflow_id !== null
-            ? WorkWorkflow::query()->with('statuses')->whereKey($project->work_workflow_id)->first()
-            : WorkWorkflow::default()?->load('statuses');
-
-        if ($workflow === null) {
+        if ($board === null || $workflow === null) {
             return [];
         }
 
