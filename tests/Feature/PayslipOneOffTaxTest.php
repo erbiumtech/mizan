@@ -190,14 +190,13 @@ class PayslipOneOffTaxTest extends AccountingTestCase
         $withheld = [];
 
         foreach (ReportPeriod::months($this->fiscalYear->start_date) as $month) {
-            $payslip = Payslip::create([
+            $payslip = Payslip::createWithInputs([
                 'employee_id' => $this->employee->id,
                 'fiscal_year_id' => $this->fiscalYear->id,
                 'month' => $month,
                 'total_working_days' => 22,
                 'paid_days' => 22,
-                'bonus' => $month === $bonusIn ? self::BONUS : 0,
-            ]);
+            ], ['bonus' => $month === $bonusIn ? self::BONUS : 0]);
 
             $withheld[$month] = round((float) $payslip->withholding_tax, 2);
         }

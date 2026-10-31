@@ -79,7 +79,7 @@ class PayslipPdfFreshnessTest extends AccountingTestCase
         $before = $this->service()->renderPdf($payslip)->html();
         $this->assertStringContainsString('1.00', $before);
 
-        $payslip->update(['device_allowance' => 0]);
+        $payslip->saveWithInputs(['device_allowance' => 0]);
 
         $this->assertSame(5000.0, (float) $payslip->fresh()->device_allowance);
 

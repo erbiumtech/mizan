@@ -485,7 +485,7 @@ class PayslipAttendanceProrationTest extends AccountingTestCase
             'total_working_days' => 22, 'paid_days' => 22, 'lop_days' => 0,
         ]);
 
-        $payslip->update(['extra_work_hours' => 12500]);
+        $payslip->saveWithInputs(['extra_work_hours' => 12500]);
         $payslip->refresh();
 
         // Added to earnings as money. Were it a count of hours, 12500 would be a

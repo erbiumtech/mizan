@@ -145,7 +145,7 @@ class RealMonthlyBillingSeederTest extends AccountingTestCase
         // Through the model, so the payslip is left in a state the application can
         // actually reach: a figure overridden by hand, with the totals recomputed
         // around it.
-        $payslip->update(['petrol_allowance' => 5000]);
+        $payslip->saveWithInputs(['petrol_allowance' => 5000]);
 
         $this->assertSame($asSeeded - 80800 + 5000, (float) $payslip->fresh()->total_earnings, 'the override took');
 

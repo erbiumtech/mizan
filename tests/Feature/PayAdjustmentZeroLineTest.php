@@ -94,7 +94,7 @@ class PayAdjustmentZeroLineTest extends AccountingTestCase
         app(MonthlyPayrollService::class)->openMonth('August', $this->fiscalYear);
 
         Carbon::setTestNow('2026-09-10 10:05:00');
-        $this->august()->update(['bonus' => 1000]);
+        $this->august()->saveWithInputs(['bonus' => 1000]);
 
         $this->assertSame(1000.0, (float) $this->august()->bonus, 'the save did recalculate');
         $this->assertSame(0.0, (float) $this->august()->meal_deduction);
