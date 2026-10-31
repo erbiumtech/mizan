@@ -300,7 +300,12 @@ class WorkBoardSettingsTest extends AccountingTestCase
     /** A Manager sets up boards but does not edit workflows: settings, yes; the workflow link, no. */
     public function test_a_manager_may_configure_the_board_but_not_edit_the_workflow(): void
     {
-        $this->actingAs($this->makeUser('Manager', 'manager@test.local'));
+        // Manager's rung inherits Accountant, not Employee, so the Manager role alone cannot read work
+        // items and never reaches the board. A manager in a company is staff too: both roles, which is
+        // BoardManage without WorkflowManage — the case this test is about.
+        $manager = $this->makeUser('Manager', 'manager@test.local');
+        $manager->assignRole('Employee');
+        $this->actingAs($manager);
 
         Livewire::test(Board::class, ['project' => $this->project->getKey()])
             ->assertActionVisible('boardSettings')
