@@ -261,16 +261,18 @@ class NavigationDomainsTest extends TestCase
         $this->assertMatchesRegularExpression('/fi-nav-drawer-item fi-active"[^>]*aria-current="page"/', $html);
     }
 
-    /** The rail's own controls: search, then the domains, then fold the drawer and switch the theme. */
-    public function test_the_rail_carries_search_and_its_two_buttons(): void
+    /**
+     * The rail carries the domains and a light/dark button only. Search is the topbar's search bar, and
+     * showing or hiding the drawer is the topbar's menu button again, as before the rail.
+     */
+    public function test_the_rail_has_no_search_and_the_topbar_folds_the_drawer(): void
     {
         $html = $this->get(Filament::getPanel('admin')->getUrl($this->company))->assertOk()->getContent();
 
-        $this->assertStringContainsString('class="fi-domain-rail-search"', $html);
-        $this->assertStringContainsString('open-command-palette', $html);
-        $this->assertSame(2, substr_count($html, 'class="fi-domain-rail-action"'));
+        $this->assertStringNotContainsString('fi-domain-rail-search', $html);
+        $this->assertSame(1, substr_count($html, 'class="fi-domain-rail-action"'));
         $this->assertStringContainsString("\$dispatch('theme-changed'", $html);
-        $this->assertStringContainsString('$store.sidebar.close()', $html);
+        $this->assertStringContainsString('fi-topbar-collapse-sidebar-btn-ctn', $html);
     }
 
     /** A module that is switched off takes its screens out of the drawer, not just out of the column. */

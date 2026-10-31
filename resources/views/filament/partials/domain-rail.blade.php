@@ -1,9 +1,9 @@
 {{--
     The first level of the shell: Material's navigation rail, as m3.material.io draws it.
 
-    From the top: a search button (the ⌘K palette — the topbar's search bar opens the same thing), then
-    one destination per domain, an icon in a 56×32 pill over its label, and at the foot two round
-    buttons — show or hide the navigation drawer, and light or dark.
+    From the top: one destination per domain, an icon in a 56×32 pill over its label, and at the foot
+    a round light/dark button. Search lives in the topbar's search bar, and showing or hiding the
+    drawer is the topbar's own menu button, as it was before the rail.
 
     Rendered through the LAYOUT_START hook, which puts it as the first child of `.fi-layout` — ahead
     of the sidebar and in the same flex row. That position is why no Filament view had to be published
@@ -15,8 +15,8 @@
     Each destination is still a real link to the domain's first screen: before Alpine has booted, or
     with a modifier key held to open a new tab, it navigates as a link always has.
 
-    The drawer's open state is Filament's own sidebar store, so the topbar's menu button, the button
-    at the foot of this rail and a rail destination all agree, and the choice is remembered per
+    The drawer's open state is Filament's own sidebar store, so the topbar's menu button and a rail
+    destination agree, and the choice is remembered per
     person by the store's $persist. Which domain the drawer shows is held in a small store of our own
     (`mizanNav`), reset to the screen's domain on every page so a soft navigation never leaves the
     drawer showing a domain the page is not in.
@@ -67,16 +67,6 @@
     </script>
 
     <nav class="fi-domain-rail" aria-label="{{ __('Domains') }}" x-data="{}">
-        <button
-            type="button"
-            class="fi-domain-rail-search"
-            onclick="window.dispatchEvent(new CustomEvent('open-command-palette'))"
-            aria-label="{{ __('Search') }}"
-            aria-haspopup="dialog"
-        >
-            {{ \Filament\Support\generate_icon_html('heroicon-o-magnifying-glass', size: \Filament\Support\Enums\IconSize::Medium) }}
-        </button>
-
         <ul class="fi-domain-rail-items">
             @foreach ($railDomains as $domain)
                 {{--
@@ -107,18 +97,6 @@
         </ul>
 
         <div class="fi-domain-rail-footer">
-            <button
-                type="button"
-                class="fi-domain-rail-action"
-                x-on:click="$store.sidebar.isOpen ? $store.sidebar.close() : $store.sidebar.open()"
-                aria-controls="fi-main-sidebar"
-                x-bind:aria-expanded="$store.sidebar.isOpen"
-                x-bind:aria-label="$store.sidebar.isOpen ? @js(__('Collapse navigation')) : @js(__('Expand navigation'))"
-                aria-label="{{ __('Collapse navigation') }}"
-            >
-                {{ \Filament\Support\generate_icon_html('heroicon-o-view-columns', size: \Filament\Support\Enums\IconSize::Medium) }}
-            </button>
-
             {{-- Filament's own theme switch, by its own event: it stores the choice and flips the class. --}}
             <button
                 type="button"
