@@ -224,9 +224,12 @@ class InvoicesTable
     /**
      * Per-record actions — parity with Nova IssueInvoice / RecordInvoicePayment / VoidInvoice.
      *
+     * Public because the invoice's own page offers the same actions in its header (ViewInvoice), so the two
+     * places cannot drift apart in who may do what.
+     *
      * @return array<Action>
      */
-    protected static function invoiceActions(): array
+    public static function invoiceActions(): array
     {
         return [
             Action::make('issue')
