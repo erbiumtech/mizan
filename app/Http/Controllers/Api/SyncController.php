@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Support\Sync\AcceptsBlobs;
+use App\Support\Sync\SyncBlobs;
 use App\Support\Sync\SyncInbox;
 use App\Support\Sync\SyncWorkflows;
 use Illuminate\Http\JsonResponse;
@@ -63,6 +65,42 @@ class SyncController extends Controller
         );
 
         return ApiResponse::success(['workflow' => $flow->key(), ...$received]);
+    }
+
+    /**
+     * One file behind one command — rule 5, O2. `id` is the file's own ULID, `command_id` the command it rides
+     * behind; the rest of the fields, and the size cap, are the workflow's. Answered with the inbox's six-key
+     * entry, at 200 whatever it says, exactly as a batch is: the entry's own `http_status` is the outcome.
+     */
+    public function blob(Request $request, string $workflow, SyncWorkflows $workflows, SyncBlobs $blobs): JsonResponse
+    {
+        abort_unless($workflows->has($workflow), 404, 'No such sync workflow.');
+
+        $flow = $workflows->for($workflow);
+
+        abort_unless($flow instanceof AcceptsBlobs, 404, 'This workflow carries no files.');
+
+        $data = $request->validate([
+            'id' => ['required', 'string', 'regex:'.self::ULID],
+            'command_id' => ['required', 'string', 'regex:'.self::ULID],
+            'captured_at' => ['nullable', 'date'],
+            ...$flow->blobRules(),
+        ]);
+
+        $token = $request->user()->currentAccessToken();
+
+        $entry = $blobs->receive(
+            $flow,
+            $request->user(),
+            $data['id'],
+            $data['command_id'],
+            $data['captured_at'] ?? null,
+            $request->file('file'),
+            collect($data)->except(['id', 'command_id', 'captured_at', 'file'])->all(),
+            $token instanceof PersonalAccessToken ? (int) $token->getKey() : null,
+        );
+
+        return ApiResponse::success(['workflow' => $flow->key(), 'result' => $entry]);
     }
 
     public function changes(Request $request, string $workflow, SyncWorkflows $workflows): JsonResponse

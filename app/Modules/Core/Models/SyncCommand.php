@@ -20,6 +20,9 @@ class SyncCommand extends Model
 
     public const STATUS_REJECTED = 'rejected';
 
+    /** A change made against a version the document has moved past: kept for a human, not applied (O2, rule 4). */
+    public const STATUS_STALE = 'stale';
+
     protected $fillable = ['client_id', 'workflow', 'user_id', 'token_id', 'payload', 'captured_at', 'received_at', 'status', 'http_status', 'result'];
 
     protected $casts = [

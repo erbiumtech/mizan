@@ -18,10 +18,13 @@ use Throwable;
  * it untouched; the device resends the whole batch and the recorded ones answer from their rows. The
  * device's clock (`captured_at`) is kept and never consulted: `received_at` is ours and is the order.
  *
- * Three answers per command. *Applied*: the workflow took it, here is the result. *Rejected*: the
+ * Four answers per command. *Applied*: the workflow took it, here is the result. *Rejected*: the
  * workflow refused it for a reason that will hold on every replay — recorded with the refusal, so the
- * device shows the reason and stops. *Failed*: something of ours threw; nothing is recorded, the
- * batch stops there, and the device tries again later. A command whose ULID another user already
+ * device shows the reason and stops. *Stale* (O2): the change was made against a version of a mutable
+ * document the server has since moved past; the server's value is kept, the device's change is filed for
+ * a human, and both the trail and the record commit — rule 4's whole conflict policy, no merging.
+ * *Failed*: something of ours threw; nothing is recorded, the batch stops there, and the device tries
+ * again later. A command whose ULID another user already
  * sent is a *conflict* and is neither applied nor recorded: a ULID is minted on one device for one
  * person, and two people sharing one is a client bug worth hearing about, not a replay.
  */
@@ -34,7 +37,7 @@ class SyncInbox
     public function receive(SyncWorkflow $workflow, User $user, array $commands, ?int $tokenId = null): array
     {
         $results = [];
-        $summary = ['applied' => 0, 'replayed' => 0, 'rejected' => 0, 'conflict' => 0, 'failed' => 0, 'skipped' => 0];
+        $summary = ['applied' => 0, 'replayed' => 0, 'rejected' => 0, 'stale' => 0, 'conflict' => 0, 'failed' => 0, 'skipped' => 0];
         $stopped = false;
 
         foreach ($commands as $command) {
@@ -85,6 +88,10 @@ class SyncInbox
                 try {
                     $result = $workflow->apply($row, $user);
                     $row->fill(['status' => SyncCommand::STATUS_APPLIED, 'http_status' => 200, 'result' => $result]);
+                } catch (Stale $stale) {
+                    // Caught here, inside the transaction, so the trail the workflow wrote (the device's change
+                    // filed for a human) commits with the record of the command rather than rolling back.
+                    $row->fill(['status' => SyncCommand::STATUS_STALE, 'http_status' => 409, 'result' => ['message' => $stale->getMessage(), ...$stale->result]]);
                 } catch (InvalidArgumentException $e) {
                     // The workflow's own partial writes, if any, roll back with the savepoint; the
                     // refusal is then recorded so a replay answers the same way without re-asking.
@@ -146,7 +153,9 @@ class SyncInbox
     private function answerFromRow(SyncCommand $row, User $user): array
     {
         if ((int) $row->user_id !== (int) $user->getKey()) {
-            return ['id' => $row->client_id, 'status' => 'conflict', 'http_status' => 409, 'result' => ['message' => 'Another account already sent a command with this id.']];
+            // The other account's row is not this caller's to read, so nothing of it is echoed back — only the
+            // six keys every entry carries, with the receipt left empty.
+            return $this->unrecorded($row->client_id, 'conflict', 409, [], null, ['message' => 'Another account already sent a command with this id.']);
         }
 
         return $row->toClient(replayed: true);

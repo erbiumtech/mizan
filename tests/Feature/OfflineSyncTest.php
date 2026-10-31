@@ -175,7 +175,7 @@ class OfflineSyncTest extends TestCase
         // third is a third punch and is refused with the reason the online path gives.
         $this->sync([$a, $b, $c])
             ->assertOk()
-            ->assertJsonPath('summary', ['applied' => 1, 'replayed' => 1, 'rejected' => 1, 'conflict' => 0, 'failed' => 0, 'skipped' => 0])
+            ->assertJsonPath('summary', ['applied' => 1, 'replayed' => 1, 'rejected' => 1, 'stale' => 0, 'conflict' => 0, 'failed' => 0, 'skipped' => 0])
             ->assertJsonPath('results.0.status', 'replayed')
             ->assertJsonPath('results.1.status', 'applied')
             ->assertJsonPath('results.2.status', 'rejected')
@@ -221,7 +221,9 @@ class OfflineSyncTest extends TestCase
         $this->sync([$in])
             ->assertOk()
             ->assertJsonPath('results.0.status', 'conflict')
-            ->assertJsonPath('results.0.http_status', 409);
+            ->assertJsonPath('results.0.http_status', 409)
+            // The six keys every entry carries, and nothing of the other account's receipt.
+            ->assertJsonPath('results.0.received_at', null);
 
         $this->assertSame(1, SyncCommand::count());
         $this->assertSame(1, AttendanceDay::count());
@@ -385,7 +387,7 @@ class OfflineSyncTest extends TestCase
 
         $batch = app(SyncInbox::class)->receive($workflow, $this->user, $commands);
 
-        $this->assertSame(['applied' => 1, 'replayed' => 0, 'rejected' => 0, 'conflict' => 0, 'failed' => 1, 'skipped' => 1], $batch['summary']);
+        $this->assertSame(['applied' => 1, 'replayed' => 0, 'rejected' => 0, 'stale' => 0, 'conflict' => 0, 'failed' => 1, 'skipped' => 1], $batch['summary']);
 
         // Every entry has the same six keys, whether a row answers for it or nothing does.
         foreach ($batch['results'] as $entry) {
