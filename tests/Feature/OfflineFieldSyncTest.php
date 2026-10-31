@@ -49,10 +49,11 @@ class OfflineFieldSyncTest extends AccountingTestCase
 
         Carbon::setTestNow('2026-10-28 20:00:00');
 
-        $this->setCurrentTenant();
-        $this->license(true);
-
+        // Signed in before the tenant is taken: Filament::setTenant() announces TenantSet with the
+        // authenticated user and type-errors on null. actingAsApiUser() makes the company it joins.
         $this->foreman = $this->actingAsApiUser('Administrator', 'foreman@test.local');
+        $this->setCurrentTenant($this->apiCompany);
+        $this->license(true);
         $this->job = Job::create(['code' => 'J-1', 'name' => 'Tower']);
     }
 

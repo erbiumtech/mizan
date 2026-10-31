@@ -36,8 +36,10 @@ class SyncController extends Controller
     /** Crockford base32, 26 characters, first one 0–7 so the timestamp fits 48 bits — a ULID. */
     private const ULID = '/^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/';
 
-    public function receive(Request $request, string $workflow, SyncWorkflows $workflows, SyncInbox $inbox): JsonResponse
+    public function receive(Request $request, SyncWorkflows $workflows, SyncInbox $inbox): JsonResponse
     {
+        $workflow = $this->workflowOf($request);
+
         abort_unless($workflows->has($workflow), 404, 'No such sync workflow.');
 
         $flow = $workflows->for($workflow);
@@ -72,8 +74,10 @@ class SyncController extends Controller
      * behind; the rest of the fields, and the size cap, are the workflow's. Answered with the inbox's six-key
      * entry, at 200 whatever it says, exactly as a batch is: the entry's own `http_status` is the outcome.
      */
-    public function blob(Request $request, string $workflow, SyncWorkflows $workflows, SyncBlobs $blobs): JsonResponse
+    public function blob(Request $request, SyncWorkflows $workflows, SyncBlobs $blobs): JsonResponse
     {
+        $workflow = $this->workflowOf($request);
+
         abort_unless($workflows->has($workflow), 404, 'No such sync workflow.');
 
         $flow = $workflows->for($workflow);
@@ -103,8 +107,10 @@ class SyncController extends Controller
         return ApiResponse::success(['workflow' => $flow->key(), 'result' => $entry]);
     }
 
-    public function changes(Request $request, string $workflow, SyncWorkflows $workflows): JsonResponse
+    public function changes(Request $request, SyncWorkflows $workflows): JsonResponse
     {
+        $workflow = $this->workflowOf($request);
+
         abort_unless($workflows->has($workflow), 404, 'No such sync workflow.');
 
         $data = $request->validate([
@@ -119,5 +125,16 @@ class SyncController extends Controller
         );
 
         return ApiResponse::success(['workflow' => $workflow, ...$changes->toClient()]);
+    }
+
+    /**
+     * The workflow a route names, by name. It arrives as a route default, and a session route also
+     * carries `{company}`: Laravel hands scalar parameters to a controller in route order, not by name,
+     * so a `string $workflow` argument received the company's slug there and every panel replay was a
+     * 404 for an unregistered workflow.
+     */
+    private function workflowOf(Request $request): string
+    {
+        return (string) $request->route('workflow');
     }
 }

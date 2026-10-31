@@ -211,7 +211,7 @@ class OfflineSyncTest extends TestCase
         $this->sync([$in])->assertOk();
 
         $other = User::factory()->create(['status' => 1]);
-        $other->companies()->attach($this->tenant);
+        $other->companies()->syncWithoutDetaching([$this->tenant->getKey()]);
         Employee::create([
             'user_id' => $other->getKey(), 'employee_id' => 'EMP-2', 'name' => 'Bilal', 'gender' => 'Male',
             'is_active' => true, 'date_of_joining' => '2020-01-01',
