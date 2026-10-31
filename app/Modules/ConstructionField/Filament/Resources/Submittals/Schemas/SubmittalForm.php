@@ -36,7 +36,7 @@ class SubmittalForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -47,14 +47,14 @@ class SubmittalForm
                             ->dehydrated(),
 
                         Select::make('contract_id')
-                            ->label('Under contract')
+                            ->label(__('Under contract'))
                             ->options(fn (callable $get): array => static::contracts($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts'))
                             ->placeholder('None'),
 
                         TextInput::make('spec_section')
-                            ->label('Specification section')
+                            ->label(__('Specification section'))
                             ->required()
                             ->maxLength(255)
                             ->helperText('03 30 00, E20, "Section 7" — whatever this project uses. The register is organised by it.'),
@@ -73,7 +73,7 @@ class SubmittalForm
                         Textarea::make('description')->rows(2)->columnSpanFull(),
 
                         Select::make('responsible_contact_id')
-                            ->label('Who owes it')
+                            ->label(__('Who owes it'))
                             ->relationship('responsible', 'name')
                             ->searchable()
                             ->preload()
@@ -81,7 +81,7 @@ class SubmittalForm
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                         TextInput::make('responsible_label')
-                            ->label('Who owes it, in words')
+                            ->label(__('Who owes it, in words'))
                             ->maxLength(255)
                             ->helperText('The subcontractor or supplier, where you keep no contact record for them.'),
                     ]),
@@ -91,32 +91,32 @@ class SubmittalForm
                     ->description('The submit-by date is computed from these, never typed — a typed one goes stale the day the programme moves, and a stale submit-by date is worse than none.')
                     ->schema([
                         DatePicker::make('required_on_site_date')
-                            ->label('Needed on site')
+                            ->label(__('Needed on site'))
                             ->native(false)
                             ->live()
                             ->helperText('From the programme. Everything below is subtracted from it.'),
 
                         TextInput::make('review_period_days')
-                            ->label('Review period (days)')
+                            ->label(__('Review period (days)'))
                             ->numeric()
                             ->default(14)
                             ->live(onBlur: true)
                             ->helperText('The contract\'s. Each round snapshots whatever this is when it goes out.'),
 
                         TextInput::make('fabrication_lead_days')
-                            ->label('Fabrication (days)')
+                            ->label(__('Fabrication (days)'))
                             ->numeric()
                             ->default(0)
                             ->live(onBlur: true),
 
                         TextInput::make('procurement_lead_days')
-                            ->label('Procurement (days)')
+                            ->label(__('Procurement (days)'))
                             ->numeric()
                             ->default(0)
                             ->live(onBlur: true),
 
                         TextInput::make('buffer_days')
-                            ->label('Buffer (days)')
+                            ->label(__('Buffer (days)'))
                             ->numeric()
                             ->default(0)
                             ->live(onBlur: true)
@@ -129,7 +129,7 @@ class SubmittalForm
                          * here rather than in the month the steel does not arrive.
                          */
                         Placeholder::make('submit_by')
-                            ->label('Has to be submitted by')
+                            ->label(__('Has to be submitted by'))
                             ->columnSpanFull()
                             ->content(fn (callable $get): string => static::submitBy($get)),
                     ]),
@@ -138,7 +138,7 @@ class SubmittalForm
                     ->columns(2)
                     ->schema([
                         Toggle::make('is_long_lead')
-                            ->label('Long lead')
+                            ->label(__('Long lead'))
                             ->helperText('Flagged by hand: ninety days is long lead on a six-month job and ordinary on a four-year one. It is what filters four hundred items down to the twenty that will stop the job.'),
 
                         TextInput::make('revision')
@@ -153,7 +153,7 @@ class SubmittalForm
                          * from one against an activity that starts next year.
                          */
                         Select::make('activity_id')
-                            ->label('Gates activity')
+                            ->label(__('Gates activity'))
                             ->options(fn (callable $get): array => static::activities($get('job_id')))
                             ->searchable()
                             ->columnSpanFull()

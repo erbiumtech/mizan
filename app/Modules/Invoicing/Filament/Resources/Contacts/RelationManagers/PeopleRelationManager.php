@@ -27,7 +27,7 @@ class PeopleRelationManager extends RelationManager
             TextInput::make('name')->required()->maxLength(255),
 
             TextInput::make('title')
-                ->label('Role')
+                ->label(__('Role'))
                 ->maxLength(255)
                 ->helperText('What they do there — Accounts Payable, Managing Director.'),
 
@@ -35,7 +35,7 @@ class PeopleRelationManager extends RelationManager
             TextInput::make('phone')->tel()->maxLength(255),
 
             Toggle::make('is_primary')
-                ->label('Main contact')
+                ->label(__('Main contact'))
                 ->helperText('Correspondence goes here. Only one person can be the main contact; setting this stands the others down.'),
 
             Textarea::make('notes')->rows(2)->columnSpanFull(),
@@ -53,7 +53,7 @@ class PeopleRelationManager extends RelationManager
 
                 TextColumn::make('email')->searchable()->placeholder('—')->copyable(),
                 TextColumn::make('phone')->placeholder('—'),
-                IconColumn::make('is_primary')->label('Main')->boolean(),
+                IconColumn::make('is_primary')->label(__('Main'))->boolean(),
             ])
             ->defaultSort('is_primary', 'desc')
             ->headerActions([CreateAction::make()])

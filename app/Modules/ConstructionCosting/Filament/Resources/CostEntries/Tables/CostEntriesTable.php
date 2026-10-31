@@ -31,28 +31,28 @@ class CostEntriesTable
         return $table
             ->columns([
                 TextColumn::make('incurred_on')
-                    ->label('Incurred')
+                    ->label(__('Incurred'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('posting_period')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->formatStateUsing(fn ($state): string => $state->format('M Y'))
                     ->description(fn (CostEntry $record): ?string => $record->is_late_for_period ? 'late' : null)
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->description(fn (CostEntry $record): ?string => $record->costCode?->name)
                     ->searchable(),
 
                 TextColumn::make('cost_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'labour' => 'info',
@@ -75,7 +75,7 @@ class CostEntriesTable
                     ->sortable(),
 
                 TextColumn::make('gl_treatment')
-                    ->label('GL')
+                    ->label(__('GL'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         CostEntry::GL_PENDING => 'warning',
@@ -85,7 +85,7 @@ class CostEntriesTable
                     ->toggleable(),
 
                 IconColumn::make('reversed_by_id')
-                    ->label('Reversed')
+                    ->label(__('Reversed'))
                     ->boolean()
                     ->toggleable(),
 
@@ -95,12 +95,12 @@ class CostEntriesTable
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
                 SelectFilter::make('cost_type')
-                    ->label('Cost type')
+                    ->label(__('Cost type'))
                     ->options([
                         'labour' => 'Labour',
                         'material' => 'Material',
@@ -111,7 +111,7 @@ class CostEntriesTable
                     ->multiple(),
 
                 SelectFilter::make('gl_treatment')
-                    ->label('GL treatment')
+                    ->label(__('GL treatment'))
                     ->options([
                         CostEntry::GL_PENDING => 'Pending',
                         CostEntry::GL_MIRRORED => 'Mirrored',
@@ -121,12 +121,12 @@ class CostEntriesTable
 
                 // §3.4's Late Costs report, as a filter on the register somebody is already looking at.
                 Filter::make('is_late_for_period')
-                    ->label('Late costs')
+                    ->label(__('Late costs'))
                     ->query(fn (Builder $query) => $query->where('is_late_for_period', true))
                     ->toggle(),
 
                 Filter::make('unreversed')
-                    ->label('Not reversed')
+                    ->label(__('Not reversed'))
                     ->query(fn (Builder $query) => $query->whereNull('reversed_by_id'))
                     ->toggle(),
             ])
@@ -138,7 +138,7 @@ class CostEntriesTable
                     ->visible(fn (CostEntry $record): bool => $record->isEditable()),
 
                 Action::make('reverse')
-                    ->label('Reverse')
+                    ->label(__('Reverse'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->requiresConfirmation()
@@ -146,7 +146,7 @@ class CostEntriesTable
                     ->modalDescription('A reversal is a new negative row pointing back at this one. Both stay on the ledger, which is what lets somebody see what was thought at the time and when it changed.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required()
                             ->helperText('Read months later by whoever asks why the figure moved.'),

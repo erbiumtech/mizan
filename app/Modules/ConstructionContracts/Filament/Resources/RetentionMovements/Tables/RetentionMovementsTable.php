@@ -29,12 +29,12 @@ class RetentionMovementsTable
         return $table
             ->columns([
                 TextColumn::make('created_at')
-                    ->label('Recorded')
+                    ->label(__('Recorded'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->description(fn (RetentionMovement $record): ?string => $record->contract?->job?->code)
                     ->searchable()
                     ->sortable(),
@@ -54,7 +54,7 @@ class RetentionMovementsTable
                     ->toggleable(),
 
                 TextColumn::make('certificate.certificate_number')
-                    ->label('Certificate')
+                    ->label(__('Certificate'))
                     // Releases often name no certificate (§11), and an em dash says so rather than implying a
                     // missing link.
                     ->placeholder('—')
@@ -66,30 +66,30 @@ class RetentionMovementsTable
                     ->color(fn (RetentionMovement $record): string => $record->isRelease() ? 'success' : 'warning')
                     ->sortable()
                     // Filter to one contract and this total is its balance.
-                    ->summarize(Sum::make()->label('Balance')->money(CompanyCurrency::code())),
+                    ->summarize(Sum::make()->label(__('Balance'))->money(CompanyCurrency::code())),
 
                 TextColumn::make('basis_gross')
-                    ->label('On gross of')
+                    ->label(__('On gross of'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('rate_applied')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->suffix('%')
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('cap_reached')
-                    ->label('At cap')
+                    ->label(__('At cap'))
                     ->boolean()
                     ->tooltip('The limit of retention was reached, which is why this movement is smaller than rate × basis.')
                     ->toggleable(),
 
                 TextColumn::make('due_on')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->date()
                     ->placeholder('—')
                     ->toggleable(),
@@ -101,7 +101,7 @@ class RetentionMovementsTable
             ])
             ->filters([
                 SelectFilter::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->relationship('contract', 'contract_number')
                     ->searchable(),
 
@@ -118,7 +118,7 @@ class RetentionMovementsTable
 
                 // What is releasable now and has not been released: the list the notification run reads.
                 Filter::make('due')
-                    ->label('Due for release')
+                    ->label(__('Due for release'))
                     ->query(fn (Builder $query) => $query->due())
                     ->toggle(),
             ])

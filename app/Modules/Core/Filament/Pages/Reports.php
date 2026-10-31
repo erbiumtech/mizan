@@ -987,7 +987,7 @@ class Reports extends Page
 
         return [
             Action::make('scheduleReport')
-                ->label('Schedule')
+                ->label(__('Schedule'))
                 ->icon('heroicon-m-paper-airplane')
                 ->color('gray')
                 ->url(fn (): string => ReportScheduleResource::getUrl('create', [
@@ -1046,7 +1046,7 @@ class Reports extends Page
 
         return [
             Action::make('buildReport')
-                ->label('New report')
+                ->label(__('New report'))
                 ->icon('heroicon-m-squares-plus')
                 ->color('gray')
                 ->action(fn (): mixed => $this->startBuilding()),

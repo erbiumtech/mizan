@@ -129,7 +129,7 @@ class AdvanceRecoveryPolicyTest extends AccountingTestCase
         app(AdvanceApplications::class)->resume($advance->fresh());
 
         // The paused month, saved again after the resume (a correction after reopening the run).
-        $august->update(['bonus' => 500]);
+        $august->saveWithInputs(['bonus' => 500]);
         $this->assertSame(0.0, (float) $august->fresh()->advances, 'the paused month is still not charged');
 
         $this->assertSame(10000.0, (float) $this->payslip('September')->advances, 'the next month recovers again');
@@ -142,7 +142,7 @@ class AdvanceRecoveryPolicyTest extends AccountingTestCase
         $this->assertSame(10000.0, (float) $july->advances);
 
         app(AdvanceApplications::class)->pause($advance->fresh(), 'Unpaid leave');
-        $july->update(['bonus' => 500]);
+        $july->saveWithInputs(['bonus' => 500]);
 
         $this->assertNotContains('2026-07', $advance->fresh()->skipped_months ?? []);
     }

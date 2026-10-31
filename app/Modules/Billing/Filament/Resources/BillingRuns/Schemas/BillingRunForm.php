@@ -16,7 +16,7 @@ class BillingRunForm
         return $schema
             ->components([
                 Select::make('contact_id')
-                    ->label('Client')
+                    ->label(__('Client'))
                     ->relationship('contact', 'name', fn ($query) => $query
                         ->whereIn('kind', [Contact::KIND_CUSTOMER, Contact::KIND_BOTH])
                         ->where('is_active', true))
@@ -25,7 +25,7 @@ class BillingRunForm
                     ->required(),
 
                 Select::make('month')
-                    ->label('Payroll month')
+                    ->label(__('Payroll month'))
                     ->options(array_combine(
                         $months = ['January', 'February', 'March', 'April', 'May', 'June',
                             'July', 'August', 'September', 'October', 'November', 'December'],
@@ -35,7 +35,7 @@ class BillingRunForm
                     ->required(),
 
                 Select::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name')
                     ->default(fn () => \App\Modules\Core\Models\FiscalYear::where('is_active', true)->value('id'))
                     ->searchable()
@@ -52,14 +52,14 @@ class BillingRunForm
                     ->after('invoice_date'),
 
                 TextInput::make('currency')
-                    ->label('Client currency')
+                    ->label(__('Client currency'))
                     ->default('EUR')
                     ->maxLength(3)
                     ->required()
                     ->helperText('The invoice is raised in the company currency; this is what the client is quoted in.'),
 
                 TextInput::make('exchange_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->numeric()
                     ->minValue(0)
                     ->helperText('Company currency per 1 of the client currency, as agreed for the month.'),

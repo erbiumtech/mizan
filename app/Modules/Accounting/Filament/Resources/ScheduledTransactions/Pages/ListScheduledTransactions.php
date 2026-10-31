@@ -44,7 +44,7 @@ class ListScheduledTransactions extends ListRecords
     private function deferAction(): Action
     {
         return Action::make('defer')
-            ->label('Defer an amount')
+            ->label(__('Defer an amount'))
             ->icon('heroicon-o-scissors')
             ->color('gray')
             ->visible(fn (): bool => (auth()->user()?->can('JournalEntryCreate') ?? false)
@@ -55,7 +55,7 @@ class ListScheduledTransactions extends ListRecords
             ->modalSubmitActionLabel('Defer it')
             ->schema([
                 Select::make('direction')
-                    ->label('What is being deferred')
+                    ->label(__('What is being deferred'))
                     ->options([
                         'revenue' => 'Revenue billed and not yet earned',
                         'expense' => 'A cost paid and not yet incurred',
@@ -67,20 +67,20 @@ class ListScheduledTransactions extends ListRecords
                     ->required(),
 
                 TextInput::make('description')
-                    ->label('What it is')
+                    ->label(__('What it is'))
                     ->required()
                     ->maxLength(120)
                     ->helperText('Goes on the entry and on the schedule, so both are recognisable a year '
                         .'later. "Annual licence — Acme, Jul 26 to Jun 27".'),
 
                 TextInput::make('amount')
-                    ->label('Amount')
+                    ->label(__('Amount'))
                     ->numeric()
                     ->required()
                     ->minValue(0.01),
 
                 TextInput::make('months')
-                    ->label('Over how many months')
+                    ->label(__('Over how many months'))
                     ->numeric()
                     ->required()
                     ->minValue(1)
@@ -90,7 +90,7 @@ class ListScheduledTransactions extends ListRecords
                         .'arithmetic and a note on every report saying which one was used.'),
 
                 DatePicker::make('starts_on')
-                    ->label('First month to recognise')
+                    ->label(__('First month to recognise'))
                     ->native(false)
                     ->required()
                     ->default(now()->addMonthNoOverflow()->startOfMonth())

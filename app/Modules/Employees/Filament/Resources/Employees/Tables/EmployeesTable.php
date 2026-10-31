@@ -43,47 +43,47 @@ class EmployeesTable
             ->columns([
                 // Nova ID: canSee Administrators only.
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable()
                     ->visible(fn (): bool => auth()->user()?->isAdministrator() ?? false),
 
                 TextColumn::make('employee_id')
-                    ->label('Employee ID')
+                    ->label(__('Employee ID'))
                     ->searchable(),
 
                 // Name and email live on the landlord `users` table while
                 // employees live in the tenant database, so these cannot use
                 // Filament's relationship search/sort — see LandlordUserColumn.
                 TextColumn::make('user.name')
-                    ->label('Employee Name')
+                    ->label(__('Employee Name'))
                     ->sortable(query: fn (Builder $query, string $direction): Builder => LandlordUserColumn::sort($query, $direction, 'name'))
                     ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['name'])),
 
                 TextColumn::make('user.email')
-                    ->label('Company Email')
+                    ->label(__('Company Email'))
                     ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['email'])),
 
                 TextColumn::make('personal_email')
-                    ->label('Personal Email')
+                    ->label(__('Personal Email'))
                     ->placeholder('—')
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('date_of_birth')
-                    ->label('Date of Birth')
+                    ->label(__('Date of Birth'))
                     ->date('d-m-Y')
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('secondary_phone')
-                    ->label('Secondary Phone')
+                    ->label(__('Secondary Phone'))
                     ->placeholder('—')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('is_active')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->formatStateUsing(fn ($state): string => (int) $state === 1 ? 'Active' : 'Inactive'),
 
                 TextColumn::make('bank_code')
@@ -106,11 +106,11 @@ class EmployeesTable
                     ->options(Employee::STATUSES),
 
                 SelectFilter::make('location_id')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options()),
 
                 SelectFilter::make('employee_name')
-                    ->label('Employee Name')
+                    ->label(__('Employee Name'))
                     ->attribute('id')
                     ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->name ?? 'Unknown'])
@@ -118,7 +118,7 @@ class EmployeesTable
                     ->searchable(),
 
                 SelectFilter::make('employee_email')
-                    ->label('Company Email')
+                    ->label(__('Company Email'))
                     ->attribute('id')
                     ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->email ?? 'No Email'])
@@ -140,7 +140,7 @@ class EmployeesTable
                  * share a code in a chart that has been edited by hand and the id cannot.
                  */
                 SelectFilter::make('bank_id')
-                    ->label('Bank')
+                    ->label(__('Bank'))
                     ->options(fn (): array => Bank::query()
                         ->orderBy('bank_name')
                         ->pluck('bank_name', 'id')
@@ -158,7 +158,7 @@ class EmployeesTable
                  * request: somebody asks what is held, reads it, and then asks for it to go.
                  */
                 Action::make('discloseRecord')
-                    ->label('Everything we hold')
+                    ->label(__('Everything we hold'))
                     ->icon('heroicon-o-document-magnifying-glass')
                     ->color('gray')
                     ->visible(fn (Employee $record): bool => auth()->user()?->can('disclose', $record) ?? false)
@@ -170,7 +170,7 @@ class EmployeesTable
                     }),
 
                 Action::make('erase')
-                    ->label('Erase this person')
+                    ->label(__('Erase this person'))
                     ->icon('heroicon-o-fire')
                     ->color('danger')
                     ->requiresConfirmation()
@@ -221,7 +221,7 @@ class EmployeesTable
     protected static function activateBulkAction(): BulkAction
     {
         return BulkAction::make('activateEmployees')
-            ->label('Activate')
+            ->label(__('Activate'))
             ->icon('heroicon-o-bolt')
             ->color('success')
             ->requiresConfirmation()

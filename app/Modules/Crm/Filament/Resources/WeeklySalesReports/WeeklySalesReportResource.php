@@ -68,7 +68,7 @@ class WeeklySalesReportResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Rep')
+                ->label(__('Rep'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')
                     ->orderBy('employee_id')->get()
                     ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
@@ -77,7 +77,7 @@ class WeeklySalesReportResource extends Resource
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DatePicker::make('week_starting')
-                ->label('Week starting')
+                ->label(__('Week starting'))
                 ->native(false)
                 ->required()
                 ->default(fn (): string => WeeklySalesReport::weekStarting())
@@ -90,12 +90,12 @@ class WeeklySalesReportResource extends Resource
             TextInput::make('calls')->numeric()->minValue(0)->default(0)->required(),
             TextInput::make('quotes')->numeric()->minValue(0)->default(0)->required(),
             TextInput::make('orders')->numeric()->minValue(0)->default(0)->required(),
-            TextInput::make('order_value')->label('Value of orders')->numeric()->minValue(0)->default(0),
+            TextInput::make('order_value')->label(__('Value of orders'))->numeric()->minValue(0)->default(0),
 
             Textarea::make('note')
                 ->rows(3)
                 ->columnSpanFull()
-                ->label('Anything worth saying')
+                ->label(__('Anything worth saying'))
                 ->helperText('One or two sentences. What is stuck, what is about to land.'),
         ]);
     }
@@ -104,13 +104,13 @@ class WeeklySalesReportResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('week_starting')->label('Week of')->date('d M Y')->sortable(),
-                TextColumn::make('employee.display_label')->label('Rep')->searchable(),
+                TextColumn::make('week_starting')->label(__('Week of'))->date('d M Y')->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Rep'))->searchable(),
                 TextColumn::make('visits')->alignRight(),
                 TextColumn::make('calls')->alignRight(),
                 TextColumn::make('quotes')->alignRight(),
                 TextColumn::make('orders')->alignRight(),
-                TextColumn::make('order_value')->label('Value')->numeric(0)->alignRight(),
+                TextColumn::make('order_value')->label(__('Value'))->numeric(0)->alignRight(),
                 TextColumn::make('note')->limit(40)->placeholder('—')->toggleable(),
             ])
             ->defaultSort('week_starting', 'desc')

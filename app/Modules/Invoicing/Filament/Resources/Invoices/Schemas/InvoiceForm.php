@@ -43,7 +43,7 @@ class InvoiceForm
             ->components([
                 // Nova: Select 'kind' — onlyOnForms, hideWhenUpdating (disabled on edit).
                 Select::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->options([
                         'sale' => 'Sale (customer invoice)',
                         'purchase' => 'Purchase (supplier bill)',
@@ -53,7 +53,7 @@ class InvoiceForm
                     ->dehydrated(),
 
                 Select::make('contact_id')
-                    ->label('Contact')
+                    ->label(__('Contact'))
                     ->relationship('contact', 'name')
                     ->searchable()
                     ->preload()
@@ -71,7 +71,7 @@ class InvoiceForm
                 // still exists (every tenant gets every migration) and simply
                 // stays empty, which is what keeps Invoicing sellable on its own.
                 Select::make('project_id')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->relationship('project', 'name')
                     ->searchable()
                     ->preload()
@@ -80,7 +80,7 @@ class InvoiceForm
                     ->helperText('Optional. Lets you ask what one piece of work has been billed, not just what the client owes.'),
 
                 DatePicker::make('invoice_date')
-                    ->label('Invoice Date')
+                    ->label(__('Invoice Date'))
                     ->required()
                     ->live()
                     ->afterStateUpdated(fn ($state, callable $get, callable $set) => static::applyTerms($get('contact_id'), $get, $set, onlyIfEmpty: true)),
@@ -89,7 +89,7 @@ class InvoiceForm
                 // billed. The ledger is posted in the company's own currency, at the
                 // rate on the invoice date unless one is agreed here.
                 Select::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('Currency'))
                     ->options(fn (): array => Currency::active()
                         ->orderBy('code')
                         ->pluck('name', 'code')
@@ -103,7 +103,7 @@ class InvoiceForm
                     ->helperText('What the client is billed in. Fixed once the invoice is issued.'),
 
                 TextInput::make('exchange_rate')
-                    ->label('Agreed rate')
+                    ->label(__('Agreed rate'))
                     ->numeric()
                     ->minValue(0)
                     ->visible(fn (callable $get): bool => $get('currency_code')
@@ -113,7 +113,7 @@ class InvoiceForm
                         .Currency::baseCode().' per 1 '.($get('currency_code') ?: '')),
 
                 DatePicker::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('Due Date'))
                     ->nullable()
                     // Filled from the contact's terms when it is empty, and never
                     // overwritten once somebody has put a date in it: an invoice
@@ -123,7 +123,7 @@ class InvoiceForm
                     // a typo in the invoice date.
                     ->suffixAction(
                         Action::make('applyTerms')
-                            ->label('Apply terms')
+                            ->label(__('Apply terms'))
                             ->icon('heroicon-m-arrow-path')
                             ->tooltip(function (callable $get): string {
                                 $contact = Contact::find($get('contact_id'));
@@ -155,18 +155,18 @@ class InvoiceForm
                     ->minValue(0),
 
                 Toggle::make('tax_inclusive')
-                    ->label('Line amounts include tax')
+                    ->label(__('Line amounts include tax'))
                     ->helperText('The same rate is quoted inclusive by one client and exclusive by another, so it is the invoice that says which.'),
 
                 TextInput::make('tax_amount')
-                    ->label('Tax')
+                    ->label(__('Tax'))
                     ->numeric()
                     ->required()
                     ->minValue(0)
                     ->helperText('Computed from the lines\' rates when any line has one, on issue. Typed only for an invoice that carries no rates.'),
 
                 TextInput::make('total')
-                    ->label('Total')
+                    ->label(__('Total'))
                     ->numeric()
                     ->required()
                     ->minValue(0),
@@ -178,7 +178,7 @@ class InvoiceForm
                 // Phase 2, item 9. Same disk and limits as a petty-cash receipt; changeable after issue,
                 // because the supplier's document often arrives after the bill was keyed from it.
                 FileUpload::make('attachment_path')
-                    ->label('Attachment')
+                    ->label(__('Attachment'))
                     ->helperText('The document this invoice was raised from or sent as. Image or PDF, up to 5 MB.')
                     ->disk('public')
                     ->directory('invoice-attachments')

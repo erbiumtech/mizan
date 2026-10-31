@@ -12,14 +12,14 @@ class RejectAction
     public static function make(): Action
     {
         return Action::make('reject')
-            ->label('Reject')
+            ->label(__('Reject'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(fn (Application $record): bool => $record->isOpen()
                 && (auth()->user()?->can('update', $record) ?? false))
             ->schema([
                 Textarea::make('reason')
-                    ->label('Reason')
+                    ->label(__('Reason'))
                     ->required()
                     ->rows(2)
                     ->helperText('Kept on the record. It is also what starts the two-year retention clock on the applicant.'),

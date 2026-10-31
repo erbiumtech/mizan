@@ -37,7 +37,7 @@ class DirectReportsRelationManager extends RelationManager
             ->columns([
                 // "EMP-1 - John Doe"; the user behind the name rides along on the
                 // employees query (Employee::$with), so this is not a per-row lookup.
-                TextColumn::make('display_label')->label('Employee'),
+                TextColumn::make('display_label')->label(__('Employee')),
                 TextColumn::make('designation')->placeholder('—'),
                 TextColumn::make('department')->placeholder('—')->toggleable(),
             ])

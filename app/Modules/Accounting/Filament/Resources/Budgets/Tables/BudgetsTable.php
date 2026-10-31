@@ -24,11 +24,11 @@ class BudgetsTable
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->sortable(),
 
                 TextColumn::make('lines_count')
-                    ->label('Accounts')
+                    ->label(__('Accounts'))
                     ->counts([
                         // Rows are per account per month, so a straight count
                         // reads twelve times too high — "Accounts: 240" for a
@@ -39,27 +39,27 @@ class BudgetsTable
                     ->color('gray'),
 
                 TextColumn::make('planned_total')
-                    ->label('Planned (year)')
+                    ->label(__('Planned (year)'))
                     ->state(fn (Budget $budget): float => round((float) $budget->lines()->sum('amount'), 2))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd(),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
 
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('Updated'))
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name'),
 
-                TernaryFilter::make('is_active')->label('Active'),
+                TernaryFilter::make('is_active')->label(__('Active')),
             ])
             ->recordActions([
                 EditAction::make(),

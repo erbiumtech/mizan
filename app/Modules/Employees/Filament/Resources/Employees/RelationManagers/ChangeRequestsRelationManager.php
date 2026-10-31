@@ -19,11 +19,11 @@ class ChangeRequestsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('requester.name')
-                    ->label('Requested By'),
+                    ->label(__('Requested By')),
 
                 TextColumn::make('status')
                     ->badge()
@@ -36,7 +36,7 @@ class ChangeRequestsRelationManager extends RelationManager
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->label('Requested At')
+                    ->label(__('Requested At'))
                     ->dateTime()
                     ->sortable(),
             ])

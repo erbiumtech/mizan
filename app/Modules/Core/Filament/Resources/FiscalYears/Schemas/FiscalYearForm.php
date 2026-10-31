@@ -13,11 +13,11 @@ class FiscalYearForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Year Name')
+                    ->label(__('Year Name'))
                     ->required(),
 
                 Toggle::make('is_active')
-                    ->label('Is Active')
+                    ->label(__('Is Active'))
                     ->default(true),
             ]);
     }

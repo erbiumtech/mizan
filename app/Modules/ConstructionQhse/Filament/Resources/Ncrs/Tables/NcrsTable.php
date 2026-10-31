@@ -37,7 +37,7 @@ class NcrsTable
     {
         return $table
             ->columns([
-                TextColumn::make('ncr_number')->label('No.')->sortable()->searchable(),
+                TextColumn::make('ncr_number')->label(__('No.'))->sortable()->searchable(),
 
                 TextColumn::make('description')
                     ->wrap()
@@ -71,7 +71,7 @@ class NcrsTable
                     ->description(fn (Ncr $record): ?string => $record->concession_reference),
 
                 TextColumn::make('responsible_label')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->getStateUsing(fn (Ncr $record): string => $record->responsibleName())
                     ->toggleable(),
 
@@ -79,7 +79,7 @@ class NcrsTable
                  * **Proposed, never deducted.** And once a human has taken it up, the register says which certificate.
                  */
                 TextColumn::make('money')
-                    ->label('Money')
+                    ->label(__('Money'))
                     ->badge()
                     ->getStateUsing(fn (Ncr $record): ?string => match (true) {
                         $record->deductionWasTaken() => 'on a certificate',
@@ -100,7 +100,7 @@ class NcrsTable
                  * The commonest CAPA failure: the work fixed and the cause not.
                  */
                 TextColumn::make('capa')
-                    ->label('CAPA')
+                    ->label(__('CAPA'))
                     ->badge()
                     ->getStateUsing(fn (Ncr $record): ?string => match (true) {
                         $record->correctiveOverdue() => 'corrective overdue',
@@ -125,41 +125,41 @@ class NcrsTable
                     ->sortable(),
 
                 TextColumn::make('verified_on')
-                    ->label('Verified')
+                    ->label(__('Verified'))
                     ->date('d M Y')
                     // Named: a closure with no re-inspection behind it is an assertion.
                     ->placeholder('not verified')
                     ->toggleable(),
 
                 TextColumn::make('days_open')
-                    ->label('Days')
+                    ->label(__('Days'))
                     ->alignEnd()
                     ->getStateUsing(fn (Ncr $record): int => $record->daysOpen())
                     ->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
                 SelectFilter::make('severity')->options(Ncr::SEVERITIES),
                 SelectFilter::make('status')->options(Ncr::STATUSES),
                 SelectFilter::make('disposition')->options(Ncr::DISPOSITIONS),
 
                 Filter::make('live')
-                    ->label('Still open')
+                    ->label(__('Still open'))
                     ->query(fn (Builder $query): Builder => $query->live())
                     ->toggle(),
 
                 Filter::make('awaiting_disposition')
-                    ->label('Not dispositioned')
+                    ->label(__('Not dispositioned'))
                     ->query(fn (Builder $query): Builder => $query->awaitingDisposition())
                     ->toggle(),
 
                 Filter::make('proposing')
-                    ->label('Proposing a deduction')
+                    ->label(__('Proposing a deduction'))
                     ->query(fn (Builder $query): Builder => $query->proposingDeduction())
                     ->toggle(),
 
                 Filter::make('accepted_free')
-                    ->label('Accepted with nothing proposed')
+                    ->label(__('Accepted with nothing proposed'))
                     ->query(fn (Builder $query): Builder => $query
                         ->whereIn('disposition', Ncr::COMMERCIAL_DISPOSITIONS)
                         ->where('deduct_from_payment', false)
@@ -175,7 +175,7 @@ class NcrsTable
                  * **The disposition** — ISO 9001's control of nonconforming output, and its own permission.
                  */
                 Action::make('disposition')
-                    ->label('Disposition')
+                    ->label(__('Disposition'))
                     ->icon('heroicon-o-scale')
                     ->color('primary')
                     ->modalHeading('Disposition the nonconformity')
@@ -187,7 +187,7 @@ class NcrsTable
                             ->required(fn (callable $get): bool => $get('disposition') === Ncr::DISPOSITION_CONCESSION)
                             ->visible(fn (callable $get): bool => $get('disposition') === Ncr::DISPOSITION_CONCESSION)
                             ->helperText('What the client actually said, and where. An as-built nobody can defend starts here.'),
-                        DatePicker::make('on')->label('Decided on')->native(false)->default(now()),
+                        DatePicker::make('on')->label(__('Decided on'))->native(false)->default(now()),
                     ])
                     ->visible(fn (Ncr $record): bool => auth()->user()?->can('disposition', $record) ?? false)
                     ->action(fn (Ncr $record, array $data) => static::run(
@@ -205,14 +205,14 @@ class NcrsTable
                  * **Propose a deduction. This withholds nothing.**
                  */
                 Action::make('proposeDeduction')
-                    ->label('Propose deduction')
+                    ->label(__('Propose deduction'))
                     ->icon('heroicon-o-banknotes')
                     ->color('warning')
                     ->modalHeading('Propose a deduction')
                     ->modalDescription('This withholds nothing. It puts a figure on a list that whoever certifies can take up — and the row appears on a certificate only when they confirm it and their name goes against it. FIDIC 14.6 permits the Engineer to withhold; it does not require it.')
                     ->schema([
-                        TextInput::make('amount')->numeric()->required()->label('Amount to propose'),
-                        Textarea::make('note')->rows(2)->label('Why'),
+                        TextInput::make('amount')->numeric()->required()->label(__('Amount to propose')),
+                        Textarea::make('note')->rows(2)->label(__('Why')),
                     ])
                     ->visible(fn (Ncr $record): bool => (auth()->user()?->can('proposeDeduction', $record) ?? false)
                         && ! $record->deductionWasTaken())
@@ -227,7 +227,7 @@ class NcrsTable
                     )),
 
                 Action::make('withdrawDeduction')
-                    ->label('Withdraw proposal')
+                    ->label(__('Withdraw proposal'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -243,14 +243,14 @@ class NcrsTable
                  * **Verify against a re-inspection** — what makes a closure evidence rather than an assertion.
                  */
                 Action::make('verify')
-                    ->label('Verify')
+                    ->label(__('Verify'))
                     ->icon('heroicon-o-check-badge')
                     ->color('info')
                     ->modalHeading('Verify against a re-inspection')
                     ->modalDescription('Close-out points at the re-inspection, which is what makes a closure evidence rather than an assertion. It has to be a different inspection from the one that found the nonconformity, and it has to have passed.')
                     ->schema(fn (Ncr $record): array => [
                         Select::make('inspection_id')
-                            ->label('Re-inspection')
+                            ->label(__('Re-inspection'))
                             ->options(fn (): array => Inspection::query()
                                 ->where('job_id', $record->job_id)
                                 ->whereIn('status', Inspection::ACCEPTED)
@@ -262,7 +262,7 @@ class NcrsTable
                                 ->all())
                             ->searchable()
                             ->required(),
-                        DatePicker::make('on')->label('Verified on')->native(false),
+                        DatePicker::make('on')->label(__('Verified on'))->native(false),
                     ])
                     ->visible(fn (Ncr $record): bool => (auth()->user()?->can('verify', $record) ?? false)
                         && ! $record->isVerified())
@@ -277,7 +277,7 @@ class NcrsTable
                     )),
 
                 Action::make('close')
-                    ->label('Close')
+                    ->label(__('Close'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -290,12 +290,12 @@ class NcrsTable
                     )),
 
                 Action::make('void')
-                    ->label('Not a nonconformity')
+                    ->label(__('Not a nonconformity'))
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->modalDescription('Kept as a row with the reason rather than deleted — the number stays in the register, because a gap in a register quoted by number is indistinguishable from a removal somebody wanted.')
                     ->schema([
-                        Textarea::make('reason')->label('Why not')->rows(2)->required(),
+                        Textarea::make('reason')->label(__('Why not'))->rows(2)->required(),
                     ])
                     ->visible(fn (Ncr $record): bool => auth()->user()?->can('void', $record) ?? false)
                     ->action(fn (Ncr $record, array $data) => static::run(

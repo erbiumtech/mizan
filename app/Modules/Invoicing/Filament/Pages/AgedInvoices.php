@@ -61,7 +61,7 @@ abstract class AgedInvoices extends Page
         return $schema
             ->components([
                 DatePicker::make('as_of')
-                    ->label('As of date')
+                    ->label(__('As of date'))
                     ->native(false)
                     ->live(),
             ])
@@ -98,7 +98,7 @@ abstract class AgedInvoices extends Page
     {
         return [
             Action::make('pdf')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
                     fn (): string => route($this->reportRoute(), [

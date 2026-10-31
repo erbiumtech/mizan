@@ -35,11 +35,11 @@ class PayrollPostingSettingsSection implements SettingsSection
             Section::make('Payroll')
                 ->schema([
                     Toggle::make('accounting_auto_post_payroll')
-                        ->label('Auto-post payroll journal entries')
+                        ->label(__('Auto-post payroll journal entries'))
                         ->helperText('When on, payroll entries are approved and posted on creation; otherwise they await Manager/CEO approval.'),
 
                     KeyValue::make('accounting_payroll_accounts')
-                        ->label('Payroll Account Codes')
+                        ->label(__('Payroll Account Codes'))
                         ->keyLabel('Line')
                         ->valueLabel('Account code')
                         ->addable(false)

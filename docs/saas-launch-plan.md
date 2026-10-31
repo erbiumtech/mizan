@@ -1,6 +1,8 @@
 # SaaS launch: plan
 
-> **Not built.** Written 2026-10-28 from a code inventory and a feature-by-feature reading of
+> **Built, phase by phase, since 2026-10-28; Phase 14's label sweep landed 2026-10-30** — every
+> module under `app/Modules` is in `TranslationCoverageTest::SWEPT`, and every key in `lang/en.json`
+> has an Urdu rendering. Written 2026-10-28 from a code inventory and a feature-by-feature reading of
 > Operentra's published module list and pricing (operentra.com/features, /pricing), the nearest
 > comparable product. Nothing below exists unless marked so. Mechanics common to any new module
 > are in `docs/new-module-checklist.md`; licensing in `docs/modules-plan.md` and
@@ -974,10 +976,10 @@ What already works, and what is still a person's job:
 | Self-monitoring | **Done** — the Projects module's health checks watch the installation's own URLs |
 | Customer data export | **Build** — `tenant:export {company}`: the tenant dump plus the tenant's files directory, zipped into the tenant's own storage behind a signed download link, runnable by the company Administrator from the Subscription page. This is the 90-day promise and the precondition for `tenant:drop` |
 | Demo seeder guard | **Build** — `DatabaseSeeder` refuses outside local and testing (audit finding 14), now that a production host has a public form on it |
-| TLS for customer domains | **Build** — the Caddy front from §8.8, or the certbot sync; one of the two, decided in §12 |
+| TLS for customer domains | **Built and running** — the Caddy front from §8.8 (`deploy/caddy`), confirmed deployed 2026-10-30 (§12.8) |
 | Device endpoint exposure | **Build** — `/iclock/*` is the second unauthenticated writer on the host after signup; its throttle and 404 rule are in §8.7 and `SecurityHardeningTest` |
 | Support | **Reuse** — the operator tenant's own `support` module takes customer tickets; its SLA reports are the ones to show a customer |
-| Data residency | **Decide** — one VPS today (`deploy/`). Customers will ask where the database is; the answer needs to be a sentence on the pricing page, not a surprise |
+| Data residency | **Decided 2026-10-30** — *Hosted in Pakistan, backed up in Pakistan.* On the signup page; on the pricing page when the marketing site (§12.4) lands |
 | Terms, privacy policy, DPA | **Write** — not code; blocks selling to any company with a lawyer. The AI verdict (§8.3) and the device punches (§8.7) each need a sentence in the privacy policy |
 | Public repo history | **Overdue** — `docs/open-source-release-checklist.md` §1.6; the real roster and pay figures are still in history. Not a SaaS blocker, but every month it stands more copies exist |
 
@@ -1107,31 +1109,35 @@ One feature test per concern, named for the sentence it asserts:
 
 ## 12. Decisions still open
 
-1. **Which plan a trial starts on.** Operentra's pricing page says it trials Growth; a workspace
+> All ten were decided on 2026-10-30; each item below carries its answer. The heading is kept so
+> the cross-references throughout this document still land.
+
+1. **Which plan a trial starts on.** **Decided 2026-10-30: Business** (`config/plans.php`). Operentra's pricing page says it trials Growth; a workspace
    opened on 2026-10-29 started on Enterprise, its top tier (§1.1). Trialling Business instead shows
    the ledger, which is the thing nobody else has — at the cost of a customer who then chooses
    Growth losing screens they saw.
-2. **Demo data in a trial.** The demo seeders exist. A trial with sample payslips and a trial
+2. **Demo data in a trial.** **Decided 2026-10-30: empty by default**; a *load sample data* action only if trials stall. The demo seeders exist. A trial with sample payslips and a trial
    balance shows the product; a trial with the customer's own first employee is the one they
    keep. Not seeded by default; a *load sample data* action is a small follow-up if trials stall.
-3. **Self-serve downgrade.** Not offered at launch; support does it in the platform panel.
+3. **Self-serve downgrade.** **Decided 2026-10-30: support does it.** Not offered at launch; support does it in the platform panel.
    Revisit on the first request.
-4. **Where the marketing site lives.** `docs/company-website-plan.md` already asks whether a
+4. **Where the marketing site lives.** **Decided 2026-10-30: in this codebase** — `docs/company-website-plan.md` is rewritten against Filament and built, with the pricing page and signup as its reason to exist. The plan already asked whether a
    public site belongs in this codebase. Signup does; the pages around it need not.
-5. **Data residency.** One sentence, decided before the pricing page is written.
+5. **Data residency.** **Decided 2026-10-30:** *Hosted in Pakistan, backed up in Pakistan.* On the signup page now; on the pricing page when it exists.
 6. **When the employee sees the verdict (§8.3).** After the manager acts, as written — or at
    once, which is faster feedback and also a model's opinion of a person delivered with nobody
-   between. The first is the default until a company asks for the second.
+   between. The first is the default until a company asks for the second. **Decided 2026-10-30: as built.**
 7. **The penalty component (§8.2).** Off by default, as written. Whether the Growth tier's
    onboarding should even mention it, or leave it for a company that goes looking, is a product
-   call.
+   call. **Decided 2026-10-30: leave it**; off by default, found by a company that wants it.
 8. **TLS front for custom domains (§8.8).** Caddy on demand, or certbot with a sync command.
    Caddy is recommended for the reason given there; it is also a new process on the VPS.
+   **Decided 2026-10-30: Caddy, and it is running on the VPS** — Phase 12 is live end to end.
 9. **Languages after Urdu (§8.10).** Arabic opens the Gulf; Sindhi and Pashto are
     Filament-less and would need the chrome translated too. None until Urdu has shipped and
-    been read by a customer.
+    been read by a customer. **Decided 2026-10-30: none yet.**
 10. **Eastern Arabic numerals.** Western digits as written; a user preference if anybody asks,
-    never on a document a bank reads.
+    never on a document a bank reads. **Decided 2026-10-30: Western digits.**
 
 ## 13. What not to build
 

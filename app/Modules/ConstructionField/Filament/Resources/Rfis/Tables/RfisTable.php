@@ -36,7 +36,7 @@ class RfisTable
         return $table
             ->columns([
                 TextColumn::make('rfi_number')
-                    ->label('No.')
+                    ->label(__('No.'))
                     ->sortable()
                     ->searchable(),
 
@@ -47,7 +47,7 @@ class RfisTable
                     ->description(fn (Rfi $record): ?string => $record->job?->code),
 
                 TextColumn::make('ball_in_court')
-                    ->label('With')
+                    ->label(__('With'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => Rfi::COURTS[$state] ?? $state)
                     ->color(fn (Rfi $record): string => $record->ball_in_court === 'contractor' ? 'gray' : 'info')
@@ -66,7 +66,7 @@ class RfisTable
                     ->sortable(),
 
                 TextColumn::make('required_by')
-                    ->label('Needed by')
+                    ->label(__('Needed by'))
                     ->date('d M Y')
                     // Named rather than blank: an RFI with no date is one nobody is chasing.
                     ->placeholder('no date set')
@@ -78,7 +78,7 @@ class RfisTable
                  * midnight.
                  */
                 TextColumn::make('days')
-                    ->label('Days')
+                    ->label(__('Days'))
                     ->badge()
                     ->getStateUsing(function (Rfi $record): string {
                         if ($record->isAnswered()) {
@@ -103,7 +103,7 @@ class RfisTable
                     }),
 
                 TextColumn::make('cost_impact_flag')
-                    ->label('Cost')
+                    ->label(__('Cost'))
                     ->badge()
                     ->formatStateUsing(fn (string $state, Rfi $record): string => $state === Rfi::IMPACT_NONE
                         ? '—'
@@ -115,7 +115,7 @@ class RfisTable
                     ->toggleable(),
 
                 TextColumn::make('time_impact_flag')
-                    ->label('Time')
+                    ->label(__('Time'))
                     ->badge()
                     ->formatStateUsing(fn (string $state, Rfi $record): string => $state === Rfi::IMPACT_NONE
                         ? '—'
@@ -129,7 +129,7 @@ class RfisTable
                  * does not arise — and a column of dashes trains people not to look at it.
                  */
                 TextColumn::make('delay_event_id')
-                    ->label('Notified')
+                    ->label(__('Notified'))
                     ->badge()
                     ->getStateUsing(fn (Rfi $record): ?string => match (true) {
                         $record->delay_event_id !== null => $record->delayEvent?->reference,
@@ -142,28 +142,28 @@ class RfisTable
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
                 SelectFilter::make('ball_in_court')
-                    ->label('Ball in court')
+                    ->label(__('Ball in court'))
                     ->options(Rfi::COURTS),
 
                 SelectFilter::make('status')->options(Rfi::STATUSES),
 
                 Filter::make('outstanding')
-                    ->label('Awaiting an answer')
+                    ->label(__('Awaiting an answer'))
                     ->query(fn (Builder $query): Builder => $query->awaitingAnswer())
                     ->toggle(),
 
                 Filter::make('overdue')
-                    ->label('Overdue')
+                    ->label(__('Overdue'))
                     ->query(fn (Builder $query): Builder => $query->overdue())
                     ->toggle(),
 
                 Filter::make('unnotified')
-                    ->label('Time impact, no notice')
+                    ->label(__('Time impact, no notice'))
                     ->query(fn (Builder $query): Builder => $query->unnotifiedTimeImpact())
                     ->toggle(),
             ])
@@ -173,16 +173,16 @@ class RfisTable
                     ->visible(fn (Rfi $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('answer')
-                    ->label('Record answer')
+                    ->label(__('Record answer'))
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->color('info')
                     ->modalHeading('Record the answer')
                     ->modalDescription('Date it the day the answer was given, not the day you are typing it. The response time this register reports belongs to the other side, and dating it from the transcription flatters them.')
                     ->schema([
-                        Textarea::make('answer')->label('The answer')->rows(4)->required(),
-                        DatePicker::make('answered_on')->label('Given on')->native(false)->default(now())->required(),
+                        Textarea::make('answer')->label(__('The answer'))->rows(4)->required(),
+                        DatePicker::make('answered_on')->label(__('Given on'))->native(false)->default(now())->required(),
                         Select::make('answered_by_contact_id')
-                            ->label('By whom')
+                            ->label(__('By whom'))
                             ->relationship('answeredByContact', 'name')
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
@@ -195,7 +195,7 @@ class RfisTable
                     )),
 
                 Action::make('close')
-                    ->label('Close')
+                    ->label(__('Close'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -215,7 +215,7 @@ class RfisTable
                  * whoever may ask a question is not necessarily whoever may serve notice on the employer.
                  */
                 Action::make('raiseDelayEvent')
-                    ->label('Raise delay event')
+                    ->label(__('Raise delay event'))
                     ->icon('heroicon-o-clock')
                     ->color('danger')
                     ->modalHeading('Raise a delay event for this RFI')
@@ -226,7 +226,7 @@ class RfisTable
                             ->required()
                             ->maxLength(255),
                         TextInput::make('claimed_days')
-                            ->label('Days claimed')
+                            ->label(__('Days claimed'))
                             ->numeric()
                             ->default($record->time_impact_days)
                             ->helperText('Optional. §13\'s clock exists so events are raised early, before anybody knows what the delay is worth.'),
@@ -242,13 +242,13 @@ class RfisTable
                     )),
 
                 Action::make('cancel')
-                    ->label('Cancel')
+                    ->label(__('Cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->modalHeading('Cancel this RFI')
                     ->modalDescription('The number stays in the register — it is numbered without gaps because both sides quote it, and a missing number is indistinguishable from a removal somebody wanted. The reason is what the register shows instead.')
                     ->schema([
-                        Textarea::make('reason')->label('Why it no longer needs answering')->rows(2)->required(),
+                        Textarea::make('reason')->label(__('Why it no longer needs answering'))->rows(2)->required(),
                     ])
                     ->visible(fn (Rfi $record): bool => (auth()->user()?->can('update', $record) ?? false)
                         && ! $record->isClosed())

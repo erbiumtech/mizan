@@ -55,15 +55,14 @@ class PayComponentRecorderSourceTest extends AccountingTestCase
 
     private function payslip(): Payslip
     {
-        return Payslip::create([
+        return Payslip::createWithInputs([
             'employee_id' => $this->employee->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'month' => 'July',
             'total_working_days' => 22,
             'paid_days' => 22,
             'lop_days' => 0,
-            'device_allowance' => 7000,
-        ])->fresh();
+        ], ['device_allowance' => 7000])->fresh();
     }
 
     private function deviceComponent(Payslip $payslip): ?float

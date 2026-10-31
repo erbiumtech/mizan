@@ -89,7 +89,7 @@ class SafetyIndicatorsReport extends Page
             ->columns(4)
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -97,8 +97,8 @@ class SafetyIndicatorsReport extends Page
                     ->live()
                     ->selectablePlaceholder(false),
 
-                DatePicker::make('from')->label('From')->live()->native(false),
-                DatePicker::make('to')->label('To')->live()->native(false),
+                DatePicker::make('from')->label(__('From'))->live()->native(false),
+                DatePicker::make('to')->label(__('To'))->live()->native(false),
 
                 /*
                  * **The base, selectable and printed.**
@@ -109,7 +109,7 @@ class SafetyIndicatorsReport extends Page
                  * face of the figure — which `SafetyRate` guarantees whichever of these is chosen.
                  */
                 Select::make('base')
-                    ->label('Rate base')
+                    ->label(__('Rate base'))
                     ->options([
                         100_000 => 'per 100,000 hours',
                         200_000 => 'per 200,000 hours (100 workers/year)',

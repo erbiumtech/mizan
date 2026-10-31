@@ -25,7 +25,7 @@ class ProjectInfolist
                     TextEntry::make('start_date')->date()->placeholder('—'),
                     TextEntry::make('end_date')->date()->placeholder('—'),
                     TextEntry::make('employees_count')
-                        ->label('Team size')
+                        ->label(__('Team size'))
                         ->state(fn (Project $record): int => $record->employees()->count()),
                     TextEntry::make('description')->placeholder('—')->columnSpanFull(),
                 ]),
@@ -35,11 +35,11 @@ class ProjectInfolist
                 ->description('The secondary manager stands in when the primary is unavailable.')
                 ->schema([
                     TextEntry::make('manager.employee_id')
-                        ->label('Primary manager')
+                        ->label(__('Primary manager'))
                         ->formatStateUsing(fn ($state, Project $record): string => $record->manager?->display_label ?? '—')
                         ->placeholder('—'),
                     TextEntry::make('secondaryManager.employee_id')
-                        ->label('Secondary manager')
+                        ->label(__('Secondary manager'))
                         ->formatStateUsing(fn ($state, Project $record): string => $record->secondaryManager?->display_label ?? '—')
                         ->placeholder('—'),
                 ]),
@@ -51,18 +51,18 @@ class ProjectInfolist
                         ->columns(3)
                         ->schema([
                             TextEntry::make('kind')
-                                ->label('Environment')
+                                ->label(__('Environment'))
                                 ->badge()
                                 ->formatStateUsing(fn (string $state): string => ProjectEnvironment::KINDS[$state] ?? $state),
 
                             TextEntry::make('url')
-                                ->label('URL')
+                                ->label(__('URL'))
                                 ->url(fn (?string $state): ?string => $state, shouldOpenInNewTab: true)
                                 ->copyable()
                                 ->placeholder('—'),
 
                             TextEntry::make('health_status')
-                                ->label('Health')
+                                ->label(__('Health'))
                                 ->badge()
                                 ->formatStateUsing(fn (?string $state): string => $state ?? 'unknown')
                                 ->color(fn (?string $state): string => match ($state) {
@@ -77,13 +77,13 @@ class ProjectInfolist
                             TextEntry::make('username')->copyable()->placeholder('—'),
 
                             TextEntry::make('password')
-                                ->label('Password')
+                                ->label(__('Password'))
                                 ->copyable()
                                 ->copyMessage('Password copied')
                                 ->placeholder('—'),
 
                             TextEntry::make('uptime')
-                                ->label('Uptime (30d)')
+                                ->label(__('Uptime (30d)'))
                                 ->state(function (ProjectEnvironment $record): string {
                                     $uptime = $record->uptimePercent(config('projects.status_page.uptime_days', 30));
 
@@ -91,12 +91,12 @@ class ProjectInfolist
                                 }),
 
                             TextEntry::make('health_latency_ms')
-                                ->label('Latency')
+                                ->label(__('Latency'))
                                 ->formatStateUsing(fn (?int $state): string => $state === null ? '—' : $state.' ms')
                                 ->placeholder('—'),
 
                             TextEntry::make('ssl_expires_at')
-                                ->label('Certificate expires')
+                                ->label(__('Certificate expires'))
                                 ->dateTime()
                                 ->color(fn (ProjectEnvironment $record): string => match (true) {
                                     $record->sslDaysRemaining() === null => 'gray',
@@ -107,7 +107,7 @@ class ProjectInfolist
                                 ->placeholder('—'),
 
                             TextEntry::make('health_error')
-                                ->label('Last error')
+                                ->label(__('Last error'))
                                 ->placeholder('—')
                                 ->columnSpanFull(),
 

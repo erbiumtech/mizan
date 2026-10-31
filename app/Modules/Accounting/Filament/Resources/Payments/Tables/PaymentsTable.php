@@ -30,16 +30,16 @@ class PaymentsTable
             ]))
             ->columns([
                 TextColumn::make('payable.name')
-                    ->label('Payable')
+                    ->label(__('Payable'))
                     ->state(fn (Payment $record): ?string => self::payableLabel($record))
                     ->searchable(false),
 
                 TextColumn::make('transactionType.name')
-                    ->label('Transaction Type')
+                    ->label(__('Transaction Type'))
                     ->sortable(),
 
                 TextColumn::make('companyBankAccount.title')
-                    ->label('Debit Account'),
+                    ->label(__('Debit Account')),
 
                 TextColumn::make('amount')
                     ->money(CompanyCurrency::code())
@@ -54,12 +54,12 @@ class PaymentsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('value_date')
-                    ->label('Value Date')
+                    ->label(__('Value Date'))
                     ->date(),
 
                 // Select payment_type — displayUsing resolvedPaymentType()
                 TextColumn::make('payment_type')
-                    ->label('Payment Type')
+                    ->label(__('Payment Type'))
                     ->state(fn (Payment $record): ?string => $record->exists ? $record->resolvedPaymentType() : null),
 
                 TextColumn::make('status')
@@ -74,7 +74,7 @@ class PaymentsTable
                     ->sortable(),
 
                 TextColumn::make('journalEntry.entry_number')
-                    ->label('Journal Entry'),
+                    ->label(__('Journal Entry')),
             ])
             ->filters([
                 //
@@ -103,7 +103,7 @@ class PaymentsTable
     protected static function exportPaymentDetailsAction(): Action
     {
         return Action::make('exportPaymentDetails')
-            ->label('Export Payment Details')
+            ->label(__('Export Payment Details'))
             ->icon('heroicon-o-arrow-down-tray')
             ->color('gray')
             ->action(function ($livewire): StreamedResponse {
@@ -155,7 +155,7 @@ class PaymentsTable
     protected static function printChequeAction(): Action
     {
         return Action::make('printCheque')
-            ->label('Print cheque')
+            ->label(__('Print cheque'))
             ->icon('heroicon-o-printer')
             ->requiresConfirmation()
             ->modalDescription(fn (Payment $record): string => 'The next number from the book for '
@@ -181,7 +181,7 @@ class PaymentsTable
     protected static function approveAction(): Action
     {
         return Action::make('approvePayment')
-            ->label('Approve Payment')
+            ->label(__('Approve Payment'))
             ->icon('heroicon-o-check-circle')
             ->requiresConfirmation()
             ->visible(fn (): bool => auth()->user()?->can('PaymentUpdate') ?? false)
@@ -212,7 +212,7 @@ class PaymentsTable
     protected static function revertExportAction(): Action
     {
         return Action::make('revertExport')
-            ->label('Revert from exported')
+            ->label(__('Revert from exported'))
             ->icon('heroicon-o-arrow-uturn-left')
             ->color('warning')
             ->requiresConfirmation()
@@ -242,7 +242,7 @@ class PaymentsTable
     protected static function revertExportBulkAction(): BulkAction
     {
         return BulkAction::make('revertExportBulk')
-            ->label('Revert from exported')
+            ->label(__('Revert from exported'))
             ->icon('heroicon-o-arrow-uturn-left')
             ->color('warning')
             ->requiresConfirmation()
@@ -274,7 +274,7 @@ class PaymentsTable
     protected static function approveBulkAction(): BulkAction
     {
         return BulkAction::make('approvePaymentBulk')
-            ->label('Approve Payment')
+            ->label(__('Approve Payment'))
             ->icon('heroicon-o-check-circle')
             ->requiresConfirmation()
             ->visible(fn (): bool => auth()->user()?->can('PaymentUpdate') ?? false)

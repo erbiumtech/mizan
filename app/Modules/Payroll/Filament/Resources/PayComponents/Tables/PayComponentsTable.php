@@ -33,7 +33,7 @@ class PayComponentsTable
                     }),
 
                 IconColumn::make('is_taxable')
-                    ->label('Taxable')
+                    ->label(__('Taxable'))
                     ->boolean()
                     ->placeholder('—')
                     // Meaningless on a deduction, so it is left blank rather than
@@ -41,7 +41,7 @@ class PayComponentsTable
                     ->state(fn (PayComponent $record): ?bool => $record->isEarning() ? $record->is_taxable : null),
 
                 TextColumn::make('posts_to')
-                    ->label('Posts to')
+                    ->label(__('Posts to'))
                     ->state(fn (PayComponent $record): string => $record->account
                         ? $record->account->code.' '.$record->account->name
                         : ($record->account_key ?: '—')),
@@ -49,17 +49,17 @@ class PayComponentsTable
                 // Which of the two kinds of component this is: shipped and still
                 // column-backed, or added and driven from here.
                 TextColumn::make('is_column_backed')
-                    ->label('Source')
+                    ->label(__('Source'))
                     ->badge()
                     ->state(fn (PayComponent $record): string => $record->is_column_backed ? 'built in' : 'added')
                     ->color(fn (string $state): string => $state === 'built in' ? 'gray' : 'info'),
 
                 TextColumn::make('paid')
-                    ->label('Paid to date')
+                    ->label(__('Paid to date'))
                     ->state(fn (PayComponent $record): string => number_format((float) $record->payslipAmounts()->sum('amount'), 2))
                     ->alignEnd(),
 
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->defaultSort('sort')
             ->filters([

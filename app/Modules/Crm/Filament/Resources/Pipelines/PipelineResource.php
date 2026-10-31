@@ -45,19 +45,19 @@ class PipelineResource extends Resource
             TextInput::make('name')->required()->maxLength(255)->placeholder('New business'),
 
             Toggle::make('is_default')
-                ->label('Use for new deals')
+                ->label(__('Use for new deals'))
                 ->helperText('Only one pipeline can be the default; setting this one clears the other.'),
 
             Toggle::make('is_active')->default(true),
 
             Repeater::make('stages')
                 ->relationship()
-                ->label('Stages')
+                ->label(__('Stages'))
                 ->schema([
                     TextInput::make('name')->required()->maxLength(255)->columnSpan(2),
 
                     TextInput::make('probability_pct')
-                        ->label('Likely to close (%)')
+                        ->label(__('Likely to close (%)'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(100)
@@ -65,16 +65,16 @@ class PipelineResource extends Resource
                         ->helperText('Weights the forecast, so nobody has to guess twice.'),
 
                     TextInput::make('rot_after_days')
-                        ->label('Chase after (days)')
+                        ->label(__('Chase after (days)'))
                         ->numeric()
                         ->minValue(1)
                         ->helperText('Blank means this stage never counts as stalled. Terminal stages never do.'),
 
                     Toggle::make('is_won')
-                        ->label('This means won')
+                        ->label(__('This means won'))
                         ->helperText('Marks the terminal stage, so reports never match on a name you might rename.'),
 
-                    Toggle::make('is_lost')->label('This means lost'),
+                    Toggle::make('is_lost')->label(__('This means lost')),
                 ])
                 ->columns(2)
                 ->orderColumn('sort')
@@ -89,10 +89,10 @@ class PipelineResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('stages_count')->label('Stages')->counts('stages')->alignEnd(),
-                TextColumn::make('opportunities_count')->label('Deals')->counts('opportunities')->alignEnd(),
-                IconColumn::make('is_default')->label('Default')->boolean(),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                TextColumn::make('stages_count')->label(__('Stages'))->counts('stages')->alignEnd(),
+                TextColumn::make('opportunities_count')->label(__('Deals'))->counts('opportunities')->alignEnd(),
+                IconColumn::make('is_default')->label(__('Default'))->boolean(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->recordActions([\Filament\Actions\EditAction::make()]);
     }

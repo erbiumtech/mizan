@@ -26,11 +26,11 @@ class BankStatementLinesTable
         return $table
             ->columns([
                 TextColumn::make('bankStatement.id')
-                    ->label('Statement')
+                    ->label(__('Statement'))
                     ->sortable(),
 
                 TextColumn::make('transaction_date')
-                    ->label('Transaction Date')
+                    ->label(__('Transaction Date'))
                     ->date()
                     ->sortable(),
 
@@ -45,7 +45,7 @@ class BankStatementLinesTable
                     ->sortable(),
 
                 TextColumn::make('match_status')
-                    ->label('Match Status')
+                    ->label(__('Match Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'unmatched' => 'danger',
@@ -57,7 +57,7 @@ class BankStatementLinesTable
                     ->sortable(),
 
                 TextColumn::make('matchedLine.id')
-                    ->label('Matched Ledger Line')
+                    ->label(__('Matched Ledger Line'))
                     ->placeholder('—'),
             ])
             ->filters([
@@ -86,20 +86,20 @@ class BankStatementLinesTable
     {
         return [
             Action::make('match')
-                ->label('Match')
+                ->label(__('Match'))
                 ->icon('heroicon-o-link')
                 ->visible(fn (BankStatementLine $record): bool => auth()->user()?->can('match', $record) ?? false)
                 ->schema(self::matchFields())
                 ->action(fn (array $data, BankStatementLine $record) => self::runMatch($record, $data['ledger_line_id'])),
 
             Action::make('unmatch')
-                ->label('Unmatch')
+                ->label(__('Unmatch'))
                 ->icon('heroicon-o-link-slash')
                 ->visible(fn (BankStatementLine $record): bool => auth()->user()?->can('match', $record) ?? false)
                 ->action(fn (BankStatementLine $record) => self::run(fn (BankReconciliationService $s) => $s->unmatch($record), 'Statement line unmatched.')),
 
             Action::make('exclude')
-                ->label('Exclude')
+                ->label(__('Exclude'))
                 ->icon('heroicon-o-no-symbol')
                 ->requiresConfirmation()
                 ->modalDescription('Exclude this line from reconciliation (e.g. a bank fee with no ledger entry)?')
@@ -117,20 +117,20 @@ class BankStatementLinesTable
     {
         return [
             BulkAction::make('matchBulk')
-                ->label('Match')
+                ->label(__('Match'))
                 ->icon('heroicon-o-link')
                 ->visible(fn (): bool => auth()->user()?->can('BankStatementMatch') ?? false)
                 ->schema(self::matchFields())
                 ->action(fn (array $data, Collection $records) => self::runMatchBulk($records, $data['ledger_line_id'])),
 
             BulkAction::make('unmatchBulk')
-                ->label('Unmatch')
+                ->label(__('Unmatch'))
                 ->icon('heroicon-o-link-slash')
                 ->visible(fn (): bool => auth()->user()?->can('BankStatementMatch') ?? false)
                 ->action(fn (Collection $records) => self::runBulk($records, fn (BankReconciliationService $s, BankStatementLine $l) => $s->unmatch($l), 'unmatched')),
 
             BulkAction::make('excludeBulk')
-                ->label('Exclude')
+                ->label(__('Exclude'))
                 ->icon('heroicon-o-no-symbol')
                 ->requiresConfirmation()
                 ->modalDescription('Exclude these lines from reconciliation (e.g. bank fees with no ledger entry)?')
@@ -146,7 +146,7 @@ class BankStatementLinesTable
     {
         return [
             Select::make('ledger_line_id')
-                ->label('Ledger Line')
+                ->label(__('Ledger Line'))
                 ->options(fn (): array => self::ledgerLineOptions())
                 ->searchable()
                 ->required()

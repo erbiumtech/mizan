@@ -52,7 +52,7 @@ class WorkSprintResource extends Resource
     {
         return $schema->components([
             Select::make('project_id')
-                ->label('Project')
+                ->label(__('Project'))
                 ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->required()
@@ -78,7 +78,7 @@ class WorkSprintResource extends Resource
                 TextColumn::make('name')->searchable()->sortable()
                     ->description(fn (WorkSprint $record): ?string => $record->goal),
 
-                TextColumn::make('project.name')->label('Project')->toggleable(),
+                TextColumn::make('project.name')->label(__('Project'))->toggleable(),
 
                 TextColumn::make('state')
                     ->badge()
@@ -89,18 +89,18 @@ class WorkSprintResource extends Resource
                         default => 'info',
                     }),
 
-                TextColumn::make('starts_on')->date('d M Y')->label('From')->sortable(),
-                TextColumn::make('ends_on')->date('d M Y')->label('To')->sortable(),
-                TextColumn::make('items_count')->label('Items')->alignEnd(),
+                TextColumn::make('starts_on')->date('d M Y')->label(__('From'))->sortable(),
+                TextColumn::make('ends_on')->date('d M Y')->label(__('To'))->sortable(),
+                TextColumn::make('items_count')->label(__('Items'))->alignEnd(),
             ])
             ->defaultSort('starts_on', 'desc')
             ->filters([
                 SelectFilter::make('state')->options(WorkSprint::STATES),
-                SelectFilter::make('project_id')->label('Project')->relationship('project', 'name'),
+                SelectFilter::make('project_id')->label(__('Project'))->relationship('project', 'name'),
             ])
             ->recordActions([
                 Action::make('start')
-                    ->label('Start')
+                    ->label(__('Start'))
                     ->icon('heroicon-o-play')
                     ->color('success')
                     ->visible(fn (WorkSprint $record): bool => ! $record->isActive() && ! $record->isClosed()
@@ -127,14 +127,14 @@ class WorkSprintResource extends Resource
                  * it, and a tool that picks one silently is making that call for them.
                  */
                 Action::make('complete')
-                    ->label('Complete')
+                    ->label(__('Complete'))
                     ->icon('heroicon-o-flag')
                     ->color('warning')
                     ->visible(fn (WorkSprint $record): bool => $record->isActive()
                         && (auth()->user()?->can('update', $record) ?? false))
                     ->schema(fn (WorkSprint $record): array => [
                         Select::make('move_to')
-                            ->label('Unfinished work goes to')
+                            ->label(__('Unfinished work goes to'))
                             ->options(fn (): array => WorkSprint::query()
                                 ->where('project_id', $record->project_id)
                                 ->where('state', '!=', WorkSprint::CLOSED)

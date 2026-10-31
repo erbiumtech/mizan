@@ -32,17 +32,17 @@ class DocumentLayoutSettingsSection implements SettingsSection
                     .'company look like they came from one.')
                 ->schema([
                     TextInput::make('documents_header_note')
-                        ->label('Line under the letterhead')
+                        ->label(__('Line under the letterhead'))
                         ->maxLength(190)
                         ->placeholder('Registered under the Companies Act 2017')
                         ->helperText('Printed on every document, under the company name. Leave empty for none.'),
                     TextInput::make('documents_footer_note')
-                        ->label('Line in the footer')
+                        ->label(__('Line in the footer'))
                         ->maxLength(190)
                         ->placeholder('This is a computer-generated document and needs no signature.')
                         ->helperText('Printed in the coloured bar at the foot of the page.'),
                     CheckboxList::make('documents_payslip_hidden')
-                        ->label('Leave these off the payslip')
+                        ->label(__('Leave these off the payslip'))
                         ->options(DocumentLayout::PAYSLIP_BLOCKS)
                         ->columns(3)
                         ->helperText('Everything prints unless you say otherwise. Bank details are the usual one '

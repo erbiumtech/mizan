@@ -72,7 +72,7 @@ class ReturnPack extends Page
         return $schema
             ->components([
                 Select::make('fiscal_year_id')
-                    ->label('Tax year')
+                    ->label(__('Tax year'))
                     ->options(FiscalYear::orderByDesc('start_date')->pluck('name', 'id'))
                     ->live()
                     ->helperText('July to June. FBR names this period for the year it ends in, so this app\'s 2025-2026 is FBR\'s Tax Year 2026.'),
@@ -85,7 +85,7 @@ class ReturnPack extends Page
         return [
             HelpAction::make('return-pack', 'Return Pack: Help'),
             Action::make('download')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => $this->getPack()['pack'] !== null)
                 ->action(function () {

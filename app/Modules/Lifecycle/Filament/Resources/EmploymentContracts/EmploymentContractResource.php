@@ -69,14 +69,14 @@ class EmploymentContractResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('employee_id')->label('Employee')
+            Select::make('employee_id')->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required()->disabledOn('edit'),
             TextInput::make('number')->maxLength(40)->placeholder(fn (): string => EmploymentContract::nextNumber())->helperText('Left blank, the next number is taken.'),
             Select::make('type')->options(EmploymentContract::TYPES)->default('permanent')->required(),
             DatePicker::make('starts_on')->native(false)->required(),
             DatePicker::make('ends_on')->native(false)->nullable()->afterOrEqual('starts_on')->helperText('Blank for open-ended. A dated contract reaches the expiring-documents report once signed.'),
-            TextInput::make('gross')->label('Monthly gross')->numeric()->minValue(0)->required(),
+            TextInput::make('gross')->label(__('Monthly gross'))->numeric()->minValue(0)->required(),
             TextInput::make('probation_months')->numeric()->minValue(0)->maxValue(24)->nullable(),
             Textarea::make('notes')->rows(3)->columnSpanFull(),
         ]);
@@ -87,7 +87,7 @@ class EmploymentContractResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('number')->searchable()->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('type')->formatStateUsing(fn (string $state): string => EmploymentContract::TYPES[$state] ?? $state),
                 TextColumn::make('starts_on')->date('d M Y'),
                 TextColumn::make('ends_on')->date('d M Y')->placeholder('open-ended'),
@@ -96,30 +96,30 @@ class EmploymentContractResource extends Resource
                     'active' => 'success', 'ended' => 'gray', default => 'warning'
                 })
                     ->description(fn (EmploymentContract $c): ?string => $c->isAccepted() ? 'accepted '.$c->accepted_at->format('d M Y H:i').($c->accepted_ip ? ' from '.$c->accepted_ip : '') : null),
-                TextColumn::make('signedDocument.file_path')->label('Signed scan')->formatStateUsing(fn ($state): string => $state ? 'attached' : '')->placeholder('—'),
+                TextColumn::make('signedDocument.file_path')->label(__('Signed scan'))->formatStateUsing(fn ($state): string => $state ? 'attached' : '')->placeholder('—'),
             ])
             ->filters([SelectFilter::make('status')->options(['draft' => 'Draft', 'active' => 'Active', 'ended' => 'Ended'])])
             ->defaultSort('id', 'desc')
             ->recordActions([
-                Action::make('download')->label('PDF')->icon('heroicon-o-arrow-down-tray')
+                Action::make('download')->label(__('PDF'))->icon('heroicon-o-arrow-down-tray')
                     ->action(function (EmploymentContract $record) {
                         $pdf = app(EmploymentContracts::class)->renderPdf($record);
 
                         return response()->streamDownload(fn () => print ($pdf->raw()), $pdf->getName(), ['Content-Type' => 'application/pdf']);
                     }),
-                Action::make('activate')->label('Activate')->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
+                Action::make('activate')->label(__('Activate'))->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
                     ->visible(fn (EmploymentContract $c): bool => $c->status === EmploymentContract::STATUS_DRAFT && (auth()->user()?->can('update', $c) ?? false))
                     ->action(function (EmploymentContract $record): void {
                         app(EmploymentContracts::class)->activate($record);
                         Notification::make()->success()->title('Active. Any earlier contract has ended.')->send();
                     }),
-                Action::make('accept')->label('Accept')->icon('heroicon-o-pencil-square')->color('primary')
+                Action::make('accept')->label(__('Accept'))->icon('heroicon-o-pencil-square')->color('primary')
                     ->visible(fn (EmploymentContract $c): bool => $c->isActive() && ! $c->isAccepted() && (int) $c->employee?->user_id === (int) auth()->id())
                     ->modalHeading('Accept this contract')
                     ->modalDescription('Your acceptance is recorded with the time and the address it was made from. It is your agreement to the contract as written; the signed copy, if the company asks for one, is attached separately.')
                     ->schema([
-                        TagsInput::make('witnesses')->label('Witnesses')->placeholder('Add a name')->helperText('Optional.'),
-                        Checkbox::make('ip_disclosure')->label('I understand my network address is recorded with this acceptance')->accepted(),
+                        TagsInput::make('witnesses')->label(__('Witnesses'))->placeholder('Add a name')->helperText('Optional.'),
+                        Checkbox::make('ip_disclosure')->label(__('I understand my network address is recorded with this acceptance'))->accepted(),
                     ])
                     ->action(function (EmploymentContract $record, array $data): void {
                         try {
@@ -132,16 +132,16 @@ class EmploymentContractResource extends Resource
 
                         Notification::make()->success()->title('Accepted.')->send();
                     }),
-                Action::make('attachScan')->label('Signed scan')->icon('heroicon-o-paper-clip')->color('gray')
+                Action::make('attachScan')->label(__('Signed scan'))->icon('heroicon-o-paper-clip')->color('gray')
                     ->visible(fn (EmploymentContract $c): bool => $c->isActive() && $c->signed_document_id === null && (auth()->user()?->can('update', $c) ?? false))
-                    ->schema([FileUpload::make('file_path')->label('Scan')->disk('public')->directory('employee-documents')->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])->maxSize(10240)->required()])
+                    ->schema([FileUpload::make('file_path')->label(__('Scan'))->disk('public')->directory('employee-documents')->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])->maxSize(10240)->required()])
                     ->action(function (EmploymentContract $record, array $data): void {
                         app(EmploymentContracts::class)->attachSignedScan($record, $data['file_path']);
                         Notification::make()->success()->title('Attached as an employee document.')->send();
                     }),
-                Action::make('end')->label('End')->icon('heroicon-o-stop-circle')->color('danger')->requiresConfirmation()
+                Action::make('end')->label(__('End'))->icon('heroicon-o-stop-circle')->color('danger')->requiresConfirmation()
                     ->visible(fn (EmploymentContract $c): bool => $c->isActive() && (auth()->user()?->can('update', $c) ?? false))
-                    ->schema([DatePicker::make('on')->label('Ended on')->native(false)->default(now())->required()])
+                    ->schema([DatePicker::make('on')->label(__('Ended on'))->native(false)->default(now())->required()])
                     ->action(function (EmploymentContract $record, array $data): void {
                         app(EmploymentContracts::class)->end($record, $data['on']);
                         Notification::make()->success()->title('Ended.')->send();

@@ -60,34 +60,34 @@ class ApplicationInfolist
                 ->columns(2)
                 ->schema([
                     TextEntry::make('applicant.email')
-                        ->label('Email')
+                        ->label(__('Email'))
                         ->icon('heroicon-m-envelope')
                         ->copyable()
                         ->placeholder('Not recorded'),
 
                     TextEntry::make('applicant.phone')
-                        ->label('Phone')
+                        ->label(__('Phone'))
                         ->icon('heroicon-m-phone')
                         ->placeholder('Not recorded'),
 
                     TextEntry::make('applicant.current_employer')
-                        ->label('Currently at')
+                        ->label(__('Currently at'))
                         ->placeholder('Not recorded'),
 
                     TextEntry::make('applicant.notice_period_days')
-                        ->label('Notice period')
+                        ->label(__('Notice period'))
                         ->suffix(' days')
                         ->placeholder('Not recorded'),
 
                     TextEntry::make('applicant.source')
-                        ->label('Source')
+                        ->label(__('Source'))
                         ->icon('heroicon-m-star')
                         ->placeholder('Not recorded'),
 
                     // A person's judgement, 1 to 5, the same figure the list sorts on. Here because
                     // somebody reading the rounds is exactly who would want to change it.
                     TextEntry::make('rating')
-                        ->label('Rating')
+                        ->label(__('Rating'))
                         ->suffix('/5')
                         ->placeholder('Nobody has rated them'),
                 ]),
@@ -104,10 +104,10 @@ class ApplicationInfolist
                 ->columns(2)
                 ->visible(fn (Application $record): bool => $record->offer()->exists())
                 ->schema([
-                    TextEntry::make('offer.salary')->label('Basic salary')->money('PKR'),
-                    TextEntry::make('offer.joining_date')->label('Joining')->date('d M Y'),
+                    TextEntry::make('offer.salary')->label(__('Basic salary'))->money('PKR'),
+                    TextEntry::make('offer.joining_date')->label(__('Joining'))->date('d M Y'),
                     TextEntry::make('offer.status')
-                        ->label('Status')
+                        ->label(__('Status'))
                         ->badge()
                         ->color(fn (?string $state): string => match ($state) {
                             Offer::STATUS_ACCEPTED => 'success',
@@ -116,7 +116,7 @@ class ApplicationInfolist
                             default => 'gray',
                         }),
                     TextEntry::make('offer.decline_reason')
-                        ->label('They said')
+                        ->label(__('They said'))
                         ->placeholder('—')
                         ->visible(fn (Application $record): bool => filled($record->offer?->decline_reason)),
                 ]),

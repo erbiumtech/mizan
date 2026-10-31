@@ -33,7 +33,7 @@ class QhseActionsTable
         return $table
             ->columns([
                 TextColumn::make('subject_type')
-                    ->label('From')
+                    ->label(__('From'))
                     ->badge()
                     ->getStateUsing(fn (QhseAction $record): string => $record->sourceLabel())
                     ->description(fn (QhseAction $record): ?string => $record->subject?->displayName()
@@ -48,14 +48,14 @@ class QhseActionsTable
                     ->description(fn (QhseAction $record): ?string => $record->job?->code),
 
                 TextColumn::make('action_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state)))
                     ->color(fn (string $state): string => $state === 'containment' ? 'warning' : 'gray')
                     ->tooltip('Containment stops it spreading now; corrective fixes it; preventive stops it recurring.'),
 
                 TextColumn::make('assignee_label')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->getStateUsing(fn (QhseAction $record): string => $record->assigneeName())
                     ->color(fn (QhseAction $record): string => $record->isUnassigned() ? 'danger' : 'gray'),
 
@@ -70,7 +70,7 @@ class QhseActionsTable
                     ->sortable(),
 
                 TextColumn::make('due_on')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->date('d M Y')
                     // Named: an action with no date is one nobody is chasing.
                     ->placeholder('no date set')
@@ -93,23 +93,23 @@ class QhseActionsTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
                 SelectFilter::make('status')->options(QhseAction::STATUSES),
                 SelectFilter::make('priority')->options(QhseAction::PRIORITIES),
                 SelectFilter::make('action_type')->options(QhseAction::TYPES),
 
                 Filter::make('overdue')
-                    ->label('Overdue')
+                    ->label(__('Overdue'))
                     ->query(fn (Builder $query): Builder => $query->overdue())
                     ->toggle(),
 
                 Filter::make('awaiting_verification')
-                    ->label('Done, awaiting verification')
+                    ->label(__('Done, awaiting verification'))
                     ->query(fn (Builder $query): Builder => $query->awaitingVerification())
                     ->toggle(),
 
                 Filter::make('unassigned')
-                    ->label('Nobody assigned')
+                    ->label(__('Nobody assigned'))
                     ->query(fn (Builder $query): Builder => $query->live()
                         ->whereNull('assignee_label')
                         ->whereNull('assigned_contact_id')
@@ -122,7 +122,7 @@ class QhseActionsTable
                     ->visible(fn (QhseAction $record): bool => $record->isLive() && (auth()->user()?->can('update', $record) ?? false)),
 
                 Action::make('start')
-                    ->label('Start')
+                    ->label(__('Start'))
                     ->icon('heroicon-o-play')
                     ->color('gray')
                     ->visible(fn (QhseAction $record): bool => (auth()->user()?->can('update', $record) ?? false)
@@ -137,13 +137,13 @@ class QhseActionsTable
                  * **The claim**, not the closure.
                  */
                 Action::make('complete')
-                    ->label('Mark done')
+                    ->label(__('Mark done'))
                     ->icon('heroicon-o-check')
                     ->color('info')
                     ->modalHeading('Mark it done')
                     ->modalDescription('This is your claim that it is finished. It stays on the list as awaiting verification until somebody else confirms it — because an actions register where the person who caused a finding can close it is one nobody reads.')
                     ->schema([
-                        DatePicker::make('on')->label('Done on')->native(false)->default(now()),
+                        DatePicker::make('on')->label(__('Done on'))->native(false)->default(now()),
                         Textarea::make('notes')->rows(2),
                     ])
                     ->visible(fn (QhseAction $record): bool => (auth()->user()?->can('complete', $record) ?? false)
@@ -158,13 +158,13 @@ class QhseActionsTable
                  * **Somebody else's confirmation**, and its own permission.
                  */
                 Action::make('verify')
-                    ->label('Verify')
+                    ->label(__('Verify'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->modalHeading('Verify it was done')
                     ->modalDescription('Refused on an action nobody has claimed to have done — verifying something that has not happened is a closure that proves nothing.')
                     ->schema([
-                        DatePicker::make('on')->label('Verified on')->native(false)->default(now()),
+                        DatePicker::make('on')->label(__('Verified on'))->native(false)->default(now()),
                         Textarea::make('notes')->rows(2),
                     ])
                     ->visible(fn (QhseAction $record): bool => auth()->user()?->can('verify', $record) ?? false)
@@ -175,12 +175,12 @@ class QhseActionsTable
                     )),
 
                 Action::make('cancel')
-                    ->label('Cancel')
+                    ->label(__('Cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->modalDescription('Kept with the reason rather than deleted — a row that simply disappears is the one that gets raised again next month.')
                     ->schema([
-                        Textarea::make('reason')->label('Why')->rows(2)->required(),
+                        Textarea::make('reason')->label(__('Why'))->rows(2)->required(),
                     ])
                     ->visible(fn (QhseAction $record): bool => auth()->user()?->can('cancel', $record) ?? false)
                     ->action(fn (QhseAction $record, array $data) => static::run(

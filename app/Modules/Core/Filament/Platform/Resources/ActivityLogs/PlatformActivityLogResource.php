@@ -68,26 +68,26 @@ class PlatformActivityLogResource extends Resource
                 // Which company this happened in — the column the company panel's version
                 // has no need for, and the only one that makes a shared list readable.
                 TextColumn::make('company_id')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn ($state): string => Company::find($state)?->name ?? 'no company')
                     ->sortable(),
 
-                TextColumn::make('log_name')->label('Model')->searchable()->sortable(),
-                TextColumn::make('event')->label('Event')->badge()->sortable(),
+                TextColumn::make('log_name')->label(__('Model'))->searchable()->sortable(),
+                TextColumn::make('event')->label(__('Event'))->badge()->sortable(),
                 TextColumn::make('description')->limit(60)->searchable(),
-                TextColumn::make('causer.name')->label('Causer')->placeholder('system'),
-                TextColumn::make('created_at')->label('When')->dateTime()->sortable(),
+                TextColumn::make('causer.name')->label(__('Causer'))->placeholder('system'),
+                TextColumn::make('created_at')->label(__('When'))->dateTime()->sortable(),
             ])
             ->filters([
                 SelectFilter::make('company_id')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->options(fn (): array => Company::orderBy('name')->pluck('name', 'id')->all())
                     ->searchable(),
 
                 SelectFilter::make('log_name')
-                    ->label('Model')
+                    ->label(__('Model'))
                     ->options(fn (): array => Activity::query()
                         ->whereNotNull('log_name')
                         ->distinct()

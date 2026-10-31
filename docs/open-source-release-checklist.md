@@ -1,7 +1,10 @@
 # Open-source release checklist
 
-**Status:** Section 1 is **closed as far as the working tree goes (2026-09-21)** — and *not* as far as git
-history goes, which is what still blocks publishing. See §1.6.
+**Status:** Section 1 is **closed as far as the working tree goes (2026-09-21) and as far as this
+repository's history goes (rewritten 2026-09-26, §1.6)**. What is still open sits outside the repository:
+the GitHub Support request that purges the pre-rewrite commits GitHub still serves through merged-PR refs,
+and §1.7 credential rotation — both owner actions, neither verifiable from here. The `v0.1.0` tag (§3)
+waits on them.
 **Created:** 2026-07-28
 
 Work top to bottom. Section 1 must be finished *before* the repository is ever made

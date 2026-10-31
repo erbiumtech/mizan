@@ -22,7 +22,7 @@ class WithholdingCertificatesBulkAction
     public static function make(): BulkAction
     {
         return BulkAction::make('withholdingCertificates')
-            ->label('Tax certificates for a year')
+            ->label(__('Tax certificates for a year'))
             ->icon('heroicon-o-document-text')
             ->color('gray')
             ->visible(fn (): bool => modules()->enabled('payroll') && (auth()->user()?->can('PayslipView') ?? false))
@@ -33,12 +33,12 @@ class WithholdingCertificatesBulkAction
             ->modalSubmitActionLabel('Issue')
             ->schema([
                 Select::make('fiscal_year_id')
-                    ->label('Tax year')
+                    ->label(__('Tax year'))
                     ->options(fn (): array => FiscalYear::query()->orderByDesc('start_date')->pluck('name', 'id')->all())
                     ->default(fn (): ?int => FiscalYear::query()->where('is_active', true)->value('id'))
                     ->required(),
                 Radio::make('deliver')
-                    ->label('Deliver as')
+                    ->label(__('Deliver as'))
                     ->options(['zip' => 'One zip to download', 'email' => 'An email to each employee, certificate attached'])
                     ->default('zip')
                     ->required(),

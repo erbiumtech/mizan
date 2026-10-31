@@ -35,7 +35,7 @@ class StockLocationForm
                     ->helperText('A site store belongs to a construction job; in-transit holds stock between two locations during a transfer.'),
 
                 Select::make('inventory_account_id')
-                    ->label('Inventory account')
+                    ->label(__('Inventory account'))
                     ->options(fn (): array => Account::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Account $account): array => [$account->getKey() => "{$account->code} — {$account->name}"])
                         ->all())
@@ -47,7 +47,7 @@ class StockLocationForm
                     ->columnSpanFull(),
 
                 Toggle::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->default(true)
                     ->helperText('Switching a location off takes it out of the pickers and leaves its movements alone. There is no delete: movements would be left at no location, which reads as a healthy total in the wrong place.'),
 

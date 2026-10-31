@@ -22,7 +22,7 @@ class PlatformRolesTable
             ->defaultSort('company_name')
             ->columns([
                 TextColumn::make('company_name')
-                    ->label('Company')
+                    ->label(__('Company'))
                     // Ordering by the select alias is fine; searching it is not — an alias
                     // cannot be referenced in WHERE — so the search matches companies and
                     // filters roles by the ones it found.
@@ -43,18 +43,18 @@ class PlatformRolesTable
                     ->sortable(),
 
                 TextColumn::make('guard_name')
-                    ->label('Guard')
+                    ->label(__('Guard'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('permissions_count')
-                    ->label('Permissions')
+                    ->label(__('Permissions'))
                     ->counts('permissions')
                     ->badge()
                     ->color(fn ($state): string => $state ? 'gray' : 'warning')
                     ->formatStateUsing(fn ($state): string => $state ?: 'none'),
 
                 TextColumn::make('users_count')
-                    ->label('Users')
+                    ->label(__('Users'))
                     ->counts('users')
                     ->badge()
                     ->color('gray'),
@@ -66,7 +66,7 @@ class PlatformRolesTable
             ])
             ->filters([
                 SelectFilter::make(config('permission.column_names.team_foreign_key', 'company_id'))
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->options(fn (): array => Company::orderBy('name')->pluck('name', 'id')->all())
                     ->searchable(),
             ])
@@ -74,7 +74,7 @@ class PlatformRolesTable
                 // Editing happens where the permissions mean something. See the note on
                 // PlatformRoleResource for why there is no edit page on this panel.
                 Action::make('openOnCompanyPanel')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->color('gray')
                     ->url(fn (Role $record): ?string => self::companyPanelUrl($record))

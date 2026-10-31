@@ -53,7 +53,7 @@ class LetterTemplateResource extends Resource
         return $schema->components([
             Select::make('kind')->options(LetterTemplate::KINDS)->required()
                 ->helperText('Increment, promotion, transfer and confirmation letters issue themselves when the thing happens. The rest are requested.'),
-            Select::make('locale')->label('Language')->options(Locales::options())->default('en')->required()
+            Select::make('locale')->label(__('Language'))->options(Locales::options())->default('en')->required()
                 ->helperText('One template per kind per language. A letter falls back to English when its language has none.'),
             TextInput::make('name')->required()->maxLength(120)->placeholder('Increment letter, 2026 wording'),
             TextInput::make('subject')->maxLength(190)->placeholder('Revision of salary with effect from {effective_from}'),
@@ -61,7 +61,7 @@ class LetterTemplateResource extends Resource
             Textarea::make('body')->required()->rows(14)->columnSpanFull()
                 ->helperText('Plain text; a blank line starts a new paragraph. It prints on the company letterhead, as the other letters do.'),
             Placeholder::make('placeholders')
-                ->label('Placeholders')
+                ->label(__('Placeholders'))
                 ->columnSpanFull()
                 ->content(new HtmlString('<ul class="text-sm grid gap-1 sm:grid-cols-3">'.collect(LetterTemplate::PLACEHOLDERS)
                     ->map(fn (string $what, string $key): string => '<li><code>{'.$key.'}</code> — '.e($what).'</li>')->implode('').'</ul>')),
@@ -73,16 +73,16 @@ class LetterTemplateResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->description(fn (LetterTemplate $t): string => $t->kindLabel()),
-                TextColumn::make('locale')->label('Language')->formatStateUsing(fn (string $state): string => Locales::AVAILABLE[$state]['label'] ?? $state),
+                TextColumn::make('locale')->label(__('Language'))->formatStateUsing(fn (string $state): string => Locales::AVAILABLE[$state]['label'] ?? $state),
                 TextColumn::make('subject')->limit(50)->placeholder('—'),
-                TextColumn::make('issues')->label('Issues itself')
+                TextColumn::make('issues')->label(__('Issues itself'))
                     ->state(fn (LetterTemplate $t): string => in_array($t->kind, LetterTemplate::EVENT_KINDS, true) ? 'on the event' : 'on request'),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->filters([SelectFilter::make('kind')->options(LetterTemplate::KINDS)])
             ->recordActions([
                 Action::make('preview')
-                    ->label('Preview')
+                    ->label(__('Preview'))
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->modalHeading('Preview')
@@ -100,7 +100,7 @@ class LetterTemplateResource extends Resource
                         return new HtmlString('<p class="text-sm font-medium mb-2">'.e($record->renderSubject($values)).'</p><pre class="text-sm whitespace-pre-wrap">'.e($record->render($values)).'</pre>');
                     }),
                 Action::make('download')
-                    ->label('PDF')
+                    ->label(__('PDF'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
                     ->action(function (LetterTemplate $record) {

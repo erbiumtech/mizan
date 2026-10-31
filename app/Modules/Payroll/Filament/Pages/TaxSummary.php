@@ -61,7 +61,7 @@ class TaxSummary extends Page
         return $schema
             ->components([
                 Select::make('fiscal_year_id')
-                    ->label('Fiscal year')
+                    ->label(__('Fiscal year'))
                     ->options(fn (): array => \App\Modules\Core\Models\FiscalYear::orderByDesc('start_date')
                         ->pluck('name', 'id')->all())
                     ->selectablePlaceholder(false)
@@ -69,7 +69,7 @@ class TaxSummary extends Page
                     ->live(),
 
                 Select::make('month')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->placeholder('The whole year')
                     ->options(array_combine(
                         $months = ['July', 'August', 'September', 'October', 'November', 'December',
@@ -105,12 +105,12 @@ class TaxSummary extends Page
              * the table below it; see WithholdingCertificate for why that is the rule.
              */
             Action::make('withholdingCertificate')
-                ->label('Withholding certificate')
+                ->label(__('Withholding certificate'))
                 ->icon('heroicon-o-document-check')
                 ->color('gray')
                 ->schema([
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->required()
                         ->native(false)
                         ->searchable()
@@ -169,7 +169,7 @@ class TaxSummary extends Page
                     );
                 }),
             Action::make('pdf')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
                     fn (): string => route('reports.tax-summary', [

@@ -15,7 +15,7 @@ class EmployeeChangeRequestForm
         return $schema
             ->components([
                 Select::make('employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->relationship('employee', 'employee_id', fn ($query) => $query->with('user'))
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
                     ->searchable()
@@ -26,14 +26,14 @@ class EmployeeChangeRequestForm
                     ->disabled(),
 
                 Select::make('requested_by')
-                    ->label('Requested By')
+                    ->label(__('Requested By'))
                     ->relationship('requester', 'name')
                     ->searchable()
                     ->preload()
                     ->disabled(),
 
                 KeyValue::make('requested_changes')
-                    ->label('Requested Changes')
+                    ->label(__('Requested Changes'))
                     ->keyLabel('Field')
                     ->valueLabel('New Value')
                     // A key-value field holds strings; an address arrives as an array of parts.
@@ -41,7 +41,7 @@ class EmployeeChangeRequestForm
                     ->disabled(),
 
                 Select::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         'pending' => 'Pending',
                         'approved' => 'Approved',

@@ -58,6 +58,13 @@ class TenantIsolationTest extends TestCase
         // every company they are a member of, and a notification is sent to the user — desktop-mobile A3.
         \App\Modules\Core\Models\DeviceToken::class,
         \App\Modules\Core\Models\Signup::class,        // a signup exists before the company it will create does
+        // The public site belongs to the operator, not to a company: its settings, its hand-written
+        // pages and the messages its contact form takes are edited on the platform panel with no tenant
+        // current — docs/company-website-plan.md W1 and W4.
+        \App\Modules\Core\Models\ContactMessage::class,
+        \App\Modules\Core\Models\Signup::class,
+        \App\Modules\Core\Models\SitePage::class,
+        \App\Modules\Core\Models\SiteSetting::class,        // a signup exists before the company it will create does
         \App\Modules\Core\Models\TableView::class,     // per-user view preferences, company-scoped by its global scope
         \App\Modules\Core\Models\User::class,          // identity and membership across companies
         // A device posts to a webhook with no tenant current, and the row is what says which company

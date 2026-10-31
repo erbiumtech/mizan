@@ -36,18 +36,18 @@ class StockLocationsTable
                     ->sortable(),
 
                 TextColumn::make('movements_count')
-                    ->label('Movements')
+                    ->label(__('Movements'))
                     ->counts('movements')
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('inventoryAccount.code')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->placeholder('product default')
                     ->toggleable(),
 
                 IconColumn::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->boolean()
                     ->sortable(),
             ])
@@ -55,7 +55,7 @@ class StockLocationsTable
                 SelectFilter::make('kind')->options(StockLocation::KINDS),
 
                 Filter::make('active')
-                    ->label('In use only')
+                    ->label(__('In use only'))
                     ->query(fn (Builder $query) => $query->active())
                     ->default()
                     ->toggle(),

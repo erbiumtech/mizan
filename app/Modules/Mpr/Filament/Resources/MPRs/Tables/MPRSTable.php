@@ -26,24 +26,24 @@ class MPRSTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 // `users` is a landlord table and MPRs are per-tenant, so the
                 // relationship search/sort cannot be used — see LandlordUserColumn.
                 TextColumn::make('user.name')
-                    ->label('User')
+                    ->label(__('User'))
                     ->sortable(query: fn (Builder $query, string $direction): Builder => LandlordUserColumn::sort($query, $direction, 'name'))
                     ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['name'])),
 
                 TextColumn::make('mpr_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date('d-m-Y')
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('user_id')
-                    ->label('User Name')
+                    ->label(__('User Name'))
                     ->options(function (): array {
                         $user = auth()->user();
 
@@ -83,7 +83,7 @@ class MPRSTable
     protected static function downloadSingleAction(): Action
     {
         return Action::make('downloadSinglePdf')
-            ->label('Download PDF')
+            ->label(__('Download PDF'))
             ->icon('heroicon-o-document-arrow-down')
             ->requiresConfirmation(false)
             ->action(function (MPR $record) {
@@ -113,7 +113,7 @@ class MPRSTable
     protected static function downloadComparisonAction(): Action
     {
         return Action::make('downloadComparisonPdf')
-            ->label('Generate / Download PDF')
+            ->label(__('Generate / Download PDF'))
             ->icon('heroicon-o-document-arrow-down')
             ->schema(function (): array {
                 $user = auth()->user();
@@ -121,7 +121,7 @@ class MPRSTable
                 if ($user && ! $user->isAdministrator()) {
                     return [
                         Select::make('user_id')
-                            ->label('User')
+                            ->label(__('User'))
                             ->options([$user->id => $user->name])
                             ->default($user->id)
                             ->helperText('Your profile is automatically selected for this action.'),
@@ -130,7 +130,7 @@ class MPRSTable
 
                 return [
                     Select::make('user_id')
-                        ->label('Select User')
+                        ->label(__('Select User'))
                         ->options(User::where('status', 1)->pluck('name', 'id'))
                         ->searchable()
                         ->required()

@@ -71,7 +71,7 @@ class OrdersRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('lines.reliefs'))
             ->columns([
                 TextColumn::make('number')
-                    ->label('Order')
+                    ->label(__('Order'))
                     ->searchable()
                     ->sortable(),
 
@@ -99,13 +99,13 @@ class OrdersRelationManager extends RelationManager
                 // and the query fails outright. Which is the good outcome — a summariser that silently summed the
                 // wrong thing is how a total comes to disagree with the rows above it.
                 TextColumn::make('ordered')
-                    ->label('Ordered')
+                    ->label(__('Ordered'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->orderedTotal()),
 
                 TextColumn::make('relieved')
-                    ->label('Relieved')
+                    ->label(__('Relieved'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->relievedTotal())
@@ -116,7 +116,7 @@ class OrdersRelationManager extends RelationManager
                         : null),
 
                 TextColumn::make('open')
-                    ->label('Still committed')
+                    ->label(__('Still committed'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->openTotal()),
@@ -124,13 +124,13 @@ class OrdersRelationManager extends RelationManager
             ->defaultSort('number')
             ->headerActions([
                 Action::make('link')
-                    ->label('Link an order')
+                    ->label(__('Link an order'))
                     ->icon('heroicon-o-link')
                     ->modalHeading('Link the order behind this subcontract')
                     ->modalDescription('The contract holds the schedule and the certificates; the order holds the money promised. Linked, every certificate issued here relieves the commitment — so the cost report stops showing money as promised once it has been certified.')
                     ->schema([
                         Select::make('commitment_id')
-                            ->label('Order')
+                            ->label(__('Order'))
                             ->options(fn (): array => Commitment::query()
                                 ->whereNull('contract_id')
                                 ->open()
@@ -167,7 +167,7 @@ class OrdersRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('unlink')
-                    ->label('Unlink')
+                    ->label(__('Unlink'))
                     ->icon('heroicon-o-link-slash')
                     ->color('gray')
                     ->requiresConfirmation()

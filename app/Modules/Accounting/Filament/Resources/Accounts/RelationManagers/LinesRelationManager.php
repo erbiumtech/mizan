@@ -20,22 +20,22 @@ class LinesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('journalEntry.entry_number')
-                    ->label('Journal Entry')
+                    ->label(__('Journal Entry'))
                     ->searchable(),
 
                 TextColumn::make('debit_amount')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('credit_amount')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('description')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('reconciled_at')
-                    ->label('Reconciled')
+                    ->label(__('Reconciled'))
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
 

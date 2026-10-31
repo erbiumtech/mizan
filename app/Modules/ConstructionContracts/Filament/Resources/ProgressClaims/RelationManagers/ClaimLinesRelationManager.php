@@ -48,7 +48,7 @@ class ClaimLinesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('measurement_input')
-                    ->label('Measured by')
+                    ->label(__('Measured by'))
                     ->options([
                         ProgressClaimLine::INPUT_PERCENT => 'Percent complete',
                         ProgressClaimLine::INPUT_QUANTITY => 'Quantity done',
@@ -61,7 +61,7 @@ class ClaimLinesRelationManager extends RelationManager
                     ->helperText('Whichever you actually typed. All three become a value; this records which one it was.'),
 
                 TextInput::make('cumulative_percent')
-                    ->label('Percent complete to date')
+                    ->label(__('Percent complete to date'))
                     ->numeric()
                     ->visible(fn (callable $get): bool => in_array($get('measurement_input'), [
                         ProgressClaimLine::INPUT_PERCENT,
@@ -70,19 +70,19 @@ class ClaimLinesRelationManager extends RelationManager
                     ->helperText('Cumulative, not this period.'),
 
                 TextInput::make('cumulative_quantity')
-                    ->label('Quantity to date')
+                    ->label(__('Quantity to date'))
                     ->numeric()
                     ->visible(fn (callable $get): bool => $get('measurement_input') === ProgressClaimLine::INPUT_QUANTITY)
                     ->helperText('Cumulative, not this period.'),
 
                 TextInput::make('cumulative_work_value')
-                    ->label('Work value to date')
+                    ->label(__('Work value to date'))
                     ->numeric()
                     ->required(fn (callable $get): bool => $get('measurement_input') === ProgressClaimLine::INPUT_VALUE)
                     ->helperText('Computed from the input above when the claim is submitted, unless you are claiming by value.'),
 
                 TextInput::make('cumulative_materials_value')
-                    ->label('Materials on site to date')
+                    ->label(__('Materials on site to date'))
                     ->numeric()
                     ->helperText('Delivered and not yet built in. Retained at its own rate where the contract says so.'),
             ]);
@@ -94,39 +94,39 @@ class ClaimLinesRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 TextColumn::make('contractItem.item_no')
-                    ->label('Item')
+                    ->label(__('Item'))
                     ->sortable(),
 
                 TextColumn::make('contractItem.description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->wrap()
                     ->searchable(),
 
                 TextColumn::make('contractItem.scheduled_value')
-                    ->label('Scheduled')
+                    ->label(__('Scheduled'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd(),
 
                 TextColumn::make('measurement_input')
-                    ->label('Measured by')
+                    ->label(__('Measured by'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))
                     ->toggleable(),
 
                 TextColumn::make('cumulative_percent')
-                    ->label('%')
+                    ->label(__('%'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('cumulative_work_value')
-                    ->label('Work to date')
+                    ->label(__('Work to date'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('cumulative_materials_value')
-                    ->label('Materials')
+                    ->label(__('Materials'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),

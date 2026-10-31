@@ -58,7 +58,7 @@ class BalanceSheet extends Page
         return $schema
             ->components([
                 DatePicker::make('as_of')
-                    ->label('As of date')
+                    ->label(__('As of date'))
                     ->native(false)
                     ->default(now())
                     ->live(),
@@ -79,7 +79,7 @@ class BalanceSheet extends Page
             HelpAction::make('balance-sheet', 'Balance Sheet: Help'),
 
             Action::make('pdf')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
                     // The company is a path segment now, not a filter: the page

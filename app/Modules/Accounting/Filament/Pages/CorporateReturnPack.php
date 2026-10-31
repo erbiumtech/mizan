@@ -81,7 +81,7 @@ class CorporateReturnPack extends Page
         return $schema
             ->components([
                 Select::make('fiscal_year_id')
-                    ->label('Tax year')
+                    ->label(__('Tax year'))
                     ->options(FiscalYear::orderByDesc('start_date')->pluck('name', 'id'))
                     ->selectablePlaceholder(false)
                     ->native(false)
@@ -99,30 +99,30 @@ class CorporateReturnPack extends Page
                     ->helperText('July to June; FBR names it for the year it ends in.'),
 
                 TextInput::make('tax_rate')
-                    ->label('Corporate rate %')
+                    ->label(__('Corporate rate %'))
                     ->numeric()
                     ->live(onBlur: true)
                     ->helperText('The Finance Act moves this; a small company\'s rate differs.'),
 
                 TextInput::make('minimum_tax_rate')
-                    ->label('Minimum tax rate % (s.113, on turnover)')
+                    ->label(__('Minimum tax rate % (s.113, on turnover)'))
                     ->numeric()
                     ->live(onBlur: true),
 
                 TextInput::make('brought_forward_loss')
-                    ->label('Brought-forward loss')
+                    ->label(__('Brought-forward loss'))
                     ->numeric()
                     ->live(onBlur: true)
                     ->helperText('Prior-year business loss to set against this year\'s taxable income; reduces it, not below zero.'),
 
                 TextInput::make('super_tax')
-                    ->label('Super tax (s.4C), amount')
+                    ->label(__('Super tax (s.4C), amount'))
                     ->numeric()
                     ->live(onBlur: true)
                     ->helperText('An amount, not a rate — its slabs move yearly. Your practitioner computes it; it adds on top of the tax due.'),
 
                 Repeater::make('adjustments')
-                    ->label('Tax adjustments to accounting profit')
+                    ->label(__('Tax adjustments to accounting profit'))
                     ->columnSpanFull()
                     ->schema([
                         TextInput::make('label')
@@ -147,7 +147,7 @@ class CorporateReturnPack extends Page
         return [
             HelpAction::make('corporate-return-pack', 'Corporate Return Pack: Help'),
             Action::make('save')
-                ->label('Save worksheet')
+                ->label(__('Save worksheet'))
                 ->icon('heroicon-o-check')
                 ->action(function (): void {
                     if ($yearId = $this->data['fiscal_year_id'] ?? null) {
@@ -157,7 +157,7 @@ class CorporateReturnPack extends Page
                 }),
 
             Action::make('download')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->action(function () {
                     $pack = $this->getPack();

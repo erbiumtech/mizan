@@ -36,7 +36,7 @@ class IncidentsTable
     {
         return $table
             ->columns([
-                TextColumn::make('incident_number')->label('No.')->sortable()->searchable(),
+                TextColumn::make('incident_number')->label(__('No.'))->sortable()->searchable(),
 
                 TextColumn::make('kind')
                     ->badge()
@@ -52,7 +52,7 @@ class IncidentsTable
                     ->sortable(),
 
                 TextColumn::make('occurred_at')
-                    ->label('Happened')
+                    ->label(__('Happened'))
                     ->dateTime('d M Y H:i')
                     ->description(fn (Incident $record): string => 'hour '.$record->hourOfDay().' of the day')
                     ->sortable(),
@@ -61,7 +61,7 @@ class IncidentsTable
                  * §17.3's own metric, on the face of the register.
                  */
                 TextColumn::make('reported_at')
-                    ->label('Reported')
+                    ->label(__('Reported'))
                     ->badge()
                     ->getStateUsing(fn (Incident $record): string => match (true) {
                         $record->reportingDelayHours() === null => 'no report time',
@@ -72,7 +72,7 @@ class IncidentsTable
                     ->tooltip('The delay between something happening and somebody writing it down is a safety measure in its own right.'),
 
                 TextColumn::make('injured_person_name')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->getStateUsing(fn (Incident $record): string => $record->personName())
                     ->description(fn (Incident $record): ?string => $record->days_lost
                         ? $record->days_lost.' days lost'
@@ -84,7 +84,7 @@ class IncidentsTable
                  * **The exposure**: a statutory duty nobody has discharged.
                  */
                 TextColumn::make('authority')
-                    ->label('Authority')
+                    ->label(__('Authority'))
                     ->badge()
                     ->getStateUsing(fn (Incident $record): ?string => match (true) {
                         $record->reportableAndUnreported() => 'not reported',
@@ -105,22 +105,22 @@ class IncidentsTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
                 SelectFilter::make('kind')->options(Incident::KINDS),
                 SelectFilter::make('status')->options(Incident::STATUSES),
 
                 Filter::make('lost_time')
-                    ->label('Lost time')
+                    ->label(__('Lost time'))
                     ->query(fn (Builder $query): Builder => $query->where('is_lost_time', true))
                     ->toggle(),
 
                 Filter::make('near_misses')
-                    ->label('Nobody hurt')
+                    ->label(__('Nobody hurt'))
                     ->query(fn (Builder $query): Builder => $query->ofKinds(Incident::NO_INJURY_KINDS))
                     ->toggle(),
 
                 Filter::make('unreported')
-                    ->label('Reportable, not reported')
+                    ->label(__('Reportable, not reported'))
                     ->query(fn (Builder $query): Builder => $query->reportable()->whereNull('reported_to_authority_on'))
                     ->toggle(),
             ])
@@ -130,14 +130,14 @@ class IncidentsTable
                     ->visible(fn (Incident $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('investigate')
-                    ->label('Investigation')
+                    ->label(__('Investigation'))
                     ->icon('heroicon-o-magnifying-glass')
                     ->color('info')
                     ->modalHeading('Record the investigation')
                     ->schema([
                         Textarea::make('immediate_cause')->rows(2),
                         Textarea::make('root_cause')->rows(2),
-                        TextInput::make('root_cause_method')->label('How it was found')->maxLength(255),
+                        TextInput::make('root_cause_method')->label(__('How it was found'))->maxLength(255),
                         DatePicker::make('investigation_completed_on')->native(false)->default(now()),
                     ])
                     ->visible(fn (Incident $record): bool => auth()->user()?->can('investigate', $record) ?? false)
@@ -154,7 +154,7 @@ class IncidentsTable
                  * The statutory duty, discharged and dated.
                  */
                 Action::make('reportToAuthority')
-                    ->label('Report to authority')
+                    ->label(__('Report to authority'))
                     ->icon('heroicon-o-megaphone')
                     ->color('danger')
                     ->modalHeading('Record the authority report')
@@ -162,7 +162,7 @@ class IncidentsTable
                     ->schema([
                         TextInput::make('authority')->required()->maxLength(255)->helperText('HSE, OSHA, the labour department.'),
                         TextInput::make('reference')->maxLength(255),
-                        DatePicker::make('on')->label('Reported on')->native(false)->default(now())->required(),
+                        DatePicker::make('on')->label(__('Reported on'))->native(false)->default(now())->required(),
                     ])
                     ->visible(fn (Incident $record): bool => auth()->user()?->can('reportToAuthority', $record) ?? false)
                     ->action(fn (Incident $record, array $data) => static::run(
@@ -177,7 +177,7 @@ class IncidentsTable
                     )),
 
                 Action::make('close')
-                    ->label('Close')
+                    ->label(__('Close'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -190,7 +190,7 @@ class IncidentsTable
                     )),
 
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('warning')
                     ->modalDescription('New facts do come out. The reason stays on the record so the register says that is what happened.')

@@ -55,7 +55,7 @@ class TicketCategoryResource extends Resource
                 ->helperText('Unique: two categories meaning the same thing split their own SLA report in half.'),
 
             Select::make('default_priority')
-                ->label('Priority a new ticket starts at')
+                ->label(__('Priority a new ticket starts at'))
                 ->options(array_combine(Ticket::PRIORITIES, array_map('ucfirst', Ticket::PRIORITIES)))
                 ->default('normal')
                 ->selectablePlaceholder(false)
@@ -64,19 +64,19 @@ class TicketCategoryResource extends Resource
                 ->helperText('Whoever raises the ticket can still change it.'),
 
             TextInput::make('sla_response_minutes')
-                ->label('Respond within (minutes)')
+                ->label(__('Respond within (minutes)'))
                 ->numeric()
                 ->minValue(1)
                 ->helperText('Leave blank for no commitment. The clock is MEASURED, never enforced — nothing is blocked or escalated by it.'),
 
             TextInput::make('sla_resolution_minutes')
-                ->label('Resolve within (minutes)')
+                ->label(__('Resolve within (minutes)'))
                 ->numeric()
                 ->minValue(1)
                 ->helperText('Leave blank for no commitment. Blank is not a breach; a zero would read as instantly overdue.'),
 
             Toggle::make('is_active')
-                ->label('Offered on new tickets')
+                ->label(__('Offered on new tickets'))
                 ->default(true)
                 ->helperText('Switch off rather than delete: a category with tickets against it keeps their history and their SLA figures.'),
         ]);
@@ -88,23 +88,23 @@ class TicketCategoryResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
 
-                TextColumn::make('default_priority')->label('Starts at')->badge()->sortable(),
+                TextColumn::make('default_priority')->label(__('Starts at'))->badge()->sortable(),
 
                 TextColumn::make('sla_response_minutes')
-                    ->label('Respond in')
+                    ->label(__('Respond in'))
                     ->placeholder('no commitment')
                     ->alignEnd()
                     ->formatStateUsing(fn (?int $state): ?string => $state === null ? null : $state.' min'),
 
                 TextColumn::make('sla_resolution_minutes')
-                    ->label('Resolve in')
+                    ->label(__('Resolve in'))
                     ->placeholder('no commitment')
                     ->alignEnd()
                     ->formatStateUsing(fn (?int $state): ?string => $state === null ? null : $state.' min'),
 
-                TextColumn::make('tickets_count')->label('Tickets')->counts('tickets')->alignEnd()->sortable(),
+                TextColumn::make('tickets_count')->label(__('Tickets'))->counts('tickets')->alignEnd()->sortable(),
 
-                IconColumn::make('is_active')->label('Offered')->boolean()->sortable(),
+                IconColumn::make('is_active')->label(__('Offered'))->boolean()->sortable(),
             ])
             ->defaultSort('name')
             ->recordActions([\Filament\Actions\EditAction::make()]);

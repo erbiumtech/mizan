@@ -23,7 +23,7 @@ class CostPeriodsTable
             ->defaultSort('period_start', 'desc')
             ->columns([
                 TextColumn::make('period_start')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->formatStateUsing(fn (CostPeriod $record): string => $record->label())
                     ->sortable(),
 
@@ -43,7 +43,7 @@ class CostPeriodsTable
                  * exceed GL cost by exactly that figure, growing every month, with no error anywhere.
                  */
                 TextColumn::make('pending_count')
-                    ->label('Awaiting the GL')
+                    ->label(__('Awaiting the GL'))
                     ->state(fn (CostPeriod $record): int => CostEntry::query()
                         ->awaitingGl()
                         ->inPeriod($record->period_start->toDateString())
@@ -56,7 +56,7 @@ class CostPeriodsTable
                         ->count() > 0 ? 'entries with no GL side yet' : null),
 
                 TextColumn::make('posted')
-                    ->label('Posted')
+                    ->label(__('Posted'))
                     ->state(fn (CostPeriod $record): string => ($runs = GlPosting::query()
                         ->forPeriod($record->period_start->toDateString())
                         ->live()
@@ -65,7 +65,7 @@ class CostPeriodsTable
                             : $runs.' run'.($runs === 1 ? '' : 's')),
 
                 TextColumn::make('difference')
-                    ->label('Difference at close')
+                    ->label(__('Difference at close'))
                     // Null until the period was closed, and an em dash rather than 0.00: a zero here would say the two
                     // ledgers were proved to agree, which is a different fact from nobody having checked.
                     ->placeholder('—')
@@ -75,7 +75,7 @@ class CostPeriodsTable
                         : 'gray'),
 
                 TextColumn::make('closed_at')
-                    ->label('Closed')
+                    ->label(__('Closed'))
                     ->date()
                     ->placeholder('—')
                     ->toggleable(),
@@ -100,7 +100,7 @@ class CostPeriodsTable
                  * the re-accrual is a fresh computation from today's facts rather than an increment.
                  */
                 Action::make('rollAccruals')
-                    ->label('Roll accruals into this month')
+                    ->label(__('Roll accruals into this month'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -131,7 +131,7 @@ class CostPeriodsTable
                  * the lines, the accounts and — especially — what is *not* going to post before any of it exists.
                  */
                 Action::make('previewPosting')
-                    ->label('Preview posting')
+                    ->label(__('Preview posting'))
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->visible(fn (CostPeriod $record): bool => $record->isOpen()
@@ -144,7 +144,7 @@ class CostPeriodsTable
                         ->describe()),
 
                 Action::make('post')
-                    ->label('Post to the general ledger')
+                    ->label(__('Post to the general ledger'))
                     ->icon('heroicon-o-book-open')
                     ->color('primary')
                     ->requiresConfirmation()
@@ -158,7 +158,7 @@ class CostPeriodsTable
                         && (auth()->user()?->can('ConstructionGlPost') ?? false))
                     ->schema([
                         Textarea::make('notes')
-                            ->label('Note')
+                            ->label(__('Note'))
                             ->rows(2)
                             ->helperText('Optional, and kept on the posting run rather than in the journal memo.'),
                     ])
@@ -182,7 +182,7 @@ class CostPeriodsTable
                     }),
 
                 Action::make('reversePosting')
-                    ->label('Reverse the last posting')
+                    ->label(__('Reverse the last posting'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->visible(fn (CostPeriod $record): bool => (auth()->user()?->can('ConstructionGlPost') ?? false)
@@ -193,7 +193,7 @@ class CostPeriodsTable
                         .'cancelled it. The cost entries go back to awaiting the GL, because that is what they are.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->required()
                             ->rows(2)
                             ->helperText('What this backs out is a figure in the accounts somebody has already read.'),
@@ -224,7 +224,7 @@ class CostPeriodsTable
                  * control that says "cannot close" without saying why is a control people learn to force.
                  */
                 Action::make('closeChecks')
-                    ->label('Check the close')
+                    ->label(__('Check the close'))
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('gray')
                     ->visible(fn (CostPeriod $record): bool => $record->isOpen()
@@ -237,7 +237,7 @@ class CostPeriodsTable
                         ->describe()),
 
                 Action::make('closePeriod')
-                    ->label('Close the month')
+                    ->label(__('Close the month'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('primary')
                     ->requiresConfirmation()
@@ -250,7 +250,7 @@ class CostPeriodsTable
                     ->visible(fn (CostPeriod $record): bool => $record->isOpen()
                         && (auth()->user()?->can('ConstructionPeriodClose') ?? false))
                     ->schema([
-                        Textarea::make('notes')->label('Note')->rows(2),
+                        Textarea::make('notes')->label(__('Note'))->rows(2),
                     ])
                     ->action(function (CostPeriod $record, array $data): void {
                         $closed = app(PeriodCloseService::class)->close($record, $data['notes'] ?? null);
@@ -269,7 +269,7 @@ class CostPeriodsTable
                  * the difference stays visible in every later period until the cause is fixed."
                  */
                 Action::make('forceClosePeriod')
-                    ->label('Close it anyway')
+                    ->label(__('Close it anyway'))
                     ->icon('heroicon-o-exclamation-triangle')
                     ->color('danger')
                     ->visible(fn (CostPeriod $record): bool => $record->isOpen()
@@ -282,7 +282,7 @@ class CostPeriodsTable
                         .app(PeriodCloseService::class)->checks($record)->describe())
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->required()
                             ->rows(3)
                             ->helperText('Recorded on the period along with every check it overrode, so whoever reads '

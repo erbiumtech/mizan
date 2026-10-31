@@ -56,8 +56,8 @@ class TaskOccurrenceResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('task.title')->label('Task')->searchable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('task.title')->label(__('Task'))->searchable(),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('due_at')->dateTime('d M H:i')->sortable(),
                 TextColumn::make('status')
                     ->badge()
@@ -68,7 +68,7 @@ class TaskOccurrenceResource extends Resource
                         TaskOccurrence::STATUS_EXCUSED => 'warning',
                         default => 'gray',
                     }),
-                TextColumn::make('task.penalty_points')->label('Points')->alignEnd(),
+                TextColumn::make('task.penalty_points')->label(__('Points'))->alignEnd(),
                 TextColumn::make('completed_note')->limit(40)->placeholder('—')->toggleable(),
                 TextColumn::make('excused_reason')->limit(40)->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -91,7 +91,7 @@ class TaskOccurrenceResource extends Resource
             ])
             ->recordActions([
                 Action::make('complete')
-                    ->label('Done')
+                    ->label(__('Done'))
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->visible(fn (TaskOccurrence $record): bool => $record->isOpen()
@@ -109,7 +109,7 @@ class TaskOccurrenceResource extends Resource
                         Notification::make()->success()->title('Done.')->send();
                     }),
                 Action::make('excuse')
-                    ->label('Excuse')
+                    ->label(__('Excuse'))
                     ->icon('heroicon-o-hand-raised')
                     ->color('warning')
                     ->visible(fn (TaskOccurrence $record): bool => $record->status() === TaskOccurrence::STATUS_MISSED

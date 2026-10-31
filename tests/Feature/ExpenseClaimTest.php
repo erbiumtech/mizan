@@ -266,14 +266,13 @@ class ExpenseClaimTest extends AccountingTestCase
         $alsoOwed = $this->claim(9000);
         $alsoOwed->approve($this->approver);
 
-        $payslip = Payslip::create([
+        $payslip = Payslip::createWithInputs([
             'employee_id' => $this->employee->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'month' => 'August',
             'total_working_days' => 22,
             'paid_days' => 22,
-            'expense_reimbursement' => 5000,
-        ]);
+        ], ['expense_reimbursement' => 5000]);
 
         $this->assertSame(5000.0, (float) $payslip->fresh()->expense_reimbursement);
         $this->assertSame(ExpenseClaim::STATUS_SETTLED, $covered->fresh()->status);

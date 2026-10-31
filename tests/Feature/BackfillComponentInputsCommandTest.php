@@ -64,15 +64,14 @@ class BackfillComponentInputsCommandTest extends AccountingTestCase
     /** A payslip with a device override, then its store emptied — the pre-Phase-3 shape the backfill is for. */
     private function issuedPayslip(): Payslip
     {
-        $payslip = Payslip::create([
+        $payslip = Payslip::createWithInputs([
             'employee_id' => $this->employee->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'month' => 'July',
             'total_working_days' => 22,
             'paid_days' => 22,
             'lop_days' => 0,
-            'device_allowance' => 7000,
-        ])->fresh();
+        ], ['device_allowance' => 7000])->fresh();
 
         PayslipComponentInput::query()->delete();
 

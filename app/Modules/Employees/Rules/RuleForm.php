@@ -30,18 +30,18 @@ class RuleForm
 
         return [
             Repeater::make($statePath.'.any')
-                ->label('Match anyone who')
+                ->label(__('Match anyone who'))
                 ->addActionLabel('Add another group (or)')
                 ->defaultItems(0)
                 ->schema([
                     Repeater::make('all')
-                        ->label('All of these (and)')
+                        ->label(__('All of these (and)'))
                         ->addActionLabel('Add a condition')
                         ->defaultItems(1)
                         ->columns(4)
                         ->schema([
                             Select::make('field')
-                                ->label('Field')
+                                ->label(__('Field'))
                                 ->options($fieldOptions)
                                 ->searchable()
                                 ->required()
@@ -49,20 +49,20 @@ class RuleForm
                                 ->afterStateUpdated(fn (callable $set) => $set('operator', null) + $set('value', null)),
 
                             Select::make('operator')
-                                ->label('Is')
+                                ->label(__('Is'))
                                 ->options(fn (Get $get): array => ($f = RuleRegistry::field((string) $get('field'))) ? RuleRegistry::operatorsFor($f['type']) : [])
                                 ->required()
                                 ->live(),
 
                             Select::make('value')
-                                ->label('Value')
+                                ->label(__('Value'))
                                 ->options(fn (Get $get): array => ($f = RuleRegistry::field((string) $get('field'))) && isset($f['options']) ? ($f['options'])() : [])
                                 ->multiple(fn (Get $get): bool => $get('operator') === 'in')
                                 ->searchable()
                                 ->visible(fn (Get $get): bool => ($f = RuleRegistry::field((string) $get('field'))) !== null && $f['type'] === RuleRegistry::TYPE_SELECT),
                             // `required` only when shown: a hidden select must not block the save.
                             DatePicker::make('value')
-                                ->label('Value')
+                                ->label(__('Value'))
                                 ->native(false)
                                 ->visible(fn (Get $get): bool => ($f = RuleRegistry::field((string) $get('field'))) !== null && $f['type'] === RuleRegistry::TYPE_DATE && $get('operator') !== 'between'),
                             TextInput::make('value')
@@ -77,7 +77,7 @@ class RuleForm
                                     && ! ($f['type'] === RuleRegistry::TYPE_DATE && $get('operator') !== 'between')),
 
                             Select::make('window')
-                                ->label('Over')
+                                ->label(__('Over'))
                                 ->options(Window::LABELS)
                                 ->default(Window::THIS_MONTH)
                                 ->visible(fn (Get $get): bool => RuleRegistry::isMetric((string) $get('field'))),
@@ -93,7 +93,7 @@ class RuleForm
     public static function previewAction(string $statePath = 'rule'): Action
     {
         return Action::make('whoMatches')
-            ->label('Who matches today')
+            ->label(__('Who matches today'))
             ->icon('heroicon-o-users')
             ->color('gray')
             ->modalHeading('Who matches today')

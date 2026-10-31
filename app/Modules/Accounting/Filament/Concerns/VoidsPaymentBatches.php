@@ -29,14 +29,14 @@ trait VoidsPaymentBatches
     protected function voidBatchAction(): Action
     {
         return Action::make('voidBatch')
-            ->label('Void a batch')
+            ->label(__('Void a batch'))
             ->icon('heroicon-o-arrow-uturn-left')
             ->color('danger')
             ->visible(fn (): bool => (auth()->user()?->can('PaymentUpdate') ?? false)
                 && app(PaymentService::class)->voidableBatches()->isNotEmpty())
             ->schema([
                 Select::make('batch_reference')
-                    ->label('Batch')
+                    ->label(__('Batch'))
                     ->options(fn (): array => app(PaymentService::class)->voidableBatches()->all())
                     ->helperText('Its payments return to the pool and appear in the next batch. Nothing is deleted.')
                     ->native(false)

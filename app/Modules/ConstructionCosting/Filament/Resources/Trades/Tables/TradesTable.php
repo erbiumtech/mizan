@@ -30,7 +30,7 @@ class TradesTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('defaultCostCode.code')
-                    ->label('Usual code')
+                    ->label(__('Usual code'))
                     ->placeholder('—')
                     ->toggleable(),
 
@@ -38,19 +38,19 @@ class TradesTable
                 // trade has been priced at all. A trade with none costs nothing, and §7.2's resolver returns null
                 // rather than guessing.
                 TextColumn::make('rates_count')
-                    ->label('Rates')
+                    ->label(__('Rates'))
                     ->counts('rates')
                     ->alignEnd()
                     ->toggleable(),
 
                 IconColumn::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->boolean()
                     ->sortable(),
             ])
             ->filters([
                 Filter::make('active')
-                    ->label('In use only')
+                    ->label(__('In use only'))
                     ->query(fn (Builder $query) => $query->active())
                     ->default()
                     ->toggle(),

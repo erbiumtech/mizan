@@ -33,49 +33,49 @@ class ScheduleRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('number')
-                    ->label('#')
+                    ->label(__('#'))
                     ->sortable(),
 
                 TextColumn::make('due_on')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->date('d M Y')
                     ->sortable(),
 
                 TextColumn::make('opening_balance')
-                    ->label('Owed before')
+                    ->label(__('Owed before'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('payment')
-                    ->label('Instalment')
+                    ->label(__('Instalment'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd(),
 
                 TextColumn::make('interest')
-                    ->label('Interest')
+                    ->label(__('Interest'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->color('danger'),
 
                 TextColumn::make('principal')
-                    ->label('Principal')
+                    ->label(__('Principal'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->color('success'),
 
                 TextColumn::make('closing_balance')
-                    ->label('Owed after')
+                    ->label(__('Owed after'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd(),
 
                 IconColumn::make('recorded')
-                    ->label('Recorded')
+                    ->label(__('Recorded'))
                     ->state(fn (LoanInstalment $record): bool => $record->isRecorded())
                     ->boolean(),
 
                 TextColumn::make('journalEntry.entry_number')
-                    ->label('Entry')
+                    ->label(__('Entry'))
                     ->placeholder('—')
                     ->url(fn (LoanInstalment $record): ?string => $record->journal_entry_id
                         ? JournalEntryResource::getUrl('edit', ['record' => $record->journal_entry_id])
@@ -83,7 +83,7 @@ class ScheduleRelationManager extends RelationManager
             ])
             ->filters([
                 TernaryFilter::make('recorded')
-                    ->label('Recorded')
+                    ->label(__('Recorded'))
                     ->queries(
                         true: fn ($query) => $query->whereNotNull('journal_entry_id'),
                         false: fn ($query) => $query->whereNull('journal_entry_id'),
@@ -92,7 +92,7 @@ class ScheduleRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('record')
-                    ->label('Record')
+                    ->label(__('Record'))
                     ->icon('heroicon-o-check-circle')
                     ->color('gray')
                     // The loan is the owner record — asking each row for its own was a query per instalment.
@@ -100,7 +100,7 @@ class ScheduleRelationManager extends RelationManager
                         && auth()->user()?->can('record', $livewire->getOwnerRecord()))
                     ->schema([
                         DatePicker::make('date')
-                            ->label('Paid on')
+                            ->label(__('Paid on'))
                             ->native(false)
                             ->default(fn (LoanInstalment $record) => $record->due_on)
                             ->required()

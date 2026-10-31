@@ -30,7 +30,7 @@ class OnboardingSettingsSection implements SettingsSection
                 ->description('The checklist a new joiner starts with.')
                 ->schema([
                     Select::make('lifecycle_onboarding_template_id')
-                        ->label('Default onboarding template')
+                        ->label(__('Default onboarding template'))
                         ->options(fn (): array => ChecklistTemplate::query()->active()->ofKind(ChecklistTemplate::KIND_ONBOARDING)->orderBy('name')->pluck('name', 'id')->all())
                         ->placeholder('Only when there is a single active template')
                         ->nullable()

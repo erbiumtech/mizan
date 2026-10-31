@@ -1,7 +1,7 @@
 # Retiring the eleven payslip columns
 
 **Created:** 2026-10-27
-**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is built 2026-10-27: the payslip form and the monthly run both write the store, not the columns, and there is no API writer. Phase 5's reader migration is built 2026-10-27 — the ledger and the PDF now read the component projection (the register and billing already did). The destructive finale (decouple the recorder from the columns, move the save-hook override fallback and direct creates off the columns, then drop the columns, staged and rehearsed) is not started — see Phase 5 below.
+**Status:** Phases 1 (the override map), 2 (the input store, dual-read) and 3 (the store becomes the input, backfilled) built and deployed 2026-10-27; the production company is backfilled (81 override rows, no figure moved). Phase 4 is built 2026-10-27: the payslip form and the monthly run both write the store, not the columns, and there is no API writer. Phase 5's reader migration is built 2026-10-27 — the ledger and the PDF now read the component projection (the register and billing already did). The destructive finale's first step is built 2026-10-30 — the save-hook override fallback reads the store, every input set on a row is lifted off it, the suite's direct creates and updates go through `createWithInputs`/`saveWithInputs`, and a test keeps them off the columns. What remains — stop writing the input columns, then drop them, staged and rehearsed on a copy with a backup — waits for a PHP 8.4 session (see Phase 5 below).
 **Source:** `docs/akaunting-gap-plan.md` item 9, "Not done: the eleven shipped pay components still have
 their old columns beside them". The gate that plan asked for — `payroll:verify-components` — is clean on
 production (all 88 payslips reconcile, 2026-10-27), which is what makes it safe to open this.
@@ -138,16 +138,32 @@ nothing but the fallback now reads a column to build the projection. It falls ba
 calculation ran (a review-only save, where the recorder is skipped anyway). `PayComponentRecorderSourceTest`
 drives the recorder with a `computedAmounts` that disagrees with the column to show it follows the calculation.
 
-**The destructive finale — still not started, and not to be run blind.** Two things still read a column, and
-then the columns can go:
+**The destructive finale — step 1 built 2026-10-30; the drops not started, and not to be run blind.**
 
-1. The save hook's override fallback `typedOverridesOf` reads the eight input columns when no writer set the
-   transient — an arbitrary re-save, and every direct `Payslip::create([... override columns ...])`, which is
-   how much of the test suite builds a payslip. Those must move to the store/transient first; it is a broad,
-   entrenched change.
-2. Only then can the calculation stop writing the input columns, and only then do they drop — the eight input
-   columns first, then the computed ones (`net_salary`, the totals), one migration per group,
-   `payroll:verify-components` green at each step.
+1. ~~The save hook's override fallback reads the eight input columns~~ **Built 2026-10-30.**
+   `PayslipService::typedOverridesOf` now reads the input store and nothing else: a key with no row is null
+   (the setting, the ledger or the claims decide), a stored 0 is a deliberate zero. What a caller sets *on the
+   row* — `Payslip::create([... 'bonus' => 5000])`, `update(['bonus' => 5000])`, `$payslip->bonus = 0` — is
+   lifted off it by `liftTypedInput()` before the calculation runs: the value becomes that save's typed
+   override and the attribute goes back to the column's stored value (or off a creating row), so an input
+   column is never written by a caller and never read back as input. The lift reads the attribute just set,
+   not the column, which is what makes the eventual drop a schema change rather than a behaviour change.
+   The backfill keeps the old reading under its own name, `columnOverridesOf`, because moving what the
+   columns hold onto the store is its whole job. Two helpers are the way to build a payslip in code —
+   `Payslip::createWithInputs($attributes, $inputs)` and `$payslip->saveWithInputs($inputs)` (which forces
+   the save the way the edit page does, since an override alone dirties no column) — and the suite's six
+   literal creates and twelve override-only updates, plus `PayslipSeeder`, use them.
+   `PayslipInputsOffTheColumnsTest` greps the suite, the seeders and `app/` for a `Payslip::create([...])`
+   carrying an override key and fails naming the file, so the habit cannot return. The transient
+   `typedOverrides` is cleared on `saved`, so a second save of the same instance reads the store afresh.
+   One read of a column as *input* is left on purpose: `EditPayslip` compares the form's overrides with
+   `getOriginal()` of the columns to decide whether to force a save; it moves to the store in step 2, when
+   the calculation stops writing the input columns and there is no column to compare.
+2. **Not started.** The calculation stops writing the eight input columns (and `EditPayslip`'s comparison
+   moves to the store); only then do they drop — the eight input columns first, then the computed ones
+   (`net_salary`, the totals), one migration per group, `payroll:verify-components` green at each step.
+   Needs a session on a machine with PHP 8.4 that can run the suite, a copy of production to rehearse on
+   and a fresh backup (decided 2026-10-30: step 1 now, stop before any `DROP COLUMN`).
 
 **Dropping production payroll columns is irreversible.** The data is recoverable from the projection, but the
 migration above touches the balanced ledger and many tests, and a schema drop cannot be undone without a

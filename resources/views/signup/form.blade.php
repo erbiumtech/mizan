@@ -2,7 +2,7 @@
 @section('title', 'Create your company')
 @section('body')
     <h1>Create your company</h1>
-    <p class="muted">A {{ \App\Support\Plans::trialDays() }}-day trial of {{ \App\Support\Plans::label(\App\Support\Plans::trialPlan()) }}, no card. We set nothing up until you confirm your email.</p>
+    <p class="muted">A {{ \App\Support\Plans::trialDays() }}-day trial of {{ \App\Support\Plans::label(\App\Support\Plans::trialPlan()) }}, no card. We set nothing up until you confirm your email. Hosted in Pakistan, backed up in Pakistan.</p>
 
     <form method="post" action="{{ route('signup.store') }}" class="card" autocomplete="on">
         @csrf

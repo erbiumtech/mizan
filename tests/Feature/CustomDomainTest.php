@@ -134,8 +134,8 @@ class CustomDomainTest extends TestCase
         $this->assertStringContainsString('/admin/login', $this->get('http://hr.acme.pk/admin/acme')->headers->get('Location'));
         $this->get('http://hr.acme.pk/admin/login')->assertOk()->assertSee('Acme Textiles');
 
-        // The platform host is untouched.
-        $this->get('http://app.mizan.test/')->assertRedirect('http://app.mizan.test/admin');
+        // The platform host is untouched: its root is the public site's home page, not a tenant's.
+        $this->get('http://app.mizan.test/')->assertOk()->assertDontSee('Acme Textiles');
         $this->get('http://app.mizan.test/admin/login')->assertOk()->assertDontSee('Acme Textiles');
     }
 

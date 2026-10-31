@@ -21,15 +21,15 @@ class ScheduleInterviewAction
     public static function make(): Action
     {
         return Action::make('scheduleInterview')
-            ->label('Schedule interview')
+            ->label(__('Schedule interview'))
             ->icon('heroicon-o-calendar-days')
             ->color('gray')
             ->visible(fn (Application $record): bool => in_array($record->stage, Application::OPEN_STAGES, true)
                 && (auth()->user()?->can('ApplicantUpdate') ?? false))
             ->schema([
-                DateTimePicker::make('scheduled_at')->label('When')->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(11, 0)),
+                DateTimePicker::make('scheduled_at')->label(__('When'))->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(11, 0)),
                 Select::make('interviewers')
-                    ->label('Interviewers')
+                    ->label(__('Interviewers'))
                     ->multiple()
                     ->options(fn (): array => User::query()->where('status', 1)->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()

@@ -27,7 +27,7 @@ class LeadsTable
             ->modifyQueryUsing(fn ($query) => $query->with(['convertedContact']))
             ->columns([
                 TextColumn::make('company_name')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->searchable()
                     ->sortable()
                     // Either half may be blank, so the person carries the row when the
@@ -41,10 +41,10 @@ class LeadsTable
 
                 TextColumn::make('phone')->searchable()->placeholder('—')->toggleable(),
 
-                TextColumn::make('source.name')->label('Source')->placeholder('—')->sortable()->toggleable(),
+                TextColumn::make('source.name')->label(__('Source'))->placeholder('—')->sortable()->toggleable(),
 
                 TextColumn::make('owner.display_label')
-                    ->label('Owner')
+                    ->label(__('Owner'))
                     ->placeholder('—')
                     ->visible(fn (): bool => modules()->enabled('employees'))
                     ->toggleable(),
@@ -87,14 +87,14 @@ class LeadsTable
                     ->toggleable(),
 
                 TextColumn::make('estimated_value')
-                    ->label('Est. value')
+                    ->label(__('Est. value'))
                     ->money(CompanyCurrency::code())
                     ->placeholder('—')
                     ->alignEnd()
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('created_at')->label('Added')->date('d M Y')->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label(__('Added'))->date('d M Y')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -107,7 +107,7 @@ class LeadsTable
                 ]),
 
                 SelectFilter::make('lead_source_id')
-                    ->label('Source')
+                    ->label(__('Source'))
                     ->options(fn (): array => LeadSource::orderBy('sort')->pluck('name', 'id')->all()),
 
                 SelectFilter::make('rating')->options([
@@ -126,13 +126,13 @@ class LeadsTable
                  * which somebody raises deliberately.
                  */
                 Action::make('convert')
-                    ->label('Convert to customer')
+                    ->label(__('Convert to customer'))
                     ->icon('heroicon-o-arrow-right-circle')
                     ->color('success')
                     ->visible(fn (Lead $record): bool => auth()->user()?->can('convert', $record) ?? false)
                     ->schema([
                         TextInput::make('name')
-                            ->label('Customer name')
+                            ->label(__('Customer name'))
                             ->required()
                             ->maxLength(255)
                             ->default(fn (Lead $record): string => trim((string) $record->company_name) !== ''
@@ -141,7 +141,7 @@ class LeadsTable
                             ->helperText('What the ledger will call them. Usually the company; for a sole trader, the person.'),
 
                         TextInput::make('ntn')
-                            ->label('NTN')
+                            ->label(__('NTN'))
                             ->maxLength(50)
                             ->helperText('Optional now, and needed before a sales-tax invoice can be reported to FBR.'),
                     ])
@@ -165,14 +165,14 @@ class LeadsTable
                     }),
 
                 Action::make('markLost')
-                    ->label('Mark lost')
+                    ->label(__('Mark lost'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (Lead $record): bool => $record->isOpen()
                         && (auth()->user()?->can('update', $record) ?? false))
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->required()
                             ->rows(2)
                             ->helperText('Required. A lost lead with no reason counts for nothing in win/loss, which is the report worth having.'),
@@ -190,7 +190,7 @@ class LeadsTable
                     }),
 
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('gray')
                     ->requiresConfirmation()

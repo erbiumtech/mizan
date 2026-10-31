@@ -136,7 +136,7 @@ class Subscription extends Page
              * company's own storage; the person who asked is emailed the link.
              */
             Action::make('export')
-                ->label('Export my data')
+                ->label(__('Export my data'))
                 ->icon('heroicon-o-archive-box-arrow-down')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -157,7 +157,7 @@ class Subscription extends Page
              * about.
              */
             Action::make('backUpNow')
-                ->label('Back up now')
+                ->label(__('Back up now'))
                 ->icon('heroicon-o-circle-stack')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -178,24 +178,27 @@ class Subscription extends Page
              * Changing plan — plan §14.9.
              *
              * `Company::changePlan()` grants the new plan's modules and never revokes, so
-             * moving down leaves what was already licensed switched on. That is deliberate
-             * and it is also why the price is not touched here: the agreement's unit price
-             * is the customer's, agreed with a person, and the meter has never written it.
-             * Somebody has to edit the agreement, and the modal says so.
+             * moving down would leave what was already licensed switched on at the smaller
+             * price. Only plans that cover the current one are offered here, and the model
+             * refuses the rest: a downgrade is support's (§12.3). The price is not touched
+             * here either: the agreement's unit price is the customer's, agreed with a
+             * person, and the meter has never written it. Somebody has to edit the
+             * agreement, and the modal says so.
              */
             Action::make('changePlan')
-                ->label('Change plan')
+                ->label(__('Change plan'))
                 ->icon('heroicon-o-arrows-right-left')
                 ->color('gray')
-                ->visible(fn (): bool => Plans::names() !== [] && static::company()?->plan !== null)
+                ->visible(fn (): bool => static::company()?->plan !== null && count(Plans::upgradesFrom(static::company()?->plan)) > 1)
                 ->modalHeading('Change plan')
                 ->modalDescription('The new plan\'s modules are switched on straight away. Nothing is switched '
-                    .'off: a module you already have stays. The price on your agreement does not change by '
-                    .'itself — tell us and we will reissue it.')
+                    .'off: a module you already have stays. Only plans that include everything yours does are '
+                    .'offered here; to move to a smaller plan, ask support. The price on your agreement does not '
+                    .'change by itself — tell us and we will reissue it.')
                 ->modalSubmitActionLabel('Change it')
                 ->schema([
                     Select::make('plan')
-                        ->label('Plan')
+                        ->label(__('Plan'))
                         ->options(Plans::options())
                         ->default(fn (): ?string => static::company()?->plan)
                         ->required()
@@ -230,7 +233,7 @@ class Subscription extends Page
              * and thirty is billed, so this cannot be used to cap what is owed.
              */
             Action::make('holdSeats')
-                ->label('Hold seats')
+                ->label(__('Hold seats'))
                 ->icon('heroicon-o-user-plus')
                 ->color('gray')
                 ->visible(fn (): bool => static::company()?->billing_contact_id !== null)
@@ -241,7 +244,7 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Save')
                 ->schema([
                     TextInput::make('seats_reserved')
-                        ->label('Seats held')
+                        ->label(__('Seats held'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(10000)
@@ -260,7 +263,7 @@ class Subscription extends Page
                 }),
 
             Action::make('customDomain')
-                ->label('Custom domain')
+                ->label(__('Custom domain'))
                 ->icon('heroicon-o-globe-alt')
                 ->visible(fn (): bool => Plans::allowsCustomDomain(static::company()?->plan))
                 ->modalHeading('Your own domain')
@@ -269,7 +272,7 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Save domain')
                 ->schema([
                     TextInput::make('domain')
-                        ->label('Domain')
+                        ->label(__('Domain'))
                         ->placeholder('hr.yourcompany.pk')
                         ->maxLength(190)
                         ->default(fn (): ?string => static::company()?->domain),
@@ -290,7 +293,7 @@ class Subscription extends Page
                 }),
 
             Action::make('subscribe')
-                ->label('Subscribe')
+                ->label(__('Subscribe'))
                 ->icon('heroicon-o-credit-card')
                 ->visible(fn (): bool => app(Subscriptions::class)->isConfigured()
                     && (static::company()?->hasPlan() ?? false)
@@ -300,22 +303,22 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Subscribe')
                 ->schema([
                     TextInput::make('email')
-                        ->label('Billing email')
+                        ->label(__('Billing email'))
                         ->email()
                         ->required()
                         ->default(fn (): ?string => auth()->user()?->email),
                     TextInput::make('address')
-                        ->label('Billing address')
+                        ->label(__('Billing address'))
                         ->required()
                         ->maxLength(190),
                     Select::make('country')
-                        ->label('Billing country')
+                        ->label(__('Billing country'))
                         ->options([$home => 'Pakistan', 'OTHER' => 'Outside Pakistan'])
                         ->default($home)
                         ->required()
                         ->live(),
                     Select::make('currency')
-                        ->label('Currency')
+                        ->label(__('Currency'))
                         ->options(array_combine($foreign, $foreign))
                         ->required()
                         ->visible(fn (Get $get): bool => $get('country') !== $home)

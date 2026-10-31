@@ -38,10 +38,10 @@ class InspectionsTable
     {
         return $table
             ->columns([
-                TextColumn::make('reference')->label('Ref')->sortable()->searchable(),
+                TextColumn::make('reference')->label(__('Ref'))->sortable()->searchable(),
 
                 TextColumn::make('activity_description')
-                    ->label('Inspection')
+                    ->label(__('Inspection'))
                     ->wrap()
                     ->limit(50)
                     ->searchable()
@@ -51,7 +51,7 @@ class InspectionsTable
                         : $record->itpActivity?->itp?->reference),
 
                 TextColumn::make('point_type')
-                    ->label('Point')
+                    ->label(__('Point'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         ItpActivity::POINT_HOLD => 'Hold',
@@ -66,15 +66,15 @@ class InspectionsTable
                     ->sortable(),
 
                 TextColumn::make('location.name')
-                    ->label('Where')
+                    ->label(__('Where'))
                     ->getStateUsing(fn (Inspection $record): ?string => $record->location?->fullName())
                     ->placeholder('—')
                     ->toggleable(),
 
-                TextColumn::make('requested_on')->label('Requested')->date('d M Y')->sortable(),
+                TextColumn::make('requested_on')->label(__('Requested'))->date('d M Y')->sortable(),
 
                 TextColumn::make('inspected_on')
-                    ->label('Inspected')
+                    ->label(__('Inspected'))
                     ->date('d M Y')
                     ->placeholder('not yet')
                     ->sortable(),
@@ -95,7 +95,7 @@ class InspectionsTable
                  * **Is this still stopping work?** The register's reason for existing.
                  */
                 TextColumn::make('work')
-                    ->label('Work')
+                    ->label(__('Work'))
                     ->badge()
                     ->getStateUsing(fn (Inspection $record): ?string => match (true) {
                         $record->awaitingRelease() => 'awaiting release',
@@ -118,7 +118,7 @@ class InspectionsTable
                  * The contractor's protection at a witness point.
                  */
                 TextColumn::make('witness')
-                    ->label('Witness')
+                    ->label(__('Witness'))
                     ->badge()
                     ->getStateUsing(fn (Inspection $record): ?string => match (true) {
                         $record->witnessFailedToAttend() => 'invited, absent',
@@ -134,22 +134,22 @@ class InspectionsTable
                     ->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
                 SelectFilter::make('status')->options(Inspection::STATUSES),
                 SelectFilter::make('point_type')->options(ItpActivity::POINT_TYPES),
 
                 Filter::make('awaiting_release')
-                    ->label('Hold points awaiting release')
+                    ->label(__('Hold points awaiting release'))
                     ->query(fn (Builder $query): Builder => $query->awaitingRelease())
                     ->toggle(),
 
                 Filter::make('blocking')
-                    ->label('Hold points not yet inspected')
+                    ->label(__('Hold points not yet inspected'))
                     ->query(fn (Builder $query): Builder => $query->holdPoints()->open())
                     ->toggle(),
 
                 Filter::make('witnessed_in_absence')
-                    ->label('Witness invited and absent')
+                    ->label(__('Witness invited and absent'))
                     ->query(fn (Builder $query): Builder => $query
                         ->where('point_type', ItpActivity::POINT_WITNESS)
                         ->whereNotNull('notified_on')
@@ -163,14 +163,14 @@ class InspectionsTable
                     ->visible(fn (Inspection $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('notify')
-                    ->label('Record notice')
+                    ->label(__('Record notice'))
                     ->icon('heroicon-o-bell')
                     ->color('info')
                     ->modalHeading('Record that the attending party was told')
                     ->modalDescription('Separate from the request date, because a notice period runs from when the other party was told — and at a witness point that date is the whole of your protection for proceeding without them.')
                     ->schema([
-                        DatePicker::make('on')->label('Told on')->native(false)->default(now())->required(),
-                        DatePicker::make('scheduled_for')->label('Scheduled for')->native(false),
+                        DatePicker::make('on')->label(__('Told on'))->native(false)->default(now())->required(),
+                        DatePicker::make('scheduled_for')->label(__('Scheduled for'))->native(false),
                     ])
                     ->visible(fn (Inspection $record): bool => (auth()->user()?->can('update', $record) ?? false)
                         && $record->isOpen())
@@ -181,14 +181,14 @@ class InspectionsTable
                     )),
 
                 Action::make('record')
-                    ->label('Record result')
+                    ->label(__('Record result'))
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('primary')
                     ->modalHeading('Record what was found')
                     ->modalDescription('This never releases a hold point. Recording that the work is right and authorising the next operation to start are two decisions — and on a certified site they are two people.')
                     ->schema([
                         Select::make('status')
-                            ->label('Result')
+                            ->label(__('Result'))
                             ->options([
                                 Inspection::STATUS_PASSED => 'Passed',
                                 Inspection::STATUS_PASSED_WITH_COMMENTS => 'Passed with comments',
@@ -196,9 +196,9 @@ class InspectionsTable
                                 Inspection::STATUS_CANCELLED => 'Cancelled',
                             ])
                             ->required(),
-                        DatePicker::make('inspected_on')->label('Inspected on')->native(false)->default(now())->required(),
+                        DatePicker::make('inspected_on')->label(__('Inspected on'))->native(false)->default(now())->required(),
                         Toggle::make('witness_attended')
-                            ->label('The witness attended')
+                            ->label(__('The witness attended'))
                             ->helperText('Leave it off if they were invited and did not come — that is what lets work proceed past a witness point, and it is the fact nobody writes down.'),
                         Textarea::make('result_notes')->rows(3),
                     ])
@@ -213,13 +213,13 @@ class InspectionsTable
                  * **The release.** Its own action, its own permission, and its own refusals — see `InspectionService`.
                  */
                 Action::make('release')
-                    ->label('Release hold point')
+                    ->label(__('Release hold point'))
                     ->icon('heroicon-o-lock-open')
                     ->color('success')
                     ->modalHeading('Release the hold point')
                     ->modalDescription('This authorises the next operation to start. It is the act a certification body audits, and it is deliberately not the same act as recording that the inspection passed.')
                     ->schema([
-                        Textarea::make('notes')->label('Release notes')->rows(2),
+                        Textarea::make('notes')->label(__('Release notes'))->rows(2),
                     ])
                     ->visible(fn (Inspection $record): bool => auth()->user()?->can('release', $record) ?? false)
                     ->action(fn (Inspection $record, array $data) => static::run(

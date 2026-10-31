@@ -73,13 +73,13 @@ class BankPaymentFile extends Page
                 $this->fiscalYearSelect(),
                 $this->monthSelect(),
                 Select::make('type')
-                    ->label('Transaction type')
+                    ->label(__('Transaction type'))
                     ->placeholder('All types')
                     ->options(TransactionType::where('is_active', true)->orderBy('name')->pluck('name', 'code')->all())
                     ->native(false)
                     ->live(),
                 DatePicker::make('value_date')
-                    ->label('Value date')
+                    ->label(__('Value date'))
                     ->native(false)
                     ->default(now())
                     ->live(),
@@ -161,7 +161,7 @@ class BankPaymentFile extends Page
             HelpAction::make('bank-payment-file', 'Bank Payment File: Help'),
 
             Action::make('csv')
-                ->label('Download CSV')
+                ->label(__('Download CSV'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => $this->getReleasableRows()->isNotEmpty())
                 ->requiresConfirmation()
