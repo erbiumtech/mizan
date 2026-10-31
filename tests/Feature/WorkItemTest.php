@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Work\Filament\Resources\WorkItems\Pages\ListWorkItems;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Models\WorkWorkflow;
@@ -11,6 +12,7 @@ use App\Modules\Work\Models\WorkWorkflowRule;
 use App\Modules\Work\Services\WorkItems;
 use App\Modules\Work\Support\Rank;
 use Database\Seeders\WorkWorkflowSeeder;
+use Livewire\Livewire;
 use RuntimeException;
 use Tests\AccountingTestCase;
 use Tests\Concerns\InteractsWithTenant;
@@ -211,6 +213,21 @@ class WorkItemTest extends AccountingTestCase
 
         $item->moveTo($progress);
         $this->assertSame('In progress', $item->fresh()->status->name);
+    }
+
+    /**
+     * The list names each item's parent under its title, so the parent rides along on the list's own
+     * query. Two rows at least, on purpose: Laravel only refuses a lazy load on a model that came out
+     * of a query with other rows, so a one-item list renders whether or not the parent is loaded.
+     */
+    public function test_the_list_shows_a_parent_without_loading_it_row_by_row(): void
+    {
+        $story = $this->item(['title' => 'Checkout redesign']);
+        $subtask = $this->item(['title' => 'Card form', 'type' => WorkItem::TYPE_SUBTASK, 'parent_id' => $story->getKey()]);
+
+        Livewire::test(ListWorkItems::class)
+            ->assertCanSeeTableRecords([$story, $subtask])
+            ->assertSee($story->display_label);
     }
 
     /** One level each way, and the API can set parent_id too — so the model is where it is enforced. */
