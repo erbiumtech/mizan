@@ -222,4 +222,36 @@ class DailyLog extends Model
     {
         return ($this->job?->code ?? 'Job').' — '.$this->log_date?->format('D d M Y');
     }
+
+    /**
+     * The day as a device holds it — the offline sync's read and its answers (docs/desktop-mobile-plan.md O2): the
+     * diary's own fields, its event lines and its photographs, in one document a device replaces whole.
+     *
+     * @return array<string, mixed>
+     */
+    public function toClient(): array
+    {
+        return [
+            'id' => (int) $this->getKey(),
+            'job_id' => (int) $this->job_id,
+            'log_date' => $this->log_date?->toDateString(),
+            'working_conditions' => $this->working_conditions,
+            'weather_hours_lost' => (float) $this->weather_hours_lost,
+            'work_summary' => $this->work_summary,
+            'approved' => $this->isApproved(),
+            // In the order things happened on the day, which is not the order a device's lines arrived in: a line with a
+            // time sorts by it, an untimed one after the timed ones, and the id breaks ties.
+            'events' => $this->events
+                ->sortBy([
+                    fn (DailyLogEvent $a, DailyLogEvent $b): int => ($a->started_at === null) <=> ($b->started_at === null),
+                    fn (DailyLogEvent $a, DailyLogEvent $b): int => (string) $a->started_at <=> (string) $b->started_at,
+                    fn (DailyLogEvent $a, DailyLogEvent $b): int => $a->getKey() <=> $b->getKey(),
+                ])
+                ->map(fn (DailyLogEvent $event): array => $event->toClient())
+                ->values()
+                ->all(),
+            'photos' => $this->photos->sortBy('id')->map(fn (DailyLogPhoto $photo): array => $photo->toClient())->values()->all(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+        ];
+    }
 }

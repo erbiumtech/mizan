@@ -38,6 +38,68 @@ components:
         type: string
       description: The company slug, required only for an account that belongs to more than one.
   schemas:
+    SyncEntry:
+      type: object
+      description: >-
+        One command's answer from the sync inbox, the same six keys whatever it says. `applied` and
+        `replayed` (200) are done; `rejected` (422) and `stale` (409, O2) are recorded and final;
+        `conflict` (409) is another account's id; `failed` (500) is ours, not recorded, retry;
+        `skipped` was never reached because an earlier command in the batch failed.
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [applied, replayed, rejected, stale, conflict, failed, skipped]
+        http_status:
+          type: integer
+          nullable: true
+          description: Null for `skipped`, which no status was produced for.
+        captured_at:
+          type: string
+          nullable: true
+        received_at:
+          type: string
+          nullable: true
+          description: Null for `skipped`, which the server never reached, and for `conflict`.
+        result:
+          type: object
+          nullable: true
+    SyncBatchResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        workflow:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncEntry'
+        summary:
+          type: object
+          additionalProperties:
+            type: integer
+    SyncChangesPage:
+      type: object
+      properties:
+        success:
+          type: boolean
+        workflow:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+        deleted:
+          type: array
+          items:
+            type: integer
+        cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
     Success:
       type: object
       required: [success]
@@ -1319,6 +1381,305 @@ paths:
                     nullable: true
                   has_more:
                     type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /sync/site-diary:
+    post:
+      summary: Replay site diary lines captured offline
+      description: >-
+        Versioned surface only; the site operations module's gate. The same inbox as /sync/attendance — a
+        batch of up to 100 commands, each a device-minted ULID, a payload and captured_at, applied in the
+        order given, the ULID the idempotency key — over the site diary. A line is append-only and cannot
+        conflict: the payload names the job and the date, the day's diary is found or opened (one per job
+        per day), and the line is added through the diary's own service, which refuses a day that has been
+        signed off (`rejected`, 422, recorded). Lines that arrive out of order are still lines on the same
+        day; each keeps the time it happened (`started_at`). Needs the right to write the diary
+        (ConstructionDailyLogUpdate). The result is `event_id` and the day as the device holds it.
+        Photographs are sent after the line, one at a time, to /sync/site-diary/blobs.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [commands]
+              properties:
+                commands:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [id, payload]
+                    properties:
+                      id:
+                        type: string
+                        description: A ULID minted on the device, 26 Crockford base32 characters.
+                      captured_at:
+                        type: string
+                        format: date-time
+                      payload:
+                        type: object
+                        required: [type, job_id, log_date, kind, description]
+                        properties:
+                          type:
+                            type: string
+                            enum: [entry]
+                          job_id:
+                            type: integer
+                          log_date:
+                            type: string
+                            format: date
+                          kind:
+                            type: string
+                            enum: [delay, instruction, visitor, stoppage, inspection, incident]
+                          description:
+                            type: string
+                            maxLength: 2000
+                          started_at:
+                            type: string
+                            description: HH:MM, the time it happened.
+                          ended_at:
+                            type: string
+                            description: HH:MM.
+                          hours_lost:
+                            type: number
+                            minimum: 0
+                            maximum: 24
+                          responsibility:
+                            type: string
+                            enum: [employer, contractor, neutral]
+                          raised_with:
+                            type: string
+                            maxLength: 255
+      responses:
+        '200':
+          description: The batch was received; see each command's status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncBatchResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /sync/site-diary/blobs:
+    post:
+      summary: Upload one photograph behind a site diary line
+      description: >-
+        Versioned surface only. Files ride behind their command: one upload is one photograph for one
+        diary line this person already sent and the server applied, named by `command_id`. `id` is the
+        file's own ULID and its idempotency key — a photograph whose answer was lost answers from its
+        record the second time and is stored once. Stored on the company's disk with the diary's own
+        photographs and attached to the line's day (and the line, while it is there) through the diary's
+        service. Answered at 200 with one entry in the batch shape: `applied` (the photograph), `replayed`,
+        `rejected` (422, recorded — the command is not one this person sent and the server applied, or the
+        day was signed off since; drop the file), `conflict` (409, another account's id) or `failed` (500,
+        not recorded, retry). A file over 12 MB or not a JPEG, PNG, WebP or HEIC image is a 422 validation
+        error and is never stored.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [id, command_id, file, caption]
+              properties:
+                id:
+                  type: string
+                  description: A ULID minted on the device for this file.
+                command_id:
+                  type: string
+                  description: The ULID of the diary line this photograph belongs to.
+                captured_at:
+                  type: string
+                  format: date-time
+                file:
+                  type: string
+                  format: binary
+                caption:
+                  type: string
+                  maxLength: 255
+                subject:
+                  type: string
+                  enum: [progress, concealed_work, defect, safety, damage, delivery, weather, as_built, other]
+      responses:
+        '200':
+          description: The upload was received; see the entry's status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  workflow:
+                    type: string
+                  result:
+                    $ref: '#/components/schemas/SyncEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /sync/site-diary/changes:
+    get:
+      summary: Site diary days changed since a cursor
+      description: >-
+        Versioned surface only. The diary days the caller may read (ConstructionDailyLogView; 403 without
+        it), each with its lines and photographs, in updated_at order strictly after the cursor. A day is
+        a whole document: adding or removing a line or a photograph moves the day, so it comes round again
+        as it now is. `deleted` is always empty — a diary day is never deleted. `since`, `limit`, `cursor`
+        and `has_more` as for /sync/attendance/changes.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: A page of changes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncChangesPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /sync/punch-items:
+    post:
+      summary: Replay snag status changes captured offline
+      description: >-
+        Versioned surface only; the site operations module's gate. The same inbox, over the one mutable
+        document the engine has. A command names the item, the `version` the device's copy had
+        (`base_version`) and an `action`: `ready` (ready for inspection), `inspect` with a `result`
+        (passed closes the item; failed or partial counts the visit and leaves it open), or `reject` with a
+        `reason` (not a defect). If the item is still at `base_version` the change is applied through the
+        punch list's own service, whose refusals are `rejected` (422, recorded). If it is not, the server's
+        value is kept, the device's change is written on the item's notes for a person to see, and the
+        command is answered `stale` (409, recorded, so a replay says the same) with the item as the server
+        now holds it. Needs ConstructionPunchUpdate.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [commands]
+              properties:
+                commands:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [id, payload]
+                    properties:
+                      id:
+                        type: string
+                        description: A ULID minted on the device, 26 Crockford base32 characters.
+                      captured_at:
+                        type: string
+                        format: date-time
+                      payload:
+                        type: object
+                        required: [punch_item_id, base_version, action]
+                        properties:
+                          punch_item_id:
+                            type: integer
+                          base_version:
+                            type: integer
+                            minimum: 0
+                          action:
+                            type: string
+                            enum: [ready, inspect, reject]
+                          result:
+                            type: string
+                            enum: [passed, failed, partial]
+                          inspected_on:
+                            type: string
+                            format: date
+                          notes:
+                            type: string
+                            maxLength: 2000
+                          reason:
+                            type: string
+                            maxLength: 1000
+      responses:
+        '200':
+          description: The batch was received; see each command's status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncBatchResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /sync/punch-items/changes:
+    get:
+      summary: Snags changed since a cursor
+      description: >-
+        Versioned surface only. The punch items the caller may read (ConstructionPunchView; 403 without
+        it), each with its `version` — what a change sends back as `base_version` — in updated_at order
+        strictly after the cursor. An item never inspected may be deleted outright; `deleted` lists the
+        ids of items deleted since the cursor's moment, read from the activity log, and is empty on a read
+        from the start. An id may be repeated on a later page; removing an item a device no longer holds is
+        a no-op.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: A page of changes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncChangesPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':

@@ -87,18 +87,30 @@ class PunchItem extends Model
         'due_on' => 'date',
         'closed_on' => 'date',
         'affects_practical_completion' => 'boolean',
+        'version' => 'integer',
     ];
 
     protected $attributes = [
         'status' => self::STATUS_OPEN,
         'priority' => 'medium',
         'affects_practical_completion' => false,
+        'version' => 0,
     ];
 
     protected static function booted(): void
     {
         static::creating(function (self $item): void {
             $item->raised_by ??= auth()->id();
+        });
+
+        /*
+         * **Every save is a new version** — docs/desktop-mobile-plan.md §5a rule 4. Not fillable and never set by
+         * hand: an offline change names the version it was made against, and a version anybody could write would be a
+         * version that proves nothing. An integer rather than `updated_at`, because an inspection saves the item in the
+         * same second as the thing before it, and two edits in one second are two versions.
+         */
+        static::updating(function (self $item): void {
+            $item->version = (int) $item->getOriginal('version') + 1;
         });
     }
 
@@ -259,5 +271,34 @@ class PunchItem extends Model
     public function displayName(): string
     {
         return "{$this->reference} — ".str($this->description)->limit(60);
+    }
+
+    /**
+     * The item as a device holds it — the offline sync's read and its answers (docs/desktop-mobile-plan.md O2).
+     * `version` is what a device sends back as `base_version` with a change.
+     *
+     * @return array<string, mixed>
+     */
+    public function toClient(): array
+    {
+        return [
+            'id' => (int) $this->getKey(),
+            'punch_list_id' => (int) $this->punch_list_id,
+            'job_id' => (int) $this->job_id,
+            'reference' => $this->reference,
+            'description' => $this->description,
+            'location_id' => $this->location_id === null ? null : (int) $this->location_id,
+            'grid_reference' => $this->grid_reference,
+            'priority' => $this->priority,
+            'status' => $this->status,
+            'version' => (int) $this->version,
+            'affects_practical_completion' => (bool) $this->affects_practical_completion,
+            'responsible' => $this->responsible_label,
+            'raised_on' => $this->raised_on?->toDateString(),
+            'due_on' => $this->due_on?->toDateString(),
+            'closed_on' => $this->closed_on?->toDateString(),
+            'notes' => $this->notes,
+            'updated_at' => $this->updated_at?->toIso8601String(),
+        ];
     }
 }
