@@ -8,7 +8,7 @@
     ":count photo from this device attached.|:count photos from this device attached.": ":count photo from this device attached.|:count photos from this device attached.",
     ":count punch recorded from this device.|:count punches recorded from this device.": ":count punch recorded from this device.|:count punches recorded from this device.",
     ":count snag changed from this device.|:count snags changed from this device.": ":count snag changed from this device.|:count snags changed from this device.",
-    ":count ticket(s) lapsed": ":count ticket(s) lapsed",
+    ":count ticket lapsed|:count tickets lapsed": ":count ticket lapsed|:count tickets lapsed",
     ":count work item of this project is in a status the chosen workflow does not have. Move it to that workflow's statuses first; nothing is remapped automatically.|:count work items of this project are in statuses the chosen workflow does not have. Move them to that workflow's statuses first; nothing is remapped automatically.": ":count work item of this project is in a status the chosen workflow does not have. Move it to that workflow's statuses first; nothing is remapped automatically.|:count work items of this project are in statuses the chosen workflow does not have. Move them to that workflow's statuses first; nothing is remapped automatically.",
     ":key added": ":key added",
     ":key was added to the first column": ":key was added to the first column",

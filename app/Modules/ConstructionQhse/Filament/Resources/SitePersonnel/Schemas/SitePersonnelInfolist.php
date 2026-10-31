@@ -47,7 +47,7 @@ class SitePersonnelInfolist
                             $record->loadMissing('competencies');
                             $lapsed = $record->expiredMandatoryCompetencies();
 
-                            return $lapsed->isEmpty() ? __('Yes') : __(':count ticket(s) lapsed', ['count' => $lapsed->count()]);
+                            return $lapsed->isEmpty() ? __('Yes') : trans_choice(':count ticket lapsed|:count tickets lapsed', $lapsed->count(), ['count' => $lapsed->count()]);
                         })
                         ->color(fn (Person $record): string => $record->isClearedToWork() ? 'success' : 'danger'),
                 ]),

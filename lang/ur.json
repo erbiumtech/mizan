@@ -8,7 +8,7 @@
     ":count photo from this device attached.|:count photos from this device attached.": ":count تصویر اس آلے سے منسلک ہوئی۔|:count تصاویر اس آلے سے منسلک ہوئیں۔",
     ":count punch recorded from this device.|:count punches recorded from this device.": ":count پنچ اس آلے سے درج ہوا۔|:count پنچ اس آلے سے درج ہوئے۔",
     ":count snag changed from this device.|:count snags changed from this device.": ":count اسنیگ اس آلے سے تبدیل ہوا۔|:count اسنیگ اس آلے سے تبدیل ہوئے۔",
-    ":count ticket(s) lapsed": ":count ٹکٹ ختم ہو چکے",
+    ":count ticket lapsed|:count tickets lapsed": ":count ٹکٹ ختم ہو گیا|:count ٹکٹ ختم ہو چکے",
     ":count work item of this project is in a status the chosen workflow does not have. Move it to that workflow's statuses first; nothing is remapped automatically.|:count work items of this project are in statuses the chosen workflow does not have. Move them to that workflow's statuses first; nothing is remapped automatically.": "اس پروجیکٹ کا :count آئٹم ایسے اسٹیٹس میں ہے جو منتخب ورک فلو میں نہیں۔ پہلے اسے اس ورک فلو کے اسٹیٹس میں منتقل کریں؛ کچھ بھی خود بخود نہیں بدلا جاتا۔|اس پروجیکٹ کے :count آئٹم ایسے اسٹیٹس میں ہیں جو منتخب ورک فلو میں نہیں۔ پہلے انہیں اس ورک فلو کے اسٹیٹس میں منتقل کریں؛ کچھ بھی خود بخود نہیں بدلا جاتا۔",
     ":key added": ":key شامل ہو گیا",
     ":key was added to the first column": ":key پہلے کالم میں شامل کیا گیا",
