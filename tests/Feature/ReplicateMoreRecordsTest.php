@@ -197,8 +197,10 @@ class ReplicateMoreRecordsTest extends AccountingTestCase
         $rate = TaxRate::create(['name' => 'GST 18%', 'rate' => 18, 'is_default' => true, 'is_active' => true]);
         TaxRate::create(['name' => 'Reduced 5%', 'rate' => 5, 'is_active' => true]);
 
+        // Filament resolves an assertion's actions after the mounted ones, so once the sheet (`edit`) is
+        // open its footer's Replicate is named on its own, not behind a second `edit`.
         Livewire::test(ListTaxRates::class)
             ->mountAction(TestAction::make('edit')->table($rate))
-            ->assertActionVisible([TestAction::make('edit')->table($rate), TestAction::make('replicateFromSheet')]);
+            ->assertActionVisible(TestAction::make('replicateFromSheet'));
     }
 }
