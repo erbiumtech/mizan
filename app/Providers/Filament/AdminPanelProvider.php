@@ -334,6 +334,12 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => Blade::render('@livewire(\App\Filament\Livewire\CommandPalette::class)'),
             )
+            // The offline outbox — docs/desktop-mobile-plan.md O1: leaves the offline page what it needs to
+            // take a punch, and sends whatever that page took once the network is back.
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => view('filament.partials.sync-outbox')->render(),
+            )
             /*
              * ⌘J command bar — docs/ai-command-bot-plan.md §8.
              *
