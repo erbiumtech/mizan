@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionContracts\Filament\Resources\Variations\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionContracts\Models\Variation;
 use App\Modules\ConstructionContracts\Services\VariationService;
 use App\Support\CompanyCurrency;
@@ -135,7 +136,7 @@ class VariationsTable
                     ->query(fn (Builder $query) => $query->where('is_price_provisional', true))
                     ->toggle(),
             ])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(Variation::class))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (Variation $record): bool => auth()->user()?->can('update', $record) ?? false),

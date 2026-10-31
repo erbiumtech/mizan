@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\AttendanceRegularizations;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\PendingFirst;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Schemas\AttendanceDayForm;
 use App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\Pages\CreateAttendanceRegularization;
@@ -148,7 +149,7 @@ class AttendanceRegularizationResource extends Resource
                     ->description(fn (AttendanceRegularization $record): ?string => $record->refusal_reason)
                     ->sortable(),
             ])
-            ->defaultSort('date', 'desc')
+            ->defaultSort(PendingFirst::sort(AttendanceRegularization::class, 'date'))
             ->filters([
                 SelectFilter::make('status')->options([
                     AttendanceRegularization::STATUS_PENDING => 'Awaiting a decision',

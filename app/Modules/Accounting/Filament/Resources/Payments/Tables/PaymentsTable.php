@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Payments\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\Accounting\Models\Payment;
 use App\Modules\Accounting\Services\ChequePrinter;
 use App\Modules\Accounting\Services\PaymentDetailsExport;
@@ -28,6 +29,7 @@ class PaymentsTable
             ->modifyQueryUsing(fn ($query) => $query->with([
                 'payable' => fn ($morphTo) => $morphTo->morphWith([Employee::class => ['user']]),
             ]))
+            ->defaultSort(PendingFirst::sort(Payment::class, 'id', 'asc'))
             ->columns([
                 TextColumn::make('payable.name')
                     ->label(__('Payable'))

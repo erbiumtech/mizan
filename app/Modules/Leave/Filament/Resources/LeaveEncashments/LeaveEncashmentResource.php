@@ -4,6 +4,7 @@ namespace App\Modules\Leave\Filament\Resources\LeaveEncashments;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\PendingFirst;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
@@ -134,7 +135,7 @@ class LeaveEncashmentResource extends Resource
                     ->description(fn (LeaveEncashment $r): ?string => $r->refusal_reason),
             ])
             ->filters([SelectFilter::make('status')->options(['pending' => 'Pending', 'approved' => 'Approved', 'refused' => 'Refused'])])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(LeaveEncashment::class))
             ->recordActions([
                 Action::make('approve')->label(__('Approve'))->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
                     ->modalDescription('Debits the balance now and sends the amount to the payslip named.')

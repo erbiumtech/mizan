@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\OvertimeRequests;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\PendingFirst;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\OvertimeRequests\Pages\CreateOvertimeRequest;
 use App\Modules\Attendance\Filament\Resources\OvertimeRequests\Pages\ListOvertimeRequests;
@@ -90,7 +91,7 @@ class OvertimeRequestResource extends Resource
                     ->description(fn (OvertimeRequest $r): string => $r->paymentNote()),
             ])
             ->filters([SelectFilter::make('status')->options(['pending' => 'Pending', 'approved' => 'Approved', 'refused' => 'Refused'])])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(OvertimeRequest::class))
             ->recordActions([
                 Action::make('approve')->label(__('Approve'))->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
                     ->modalDescription(fn (OvertimeRequest $r): string => 'Adds '.$r->minutes.' minutes to the attendance day. '.(setting('payroll.pay_overtime', config('payroll.pay_overtime', false)) ? 'It is paid with that month\'s payslip.' : 'Overtime pay is switched off, so this is recorded and not paid — the request will say so.'))

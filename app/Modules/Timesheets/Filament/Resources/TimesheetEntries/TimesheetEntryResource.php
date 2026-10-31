@@ -4,6 +4,7 @@ namespace App\Modules\Timesheets\Filament\Resources\TimesheetEntries;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\PendingFirst;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Timesheets\Filament\Resources\TimesheetEntries\Pages\CreateTimesheetEntry;
@@ -153,7 +154,7 @@ class TimesheetEntryResource extends Resource
                         : null)
                     ->sortable(),
             ])
-            ->defaultSort('date', 'desc')
+            ->defaultSort(PendingFirst::sort(TimesheetEntry::class, 'date'))
             ->filters([
                 SelectFilter::make('project_id')
                     ->label(__('Project'))

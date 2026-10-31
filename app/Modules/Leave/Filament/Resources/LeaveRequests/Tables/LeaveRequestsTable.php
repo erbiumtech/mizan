@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave\Filament\Resources\LeaveRequests\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Modules\Leave\Models\LeaveType;
 use App\Modules\Leave\Services\LeaveApprovalChain;
@@ -78,7 +79,7 @@ class LeaveRequestsTable
                     ->description(fn (LeaveRequest $record): ?string => $record->decided_at?->format('d M Y'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('from_date', 'desc')
+            ->defaultSort(PendingFirst::sort(LeaveRequest::class, 'from_date'))
             ->filters([
                 SelectFilter::make('status')->options([
                     LeaveRequest::STATUS_PENDING => 'Awaiting a decision',
