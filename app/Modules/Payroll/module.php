@@ -56,6 +56,8 @@ return [
     'widgets' => [
         'App\\Filament\\Widgets\\PayrollByEmployeeChart' => \App\Modules\Payroll\Filament\Widgets\PayrollByEmployeeChart::class,
         'App\\Filament\\Widgets\\SalaryTaxCalculator' => \App\Modules\Payroll\Filament\Widgets\SalaryTaxCalculator::class,
+        // The payroll run in progress, on the Material dashboard.
+        'App\\Filament\\Widgets\\CurrentPayrollRun' => \App\Modules\Payroll\Filament\Widgets\CurrentPayrollRun::class,
     ],
 
     // What the report builder may report on — reports-expansion-plan.md Phase 6, item 1. A dataset is

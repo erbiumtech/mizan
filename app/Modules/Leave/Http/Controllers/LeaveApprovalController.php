@@ -7,10 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Core\Models\User;
 use App\Modules\Leave\Models\LeaveRequest;
 use App\Modules\Leave\Services\LeaveApprovalChain;
-use App\Modules\Leave\Services\LeaveApprovalRule;
+use App\Modules\Leave\Services\LeaveApprovalQueue;
 use App\Modules\Leave\Services\LeaveRequestService;
-use App\Support\EmployeeAccess;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -32,13 +30,10 @@ use InvalidArgumentException;
  */
 class LeaveApprovalController extends Controller
 {
-    public function index(Request $request, LeaveApprovalChain $chain): JsonResponse
+    public function index(Request $request, LeaveApprovalChain $chain, LeaveApprovalQueue $queue): JsonResponse
     {
-        $pending = $this->decidable($request->user())
-            ->orderBy('from_date')
-            ->get()
-            ->filter(fn (LeaveRequest $leave): bool => $this->mayDecide($request->user(), $leave, $chain))
-            ->values();
+        // The queue the dashboard's "Waiting for you" card lists from too, so the two cannot disagree.
+        $pending = $queue->pendingFor($request->user());
 
         return ApiResponse::success([
             'count' => $pending->count(),
@@ -74,40 +69,15 @@ class LeaveApprovalController extends Controller
         return ApiResponse::success(['data' => $this->shape($leave->refresh(), $chain)]);
     }
 
-    /** Pending requests within the caller's reporting line — the same boundary LeaveRequestResource draws. */
-    private function decidable(User $user): Builder
-    {
-        $query = LeaveRequest::query()->pending()->with(['employee', 'leaveType']);
-
-        return app(EmployeeAccess::class)->scopeAccessibleEmployees($query, $user, 'employee_id');
-    }
-
     /** One request, within the boundary, that the caller may decide — 404 outside it, 403 within it but not theirs to decide. */
     private function find(User $user, int $id): LeaveRequest
     {
-        $leave = $this->decidable($user)->whereKey($id)->first();
+        $leave = app(LeaveApprovalQueue::class)->decidable($user)->whereKey($id)->first();
 
         abort_unless($leave, 404, 'No such pending leave request.');
         abort_unless($user->can('decide', $leave), 403, 'You may not decide this request.');
 
         return $leave;
-    }
-
-    /**
-     * The policy, plus the two checks the service holds that an Administrator's policy bypass would skip:
-     * their own leave when the company requires somebody else, and a step waiting on a role they lack.
-     */
-    private function mayDecide(User $user, LeaveRequest $leave, LeaveApprovalChain $chain): bool
-    {
-        if (! $user->can('decide', $leave)) {
-            return false;
-        }
-
-        if ($leave->belongsToUser($user) && ! app(LeaveApprovalRule::class)->allowsSelfApproval()) {
-            return false;
-        }
-
-        return $chain->userMayTakeNextStep($user, $leave);
     }
 
     /** @return array<string, mixed> */

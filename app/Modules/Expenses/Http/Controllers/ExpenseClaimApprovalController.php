@@ -6,9 +6,7 @@ use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Modules\Core\Models\User;
 use App\Modules\Expenses\Models\ExpenseClaim;
-use App\Modules\Expenses\Services\ExpenseClaimApprovalChain;
-use App\Support\EmployeeAccess;
-use Illuminate\Database\Eloquent\Builder;
+use App\Modules\Expenses\Services\ExpenseClaimApprovalQueue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -28,13 +26,10 @@ use RuntimeException;
  */
 class ExpenseClaimApprovalController extends Controller
 {
-    public function index(Request $request, ExpenseClaimApprovalChain $chain): JsonResponse
+    public function index(Request $request, ExpenseClaimApprovalQueue $queue): JsonResponse
     {
-        $pending = $this->decidable($request->user())
-            ->orderBy('claimed_on')
-            ->get()
-            ->filter(fn (ExpenseClaim $claim): bool => $this->mayDecide($request->user(), $claim, $chain))
-            ->values();
+        // The queue the dashboard's "Waiting for you" card lists from too, so the two cannot disagree.
+        $pending = $queue->pendingFor($request->user());
 
         return ApiResponse::success([
             'count' => $pending->count(),
@@ -72,30 +67,14 @@ class ExpenseClaimApprovalController extends Controller
         return ApiResponse::success(['data' => $this->shape($claim->refresh())]);
     }
 
-    /** Pending claims within the caller's reporting line — the same boundary ExpenseClaimResource draws. */
-    private function decidable(User $user): Builder
-    {
-        $query = ExpenseClaim::query()->pending()->with(['employee']);
-
-        return app(EmployeeAccess::class)->scopeAccessibleEmployees($query, $user, 'employee_id');
-    }
-
     private function find(User $user, int $id): ExpenseClaim
     {
-        $claim = $this->decidable($user)->whereKey($id)->first();
+        $claim = app(ExpenseClaimApprovalQueue::class)->decidable($user)->whereKey($id)->first();
 
         abort_unless($claim, 404, 'No such pending expense claim.');
         abort_unless($user->can('decide', $claim), 403, 'You may not decide this claim.');
 
         return $claim;
-    }
-
-    /** The policy, plus the two checks approve() holds that an Administrator's policy bypass would skip. */
-    private function mayDecide(User $user, ExpenseClaim $claim, ExpenseClaimApprovalChain $chain): bool
-    {
-        return $user->can('decide', $claim)
-            && (int) $claim->submitted_by !== (int) $user->getKey()
-            && $chain->userMayTakeNextStep($user, $claim);
     }
 
     /** @return array<string, mixed> */

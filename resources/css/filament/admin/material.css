@@ -1754,3 +1754,294 @@ form .fi-sc-actions:last-child {
         background-color: var(--md-sys-color-outline);
     }
 }
+
+/* ===================================================================== the Material dashboard
+ *
+ * The "M3 · Dashboard (home)" board: a greeting in display type, a row of tonal summary cards, then the
+ * approvals card and the payroll run side by side. The pieces are widgets (DashboardSummaryCards,
+ * WaitingForYou, CurrentPayrollRun), so a person can still arrange, resize or hide them; these rules only
+ * draw them. Tokens only; logical properties, so the row and the actions mirror in Urdu.
+ */
+
+/* The greeting: headline large, regular weight, where Filament draws the page heading. */
+.md-dashboard .fi-header-heading {
+    font-size: 2rem;
+    line-height: 2.5rem;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+/* --- summary cards */
+
+.md-dash-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
+    gap: 1rem;
+}
+
+.md-dash-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 1.25rem 1.5rem;
+    container-type: inline-size;
+    border-radius: var(--md-sys-shape-medium);
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.md-dash-card--secondary {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-dash-card--tertiary {
+    background-color: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+}
+
+.md-dash-card--error {
+    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+}
+
+.md-dash-card__label {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Display small for the figure: large enough to read across a room, small enough for a currency amount. */
+/* Display small, shrinking with the card so a long amount stays on one line where it can. */
+.md-dash-card__value {
+    margin: 0;
+    font-size: clamp(1.5rem, 13cqi, 2.25rem);
+    line-height: 1.25;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.md-dash-card__link {
+    align-self: flex-start;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+
+    &:hover {
+        text-decoration-thickness: 2px;
+    }
+}
+
+/* --- the two panels under the cards */
+
+.md-dash-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--md-sys-shape-medium);
+    color: var(--md-sys-color-on-surface);
+}
+
+.md-dash-panel--outlined {
+    gap: 0;
+    padding-inline: 0;
+    padding-block: 0.5rem;
+    background-color: var(--md-sys-color-surface-container-lowest);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+}
+
+.md-dash-panel--filled {
+    background-color: var(--md-sys-color-surface-container);
+}
+
+.md-dash-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+}
+
+/* Title large. */
+.md-dash-panel__title {
+    margin: 0;
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+    font-weight: 400;
+}
+
+.md-dash-panel__header .md-dash-panel__title {
+    flex: 1;
+}
+
+/* The title and its status line read as one block, as in the artboard. */
+.md-dash-panel__title + .md-dash-panel__meta {
+    margin-block-start: -0.75rem;
+}
+
+.md-dash-panel__link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-primary);
+}
+
+.md-dash-panel__meta,
+.md-dash-empty {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-dash-panel--outlined .md-dash-empty {
+    padding: 0.75rem 1.5rem 1rem;
+}
+
+.md-dash-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-block-start: auto;
+}
+
+/* --- list items in "Waiting for you": a 56px two-line row, avatar leading, actions trailing */
+
+.md-dash-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    min-height: 3.5rem;
+    padding: 0.75rem 1.5rem;
+}
+
+.md-dash-avatar {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border-radius: var(--md-sys-shape-full);
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.md-dash-item__text {
+    display: flex;
+    flex: 1 1 12rem;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.md-dash-item__title {
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.md-dash-item__meta {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--md-sys-color-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.md-dash-item__actions {
+    display: flex;
+    flex: none;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+}
+
+/* --- the payroll run: a 4px linear progress and two assist chips */
+
+.md-dash-progress {
+    block-size: 0.25rem;
+    border-radius: 0.125rem;
+    background-color: var(--md-sys-color-outline-variant);
+    overflow: hidden;
+}
+
+.md-dash-progress__bar {
+    block-size: 100%;
+    border-radius: 0.125rem;
+    background-color: var(--md-sys-color-primary);
+}
+
+.md-dash-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.md-dash-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--md-sys-shape-small);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-dash-chip--primary {
+    box-shadow: none;
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.md-dash-chip--secondary {
+    box-shadow: none;
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+/* Links drawn as Material buttons: filled and text, 40px pills. */
+.md-dash-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding-inline: 1.5rem;
+    border-radius: var(--md-sys-shape-full);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.md-dash-button--filled {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+
+    &:hover {
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    }
+}
+
+.md-dash-button--text {
+    padding-inline: 0.75rem;
+    color: var(--md-sys-color-primary);
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+    }
+}
+
+/* The other widgets on the page sit on the same surfaces: chart and table widgets as outlined cards. */
+.md-dashboard .fi-wi-chart .fi-section,
+.md-dashboard .fi-wi-table .fi-ta-ctn {
+    border-radius: var(--md-sys-shape-medium);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+}

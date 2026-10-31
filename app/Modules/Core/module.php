@@ -96,6 +96,10 @@ return [
         'App\\Filament\\Widgets\\OperationsOverview' => \App\Modules\Core\Filament\Widgets\OperationsOverview::class,
         // Installation health, super-admin-only — the dashboard glance at /ops/health.
         'App\\Filament\\Widgets\\HealthOverview' => \App\Modules\Core\Filament\Widgets\HealthOverview::class,
+        // The Material dashboard's summary row and approvals card. Each module registers its figures and
+        // its approval source (App\\Support\\DashboardSummaries, DashboardApprovals); these only draw.
+        'App\\Filament\\Widgets\\DashboardSummaryCards' => \App\Modules\Core\Filament\Widgets\DashboardSummaryCards::class,
+        'App\\Filament\\Widgets\\WaitingForYou' => \App\Modules\Core\Filament\Widgets\WaitingForYou::class,
     ],
 
     'pages' => [

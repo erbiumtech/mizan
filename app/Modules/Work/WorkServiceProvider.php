@@ -144,6 +144,9 @@ class WorkServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The open work items card on the Material dashboard.
+        \App\Modules\Work\Dashboard\WorkDashboard::register();
+
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }

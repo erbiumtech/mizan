@@ -558,6 +558,36 @@ class Dashboard extends BaseDashboard
      */
     public function getSubheading(): ?string
     {
+        // The period alone: the company's name is in the top bar beside its logo, so it is not repeated here.
         return DashboardPeriod::label($this->periodKey(), $this->from, $this->to);
+    }
+
+    /**
+     * The greeting the Material dashboard opens on — "Good morning, Ayesha" — in place of the word "Dashboard",
+     * which the browser tab and the navigation still use (getTitle() is untouched).
+     *
+     * The time of day is the application's timezone, which is the company's: this installation is configured
+     * per country rather than per company, so there is no second clock to consult.
+     */
+    /** A hook for the greeting's display type — material.css, "the Material dashboard". */
+    public function getPageClasses(): array
+    {
+        return ['md-dashboard'];
+    }
+
+    public function getHeading(): string
+    {
+        $name = trim((string) auth()->user()?->name);
+        $first = $name === '' ? '' : (preg_split('/\s+/u', $name)[0] ?? $name);
+
+        $hour = (int) now(config('app.timezone'))->format('G');
+
+        $greeting = match (true) {
+            $hour < 12 => $first === '' ? __('Good morning') : __('Good morning, :name', ['name' => $first]),
+            $hour < 17 => $first === '' ? __('Good afternoon') : __('Good afternoon, :name', ['name' => $first]),
+            default => $first === '' ? __('Good evening') : __('Good evening, :name', ['name' => $first]),
+        };
+
+        return $greeting;
     }
 }
