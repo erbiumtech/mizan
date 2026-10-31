@@ -713,6 +713,24 @@ class ConstructionItpTest extends AccountingTestCase
         $this->assertTrue($inspection->refresh()->released_hold_point);
     }
 
+    /** Each row names the plan it cites, loaded with the list rather than per row. */
+    public function test_the_inspection_register_shows_the_cited_plan_without_loading_it_row_by_row(): void
+    {
+        $itp = $this->itp();
+        $pour = $this->point($itp);
+        $formwork = $this->point($itp->refresh(), ['activity_description' => 'Formwork prior to pour']);
+        $this->plans->addParty($pour, ['party' => 'engineer', 'role' => 'witnesses', 'attendance_mandatory' => true]);
+        $this->plans->addParty($formwork, ['party' => 'engineer', 'role' => 'witnesses', 'attendance_mandatory' => true]);
+        $this->plans->issue($itp->refresh());
+
+        $first = $this->inspections->requestAgainst($pour->refresh());
+        $second = $this->inspections->requestAgainst($formwork->refresh());
+
+        Livewire::test(ListInspections::class)
+            ->assertCanSeeTableRecords([$first, $second])
+            ->assertSee('ITP-CIV-001');
+    }
+
     /** The module works with only the spine and itself — §18. */
     public function test_the_module_works_with_only_the_spine_and_itself(): void
     {

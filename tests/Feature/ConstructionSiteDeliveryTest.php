@@ -15,6 +15,7 @@ use App\Modules\ConstructionField\Models\DailyLogPhoto;
 use App\Modules\ConstructionField\Services\DailyLogService;
 use App\Modules\ConstructionField\Services\SitePhotoPromotion;
 use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Invoicing\Models\Contact;
 use Filament\Actions\Testing\TestAction;
 use InvalidArgumentException;
 use Livewire\Livewire;
@@ -454,6 +455,35 @@ class ConstructionSiteDeliveryTest extends AccountingTestCase
             ->assertSee('DN-8841')
             ->assertSee('Karachi Aggregates')
             ->assertSee('not receipted');
+    }
+
+    /** A docket with no supplier typed falls back to the linked contact, loaded with the list rather than per row. */
+    public function test_the_deliveries_tab_shows_a_linked_supplier_without_loading_it_row_by_row(): void
+    {
+        CompanyModule::updateOrCreate(
+            ['company_id' => $this->tenant->getKey(), 'module' => 'invoicing'],
+            ['licensed' => true, 'enabled' => true],
+        );
+        modules()->flush();
+
+        $aggregates = Contact::create(['name' => 'Karachi Aggregates', 'kind' => Contact::KIND_SUPPLIER]);
+        $cement = Contact::create(['name' => 'Lucky Cement', 'kind' => Contact::KIND_SUPPLIER]);
+
+        $first = $this->delivery(['supplier_label' => null, 'supplier_contact_id' => $aggregates->getKey()]);
+        $second = $this->delivery([
+            'docket_number' => 'DN-9002',
+            'description' => '40 bags OPC',
+            'supplier_label' => null,
+            'supplier_contact_id' => $cement->getKey(),
+        ]);
+
+        Livewire::test(DeliveriesRelationManager::class, [
+            'ownerRecord' => $this->log,
+            'pageClass' => EditDailyLog::class,
+        ])
+            ->assertCanSeeTableRecords([$first, $second])
+            ->assertSee('Karachi Aggregates')
+            ->assertSee('Lucky Cement');
     }
 
     public function test_the_deliveries_tab_records_a_docket(): void

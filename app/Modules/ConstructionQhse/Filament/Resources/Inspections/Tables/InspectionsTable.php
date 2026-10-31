@@ -37,6 +37,8 @@ class InspectionsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // The description names the cited ITP, one level past the activity the resource loads.
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('itpActivity.itp'))
             ->columns([
                 TextColumn::make('reference')->label(__('Ref'))->sortable()->searchable(),
 

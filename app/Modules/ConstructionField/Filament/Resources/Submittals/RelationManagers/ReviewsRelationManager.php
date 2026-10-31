@@ -51,7 +51,7 @@ class ReviewsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('round')
             // What the columns and row actions read per row — one query each, not one per row.
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['delayEvent']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['delayEvent', 'reviewer']))
             ->defaultSort('round')
             ->columns([
                 TextColumn::make('round')->label(__('Round'))->badge(),

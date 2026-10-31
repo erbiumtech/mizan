@@ -11,6 +11,7 @@ use App\Modules\ConstructionField\Models\Submittal;
 use App\Modules\ConstructionField\Models\SubmittalReview;
 use App\Modules\ConstructionField\Services\SubmittalService;
 use App\Modules\Core\Models\CompanyModule;
+use App\Modules\Invoicing\Models\Contact;
 use Filament\Actions\Testing\TestAction;
 use InvalidArgumentException;
 use Livewire\Livewire;
@@ -611,6 +612,34 @@ class ConstructionSubmittalTest extends AccountingTestCase
 
         $this->assertSame('2026-08-15', $event->occurred_on->toDateString());
         $this->assertSame($event->getKey(), $round->refresh()->delay_event_id);
+    }
+
+    /** A round with no reviewer typed falls back to the linked contact, loaded with the list rather than per row. */
+    public function test_the_rounds_tab_shows_a_linked_reviewer_without_loading_it_row_by_row(): void
+    {
+        CompanyModule::updateOrCreate(
+            ['company_id' => $this->tenant->getKey(), 'module' => 'invoicing'],
+            ['licensed' => true, 'enabled' => true],
+        );
+        modules()->flush();
+
+        $engineer = Contact::create(['name' => 'Arup Karachi', 'kind' => Contact::KIND_SUPPLIER]);
+        $architect = Contact::create(['name' => 'Habib Fida Ali', 'kind' => Contact::KIND_SUPPLIER]);
+
+        $submittal = $this->register();
+        $first = $this->submittals->submit($submittal, ['sent_on' => '2026-08-01', 'reviewer_contact_id' => $engineer->getKey()]);
+        $this->submittals->recordReturn($first, [
+            'result' => SubmittalReview::RESULT_REVISE_AND_RESUBMIT, 'returned_on' => '2026-08-12',
+        ]);
+        $second = $this->submittals->submit($submittal->refresh(), ['sent_on' => '2026-08-20', 'reviewer_contact_id' => $architect->getKey()]);
+
+        Livewire::test(ReviewsRelationManager::class, [
+            'ownerRecord' => $submittal->refresh(),
+            'pageClass' => EditSubmittal::class,
+        ])
+            ->assertCanSeeTableRecords([$first, $second])
+            ->assertSee('Arup Karachi')
+            ->assertSee('Habib Fida Ali');
     }
 
     /** The register works with only the spine and this module — §18. */
