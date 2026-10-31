@@ -92,9 +92,25 @@
                 db.close();
                 reject(transaction.error);
             };
+            transaction.onabort = () => {
+                db.close();
+                reject(transaction.error || new Error('The outbox transaction was aborted'));
+            };
 
-            Promise.resolve(work(store)).then((value) => {
+            // A failure inside the work is the transaction's failure: abort it so nothing it queued
+            // commits, and answer with the work's own error rather than leaving it unhandled while the
+            // empty transaction completes and this promise resolves with nothing.
+            Promise.resolve().then(() => work(store)).then((value) => {
                 result = value;
+            }, (error) => {
+                try {
+                    transaction.abort();
+                } catch (e) {
+                    // Already finished; the rejection below is still the answer.
+                }
+
+                db.close();
+                reject(error);
             });
         }));
     }

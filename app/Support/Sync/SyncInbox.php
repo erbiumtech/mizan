@@ -41,7 +41,7 @@ class SyncInbox
             $clientId = strtoupper((string) $command['id']);
 
             if ($stopped) {
-                $results[] = ['id' => $clientId, 'status' => 'skipped', 'http_status' => 0, 'result' => null];
+                $results[] = $this->unrecorded($clientId, 'skipped', null, $command, null, null);
                 $summary['skipped']++;
 
                 continue;
@@ -107,10 +107,34 @@ class SyncInbox
         } catch (Throwable $e) {
             report($e);
 
-            return ['id' => $clientId, 'status' => 'failed', 'http_status' => 500, 'result' => ['message' => 'The server could not apply this command; it will be retried.']];
+            return $this->unrecorded($clientId, 'failed', 500, $command, $row->received_at, ['message' => 'The server could not apply this command; it will be retried.']);
         }
 
         return $row->toClient();
+    }
+
+    /**
+     * The entry for a command no row records — failed or skipped — in the same shape as the ones a row
+     * answers with, so a client reads every entry the one way. `received_at` is the moment we took the
+     * failed command and nothing for a skipped one, which we never reached; `http_status` is null for
+     * skipped, because no status was produced and 0 is not one.
+     *
+     * @param  array{id: string, payload: array<string, mixed>, captured_at?: string|null}  $command
+     * @param  array<string, mixed>|null  $result
+     * @return array<string, mixed>
+     */
+    private function unrecorded(string $clientId, string $status, ?int $httpStatus, array $command, ?Carbon $receivedAt, ?array $result): array
+    {
+        $capturedAt = isset($command['captured_at']) ? rescue(fn () => Carbon::parse($command['captured_at'])->toIso8601String(), null, false) : null;
+
+        return [
+            'id' => $clientId,
+            'status' => $status,
+            'http_status' => $httpStatus,
+            'captured_at' => $capturedAt,
+            'received_at' => $receivedAt?->toIso8601String(),
+            'result' => $result,
+        ];
     }
 
     private function find(string $clientId): ?SyncCommand
