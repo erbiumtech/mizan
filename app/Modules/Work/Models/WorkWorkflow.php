@@ -11,7 +11,9 @@ class WorkWorkflow extends Model
 {
     use Auditable;
 
-    protected $fillable = ['name', 'description', 'is_default'];
+    // `review_status_id`: where a pull request being opened moves an item — §8.4. Null means
+    // "the status named In review, if the workflow has one".
+    protected $fillable = ['name', 'description', 'is_default', 'review_status_id'];
 
     protected $casts = ['is_default' => 'boolean'];
 

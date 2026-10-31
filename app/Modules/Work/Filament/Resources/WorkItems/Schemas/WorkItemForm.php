@@ -5,15 +5,26 @@ namespace App\Modules\Work\Filament\Resources\WorkItems\Schemas;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Timesheets\Models\TimesheetEntry;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkItemBranch;
+use App\Modules\Work\Models\WorkItemCommit;
+use App\Modules\Work\Models\WorkItemPullRequest;
+use App\Modules\Work\Models\WorkRelease;
 use App\Modules\Work\Models\WorkStatus;
+use App\Modules\Work\Services\CodeHosts;
+use App\Modules\Work\Services\WorkTime;
 use App\Support\EmployeeAccess;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * What a work item is, in four sections.
@@ -53,6 +64,17 @@ class WorkItemForm
                         ->columnSpanFull()
                         ->placeholder('Export fails on Safari when the month has no payslips'),
 
+                    // The thread summary — §12, assist 2. Marked as generated, with when; absent
+                    // until somebody asked for one.
+                    Placeholder::make('ai_summary')
+                        ->label('Thread, summarised')
+                        ->columnSpanFull()
+                        ->visible(fn (?WorkItem $record): bool => $record?->ai_summary !== null)
+                        ->content(fn (?WorkItem $record): HtmlString => new HtmlString(
+                            '<div class="fi-ai-summary">'.nl2br(e((string) $record?->ai_summary)).'<span class="fi-ai-summary-mark">'
+                            .e(__('Generated').($record?->ai_summary_at ? ' · '.$record->ai_summary_at->diffForHumans() : '')).'</span></div>',
+                        )),
+
                     MarkdownEditor::make('description')
                         ->label(__('Description'))
                         ->columnSpanFull()
@@ -83,7 +105,7 @@ class WorkItemForm
                         ->label(__('Parent'))
                         ->options(fn (?WorkItem $record): array => WorkItem::query()
                             ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
-                            ->where('type', '!=', WorkItem::TYPE_SUBTASK)
+                            ->notOfType(WorkItem::TYPE_SUBTASK)
                             ->orderByDesc('id')
                             ->limit(100)
                             ->get()
@@ -92,6 +114,22 @@ class WorkItemForm
                         ->searchable()
                         ->placeholder('None')
                         ->helperText('An epic over a story, or a story over a subtask. One level each way.'),
+
+                    // The fix version — §6.4. Only releases of the item's own project that have not
+                    // gone out yet: promising an item into something already shipped is a changelog
+                    // that rewrites itself.
+                    Select::make('release_id')
+                        ->label('Release')
+                        ->options(fn (Get $get, ?WorkItem $record): array => WorkRelease::query()
+                            ->when($get('project_id'), fn ($q, $project) => $q->where('project_id', $project))
+                            ->where(fn ($q) => $q->whereNull('released_on')
+                                ->when($record?->release_id, fn ($qq, $id) => $qq->orWhere('id', $id)))
+                            ->orderBy('planned_on')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->searchable()
+                        ->placeholder('Not promised to one')
+                        ->helperText('The version it ships in. Releasing stamps a date and moves nothing.'),
 
                     Select::make('resolution')
                         ->label(__('Resolution'))
@@ -139,6 +177,132 @@ class WorkItemForm
 
                     ...CustomFieldsSchema::form(WorkItem::class),
                 ]),
+
+            self::developmentSection(),
+
+            /*
+             * Estimate against logged, and what it cost — §9.
+             *
+             * Read from the timesheet every time, never from a column here: an hour exists in the
+             * ledger exactly once, and this is a window onto it. Absent on create (nothing to show)
+             * and absent without the Timesheets module (nowhere for an hour to be).
+             */
+            Section::make('Time')
+                ->columns(3)
+                ->hiddenOn('create')
+                ->visible(fn (): bool => app(WorkTime::class)->isAvailable())
+                ->description('Logged here or synced in. Log time with the button above; the week\'s timesheet, payroll and invoicing all see it as time.')
+                ->schema([
+                    Placeholder::make('time_logged')
+                        ->label('Logged')
+                        ->content(fn (?WorkItem $record): string => $record === null ? '—'
+                            : WorkTime::duration(app(WorkTime::class)->summaryFor($record)['logged'])),
+
+                    Placeholder::make('time_remaining')
+                        ->label('Remaining')
+                        ->content(function (?WorkItem $record): string {
+                            $summary = $record === null ? null : app(WorkTime::class)->summaryFor($record);
+
+                            return $summary === null || $summary['remaining'] === null
+                                ? 'No estimate'
+                                : WorkTime::duration($summary['remaining']).($summary['remaining'] < 0 ? ' over' : '');
+                        }),
+
+                    Placeholder::make('time_cost')
+                        ->label('Cost')
+                        ->content(function (?WorkItem $record): string {
+                            $summary = $record === null ? null : app(WorkTime::class)->summaryFor($record);
+
+                            if ($summary === null || $summary['cost'] === null) {
+                                return $summary !== null && $summary['logged'] > 0 ? 'Uncosted — no payroll rate for these hours' : '—';
+                            }
+
+                            return number_format($summary['cost']).($summary['uncosted'] > 0
+                                ? ' ('.$summary['uncosted'].' entries uncosted)'
+                                : '');
+                        }),
+
+                    Placeholder::make('time_entries')
+                        ->label('Entries')
+                        ->columnSpanFull()
+                        ->content(fn (?WorkItem $record): HtmlString => new HtmlString(
+                            $record === null ? '—' : self::entriesTable(app(WorkTime::class)->entriesFor($record)),
+                        )),
+                ]),
         ]);
+    }
+
+    /**
+     * The Development panel — docs/project-management-plan.md §8.6.
+     *
+     * Branches, commits and pull requests with their state and a link out. Absent on create and
+     * absent when the project has no linked repository: a panel that says "nothing" on every item
+     * of a project with no repository is a panel teaching people to ignore it.
+     */
+    public static function developmentSection(): Section
+    {
+        return Section::make('Development')
+            ->hiddenOn('create')
+            ->visible(fn (?WorkItem $record): bool => $record !== null && app(CodeHosts::class)->repositoriesFor($record)->isNotEmpty())
+            ->description('What the repositories say about this item. Create a branch or open a pull request with the buttons above.')
+            ->schema([
+                Placeholder::make('development')
+                    ->hiddenLabel()
+                    ->content(fn (?WorkItem $record): HtmlString => new HtmlString($record === null ? '' : self::developmentTable($record))),
+            ]);
+    }
+
+    private static function developmentTable(WorkItem $item): string
+    {
+        $rows = [];
+
+        foreach (WorkItemPullRequest::query()->where('work_item_id', $item->getKey())->with('repository')->orderByDesc('number')->get() as $pr) {
+            $rows[] = ['Pull request', '#'.$pr->number.' '.$pr->title, ucfirst($pr->state), $pr->repository?->full_name, $pr->url];
+        }
+
+        foreach (WorkItemBranch::query()->where('work_item_id', $item->getKey())->with('repository')->orderBy('name')->get() as $branch) {
+            $rows[] = ['Branch', $branch->name, $branch->isDeleted() ? 'Deleted' : 'Live', $branch->repository?->full_name, $branch->isDeleted() ? null : $branch->url];
+        }
+
+        foreach (WorkItemCommit::query()->where('work_item_id', $item->getKey())->with('repository')->orderByDesc('committed_at')->limit(20)->get() as $commit) {
+            $rows[] = ['Commit', $commit->shortSha().' '.$commit->message, $commit->committed_at?->format('d M') ?? '', $commit->repository?->full_name, $commit->url];
+        }
+
+        if ($rows === []) {
+            return '<span class="fi-board-empty">'.e(__('Nothing from the repositories yet. A commit, branch or pull request naming this key will appear here.')).'</span>';
+        }
+
+        $html = '<table class="fi-sprint-velocity"><thead><tr><th>'.e(__('What')).'</th><th>'.e(__('Which')).'</th><th>'.e(__('State')).'</th><th>'.e(__('Repository')).'</th></tr></thead><tbody>';
+
+        foreach ($rows as [$kind, $label, $state, $repository, $url]) {
+            $link = $url !== null ? '<a href="'.e($url).'" target="_blank" rel="noopener" class="fi-board-card-key">'.e($label).'</a>' : e($label);
+            $html .= '<tr><td>'.e($kind).'</td><td>'.$link.'</td><td>'.e($state).'</td><td>'.e((string) $repository).'</td></tr>';
+        }
+
+        return $html.'</tbody></table>';
+    }
+
+    /**
+     * The entries behind the figures, each marked with where it came from.
+     *
+     * @param  Collection<int, TimesheetEntry>  $entries
+     */
+    private static function entriesTable(Collection $entries): string
+    {
+        if ($entries->isEmpty()) {
+            return '<span class="fi-board-empty">'.e(__('No time logged against this item yet.')).'</span>';
+        }
+
+        $rows = $entries->map(fn (TimesheetEntry $entry): string => '<tr>'
+            .'<td>'.e($entry->date->format('d M Y')).'</td>'
+            .'<td>'.e($entry->employee?->display_label ?? '—').'</td>'
+            .'<td>'.e(WorkTime::duration($entry->minutes)).'</td>'
+            .'<td>'.e(WorkTime::SOURCES[(string) ($entry->getAttribute('source') ?? WorkTime::MANUAL)] ?? (string) $entry->getAttribute('source')).'</td>'
+            .'<td>'.e((string) $entry->description).'</td>'
+            .'</tr>')->implode('');
+
+        return '<table class="fi-sprint-velocity"><thead><tr>'
+            .'<th>'.e(__('Date')).'</th><th>'.e(__('Who')).'</th><th>'.e(__('Time')).'</th><th>'.e(__('From')).'</th><th>'.e(__('Note')).'</th>'
+            .'</tr></thead><tbody>'.$rows.'</tbody></table>';
     }
 }

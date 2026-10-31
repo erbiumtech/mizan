@@ -1,11 +1,18 @@
 # Project management: plan
 
-> **Not built.** Written 2026-10-30 from a code inventory and a reading of what Jira, Linear and
-> GitHub Projects ship today. Nothing below exists unless marked so. Mechanics common to any new
+> **Built — all ten phases, 2026-10-30, one commit per phase.** Written the same day from a code
+> inventory and a reading of what Jira, Linear and GitHub Projects ship. Mechanics common to any new
 > module — the manifest, permissions, role grants, navigation, option lists, tenant migrations,
 > the guard tests — are in `docs/new-module-checklist.md` and are not repeated. This document
 > decides *what a work item is, how a board moves it, how a repository talks to it, and in what
-> order that gets built*.
+> order that got built*. Where the build departed from the text below, the commit for that phase
+> says so; the departures worth knowing: burndown and velocity live on the sprint page rather than
+> in the report catalogue (Phase 3); cumulative flow is per project, not per board (Phase 4); the
+> inbound hook URL carries the company slug (Phase 7); identity claiming is on the connection's
+> page, not the user profile (Phase 7); Bitbucket and GitLab authenticate by token, with the OAuth
+> round-trips deferred (Phase 8); Jira statuses map by name rather than through a form (Phase 9).
+> Phases 4–10 were written without running the suite (the sandbox lacked PHP 8.4) and first ran
+> in CI on their pull request.
 >
 > **Scoped on the owner's instruction, the same day:** a complete module, to modern standards,
 > tasks managed Kanban-style, with GitHub, Bitbucket and other tools integrated. "Complete" is

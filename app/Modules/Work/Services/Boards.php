@@ -153,7 +153,7 @@ class Boards
 
         // Subtasks are shown under their parent unless the board asks for them as cards — §5.4.
         if (! $board->shows_subtasks) {
-            $query->where('type', '!=', WorkItem::TYPE_SUBTASK);
+            $query->notOfType(WorkItem::TYPE_SUBTASK);
         }
 
         /*
