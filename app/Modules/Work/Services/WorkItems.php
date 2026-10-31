@@ -4,6 +4,7 @@ namespace App\Modules\Work\Services;
 
 use App\Modules\Core\Models\User;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Work\Events\WorkItemCreated;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Models\WorkWorkflow;
@@ -104,7 +105,7 @@ class WorkItems
         $key = $this->key($project);
         $status = $this->openingStatus($project, $attributes['work_status_id'] ?? null);
 
-        return DB::connection($project->getConnectionName())->transaction(function () use ($project, $attributes, $by, $key, $status): WorkItem {
+        $item = DB::connection($project->getConnectionName())->transaction(function () use ($project, $attributes, $by, $key, $status): WorkItem {
             // The lock is the whole point: two people pressing Create at the same moment must not
             // both read 12.
             $locked = Project::query()->whereKey($project->getKey())->lockForUpdate()->first();
@@ -121,6 +122,11 @@ class WorkItems
                 'rank' => $attributes['rank'] ?? Rank::last($this->lowestRank($project)),
             ]);
         });
+
+        // After the transaction, so a subscriber that fetches the item finds it — §10.4.
+        WorkItemCreated::dispatch($item);
+
+        return $item;
     }
 
     /** Where a new item starts: the first `todo` of the project's workflow. */

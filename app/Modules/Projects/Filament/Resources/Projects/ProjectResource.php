@@ -11,7 +11,10 @@ use App\Modules\Projects\Filament\Resources\Projects\RelationManagers\EmployeesR
 use App\Modules\Projects\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Modules\Projects\Filament\Resources\Projects\Tables\ProjectsTable;
 use App\Modules\Projects\Models\Project;
+use App\Support\ResourceContributions;
 use BackedEnum;
+use Filament\Pages\Enums\SubNavigationPosition;
+use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -70,7 +73,42 @@ class ProjectResource extends Resource
     {
         return [
             EmployeesRelationManager::class,
+            ...ResourceContributions::relationManagersFor(static::class),
         ];
+    }
+
+    /**
+     * The project page's tabs — docs/project-management-plan.md §7.
+     *
+     * Board, Backlog, Sprints, Epics and Releases are the work module's, and `work` requires
+     * `projects`, so they arrive through the slot rather than by name: this file never learns what
+     * fills it. **Empty when nothing has been contributed**, deliberately — a company without the
+     * work module sees the project page exactly as it was, rather than a two-tab bar reading
+     * "Overview · Edit" over a page that used to have neither.
+     */
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        $record = method_exists($page, 'getRecord') ? $page->getRecord() : null;
+
+        if (! $record instanceof Project) {
+            return [];
+        }
+
+        $contributed = ResourceContributions::subNavigationFor(static::class, $record);
+
+        if ($contributed === []) {
+            return [];
+        }
+
+        return [
+            ...$page->generateNavigationItems([ViewProject::class, EditProject::class]),
+            ...$contributed,
+        ];
+    }
+
+    public static function getSubNavigationPosition(): SubNavigationPosition
+    {
+        return SubNavigationPosition::Top;
     }
 
     public static function getPages(): array

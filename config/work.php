@@ -1,0 +1,62 @@
+<?php
+
+/*
+| Work: the installation defaults.
+|
+| Read through setting('work.x'), which returns the company's override when it has one and
+| falls back here when it does not — the same three-tier resolution the other modules use. The
+| company edits these under Company Settings → Company → Work (WorkDefaultsSettingsSection).
+*/
+
+return [
+
+    /*
+    | Points or hours — docs/project-management-plan.md §16.3.
+    |
+    | Both columns exist on every item; this says which the forms lead with and the reports sum.
+    | Hours by default, because the timesheet already measures hours and a company that has never
+    | run a sprint has never seen a point. A software team flips it.
+    */
+    'estimation_unit' => env('WORK_ESTIMATION_UNIT', 'hours'),
+
+    /*
+    | The morning digest — §10.3.
+    |
+    | Items due today, items assigned since yesterday, items blocked on you: one notification per
+    | user who has any, at this time, in the application's timezone. Off for anybody who has turned
+    | the *work* category off, and off for the company here.
+    */
+    'digest_enabled' => env('WORK_DIGEST_ENABLED', true),
+    'digest_time' => env('WORK_DIGEST_TIME', '08:00'),
+
+    /*
+    | What a merged pull request does to the items it names — §8.4. Phase 7 reads this; a project
+    | may override it on its own settings.
+    */
+    'merge_moves_to_done' => env('WORK_MERGE_MOVES_TO_DONE', true),
+
+    /*
+    | Where time is logged — §8.8: here | clockify | either. "Clockify is the stopwatch, the
+    | timesheet is the ledger, and an hour exists in the ledger exactly once." A project may
+    | override it.
+    */
+    'time_source' => env('WORK_TIME_SOURCE', 'here'),
+
+    /*
+    | A branch created for an item in *to do* starts it — §8.4. "The one automation every team
+    | asked for and the one Jira hides behind a setting. It is a setting here too, on by default."
+    */
+    'branch_starts_progress' => env('WORK_BRANCH_STARTS_PROGRESS', true),
+
+    /*
+    | The GitHub App — §8.2. The private key lives here, never in a tenant row; a connection
+    | stores only its installation id. WORK_GITHUB_PRIVATE_KEY may carry the PEM with literal
+    | `\n` for the line breaks, which the client unescapes.
+    */
+    'github' => [
+        'app_id' => env('WORK_GITHUB_APP_ID'),
+        'app_slug' => env('WORK_GITHUB_APP_SLUG'),
+        'private_key' => env('WORK_GITHUB_PRIVATE_KEY'),
+    ],
+
+];

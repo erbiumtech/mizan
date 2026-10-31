@@ -3,8 +3,10 @@
 namespace App\Modules\Projects\Filament\Resources\Projects\Tables;
 
 use App\Filament\Support\CustomFieldsSchema;
+use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Support\ResourceContributions;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -93,6 +95,10 @@ class ProjectsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 ...CustomFieldsSchema::tableColumns(Project::class),
+
+                // The work module's three figures (docs/project-management-plan.md §7), through the
+                // slot: this table never names a work item.
+                ...ResourceContributions::tableColumnsFor(ProjectResource::class),
             ])
             ->groups([
                 Group::make('status')->label('Status'),

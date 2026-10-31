@@ -461,3 +461,427 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           description: Already clocked in and out today
+
+  # ---------------------------------------------------------------------------------------------
+  # Backfilled by docs/project-management-plan.md Phase 9. `ApiContractTest` now holds this file to
+  # the mounted routes in both directions, and its first run was an audit: the twelve paths below
+  # were mounted and undocumented. Each is recorded at path-and-method level with the envelope; the
+  # module that owns one fills in its shapes when it next touches the endpoint.
+  # ---------------------------------------------------------------------------------------------
+  /reports/trial-balance:
+    get:
+      summary: The trial balance as at a date (Accounting)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: The statement.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /reports/profit-and-loss:
+    get:
+      summary: Profit and loss for a period (Accounting)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: The statement.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /accounts/tree:
+    get:
+      summary: The chart of accounts as a nested tree (Accounting)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Root accounts with children.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /accounts:
+    get:
+      summary: Accounts, filtered (Accounting)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: A page of accounts.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create an account (Accounting)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '201':
+          description: The account.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          description: Validation failed.
+  /accounts/{account}:
+    parameters:
+      - name: account
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: One account with its parent, children and recent lines (Accounting)
+      responses:
+        '200':
+          description: The account.
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update an account (Accounting)
+      responses:
+        '200':
+          description: The account.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Validation failed.
+    patch:
+      summary: Update an account (Accounting)
+      responses:
+        '200':
+          description: The account.
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete an account that has no lines (Accounting)
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: The account has lines or children.
+  /my-field-visits:
+    get:
+      summary: The signed-in rep's field visits (CRM)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Visits.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /field-visits/{visit}/check-in:
+    post:
+      summary: Check in at a visit (CRM)
+      parameters:
+        - name: visit
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Checked in.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Already checked in.
+  /field-visits/{visit}/check-out:
+    post:
+      summary: Check out of a visit (CRM)
+      parameters:
+        - name: visit
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Checked out.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Not checked in.
+  /my-tasks:
+    get:
+      summary: The signed-in employee's recurring tasks due (Performance)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Task occurrences.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /my-tasks/{occurrence}/complete:
+    post:
+      summary: Mark a task occurrence complete (Performance)
+      parameters:
+        - name: occurrence
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Completed.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /my-daily-reports:
+    get:
+      summary: The signed-in employee's daily reports (Performance)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Reports.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: File today's daily report (Performance)
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '201':
+          description: Filed.
+        '422':
+          description: Validation failed.
+
+  # ---------------------------------------------------------------------------------------------
+  # Work — docs/project-management-plan.md §11. Every route needs the `work` ability on the token
+  # as well as `api`; a token without it is 403 on every path below. Items are addressed by key.
+  # ---------------------------------------------------------------------------------------------
+  /work/projects:
+    get:
+      summary: The projects the token's user may see, with key and open count
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Projects.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: integer }
+                            key: { type: string, nullable: true }
+                            code: { type: string }
+                            name: { type: string }
+                            status: { type: string }
+                            open_items: { type: integer }
+                            active_sprint: { type: string, nullable: true }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /work/projects/{key}/board:
+    get:
+      summary: The project's board — columns with their cards, in rank order
+      description: The one call the board screen makes. Quick filters mine, unassigned, blocked and search compose with the board's own.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The project key, e.g. WEB.
+        - { name: mine, in: query, schema: { type: boolean } }
+        - { name: unassigned, in: query, schema: { type: boolean } }
+        - { name: blocked, in: query, schema: { type: boolean } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Columns, each with lanes of cards.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /work/items:
+    get:
+      summary: Work items, filtered
+      parameters:
+        - $ref: '#/components/parameters/Company'
+        - { name: project, in: query, schema: { type: string }, description: A project key. }
+        - { name: status_category, in: query, schema: { type: string, enum: [todo, in_progress, done] } }
+        - { name: assignee, in: query, schema: { type: string }, description: "`me`, or an employee id." }
+        - { name: sprint, in: query, schema: { type: string }, description: "`active`, or a sprint id." }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: per_page, in: query, schema: { type: integer, maximum: 200 } }
+      responses:
+        '200':
+          description: A page of items.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: File a work item
+      description: A project key and a title are enough; everything else takes a default — the workflow's first status, the bottom of the backlog, nobody assigned.
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project, title]
+              properties:
+                project: { type: string }
+                title: { type: string, maxLength: 255 }
+                description: { type: string }
+                type: { type: string }
+                priority: { type: string }
+                assignee_employee_id: { type: integer }
+                parent_id: { type: integer }
+                sprint_id: { type: integer }
+                release_id: { type: integer }
+                estimate_points: { type: number }
+                estimate_minutes: { type: integer }
+                due_on: { type: string, format: date }
+      responses:
+        '201':
+          description: The item, with its key.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Validation failed, or the hierarchy rule refused the parent.
+  /work/items/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The item key, e.g. WEB-12.
+    get:
+      summary: One work item, with its description and comments
+      responses:
+        '200':
+          description: The item.
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update the fields of §3.2 by name
+      description: Status is not among them — that is `move`, because a status change is a transition.
+      responses:
+        '200':
+          description: The item.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Validation failed, or a model rule refused.
+  /work/items/{key}/move:
+    post:
+      summary: Move an item to a status, with optional neighbours for rank
+      description: The same moveTo() the board calls, the same workflow rules, the same refusals — as 422 with the reason.
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { description: A status id or name of the item's workflow., oneOf: [{ type: integer }, { type: string }] }
+                resolution: { type: string }
+                after: { type: integer, description: The id of the card above. }
+                before: { type: integer, description: The id of the card below. }
+      responses:
+        '200':
+          description: The item, where it went.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: A workflow rule refused, with the reason — or the status is not one of the workflow's, with the list.
+  /work/items/{key}/comments:
+    post:
+      summary: Comment on an item
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, description: Markdown. Mentions as @[Name](user:ID). }
+      responses:
+        '201':
+          description: The comment.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /work/items/{key}/time:
+    post:
+      summary: Log time on an item — one timesheet entry, nothing else
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [minutes]
+              properties:
+                minutes: { type: integer, minimum: 1, maximum: 1440 }
+                date: { type: string, format: date }
+                note: { type: string }
+                billable: { type: boolean }
+      responses:
+        '201':
+          description: The entry.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: No timesheet module, no linked employee, or more than a day.
+  /work/my:
+    get:
+      summary: The "My work" board as data
+      parameters:
+        - $ref: '#/components/parameters/Company'
+      responses:
+        '200':
+          description: Columns by category — to do, in progress, done this week — with the caller's items.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'

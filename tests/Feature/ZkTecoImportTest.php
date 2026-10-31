@@ -57,9 +57,9 @@ class ZkTecoImportTest extends TestCase
     {
         $folded = ZkTecoAttendanceLog::fold(self::EXPORT);
 
-        $this->assertStringContainsString("7,2026-10-05,present,08:52:10,18:07:03,3 punches", $folded);
-        $this->assertStringContainsString("7,2026-10-06,present,09:31:00,,1 punch", $folded);
-        $this->assertStringContainsString("12,2026-10-05,present,09:05:30,17:58:12,2 punches", $folded);
+        $this->assertStringContainsString('7,2026-10-05,present,08:52:10,18:07:03,3 punches', $folded);
+        $this->assertStringContainsString('7,2026-10-06,present,09:31:00,,1 punch', $folded);
+        $this->assertStringContainsString('12,2026-10-05,present,09:05:30,17:58:12,2 punches', $folded);
     }
 
     public function test_the_preset_imports_as_the_devices_rows_and_names_the_unknown_number(): void
