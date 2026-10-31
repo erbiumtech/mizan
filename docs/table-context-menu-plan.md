@@ -505,6 +505,13 @@ Livewire tests cannot right-click, so the plan splits deliberately:
   > device that chose "off" back when localStorage was the only store syncs that choice up exactly once
   > (server 'unset' + mirror 'off'). Both toggles persist through one exposed function,
   > `window.tableContextMenuPersist`, so there is exactly one POST implementation.
+  >
+  > **Moved 2026-10-31 — the route back is now the settings page, not the user menu.** With the Material 3
+  > top bar the user menu was trimmed to the avatar's menu, and the switch moved to the person's own
+  > settings page (`EditProfile`, labelled "My settings"), as a Material switch row titled "Right-click
+  > menus". The user menu always opens that page, so the switch is still reachable whatever the preference
+  > says; the partial (`table-context-menu-toggle`) keeps the same key, the same `'off'` literal and the
+  > same single persist call, and the menu's own toggle is unchanged.
 - **Phase 5 — Polish.** Grouped sections and separators mirroring `ActionGroup`s, colours for destructive
   items, and a "Copy" section (link, id, the row's primary label) which is the item people ask for once
   the menu exists.
