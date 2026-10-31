@@ -175,6 +175,12 @@
 /* -------------------------------------------------------------- page surface */
 
 .fi-body {
+    /*
+     * The colour behind a floating field label — the surface the field sits on, so the label's notch
+     * in the outline reads as a gap. Declared on the body, where the platform panel's tokens apply, and
+     * reset by every container that changes the surface: sections, form sections, dialogs, menus.
+     */
+    --md-field-notch: var(--md-sys-color-surface);
     background-color: var(--md-sys-color-surface);
     color: var(--md-sys-color-on-surface);
 }
@@ -342,36 +348,6 @@
     }
 }
 
-/* The ⌘K trigger as a Material search bar: fully rounded, high container, no outline. */
-.fi-command-palette-trigger {
-    height: 3rem;
-    padding-inline: 1rem;
-    border-radius: var(--md-sys-shape-full);
-    background-color: var(--md-sys-color-surface-container-high);
-    color: var(--md-sys-color-on-surface-variant);
-    box-shadow: none;
-
-    &:hover {
-        background-color: var(--md-sys-color-surface-container-highest);
-        box-shadow: none;
-    }
-
-    &:focus-visible {
-        box-shadow: 0 0 0 2px var(--md-sys-color-primary);
-    }
-
-    & .fi-icon,
-    & svg {
-        color: var(--md-sys-color-on-surface-variant);
-    }
-
-    & kbd {
-        border-color: var(--md-sys-color-outline-variant);
-        background-color: transparent;
-        color: var(--md-sys-color-on-surface-variant);
-    }
-}
-
 .fi-user-menu .fi-avatar,
 .fi-topbar .fi-avatar {
     width: 2.5rem;
@@ -471,6 +447,7 @@
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
     }
 
+    /* 44px outside forms (table search, filters); form fields are 56px — "Outlined text fields" below. */
     & .fi-input {
         min-height: 2.75rem;
     }
@@ -492,14 +469,11 @@
     border-color: var(--md-sys-color-primary);
 }
 
-.fi-toggle.fi-toggle-on {
-    background-color: var(--md-sys-color-primary);
-}
-
 /* ------------------------------------------------------------ cards and sections */
 
 /* Sections are outlined cards: they hold tables and forms, so the lowest container keeps fields legible. */
 .fi-section:not(.fi-section-not-contained) {
+    --md-field-notch: var(--md-sys-color-surface-container-lowest);
     border-radius: var(--md-sys-shape-medium);
     background-color: var(--md-sys-color-surface-container-lowest);
     box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
@@ -613,6 +587,7 @@
 /* ----------------------------------------------------------- dialogs and menus */
 
 .fi-modal-window {
+    --md-field-notch: var(--md-sys-color-surface-container-high);
     border-radius: var(--md-sys-shape-extra-large);
     background-color: var(--md-sys-color-surface-container-high);
     box-shadow: var(--md-sys-elevation-2);
@@ -625,6 +600,7 @@
 }
 
 .fi-dropdown-panel {
+    --md-field-notch: var(--md-sys-color-surface-container);
     border-radius: var(--md-sys-shape-extra-small);
     background-color: var(--md-sys-color-surface-container);
     box-shadow: var(--md-sys-elevation-2);
@@ -643,4 +619,507 @@
     & .fi-no-notification-body {
         color: var(--md-sys-color-inverse-on-surface);
     }
+}
+
+/* ===================================================================== top app bar
+ *
+ * Material's top app bar, as the design's dashboard draws it: the full search bar on the left taking the
+ * free width, then on the right the company's logo and name (the one logo — company-brand partial, also
+ * the company switcher), the notifications bell and the avatar. Filament's own brand and tenant menu are
+ * hidden so nothing repeats; the domain rail no longer carries a brand mark either.
+ */
+
+.fi-topbar {
+    min-height: 4rem;
+    gap: 0.5rem;
+}
+
+/* The end of the bar is where every hook lands, so it takes the free width and the search bar fills it. */
+.fi-topbar-end {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+
+/* One logo: Filament's copies in the topbar start and the sidebar header go. Login pages are untouched. */
+.fi-topbar-start > a:has(> .fi-logo),
+.fi-topbar-start > .fi-logo,
+.fi-sidebar-header-logo-ctn {
+    display: none;
+}
+
+/* The company switcher is the logo and name in the topbar now; the column's copy of it goes. */
+.fi-sidebar .fi-tenant-menu {
+    display: none;
+}
+
+/* --- the search bar */
+
+.fi-command-palette-trigger {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 45rem;
+    height: 3rem;
+    margin-inline-end: auto;
+    padding-inline: 1rem 0.75rem;
+    border-radius: var(--md-sys-shape-full);
+    background-color: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    cursor: text;
+    transition: background-color 150ms;
+
+    &:hover {
+        background-color: var(--md-sys-color-surface-container-highest);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+    }
+
+    @media (min-width: 768px) {
+        display: flex;
+    }
+}
+
+.fi-command-palette-trigger-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-command-palette-trigger-placeholder {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-align: start;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-command-palette-trigger-kbd {
+    display: none;
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--md-sys-shape-small);
+    background-color: var(--md-sys-color-surface-container-lowest);
+    color: var(--md-sys-color-on-surface-variant);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+
+    @media (min-width: 1024px) {
+        display: inline-block;
+    }
+}
+
+/* Narrow screens: the 40px icon button alone. */
+.fi-command-palette-trigger-compact {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-inline-end: auto;
+    border-radius: var(--md-sys-shape-full);
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:hover {
+        background-color: var(--md-sys-color-surface-container-high);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+    }
+
+    @media (min-width: 768px) {
+        display: none;
+    }
+}
+
+/* --- the company's logo and name */
+
+.fi-company-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    max-width: 16rem;
+    padding-inline: 0.5rem 0.75rem;
+    border-radius: var(--md-sys-shape-full);
+    color: var(--md-sys-color-on-surface);
+    text-decoration: none;
+
+    &:hover {
+        background-color: var(--md-sys-color-surface-container-high);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+    }
+}
+
+.fi-company-brand-logo {
+    height: 1.75rem;
+    max-width: 6rem;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+/* The dark-mode logo where the panel has one; only one of the pair is ever shown. */
+.fi-company-brand-logo-dark {
+    display: none;
+}
+
+.dark .fi-company-brand-logo-light {
+    display: none;
+}
+
+.dark .fi-company-brand-logo-dark {
+    display: block;
+}
+
+.fi-company-brand-name {
+    display: none;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @media (min-width: 640px) {
+        display: inline;
+    }
+}
+
+.fi-company-brand-chevron {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-company-brand-tenants {
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+/* --- the bell, as Material's 40px standard icon button */
+
+.fi-topbar-database-notifications-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--md-sys-shape-full);
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:hover {
+        background-color: var(--md-sys-color-surface-container-high);
+    }
+}
+
+/* ===================================================================== switches
+ *
+ * Material's switch: a 52×32 track, a 16px handle at rest that grows to 24px when on. Filament's toggle
+ * (`fi-toggle`, Toggle fields) and this panel's own `fi-md-switch` (the right-click switch on the
+ * settings page) share the drawing. Filament moves its handle with a transform; these are its offsets
+ * for the larger track, mirrored in RTL.
+ */
+
+.fi-toggle,
+.fi-md-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 3.25rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border: 2px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-full);
+    background-color: var(--md-sys-color-surface-container-highest);
+    cursor: pointer;
+    transition: background-color 150ms, border-color 150ms;
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+        box-shadow: none;
+    }
+
+    & > :first-child {
+        width: 1rem;
+        height: 1rem;
+        border-radius: var(--md-sys-shape-full);
+        background-color: var(--md-sys-color-outline);
+        box-shadow: none;
+        /* Filament positions the handle with Tailwind's `translate` property; one mechanism, not two. */
+        translate: none;
+        transform: translateX(0.375rem);
+        transition: transform 150ms, width 150ms, height 150ms, background-color 150ms;
+    }
+
+    &:dir(rtl) > :first-child {
+        transform: translateX(-0.375rem);
+    }
+}
+
+.fi-toggle.fi-toggle-on,
+.fi-md-switch[aria-checked='true'] {
+    border-color: transparent;
+    background-color: var(--md-sys-color-primary);
+
+    & > :first-child {
+        width: 1.5rem;
+        height: 1.5rem;
+        background-color: var(--md-sys-color-on-primary);
+        transform: translateX(1.375rem);
+    }
+
+    &:dir(rtl) > :first-child {
+        transform: translateX(-1.375rem);
+    }
+}
+
+/* Filament renders a hidden "on" placeholder beside each toggle; the display above must not reveal it. */
+.fi-toggle.fi-hidden {
+    display: none;
+}
+
+/* A toggle given another colour (a "danger" switch, say) keeps it when on. */
+.fi-toggle.fi-toggle-on.fi-color:not(.fi-color-primary) {
+    background-color: var(--bg);
+}
+
+/* Filament's on/off icons sit inside the handle; Material's handle carries none at this size. */
+.fi-toggle .fi-icon {
+    display: none;
+}
+
+/* The settings page's switch row: title and supporting text, the switch at the end. */
+.fi-md-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-block: 0.5rem;
+}
+
+.fi-md-switch-row-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.fi-md-switch-row-title {
+    color: var(--md-sys-color-on-surface);
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.fi-md-switch-row-supporting {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+/* ============================================================== segmented buttons
+ *
+ * Filament's inline ToggleButtons become Material's segmented button: one outlined pill split into
+ * segments, the selected one in the secondary container with a leading check. Stacked (non-inline)
+ * toggle buttons keep Filament's grid.
+ */
+
+.fi-fo-toggle-buttons.fi-inline {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-full);
+
+    & .fi-fo-toggle-buttons-btn-ctn + .fi-fo-toggle-buttons-btn-ctn {
+        border-inline-start: 1px solid var(--md-sys-color-outline);
+    }
+
+    & .fi-btn {
+        height: 2.5rem;
+        padding-inline: 1rem;
+        border-radius: 0;
+        background-color: transparent;
+        box-shadow: none;
+        color: var(--md-sys-color-on-surface);
+        font-weight: 500;
+    }
+
+    & .fi-fo-toggle-buttons-input:checked + .fi-btn {
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+
+        &::before {
+            content: '';
+            width: 1.125rem;
+            height: 1.125rem;
+            flex-shrink: 0;
+            background-color: currentColor;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+    }
+
+    & .fi-fo-toggle-buttons-input:focus-visible + .fi-btn {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: -2px;
+    }
+}
+
+/* ================================================================== form sections
+ *
+ * A section holding form fields is Material's filled card: the low container, 16px corners, no outline.
+ * Tables and read-only sections keep the outlined card above. The grid inside spaces rows 20px apart and
+ * columns 16px.
+ */
+
+.fi-section:not(.fi-section-not-contained):has(.fi-fo-field) {
+    --md-field-notch: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-large);
+    background-color: var(--md-sys-color-surface-container-low);
+    box-shadow: none;
+
+    & .fi-section-header-heading {
+        font-size: 1rem;
+        font-weight: 500;
+        line-height: 1.5rem;
+    }
+
+    & .fi-section-header-description {
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    & .fi-sc:has(> .fi-grid-col > .fi-fo-field) {
+        row-gap: 1.25rem;
+        column-gap: 1rem;
+    }
+}
+
+/*
+ * The form's action row: right-aligned pills. Filament's Cancel is a link (`a.fi-btn`) and becomes a text
+ * button; secondary actions such as "Create & create another" are buttons in gray and become outlined;
+ * the primary submit stays filled.
+ */
+form .fi-sc-actions:last-child {
+    justify-content: flex-end;
+
+    & a.fi-btn.fi-color-gray {
+        background-color: transparent;
+        box-shadow: none;
+        color: var(--md-sys-color-primary);
+    }
+
+    & button.fi-btn.fi-color-gray {
+        background-color: transparent;
+        box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+        color: var(--md-sys-color-primary);
+    }
+
+    & .fi-btn {
+        height: 2.5rem;
+    }
+}
+
+/* ============================================================ outlined text fields
+ *
+ * The design's form: a 56px box, a 1px outline, 4px corners, a transparent fill and 16px text, 2px primary
+ * while focused, 2px error when invalid (the box rules are in "inputs" above). Every form field's box gets
+ * the 56px height.
+ *
+ * The **floating, notched label** — sitting over the box's top-left border, on the colour of the surface
+ * behind it so the outline appears to break around it — is applied only where it cannot collide with
+ * anything: a plain TextInput, Select, DatePicker/DateTimePicker/TimePicker or Textarea whose label column
+ * holds the label and nothing else, with no prefix or suffix text, no inline label and no nested fields.
+ * Every other field — affixes, inline or hidden labels, rich and Markdown editors, file uploads,
+ * repeaters, key-value, tags input, checkbox lists, radios — keeps its label above the box, in the same
+ * Material colours. docs/material-3-theme.md lists them. Logical properties throughout, so in Urdu the
+ * notch sits at the top right.
+ */
+
+.fi-fo-field .fi-input-wrp {
+    min-height: 3.5rem;
+    align-items: center;
+
+    & .fi-input {
+        min-height: 3.5rem;
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+
+    & textarea.fi-input {
+        min-height: 5rem;
+        padding-block: 1rem;
+    }
+
+    &.fi-disabled .fi-input {
+        color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    }
+}
+
+.fi-fo-field:not(.fi-fo-field-has-inline-label):has(> .fi-fo-field-label-col > .fi-fo-field-label-ctn:only-child > .fi-fo-field-label:only-child):has(> .fi-fo-field-content-col > .fi-input-wrp:is(.fi-fo-text-input, .fi-fo-select, .fi-fo-textarea, .fi-fo-date-time-picker):not(:has(> .fi-input-wrp-prefix-has-label, > .fi-input-wrp-suffix-has-label))):not(:has(.fi-fo-field-content-col .fi-fo-field)) {
+    position: relative;
+    row-gap: 0;
+
+    & > .fi-fo-field-label-col {
+        position: absolute;
+        z-index: 1;
+        inset-block-start: 0;
+        inset-inline-start: 0.75rem;
+        height: auto;
+        padding-inline: 0.25rem;
+        background-color: var(--md-field-notch);
+        pointer-events: none;
+        transform: translateY(-50%);
+    }
+
+    & .fi-fo-field-label-content {
+        font-size: 0.75rem;
+        font-weight: 400;
+        line-height: 1rem;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    &:focus-within .fi-fo-field-label-content {
+        color: var(--md-sys-color-primary);
+    }
+
+    &:has(.fi-input-wrp.fi-invalid) .fi-fo-field-label-content {
+        color: var(--md-sys-color-error);
+    }
+
+    &:has(.fi-input-wrp.fi-disabled) .fi-fo-field-label-content {
+        color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    }
+
+    /* Helper text and validation messages: 12px, indented to the text inside the box. */
+    & > .fi-fo-field-content-col > :not(.fi-input-wrp) {
+        margin-block-start: 0.25rem;
+        padding-inline-start: 1rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+    }
+}
+
+/* Every field: validation messages in Material's supporting-text size. */
+.fi-fo-field-wrp-error-message {
+    font-size: 0.75rem;
+    line-height: 1rem;
 }

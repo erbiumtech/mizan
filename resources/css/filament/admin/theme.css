@@ -101,9 +101,9 @@ body:has(.fi-domain-rail) {
     }
 
     /*
-     * The rail carries the brand mark, so the column's copy of it goes: two logos stacked in the
-     * top-left corner is what the shipped arrangement would give. The tenant menu directly below it
-     * stays — the company switcher is in 3a's column too.
+     * The column's copy of the brand goes: the logo appears once, with the company's name, in the
+     * topbar (company-brand partial, which is also the company switcher — material.css hides the
+     * column's tenant menu for the same reason).
      */
     .fi-sidebar-header-ctn {
         display: none;
@@ -133,22 +133,6 @@ body:has(.fi-domain-rail) {
         background-color: var(--color-gray-950);
         border-inline-end-color: var(--color-white-10, rgb(255 255 255 / 0.1));
     }
-}
-
-.fi-domain-rail-brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin-block-end: 0.5rem;
-    flex-shrink: 0;
-}
-
-.fi-domain-rail-brand-logo {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
 }
 
 .fi-domain-rail-items {

@@ -34,6 +34,16 @@ class EditProfile extends BaseEditProfile
 {
     protected static ?string $title = 'My Profile';
 
+    /**
+     * "My settings" in the user menu and as the page title: this page holds the person's own settings —
+     * language, emails, the right-click switch — as well as their name and password, and the switch
+     * moved here from the user menu, which now reaches it by this name.
+     */
+    public static function getLabel(): string
+    {
+        return __('My settings');
+    }
+
     public function form(Schema $schema): Schema
     {
         $nameManagedElsewhere = $this->nameManagedByEmployeeRecord();
@@ -94,6 +104,16 @@ class EditProfile extends BaseEditProfile
                         NotificationPreferences::set($this->getUser(), (array) $state);
                         Notification::make()->success()->title('Saved.')->send();
                     }),
+
+                /*
+                 * Whether a right-click on a table row opens its actions — docs/table-context-menu-plan.md §4.
+                 *
+                 * Here, on the person's own settings page, rather than in the user menu where it began:
+                 * the user menu always reaches this page, so the switch stays reachable when the menu is
+                 * off. A preference of this person and device, saved as it is flipped, like the two above;
+                 * the partial holds the whole behaviour (localStorage mirror, the one server POST).
+                 */
+                \Filament\Schemas\Components\View::make('filament.partials.table-context-menu-toggle'),
 
                 $this->getPasswordFormComponent()
                     ->label(__('New Password'))

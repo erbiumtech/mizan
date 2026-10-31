@@ -701,16 +701,22 @@ class TableContextMenuTest extends AccountingTestCase
      * **And there is a route back**, which is the part that is easy to leave out.
      *
      * The context menu carries the toggle because that is where somebody annoyed by it will look. But a
-     * menu that has just switched itself off cannot switch itself back on, so the user menu carries it
-     * too — always reachable, whatever the preference says.
+     * menu that has just switched itself off cannot switch itself back on, so the switch also lives on the
+     * person's own settings page, which the user menu always opens — whatever the preference says. It
+     * began as a line in the user menu itself; it moved to the settings page with the Material 3 top bar.
      */
     public function test_the_toggle_is_reachable_when_the_menu_is_off(): void
     {
         $provider = (string) file_get_contents(app_path('Providers/Filament/AdminPanelProvider.php'));
+        $profile = (string) file_get_contents(app_path('Modules/Core/Filament/Pages/Auth/EditProfile.php'));
 
-        $this->assertStringContainsString('USER_MENU_AFTER', $provider);
-        $this->assertStringContainsString('table-context-menu-toggle', $provider);
+        // The settings page is the panel's profile page, which Filament puts in the user menu.
+        $this->assertStringContainsString('->profile(EditProfile::class)', $provider);
+        $this->assertStringContainsString("View::make('filament.partials.table-context-menu-toggle')", $profile);
         $this->assertFileExists(resource_path('views/filament/partials/table-context-menu-toggle.blade.php'));
+
+        // And only there: two copies of one switch would be two places to keep in step.
+        $this->assertStringNotContainsString("view('filament.partials.table-context-menu-toggle')", $provider);
     }
 
     /**

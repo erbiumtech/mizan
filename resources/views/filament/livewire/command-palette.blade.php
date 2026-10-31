@@ -20,8 +20,10 @@
                 ...this.recents.filter(r => r.url !== it.url)].slice(0, 5);
             localStorage.setItem('cp-recents', JSON.stringify(this.recents));
         },
-        openPalette() {
-            this.query = '';
+        // `initial` is the character a person typed into the topbar search bar before the palette
+        // opened (command-palette-trigger.blade.php), so the first keystroke is not lost.
+        openPalette(initial = '') {
+            this.query = typeof initial === 'string' ? initial : '';
             this.$refs.dialog.showModal();
             this.$nextTick(() => { this.$refs.input.focus(); this.load() });
         },
@@ -55,7 +57,7 @@
     }"
     @keydown.window.meta.k.prevent="openPalette()"
     @keydown.window.ctrl.k.prevent="openPalette()"
-    @open-command-palette.window="openPalette()"
+    @open-command-palette.window="openPalette($event.detail?.query)"
 >
     <form method="POST" action="{{ \Filament\Facades\Filament::getLogoutUrl() }}" x-ref="logoutForm" class="cp-hidden">@csrf</form>
 
