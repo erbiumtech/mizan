@@ -205,81 +205,366 @@
     font-weight: 500;
 }
 
-/* ------------------------------------------------------------ navigation rail */
-
-/*
- * The domain rail as a Material navigation rail: no dividing line, the page's surface behind it, and
- * the active domain marked by a pill around its icon rather than a filled tile with an edge bar.
+/* ================================================================ navigation rail and drawer
+ *
+ * The admin panel's left navigation as m3.material.io draws its own: a navigation rail and, beside
+ * it, a navigation drawer on one surface-container-low sheet with large rounded trailing corners.
+ *
+ *   - Rail (88px): a 56px tonal search button, the domains as icon-in-pill destinations with their
+ *     label beneath, and two 56px outlined round buttons at the foot (drawer, light/dark).
+ *   - Drawer (Filament's sidebar column, `--sidebar-width`): the chosen domain's screens as 56px
+ *     full-pill items; a branch is a <details> whose summary carries a trailing caret.
+ *   - Below 840px (Material's compact and medium widths) the rail goes and the drawer is a modal
+ *     sheet from the topbar's menu button, with the domains as chips at its top.
+ *
+ * Markup: filament/partials/domain-rail.blade.php and nav-drawer.blade.php. Filament's own groups
+ * stay rendered for the current domain (other parts of the shell read them) and are hidden here.
+ * Tokens only; inline-start/end throughout so Urdu mirrors the whole arrangement.
  */
-.fi-domain-rail {
-    background-color: var(--md-sys-color-surface);
-    border-inline-end: 0;
 
-    &:where(.dark, .dark *) {
-        background-color: var(--md-sys-color-surface);
+/* The rail's own button folds the drawer, so the topbar's copy of it goes wherever the rail is drawn. */
+@media (width >= 840px) {
+    body:has(.fi-domain-rail) .fi-topbar-collapse-sidebar-btn-ctn {
+        display: none;
     }
 }
 
-.fi-domain-rail-item {
-    width: 100%;
-    gap: 0.25rem;
-    padding-block: 0.25rem;
-    border-radius: 0;
-    background-color: transparent;
-    color: var(--md-sys-color-on-surface-variant);
-    box-shadow: none;
+@media (width < 840px) {
+    :root {
+        --fi-domain-rail-width: 0px;
+    }
 
-    /*
-     * The pill. 56 by 32 with the 20px icon centred in it: padding inside a fixed border-box, so the
-     * SVG's viewBox scales into the 20px content box and the background fills the rest.
-     */
+    /* `body` for weight: the rail's own rule below sets display and comes later in the file. */
+    body .fi-domain-rail {
+        display: none;
+    }
+}
+
+/* --- the sheet: rail and drawer read as one surface */
+
+.fi-domain-rail {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 40; /* over the column (31), which opens beside it */
+    width: var(--fi-domain-rail-width);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block: 0.75rem 1rem;
+    background-color: var(--md-sys-color-surface-container-low);
+    border-inline-end: 1px solid var(--md-sys-color-outline-variant);
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+/* With the drawer closed the rail is the sheet's trailing edge, so it carries the rounded corners. */
+body:not(:has(.fi-main-ctn-sidebar-open)) .fi-domain-rail {
+    border-inline-end: 0;
+    border-start-end-radius: var(--md-sys-shape-large);
+    border-end-end-radius: var(--md-sys-shape-large);
+}
+
+.fi-domain-rail-search {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-block-end: 1.25rem;
+    border: 0;
+    border-radius: var(--md-sys-shape-large);
+    background-color: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+    cursor: pointer;
+    transition: box-shadow 150ms;
+
+    & .fi-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    &:hover {
+        box-shadow: var(--md-sys-elevation-1);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+    }
+}
+
+.fi-domain-rail-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fi-domain-rail-slot {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.fi-domain-rail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    color: var(--md-sys-color-on-surface-variant);
+    text-decoration: none;
+
+    /* The pill: 56×32 with the 24px icon centred in it. */
     & > .fi-icon {
         box-sizing: border-box;
         width: 3.5rem;
         height: 2rem;
-        padding: 0.375rem 1.125rem;
-        border-radius: var(--md-sys-shape-large);
+        padding: 0.25rem 1rem;
+        border-radius: var(--md-sys-shape-full);
         transition: background-color 150ms ease;
     }
 
-    &:hover {
-        background-color: transparent;
-        color: var(--md-sys-color-on-surface);
+    &:hover > .fi-icon {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+
+    &:focus-visible {
+        outline: none;
 
         & > .fi-icon {
-            background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+            outline: 2px solid var(--md-sys-color-primary);
+            outline-offset: 2px;
         }
     }
 
-    &:where(.dark, .dark *) {
-        color: var(--md-sys-color-on-surface-variant);
-
-        &:hover {
-            background-color: transparent;
-            color: var(--md-sys-color-on-surface);
-        }
-    }
-
-    &.fi-active,
-    &.fi-active:where(.dark, .dark *) {
-        background-color: transparent;
+    &.fi-active {
         color: var(--md-sys-color-on-surface);
-        box-shadow: none;
-        font-weight: 600;
 
         & > .fi-icon {
             background-color: var(--md-sys-color-secondary-container);
             color: var(--md-sys-color-on-secondary-container);
         }
+
+        & > .fi-domain-rail-item-label {
+            font-weight: 700;
+        }
     }
 }
 
 .fi-domain-rail-item-label {
+    max-width: 5rem;
     font-size: 0.75rem;
     line-height: 1rem;
     font-weight: 500;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.03em;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
+
+.fi-domain-rail-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-block-start: auto;
+    padding-block-start: 1.5rem;
+}
+
+.fi-domain-rail-action {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-full);
+    background-color: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    & .fi-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 8%, transparent);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+    }
+}
+
+/* The theme button shows the mode it switches to. */
+.fi-domain-rail-action-light,
+.dark .fi-domain-rail-action-dark {
+    display: none;
+}
+
+.dark .fi-domain-rail-action-light {
+    display: contents;
+}
+
+/* --- the drawer: Filament's column, carrying the nav-drawer partial */
+
+body:has(.fi-domain-rail) .fi-main-sidebar {
+    background-color: var(--md-sys-color-surface-container-low);
+    border-start-end-radius: var(--md-sys-shape-large);
+    border-end-end-radius: var(--md-sys-shape-large);
+    border-inline-end: 0;
+    box-shadow: none;
+}
+
+/* Filament's own groups, current domain only, say less than the drawer above them. */
+.fi-sidebar-nav:has(> .fi-nav-drawer) > .fi-sidebar-nav-groups {
+    display: none;
+}
+
+.fi-sidebar-nav:has(> .fi-nav-drawer) {
+    padding: 0.75rem 0.75rem 1rem;
+    row-gap: 0;
+}
+
+.fi-nav-drawer-headline {
+    margin: 0;
+    padding: 1.125rem 1rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-nav-drawer-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    /* A branch's screens sit one step in from its summary. */
+    & & {
+        padding-inline-start: 1rem;
+    }
+}
+
+.fi-nav-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.5rem;
+    padding-inline: 1rem 1.5rem;
+    border-radius: var(--md-sys-shape-full);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: -2px;
+    }
+
+    &.fi-active {
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+        font-weight: 600;
+    }
+}
+
+.fi-nav-drawer-item-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fi-nav-drawer-item-badge {
+    flex: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* The branch's caret: a triangle drawn in CSS, pointing down, turned up while open. */
+summary.fi-nav-drawer-item::after {
+    content: '';
+    flex: none;
+    width: 0;
+    height: 0;
+    border-inline: 0.3125rem solid transparent;
+    border-block-start: 0.3125rem solid currentColor;
+    transition: rotate 150ms ease;
+}
+
+.fi-nav-drawer-branch[open] > summary.fi-nav-drawer-item::after {
+    rotate: 180deg;
+}
+
+/* A closed branch that holds the screen being viewed still says so. */
+.fi-nav-drawer-branch:not([open]):has(.fi-active) > summary.fi-nav-drawer-item {
+    color: var(--md-sys-color-on-surface);
+    font-weight: 600;
+}
+
+/* --- phones: the domains as chips at the top of the modal drawer */
+
+.fi-nav-drawer-domains {
+    display: none;
+}
+
+@media (width < 840px) {
+    .fi-nav-drawer-domains {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem 0.5rem 0.25rem;
+    }
+
+    .fi-nav-drawer-domain {
+        height: 2rem;
+        padding-inline: 1rem;
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: var(--md-sys-shape-small);
+        background-color: transparent;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+
+        &[aria-pressed='true'] {
+            border-color: transparent;
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+    }
+
+    body:has(.fi-nav-drawer) .fi-main-sidebar {
+        inset-inline-start: 0;
+        width: min(22.5rem, 100vw - 3.5rem);
+        box-shadow: var(--md-sys-elevation-2);
+    }
+}
+
+/* ========================================================== end navigation rail and drawer */
 
 /* --------------------------------------------------------- navigation drawer */
 
