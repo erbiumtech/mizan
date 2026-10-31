@@ -70,11 +70,22 @@ class WorkBoard extends Model
             'project_id' => $project->getKey(),
             'name' => 'Board',
             'kind' => self::KANBAN,
-            'columns' => $workflow->statuses->map(fn (WorkStatus $status): array => [
-                'label' => $status->name,
-                'status_ids' => [$status->getKey()],
-            ])->values()->all(),
+            'columns' => static::columnsFor($workflow),
         ]);
+    }
+
+    /**
+     * One column per status, in the workflow's order — what a new board starts with and what "reset
+     * columns" goes back to.
+     *
+     * @return array<int, array{label: string, status_ids: array<int, int>}>
+     */
+    public static function columnsFor(WorkWorkflow $workflow): array
+    {
+        return $workflow->statuses->map(fn (WorkStatus $status): array => [
+            'label' => $status->name,
+            'status_ids' => [(int) $status->getKey()],
+        ])->values()->all();
     }
 
     /** How many cards this column will take, or null for no limit. */

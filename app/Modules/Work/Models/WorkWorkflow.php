@@ -39,6 +39,21 @@ class WorkWorkflow extends Model
             ?? static::query()->orderBy('id')->first();
     }
 
+    /**
+     * The workflow a project's items move through: its own, or the company default, statuses loaded.
+     *
+     * Read from the column rather than through a relation on Project for the reason WorkItem::workflow()
+     * gives — `work` requires `projects`, never the other way round.
+     */
+    public static function forProject(\App\Modules\Projects\Models\Project $project): ?self
+    {
+        $workflow = $project->work_workflow_id !== null
+            ? static::query()->whereKey($project->work_workflow_id)->first()
+            : static::default();
+
+        return $workflow?->load('statuses');
+    }
+
     /** The first status of a category, which is where the engine lands an item it moves by category. */
     public function firstOf(string $category): ?WorkStatus
     {

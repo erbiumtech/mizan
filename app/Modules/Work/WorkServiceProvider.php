@@ -77,6 +77,7 @@ use App\Modules\Work\Policies\WorkTimeProjectPolicy;
 use App\Modules\Work\Policies\WorkTimeTaskPolicy;
 use App\Modules\Work\Policies\WorkWorkflowPolicy;
 use App\Modules\Work\Policies\WorkWorkflowRulePolicy;
+use App\Modules\Work\Services\BoardSettings;
 use App\Modules\Work\Services\WorkTime;
 use App\Modules\Work\Support\ChannelPosts;
 use App\Modules\Work\Support\SyncedTimesheetRows;
@@ -94,9 +95,11 @@ use App\Support\Reporting\ReportRenderers;
 use App\Support\ResourceContributions;
 use App\Support\SettingsSections;
 use App\Support\Webhooks;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
@@ -152,6 +155,7 @@ class WorkServiceProvider extends ServiceProvider
         CustomFieldSubjects::register(ModuleMap::alias(WorkItem::class), 'Work Items');
 
         $this->contributeToProjects();
+        $this->contributeWorkflowToProjects();
         $this->contributeToTimesheets();
         $this->registerReports();
 
@@ -349,6 +353,58 @@ class WorkServiceProvider extends ServiceProvider
                 ->value('name'))
             ->placeholder('—')
             ->toggleable(isToggledHiddenByDefault: true));
+    }
+
+    /**
+     * Which workflow a project's boards are drawn from — the one Work column on the project that
+     * Projects could not offer itself, because choosing it is only safe with Work's rule behind it.
+     *
+     * The field is contributed to the project form, offered only where the company has the module.
+     * Its rule refuses a workflow the project's items are not in, with the sentence `BoardSettings`
+     * gives; the model guard refuses the same change made any other way, and once a change has gone
+     * through, the project's boards are redrawn from the new workflow. See `BoardSettings` for why
+     * the rule is the strict one.
+     */
+    private function contributeWorkflowToProjects(): void
+    {
+        ResourceContributions::addFormComponent(ProjectResource::class, 'work_workflow', fn () => Section::make(__('Workflow'))
+            ->description(__('The statuses this project\'s work items move through, and so the columns its boards start with.'))
+            ->visible(fn (): bool => modules()->enabled('work'))
+            ->schema([
+                Select::make('work_workflow_id')
+                    ->label(__('Workflow'))
+                    ->options(fn (): array => WorkWorkflow::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->placeholder(__('Company default'))
+                    ->native(false)
+                    ->nullable()
+                    ->rules([
+                        fn (?Project $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                            if ($record === null) {
+                                return;
+                            }
+
+                            $problem = app(BoardSettings::class)->workflowChangeProblem($record, filled($value) ? (int) $value : null);
+
+                            if ($problem !== null) {
+                                $fail($problem);
+                            }
+                        },
+                    ])
+                    ->helperText(__('Empty uses the company default. It can be changed only while none of the project\'s items is in a status the new workflow lacks, and changing it redraws the project\'s boards.')),
+            ]));
+
+        Project::updating(function (Project $project): void {
+            if ($project->isDirty('work_workflow_id')) {
+                app(BoardSettings::class)->assertWorkflowMayChange($project);
+            }
+        });
+
+        Project::updated(function (Project $project): void {
+            if ($project->wasChanged('work_workflow_id')) {
+                $previous = $project->getOriginal('work_workflow_id');
+                app(BoardSettings::class)->rebuildBoards($project, $previous !== null ? (int) $previous : null);
+            }
+        });
     }
 
     /** Whether the company has the module and the reader may see a work item at all. */

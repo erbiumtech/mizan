@@ -3,9 +3,11 @@
 namespace App\Modules\Projects\Filament\Resources\Projects\Schemas;
 
 use App\Filament\Support\CustomFieldsSchema;
+use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectEnvironment;
 use App\Support\EmployeeOptions;
+use App\Support\ResourceContributions;
 use App\Support\TenantDb;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -211,6 +213,10 @@ class ProjectForm
                             ->native(false)
                             ->helperText('A task for every item ever started fills a workspace with tasks nobody timed.'),
                     ]),
+
+                // What other modules add to this form — Work's workflow picker, offered by Work
+                // with its own rule, so this form names nothing of that module's.
+                ...ResourceContributions::formComponentsFor(ProjectResource::class),
 
                 ...CustomFieldsSchema::form(Project::class),
             ]);
