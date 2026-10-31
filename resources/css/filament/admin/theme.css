@@ -3066,18 +3066,20 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 
 /*
  * ============================================================================
- * The board
+ * The board — Material 3
  * ============================================================================
  *
  * Columns that scroll sideways as a set and vertically one at a time — docs/project-management-plan.md
- * §5. The one rule worth stating: a column over its WIP limit is coloured on the column, not on the
- * cards in it. The limit is a property of the column, and marking twelve cards to say one column is
- * too full is twelve things to read instead of one.
+ * §5 — drawn as the Material board design: tinted column panels with a status-category dot and a count
+ * chip, elevated cards with a priority chip and a round assignee, the quick filters as filter chips. The
+ * one rule worth stating survives: a column over its WIP limit says so on the column (its count chip),
+ * not on the cards in it. Tokens are material.css's (`--md-sys-*`), so light, dark and the platform
+ * panel follow without rules of their own here. The backlog reuses the key and chip classes below.
  */
 
 .fi-board {
     display: flex;
-    gap: 0.75rem;
+    gap: 1rem;
     align-items: flex-start;
     overflow-x: auto;
     padding-bottom: 0.5rem;
@@ -3085,62 +3087,73 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 
 .fi-board-column {
     display: flex;
-    flex: 0 0 18rem;
+    flex: 0 0 18.125rem;
     flex-direction: column;
     gap: 0.5rem;
     max-height: calc(100vh - 18rem);
-    padding: 0.625rem;
-    border: 1px solid var(--color-gray-200);
-    border-radius: 0.75rem;
-    background-color: var(--color-gray-50);
+    padding: 0.75rem;
+    border-radius: 1rem;
+    background-color: var(--md-sys-color-surface-container);
 
-    /* Over its limit. The column says so; the cards are left alone. */
+    /* Over its limit: a faint error wash on the panel, the count chip carries the message. */
     &.fi-over {
-        border-color: var(--color-danger-400);
-        background-color: color-mix(in oklab, var(--color-danger-500) 6%, transparent);
-    }
-
-    &:where(.dark, .dark *) {
-        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
-        background-color: var(--color-gray-950);
+        background-color: color-mix(in srgb, var(--md-sys-color-error-container) 45%, var(--md-sys-color-surface-container));
     }
 }
 
 .fi-board-column-head {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    align-items: center;
     gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
 }
 
-.fi-board-column-name {
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-gray-600);
+.fi-board-column-dot {
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-outline);
 
-    &:where(.dark, .dark *) {
-        color: var(--color-gray-300);
+    &.fi-board-column-dot-in-progress {
+        background-color: var(--md-sys-color-primary);
+    }
+
+    /* Done is the semantic success green, which stays green whatever the seed colour. */
+    &.fi-board-column-dot-done {
+        background-color: var(--success-600, var(--md-sys-color-primary));
     }
 }
 
-.fi-board-column-count {
-    font-size: 0.6875rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-gray-500);
+.fi-board-column-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface);
+}
 
-    .fi-over & {
-        font-weight: 700;
-        color: var(--color-danger-600);
+.fi-board-column-count {
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    &.fi-over {
+        background-color: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
     }
 }
 
 .fi-board-lane {
-    margin: 0.25rem 0 0;
-    font-size: 0.6875rem;
+    margin: 0.25rem 0.5rem 0;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--color-gray-500);
+    color: var(--md-sys-color-on-surface-variant);
 }
 
 /* The drop target. Keeps a minimum height so an empty column can still be dropped into. */
@@ -3154,19 +3167,21 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
 }
 
 .fi-board-card {
-    padding: 0.5rem 0.625rem;
-    border: 1px solid var(--color-gray-200);
-    border-radius: 0.5rem;
-    background-color: var(--color-white, #fff);
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    background-color: var(--md-sys-color-surface-container-lowest);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
     cursor: grab;
 
     &:active {
         cursor: grabbing;
     }
 
-    &:where(.dark, .dark *) {
-        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
-        background-color: var(--color-gray-900);
+    &:hover {
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 2px 6px 2px rgb(0 0 0 / 0.06);
     }
 }
 
@@ -3175,26 +3190,32 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
     opacity: 0.4;
 }
 
+.fi-board-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
 .fi-board-card-key {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: var(--color-primary-600);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
     text-decoration: none;
 
     &:hover {
+        color: var(--md-sys-color-primary);
         text-decoration: underline;
     }
 }
 
 .fi-board-card-title {
-    margin: 0.1875rem 0 0;
-    font-size: 0.8125rem;
-    line-height: 1.35;
-    color: var(--color-gray-950);
-
-    &:where(.dark, .dark *) {
-        color: var(--color-gray-100);
-    }
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    color: var(--md-sys-color-on-surface);
 }
 
 .fi-board-card-labels,
@@ -3202,121 +3223,218 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem;
-    margin: 0.375rem 0 0;
+    gap: 0.375rem;
+    margin: 0;
+}
+
+.fi-board-card-spacer {
+    flex: 1;
 }
 
 .fi-board-type {
-    font-size: 0.625rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-gray-500);
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
 }
 
+/* Small assist chips for labels, the parent, subtask progress and points. */
 .fi-board-chip {
-    padding: 0.0625rem 0.375rem;
-    border-radius: 0.3125rem;
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-600);
-    font-size: 0.625rem;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.25rem;
+    padding: 0 0.375rem;
+    border-radius: 0.375rem;
+    background-color: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 0.6875rem;
+    font-weight: 500;
     white-space: nowrap;
 
     &.fi-blocked,
     &.fi-overdue {
-        background-color: var(--color-danger-50);
-        color: var(--color-danger-700);
+        background-color: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
+    }
+}
+
+/* The priority chip: 24px, 6px corners, a container colour per level. */
+.fi-board-priority {
+    display: inline-flex;
+    align-items: center;
+    height: 1.5rem;
+    padding: 0 0.5rem;
+    border-radius: 0.375rem;
+    background-color: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    &.fi-board-priority-high {
+        background-color: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
     }
 
-    &:where(.dark, .dark *) {
-        background-color: var(--color-gray-800);
-        color: var(--color-gray-300);
-    }
+    /* Amber, from the panel's semantic warning palette, as the design draws it; tertiary if absent. */
+    &.fi-board-priority-medium {
+        background-color: var(--warning-100, var(--md-sys-color-tertiary-container));
+        color: var(--warning-800, var(--md-sys-color-on-tertiary-container));
 
-    &.fi-blocked:where(.dark, .dark *),
-    &.fi-overdue:where(.dark, .dark *) {
-        background-color: color-mix(in oklab, var(--color-danger-400) 15%, transparent);
-        color: var(--color-danger-300);
+        &:where(.dark, .dark *) {
+            background-color: color-mix(in srgb, var(--warning-400, var(--md-sys-color-tertiary)) 22%, transparent);
+            color: var(--warning-200, var(--md-sys-color-on-tertiary-container));
+        }
+    }
+}
+
+.fi-board-due {
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
+    font-variant-numeric: tabular-nums;
+
+    &.fi-overdue {
+        color: var(--md-sys-color-error);
+        font-weight: 500;
     }
 }
 
 /* Initials rather than a photograph: a board shows forty of these and loads none of them. */
 .fi-board-avatar {
     display: inline-flex;
+    flex: none;
     align-items: center;
     justify-content: center;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-inline-start: auto;
+    width: 1.75rem;
+    height: 1.75rem;
     border-radius: 9999px;
-    background-color: var(--color-primary-600);
-    color: var(--color-white, #fff);
-    font-size: 0.5625rem;
-    font-weight: 700;
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 0.6875rem;
+    font-weight: 600;
 }
 
+/* The bar above the columns: the search pill, the filter chips, then the project and board pickers. */
 .fi-board-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
-.fi-board-project,
 .fi-board-search {
-    padding: 0.3125rem 0.625rem;
-    border: 1px solid var(--color-gray-300);
-    border-radius: 0.5rem;
-    background-color: var(--color-white, #fff);
-    font-size: 0.8125rem;
-    color: var(--color-gray-950);
+    order: 0;
+    flex: 0 1 18rem;
+    min-width: 12rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border: 0;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-surface-container-high);
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface);
 
-    &:where(.dark, .dark *) {
-        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
-        background-color: var(--color-gray-900);
-        color: var(--color-gray-100);
+    &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    &:focus {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 0;
     }
 }
 
 .fi-board-toggles {
+    order: 1;
     display: flex;
-    gap: 0.25rem;
-    margin-inline-start: auto;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
+/* Material filter chips: 32px, 8px corners, an outline; selected = secondary container with a check. */
 .fi-board-toggle {
-    padding: 0.3125rem 0.625rem;
-    border: 1px solid var(--color-gray-300);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2rem;
+    padding: 0 1rem;
+    border: 1px solid var(--md-sys-color-outline);
     border-radius: 0.5rem;
     background-color: transparent;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-gray-600);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
 
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 8%, transparent);
+    }
+
     &.fi-on {
-        border-color: var(--color-primary-600);
-        background-color: var(--color-primary-50);
-        color: var(--color-primary-700);
+        padding-inline-start: 0.5rem;
+        border-color: transparent;
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
     }
+}
 
-    &:where(.dark, .dark *) {
-        border-color: var(--color-white-10, rgb(255 255 255 / 0.1));
-        color: var(--color-gray-300);
-    }
+.fi-board-toggle-check {
+    flex: none;
+}
 
-    &.fi-on:where(.dark, .dark *) {
-        background-color: color-mix(in oklab, var(--color-primary-400) 15%, transparent);
-        color: var(--color-primary-300);
-    }
+/* The project and board pickers: outlined pill selects, pushed to the end of the row. */
+.fi-board-project {
+    order: 2;
+    height: 2.5rem;
+    padding: 0 2.25rem 0 1rem;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 9999px;
+    background-color: transparent;
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface);
+}
+
+.fi-board-toggles + .fi-board-project,
+.fi-board-search ~ .fi-board-project:first-of-type {
+    margin-inline-start: auto;
 }
 
 .fi-board-unmapped,
 .fi-board-empty {
-    margin: 0 0 0.75rem;
-    font-size: 0.8125rem;
-    color: var(--color-gray-500);
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Material segmented button — the board's List | Board | Timeline, before its header actions. */
+.fi-md-segmented {
+    display: inline-flex;
+    height: 2.5rem;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.fi-md-segment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface);
+    text-decoration: none;
+
+    & + & {
+        border-inline-start: 1px solid var(--md-sys-color-outline);
+    }
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+
+    &.fi-selected {
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+    }
 }
 
 /*
