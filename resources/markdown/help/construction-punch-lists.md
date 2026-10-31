@@ -87,3 +87,17 @@ anybody has done the work.
 Where the defect is a subcontractor's and you put it right yourself, that cost belongs
 on a back charge. An item with a cost, a responsible party and no back charge behind it
 is money absorbed with nothing saying so.
+
+## Changes made offline
+
+A field app working without a signal can mark a snag ready, record an inspection or
+agree it is not a defect, and send the change when it is back online. (The panel's own
+offline page does not offer this yet: changing a snag needs the item as it stood, and
+the panel keeps no copy of your data on the phone.) Two people can change the same item,
+so a change made offline is applied only if nobody else changed the item since the
+phone last read it.
+
+If somebody did — the office failed it at re-inspection while the foreman, offline,
+marked it ready — the item keeps what the office did. The foreman's change is not lost:
+it is written on the item's **notes**, saying who tried what and when, for somebody to
+look at. The phone is told the change was not applied.
