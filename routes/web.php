@@ -6,9 +6,15 @@ use App\Support\TenantStorage;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Route;
 
+// The home page of the public site (docs/company-website-plan.md W5), or — with the site switched
+// off for an installation that is not selling — the redirect into the admin panel it always was.
 Route::get('/', function () {
+    if ((bool) config('site.enabled', true)) {
+        return app(\App\Modules\Core\Http\Controllers\Site\SiteController::class)->home();
+    }
+
     return redirect(Filament::getPanel('admin')->getUrl());
-});
+})->name('site.home');
 
 // The public status page lives in app/Modules/Projects/routes/web.php.
 
