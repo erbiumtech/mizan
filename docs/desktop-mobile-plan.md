@@ -3,9 +3,9 @@
 > Written 2026-09-27 from a code inventory, not aspiration. Nothing below is built
 > unless marked so. **Phase 0 was answered 2026-10-30** (§2), and §7 is **built through
 > step 5 the same day**: M1 (the installable panel, which is D1), A3 (the push seam), M2
-> (push end to end), A4 and M3 (the bell and a manager's approvals over `/v1`). What each
-> answer settled is recorded beside its question; what remains is the O-series and the
-> gated M4/D2.
+> (push end to end), A4 and M3 (the bell and a manager's approvals over `/v1`), and **step 6
+> on 2026-10-31**: O1, the sync engine on attendance punches (§5a). What each answer settled is
+> recorded beside its question; what remains is O2–O5 and the gated M4/D2.
 
 ## 0. What is true today, and the one fact that reorders everything
 
@@ -224,13 +224,36 @@ syncing, tell the user", per the modules-plan risk note.
 
 | Phase | What | Proves / adds | Gate |
 |---|---|---|---|
-| O1 | Engine core + **attendance punches** | Outbox, inbox idempotency, cursor reads — on the simplest append-only shape there is | A1, A2 |
+| O1 | Engine core + **attendance punches** — **built 2026-10-31** (`OfflineSyncTest`) | Outbox, inbox idempotency, cursor reads — on the simplest append-only shape there is | A1, A2 |
 | O2 | **Construction field**: daily logs, punch lists, inspections, photos | Blob queue, the one mutable-document policy (`base_version`), site-day offline windows | O1 |
 | O3 | **MPR field entry**: compose offline, sync up | First write API for MPRs (today read-only), draft states | O1 |
 | O4 | **Retail till**: offline sales | Staged-sale posting through the ledger door | O1 **and** the retail plan's own phases 1–2 (stores/tills exist) |
 
 Each phase lands with its own feature tests: replay-idempotency, out-of-order delivery,
 the stale-`base_version` conflict trail, and a killed-mid-batch resume.
+
+**O1 — Built 2026-10-31** (`OfflineSyncTest`). The engine is `App\Support\Sync`: a `SyncWorkflow`
+contract (key, module, payload rules, `apply()`, `changesSince()`), a `SyncWorkflows` registry a module
+fills in its provider's boot, and `SyncInbox`, which applies a batch strictly in received order, one
+transaction per command, and records every command in the tenant `sync_commands` table keyed on the
+client ULID — a replay answers from the row with its original result and `received_at`; a refusal the
+workflow throws as `InvalidArgumentException` is recorded as `rejected` (422) and answers the same way
+on replay; a failure of ours is not recorded, stops the batch (`failed`, the rest `skipped`) and is
+retried by the device; a ULID another account sent is a `conflict` (409). `captured_at` is kept and never
+ordered by. Routes are mounted by the owning module under its own gate — `POST /api/v1/sync/attendance`
+and `GET /api/v1/sync/attendance/changes` in Attendance's `routes/api.php`, `/v1` only — and the panel's
+offline page replays through a session route, `POST /{company}/sync/attendance`, to the same controller.
+The read pages on an `updated_at`+id cursor (`SyncCursor`) within `EmployeeAccess`; attendance has no
+tombstones because a day is never soft-deleted, and `deleted` is always empty there. The punch itself is
+`AttendanceRecorder::punch($employee, $at, …)`, which `clock()` now calls with `now()`: the earlier moment of
+a day's two punches is the check-in whichever arrives first, a punch within a minute of the check-in is
+the same tap twice, a third is refused as before. The client outbox (`resources/pwa/outbox.js`, inlined
+into the offline page and the panel) is IndexedDB rows replayed in ULID order on load and on `online`,
+with backoff; 401/419 and 403 stop it and are shown, not retried. The offline page grows a "clock in /
+out now" button when the panel has told the browser the signed-in person is an employee of a company
+with attendance. Deviations from the sketch above: the inbox URL has a fixed segment per workflow
+rather than a free `{workflow}`, because the module gate on a punch has to be attendance's; and the
+device/token id is recorded when the caller holds a personal access token, null from the panel.
 
 ## 5b. Whole-ERP offline replication: what it would take (asked 2026-09-27, costed here)
 
@@ -300,7 +323,7 @@ retail plan's own phases, not this document.
 | 3 | M1 PWA + mobile polish — **built 2026-10-30** (D1 with it) | Phase 0 Q1/Q2 |
 | 4 | A3 push seam + M2 delivery — **built 2026-10-30** | Phase 0 Q4 |
 | 5 | A4 + M3 approvals — **built 2026-10-30** | Phase 0 Q2 |
-| 6 | O1 engine + attendance punches | A1, A2 |
+| 6 | O1 engine + attendance punches — **built 2026-10-31** | A1, A2 |
 | 7 | O2 construction field offline | O1 |
 | 8 | O3 MPR offline entry | O1 |
 | 9 | M4 Capacitor / D2 Tauri | a named need, in writing |
