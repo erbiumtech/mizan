@@ -23,5 +23,7 @@
     @else
         @include('filament.work.columns', ['columns' => $columns])
     @endif
+
+    @include('filament.work.item-panel', ['panel' => $this->panel()])
 </div>
 </x-filament-panels::page>
