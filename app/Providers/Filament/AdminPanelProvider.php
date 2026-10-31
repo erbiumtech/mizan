@@ -230,14 +230,14 @@ class AdminPanelProvider extends PanelProvider
                 // body for that one's would run new markup against JS that was booted for neither.
                 '*/platform*',
             ])
-            // 248px, the width of 3a's contextual column. The column is narrower than Filament's
-            // default because it now shows one domain at a time rather than every group at once —
-            // see NavigationDomains, and the rail registered at LAYOUT_START below.
-            ->sidebarWidth('248px')
-            // The column folds away entirely, leaving the rail. "Fully" rather than Filament's other
-            // collapsible mode on purpose: that one shrinks the column to a strip of icons, and beside
-            // an 84px rail of icons that is two icon columns saying different things. Remembered per
-            // person by Filament's own sidebar store.
+            // 264px: the column is Material's navigation drawer beside the rail (nav-drawer partial),
+            // one domain at a time, with 56px items long enough for "Attendance Regularizations".
+            // See NavigationDomains, and the rail registered at LAYOUT_START below.
+            ->sidebarWidth('264px')
+            // The drawer folds away entirely, leaving the rail — the button at the foot of the rail.
+            // "Fully" rather than Filament's other collapsible mode on purpose: that one shrinks the
+            // column to a strip of icons, and beside a rail of icons that is two icon columns saying
+            // different things. Remembered per person by Filament's own sidebar store.
             ->sidebarFullyCollapsibleOnDesktop()
             ->login()
             // "Forgot password?" on the login page, for every role that signs in here —
@@ -355,11 +355,12 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::LAYOUT_START,
                 fn (): string => view('filament.partials.domain-rail')->render(),
             )
-            // Says which domain the column is showing. Above the groups, below the company
-            // switcher — the rail alone leaves "what am I looking at" unanswered in words.
+            // The navigation drawer: every domain's screens, one domain on screen at a time, swapped
+            // by the rail without a request. Inside Filament's own column, so it docks, folds and
+            // becomes a modal sheet on a phone exactly as the column always has.
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_START,
-                fn (): string => view('filament.partials.domain-heading')->render(),
+                fn (): string => view('filament.partials.nav-drawer')->render(),
             )
             // Groups are seeded closed (see DomainNavigationManager::collapsed); this opens the one
             // holding the current page, which Filament does not do on its own. Must stay at

@@ -205,140 +205,145 @@ class NavigationDomainsTest extends TestCase
         $this->assertSame('Home', $this->activeDomainOn(Filament::getPanel('admin')->getUrl($this->company)));
     }
 
-    // ---------------------------------------------------------------- the flyouts
+    // ------------------------------------------------------- the rail and drawer
 
     /**
-     * The rail carries every domain's whole tree, not just the open one's.
+     * The drawer carries every domain's screens, not just the open one's.
      *
-     * This is what changed when the column stopped being permanent: the rail is the only navigation on
-     * screen by default, so hovering Finance from an Employees page has to be able to offer Finance's
-     * screens. Asserted from a People page against Finance's and Admin's contents, so it fails if the
-     * flyouts ever narrow to the current domain.
+     * Choosing a destination on the rail swaps the drawer without a request, so hovering nothing and
+     * fetching nothing, the Finance panel has to be on an Employees page already. Asserted from a People
+     * page against Finance's, Admin's and Sales' contents, so it fails if the drawer ever narrows to the
+     * current domain.
      */
-    public function test_the_rail_carries_every_domains_tree(): void
+    public function test_the_drawer_carries_every_domains_screens(): void
     {
         $html = $this->get(
             \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::getUrl('index'),
         )->assertOk()->getContent();
 
-        // One flyout per domain in the rail.
+        // One panel per domain on the rail.
         $this->assertSame(
             count(\App\Support\NavigationDomains::rail($this->fullNavigation())),
-            substr_count($html, 'class="fi-domain-flyout"'),
-            'a domain in the rail has no flyout',
+            substr_count($html, 'class="fi-nav-drawer-panel"'),
+            'a domain on the rail has no drawer panel',
         );
 
-        // Contents from three different domains, none of them the one being viewed.
         foreach (['Chart Of Accounts', 'Journal Entries', 'Roles', 'Fiscal Years', 'Leads'] as $elsewhere) {
-            $this->assertStringContainsString($elsewhere, $html, "the rail cannot reach {$elsewhere}");
+            $this->assertStringContainsString($elsewhere, $html, "the drawer cannot reach {$elsewhere}");
         }
     }
 
     /**
-     * Every flyout fits without scrolling.
+     * The drawer opens on the screen's own domain, before any script runs.
      *
-     * A scroll inside a hover panel is worse than the column it replaced — it is lost the moment the
-     * pointer leaves, and you cannot see what you are choosing between. The packing in
-     * NavigationDomains::columns is what prevents it, so what is asserted is its output: a column is
-     * either within the row budget or holds exactly one group that is too big for any column, which is
-     * the one case the packer is documented not to fix.
+     * Every other panel carries `hidden` in the markup, so the first paint is right on a slow phone and
+     * with scripts off; Alpine then follows the rail.
      */
-    public function test_no_flyout_column_overflows_its_row_budget(): void
+    public function test_the_drawer_shows_the_current_domain_and_hides_the_rest(): void
     {
-        $navigation = $this->fullNavigation();
+        $html = $this->get(
+            \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::getUrl('index'),
+        )->assertOk()->getContent();
 
-        foreach (\App\Support\NavigationDomains::keys() as $domain) {
-            $columns = \App\Support\NavigationDomains::columns(
-                \App\Support\NavigationDomains::filter($navigation, $domain),
-            );
+        preg_match_all('/<section\s+class="fi-nav-drawer-panel"\s+data-domain="([a-z]+)"(.*?)>/s', $html, $panels, PREG_SET_ORDER);
 
-            foreach ($columns as $index => $column) {
-                $rows = 0;
+        $this->assertNotEmpty($panels, 'no drawer panels rendered');
 
-                foreach ($column as $group) {
-                    $rows += 1 + count(collect($group->getItems())->all());
-                }
+        $visible = array_values(array_map(
+            fn (array $panel): string => $panel[1],
+            array_filter($panels, fn (array $panel): bool => ! preg_match('/\shidden(\s|$)/', $panel[2])),
+        ));
 
-                if (count($column) === 1) {
-                    continue;
-                }
+        $this->assertSame(['finance'], $visible);
 
-                $this->assertLessThanOrEqual(
-                    14,
-                    $rows,
-                    "[{$domain}] flyout column {$index} holds {$rows} rows and would scroll",
-                );
-            }
-        }
+        // The branch holding the screen is open, and the screen is marked.
+        $this->assertMatchesRegularExpression('/<details class="fi-nav-drawer-branch"\s+open>/', $html);
+        $this->assertMatchesRegularExpression('/fi-nav-drawer-item fi-active"[^>]*aria-current="page"/', $html);
     }
 
-    /** A group is never split across two columns — a heading without its items reads as a new group. */
-    public function test_a_group_is_never_split_across_flyout_columns(): void
+    /** The rail's own controls: search, then the domains, then fold the drawer and switch the theme. */
+    public function test_the_rail_carries_search_and_its_two_buttons(): void
     {
-        $navigation = $this->fullNavigation();
+        $html = $this->get(Filament::getPanel('admin')->getUrl($this->company))->assertOk()->getContent();
 
-        foreach (\App\Support\NavigationDomains::keys() as $domain) {
-            $columns = \App\Support\NavigationDomains::columns(
-                \App\Support\NavigationDomains::filter($navigation, $domain),
-            );
+        $this->assertStringContainsString('class="fi-domain-rail-search"', $html);
+        $this->assertStringContainsString('open-command-palette', $html);
+        $this->assertSame(2, substr_count($html, 'class="fi-domain-rail-action"'));
+        $this->assertStringContainsString("\$dispatch('theme-changed'", $html);
+        $this->assertStringContainsString('$store.sidebar.close()', $html);
+    }
 
-            $seen = [];
+    /** A module that is switched off takes its screens out of the drawer, not just out of the column. */
+    public function test_a_switched_off_module_is_absent_from_the_drawer(): void
+    {
+        \App\Modules\Core\Models\CompanyModule::updateOrCreate(
+            ['company_id' => $this->company->getKey(), 'module' => 'crm'],
+            ['licensed' => false, 'enabled' => false],
+        );
+        modules()->flush();
 
-            foreach ($columns as $column) {
-                foreach ($column as $group) {
-                    $label = $group->getLabel() ?? '';
+        $html = $this->get(
+            \App\Modules\Employees\Filament\Resources\Employees\EmployeeResource::getUrl('index'),
+        )->assertOk()->getContent();
 
-                    $this->assertNotContains($label, $seen, "[{$domain}] {$label} appears in two columns");
-
-                    $seen[] = $label;
-                }
-            }
-        }
+        $this->assertStringNotContainsString(
+            \App\Modules\Crm\Filament\Resources\Leads\LeadResource::getUrl('index'),
+            $html,
+            'a switched-off module still has a link in the drawer',
+        );
     }
 
     /**
-     * The Reports flyout carries the report categories, not the hub's single link.
+     * Reports lists its categories in the drawer, with each category's reports on a reports page.
      *
-     * Those categories used to live in the column, and the column is closed by default — so without
-     * them here, filtering reports by category would need a panel opened to work around the rail that
-     * replaced it. The domain holds one navigation entry, so this is also the one flyout that would
-     * otherwise say less than its own icon.
+     * Elsewhere the categories alone, as the flyout carried them — fifty-odd report links on every page
+     * would be bytes PanelPerformanceTest has a ceiling on.
      */
-    public function test_the_reports_flyout_carries_the_categories(): void
+    public function test_the_reports_panel_carries_the_categories(): void
     {
         $html = $this->get(Reports::getUrl())->assertOk()->getContent();
 
-        preg_match('/<div class="fi-domain-flyout" role="group" aria-label="Reports">(.*?)<\/div>\s*<\/li>/s', $html, $flyout);
+        preg_match('/<section\s+class="fi-nav-drawer-panel"\s+data-domain="reports".*?<\/section>/s', $html, $panel);
 
-        $this->assertNotEmpty($flyout, 'the Reports domain has no flyout');
+        $this->assertNotEmpty($panel, 'the Reports domain has no drawer panel');
 
-        // Decoded, because "Receivables & payables" is escaped in the markup.
-        $panel = html_entity_decode($flyout[1], ENT_QUOTES);
+        $panel = html_entity_decode($panel[0], ENT_QUOTES);
 
         foreach (array_keys(Reports::sectionCounts()) as $section) {
-            $this->assertStringContainsString($section, $panel, "the Reports flyout omits {$section}");
+            $this->assertStringContainsString($section, $panel, "the Reports panel omits {$section}");
         }
 
         $this->assertStringContainsString('All reports', $panel);
-
-        // Linked with the filter the page reads, so the flyout and the column agree.
         $this->assertStringContainsString('section='.urlencode('Payroll & tax'), $panel);
     }
 
     /**
-     * The column starts closed, which is what hands the width back.
+     * The drawer starts closed on a phone and open on a desktop.
      *
-     * Seeded in the browser rather than configured on the panel — Filament has no "start collapsed"
-     * option and the state lives in localStorage — so what is asserted is that the seeding is present
-     * and that it only applies when nothing is stored, leaving it a preference rather than a reset on
-     * every page load.
+     * Seeded in the browser — Filament has no option for it and the state lives in localStorage — so
+     * what is asserted is that only the phone's key is seeded, and only when nothing is stored.
      */
-    public function test_the_column_starts_closed_without_overriding_a_choice(): void
+    public function test_the_drawer_starts_closed_on_a_phone_only(): void
     {
         $html = $this->get(Filament::getPanel('admin')->getUrl($this->company))->assertOk()->getContent();
 
-        $this->assertStringContainsString("localStorage.setItem(key, 'false')", $html);
-        $this->assertStringContainsString('localStorage.getItem(key) === null', $html);
+        $this->assertStringContainsString("localStorage.getItem('isOpen') === null", $html);
+        $this->assertStringContainsString("localStorage.setItem('isOpen', 'false')", $html);
+        $this->assertStringNotContainsString("'isOpenDesktop'", $html);
+    }
+
+    /** In Urdu the shell is right to left and the rail and drawer speak Urdu. */
+    public function test_the_rail_and_drawer_render_right_to_left(): void
+    {
+        auth()->user()->forceFill(['preferences' => ['locale' => 'ur']])->save();
+
+        $html = $this->get(
+            \App\Modules\Accounting\Filament\Resources\Accounts\AccountResource::getUrl('index'),
+        )->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/<html[^>]*dir="rtl"/', $html);
+        $this->assertStringContainsString('<span class="fi-domain-rail-item-label">'.__('Finance', [], 'ur').'</span>', $html);
+        $this->assertStringContainsString('<h2 class="fi-nav-drawer-headline">'.__('Finance', [], 'ur').'</h2>', $html);
     }
 
     // ------------------------------------------------------------- other panels

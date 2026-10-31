@@ -24,6 +24,9 @@ class NavigationSnapshot
     /** @var array<NavigationGroup>|null */
     private ?array $groups = null;
 
+    /** @var array<int, array<string, mixed>>|null */
+    private ?array $rail = null;
+
     /**
      * Every group, unfiltered — including the domains the current request is not in.
      *
@@ -34,5 +37,18 @@ class NavigationSnapshot
         return $this->groups ??= DomainNavigationManager::withoutFiltering(
             fn (): array => Filament::getCurrentOrDefaultPanel()?->getNavigation() ?? [],
         );
+    }
+
+    /**
+     * The rail's domains with their trees — NavigationDomains::rail() over the groups above.
+     *
+     * Read by the rail and by the drawer beside it, so it is worked out once: rail() asks every
+     * claimed page whether it can be opened, and that is a permission check per page.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function rail(): array
+    {
+        return $this->rail ??= \App\Support\NavigationDomains::rail($this->groups());
     }
 }
