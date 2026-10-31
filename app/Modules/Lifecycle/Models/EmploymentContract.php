@@ -81,6 +81,7 @@ class EmploymentContract extends Model
 
     public function typeLabel(): string
     {
-        return self::TYPES[$this->type] ?? ucfirst((string) $this->type);
+        // The types are an admin-managed list now (lifecycle.employment_contract_type), not a constant.
+        return options('lifecycle.employment_contract_type', $this->type)[$this->type] ?? ucfirst((string) $this->type);
     }
 }

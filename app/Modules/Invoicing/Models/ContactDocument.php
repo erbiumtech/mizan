@@ -60,6 +60,7 @@ class ContactDocument extends Model
 
     public function kindLabel(): string
     {
-        return self::KINDS[$this->kind] ?? ucfirst($this->kind);
+        // The kinds are an admin-managed list now (invoicing.contact_document_kind), not a constant.
+        return options('invoicing.contact_document_kind', $this->kind)[$this->kind] ?? ucfirst((string) $this->kind);
     }
 }
