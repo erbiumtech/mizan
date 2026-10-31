@@ -336,19 +336,11 @@ class AdminPanelProvider extends PanelProvider
             // content, so the rail becomes a peer of both and no Filament view needed publishing.
             // What it contains is decided by App\Support\NavigationDomains; the sidebar beside it
             // is narrowed to the same domain by DomainNavigationManager, bound in register().
-            /*
-             * The right-click menu's off switch — `docs/table-context-menu-plan.md` §4.
-             *
-             * In the user menu because it has to be somewhere the menu itself is not: the context menu carries
-             * the same toggle, which is where somebody annoyed by it will look, but a menu that has just
-             * switched itself off cannot switch itself back on.
-             */
-            ->renderHook(
-                PanelsRenderHook::USER_MENU_AFTER,
-                fn (): string => view('filament.partials.table-context-menu-toggle')->render(),
-            )
-            // Notifications on this device — docs/desktop-mobile-plan.md M2. Beside the context-menu
-            // switch because both are per-device preferences; renders nothing without VAPID keys.
+            // The right-click menu's off switch is no longer here: it lives on the profile page, the
+            // person's own settings, which the user menu always reaches — EditProfile and
+            // docs/table-context-menu-plan.md §4.
+            // Notifications on this device — docs/desktop-mobile-plan.md M2; renders nothing without
+            // VAPID keys.
             ->renderHook(
                 PanelsRenderHook::USER_MENU_AFTER,
                 fn (): string => view('filament.partials.push-subscribe')->render(),
@@ -419,6 +411,13 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn (): string => view('filament.partials.command-palette-trigger')->render(),
+            )
+            // The one logo, with the company's name, after the search bar and before the bell and
+            // the avatar — Material's top app bar. It is the company switcher too; Filament's own
+            // brand and tenant menu are hidden so nothing repeats it (material.css).
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn (): string => view('filament.partials.company-brand')->render(),
             )
             /*
              * No topbar trigger for the command bar — it has a floating bubble instead.

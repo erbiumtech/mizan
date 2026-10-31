@@ -1,9 +1,11 @@
 {{--
-    The right-click menu's off switch, in the user menu — docs/table-context-menu-plan.md §4.
+    The right-click menu's switch, on the profile page — docs/table-context-menu-plan.md §4.
 
     **This is the route back.** The context menu carries the same toggle, because that is where somebody
     annoyed by it will look — but a menu that has just switched itself off cannot switch itself back on,
-    so the preference needs a home that is always reachable. This is it.
+    so the preference needs a home that is always reachable. It used to be a line in the user menu; it is
+    now a row on the person's own settings page (EditProfile), which the user menu always opens, drawn as
+    Material's switch: on means the menus appear.
 
     Alpine rather than a script tag, and the distinction is §2's: the concern there is body scripts being
     re-executed on every `wire:navigate` and stacking `addEventListener` calls. `x-data` and `x-on:click`
@@ -17,7 +19,7 @@
 
     **The server holds the preference now; localStorage is its mirror.** The script reconciles the mirror
     from a server-rendered meta tag at load and exposes `window.tableContextMenuPersist`, the one POST
-    implementation — this toggle calls it rather than carrying a second copy of the fetch. The optional
+    implementation — this switch calls it rather than carrying a second copy of the fetch. The optional
     chaining is the graceful half: with the script somehow absent, the mirror still flips and this device
     still behaves.
 --}}
@@ -55,16 +57,25 @@
             window.tableContextMenuPersist?.(this.off)
         },
     }"
-    class="fi-dropdown-list"
+    class="fi-md-switch-row"
 >
+    <div class="fi-md-switch-row-text">
+        <span id="table-context-menu-switch-label" class="fi-md-switch-row-title">{{ __('Right-click menus') }}</span>
+        <span id="table-context-menu-switch-help" class="fi-md-switch-row-supporting">
+            {{ __('Right-clicking a row in a table opens its actions. Shift + right-click always gives the browser\'s own menu.') }}
+        </span>
+    </div>
+
     <button
         type="button"
+        role="switch"
         x-on:click="toggle()"
-        class="fi-dropdown-list-item"
+        x-bind:aria-checked="(! off).toString()"
+        aria-checked="true"
+        aria-labelledby="table-context-menu-switch-label"
+        aria-describedby="table-context-menu-switch-help"
+        class="fi-md-switch"
     >
-        <span class="fi-dropdown-list-item-label">
-            <span x-show="! off">{{ __('Turn off right-click menus') }}</span>
-            <span x-show="off" x-cloak>{{ __('Turn on right-click menus') }}</span>
-        </span>
+        <span class="fi-md-switch-handle"></span>
     </button>
 </div>

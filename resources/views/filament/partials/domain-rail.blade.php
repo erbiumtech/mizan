@@ -43,15 +43,9 @@
     </script>
 
     <nav class="fi-domain-rail" aria-label="{{ __('Domains') }}">
-        <a
-            {{-- The panel is in SPA mode; without this the brand mark is the one link in the shell
-                 that reloads the document. --}}
-            {{ \Filament\Support\generate_href_html(filament()->getUrl()) }}
-            class="fi-domain-rail-brand"
-            aria-label="{{ filament()->getBrandName() }}"
-        >
-            <img src="{{ filament()->getBrandLogo() }}" alt="" class="fi-domain-rail-brand-logo">
-        </a>
+        {{-- No brand mark here any more: the logo appears once, with the company's name, in the topbar
+             (company-brand partial), and that is the link home the mark used to be. The rail starts
+             with its first destination — Material's navigation rail. --}}
 
         @php($iconSprite = app(\App\Support\IconSprite::class))
 

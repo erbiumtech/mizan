@@ -153,6 +153,11 @@ class PlatformPanelProvider extends PanelProvider
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn (): string => view('filament.partials.command-palette-trigger')->render(),
             )
+            // The one logo and name, top right, as on the admin panel (company-brand partial).
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn (): string => view('filament.partials.company-brand')->render(),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
