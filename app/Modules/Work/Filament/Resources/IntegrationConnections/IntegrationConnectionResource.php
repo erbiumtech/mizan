@@ -62,7 +62,7 @@ class IntegrationConnectionResource extends Resource
     {
         return $schema->components([
             Select::make('provider')
-                ->label('Provider')
+                ->label(__('Provider'))
                 ->options(fn (): array => Integrations::options())
                 ->required()
                 ->native(false)
@@ -85,7 +85,7 @@ class IntegrationConnectionResource extends Resource
              * is encrypted and never shown again.
              */
             Radio::make('auth_kind')
-                ->label('Authenticates as')
+                ->label(__('Authenticates as'))
                 ->options([
                     IntegrationConnection::AUTH_APP => 'A GitHub App installation (recommended)',
                     IntegrationConnection::AUTH_TOKEN => 'A personal access token',
@@ -97,7 +97,7 @@ class IntegrationConnectionResource extends Resource
                 ->disabledOn('edit'),
 
             TextInput::make('credentials.installation_id')
-                ->label('Installation id')
+                ->label(__('Installation id'))
                 ->numeric()
                 ->visible(fn (Get $get): bool => $get('provider') === 'github' && $get('auth_kind') === IntegrationConnection::AUTH_APP)
                 ->required(fn (Get $get): bool => $get('provider') === 'github' && $get('auth_kind') === IntegrationConnection::AUTH_APP)
@@ -106,24 +106,24 @@ class IntegrationConnectionResource extends Resource
                     : 'The server has no GitHub App configured yet: set WORK_GITHUB_APP_ID and WORK_GITHUB_PRIVATE_KEY, or use a personal access token.'),
 
             TextInput::make('credentials.username')
-                ->label('Bitbucket username')
+                ->label(__('Bitbucket username'))
                 ->visible(fn (Get $get): bool => $get('provider') === 'bitbucket')
                 ->helperText('With an app password. Leave empty when pasting a workspace access token below.'),
 
             TextInput::make('credentials.workspace')
-                ->label('Bitbucket workspace')
+                ->label(__('Bitbucket workspace'))
                 ->visible(fn (Get $get): bool => $get('provider') === 'bitbucket')
                 ->required(fn (Get $get): bool => $get('provider') === 'bitbucket')
                 ->helperText('The workspace slug, as in bitbucket.org/<workspace>/.'),
 
             TextInput::make('credentials.workspace_id')
-                ->label('Clockify workspace id')
+                ->label(__('Clockify workspace id'))
                 ->visible(fn (Get $get): bool => $get('provider') === 'clockify')
                 ->required(fn (Get $get): bool => $get('provider') === 'clockify')
                 ->helperText('From the workspace settings URL in Clockify.'),
 
             TextInput::make('credentials.api_key')
-                ->label('Clockify API key')
+                ->label(__('Clockify API key'))
                 ->password()
                 ->revealable()
                 ->visible(fn (Get $get): bool => $get('provider') === 'clockify')
@@ -146,7 +146,7 @@ class IntegrationConnectionResource extends Resource
                 ->helperText('GitHub: repo and admin:repo_hook. GitLab: api. Bitbucket: repositories and webhooks read/write. Stored encrypted and never shown again; leave empty to keep the current one.'),
 
             TextInput::make('base_url')
-                ->label('Instance URL')
+                ->label(__('Instance URL'))
                 ->url()
                 ->visible(fn (Get $get): bool => in_array($get('provider'), ['github', 'gitlab'], true))
                 ->placeholder(fn (Get $get): string => $get('provider') === 'gitlab' ? 'https://gitlab.example.com' : 'https://api.github.com')
@@ -176,16 +176,16 @@ class IntegrationConnectionResource extends Resource
                         default => 'success',
                     }),
 
-                TextColumn::make('repositories_count')->label('Repositories')->alignEnd(),
+                TextColumn::make('repositories_count')->label(__('Repositories'))->alignEnd(),
 
                 TextColumn::make('unmatched_count')
-                    ->label('Unmatched identities')
+                    ->label(__('Unmatched identities'))
                     ->alignEnd()
                     ->color(fn (int $state): ?string => $state > 0 ? 'warning' : null),
 
-                TextColumn::make('last_event_at')->label('Last delivery')->since()->placeholder('never'),
+                TextColumn::make('last_event_at')->label(__('Last delivery'))->since()->placeholder('never'),
 
-                TextColumn::make('last_failure')->label('Last failure')->placeholder('—')->wrap()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('last_failure')->label(__('Last failure'))->placeholder('—')->wrap()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('label')
             ->recordActions([
@@ -195,7 +195,7 @@ class IntegrationConnectionResource extends Resource
                 // Manual resume, for the administrator who has fixed the token and does not want to
                 // wait out the ten minutes.
                 Action::make('resume')
-                    ->label('Resume')
+                    ->label(__('Resume'))
                     ->icon('heroicon-o-play')
                     ->color('success')
                     ->visible(fn (IntegrationConnection $record): bool => $record->status !== IntegrationConnection::ACTIVE

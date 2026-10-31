@@ -67,7 +67,7 @@ class WorkItemForm
                     // The thread summary — §12, assist 2. Marked as generated, with when; absent
                     // until somebody asked for one.
                     Placeholder::make('ai_summary')
-                        ->label('Thread, summarised')
+                        ->label(__('Thread, summarised'))
                         ->columnSpanFull()
                         ->visible(fn (?WorkItem $record): bool => $record?->ai_summary !== null)
                         ->content(fn (?WorkItem $record): HtmlString => new HtmlString(
@@ -119,7 +119,7 @@ class WorkItemForm
                     // gone out yet: promising an item into something already shipped is a changelog
                     // that rewrites itself.
                     Select::make('release_id')
-                        ->label('Release')
+                        ->label(__('Release'))
                         ->options(fn (Get $get, ?WorkItem $record): array => WorkRelease::query()
                             ->when($get('project_id'), fn ($q, $project) => $q->where('project_id', $project))
                             ->where(fn ($q) => $q->whereNull('released_on')
@@ -194,12 +194,12 @@ class WorkItemForm
                 ->description('Logged here or synced in. Log time with the button above; the week\'s timesheet, payroll and invoicing all see it as time.')
                 ->schema([
                     Placeholder::make('time_logged')
-                        ->label('Logged')
+                        ->label(__('Logged'))
                         ->content(fn (?WorkItem $record): string => $record === null ? '—'
                             : WorkTime::duration(app(WorkTime::class)->summaryFor($record)['logged'])),
 
                     Placeholder::make('time_remaining')
-                        ->label('Remaining')
+                        ->label(__('Remaining'))
                         ->content(function (?WorkItem $record): string {
                             $summary = $record === null ? null : app(WorkTime::class)->summaryFor($record);
 
@@ -209,7 +209,7 @@ class WorkItemForm
                         }),
 
                     Placeholder::make('time_cost')
-                        ->label('Cost')
+                        ->label(__('Cost'))
                         ->content(function (?WorkItem $record): string {
                             $summary = $record === null ? null : app(WorkTime::class)->summaryFor($record);
 
@@ -223,7 +223,7 @@ class WorkItemForm
                         }),
 
                     Placeholder::make('time_entries')
-                        ->label('Entries')
+                        ->label(__('Entries'))
                         ->columnSpanFull()
                         ->content(fn (?WorkItem $record): HtmlString => new HtmlString(
                             $record === null ? '—' : self::entriesTable(app(WorkTime::class)->entriesFor($record)),

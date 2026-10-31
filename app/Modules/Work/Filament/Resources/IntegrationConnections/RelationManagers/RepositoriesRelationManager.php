@@ -42,12 +42,12 @@ class RepositoriesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('full_name')
             ->columns([
-                TextColumn::make('full_name')->label('Repository')->searchable()
+                TextColumn::make('full_name')->label(__('Repository'))->searchable()
                     ->url(fn (WorkRepository $record): ?string => $record->url, shouldOpenInNewTab: true),
-                TextColumn::make('project.name')->label('Project'),
-                TextColumn::make('default_branch')->label('Default branch'),
+                TextColumn::make('project.name')->label(__('Project')),
+                TextColumn::make('default_branch')->label(__('Default branch')),
                 TextColumn::make('webhook_id')
-                    ->label('Hook')
+                    ->label(__('Hook'))
                     ->badge()
                     ->state(fn (WorkRepository $record): string => match (true) {
                         ! $record->isLinked() => 'Unlinked',
@@ -59,16 +59,16 @@ class RepositoriesRelationManager extends RelationManager
                         filled($record->webhook_id) => 'success',
                         default => 'danger',
                     }),
-                TextColumn::make('linked_at')->label('Linked')->since(),
+                TextColumn::make('linked_at')->label(__('Linked'))->since(),
             ])
             ->headerActions([
                 Action::make('link')
-                    ->label('Link repository')
+                    ->label(__('Link repository'))
                     ->icon('heroicon-o-link')
                     ->visible(fn (): bool => auth()->user()?->can('create', WorkRepository::class) ?? false)
                     ->schema(fn (): array => [
                         Select::make('repository')
-                            ->label('Repository')
+                            ->label(__('Repository'))
                             ->options(function (): array {
                                 /** @var IntegrationConnection $connection */
                                 $connection = $this->getOwnerRecord();
@@ -87,7 +87,7 @@ class RepositoriesRelationManager extends RelationManager
                             ->required(),
 
                         Select::make('project_id')
-                            ->label('Project')
+                            ->label(__('Project'))
                             ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
                             ->required(),
@@ -115,7 +115,7 @@ class RepositoriesRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('rehook')
-                    ->label('Register hook')
+                    ->label(__('Register hook'))
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn (WorkRepository $record): bool => $record->isLinked() && blank($record->webhook_id)
                         && (auth()->user()?->can('update', $record) ?? false))
@@ -134,7 +134,7 @@ class RepositoriesRelationManager extends RelationManager
                     }),
 
                 Action::make('unlink')
-                    ->label('Unlink')
+                    ->label(__('Unlink'))
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->requiresConfirmation()

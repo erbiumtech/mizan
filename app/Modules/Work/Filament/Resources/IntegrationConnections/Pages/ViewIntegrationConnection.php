@@ -54,22 +54,22 @@ class ViewIntegrationConnection extends ViewRecord
                         ->color(fn (IntegrationConnection $record): string => $record->isOpen() ? 'success' : 'warning'),
 
                     TextEntry::make('auth_kind')
-                        ->label('Authenticates as')
+                        ->label(__('Authenticates as'))
                         ->formatStateUsing(fn (string $state): string => IntegrationConnection::AUTH_KINDS[$state] ?? $state),
 
-                    TextEntry::make('last_event_at')->label('Last delivery')->since()->placeholder('never'),
+                    TextEntry::make('last_event_at')->label(__('Last delivery'))->since()->placeholder('never'),
 
                     TextEntry::make('consecutive_failures')
-                        ->label('Failures in a row')
+                        ->label(__('Failures in a row'))
                         ->helperText(fn (IntegrationConnection $record): ?string => $record->last_failure),
 
                     TextEntry::make('waiting')
-                        ->label('Deliveries waiting')
+                        ->label(__('Deliveries waiting'))
                         ->state(fn (IntegrationConnection $record): int => $record->eventsWaitingOnIdentity())
                         ->helperText('Received and not yet processed, or failed and waiting on a fix.'),
 
                     TextEntry::make('hook_url')
-                        ->label('Delivers to')
+                        ->label(__('Delivers to'))
                         ->state(fn (IntegrationConnection $record): string => app(CodeHosts::class)->hookUrl($record))
                         ->copyable()
                         ->columnSpanFull()

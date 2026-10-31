@@ -48,7 +48,7 @@ class WorkItemAssigned extends Notification implements CategorisedNotification, 
             ->icon('heroicon-o-user-circle')
             ->info()
             ->actions([
-                Action::make('open')->label('Open')->url(WorkItemResource::getUrl('edit', ['record' => $this->item->getKey()])),
+                Action::make('open')->label(__('Open'))->url(WorkItemResource::getUrl('edit', ['record' => $this->item->getKey()])),
             ])
             ->getDatabaseMessage();
     }

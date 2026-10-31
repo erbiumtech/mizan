@@ -30,11 +30,11 @@ class EventsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('provider_event_id')
             ->columns([
-                TextColumn::make('received_at')->label('Received')->dateTime('d M H:i:s')->sortable(),
+                TextColumn::make('received_at')->label(__('Received'))->dateTime('d M H:i:s')->sortable(),
                 TextColumn::make('type')->badge()->color('gray'),
-                TextColumn::make('provider_event_id')->label('Delivery id')->limit(18)->copyable(),
+                TextColumn::make('provider_event_id')->label(__('Delivery id'))->limit(18)->copyable(),
                 TextColumn::make('processed_at')
-                    ->label('State')
+                    ->label(__('State'))
                     ->badge()
                     ->state(fn (IntegrationEvent $record): string => match (true) {
                         $record->processed_at !== null => 'Processed',
@@ -50,11 +50,11 @@ class EventsRelationManager extends RelationManager
             ])
             ->defaultSort('received_at', 'desc')
             ->filters([
-                Filter::make('failed')->label('Failed only')->query(fn (Builder $q) => $q->whereNotNull('failed_at')),
+                Filter::make('failed')->label(__('Failed only'))->query(fn (Builder $q) => $q->whereNotNull('failed_at')),
             ])
             ->recordActions([
                 Action::make('replay')
-                    ->label('Replay')
+                    ->label(__('Replay'))
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn (IntegrationEvent $record): bool => $record->failed_at !== null
                         && (auth()->user()?->can('update', $record) ?? false))
