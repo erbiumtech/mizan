@@ -120,7 +120,7 @@ class ConfirmDetails extends Page
     public function sendCodeAction(): Action
     {
         return Action::make('sendCode')
-            ->label('Send a code')
+            ->label(__('Send a code'))
             ->icon('heroicon-o-paper-airplane')
             ->requiresConfirmation()
             ->modalHeading('Send a code')
@@ -157,13 +157,13 @@ class ConfirmDetails extends Page
     public function enterCodeAction(): Action
     {
         return Action::make('enterCode')
-            ->label('I have the code')
+            ->label(__('I have the code'))
             ->icon('heroicon-o-key')
             ->color('gray')
             ->modalHeading('Type the code')
             ->schema([
                 TextInput::make('code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->required()
                     ->maxLength(6)
                     ->autocomplete(false)

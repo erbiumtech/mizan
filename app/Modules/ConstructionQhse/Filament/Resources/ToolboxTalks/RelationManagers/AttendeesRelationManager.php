@@ -53,7 +53,7 @@ class AttendeesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('site_personnel_id')
-                    ->label('On the register')
+                    ->label(__('On the register'))
                     ->options(fn (): array => static::personnel($this->talk()->job_id))
                     ->searchable()
                     ->live()
@@ -74,7 +74,7 @@ class AttendeesRelationManager extends RelationManager
                 TextInput::make('employer')->maxLength(255),
 
                 Toggle::make('signed')
-                    ->label('Signed the sheet')
+                    ->label(__('Signed the sheet'))
                     ->helperText('The difference between a record and a list of names.'),
             ]);
     }
@@ -107,16 +107,16 @@ class AttendeesRelationManager extends RelationManager
                     ->description(fn (ToolboxTalkAttendee $record): ?string => $record->employer),
 
                 IconColumn::make('site_personnel_id')
-                    ->label('On the register')
+                    ->label(__('On the register'))
                     ->boolean()
                     ->getStateUsing(fn (ToolboxTalkAttendee $record): bool => $record->isOnTheRegister())
                     ->tooltip('A register entry lets "who has had this talk" be answered. A name alone still records that they were there.'),
 
-                IconColumn::make('signed')->label('Signed')->boolean(),
+                IconColumn::make('signed')->label(__('Signed'))->boolean(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add attendee')
+                    ->label(__('Add attendee'))
                     ->visible(fn (): bool => auth()->user()?->can('update', $this->talk()) ?? false)
                     ->using(fn (array $data): Model => app(SitePersonnelService::class)
                         ->addAttendee($this->talk(), $data)),
@@ -125,7 +125,7 @@ class AttendeesRelationManager extends RelationManager
                  * The convenience that makes this usable at seven in the morning.
                  */
                 Action::make('addWholeSite')
-                    ->label('Add everybody on the register')
+                    ->label(__('Add everybody on the register'))
                     ->icon('heroicon-o-user-group')
                     ->color('gray')
                     ->requiresConfirmation()

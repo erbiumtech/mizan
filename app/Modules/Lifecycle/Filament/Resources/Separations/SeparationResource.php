@@ -46,11 +46,11 @@ class SeparationResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('employee_id')->label('Employee')
+            Select::make('employee_id')->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required()->disabledOn('edit'),
             Select::make('type')->options(Separation::TYPES)->required(),
-            DatePicker::make('notice_on')->label('Notice given on')->native(false)->nullable(),
+            DatePicker::make('notice_on')->label(__('Notice given on'))->native(false)->nullable(),
             DatePicker::make('last_working_day')->native(false)->required()->helperText('The record is closed and the status set the day after. The login closes after the grace under Company Settings.'),
             Textarea::make('reason')->rows(3)->columnSpanFull(),
         ]);
@@ -60,11 +60,11 @@ class SeparationResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('type')->formatStateUsing(fn (string $state): string => Separation::TYPES[$state] ?? $state),
                 TextColumn::make('notice_on')->date('d M Y')->placeholder('—'),
                 TextColumn::make('last_working_day')->date('d M Y')->sortable(),
-                TextColumn::make('clearance')->label('Clearance')->state(fn (Separation $s): string => ($c = $s->clearance())['clear'].' of '.$c['total'])
+                TextColumn::make('clearance')->label(__('Clearance'))->state(fn (Separation $s): string => ($c = $s->clearance())['clear'].' of '.$c['total'])
                     ->color(fn (Separation $s): string => $s->isCleared() ? 'success' : 'warning'),
                 TextColumn::make('status')->badge()->color(fn (string $state): string => $state === 'closed' ? 'gray' : 'warning'),
             ])

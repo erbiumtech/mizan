@@ -31,30 +31,30 @@ class TaxRatesTable
                 TextColumn::make('name')->searchable()->sortable(),
 
                 TextColumn::make('rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->formatStateUsing(fn ($state): string => rtrim(rtrim(number_format((float) $state, 4, '.', ''), '0'), '.').'%')
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('account')
-                    ->label('Posts to')
+                    ->label(__('Posts to'))
                     ->state(fn (TaxRate $record): string => $record->account
                         ? $record->account->code.' '.$record->account->name
                         : TaxRate::DEFAULT_ACCOUNT_CODE.' (default)'),
 
-                TextColumn::make('code')->label('Filing code')->toggleable(),
+                TextColumn::make('code')->label(__('Filing code'))->toggleable(),
 
                 // How much has been charged at this rate — the question a filing
                 // asks, and the reason a rate is an entity rather than a number.
                 TextColumn::make('charged')
-                    ->label('Charged to date')
+                    ->label(__('Charged to date'))
                     // From the aggregate loaded with the page. Null when a rate has never been charged,
                     // which reads as 0.00 — the same as the sum of no rows did.
                     ->state(fn (TaxRate $record): string => number_format((float) ($record->lines_sum_tax_amount ?? 0), 2))
                     ->alignEnd(),
 
-                IconColumn::make('is_default')->label('Default')->boolean(),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                IconColumn::make('is_default')->label(__('Default'))->boolean(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->defaultSort('rate', 'desc')
             ->recordActions([EditAction::make()])

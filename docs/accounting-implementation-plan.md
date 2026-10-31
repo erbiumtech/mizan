@@ -1,6 +1,10 @@
 # Implementation Plan: Tax Engine + Double-Entry Accounting + Ledger + Audit Logs
 
-**Project:** MPR (Laravel 12 · Nova 5 · Spatie Permissions)
+**Status:** Built — Phases 1–20 shipped; they live today as the `accounting`, `inventory` and `invoicing`
+modules under `app/Modules`, on Filament rather than the Nova named below (the Nova-to-Filament move is
+`docs/filament-laravel13-migration-plan.md`). Kept as the record of why the ledger is shaped as it is.
+Header added 2026-10-30.
+**Project:** MPR (Laravel 12 · Nova 5 · Spatie Permissions, as it was when written)
 **Date:** 2026-07-15
 **Reference:** [liberu-accounting/accounting-laravel](https://github.com/liberu-accounting/accounting-laravel), `~/Downloads/salary_tax.xlsx`
 

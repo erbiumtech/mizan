@@ -65,7 +65,7 @@ class RecurringTaskResource extends Resource
             Section::make('Who')
                 ->schema([
                     Select::make('assignee_kind')
-                        ->label('Assigned to')
+                        ->label(__('Assigned to'))
                         ->options([
                             RecurringTask::ASSIGNEE_ALL => 'Everyone',
                             RecurringTask::ASSIGNEE_EMPLOYEE => 'One employee',
@@ -77,19 +77,19 @@ class RecurringTaskResource extends Resource
                         ->required()
                         ->live(),
                     Select::make('assignee_ref')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->options(fn (): array => Employee::query()->where('is_active', true)->orderBy('employee_id')->get()
                             ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                         ->searchable()
                         ->visible(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_EMPLOYEE)
                         ->required(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_EMPLOYEE),
                     Select::make('assignee_ref')
-                        ->label('Department')
+                        ->label(__('Department'))
                         ->options(fn (?RecurringTask $record): array => options('employees.department', $record?->assignee_ref))
                         ->visible(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_DEPARTMENT)
                         ->required(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_DEPARTMENT),
                     Select::make('assignee_ref')
-                        ->label('Location')
+                        ->label(__('Location'))
                         ->options(fn (): array => WorkLocation::options())
                         ->visible(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_LOCATION)
                         ->required(fn (Get $get): bool => $get('assignee_kind') === RecurringTask::ASSIGNEE_LOCATION),
@@ -111,20 +111,20 @@ class RecurringTaskResource extends Resource
                         ->required()
                         ->live(),
                     Select::make('due_weekday')
-                        ->label('On')
+                        ->label(__('On'))
                         ->options([1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'])
                         ->visible(fn (Get $get): bool => $get('cadence') === RecurringTask::CADENCE_WEEKLY)
                         ->required(fn (Get $get): bool => $get('cadence') === RecurringTask::CADENCE_WEEKLY),
                     TextInput::make('due_day_of_month')
-                        ->label('On day')
+                        ->label(__('On day'))
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(31)
                         ->visible(fn (Get $get): bool => $get('cadence') === RecurringTask::CADENCE_MONTHLY)
                         ->required(fn (Get $get): bool => $get('cadence') === RecurringTask::CADENCE_MONTHLY)
                         ->helperText('31 means the last day of a shorter month.'),
-                    TimePicker::make('due_time')->label('By')->seconds(false)->default('17:00')->required(),
-                    TextInput::make('grace_hours')->label('Grace (hours)')->numeric()->minValue(0)->maxValue(72)->default(0),
+                    TimePicker::make('due_time')->label(__('By'))->seconds(false)->default('17:00')->required(),
+                    TextInput::make('grace_hours')->label(__('Grace (hours)'))->numeric()->minValue(0)->maxValue(72)->default(0),
                     Toggle::make('working_days_only')
                         ->default(true)
                         ->helperText('Skips weekends by the work pattern and holidays by the calendar — the employee\'s own location\'s.'),
@@ -134,7 +134,7 @@ class RecurringTaskResource extends Resource
                 ->description('Points go on the merit ledger the moment the grace runs out; a manager can excuse a miss, which reverses them. The amount is summed by tasks:settle for payroll to enter — nothing docks pay by itself.')
                 ->schema([
                     TextInput::make('penalty_points')->numeric()->minValue(0)->maxValue(100)->default(0),
-                    TextInput::make('penalty_amount')->label('Amount (PKR)')->numeric()->minValue(0)->nullable(),
+                    TextInput::make('penalty_amount')->label(__('Amount (PKR)'))->numeric()->minValue(0)->nullable(),
                     Toggle::make('is_active')->default(true),
                 ])
                 ->columns(3),
@@ -146,15 +146,15 @@ class RecurringTaskResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('title')->searchable()->sortable(),
-                TextColumn::make('assignee')->label('Assigned to')->state(fn (RecurringTask $record): string => $record->assigneeLabel()),
+                TextColumn::make('assignee')->label(__('Assigned to'))->state(fn (RecurringTask $record): string => $record->assigneeLabel()),
                 TextColumn::make('cadence')->badge(),
-                TextColumn::make('due_time')->label('By')->time('H:i'),
-                TextColumn::make('penalty_points')->label('Points')->alignEnd(),
-                TextColumn::make('penalty_amount')->label('Amount')->money(CompanyCurrency::code())->placeholder('—')->alignEnd(),
+                TextColumn::make('due_time')->label(__('By'))->time('H:i'),
+                TextColumn::make('penalty_points')->label(__('Points'))->alignEnd(),
+                TextColumn::make('penalty_amount')->label(__('Amount'))->money(CompanyCurrency::code())->placeholder('—')->alignEnd(),
                 IconColumn::make('is_active')->boolean(),
             ])
             ->defaultSort('title')
-            ->filters([TernaryFilter::make('is_active')->label('Active')])
+            ->filters([TernaryFilter::make('is_active')->label(__('Active'))])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }
 

@@ -36,19 +36,19 @@ class CareersSettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('recruitment'))
                 ->schema([
                     Toggle::make('recruitment_careers_enabled')
-                        ->label('Publish the careers page')
+                        ->label(__('Publish the careers page'))
                         ->helperText('Off by default. The page is reachable only with the token below, and switching this off closes it without changing the address.'),
                     TextInput::make('recruitment_careers_token')
-                        ->label('Page token')
+                        ->label(__('Page token'))
                         ->helperText('Part of the address. Changing it breaks every link already shared.')
                         ->suffixAction(
                             Action::make('generateCareersToken')
                                 ->icon('heroicon-m-arrow-path')
-                                ->label('Generate')
+                                ->label(__('Generate'))
                                 ->action(fn (Set $set) => $set('recruitment_careers_token', Str::random(40)))
                         ),
                     Placeholder::make('recruitment_careers_url')
-                        ->label('Careers page address')
+                        ->label(__('Careers page address'))
                         ->content(function (Get $get): string {
                             $token = $get('recruitment_careers_token');
                             $company = Company::current();

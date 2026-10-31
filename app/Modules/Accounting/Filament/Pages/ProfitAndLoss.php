@@ -54,11 +54,11 @@ class ProfitAndLoss extends Page
         return $schema
             ->components([
                 DatePicker::make('from')
-                    ->label('From')
+                    ->label(__('From'))
                     ->native(false)
                     ->live(),
                 DatePicker::make('to')
-                    ->label('To')
+                    ->label(__('To'))
                     ->native(false)
                     ->afterOrEqual('from')
                     ->default(now())
@@ -82,7 +82,7 @@ class ProfitAndLoss extends Page
             HelpAction::make('profit-and-loss', 'Profit & Loss: Help'),
 
             Action::make('pdf')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(
                     // The company is a path segment now, not a filter: the page

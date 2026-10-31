@@ -301,13 +301,13 @@ class CompanySettings extends Page
             ->columns(2)
             ->schema([
                 Select::make('company_locale')
-                    ->label('Interface language')
+                    ->label(__('Interface language'))
                     ->options(\App\Support\Locales::options())
                     ->placeholder('English')
                     ->helperText('What everybody sees unless they choose otherwise on their own profile.'),
 
                 Select::make('documents_locale')
-                    ->label('Document language')
+                    ->label(__('Document language'))
                     ->options(\App\Support\Locales::options())
                     ->default('en')
                     ->helperText('English by default: a payslip is often read by a bank, a letter by a next employer.'),
@@ -330,7 +330,7 @@ class CompanySettings extends Page
             ->description('How figures are written on every report, on screen and in the PDF.')
             ->schema([
                 Toggle::make('reports_negatives_in_parentheses')
-                    ->label('Show negatives in parentheses')
+                    ->label(__('Show negatives in parentheses'))
                     ->helperText(
                         'Accountants read (1,250) rather than -1,250. Off by default, and it never applies '
                         .'to the CSV export — a spreadsheet reads parentheses as text.'
@@ -393,17 +393,17 @@ class CompanySettings extends Page
             ->columns(2)
             ->schema([
                 TextInput::make('company_legal_name')
-                    ->label('Registered name')
+                    ->label(__('Registered name'))
                     ->maxLength(255)
                     ->placeholder('Acme Traders (SMC-Private) Limited')
                     ->helperText('As registered, including the suffix. Not the short name the panel uses.'),
 
                 TextInput::make('company_registration_no')
-                    ->label('Incorporation / registration no.')
+                    ->label(__('Incorporation / registration no.'))
                     ->maxLength(64),
 
                 TextInput::make('company_ntn')
-                    ->label('NTN')
+                    ->label(__('NTN'))
                     ->maxLength(32)
                     ->helperText('What the FBR and a bank check the company against.'),
 
@@ -415,7 +415,7 @@ class CompanySettings extends Page
                  * is not registered for sales tax, which is most of them.
                  */
                 TextInput::make('company_strn')
-                    ->label('STRN')
+                    ->label(__('STRN'))
                     ->maxLength(32)
                     ->helperText('Sales tax registration number. Leave empty if the company is not registered.'),
 
@@ -433,7 +433,7 @@ class CompanySettings extends Page
                  * key is the shared ground the model reads too.
                  */
                 TextInput::make('employees_code_prefix')
-                    ->label('Employee code prefix')
+                    ->label(__('Employee code prefix'))
                     ->maxLength(12)
                     ->placeholder((string) config('employees.code_prefix', 'EMP-'))
                     ->visible(fn (): bool => modules()->enabled('employees'))
@@ -446,29 +446,29 @@ class CompanySettings extends Page
                  * the four below are every way a Pakistani company writes a date.
                  */
                 Select::make('company_date_format')
-                    ->label('Date format')
+                    ->label(__('Date format'))
                     ->options(\App\Support\CompanyDates::FORMATS)
                     ->placeholder(\App\Support\CompanyDates::FORMATS[\App\Support\CompanyDates::DEFAULT])
                     ->helperText('How dates print on documents. The panel\'s own screens are unaffected.'),
 
-                TextInput::make('company_phone')->label('Phone')->maxLength(64),
+                TextInput::make('company_phone')->label(__('Phone'))->maxLength(64),
 
-                TextInput::make('company_email')->label('Email')->email()->maxLength(255),
+                TextInput::make('company_email')->label(__('Email'))->email()->maxLength(255),
 
-                TextInput::make('company_website')->label('Website')->maxLength(255),
+                TextInput::make('company_website')->label(__('Website'))->maxLength(255),
 
                 TextInput::make('company_address')
-                    ->label('Registered office address')
+                    ->label(__('Registered office address'))
                     ->maxLength(255)
                     ->columnSpanFull(),
 
                 TextInput::make('company_signatory_name')
-                    ->label('Who signs')
+                    ->label(__('Who signs'))
                     ->maxLength(160)
                     ->helperText('The name printed above the signature line.'),
 
                 TextInput::make('company_signatory_title')
-                    ->label('Their title')
+                    ->label(__('Their title'))
                     ->maxLength(160)
                     ->placeholder('Chief Executive Officer'),
 
@@ -478,7 +478,7 @@ class CompanySettings extends Page
                 // ponytail: replacing an upload leaves the old file under branding/ — small,
                 // per-tenant, invisible; add deleteUploadedFileUsing if the directory ever matters.
                 FileUpload::make('company_logo_path')
-                    ->label('Logo')
+                    ->label(__('Logo'))
                     ->disk('public')
                     ->directory('branding')
                     ->image()
@@ -498,21 +498,21 @@ class CompanySettings extends Page
                  * and falls back to Times in the PDF.
                  */
                 TextInput::make('company_brand_colour')
-                    ->label('Brand colour')
+                    ->label(__('Brand colour'))
                     ->maxLength(7)
                     ->placeholder(\App\Support\BrandKit::DEFAULT_COLOUR)
                     ->rule('regex:/^#[0-9a-fA-F]{6}$/')
                     ->helperText('Six hex digits, like #0f766e. The band on an ID card and the rule beside a signature.'),
 
                 TextInput::make('company_brand_accent')
-                    ->label('Text colour')
+                    ->label(__('Text colour'))
                     ->maxLength(7)
                     ->placeholder(\App\Support\BrandKit::DEFAULT_ACCENT)
                     ->rule('regex:/^#[0-9a-fA-F]{6}$/')
                     ->helperText('The darker one, for text that sits on white.'),
 
                 Select::make('company_brand_typeface')
-                    ->label('Typeface')
+                    ->label(__('Typeface'))
                     ->options(\App\Support\BrandKit::typefaceOptions())
                     ->placeholder(\App\Support\BrandKit::typefaceOptions()[\App\Support\BrandKit::DEFAULT_TYPEFACE]),
 
@@ -520,7 +520,7 @@ class CompanySettings extends Page
                 // because every browser has taken PNG for a decade and an ICO is a file
                 // nobody on a phone can make.
                 FileUpload::make('company_favicon_path')
-                    ->label('Favicon')
+                    ->label(__('Favicon'))
                     ->disk('public')
                     ->directory('branding')
                     ->image()
@@ -529,7 +529,7 @@ class CompanySettings extends Page
                     ->helperText('The icon in the browser tab, for this company\'s panel. A square PNG, 32 or 64 pixels.'),
 
                 FileUpload::make('company_signature_path')
-                    ->label('Signature / stamp')
+                    ->label(__('Signature / stamp'))
                     ->disk('public')
                     ->directory('branding')
                     ->image()
@@ -552,7 +552,7 @@ class CompanySettings extends Page
             ->description('What the bell in the top right tells people about.')
             ->schema([
                 Toggle::make('notifications_record_changes')
-                    ->label('Tell people when a record of theirs changes')
+                    ->label(__('Tell people when a record of theirs changes'))
                     ->helperText('On, somebody who owns a record — it names them, they created it, or they '
                         .'asked for it — hears when anybody else changes or deletes it. Never when they '
                         .'changed it themselves, and never by email: it goes to the bell, where the cost of '
@@ -567,7 +567,7 @@ class CompanySettings extends Page
             ->description('Who has to sign an entry off before it reaches the ledger.')
             ->schema([
                 Toggle::make('accounting_require_second_approver')
-                    ->label('Require a second person to approve journal entries')
+                    ->label(__('Require a second person to approve journal entries'))
                     ->helperText('On, whoever writes an entry cannot be the one who approves it. '
                         .'Turn it OFF only if one person runs the books alone: with nobody else to '
                         .'approve, entries wait forever while the money they describe has already '
@@ -597,7 +597,7 @@ class CompanySettings extends Page
             ->visible(fn (): bool => modules()->enabled('leave'))
             ->schema([
                 Select::make('leave_year_basis')
-                    ->label('When the leave year starts')
+                    ->label(__('When the leave year starts'))
                     ->options([
                         'calendar' => 'Calendar year (1 January – 31 December)',
                         'fiscal' => 'Fiscal year (1 July – 30 June)',
@@ -608,11 +608,11 @@ class CompanySettings extends Page
                     ->helperText('Changing this affects leave years opened from now on. Entitlements already open keep the window they were created with, so balances that are part-way through a year do not move.'),
 
                 Toggle::make('leave_carry_forward')
-                    ->label('Let unused days carry into the next leave year')
+                    ->label(__('Let unused days carry into the next leave year'))
                     ->helperText('Off, unused days lapse at the year end and nothing is paid for them. On, each type carries up to its own "days that may carry forward" cap — a cap of 0 carries nothing even then. Switching this on does not give back days that have already lapsed.'),
 
                 TextInput::make('leave_carry_forward_expiry_months')
-                    ->label('Months carried days stay usable')
+                    ->label(__('Months carried days stay usable'))
                     ->numeric()
                     ->integer()
                     ->minValue(0)
@@ -620,15 +620,15 @@ class CompanySettings extends Page
                     ->helperText('0, carried days last the whole year and lapse with it. 3 on a calendar year means "carried days lapse on 31 March": whatever is unused by then is voided, recorded as an adjustment on the entitlement. Applies to leave years opened from now on — a date already stamped on an open year does not move.'),
 
                 Toggle::make('leave_prorate_first_year')
-                    ->label('Pro-rate a mid-year joiner\'s first year')
+                    ->label(__('Pro-rate a mid-year joiner\'s first year'))
                     ->helperText('On, somebody joining part-way through gets a share of the year\'s days: the joining month counts if they started on or before the 15th. Off, they get the full year from day one. Either way, entitlements already granted are not restated.'),
 
                 Toggle::make('leave_require_second_approver')
-                    ->label('Require somebody else to approve leave')
+                    ->label(__('Require somebody else to approve leave'))
                     ->helperText('On, nobody may approve their own leave — a manager\'s own request routes to their manager. Turn it OFF only if there is nobody above to approve: the person at the top of the reporting tree otherwise cannot have leave approved at all. Self-approvals are recorded as such in the audit trail. It starts at whatever this installation was set up with (LEAVE_REQUIRE_SECOND_APPROVER in .env); saving here is this company answering for itself, and that answer stands whatever the installation default later becomes.'),
 
                 TagsInput::make('leave_approval_chain')
-                    ->label('Roles that approve after the first approval, in order')
+                    ->label(__('Roles that approve after the first approval, in order'))
                     ->placeholder('Add a role')
                     ->suggestions(fn (): array => Role::query()
                         ->where('company_id', app(PermissionRegistrar::class)->getPermissionsTeamId())
@@ -638,11 +638,11 @@ class CompanySettings extends Page
                     ->helperText('Empty, one approval decides a request, as it always has. Name roles here — HR, then CEO, say — and after the first approval the request waits for somebody holding each role in turn; only the last approval records the days and tells the employee. The "require somebody else" rule above applies at every step. A name that is not a role in this company is dropped when you save.'),
 
                 Toggle::make('leave_min_notice_enforced')
-                    ->label('Enforce the notice each leave type asks for')
+                    ->label(__('Enforce the notice each leave type asks for'))
                     ->helperText('Off, short notice is a warning and the request is still recorded — which is usually right, since casual and sick leave are asked for late by their nature. On, a request with less than the type\'s notice is refused outright.'),
 
                 Select::make('leave_sandwich_rule')
-                    ->label('Weekends and holidays inside a leave')
+                    ->label(__('Weekends and holidays inside a leave'))
                     ->options([
                         'off' => 'Not counted — Friday plus Monday uses 2 days',
                         'enclosed' => 'Counted when enclosed — Friday plus Monday uses 4 days',
@@ -668,7 +668,7 @@ class CompanySettings extends Page
                 && (modules()->enabled('leave') || modules()->enabled('payroll')))
             ->schema([
                 CheckboxList::make('leave_weekend_days')
-                    ->label('Weekly off days')
+                    ->label(__('Weekly off days'))
                     ->options([
                         1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday',
                         5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
@@ -695,11 +695,11 @@ class CompanySettings extends Page
             ->visible(fn (): bool => modules()->enabled('attendance') && modules()->enabled('payroll'))
             ->schema([
                 Toggle::make('payroll_prorate_on_attendance')
-                    ->label('Reduce pay for unpaid absence')
+                    ->label(__('Reduce pay for unpaid absence'))
                     ->helperText('OFF by default, and this is the setting to think hardest about. On, a month with unpaid absence pays less: the basic wage and any pay component marked "pro-rates" scale by the days paid. Fixed allowances, bonuses, overtime and every deduction are left alone. A month where attendance has not been filled in pays in FULL — an unmarked day is not a day anybody missed. Turning this on applies from the next payroll month; months already calculated keep the figures they were paid on.'),
 
                 Select::make('payroll_proration_divisor')
-                    ->label('Divide the month by')
+                    ->label(__('Divide the month by'))
                     ->options([
                         'working_days' => 'The working days in the month, from the work pattern',
                         'calendar_days' => 'The calendar days in the month',
@@ -712,11 +712,11 @@ class CompanySettings extends Page
                     ->helperText('Recorded on each payslip as it is calculated, so changing this later never restates a month that has already been paid.'),
 
                 Toggle::make('payroll_pay_overtime')
-                    ->label('Pay for recorded overtime')
+                    ->label(__('Pay for recorded overtime'))
                     ->helperText('OFF by default. Until this is on, overtime is recorded and not paid — which is honest rather than lazy, because minutes have no defined value until a rate exists. On, the hourly rate is worked out from the basic wage and the work pattern\'s expected hours, multiplied by the figure below. The rate used is recorded on the payslip, so a later change to a package or a pattern does not restate a month already paid. Independent of pro-rating: overtime adds pay where pro-rating removes it.'),
 
                 TextInput::make('attendance_overtime_multiplier')
-                    ->label('Overtime multiplier')
+                    ->label(__('Overtime multiplier'))
                     ->numeric()
                     ->step(0.25)
                     ->minValue(1)
@@ -724,13 +724,13 @@ class CompanySettings extends Page
                     ->helperText('2.0 as shipped, because the Factories Act mandates double the ordinary rate. Provincial establishments differ — confirm what applies to you. Daily and weekly caps WARN and never reduce the amount: capping quietly would hide a compliance problem and underpay somebody at the same time.'),
 
                 TextInput::make('attendance_retention_months')
-                    ->label('Keep daily attendance for (months)')
+                    ->label(__('Keep daily attendance for (months)'))
                     ->numeric()
                     ->minValue(1)
                     ->helperText('Daily rows are pruned after this. It is the only table here that grows with usage rather than headcount, so it is cleaned up automatically — three years covers a payroll dispute, and longer has never been asked for.'),
 
                 Select::make('attendance_geofence_mode')
-                    ->label('Geofence')
+                    ->label(__('Geofence'))
                     ->options([
                         'off' => 'Off — record the location, judge nothing',
                         'flag' => 'Flag — mark a punch made outside the employee\'s location',
@@ -740,11 +740,11 @@ class CompanySettings extends Page
                     ->helperText('Applies to employees whose location (Settings → Locations) has a radius. Start on Flag: a phone\'s first fix is often a hundred metres out, and a refused punch at nine is a support call at one minute past.'),
                 // Off by default — docs/saas-launch-plan.md §14.4.
                 Toggle::make('attendance_remind_missing_punches')
-                    ->label('Remind employees who clocked in and not out')
+                    ->label(__('Remind employees who clocked in and not out'))
                     ->helperText('Each evening, a message to anybody with a clock-in and no clock-out that day. Off for a company that marks days by hand.'),
                 // The appraisal scale — docs/saas-launch-plan.md §14.6.
                 Select::make('performance_rating_scale')
-                    ->label('Appraisal rating scale')
+                    ->label(__('Appraisal rating scale'))
                     ->options([3 => '1 to 3', 4 => '1 to 4', 5 => '1 to 5', 10 => '1 to 10'])
                     ->default(5)
                     ->visible(fn (): bool => modules()->enabled('performance'))
@@ -757,7 +757,7 @@ class CompanySettings extends Page
         return Section::make('iPayments (Salary Bank File)')
             ->schema([
                 KeyValue::make('ipayments')
-                    ->label('iPayments Defaults')
+                    ->label(__('iPayments Defaults'))
                     ->keyLabel('Field')
                     ->valueLabel('Value')
                     ->addable(false)
@@ -799,21 +799,21 @@ class CompanySettings extends Page
             ->description('Publishes the up/down state and uptime of environments marked "Show on public status page". Never publishes URLs, credentials or error details.')
             ->schema([
                 Toggle::make('projects_status_page_enabled')
-                    ->label('Enable public status page')
+                    ->label(__('Enable public status page'))
                     ->helperText('Off by default. The page is reachable only with the token below.'),
 
                 TextInput::make('projects_status_page_token')
-                    ->label('Access token')
+                    ->label(__('Access token'))
                     ->helperText('Part of the URL. Changing it revokes every link already shared.')
                     ->suffixAction(
                         Action::make('generateStatusToken')
                             ->icon('heroicon-m-arrow-path')
-                            ->label('Generate')
+                            ->label(__('Generate'))
                             ->action(fn (Set $set) => $set('projects_status_page_token', Str::random(40)))
                     ),
 
                 Placeholder::make('status_page_url')
-                    ->label('Status page URL')
+                    ->label(__('Status page URL'))
                     ->content(function (Get $get): string {
                         $token = $get('projects_status_page_token');
                         $company = Company::current();

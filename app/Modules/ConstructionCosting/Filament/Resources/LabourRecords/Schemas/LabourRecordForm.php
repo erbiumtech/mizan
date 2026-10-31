@@ -38,7 +38,7 @@ class LabourRecordForm
                     ->columns(2)
                     ->schema([
                         Select::make('worker_id')
-                            ->label('Worker')
+                            ->label(__('Worker'))
                             ->options(fn (): array => Worker::query()->active()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Worker $worker): array => [$worker->getKey() => $worker->displayName()])
                                 ->all())
@@ -47,7 +47,7 @@ class LabourRecordForm
                             ->live(),
 
                         DatePicker::make('worked_on')
-                            ->label('Date worked')
+                            ->label(__('Date worked'))
                             ->native(false)
                             ->required()
                             ->default(now())
@@ -57,7 +57,7 @@ class LabourRecordForm
                             ->helperText('The day the work was done. The rate that applies is that day\'s, not today\'s.'),
 
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -66,7 +66,7 @@ class LabourRecordForm
                             ->live(),
 
                         Select::make('trade_id')
-                            ->label('Worked as')
+                            ->label(__('Worked as'))
                             ->options(fn (): array => Trade::query()->active()->orderBy('sort')->orderBy('code')->get()
                                 ->mapWithKeys(fn (Trade $trade): array => [$trade->getKey() => $trade->displayName()])
                                 ->all())
@@ -76,7 +76,7 @@ class LabourRecordForm
                             ->helperText('Leave blank for the worker\'s usual trade. Set it when somebody worked as something else for the day.'),
 
                         Select::make('cost_code_id')
-                            ->label('Cost code')
+                            ->label(__('Cost code'))
                             ->options(fn (): array => CostCode::query()
                                 ->where('is_leaf', true)->where('is_active', true)
                                 ->orderBy('code')->get()
@@ -87,7 +87,7 @@ class LabourRecordForm
                             ->helperText('Where the cost lands. Headings cannot take cost — they would double-count in every rolled-up total.'),
 
                         Select::make('wbs_node_id')
-                            ->label('WBS element')
+                            ->label(__('WBS element'))
                             ->options(fn (callable $get): array => $get('job_id') === null ? [] : WbsNode::query()
                                 ->where('job_id', $get('job_id'))
                                 ->orderBy('path')->get()
@@ -102,14 +102,14 @@ class LabourRecordForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('normal_minutes')
-                            ->label('Normal minutes')
+                            ->label(__('Normal minutes'))
                             ->numeric()
                             ->default(480)
                             ->required()
                             ->helperText('480 = 8 hours, 450 = 7½, 540 = 9.'),
 
                         TextInput::make('overtime_minutes')
-                            ->label('Overtime minutes')
+                            ->label(__('Overtime minutes'))
                             ->numeric()
                             ->default(0)
                             ->helperText('Paid at the multiplier on the rate that applies.'),
@@ -119,7 +119,7 @@ class LabourRecordForm
                     ->description('A preview from today\'s rate ladder. The figures that count are worked out and frozen when the sheet is approved.')
                     ->schema([
                         Placeholder::make('preview')
-                            ->label('At today\'s rates')
+                            ->label(__('At today\'s rates'))
                             ->content(fn (callable $get): string => static::preview($get)),
                     ])
                     ->visible(fn (?LabourRecord $record): bool => $record === null || $record->isDraft()),

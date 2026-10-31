@@ -33,14 +33,14 @@ class StatusesRelationManager extends RelationManager
             TextInput::make('name')->required()->maxLength(60),
 
             Select::make('category')
-                ->label('Counts as')
+                ->label(__('Counts as'))
                 ->options(WorkStatus::CATEGORIES)
                 ->default(WorkStatus::TODO)
                 ->required()
                 ->helperText('Every report and filter reads this rather than the name. "In review" and '
                     .'"In QA" are both in progress; "Won\'t do" is done.'),
 
-            TextInput::make('sort')->numeric()->default(0)->label('Order')
+            TextInput::make('sort')->numeric()->default(0)->label(__('Order'))
                 ->helperText('Low to high, left to right on the board.'),
 
             Select::make('colour')
@@ -54,10 +54,10 @@ class StatusesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('sort')->label('Order')->alignCenter()->sortable(),
+                TextColumn::make('sort')->label(__('Order'))->alignCenter()->sortable(),
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('category')
-                    ->label('Counts as')
+                    ->label(__('Counts as'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => WorkStatus::CATEGORIES[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {

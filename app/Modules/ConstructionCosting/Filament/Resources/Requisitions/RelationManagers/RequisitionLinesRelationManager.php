@@ -61,11 +61,11 @@ class RequisitionLinesRelationManager extends RelationManager
                     ->minValue(0.0001),
 
                 TextInput::make('unit_of_measure')
-                    ->label('Unit')
+                    ->label(__('Unit'))
                     ->maxLength(16),
 
                 Select::make('cost_code_id')
-                    ->label('Cost code')
+                    ->label(__('Cost code'))
                     ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
                         ->orderBy('code')->get()
                         ->mapWithKeys(fn (CostCode $code): array => [$code->getKey() => "{$code->code} — {$code->name}"])
@@ -75,7 +75,7 @@ class RequisitionLinesRelationManager extends RelationManager
                     ->helperText('Optional. The buyer sets it when the order is raised if you leave it blank.'),
 
                 TextInput::make('estimated_rate')
-                    ->label('Estimated rate')
+                    ->label(__('Estimated rate'))
                     ->numeric()
                     ->helperText('A guess is useful for the approval and is never a price — the committed figure comes from the supplier.'),
 
@@ -94,31 +94,31 @@ class RequisitionLinesRelationManager extends RelationManager
                     ->searchable(),
 
                 TextColumn::make('quantity')
-                    ->label('Asked for')
+                    ->label(__('Asked for'))
                     ->alignEnd()
                     ->description(fn (RequisitionLine $record): ?string => $record->unit_of_measure),
 
                 TextColumn::make('ordered')
-                    ->label('Ordered')
+                    ->label(__('Ordered'))
                     ->alignEnd()
                     // Computed from the order lines, ignoring cancelled orders.
                     ->state(fn (RequisitionLine $record): string => rtrim(rtrim(number_format($record->orderedQuantity(), 4, '.', ''), '0'), '.') ?: '0'),
 
                 TextColumn::make('outstanding')
-                    ->label('Still to order')
+                    ->label(__('Still to order'))
                     ->alignEnd()
                     ->weight('bold')
                     ->state(fn (RequisitionLine $record): string => rtrim(rtrim(number_format($record->outstandingQuantity(), 4, '.', ''), '0'), '.') ?: '0')
                     ->color(fn (RequisitionLine $record): string => $record->outstandingQuantity() > 0.0 ? 'warning' : 'gray'),
 
                 TextColumn::make('costCode.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     // An em dash rather than a blank: the buyer has to supply one, and this is where they see that.
                     ->placeholder('Buyer to set')
                     ->toggleable(),
 
                 TextColumn::make('estimated_amount')
-                    ->label('Estimate')
+                    ->label(__('Estimate'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')

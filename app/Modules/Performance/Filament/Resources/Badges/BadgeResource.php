@@ -61,7 +61,7 @@ class BadgeResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('description')->limit(60),
                 TextColumn::make('points')->alignEnd(),
-                TextColumn::make('awards_count')->label('Awarded')->counts('awards')->alignEnd(),
+                TextColumn::make('awards_count')->label(__('Awarded'))->counts('awards')->alignEnd(),
                 IconColumn::make('is_active')->boolean(),
             ])
             ->defaultSort('name')

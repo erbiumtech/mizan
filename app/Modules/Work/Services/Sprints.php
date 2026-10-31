@@ -3,6 +3,8 @@
 namespace App\Modules\Work\Services;
 
 use App\Modules\Projects\Models\Project;
+use App\Modules\Work\Events\SprintCompleted;
+use App\Modules\Work\Events\SprintStarted;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkSprint;
 use App\Modules\Work\Models\WorkStatus;
@@ -60,6 +62,8 @@ class Sprints
             'started_at' => now(),
         ])->save();
 
+        SprintStarted::dispatch($sprint);
+
         return $sprint;
     }
 
@@ -103,6 +107,8 @@ class Sprints
             'closed_at' => now(),
         ])->save();
 
+        SprintCompleted::dispatch($sprint, $moveTo);
+
         return $sprint;
     }
 
@@ -126,7 +132,7 @@ class Sprints
      * Both figures are reported, because a team using points and a team using hours both exist and
      * neither should read the other's column.
      *
-     * @return Collection<int, array{sprint: string, points: float, minutes: int, items: int, carried: int}>
+     * @return Collection<int, array{id: int, sprint: string, started_at: ?Carbon, closed_at: ?Carbon, points: float, minutes: int, items: int, carried: int}>
      */
     public function velocity(Project $project, int $last = 8): Collection
     {
@@ -145,7 +151,12 @@ class Sprints
                     ->get();
 
                 return [
+                    'id' => (int) $sprint->getKey(),
                     'sprint' => $sprint->name,
+                    // When it actually ran — what the figures were counted between. The Velocity
+                    // report in the hub prints them beside the figures.
+                    'started_at' => $sprint->started_at,
+                    'closed_at' => $sprint->closed_at,
                     'points' => (float) $delivered->sum(fn (WorkItem $i): float => (float) ($i->estimate_points ?? 0)),
                     'minutes' => (int) $delivered->sum(fn (WorkItem $i): int => (int) ($i->estimate_minutes ?? 0)),
                     'items' => $delivered->count(),

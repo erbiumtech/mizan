@@ -37,8 +37,8 @@ class ContactQuotationsRelationManager extends RelationManager
                     ->description(fn (Quotation $record): ?string => $record->version > 1
                         ? "version {$record->version}"
                         : null),
-                TextColumn::make('issue_date')->label('Date')->date('d M Y')->sortable(),
-                TextColumn::make('valid_until')->label('Valid to')->date('d M Y')->placeholder('—'),
+                TextColumn::make('issue_date')->label(__('Date'))->date('d M Y')->sortable(),
+                TextColumn::make('valid_until')->label(__('Valid to'))->date('d M Y')->placeholder('—'),
                 TextColumn::make('total')->money(CompanyCurrency::code())->alignEnd()->sortable(),
                 TextColumn::make('status')
                     ->badge()
@@ -54,7 +54,7 @@ class ContactQuotationsRelationManager extends RelationManager
             ->defaultSort('issue_date', 'desc')
             ->recordActions([
                 Action::make('open')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->url(fn (Quotation $record): string => QuotationResource::getUrl('edit', ['record' => $record])),
             ]);

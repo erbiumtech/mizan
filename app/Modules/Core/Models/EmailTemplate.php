@@ -92,6 +92,11 @@ class EmailTemplate extends Model
         'employee_document_expiring' => ['employee_name', 'recipient_name', 'document', 'expires_on', 'days', 'company'],
         'compliance_document_expiring' => ['employee_name', 'document', 'party', 'expires_on', 'days', 'contract', 'company'],
         'competency_expiring' => ['employee_name', 'person', 'competency', 'expires_on', 'days', 'company'],
+        // The work module's three — docs/project-management-plan.md §10. The item's description is
+        // never a placeholder: it is the one field that leaks, and a mail is forwarded.
+        'work_item_assigned' => ['employee_name', 'key', 'title', 'project', 'assigned_by', 'company'],
+        'work_item_mentioned' => ['employee_name', 'key', 'title', 'mentioned_by', 'where', 'company'],
+        'work_digest' => ['employee_name', 'due_today', 'assigned_since_yesterday', 'blocked_on_you', 'company'],
         'certificate_expiring' => ['employee_name', 'project', 'environment', 'expires_on', 'days', 'company'],
         'environment_down' => ['employee_name', 'project', 'environment', 'since', 'duration', 'company'],
         'environment_recovered' => ['employee_name', 'project', 'environment', 'downtime', 'company'],

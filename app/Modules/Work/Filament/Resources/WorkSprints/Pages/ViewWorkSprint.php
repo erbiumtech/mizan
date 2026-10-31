@@ -7,6 +7,7 @@ use App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Services\Sprints;
+use App\Modules\Work\Services\WorkTime;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 
@@ -55,6 +56,21 @@ class ViewWorkSprint extends ViewRecord
         return $this->record->project === null
             ? []
             : app(Sprints::class)->velocity($this->record->project)->all();
+    }
+
+    /**
+     * Estimate against logged, in sum, and what the logged hours cost — §9.
+     *
+     * @return array{estimate: ?int, logged: int, remaining: ?int, cost: ?float, uncosted: int, entries: int}
+     */
+    public function time(): array
+    {
+        return app(WorkTime::class)->summaryForSprint($this->record);
+    }
+
+    public function timeIsAvailable(): bool
+    {
+        return app(WorkTime::class)->isAvailable();
     }
 
     /** What is in it, and how much of it is finished. */

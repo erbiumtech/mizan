@@ -29,19 +29,19 @@ class PayrollRunSettingsSection implements SettingsSection
                 ->columns(2)
                 ->schema([
                     Toggle::make('payroll_require_approval')
-                        ->label('A run must be approved before it is signed off')
+                        ->label(__('A run must be approved before it is signed off'))
                         ->helperText('Off: the accountant signs off directly. On: somebody holding Approve payroll runs reads it first.')
                         ->columnSpanFull(),
                     Toggle::make('payroll_pay_by_bank')
-                        ->label('Salaries are paid by bank')
+                        ->label(__('Salaries are paid by bank'))
                         ->helperText('On: an employee with no account number or IBAN blocks the run. Off for a company that pays cash.')
                         ->columnSpanFull(),
                     Select::make('payroll_rounding')
-                        ->label('Round net pay')
+                        ->label(__('Round net pay'))
                         ->options([0 => 'To the rupee', 10 => 'To the nearest 10', 100 => 'To the nearest 100'])
                         ->helperText('The difference is a rounding line; no component changes.'),
                     TextInput::make('payroll_pay_day')
-                        ->label('Pay day (day of month)')
+                        ->label(__('Pay day (day of month)'))
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(31)
@@ -49,7 +49,7 @@ class PayrollRunSettingsSection implements SettingsSection
                     // B13: who can answer an objection. The gate on closing one exists so a salary is not released
                     // over a complaint nobody engaged with.
                     Toggle::make('payroll_objection_employee_reply_counts')
-                        ->label('An employee\'s own follow-up counts as the reply to their objection')
+                        ->label(__('An employee\'s own follow-up counts as the reply to their objection'))
                         ->helperText('Off: an objection can be closed only once somebody other than the employee has replied in the payslip\'s comments. On: any later comment opens it, the employee\'s own included.')
                         ->columnSpanFull(),
                 ]),
@@ -62,19 +62,19 @@ class PayrollRunSettingsSection implements SettingsSection
                 ->columns(2)
                 ->schema([
                     Toggle::make('payroll_provident_fund_enabled')
-                        ->label('This company runs a provident fund')
+                        ->label(__('This company runs a provident fund'))
                         ->live()
                         ->helperText('On: signing off a run records each employee\'s and the employer\'s contribution in the ledger. Off: nothing is recorded.')
                         ->columnSpanFull(),
                     TextInput::make('payroll_provident_fund_employee_rate')
-                        ->label('Employee contribution (% of basic wage)')
+                        ->label(__('Employee contribution (% of basic wage)'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(100)
                         ->visible(fn (Get $get): bool => (bool) $get('payroll_provident_fund_enabled'))
                         ->helperText('Taken from the basic wage each month.'),
                     TextInput::make('payroll_provident_fund_employer_rate')
-                        ->label('Employer contribution (% of basic wage)')
+                        ->label(__('Employer contribution (% of basic wage)'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(100)

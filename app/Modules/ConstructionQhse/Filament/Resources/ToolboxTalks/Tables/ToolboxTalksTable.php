@@ -26,7 +26,7 @@ class ToolboxTalksTable
     {
         return $table
             ->columns([
-                TextColumn::make('reference')->label('Ref')->sortable()->searchable(),
+                TextColumn::make('reference')->label(__('Ref'))->sortable()->searchable(),
 
                 TextColumn::make('topic')
                     ->wrap()
@@ -35,17 +35,17 @@ class ToolboxTalksTable
                     ->description(fn (ToolboxTalk $record): ?string => $record->job?->code),
 
                 TextColumn::make('delivered_at')
-                    ->label('Given')
+                    ->label(__('Given'))
                     ->dateTime('d M Y H:i')
                     ->sortable(),
 
-                TextColumn::make('presenter_label')->label('By')->placeholder('—')->toggleable(),
+                TextColumn::make('presenter_label')->label(__('By'))->placeholder('—')->toggleable(),
 
                 /*
                  * The figure §17.6 counts.
                  */
                 TextColumn::make('attendees')
-                    ->label('Attended')
+                    ->label(__('Attended'))
                     ->badge()
                     ->getStateUsing(fn (ToolboxTalk $record): string => $record->hasNoAttendees()
                         // Named: a talk given and not written up is not a talk nobody came to.
@@ -57,25 +57,25 @@ class ToolboxTalksTable
                         : $record->signedCount().' signed'),
 
                 TextColumn::make('prompted_by')
-                    ->label('Prompted by')
+                    ->label(__('Prompted by'))
                     ->placeholder('routine')
                     ->description(fn (ToolboxTalk $record): ?string => $record->incident?->incident_number)
                     ->color(fn (ToolboxTalk $record): string => $record->wasPrompted() ? 'info' : 'gray')
                     ->toggleable(),
 
-                TextColumn::make('duration_minutes')->label('Mins')->alignEnd()->placeholder('—')->toggleable(),
+                TextColumn::make('duration_minutes')->label(__('Mins'))->alignEnd()->placeholder('—')->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
 
                 Filter::make('prompted')
-                    ->label('Given in response to something')
+                    ->label(__('Given in response to something'))
                     ->query(fn (Builder $query): Builder => $query
                         ->where(fn ($q) => $q->whereNotNull('prompted_by')->orWhereNotNull('incident_id')))
                     ->toggle(),
 
                 Filter::make('no_attendees')
-                    ->label('Nobody recorded')
+                    ->label(__('Nobody recorded'))
                     ->query(fn (Builder $query): Builder => $query->doesntHave('attendees'))
                     ->toggle(),
             ])

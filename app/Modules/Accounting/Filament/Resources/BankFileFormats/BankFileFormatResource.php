@@ -53,7 +53,7 @@ class BankFileFormatResource extends Resource
             Section::make('Format')->columns(2)->schema([
                 TextInput::make('name')->required()->maxLength(80),
                 Select::make('company_bank_account_id')
-                    ->label('For bank account')
+                    ->label(__('For bank account'))
                     ->relationship('companyBankAccount', 'title')
                     ->preload()
                     ->unique(ignoreRecord: true)
@@ -65,12 +65,12 @@ class BankFileFormatResource extends Resource
             Section::make('Lines')
                 ->description('One line each. The row is repeated per payment; the header and trailer once, and either may be empty.')
                 ->schema([
-                    Textarea::make('header_template')->label('Header')->rows(2)->placeholder('H,{count},{total},{value_date:Ymd}'),
-                    Textarea::make('row_template')->label('Row')->rows(3)->required(fn ($record): bool => $record === null || $record->isTemplate())
+                    Textarea::make('header_template')->label(__('Header'))->rows(2)->placeholder('H,{count},{total},{value_date:Ymd}'),
+                    Textarea::make('row_template')->label(__('Row'))->rows(3)->required(fn ($record): bool => $record === null || $record->isTemplate())
                         ->placeholder('{row_no},{beneficiary_name:35},{beneficiary_account},{beneficiary_bank_code},{amount},{details:50}'),
-                    Textarea::make('trailer_template')->label('Trailer')->rows(2)->placeholder('T,{count},{total}'),
-                    Placeholder::make('row_placeholders')->label('Row placeholders')->content($legend(BankFileRenderer::ROW_PLACEHOLDERS)),
-                    Placeholder::make('file_placeholders')->label('Header and trailer placeholders')->content($legend(BankFileRenderer::FILE_PLACEHOLDERS)),
+                    Textarea::make('trailer_template')->label(__('Trailer'))->rows(2)->placeholder('T,{count},{total}'),
+                    Placeholder::make('row_placeholders')->label(__('Row placeholders'))->content($legend(BankFileRenderer::ROW_PLACEHOLDERS)),
+                    Placeholder::make('file_placeholders')->label(__('Header and trailer placeholders'))->content($legend(BankFileRenderer::FILE_PLACEHOLDERS)),
                 ])
                 ->visible(fn ($record): bool => $record === null || $record->isTemplate()),
         ]);
@@ -82,10 +82,10 @@ class BankFileFormatResource extends Resource
             ->columns([
                 TextColumn::make('name')->sortable(),
                 TextColumn::make('kind')->badge()->formatStateUsing(fn (string $state): string => $state === BankFileFormat::KIND_IPAYMENTS ? 'iPayments (shipped)' : 'Designed'),
-                TextColumn::make('companyBankAccount.title')->label('Account')->placeholder('Default'),
-                TextColumn::make('previewed_at')->label('Previewed')->since()->placeholder('never')
+                TextColumn::make('companyBankAccount.title')->label(__('Account'))->placeholder('Default'),
+                TextColumn::make('previewed_at')->label(__('Previewed'))->since()->placeholder('never')
                     ->description(fn (BankFileFormat $r): ?string => $r->needsPreview() ? 'changed since — preview before download' : null),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->recordActions([static::previewAction(), EditAction::make(), DeleteAction::make()]);
     }
@@ -94,7 +94,7 @@ class BankFileFormatResource extends Resource
     public static function previewAction(): Action
     {
         return Action::make('preview')
-            ->label('Preview')
+            ->label(__('Preview'))
             ->icon('heroicon-o-eye')
             ->visible(fn (BankFileFormat $record): bool => $record->isTemplate())
             ->modalHeading(fn (BankFileFormat $record): string => 'Preview: '.$record->name)

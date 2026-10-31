@@ -30,7 +30,7 @@ class BackChargeForm
             ->columns(2)
             ->components([
                 Select::make('contract_id')
-                    ->label('Subcontract')
+                    ->label(__('Subcontract'))
                     // Payable and executed only: there is nothing to deduct from a draft, and against an employer a
                     // charge of this shape is a claim rather than a back-charge.
                     ->options(fn (): array => Contract::query()
@@ -53,14 +53,14 @@ class BackChargeForm
                     }),
 
                 Placeholder::make('reference_preview')
-                    ->label('Reference')
+                    ->label(__('Reference'))
                     ->content(fn (callable $get): string => ($contract = $get('contract_id'))
                         ? app(BackChargeService::class)->nextReference(Contract::findOrFail($contract))
                         : 'Assigned when the subcontract is chosen')
                     ->visibleOn('create'),
 
                 Select::make('kind')
-                    ->label('What it is for')
+                    ->label(__('What it is for'))
                     ->options([
                         'cleanup' => 'Cleanup — the company cleared what they left',
                         'rework' => 'Rework',
@@ -77,25 +77,25 @@ class BackChargeForm
                     ->required(),
 
                 DatePicker::make('incurred_on')
-                    ->label('Incurred')
+                    ->label(__('Incurred'))
                     ->default(now())
                     ->helperText('When the company did the work. Notice cannot predate it.'),
 
                 Textarea::make('description')
-                    ->label('What happened')
+                    ->label(__('What happened'))
                     ->rows(3)
                     ->required()
                     ->columnSpanFull()
                     ->helperText('This text goes on the notice and onto the certificate as the deduction line. Write it for the subcontractor to read.'),
 
                 TextInput::make('amount')
-                    ->label('Cost')
+                    ->label(__('Cost'))
                     ->numeric()
                     ->required()
                     ->helperText('What it cost this company, before any markup.'),
 
                 TextInput::make('markup_percent')
-                    ->label('Markup %')
+                    ->label(__('Markup %'))
                     ->numeric()
                     ->helperText('For supervision and overhead, where the subcontract allows it. Kept separate because it is the part that gets contested.'),
 

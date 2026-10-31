@@ -37,12 +37,12 @@ class VariationsTable
         return $table
             ->columns([
                 TextColumn::make('variation_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->description(fn (Variation $record): ?string => $record->contract?->job?->code)
                     ->searchable()
                     ->toggleable(),
@@ -71,21 +71,21 @@ class VariationsTable
                         : null),
 
                 TextColumn::make('quoted_amount')
-                    ->label('Quoted')
+                    ->label(__('Quoted'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('assessed_amount')
-                    ->label('Assessed')
+                    ->label(__('Assessed'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('approved_amount')
-                    ->label('Approved')
+                    ->label(__('Approved'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Null rather than zero until it is agreed: zero would read as an agreed variation worth
@@ -94,20 +94,20 @@ class VariationsTable
                     ->sortable(),
 
                 TextColumn::make('time_granted_days')
-                    ->label('EOT days')
+                    ->label(__('EOT days'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('approved_on')
-                    ->label('Approved')
+                    ->label(__('Approved'))
                     ->date()
                     ->placeholder('—')
                     ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->relationship('contract', 'contract_number')
                     ->searchable(),
 
@@ -125,13 +125,13 @@ class VariationsTable
 
                 // The list somebody chases: submitted or priced and waiting on a decision.
                 Filter::make('outstanding')
-                    ->label('Awaiting a decision')
+                    ->label(__('Awaiting a decision'))
                     ->query(fn (Builder $query) => $query->outstanding())
                     ->toggle(),
 
                 // Money the job is spending that nobody has agreed.
                 Filter::make('provisional')
-                    ->label('Price provisional')
+                    ->label(__('Price provisional'))
                     ->query(fn (Builder $query) => $query->where('is_price_provisional', true))
                     ->toggle(),
             ])
@@ -141,7 +141,7 @@ class VariationsTable
                     ->visible(fn (Variation $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('submit')
-                    ->label('Submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
                     ->visible(fn (Variation $record): bool => $record->status === Variation::STATUS_DRAFT
                         && (auth()->user()?->can('update', $record) ?? false))
@@ -152,13 +152,13 @@ class VariationsTable
                     )),
 
                 Action::make('price')
-                    ->label('Price')
+                    ->label(__('Price'))
                     ->icon('heroicon-o-calculator')
                     ->modalHeading('Assess this variation')
                     ->modalDescription('The assessed amount defaults to the sum of the priced lines. A certifier\'s own figure differing from it is exactly what the two columns are for.')
                     ->schema([
                         TextInput::make('assessed')
-                            ->label('Assessed amount')
+                            ->label(__('Assessed amount'))
                             ->numeric()
                             ->helperText('Left blank, the sum of the lines.'),
                     ])
@@ -173,7 +173,7 @@ class VariationsTable
                     )),
 
                 Action::make('approveInPrinciple')
-                    ->label('Approve in principle')
+                    ->label(__('Approve in principle'))
                     ->icon('heroicon-o-clock')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -181,7 +181,7 @@ class VariationsTable
                     ->modalDescription('Says the work is instructed and proceeding while the price is argued. The cost report will carry it; no certificate will. This is the state most variations live in for months.')
                     ->schema([
                         Select::make('confidence')
-                            ->label('How firm is the figure')
+                            ->label(__('How firm is the figure'))
                             ->options(['low' => 'Low', 'medium' => 'Medium', 'high' => 'High'])
                             ->default('medium')
                             ->selectablePlaceholder(false)
@@ -195,7 +195,7 @@ class VariationsTable
                     )),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
@@ -203,7 +203,7 @@ class VariationsTable
                     ->modalDescription('The price is agreed. It joins the certified contract sum and a certificate may include it.')
                     ->schema([
                         TextInput::make('amount')
-                            ->label('Agreed amount')
+                            ->label(__('Agreed amount'))
                             ->numeric()
                             ->helperText('Left blank, the assessed amount stands.'),
                     ])
@@ -218,7 +218,7 @@ class VariationsTable
                     )),
 
                 Action::make('incorporate')
-                    ->label('Write into schedule')
+                    ->label(__('Write into schedule'))
                     ->icon('heroicon-o-document-plus')
                     ->requiresConfirmation()
                     ->modalHeading('Write this variation into the schedule')
@@ -231,13 +231,13 @@ class VariationsTable
                     )),
 
                 Action::make('reject')
-                    ->label('Reject')
+                    ->label(__('Reject'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->modalHeading('Reject this variation')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(3)
                             ->required()
                             ->helperText('Read months later, by a lawyer.'),

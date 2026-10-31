@@ -22,7 +22,7 @@ class ExpenseClaimForm
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -38,7 +38,7 @@ class ExpenseClaimForm
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             DatePicker::make('claimed_on')
-                ->label('Spent on')
+                ->label(__('Spent on'))
                 ->native(false)
                 ->default(now())
                 ->maxDate(now())
@@ -70,11 +70,11 @@ class ExpenseClaimForm
                 ->defaultItems(0)
                 ->addActionLabel('Add a line')
                 ->schema([
-                    DatePicker::make('spent_on')->label('Spent on')->native(false)->maxDate(now())->required(),
-                    Select::make('expense_category_id')->label('Category')->options(fn (): array => ExpenseCategory::query()->active()->orderBy('name')->pluck('name', 'id')->all())->nullable(),
+                    DatePicker::make('spent_on')->label(__('Spent on'))->native(false)->maxDate(now())->required(),
+                    Select::make('expense_category_id')->label(__('Category'))->options(fn (): array => ExpenseCategory::query()->active()->orderBy('name')->pluck('name', 'id')->all())->nullable(),
                     TextInput::make('description')->required()->maxLength(190),
                     TextInput::make('amount')->numeric()->minValue(0.01)->required(),
-                    FileUpload::make('receipt_path')->label('Receipt')->disk('public')->directory('expense-claims')
+                    FileUpload::make('receipt_path')->label(__('Receipt'))->disk('public')->directory('expense-claims')
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])->maxSize(8192)->columnSpanFull()
                         // The category's "Needs a receipt", once the claim goes to the approvers — a draft may
                         // still be waiting for it. ExpenseClaim::submit() holds the same line for the Submit action.
@@ -85,7 +85,7 @@ class ExpenseClaimForm
                 ->columnSpanFull(),
 
             Select::make('transaction_type_id')
-                ->label('Category')
+                ->label(__('Category'))
                 ->options(fn (): array => TransactionType::where('is_active', true)
                     ->orderBy('name')
                     ->pluck('name', 'id')
@@ -94,7 +94,7 @@ class ExpenseClaimForm
                 ->helperText('The same categories company payments use, so a claim and a company purchase for the same thing land together.'),
 
             FileUpload::make('receipt_path')
-                ->label('Receipt')
+                ->label(__('Receipt'))
                 ->disk('public')
                 ->directory('expense-claims')
                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])

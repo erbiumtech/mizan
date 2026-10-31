@@ -41,13 +41,13 @@ class RequisitionsTable
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->description(fn (Requisition $record): ?string => $record->job?->name)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('required_by')
-                    ->label('Needed by')
+                    ->label(__('Needed by'))
                     ->date()
                     // No date is not "no hurry" — it is a request nobody has dated, which the buyer has to chase.
                     ->placeholder('Not stated')
@@ -65,13 +65,13 @@ class RequisitionsTable
                     ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', ucfirst($state))),
 
                 TextColumn::make('lines_count')
-                    ->label('Lines')
+                    ->label(__('Lines'))
                     ->counts('lines')
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('outstanding')
-                    ->label('Still to order')
+                    ->label(__('Still to order'))
                     ->alignEnd()
                     // The count of lines with something outstanding rather than a quantity: quantities across
                     // different units do not add up, and "three lines still to order" is what a buyer acts on.
@@ -81,7 +81,7 @@ class RequisitionsTable
                     ->tooltip('Lines with something still to order. Quantities in different units do not add up, so this is a count.'),
 
                 TextColumn::make('estimated')
-                    ->label('Estimate')
+                    ->label(__('Estimate'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Requisition $record): float => $record->estimatedTotal())
@@ -89,14 +89,14 @@ class RequisitionsTable
                     ->toggleable(),
 
                 TextColumn::make('rejection_reason')
-                    ->label('Because')
+                    ->label(__('Because'))
                     ->wrap()
                     ->placeholder('—')
                     ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
@@ -114,7 +114,7 @@ class RequisitionsTable
 
                 // The buyer's queue. §5: without the demand document this list has no home at all.
                 Filter::make('to_order')
-                    ->label('To order')
+                    ->label(__('To order'))
                     ->query(fn (Builder $query) => $query->toOrder())
                     ->toggle(),
             ])
@@ -124,7 +124,7 @@ class RequisitionsTable
                     ->visible(fn (Requisition $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('submit')
-                    ->label('Submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
                     ->visible(fn (Requisition $record): bool => $record->isEditable()
                         && (auth()->user()?->can('update', $record) ?? false))
@@ -135,7 +135,7 @@ class RequisitionsTable
                     )),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->requiresConfirmation()
@@ -149,13 +149,13 @@ class RequisitionsTable
                     )),
 
                 Action::make('reject')
-                    ->label('Reject')
+                    ->label(__('Reject'))
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->modalHeading('Reject this request')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required()
                             ->helperText('Site asked for something and is entitled to know why the answer is no. It stays editable, so "not like that, like this" works.'),
@@ -169,14 +169,14 @@ class RequisitionsTable
                     )),
 
                 Action::make('order')
-                    ->label('Order')
+                    ->label(__('Order'))
                     ->icon('heroicon-o-shopping-cart')
                     ->color('success')
                     ->modalHeading('Raise an order from this request')
                     ->modalDescription('Order lines are added to a draft order and linked back, so whatever is not ordered stays outstanding here. Nothing is committed until the order is issued.')
                     ->schema([
                         Select::make('commitment_id')
-                            ->label('Add to order')
+                            ->label(__('Add to order'))
                             ->options(fn (): array => Commitment::query()
                                 ->where('status', Commitment::STATUS_DRAFT)
                                 ->get()

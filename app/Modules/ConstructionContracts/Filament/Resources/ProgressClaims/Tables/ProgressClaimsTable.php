@@ -29,17 +29,17 @@ class ProgressClaimsTable
         return $table
             ->columns([
                 TextColumn::make('claim_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->description(fn (ProgressClaim $record): ?string => $record->contract?->job?->code)
                     ->toggleable(),
 
                 TextColumn::make('period_end')
-                    ->label('Valued to')
+                    ->label(__('Valued to'))
                     ->date()
                     ->sortable(),
 
@@ -54,13 +54,13 @@ class ProgressClaimsTable
                     ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', ucfirst($state))),
 
                 TextColumn::make('claimed_gross_to_date')
-                    ->label('Applied')
+                    ->label(__('Applied'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('certified')
-                    ->label('Certified')
+                    ->label(__('Certified'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Null rather than zero until a certificate exists: zero would read as "certified nothing",
@@ -71,7 +71,7 @@ class ProgressClaimsTable
                         : (float) $record->certificate->gross_value_to_date),
 
                 TextColumn::make('difference')
-                    ->label('Difference')
+                    ->label(__('Difference'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
@@ -87,7 +87,7 @@ class ProgressClaimsTable
             ])
             ->filters([
                 SelectFilter::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->relationship('contract', 'contract_number')
                     ->searchable(),
 
@@ -101,7 +101,7 @@ class ProgressClaimsTable
                     ]),
 
                 Filter::make('awaiting')
-                    ->label('Awaiting certification')
+                    ->label(__('Awaiting certification'))
                     ->query(fn (Builder $query) => $query->awaitingCertification())
                     ->toggle(),
             ])
@@ -111,7 +111,7 @@ class ProgressClaimsTable
                     ->visible(fn (ProgressClaim $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('submit')
-                    ->label('Submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
                     ->requiresConfirmation()
                     ->modalHeading('Submit this claim')
@@ -125,7 +125,7 @@ class ProgressClaimsTable
                     )),
 
                 Action::make('certify')
-                    ->label('Prepare certificate')
+                    ->label(__('Prepare certificate'))
                     ->icon('heroicon-o-document-check')
                     ->color('success')
                     ->requiresConfirmation()

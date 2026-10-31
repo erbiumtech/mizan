@@ -42,11 +42,11 @@ class ExpenseCategoryResource extends Resource
         return $schema->components([
             TextInput::make('name')->required()->maxLength(80)->unique(ignoreRecord: true),
             Select::make('transaction_type_id')
-                ->label('Posts as')
+                ->label(__('Posts as'))
                 ->options(fn (): array => TransactionType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->helperText('The transaction type whose account the line books to. The ledger does not move; the category is a name for it.'),
-            Toggle::make('requires_receipt')->label('Needs a receipt'),
+            Toggle::make('requires_receipt')->label(__('Needs a receipt')),
             Toggle::make('is_active')->default(true),
         ]);
     }
@@ -56,9 +56,9 @@ class ExpenseCategoryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('transactionType.name')->label('Posts as')->placeholder('—'),
-                IconColumn::make('requires_receipt')->boolean()->label('Receipt'),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                TextColumn::make('transactionType.name')->label(__('Posts as'))->placeholder('—'),
+                IconColumn::make('requires_receipt')->boolean()->label(__('Receipt')),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->defaultSort('name')
             ->recordActions([EditAction::make(), DeleteAction::make()]);

@@ -1,6 +1,6 @@
 # Command Palette (⌘K Spotlight) — Implementation Plan
 
-**Status:** Proposed
+**Status:** Built — all five phases in §8 are ticked and held by `CommandPaletteTest`; `App\Filament\Livewire\CommandPalette` on ⌘K (header corrected 2026-10-30).
 **Created:** 2026-07-25
 **Inspiration:** [Filament Spotlight Pro](https://denniskoch.dev/projects/filament-spotlight-pro/docs/) — "Zero clicks. Maximum productivity." A Raycast/macOS-Spotlight-style command palette for Filament panels.
 

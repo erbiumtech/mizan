@@ -78,13 +78,13 @@ class GnuCashImport extends Page
         return $schema
             ->components([
                 FileUpload::make('csv')
-                    ->label('GnuCash CSV export')
+                    ->label(__('GnuCash CSV export'))
                     ->acceptedFileTypes(['text/csv', 'text/plain'])
                     ->maxSize(10240)
                     ->storeFiles(false)
                     ->required(),
                 Select::make('target_account_id')
-                    ->label('Register target account (register exports only)')
+                    ->label(__('Register target account (register exports only)'))
                     ->placeholder('— not a register export —')
                     ->options($this->registerAccounts()->mapWithKeys(fn (Account $a) => [$a->id => $a->code.' '.$a->name])->all())
                     ->native(false),

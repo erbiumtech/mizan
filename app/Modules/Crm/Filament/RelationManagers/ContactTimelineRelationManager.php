@@ -40,16 +40,16 @@ class ContactTimelineRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('occurred_at')->label('When')->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('occurred_at')->label(__('When'))->dateTime('d M Y H:i')->sortable(),
                 TextColumn::make('kind')->badge()->color('gray'),
                 TextColumn::make('outcome')->placeholder('—')->wrap(),
-                TextColumn::make('duration_minutes')->label('Min')->placeholder('—')->alignEnd(),
+                TextColumn::make('duration_minutes')->label(__('Minutes'))->placeholder('—')->alignEnd(),
                 TextColumn::make('body')->limit(80)->placeholder('—')->wrap()->toggleable(),
-                TextColumn::make('employee.display_label')->label('By')->placeholder('—'),
+                TextColumn::make('employee.display_label')->label(__('By'))->placeholder('—'),
             ])
             ->defaultSort('occurred_at', 'desc')
             ->headerActions([
-                CreateAction::make()->label('Log a call')->icon('heroicon-o-phone'),
+                CreateAction::make()->label(__('Log a call'))->icon('heroicon-o-phone'),
             ])
             ->recordActions([
                 DeleteAction::make(),

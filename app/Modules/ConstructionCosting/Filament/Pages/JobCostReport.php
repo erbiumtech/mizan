@@ -75,7 +75,7 @@ class JobCostReport extends Page
             ->columns(2)
             ->components([
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())
@@ -84,7 +84,7 @@ class JobCostReport extends Page
                     ->selectablePlaceholder(false),
 
                 Select::make('period_start')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->options(fn (): array => CostPeriod::query()->orderByDesc('period_start')->get()
                         ->mapWithKeys(fn (CostPeriod $p): array => [$p->period_start->toDateString() => $p->label()])
                         ->all())

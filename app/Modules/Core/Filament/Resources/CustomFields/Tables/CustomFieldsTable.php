@@ -19,19 +19,19 @@ class CustomFieldsTable
         return $table
             ->columns([
                 TextColumn::make('model_type')
-                    ->label('Applies to')
+                    ->label(__('Applies to'))
                     ->formatStateUsing(fn (string $state) => CustomFieldResource::modelOptions()[$state] ?? class_basename($state))
                     ->sortable(),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('code')->searchable(),
                 TextColumn::make('type')->badge(),
-                IconColumn::make('is_required')->boolean()->label('Required'),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                IconColumn::make('is_required')->boolean()->label(__('Required')),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
                 TextColumn::make('sort')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('sort')
             ->filters([
-                SelectFilter::make('model_type')->label('Applies to')->options(CustomFieldResource::modelOptions()),
+                SelectFilter::make('model_type')->label(__('Applies to'))->options(CustomFieldResource::modelOptions()),
             ])
             ->recordActions([
                 EditAction::make(),

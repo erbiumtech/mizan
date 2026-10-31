@@ -46,22 +46,22 @@ class OpenChecklistItems extends Page implements HasTable
             ->defaultSort('due_on')
             ->columns([
                 TextColumn::make('due_on')->date('d M Y')->sortable()->color(fn (EmployeeChecklistItem $i): string => $i->due_on?->isPast() ? 'danger' : 'gray'),
-                TextColumn::make('checklist.employee.display_label')->label('Employee'),
-                TextColumn::make('checklist.kind')->label('Checklist')->badge()->color('gray'),
+                TextColumn::make('checklist.employee.display_label')->label(__('Employee')),
+                TextColumn::make('checklist.kind')->label(__('Checklist'))->badge()->color('gray'),
                 TextColumn::make('title')->description(fn (EmployeeChecklistItem $i): ?string => $i->kind === 'auto' ? 'closes from the records' : null),
                 TextColumn::make('kind')->badge()->color('gray'),
-                TextColumn::make('owner_role')->label('Owner')->placeholder('—'),
+                TextColumn::make('owner_role')->label(__('Owner'))->placeholder('—'),
             ])
             ->recordActions([
-                Action::make('open')->label('Open')->icon('heroicon-o-arrow-top-right-on-square')
+                Action::make('open')->label(__('Open'))->icon('heroicon-o-arrow-top-right-on-square')
                     ->visible(fn (EmployeeChecklistItem $i): bool => $i->kind === 'link' && filled($i->link_url))
                     ->url(fn (EmployeeChecklistItem $i): string => (string) $i->link_url, shouldOpenInNewTab: true),
-                Action::make('tick')->label('Done')->icon('heroicon-o-check')->color('success')
+                Action::make('tick')->label(__('Done'))->icon('heroicon-o-check')->color('success')
                     ->action(function (EmployeeChecklistItem $record): void {
                         app(ChecklistService::class)->complete($record, auth()->user());
                         Notification::make()->success()->title('Done.')->send();
                     }),
-                Action::make('waive')->label('Waive')->icon('heroicon-o-hand-raised')->color('gray')
+                Action::make('waive')->label(__('Waive'))->icon('heroicon-o-hand-raised')->color('gray')
                     ->schema([Textarea::make('reason')->required()->rows(2)])
                     ->action(function (EmployeeChecklistItem $record, array $data): void {
                         app(ChecklistService::class)->waive($record, auth()->user(), $data['reason']);
@@ -74,7 +74,7 @@ class OpenChecklistItems extends Page implements HasTable
     {
         return [
             HelpAction::make('checklist-items', 'Checklist Items: Help'),
-            Action::make('autoCheck')->label('Run auto-checks')->icon('heroicon-o-arrow-path')->color('gray')
+            Action::make('autoCheck')->label(__('Run auto-checks'))->icon('heroicon-o-arrow-path')->color('gray')
                 ->action(function (): void {
                     $closed = 0;
 

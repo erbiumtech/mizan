@@ -33,7 +33,7 @@ class SitePersonnelForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -51,13 +51,13 @@ class SitePersonnelForm
                         TextInput::make('employer')->maxLength(255),
                         TextInput::make('trade')->maxLength(255),
                         TextInput::make('identification')
-                            ->label('Identification')
+                            ->label(__('Identification'))
                             ->maxLength(255)
                             ->helperText('Whatever this site checks at the gate: a card number, a CNIC.'),
                         TextInput::make('phone')->tel()->maxLength(255),
 
                         Toggle::make('is_active')
-                            ->label('Currently on site')
+                            ->label(__('Currently on site'))
                             ->default(true)
                             ->helperText('What makes a lapsed ticket urgent rather than historical.'),
                     ]),
@@ -68,7 +68,7 @@ class SitePersonnelForm
                     ->schema([
                         DatePicker::make('inducted_on')->native(false),
                         DatePicker::make('induction_valid_to')
-                            ->label('Induction valid to')
+                            ->label(__('Induction valid to'))
                             ->native(false)
                             ->helperText('Leave blank only where this site\'s induction genuinely does not lapse.'),
                         DatePicker::make('first_on_site')->native(false),

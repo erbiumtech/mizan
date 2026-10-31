@@ -23,17 +23,17 @@ class LeadForm
                 ->description('A lead is an organisation with a person attached. Either may be blank — a name from a trade show is still a lead — but not both.')
                 ->schema([
                     TextInput::make('company_name')
-                        ->label('Company')
+                        ->label(__('Company'))
                         ->maxLength(255)
                         ->requiredWithout('person_name'),
 
                     TextInput::make('person_name')
-                        ->label('Contact person')
+                        ->label(__('Contact person'))
                         ->maxLength(255)
                         ->requiredWithout('company_name'),
 
                     TextInput::make('title')
-                        ->label('Their job title')
+                        ->label(__('Their job title'))
                         ->maxLength(255)
                         ->placeholder('Head of Finance'),
 
@@ -47,14 +47,14 @@ class LeadForm
                     TextInput::make('phone')->tel()->maxLength(50),
                     // Separate from phone because in this market the number somebody
                     // answers on WhatsApp is often not the one on their card.
-                    TextInput::make('whatsapp')->label('WhatsApp')->tel()->maxLength(50),
+                    TextInput::make('whatsapp')->label(__('WhatsApp'))->tel()->maxLength(50),
                 ])
                 ->columns(3),
 
             Section::make('Where it came from, and whose it is')
                 ->schema([
                     Select::make('lead_source_id')
-                        ->label('Source')
+                        ->label(__('Source'))
                         ->options(fn (): array => LeadSource::query()
                             ->active()
                             ->orderBy('sort')
@@ -67,7 +67,7 @@ class LeadForm
                     // so the field is absent rather than empty and `created_by`
                     // answers "whose lead is this" instead.
                     Select::make('owner_employee_id')
-                        ->label('Owner')
+                        ->label(__('Owner'))
                         ->relationship('owner', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                             ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -113,7 +113,7 @@ class LeadForm
                         ->helperText('A guess, and treated as one. The forecast that adds these up properly comes with deals in a later phase.'),
 
                     TextInput::make('currency_code')
-                        ->label('Currency')
+                        ->label(__('Currency'))
                         ->maxLength(3)
                         ->placeholder(CompanyCurrency::code())
                         ->helperText('Leave blank for the company\'s own currency.'),

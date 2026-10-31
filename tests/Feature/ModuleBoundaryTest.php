@@ -425,6 +425,12 @@ class ModuleBoundaryTest extends TestCase
         // unconstrained integer, exactly as §13's `contract_id` is. **`employees`** — §17.3 requires an injured person's
         // name to work on its own, because a subcontractor's labourer is not in this system.
         'construction_qhse' => ['invoicing'],
+        // Work -> Timesheets is guarded, not declared — docs/project-management-plan.md §9. A board is
+        // worth having without a ledger of hours and a timesheet without a board, so neither requires
+        // the other. Work adds the three columns to `timesheet_entries` by its own migration, offers the
+        // item picker and *Log time* only behind `modules()->enabled('timesheets')`, and a company with
+        // one module and not the other sees neither. Exactly the invoicing -> projects shape.
+        'work' => ['timesheets'],
     ];
 
     public function test_no_module_reaches_into_another_it_has_not_declared(): void

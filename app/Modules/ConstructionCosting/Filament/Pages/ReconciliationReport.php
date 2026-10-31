@@ -79,7 +79,7 @@ class ReconciliationReport extends Page
             ->columns(2)
             ->components([
                 Select::make('period_start')
-                    ->label('Cost month')
+                    ->label(__('Cost month'))
                     ->options(fn (): array => CostPeriod::query()->orderByDesc('period_start')->get()
                         ->mapWithKeys(fn (CostPeriod $p): array => [
                             $p->period_start->toDateString() => $p->label().' — '.$p->status,
@@ -102,7 +102,7 @@ class ReconciliationReport extends Page
              * would make §4's whole control optional. The sharp grant is *accepting* a difference, below.
              */
             Action::make('runReconciliation')
-                ->label('Record this run')
+                ->label(__('Record this run'))
                 ->icon('heroicon-o-check-badge')
                 ->color('primary')
                 ->requiresConfirmation()
@@ -111,7 +111,7 @@ class ReconciliationReport extends Page
                     .'about two ledgers, so recording one is how a period comes to have been proved — and a series of '
                     .'them is what says whether a difference is new.')
                 ->schema([
-                    Textarea::make('notes')->label('Note')->rows(2),
+                    Textarea::make('notes')->label(__('Note'))->rows(2),
                 ])
                 ->action(function (array $data): void {
                     $run = app(ReconciliationService::class)
@@ -136,7 +136,7 @@ class ReconciliationReport extends Page
              * is a control precisely because that is uncomfortable to sign.
              */
             Action::make('acceptDifference')
-                ->label('Accept the difference')
+                ->label(__('Accept the difference'))
                 ->icon('heroicon-o-hand-raised')
                 ->color('danger')
                 ->visible(fn (): bool => (auth()->user()?->can('ConstructionPeriodForceClose') ?? false)
@@ -148,7 +148,7 @@ class ReconciliationReport extends Page
                     .'against a decision to close the month anyway.')
                 ->schema([
                     Textarea::make('reason')
-                        ->label('Why')
+                        ->label(__('Why'))
                         ->required()
                         ->rows(3)
                         ->helperText('The only thing this stores. Whoever reads it in a year needs to know what was '

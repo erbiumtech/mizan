@@ -91,7 +91,7 @@ class SoleProprietorReturnPack extends Page
         return $schema
             ->components([
                 Select::make('fiscal_year_id')
-                    ->label('Tax year')
+                    ->label(__('Tax year'))
                     ->options(FiscalYear::orderByDesc('start_date')->pluck('name', 'id'))
                     ->selectablePlaceholder(false)
                     ->native(false)
@@ -107,19 +107,19 @@ class SoleProprietorReturnPack extends Page
                     ->helperText('July to June; FBR names it for the year it ends in.'),
 
                 TextInput::make('minimum_tax_rate')
-                    ->label('Minimum tax rate % (s.113, on turnover)')
+                    ->label(__('Minimum tax rate % (s.113, on turnover)'))
                     ->numeric()
                     ->live(onBlur: true),
 
                 TextInput::make('minimum_tax_threshold')
-                    ->label('Minimum tax turnover threshold')
+                    ->label(__('Minimum tax turnover threshold'))
                     ->numeric()
                     ->live(onBlur: true)
                     ->helperText('s.113 binds an individual/AOP only at or above this turnover (a company has no threshold). '
                         .'Confirm the current figure with your practitioner.'),
 
                 Repeater::make('adjustments')
-                    ->label('Tax adjustments to accounting profit')
+                    ->label(__('Tax adjustments to accounting profit'))
                     ->columnSpanFull()
                     ->schema([
                         TextInput::make('label')
@@ -143,7 +143,7 @@ class SoleProprietorReturnPack extends Page
         return [
             HelpAction::make('sole-proprietor-return-pack', 'Sole Proprietor and AOP Return Pack: Help'),
             Action::make('save')
-                ->label('Save worksheet')
+                ->label(__('Save worksheet'))
                 ->icon('heroicon-o-check')
                 ->action(function (): void {
                     if ($yearId = $this->data['fiscal_year_id'] ?? null) {
@@ -153,7 +153,7 @@ class SoleProprietorReturnPack extends Page
                 }),
 
             Action::make('download')
-                ->label('Download PDF')
+                ->label(__('Download PDF'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->action(function () {
                     $pack = $this->getPack();

@@ -90,7 +90,7 @@ class PayslipForm
                      * wrapped into half a row is a sentence nobody reads.
                      */
                         Placeholder::make('employee_objection')
-                            ->label('Employee objection')
+                            ->label(__('Employee objection'))
                             ->columnSpanFull()
                             ->visible(fn (?Payslip $record): bool => $record !== null
                                 && in_array($record->employee_review, [Payslip::REVIEW_REJECTED, Payslip::REVIEW_OVERRIDDEN], true))
@@ -99,7 +99,7 @@ class PayslipForm
                         // --- SELECTORS (drive the calculation) ---
 
                         Select::make('employee_id')
-                            ->label('Employee')
+                            ->label(__('Employee'))
                             ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                                 ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                             ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -131,7 +131,7 @@ class PayslipForm
                             }),
 
                         Select::make('month')
-                            ->label('Month')
+                            ->label(__('Month'))
                             ->options([
                                 'January' => 'January', 'February' => 'February', 'March' => 'March',
                                 'April' => 'April', 'May' => 'May', 'June' => 'June',
@@ -143,7 +143,7 @@ class PayslipForm
                             ->afterStateUpdated(fn (Get $get, Set $set, ?Payslip $record) => self::recalculate($get, $set, $record)),
 
                         Select::make('fiscal_year_id')
-                            ->label('Fiscal Year')
+                            ->label(__('Fiscal Year'))
                             ->relationship('fiscalYear', 'name', fn ($query) => $query->where('is_active', true))
                             ->searchable()
                             ->preload()
@@ -160,7 +160,7 @@ class PayslipForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('total_working_days')
-                            ->label('Total Working Days')
+                            ->label(__('Total Working Days'))
                             ->numeric()
                             ->minValue(0)
                             ->required()
@@ -168,21 +168,21 @@ class PayslipForm
                             ->helperText('Filled in from the work pattern — or, without Attendance, the calendar and the company\'s weekend — once employee, month and year are chosen. Correct by hand if the record is wrong.'),
 
                         TextInput::make('paid_days')
-                            ->label('Paid Days')
+                            ->label(__('Paid Days'))
                             ->numeric()
                             ->minValue(0)
                             ->required()
                             ->default(0),
 
                         TextInput::make('lop_days')
-                            ->label('LOP Days')
+                            ->label(__('LOP Days'))
                             ->numeric()
                             ->minValue(0)
                             ->required()
                             ->default(0),
 
                         TextInput::make('leaves_taken')
-                            ->label('Leaves Taken')
+                            ->label(__('Leaves Taken'))
                             ->numeric()
                             ->minValue(0)
                             ->required()
@@ -196,19 +196,19 @@ class PayslipForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('basic_wage')
-                            ->label('Basic Wage')
+                            ->label(__('Basic Wage'))
                             ->numeric()
                             ->readOnly(),
 
                         TextInput::make('medical_allowance')
-                            ->label('Medical Allowance')
+                            ->label(__('Medical Allowance'))
                             ->numeric()
                             ->readOnly(),
 
                         // --- EDITABLE inputs that feed the calculation ---
 
                         TextInput::make('device_allowance')
-                            ->label('Device Allowance')
+                            ->label(__('Device Allowance'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -217,7 +217,7 @@ class PayslipForm
                             ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'device_allowance', $state)),
 
                         TextInput::make('petrol_allowance')
-                            ->label('Petrol Allowance')
+                            ->label(__('Petrol Allowance'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -226,7 +226,7 @@ class PayslipForm
                             ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'petrol_allowance', $state)),
 
                         TextInput::make('bonus')
-                            ->label('Bonus')
+                            ->label(__('Bonus'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -235,7 +235,7 @@ class PayslipForm
                             ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'bonus', $state)),
 
                         TextInput::make('extra_work_hours')
-                            ->label('Extra Work Hours')
+                            ->label(__('Extra Work Hours'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -244,7 +244,7 @@ class PayslipForm
                             ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'extra_work_hours', $state)),
 
                         TextInput::make('expense_reimbursement')
-                            ->label('Expense Reimbursement')
+                            ->label(__('Expense Reimbursement'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -256,7 +256,7 @@ class PayslipForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('advances')
-                            ->label('Advances')
+                            ->label(__('Advances'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -265,7 +265,7 @@ class PayslipForm
                             ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'advances', $state)),
 
                         TextInput::make('meal_deduction')
-                            ->label('Meal Deduction')
+                            ->label(__('Meal Deduction'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -274,7 +274,7 @@ class PayslipForm
                             ->hint(fn (Get $get, $state, ?Payslip $record): ?string => self::overrideHint($get, $record, 'meal_deduction', $state)),
 
                         TextInput::make('esi_health_insurance')
-                            ->label('ESI / Health Insurance')
+                            ->label(__('ESI / Health Insurance'))
                             ->numeric()
                             ->minValue(0)
                             ->live(onBlur: true)
@@ -285,7 +285,7 @@ class PayslipForm
                         // --- READONLY calculated totals ---
 
                         TextInput::make('withholding_tax')
-                            ->label('Withholding Tax')
+                            ->label(__('Withholding Tax'))
                             ->numeric()
                             ->readOnly(),
                     ]),
@@ -295,17 +295,17 @@ class PayslipForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('total_earnings')
-                            ->label('Total Earnings')
+                            ->label(__('Total Earnings'))
                             ->numeric()
                             ->readOnly(),
 
                         TextInput::make('total_deductions')
-                            ->label('Total Deductions')
+                            ->label(__('Total Deductions'))
                             ->numeric()
                             ->readOnly(),
 
                         TextInput::make('net_salary')
-                            ->label('Net Salary')
+                            ->label(__('Net Salary'))
                             ->numeric()
                             ->readOnly(),
                     ]),

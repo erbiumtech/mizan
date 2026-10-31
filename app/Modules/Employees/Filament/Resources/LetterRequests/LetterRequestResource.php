@@ -72,12 +72,12 @@ class LetterRequestResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('employee_id')->label('Employee')
+            Select::make('employee_id')->label(__('Employee'))
                 // Own record and downline, unless privileged: a picker of every colleague let anyone file in another's name.
                 ->options(fn (): array => app(EmployeeAccess::class)->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required()
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
-            Select::make('kind')->label('Letter')
+            Select::make('kind')->label(__('Letter'))
                 ->options(fn (): array => array_diff_key(LetterTemplate::KINDS, array_flip(LetterTemplate::EVENT_KINDS)))
                 ->required()
                 ->helperText('Increment, promotion, transfer and confirmation letters arrive on their own when the thing happens.'),
@@ -89,9 +89,9 @@ class LetterRequestResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('created_at')->label('Asked')->date('d M Y')->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
-                TextColumn::make('kind')->label('Letter')->formatStateUsing(fn (string $state): string => LetterTemplate::KINDS[$state] ?? $state),
+                TextColumn::make('created_at')->label(__('Asked'))->date('d M Y')->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
+                TextColumn::make('kind')->label(__('Letter'))->formatStateUsing(fn (string $state): string => LetterTemplate::KINDS[$state] ?? $state),
                 TextColumn::make('purpose')->limit(40)->placeholder('—'),
                 TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'issued' => 'success', 'refused' => 'danger', default => 'warning'
@@ -102,7 +102,7 @@ class LetterRequestResource extends Resource
             ->defaultSort('id', 'desc')
             ->recordActions([
                 Action::make('issue')
-                    ->label('Issue')
+                    ->label(__('Issue'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
                     ->requiresConfirmation()
@@ -122,7 +122,7 @@ class LetterRequestResource extends Resource
                         Notification::make()->success()->title('Issued and emailed.')->send();
                     }),
                 Action::make('refuse')
-                    ->label('Refuse')
+                    ->label(__('Refuse'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (LetterRequest $r): bool => $r->isPending() && (auth()->user()?->can('LetterIssue') ?? false))

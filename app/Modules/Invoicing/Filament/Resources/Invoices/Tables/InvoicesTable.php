@@ -50,12 +50,12 @@ class InvoicesTable
             ->header(view('filament.tables.saved-views-bar'))
             ->columns([
                 TextColumn::make('invoice_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         Invoice::KIND_CREDIT_NOTE => 'Credit note',
@@ -79,28 +79,28 @@ class InvoicesTable
                     ->sortable(),
 
                 TextColumn::make('contact.name')
-                    ->label('Contact')
+                    ->label(__('Contact'))
                     ->sortable(),
 
                 TextColumn::make('project.name')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable()
                     ->visible(fn (): bool => modules()->enabled('projects')),
 
                 TextColumn::make('invoice_date')
-                    ->label('Invoice Date')
+                    ->label(__('Invoice Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('Due Date'))
                     ->date()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'draft' => 'warning',
@@ -120,17 +120,17 @@ class InvoicesTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('tax_amount')
-                    ->label('Tax')
+                    ->label(__('Tax'))
                     ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total')
-                    ->label('Total')
+                    ->label(__('Total'))
                     ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->sortable(),
 
                 TextColumn::make('amount_paid')
-                    ->label('Paid')
+                    ->label(__('Paid'))
                     ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->sortable(),
 
@@ -139,13 +139,13 @@ class InvoicesTable
                 // positive amounts, which is the one place on this screen a reader could
                 // conclude the customer owes twice what they do.
                 TextColumn::make('outstanding')
-                    ->label('Outstanding')
+                    ->label(__('Outstanding'))
                     ->money(fn (Invoice $record): string => $record->currencyCode())
                     ->color(fn (Invoice $record): ?string => $record->isCreditNote() ? 'danger' : null)
                     ->state(fn (Invoice $record): float => $record->signedOutstanding()),
 
                 TextColumn::make('exchange_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->state(fn (Invoice $record): ?string => $record->isForeignCurrency()
                         ? number_format($record->rate(), 4)
                         : null)
@@ -156,14 +156,14 @@ class InvoicesTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('journalEntry.entry_number')
-                    ->label('Journal Entry')
+                    ->label(__('Journal Entry'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 ...CustomFieldsSchema::tableColumns(Invoice::class),
             ])
             ->groups([
-                Group::make('status')->label('Status'),
-                Group::make('kind')->label('Kind'),
+                Group::make('status')->label(__('Status')),
+                Group::make('kind')->label(__('Kind')),
             ])
             ->filters([
                 ...CustomFieldsSchema::tableFilters(Invoice::class),
@@ -173,7 +173,7 @@ class InvoicesTable
                 // with the module, so a company without Projects sees no filter
                 // for a field it can never fill.
                 SelectFilter::make('project_id')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->relationship('project', 'name')
                     ->searchable()
                     ->preload()
@@ -182,23 +182,23 @@ class InvoicesTable
                 // The purchase-side questions — docs/bexio-gap-plan.md Phase 3, item 11: which supplier,
                 // what falls due when, and what was it booked to. Each works on the sales side too.
                 SelectFilter::make('contact_id')
-                    ->label('Customer / supplier')
+                    ->label(__('Customer / supplier'))
                     ->relationship('contact', 'name')
                     ->searchable()
                     ->preload(),
 
                 Filter::make('due')
-                    ->label('Due between')
+                    ->label(__('Due between'))
                     ->schema([
-                        DatePicker::make('due_from')->label('Due from'),
-                        DatePicker::make('due_to')->label('Due to'),
+                        DatePicker::make('due_from')->label(__('Due from')),
+                        DatePicker::make('due_to')->label(__('Due to')),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query
                         ->when($data['due_from'] ?? null, fn (Builder $q, $from) => $q->whereDate('due_date', '>=', $from))
                         ->when($data['due_to'] ?? null, fn (Builder $q, $to) => $q->whereDate('due_date', '<=', $to))),
 
                 SelectFilter::make('account')
-                    ->label('Posting account')
+                    ->label(__('Posting account'))
                     ->options(fn (): array => Account::query()
                         ->orderBy('code')
                         ->get()
@@ -230,7 +230,7 @@ class InvoicesTable
     {
         return [
             Action::make('issue')
-                ->label('Issue')
+                ->label(__('Issue'))
                 ->icon('heroicon-o-paper-airplane')
                 ->requiresConfirmation()
                 // A budget that argues back, and only argues — docs/erpnext-gap-plan.md §4 item 8. The
@@ -247,7 +247,7 @@ class InvoicesTable
              * yet, so on most invoices the button is simply absent rather than present and refused.
              */
             Action::make('defer')
-                ->label('Defer over service period')
+                ->label(__('Defer over service period'))
                 ->icon('heroicon-o-calendar')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -261,7 +261,7 @@ class InvoicesTable
                 ->action(fn (Invoice $record) => self::run(fn (InvoiceService $s) => $s->deferOverServicePeriod($record), 'Deferred')),
 
             Action::make('recordPayment')
-                ->label('Record Payment')
+                ->label(__('Record Payment'))
                 ->icon('heroicon-o-banknotes')
                 // Hidden on either note rather than offered and refused: nobody pays one, and the service
                 // says so at length if asked.
@@ -279,7 +279,7 @@ class InvoicesTable
              * above stays for a bill paid some other way and recorded after the fact.
              */
             Action::make('payThroughBank')
-                ->label('Pay through the bank')
+                ->label(__('Pay through the bank'))
                 ->icon('heroicon-o-building-library')
                 ->color('gray')
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoicePay') ?? false)
@@ -299,7 +299,7 @@ class InvoicesTable
                         ->helperText('What is left to pay, less any payment already raised and waiting.'),
 
                     Select::make('company_bank_account_id')
-                        ->label('Pay from')
+                        ->label(__('Pay from'))
                         ->options(fn (): array => CompanyBankAccount::query()
                             ->where('is_active', true)
                             ->orderByDesc('is_default')
@@ -312,7 +312,7 @@ class InvoicesTable
                         ->required(),
 
                     DatePicker::make('value_date')
-                        ->label('Value date')
+                        ->label(__('Value date'))
                         ->default(now()->toDateString())
                         ->required(),
                 ])
@@ -344,7 +344,7 @@ class InvoicesTable
              * is 2600 rather than the bank; see InvoiceService::applyCredit().
              */
             Action::make('applyCredit')
-                ->label('Apply credit on account')
+                ->label(__('Apply credit on account'))
                 ->icon('heroicon-o-wallet')
                 ->color('gray')
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoicePay') ?? false)
@@ -358,7 +358,7 @@ class InvoicesTable
                 ->modalSubmitActionLabel('Apply')
                 ->schema([
                     Select::make('credit_id')
-                        ->label('Credit')
+                        ->label(__('Credit'))
                         ->options(fn (Invoice $record): array => CustomerCredit::query()
                             ->where('contact_id', $record->contact_id)
                             ->available()
@@ -390,7 +390,7 @@ class InvoicesTable
                 )),
 
             Action::make('pdf')
-                ->label('PDF')
+                ->label(__('PDF'))
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->visible(fn (Invoice $record): bool => auth()->user()?->can('view', $record) ?? false)
@@ -412,7 +412,7 @@ class InvoicesTable
              * commonest reason to send one; every send is its own entry on the history.
              */
             Action::make('email')
-                ->label('Email')
+                ->label(__('Email'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoiceIssue') ?? false)
@@ -440,7 +440,7 @@ class InvoicesTable
                 }),
 
             Action::make('void')
-                ->label('Void')
+                ->label(__('Void'))
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
@@ -463,7 +463,7 @@ class InvoicesTable
              * that has been reported and paid is exactly the one nothing else can correct.
              */
             Action::make('credit')
-                ->label('Credit')
+                ->label(__('Credit'))
                 ->icon('heroicon-o-receipt-refund')
                 ->color('warning')
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoiceVoid') ?? false)
@@ -478,7 +478,7 @@ class InvoicesTable
                 ->modalSubmitActionLabel('Create draft credit note')
                 ->schema([
                     Textarea::make('reason')
-                        ->label('Why')
+                        ->label(__('Why'))
                         ->required()
                         ->rows(2)
                         ->maxLength(255)
@@ -494,7 +494,7 @@ class InvoicesTable
                      * that does not reach them.
                      */
                     TextInput::make('commissioner_ref')
-                        ->label('Commissioner extension reference')
+                        ->label(__('Commissioner extension reference'))
                         ->maxLength(255)
                         ->required()
                         ->visible(fn (?Invoice $record): bool => $record !== null
@@ -508,7 +508,7 @@ class InvoicesTable
                             .'reference. Without it the credit note would not be admissible.'),
 
                     DatePicker::make('commissioner_granted_on')
-                        ->label('Granted on')
+                        ->label(__('Granted on'))
                         ->native(false)
                         ->visible(fn (?Invoice $record): bool => $record !== null
                             && (bool) setting('fbr.enabled', false)
@@ -537,7 +537,7 @@ class InvoicesTable
              * can correct, and the note then stands as a credit against the supplier's balance.
              */
             Action::make('debit')
-                ->label('Debit')
+                ->label(__('Debit'))
                 ->icon('heroicon-o-receipt-refund')
                 ->color('warning')
                 ->visible(fn (Invoice $record): bool => (auth()->user()?->can('InvoiceVoid') ?? false)
@@ -552,7 +552,7 @@ class InvoicesTable
                 ->modalSubmitActionLabel('Create draft debit note')
                 ->schema([
                     Textarea::make('reason')
-                        ->label('Why')
+                        ->label(__('Why'))
                         ->required()
                         ->rows(2)
                         ->maxLength(255)
@@ -576,21 +576,21 @@ class InvoicesTable
     {
         return [
             BulkAction::make('issueBulk')
-                ->label('Issue')
+                ->label(__('Issue'))
                 ->icon('heroicon-o-paper-airplane')
                 ->requiresConfirmation()
                 ->visible(fn (): bool => auth()->user()?->can('InvoiceIssue') ?? false)
                 ->action(fn (Collection $records) => self::runBulk($records, fn (InvoiceService $s, Invoice $i) => $s->issue($i), 'Issued')),
 
             BulkAction::make('recordPaymentBulk')
-                ->label('Record Payment')
+                ->label(__('Record Payment'))
                 ->icon('heroicon-o-banknotes')
                 ->visible(fn (): bool => auth()->user()?->can('InvoicePay') ?? false)
                 ->schema(self::paymentFields())
                 ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (InvoiceService $s, Invoice $i) => self::settle($s, $i, $data), 'Payment recorded')),
 
             BulkAction::make('voidBulk')
-                ->label('Void')
+                ->label(__('Void'))
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
@@ -612,7 +612,7 @@ class InvoicesTable
         return [
             DatePicker::make('date')->required()->default(now()->toDateString()),
             TextInput::make('amount')
-                ->label('Amount received')
+                ->label(__('Amount received'))
                 ->numeric()->step(0.01)->required()->minValue(0.01)
                 ->helperText(fn (?Invoice $record): ?string => $record?->isForeignCurrency()
                     ? 'In '.$record->currencyCode().', which is what the invoice is billed in.'
@@ -622,13 +622,13 @@ class InvoicesTable
             // the difference. Typed here from the certificate, not computed from a rate table — the
             // certificate is the fact, and the rate the customer applied is their business.
             TextInput::make('withheld')
-                ->label('Tax withheld by the customer')
+                ->label(__('Tax withheld by the customer'))
                 ->numeric()->step(0.01)->minValue(0)->default(0)
                 ->visible($canWithhold)
                 ->helperText('From their deduction certificate. Held in 1260 Advance Income Tax and claimed on the company\'s own return.'),
 
             TextInput::make('certificate')
-                ->label('Certificate / CPR reference')
+                ->label(__('Certificate / CPR reference'))
                 ->maxLength(60)
                 ->visible($canWithhold)
                 ->helperText('Printed on the Tax Withheld by Customers report, which is what the return is checked against.'),
@@ -636,7 +636,7 @@ class InvoicesTable
             // A bank advice saying what actually landed is a fact, and the rate table is
             // only an estimate of it — so the fact can be typed in.
             TextInput::make('rate')
-                ->label('Rate the bank gave')
+                ->label(__('Rate the bank gave'))
                 ->numeric()
                 ->minValue(0)
                 ->visible(fn (?Invoice $record): bool => $record?->isForeignCurrency() ?? false)

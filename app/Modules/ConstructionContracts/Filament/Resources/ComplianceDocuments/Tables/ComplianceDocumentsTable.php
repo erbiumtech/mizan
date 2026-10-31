@@ -33,13 +33,13 @@ class ComplianceDocumentsTable
         return $table
             ->columns([
                 TextColumn::make('kind')
-                    ->label('Document')
+                    ->label(__('Document'))
                     ->formatStateUsing(fn (ComplianceDocument $record): string => $record->label())
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     // "Company-wide" rather than a dash: it is a fact about the document's scope, not a missing field.
                     ->placeholder('Company-wide')
                     ->description(fn (ComplianceDocument $record): ?string => $record->contract?->job?->code)
@@ -51,12 +51,12 @@ class ComplianceDocumentsTable
                     ->toggleable(),
 
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('Reference'))
                     ->placeholder('—')
                     ->searchable(),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     // Computed, never read from a column — see the class docblock.
                     ->state(fn (ComplianceDocument $record): string => str_replace('_', ' ', $record->statusOn()))
@@ -69,7 +69,7 @@ class ComplianceDocumentsTable
                     }),
 
                 TextColumn::make('expires_on')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->date()
                     ->placeholder('No expiry')
                     ->description(function (ComplianceDocument $record): ?string {
@@ -87,28 +87,28 @@ class ComplianceDocumentsTable
                     ->sortable(),
 
                 TextColumn::make('amount_covered')
-                    ->label('Sum insured')
+                    ->label(__('Sum insured'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('verified_at')
-                    ->label('Verified')
+                    ->label(__('Verified'))
                     ->dateTime()
                     // Arriving and being read are two different facts, and this column is the second one.
                     ->placeholder('Not yet read')
                     ->toggleable(),
 
                 TextColumn::make('waiver_reason')
-                    ->label('Waived because')
+                    ->label(__('Waived because'))
                     ->wrap()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->relationship('contract', 'contract_number')
                     ->searchable(),
 
@@ -121,12 +121,12 @@ class ComplianceDocumentsTable
 
                 // What somebody chases: expiring inside two months, or already gone.
                 Filter::make('needs_attention')
-                    ->label('Expiring or expired')
+                    ->label(__('Expiring or expired'))
                     ->query(fn (Builder $query) => $query->needingAttention())
                     ->toggle(),
 
                 Filter::make('unverified')
-                    ->label('Received, not read')
+                    ->label(__('Received, not read'))
                     ->query(fn (Builder $query) => $query->whereNull('verified_at'))
                     ->toggle(),
             ])
@@ -136,7 +136,7 @@ class ComplianceDocumentsTable
                     ->visible(fn (ComplianceDocument $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('verify')
-                    ->label('Verify')
+                    ->label(__('Verify'))
                     ->icon('heroicon-o-eye')
                     ->color('success')
                     ->requiresConfirmation()
@@ -150,14 +150,14 @@ class ComplianceDocumentsTable
                     )),
 
                 Action::make('waive')
-                    ->label('Waive')
+                    ->label(__('Waive'))
                     ->icon('heroicon-o-hand-raised')
                     ->color('warning')
                     ->modalHeading('Waive this requirement')
                     ->modalDescription('Says this subcontractor will not produce it and the company accepts that. It is a standing decision — unlike a certificate override, which is about one payment.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(3)
                             ->required()
                             ->helperText('Read by whoever asks why payments went out without it.'),

@@ -38,18 +38,18 @@ class BackChargesTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Ref')
+                    ->label(__('Ref'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Subcontract')
+                    ->label(__('Subcontract'))
                     ->description(fn (BackCharge $record): ?string => $record->job?->code)
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('kind')
-                    ->label('For')
+                    ->label(__('For'))
                     ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', $state))
                     ->toggleable(),
 
@@ -74,27 +74,27 @@ class BackChargesTable
                     ->sortable(),
 
                 TextColumn::make('incurred_on')
-                    ->label('Incurred')
+                    ->label(__('Incurred'))
                     ->date()
                     ->placeholder('—')
                     ->sortable(),
 
                 TextColumn::make('notified_on')
-                    ->label('Notice served')
+                    ->label(__('Notice served'))
                     // Not a dash: the absence is the finding, and it is the sentence §12 is about.
                     ->placeholder('Not served')
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('total_amount')
-                    ->label('Notified')
+                    ->label(__('Notified'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
-                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label('Total'))
+                    ->summarize(Sum::make()->money(CompanyCurrency::code())->label(__('Total')))
                     ->sortable(),
 
                 TextColumn::make('agreed_amount')
-                    ->label('Settled')
+                    ->label(__('Settled'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     // Beside the notified figure rather than over it: "notified 240,000, settled at 180,000" is the
@@ -103,19 +103,19 @@ class BackChargesTable
                     ->toggleable(),
 
                 TextColumn::make('appliedCertificate.certificate_number')
-                    ->label('Deducted on')
+                    ->label(__('Deducted on'))
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('withdrawal_reason')
-                    ->label('Withdrawn because')
+                    ->label(__('Withdrawn because'))
                     ->wrap()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('contract_id')
-                    ->label('Subcontract')
+                    ->label(__('Subcontract'))
                     ->relationship('contract', 'contract_number')
                     ->searchable(),
 
@@ -131,12 +131,12 @@ class BackChargesTable
 
                 // §12's exposure, as a toggle.
                 Filter::make('unnotified')
-                    ->label('No notice served')
+                    ->label(__('No notice served'))
                     ->query(fn (Builder $query) => $query->unnotified())
                     ->toggle(),
 
                 Filter::make('awaiting_application')
-                    ->label('Recoverable, not yet deducted')
+                    ->label(__('Recoverable, not yet deducted'))
                     ->query(fn (Builder $query) => $query->awaitingApplication())
                     ->toggle(),
             ])
@@ -146,14 +146,14 @@ class BackChargesTable
                     ->visible(fn (BackCharge $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('notify')
-                    ->label('Serve notice')
+                    ->label(__('Serve notice'))
                     ->icon('heroicon-o-megaphone')
                     ->color('info')
                     ->modalHeading('Record the notice')
                     ->modalDescription('Almost every subcontract requires notice before a back-charge may be deducted. Until this date is on the row, nothing here can come off a payment.')
                     ->schema([
                         DatePicker::make('notified_on')
-                            ->label('Notice served on')
+                            ->label(__('Notice served on'))
                             ->default(now())
                             ->required()
                             // The subcontractor's date, not today's: notice served on the 3rd and recorded on the 11th
@@ -168,14 +168,14 @@ class BackChargesTable
                     )),
 
                 Action::make('dispute')
-                    ->label('Record dispute')
+                    ->label(__('Record dispute'))
                     ->icon('heroicon-o-exclamation-triangle')
                     ->color('danger')
                     ->modalHeading('Record the subcontractor\'s objection')
                     ->modalDescription('A disputed charge is still deductible under most subcontracts — the argument goes where the contract says arguments go. This records that it is contested.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Their grounds')
+                            ->label(__('Their grounds'))
                             ->rows(3)
                             ->required(),
                     ])
@@ -187,14 +187,14 @@ class BackChargesTable
                     )),
 
                 Action::make('agree')
-                    ->label('Agree')
+                    ->label(__('Agree'))
                     ->icon('heroicon-o-scale')
                     ->color('success')
                     ->modalHeading('Settle the amount')
                     ->modalDescription('A settlement below the notified figure gives away part of a recovery the company was entitled to. Both figures stay on the row.')
                     ->schema([
                         TextInput::make('agreed_amount')
-                            ->label('Agreed amount')
+                            ->label(__('Agreed amount'))
                             ->numeric()
                             ->default(fn (BackCharge $record): float => (float) $record->total_amount)
                             ->helperText('Leave at the notified figure where nothing was conceded. Above it is refused — that would be a new charge, needing its own notice.'),
@@ -210,14 +210,14 @@ class BackChargesTable
                     )),
 
                 Action::make('apply')
-                    ->label('Deduct on certificate')
+                    ->label(__('Deduct on certificate'))
                     ->icon('heroicon-o-minus-circle')
                     ->color('warning')
                     ->modalHeading('Deduct this from a payment')
                     ->modalDescription('Writes one back-charge line on a draft certificate, negative by the convention that a negative amount reduces the payment. Nothing does this automatically — a deduction nobody decided on is the fastest route to a dispute.')
                     ->schema([
                         Select::make('payment_certificate_id')
-                            ->label('Draft certificate')
+                            ->label(__('Draft certificate'))
                             ->options(fn (BackCharge $record): array => PaymentCertificate::query()
                                 ->where('contract_id', $record->contract_id)
                                 ->where('status', PaymentCertificate::STATUS_DRAFT)
@@ -237,14 +237,14 @@ class BackChargesTable
                     )),
 
                 Action::make('unapply')
-                    ->label('Take off certificate')
+                    ->label(__('Take off certificate'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('gray')
                     ->modalHeading('Take this back off the certificate')
                     ->modalDescription('Removes the deduction line while the certificate is still a draft. The charge returns to notified or agreed — never to draft, because notice cannot be unserved.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2),
                     ])
                     ->visible(fn (BackCharge $record): bool => auth()->user()?->can('unapply', $record) ?? false)
@@ -255,14 +255,14 @@ class BackChargesTable
                     )),
 
                 Action::make('withdraw')
-                    ->label('Withdraw')
+                    ->label(__('Withdraw'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->modalHeading('Drop this charge')
                     ->modalDescription('Writes off the recovery. The row stays on the register — it is what explains why the final account does not add up to the notices.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(3)
                             ->required()
                             ->helperText('The subcontractor was told about this charge. Write the sentence that answers "why not?".'),

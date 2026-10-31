@@ -30,7 +30,7 @@ class ItpsTable
     {
         return $table
             ->columns([
-                TextColumn::make('reference')->label('Ref')->sortable()->searchable(),
+                TextColumn::make('reference')->label(__('Ref'))->sortable()->searchable(),
 
                 TextColumn::make('title')
                     ->wrap()
@@ -40,7 +40,7 @@ class ItpsTable
 
                 TextColumn::make('discipline')->placeholder('—')->toggleable(),
 
-                TextColumn::make('revision')->label('Rev')->placeholder('—'),
+                TextColumn::make('revision')->label(__('Rev'))->placeholder('—'),
 
                 TextColumn::make('status')
                     ->badge()
@@ -54,7 +54,7 @@ class ItpsTable
                     ->sortable(),
 
                 TextColumn::make('activities_count')
-                    ->label('Points')
+                    ->label(__('Points'))
                     ->getStateUsing(fn (Itp $record): int => $record->activities->count())
                     ->alignEnd(),
 
@@ -62,7 +62,7 @@ class ItpsTable
                  * How much attendance this plan commits the job to. Worth seeing before issue, not after.
                  */
                 TextColumn::make('hold_points')
-                    ->label('Hold points')
+                    ->label(__('Hold points'))
                     ->badge()
                     ->getStateUsing(fn (Itp $record): ?string => $record->holdPoints() > 0
                         ? (string) $record->holdPoints()
@@ -71,14 +71,14 @@ class ItpsTable
                     ->color('warning')
                     ->tooltip('Points where work may not proceed until somebody attends and releases them.'),
 
-                TextColumn::make('approved_on')->label('Approved')->date('d M Y')->placeholder('—')->toggleable(),
+                TextColumn::make('approved_on')->label(__('Approved'))->date('d M Y')->placeholder('—')->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
                 SelectFilter::make('status')->options(Itp::STATUSES),
 
                 Filter::make('in_force')
-                    ->label('In force')
+                    ->label(__('In force'))
                     ->query(fn (Builder $query): Builder => $query->inForce())
                     ->toggle(),
             ])
@@ -88,7 +88,7 @@ class ItpsTable
                     ->visible(fn (Itp $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('issue')
-                    ->label('Issue')
+                    ->label(__('Issue'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('info')
                     ->requiresConfirmation()
@@ -101,7 +101,7 @@ class ItpsTable
                     )),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
@@ -114,7 +114,7 @@ class ItpsTable
                     )),
 
                 Action::make('revise')
-                    ->label('Revise')
+                    ->label(__('Revise'))
                     ->icon('heroicon-o-document-duplicate')
                     ->color('warning')
                     ->requiresConfirmation()

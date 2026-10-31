@@ -54,14 +54,14 @@ class CompetenciesRelationManager extends RelationManager
             ->components([
                 Select::make('kind')->options(Competency::KINDS)->default('training')->required(),
                 TextInput::make('title')->required()->maxLength(255),
-                TextInput::make('reference')->label('Certificate or licence number')->maxLength(255),
+                TextInput::make('reference')->label(__('Certificate or licence number'))->maxLength(255),
                 TextInput::make('issuing_body')->maxLength(255),
                 DatePicker::make('issued_on')->native(false),
                 DatePicker::make('expires_on')
                     ->native(false)
                     ->helperText('Leave blank only where it genuinely does not expire — a date nobody has is worse than an honest blank.'),
                 Toggle::make('is_mandatory')
-                    ->label('Mandatory for the work they do')
+                    ->label(__('Mandatory for the work they do'))
                     ->columnSpanFull()
                     ->helperText('This is what turns an expiry into a stoppage. A first-aid certificate lapsing is a gap; a confined-space ticket lapsing on somebody in a chamber is an emergency.'),
                 Textarea::make('notes')->rows(2)->columnSpanFull(),
@@ -83,10 +83,10 @@ class CompetenciesRelationManager extends RelationManager
                     ->wrap()
                     ->description(fn (Competency $record): ?string => $record->reference),
 
-                TextColumn::make('issuing_body')->label('Issued by')->placeholder('—')->toggleable(),
+                TextColumn::make('issuing_body')->label(__('Issued by'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('expires_on')
-                    ->label('Expires')
+                    ->label(__('Expires'))
                     ->date('d M Y')
                     // Named: "never expires" is a claim, and a blank cell is not.
                     ->placeholder('never expires')
@@ -104,7 +104,7 @@ class CompetenciesRelationManager extends RelationManager
                     ->sortable(),
 
                 TextColumn::make('is_mandatory')
-                    ->label('Mandatory')
+                    ->label(__('Mandatory'))
                     ->badge()
                     ->getStateUsing(fn (Competency $record): ?string => $record->is_mandatory ? 'yes' : null)
                     ->placeholder('—')
@@ -121,7 +121,7 @@ class CompetenciesRelationManager extends RelationManager
                  * **Renewing through an action rather than by editing the date**, because it clears the warning ladder.
                  */
                 Action::make('renew')
-                    ->label('Renew')
+                    ->label(__('Renew'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('success')
                     ->modalDescription('This clears the warning history as well as moving the date, so the ticket can warn again next year. Editing the date alone would silence it for good.')

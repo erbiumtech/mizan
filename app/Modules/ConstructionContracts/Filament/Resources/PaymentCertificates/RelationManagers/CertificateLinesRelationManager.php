@@ -45,18 +45,18 @@ class CertificateLinesRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 TextInput::make('cumulative_work_value')
-                    ->label('Work value to date')
+                    ->label(__('Work value to date'))
                     ->numeric()
                     ->required()
                     ->helperText('Cumulative. Certifying less than was claimed is ordinary; this is where it happens.'),
 
                 TextInput::make('cumulative_materials_value')
-                    ->label('Materials on site to date')
+                    ->label(__('Materials on site to date'))
                     ->numeric()
                     ->helperText('Delivered and not built in.'),
 
                 TextInput::make('line_retention')
-                    ->label('Retention on this line')
+                    ->label(__('Retention on this line'))
                     ->numeric()
                     ->helperText('Recomputed from the contract rate unless you override it here.'),
             ]);
@@ -68,44 +68,44 @@ class CertificateLinesRelationManager extends RelationManager
             ->recordTitleAttribute('item_no')
             ->columns([
                 TextColumn::make('item_no')
-                    ->label('A')
+                    ->label(__('A'))
                     ->tooltip('Item')
                     ->sortable(),
 
                 TextColumn::make('description')
-                    ->label('B')
+                    ->label(__('B'))
                     ->tooltip('Description')
                     ->wrap()
                     ->searchable(),
 
                 TextColumn::make('scheduled_value')
-                    ->label('C')
+                    ->label(__('C'))
                     ->tooltip('Scheduled value')
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('previous_work_value')
-                    ->label('D')
+                    ->label(__('D'))
                     ->tooltip('Work completed from previous applications — a frozen snapshot')
                     ->money(CompanyCurrency::code())
                     ->alignEnd(),
 
                 TextColumn::make('this_period')
-                    ->label('E')
+                    ->label(__('E'))
                     ->tooltip('Work completed this period — derived from D and the cumulative figure')
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (CertificateLine $record): float => $record->workThisPeriod()),
 
                 TextColumn::make('cumulative_materials_value')
-                    ->label('F')
+                    ->label(__('F'))
                     ->tooltip('Materials presently stored')
                     ->money(CompanyCurrency::code())
                     ->alignEnd(),
 
                 TextColumn::make('total_to_date')
-                    ->label('G')
+                    ->label(__('G'))
                     ->tooltip('Total completed and stored to date')
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
@@ -113,7 +113,7 @@ class CertificateLinesRelationManager extends RelationManager
                     ->weight('bold'),
 
                 TextColumn::make('balance')
-                    ->label('H')
+                    ->label(__('H'))
                     ->tooltip('Balance to finish')
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
@@ -123,14 +123,14 @@ class CertificateLinesRelationManager extends RelationManager
                     ->color(fn (CertificateLine $record): string => $record->balanceToFinish() < 0 ? 'danger' : 'gray'),
 
                 TextColumn::make('line_retention')
-                    ->label('I')
+                    ->label(__('I'))
                     ->tooltip('Retainage')
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->summarize(Sum::make()->money(CompanyCurrency::code())),
 
                 TextColumn::make('percent')
-                    ->label('%')
+                    ->label(__('%'))
                     ->alignEnd()
                     // Null on a line with no scheduled value: 0% against an omission reads as work not started.
                     ->placeholder('—')

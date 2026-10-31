@@ -33,7 +33,7 @@ class ChildrenRelationManager extends RelationManager
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
 
                 TextColumn::make('balance')

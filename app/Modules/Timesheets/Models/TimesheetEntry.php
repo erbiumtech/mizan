@@ -29,6 +29,10 @@ class TimesheetEntry extends Model
     protected $fillable = [
         'employee_id', 'project_id', 'date', 'minutes', 'is_billable',
         'task', 'description', 'approved_by', 'approved_at', 'locked_at',
+        // A column another module adds to this table and offers a picker for on this form
+        // (App\Support\ResourceContributions). Fillable so the form's value lands; `source` and
+        // `external_ref`, which a sync writes, are deliberately not.
+        'work_item_id',
     ];
 
     protected $casts = [

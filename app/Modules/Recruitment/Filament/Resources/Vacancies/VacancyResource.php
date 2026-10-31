@@ -76,7 +76,7 @@ class VacancyResource extends Resource
 
             // Guarded: a company hiring its first person has no employee to name.
             Select::make('hiring_manager_employee_id')
-                ->label('Hiring manager')
+                ->label(__('Hiring manager'))
                 ->options(fn (): array => Employee::query()
                     ->where('is_active', true)
                     ->get()
@@ -103,7 +103,7 @@ class VacancyResource extends Resource
                 TextColumn::make('department')->placeholder('—')->toggleable(),
 
                 TextColumn::make('applications_count')
-                    ->label('Applications')
+                    ->label(__('Applications'))
                     ->counts('applications')
                     ->alignEnd(),
 

@@ -25,7 +25,7 @@ class WorkItemsTable
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['project', 'status', 'assignee.user', 'labels']))
             ->columns([
                 TextColumn::make('key')
-                    ->label('Key')
+                    ->label(__('Key'))
                     ->searchable()
                     ->sortable()
                     ->weight('medium')
@@ -42,7 +42,7 @@ class WorkItemsTable
                     ->sortable(),
 
                 TextColumn::make('status.name')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     // The colour is the category's, not the status's name: a company that invents
                     // "Waiting on client" gets the in-progress colour without being asked.
@@ -63,13 +63,13 @@ class WorkItemsTable
                     ->toggleable(),
 
                 TextColumn::make('assignee.employee_id')
-                    ->label('Assignee')
+                    ->label(__('Assignee'))
                     ->formatStateUsing(fn ($state, WorkItem $record): string => $record->assignee?->display_label ?? $state)
                     ->placeholder('Unassigned')
                     ->toggleable(),
 
                 TextColumn::make('due_on')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->color(fn (WorkItem $record): ?string => $record->due_on !== null
@@ -79,13 +79,13 @@ class WorkItemsTable
                     ->toggleable(),
 
                 TextColumn::make('labels.name')
-                    ->label('Labels')
+                    ->label(__('Labels'))
                     ->badge()
                     ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('estimate_points')
-                    ->label('Points')
+                    ->label(__('Points'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -93,13 +93,13 @@ class WorkItemsTable
             ->defaultSort('key')
             ->filters([
                 SelectFilter::make('project_id')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->relationship('project', 'name')
                     ->searchable()
                     ->preload(),
 
                 SelectFilter::make('work_status_id')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->relationship('status', 'name'),
 
                 /*
@@ -109,7 +109,7 @@ class WorkItemsTable
                  * which a list of status names cannot do and a category can.
                  */
                 SelectFilter::make('category')
-                    ->label('Where it is up to')
+                    ->label(__('Where it is up to'))
                     ->options(WorkStatus::CATEGORIES)
                     ->query(fn (Builder $query, array $data): Builder => $query->when(
                         $data['value'] ?? null,
@@ -120,12 +120,12 @@ class WorkItemsTable
                     )),
 
                 SelectFilter::make('assignee_employee_id')
-                    ->label('Assignee')
+                    ->label(__('Assignee'))
                     ->relationship('assignee', 'employee_id')
                     ->searchable(),
 
                 Filter::make('mine')
-                    ->label('Assigned to me')
+                    ->label(__('Assigned to me'))
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->whereHas(
                         'assignee',
@@ -133,12 +133,12 @@ class WorkItemsTable
                     )),
 
                 Filter::make('open')
-                    ->label('Open only')
+                    ->label(__('Open only'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->open()),
 
                 Filter::make('blocked')
-                    ->label('Blocked')
+                    ->label(__('Blocked'))
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->whereHas(
                         'linkedFrom',

@@ -31,12 +31,12 @@ class ListFinalSettlements extends ListRecords
              * somebody has to remember that an unrecovered advance exists.
              */
             Action::make('build')
-                ->label('Build a settlement')
+                ->label(__('Build a settlement'))
                 ->icon('heroicon-o-calculator')
                 ->visible(fn (): bool => auth()->user()?->can('create', FinalSettlement::class) ?? false)
                 ->schema([
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->options(fn (): array => Employee::query()
                             // Leavers first: this is a screen somebody opens about
                             // somebody who has gone.

@@ -28,7 +28,7 @@ class BeneficiaryForm
                             ->helperText('Non-employee payee: landlord, caterer, vendor…'),
 
                         Select::make('id_type')
-                            ->label('ID Type')
+                            ->label(__('ID Type'))
                             ->options([
                                 'CNIC' => 'CNIC',
                                 'NTN' => 'NTN',
@@ -36,24 +36,24 @@ class BeneficiaryForm
                             ->nullable(),
 
                         TextInput::make('id_number')
-                            ->label('ID Number')
+                            ->label(__('ID Number'))
                             ->nullable(),
 
                         TextInput::make('email')
-                            ->label('Email')
+                            ->label(__('Email'))
                             ->email()
                             ->nullable(),
 
                         TextInput::make('phone')
-                            ->label('Phone')
+                            ->label(__('Phone'))
                             ->nullable(),
 
                         TextInput::make('address_line_1')
-                            ->label('Address Line 1')
+                            ->label(__('Address Line 1'))
                             ->nullable(),
 
                         TextInput::make('address_line_2')
-                            ->label('Address Line 2')
+                            ->label(__('Address Line 2'))
                             ->nullable(),
                     ]),
 
@@ -62,18 +62,18 @@ class BeneficiaryForm
                     ->columns(2)
                     ->schema([
                         Select::make('bank_id')
-                            ->label('Bank')
+                            ->label(__('Bank'))
                             ->relationship('bank', 'bank_name')
                             ->searchable()
                             ->preload()
                             ->nullable(),
 
                         TextInput::make('account_no')
-                            ->label('Account No')
+                            ->label(__('Account No'))
                             ->nullable(),
 
                         TextInput::make('iban')
-                            ->label('IBAN')
+                            ->label(__('IBAN'))
                             ->nullable()
                             ->maxLength(34),
                     ]),
@@ -83,7 +83,7 @@ class BeneficiaryForm
                     ->columns(2)
                     ->schema([
                         Select::make('transaction_type_id')
-                            ->label('Usual Transaction Type')
+                            ->label(__('Usual Transaction Type'))
                             ->relationship('transactionType', 'name')
                             ->searchable()
                             ->preload()
@@ -91,7 +91,7 @@ class BeneficiaryForm
                             ->helperText('What we usually pay this beneficiary for'),
 
                         Select::make('payment_type')
-                            ->label('Default Payment Type')
+                            ->label(__('Default Payment Type'))
                             ->options([
                                 'IBFT' => 'IBFT',
                                 'BT' => 'BT',
@@ -108,7 +108,7 @@ class BeneficiaryForm
                     ->columns(2)
                     ->schema([
                         Toggle::make('is_contractor')
-                            ->label('Contractor')
+                            ->label(__('Contractor'))
                             // Withholding used to be impossible, and this sentence used to say so. It is now a
                             // question about the two fields below rather than about this toggle: a contractor with
                             // no section assigned is still paid gross, and a landlord with one is not.
@@ -116,7 +116,7 @@ class BeneficiaryForm
                             ->live(),
 
                         TextInput::make('engagement')
-                            ->label('What they do')
+                            ->label(__('What they do'))
                             ->maxLength(255)
                             ->visible(fn (Get $get): bool => (bool) $get('is_contractor')),
 
@@ -129,7 +129,7 @@ class BeneficiaryForm
                      */
 
                         Select::make('withholding_section_id')
-                            ->label('Withholding section')
+                            ->label(__('Withholding section'))
                             // Only sections this company has left switched on: assigning a lapsed one would withhold
                             // nothing, which is the one failure this feature exists to prevent.
                             ->relationship('withholdingSection', 'section', fn ($query) => $query->where('is_active', true))
@@ -152,7 +152,7 @@ class BeneficiaryForm
                      */
 
                         Toggle::make('is_filer')
-                            ->label('On the Active Taxpayers List')
+                            ->label(__('On the Active Taxpayers List'))
                             ->default(false)
                             ->visible(fn (Get $get): bool => filled($get('withholding_section_id')))
                             ->helperText('Check against FBR\'s list before turning this on: a filer is withheld from at '
@@ -164,7 +164,7 @@ class BeneficiaryForm
                     ->columns(2)
                     ->schema([
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true),
 
                         // The person the month-end replenishment payment is made out to.
@@ -179,7 +179,7 @@ class BeneficiaryForm
                         // clears it everywhere else (see Beneficiary::booted()).
 
                         Toggle::make('is_petty_cash_custodian')
-                            ->label('Petty cash custodian')
+                            ->label(__('Petty cash custodian'))
                             ->helperText('Receives the month-end petty cash replenishment payment. Only one beneficiary can hold this at a time — turning it on here takes it off whoever holds it now.')
                             ->default(false),
                     ]),

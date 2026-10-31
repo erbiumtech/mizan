@@ -78,7 +78,7 @@ class FinalSettlementResource extends Resource
             Section::make('Who, and when')
                 ->schema([
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->options(fn (): array => Employee::query()
                             ->orderBy('employee_id')
                             ->get()
@@ -96,7 +96,7 @@ class FinalSettlementResource extends Resource
             Section::make('Clearance')
                 ->schema([
                     \Filament\Forms\Components\Placeholder::make('clearance')
-                        ->label('Items')
+                        ->label(__('Items'))
                         ->content(function ($get): string {
                             $separation = $get('employee_id') ? \App\Modules\Lifecycle\Models\Separation::query()->where('employee_id', $get('employee_id'))->orderByDesc('id')->first() : null;
 
@@ -113,15 +113,15 @@ class FinalSettlementResource extends Resource
 
             Section::make('Owed to them')
                 ->schema([
-                    TextInput::make('leave_encashment_days')->label('Encashable leave (days)')->numeric()->step(0.5)->default(0),
-                    TextInput::make('leave_encashment_amount')->label('Leave encashment')->numeric()->default(0),
+                    TextInput::make('leave_encashment_days')->label(__('Encashable leave (days)'))->numeric()->step(0.5)->default(0),
+                    TextInput::make('leave_encashment_amount')->label(__('Leave encashment'))->numeric()->default(0),
                     TextInput::make('gratuity_amount')
-                        ->label('Gratuity')
+                        ->label(__('Gratuity'))
                         ->numeric()
                         ->default(0)
                         ->helperText('One month per completed year as shipped — a convention, not a statement of law. Confirm what applies where you operate.'),
                     TextInput::make('provident_fund_amount')
-                        ->label('Provident fund')
+                        ->label(__('Provident fund'))
                         ->numeric()
                         ->default(0)
                         ->helperText('The fund\'s balance to the leaving date, from the ledger. Zero when the company runs no fund here.'),
@@ -130,10 +130,10 @@ class FinalSettlementResource extends Resource
 
             Section::make('Owed back')
                 ->schema([
-                    TextInput::make('outstanding_advance')->label('Unrecovered advance')->numeric()->default(0),
-                    TextInput::make('unreturned_asset_value')->label('Unreturned kit')->numeric()->default(0),
+                    TextInput::make('outstanding_advance')->label(__('Unrecovered advance'))->numeric()->default(0),
+                    TextInput::make('unreturned_asset_value')->label(__('Unreturned kit'))->numeric()->default(0),
                     TextInput::make('notice_recovery')
-                        ->label('Notice not served')
+                        ->label(__('Notice not served'))
                         ->numeric()
                         ->default(0)
                         ->helperText('Never computed for you: whether notice was served, and what to do about it, is a judgement somebody makes.'),
@@ -150,19 +150,19 @@ class FinalSettlementResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('left_on')->label('Left')->date('d M Y')->sortable(),
+                TextColumn::make('left_on')->label(__('Left'))->date('d M Y')->sortable(),
 
-                TextColumn::make('leave_encashment_amount')->label('Leave')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
-                TextColumn::make('gratuity_amount')->label('Gratuity')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
-                TextColumn::make('outstanding_advance')->label('Advance')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
-                TextColumn::make('unreturned_asset_value')->label('Kit')->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('leave_encashment_amount')->label(__('Leave'))->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('gratuity_amount')->label(__('Gratuity'))->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('outstanding_advance')->label(__('Advance'))->money(CompanyCurrency::code())->alignEnd()->toggleable(),
+                TextColumn::make('unreturned_asset_value')->label(__('Kit'))->money(CompanyCurrency::code())->alignEnd()->toggleable(),
 
                 TextColumn::make('net_amount')
-                    ->label('Net')
+                    ->label(__('Net'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->weight('bold')
@@ -194,7 +194,7 @@ class FinalSettlementResource extends Resource
             ])
             ->recordActions([
                 Action::make('rebuild')
-                    ->label('Recalculate')
+                    ->label(__('Recalculate'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->requiresConfirmation()
@@ -214,7 +214,7 @@ class FinalSettlementResource extends Resource
                     }),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -244,7 +244,7 @@ class FinalSettlementResource extends Resource
                  * question asked afterwards.
                  */
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -253,7 +253,7 @@ class FinalSettlementResource extends Resource
                         .'reverse — but the approval itself is withdrawn and has to be given again.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why is it being reopened?')
+                            ->label(__('Why is it being reopened?'))
                             ->rows(2)
                             ->required()
                             ->maxLength(255),

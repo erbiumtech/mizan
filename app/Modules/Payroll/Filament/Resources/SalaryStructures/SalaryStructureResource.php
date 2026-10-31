@@ -48,13 +48,13 @@ class SalaryStructureResource extends Resource
             Toggle::make('is_active')->default(true),
             Repeater::make('lines')
                 ->relationship()
-                ->label('Components')
+                ->label(__('Components'))
                 ->orderColumn('sort')
                 ->columns(3)
                 ->defaultItems(1)
                 ->schema([
                     Select::make('pay_component_id')
-                        ->label('Component')
+                        ->label(__('Component'))
                         ->options(fn (): array => PayComponent::query()->active()->earnings()->orderBy('sort')->pluck('label', 'id')->all())
                         ->required()
                         ->distinct(),
@@ -77,8 +77,8 @@ class SalaryStructureResource extends Resource
             ->columns([
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('description')->limit(50),
-                TextColumn::make('lines_count')->counts('lines')->label('Components'),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                TextColumn::make('lines_count')->counts('lines')->label(__('Components')),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }

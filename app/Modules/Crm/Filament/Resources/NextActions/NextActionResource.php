@@ -113,7 +113,7 @@ class NextActionResource extends Resource
                 ->helperText('A date is enough. Most next actions are "call them Tuesday", and forcing a time makes somebody invent one.'),
 
             Select::make('assignee_employee_id')
-                ->label('Whose')
+                ->label(__('Whose'))
                 ->options(fn (): array => Employee::query()
                     ->where('is_active', true)
                     ->get()
@@ -129,7 +129,7 @@ class NextActionResource extends Resource
     public static function dueColumn(): TextColumn
     {
         return TextColumn::make('due_on')
-            ->label('Due')
+            ->label(__('Due'))
             ->date('d M Y')
             ->color(fn (NextAction $record): string => match (true) {
                 ! $record->isOpen() => 'gray',
@@ -148,7 +148,7 @@ class NextActionResource extends Resource
     public static function completeAction(): Action
     {
         return Action::make('complete')
-            ->label('Done')
+            ->label(__('Done'))
             ->icon('heroicon-o-check')
             ->color('success')
             ->visible(fn (NextAction $record): bool => $record->isOpen()
@@ -163,14 +163,14 @@ class NextActionResource extends Resource
     public static function snoozeAction(): Action
     {
         return Action::make('snooze')
-            ->label('Snooze')
+            ->label(__('Snooze'))
             ->icon('heroicon-o-clock')
             ->color('gray')
             ->visible(fn (NextAction $record): bool => $record->isOpen()
                 && (auth()->user()?->can('update', $record) ?? false))
             ->schema([
                 DatePicker::make('snoozed_until')
-                    ->label('Until')
+                    ->label(__('Until'))
                     ->native(false)
                     ->default(now()->addWeek())
                     ->required()
@@ -191,10 +191,10 @@ class NextActionResource extends Resource
 
                 static::dueColumn(),
 
-                TextColumn::make('assignee.display_label')->label('Whose')->placeholder('—')->toggleable(),
+                TextColumn::make('assignee.display_label')->label(__('Whose'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('subject_type')
-                    ->label('About')
+                    ->label(__('About'))
                     ->formatStateUsing(fn (?string $state): string => match (true) {
                         str_contains((string) $state, 'Opportunity') => 'Deal',
                         str_contains((string) $state, 'Lead') => 'Lead',
@@ -204,17 +204,17 @@ class NextActionResource extends Resource
                     ->badge()
                     ->color('gray'),
 
-                TextColumn::make('completed_at')->label('Done')->date('d M Y')->placeholder('—')->sortable(),
+                TextColumn::make('completed_at')->label(__('Done'))->date('d M Y')->placeholder('—')->sortable(),
             ])
             ->defaultSort('due_on')
             ->filters([
                 Filter::make('due')
-                    ->label('Due now')
+                    ->label(__('Due now'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->due()),
 
                 Filter::make('open')
-                    ->label('All open')
+                    ->label(__('All open'))
                     ->query(fn (Builder $query): Builder => $query->open()),
             ])
             ->recordActions([

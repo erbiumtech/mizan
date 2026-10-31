@@ -108,7 +108,7 @@ class PerformanceServiceProvider extends ServiceProvider
         $badges = fn (): Badges => app(Badges::class);
 
         return Action::make('awardBadge')
-            ->label('Award badge')
+            ->label(__('Award badge'))
             ->icon('heroicon-o-trophy')
             ->color('gray')
             ->visible(fn (Employee $record): bool => modules()->enabled('performance')
@@ -116,7 +116,7 @@ class PerformanceServiceProvider extends ServiceProvider
                 && $badges()->lockedFor($record)->isNotEmpty())
             ->schema([
                 Select::make('badge_id')
-                    ->label('Badge')
+                    ->label(__('Badge'))
                     ->options(fn (Employee $record): array => $badges()->lockedFor($record)->pluck('name', 'id')->all())
                     ->required(),
                 Textarea::make('reason')->rows(2)->required()->maxLength(200)->helperText('Printed on the award and on the ledger.'),

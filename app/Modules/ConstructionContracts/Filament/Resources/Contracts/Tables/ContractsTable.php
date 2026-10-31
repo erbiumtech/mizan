@@ -29,12 +29,12 @@ class ContractsTable
         return $table
             ->columns([
                 TextColumn::make('contract_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->description(fn (Contract $record): ?string => $record->job?->name)
                     ->searchable()
                     ->sortable(),
@@ -49,28 +49,28 @@ class ContractsTable
                     ->formatStateUsing(fn (string $state): string => $state === Contract::SIDE_RECEIVABLE ? 'Receivable' : 'Payable'),
 
                 TextColumn::make('contract_standard')
-                    ->label('Family')
+                    ->label(__('Family'))
                     ->badge()
                     ->formatStateUsing(fn (Contract $record): string => $record->vocabulary()->word('standard')),
 
                 TextColumn::make('measurement_basis')
-                    ->label('Basis')
+                    ->label(__('Basis'))
                     ->formatStateUsing(fn (string $state): string => str_replace('_', ' ', ucfirst($state)))
                     ->toggleable(),
 
                 TextColumn::make('contact.name')
-                    ->label('Other party')
+                    ->label(__('Other party'))
                     ->placeholder('Not awarded')
                     ->toggleable(),
 
                 TextColumn::make('contract_sum')
-                    ->label('Sum')
+                    ->label(__('Sum'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('schedule_total')
-                    ->label('Schedule')
+                    ->label(__('Schedule'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (Contract $record): float => $record->scheduleTotal())
@@ -87,7 +87,7 @@ class ContractsTable
                     }),
 
                 TextColumn::make('defects_expiry')
-                    ->label('Defects expiry')
+                    ->label(__('Defects expiry'))
                     ->date()
                     // Computed, and an em dash while either half of the answer is missing.
                     ->state(fn (Contract $record) => $record->defectsPeriodExpiry())
@@ -97,7 +97,7 @@ class ContractsTable
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
@@ -125,7 +125,7 @@ class ContractsTable
                     ->visible(fn (Contract $record): bool => $record->isDraft()),
 
                 Action::make('execute')
-                    ->label('Execute')
+                    ->label(__('Execute'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()

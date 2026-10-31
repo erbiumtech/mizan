@@ -60,7 +60,7 @@ class PettyCashBook extends Page
         return $schema
             ->components([
                 Select::make('month')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->options($this->monthOptions())
                     ->native(false)
                     ->live(),
@@ -116,7 +116,7 @@ class PettyCashBook extends Page
     protected function addVoucherAction(): Action
     {
         return Action::make('addVoucher')
-            ->label('Add Voucher')
+            ->label(__('Add Voucher'))
             ->icon('heroicon-o-plus')
             ->visible(fn (): bool => auth()->user()?->can('PettyCashCreate') && ! $this->getSummary()['replenished'])
             ->schema([
@@ -128,7 +128,7 @@ class PettyCashBook extends Page
                     ->required()
                     ->maxLength(255),
                 Select::make('transaction_type_id')
-                    ->label('Category')
+                    ->label(__('Category'))
                     ->options(fn () => $this->categoryTypes()->pluck('name', 'id')->all())
                     ->required()
                     ->native(false)
@@ -166,7 +166,7 @@ class PettyCashBook extends Page
     protected function receiptUpload(): FileUpload
     {
         return FileUpload::make('receipt_path')
-            ->label('Attachment')
+            ->label(__('Attachment'))
             ->helperText('Receipt image or PDF, up to 5 MB.')
             ->disk('public')
             ->directory('petty-cash-receipts')
@@ -185,7 +185,7 @@ class PettyCashBook extends Page
     public function editVoucherAction(): Action
     {
         return Action::make('editVoucher')
-            ->label('Edit voucher')
+            ->label(__('Edit voucher'))
             ->icon('heroicon-m-pencil-square')
             ->iconButton()
             ->color('gray')
@@ -253,7 +253,7 @@ class PettyCashBook extends Page
     public function viewReceiptAction(): Action
     {
         return Action::make('viewReceipt')
-            ->label('View attachment')
+            ->label(__('View attachment'))
             ->icon('heroicon-m-paper-clip')
             ->iconButton()
             ->color('gray')
@@ -276,7 +276,7 @@ class PettyCashBook extends Page
     protected function topUpAction(): Action
     {
         return Action::make('topUp')
-            ->label('Top Up Float')
+            ->label(__('Top Up Float'))
             ->icon('heroicon-o-arrow-up-tray')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->can('PettyCashReplenish') && ! $this->getSummary()['replenished'])
@@ -286,7 +286,7 @@ class PettyCashBook extends Page
                     ->native(false)
                     ->default(now()),
                 TextInput::make('amount')
-                    ->label('Top-up amount (direct from bank)')
+                    ->label(__('Top-up amount (direct from bank)'))
                     ->numeric()
                     ->minValue(0.01)
                     ->step(0.01)
@@ -310,7 +310,7 @@ class PettyCashBook extends Page
     protected function replenishAction(): Action
     {
         return Action::make('replenish')
-            ->label('Replenish Month')
+            ->label(__('Replenish Month'))
             ->icon('heroicon-o-banknotes')
             ->color('gray')
             ->requiresConfirmation()

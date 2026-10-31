@@ -59,7 +59,7 @@ class PermitForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -76,27 +76,27 @@ class PermitForm
                             ->searchable(),
 
                         Textarea::make('description')
-                            ->label('What is being done')
+                            ->label(__('What is being done'))
                             ->required()
                             ->rows(2)
                             ->columnSpanFull()
                             ->helperText('Specific enough that the person doing the work can check themselves against it.'),
 
                         Select::make('location_id')
-                            ->label('Where')
+                            ->label(__('Where'))
                             ->options(fn (callable $get): array => static::locations($get('job_id')))
                             ->searchable(),
 
-                        TextInput::make('location_detail')->label('Where exactly')->maxLength(255),
+                        TextInput::make('location_detail')->label(__('Where exactly'))->maxLength(255),
 
-                        Textarea::make('activity')->label('Method, in short')->rows(2)->columnSpanFull(),
+                        Textarea::make('activity')->label(__('Method, in short'))->rows(2)->columnSpanFull(),
 
                         TextInput::make('requester_label')
-                            ->label('Requested by')
+                            ->label(__('Requested by'))
                             ->maxLength(255)
                             ->helperText('A name is enough — usually the supervisor of the gang doing the work.'),
 
-                        TextInput::make('persons_count')->label('How many people')->numeric(),
+                        TextInput::make('persons_count')->label(__('How many people'))->numeric(),
                     ]),
 
                 Section::make('The window')
@@ -104,19 +104,19 @@ class PermitForm
                     ->description('Both ends, with times. A permit valid "on the 20th" authorises hot work at four in the morning — which is why this form will not accept a date on its own.')
                     ->schema([
                         DateTimePicker::make('valid_from')
-                            ->label('Valid from')
+                            ->label(__('Valid from'))
                             ->seconds(false)
                             ->required()
                             ->live(onBlur: true),
 
                         DateTimePicker::make('valid_to')
-                            ->label('Valid to')
+                            ->label(__('Valid to'))
                             ->seconds(false)
                             ->required()
                             ->live(onBlur: true),
 
                         Placeholder::make('window')
-                            ->label('')
+                            ->hiddenLabel()
                             ->columnSpanFull()
                             ->visible(fn (callable $get): bool => filled($get('valid_from')) && filled($get('valid_to')))
                             ->content(function (callable $get): string {
@@ -140,7 +140,7 @@ class PermitForm
                     ->columns(1)
                     ->schema([
                         Placeholder::make('required_details')
-                            ->label('')
+                            ->hiddenLabel()
                             ->visible(fn (callable $get): bool => isset(self::PROMPTS[$get('type') ?? '']))
                             ->content(fn (callable $get): string => self::PROMPTS[$get('type')] ?? ''),
 
@@ -150,7 +150,7 @@ class PermitForm
                          * would be ninety mostly-null columns.
                          */
                         KeyValue::make('details')
-                            ->label('Type-specific controls')
+                            ->label(__('Type-specific controls'))
                             ->keyLabel('Control')
                             ->valueLabel('Detail')
                             ->addActionLabel('Add a control')

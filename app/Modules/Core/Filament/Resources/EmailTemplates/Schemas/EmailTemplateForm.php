@@ -16,7 +16,7 @@ class EmailTemplateForm
     {
         return $schema->components([
             Select::make('key')
-                ->label('Email')
+                ->label(__('Email'))
                 ->options(fn (): array => collect(array_keys(EmailTemplate::PLACEHOLDERS))
                     ->mapWithKeys(fn (string $key): array => [
                         $key => ucfirst(str_replace('_', ' ', $key)),
@@ -50,7 +50,7 @@ class EmailTemplateForm
                 ->columnSpanFull(),
 
             Toggle::make('is_active')
-                ->label('In use')
+                ->label(__('In use'))
                 ->default(true)
                 ->helperText('Switch off to go back to the shipped wording without losing what you wrote.'),
         ]);

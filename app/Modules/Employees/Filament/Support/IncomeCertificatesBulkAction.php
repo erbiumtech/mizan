@@ -20,7 +20,7 @@ class IncomeCertificatesBulkAction
     public static function make(): BulkAction
     {
         return BulkAction::make('incomeCertificates')
-            ->label('Income certificates')
+            ->label(__('Income certificates'))
             ->icon('heroicon-o-identification')
             ->color('gray')
             ->visible(fn (): bool => auth()->user()?->can('EmployeeView') ?? false)
@@ -30,12 +30,12 @@ class IncomeCertificatesBulkAction
             ->modalSubmitActionLabel('Issue')
             ->schema([
                 TextInput::make('purpose')
-                    ->label('What are they for?')
+                    ->label(__('What are they for?'))
                     ->required()
                     ->maxLength(120)
                     ->placeholder('Bank account opening'),
                 Radio::make('deliver')
-                    ->label('Deliver as')
+                    ->label(__('Deliver as'))
                     ->options(['zip' => 'One zip to download', 'email' => 'An email to each employee, certificate attached'])
                     ->default('zip')
                     ->required(),

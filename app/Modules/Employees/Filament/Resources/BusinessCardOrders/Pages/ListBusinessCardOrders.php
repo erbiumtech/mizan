@@ -15,7 +15,7 @@ class ListBusinessCardOrders extends ListRecords
     {
         return [
             HelpAction::make('business-cards', 'Business Cards: Help'),
-            CreateAction::make()->label('Ask for cards'),
+            CreateAction::make()->label(__('Ask for cards')),
         ];
     }
 }
