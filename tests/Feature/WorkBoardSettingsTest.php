@@ -6,6 +6,8 @@ use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\EditProject;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Filament\Pages\Board;
+use App\Modules\Work\Filament\Resources\WorkWorkflows\Pages\EditWorkWorkflow;
+use App\Modules\Work\Filament\Resources\WorkWorkflows\RelationManagers\StatusesRelationManager;
 use App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
@@ -275,6 +277,24 @@ class WorkBoardSettingsTest extends AccountingTestCase
         Livewire::test(Board::class, ['project' => $this->project->getKey()])
             ->assertActionVisible('editWorkflow')
             ->assertActionHasUrl('editWorkflow', WorkWorkflowResource::getUrl('edit', ['record' => $this->workflow]));
+    }
+
+    /**
+     * The link lands on a page that exists and carries the statuses. The resource once had only its
+     * list, so this route was missing and the board itself failed to render for an administrator.
+     */
+    public function test_the_workflow_page_opens_with_its_statuses(): void
+    {
+        $this->get(WorkWorkflowResource::getUrl('edit', ['record' => $this->workflow]))
+            ->assertOk()
+            ->assertSee($this->workflow->name)
+            ->assertSee($this->workflow->statuses->first()->name);
+
+        Livewire::test(StatusesRelationManager::class, [
+            'ownerRecord' => $this->workflow,
+            'pageClass' => EditWorkWorkflow::class,
+        ])
+            ->assertCanSeeTableRecords($this->workflow->statuses);
     }
 
     /** A Manager sets up boards but does not edit workflows: settings, yes; the workflow link, no. */
