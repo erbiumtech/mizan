@@ -45,32 +45,32 @@ class TimeProjectsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('name')->label('In the tracker')->searchable(),
-                TextColumn::make('external_project_id')->label('Tracker id')->copyable(),
-                TextColumn::make('project.name')->label('Project here'),
-                TextColumn::make('tasks_count')->counts('tasks')->label('Tasks')->alignEnd(),
+                TextColumn::make('name')->label(__('In the tracker'))->searchable(),
+                TextColumn::make('external_project_id')->label(__('Tracker id'))->copyable(),
+                TextColumn::make('project.name')->label(__('Project here')),
+                TextColumn::make('tasks_count')->counts('tasks')->label(__('Tasks'))->alignEnd(),
             ])
             ->headerActions([
                 Action::make('link')
-                    ->label('Link project')
+                    ->label(__('Link project'))
                     ->icon('heroicon-o-link')
                     ->visible(fn (): bool => auth()->user()?->can('create', WorkTimeProject::class) ?? false)
                     ->schema(fn (): array => [
                         Select::make('project_id')
-                            ->label('Project here')
+                            ->label(__('Project here'))
                             ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
                             ->required(),
 
                         Radio::make('how')
-                            ->label('In the tracker')
+                            ->label(__('In the tracker'))
                             ->options(['pick' => 'Pick an existing project', 'create' => 'Create one with the same name and the key as its code'])
                             ->default('pick')
                             ->live()
                             ->required(),
 
                         Select::make('external')
-                            ->label('Tracker project')
+                            ->label(__('Tracker project'))
                             ->options(function (): array {
                                 /** @var IntegrationConnection $connection */
                                 $connection = $this->getOwnerRecord();
@@ -118,7 +118,7 @@ class TimeProjectsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
-                DeleteAction::make()->label('Unlink')
+                DeleteAction::make()->label(__('Unlink'))
                     ->modalDescription('Entries already in the timesheet stay. New entries on this tracker project will be held until it is linked again.'),
             ]);
     }

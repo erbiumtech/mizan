@@ -56,7 +56,7 @@ class WorkDigest extends Notification implements CategorisedNotification, Should
             ->icon('heroicon-o-sun')
             ->info()
             ->actions([
-                Action::make('open')->label('My Work')->url(MyWork::getUrl()),
+                Action::make('open')->label(__('My Work'))->url(MyWork::getUrl()),
             ])
             ->getDatabaseMessage();
     }

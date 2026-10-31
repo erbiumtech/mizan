@@ -37,14 +37,14 @@ class CreateWorkItem extends CreateRecord
     private function draftAction(): Action
     {
         return Action::make('draft')
-            ->label('Draft from a sentence')
+            ->label(__('Draft from a sentence'))
             ->icon('heroicon-o-sparkles')
             ->color('gray')
             ->visible(fn (): bool => app(WorkAssists::class)->isAvailable())
             ->modalDescription('One sentence about what is wrong or wanted. The form below is filled in for you to check; nothing is saved until you save it.')
             ->schema([
                 Textarea::make('sentence')
-                    ->label('What is it?')
+                    ->label(__('What is it?'))
                     ->rows(3)
                     ->required()
                     ->maxLength(1000)

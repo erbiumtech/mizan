@@ -42,7 +42,7 @@ class ChannelSubscriptionsRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('kind')
-                ->label('Posts to')
+                ->label(__('Posts to'))
                 ->options(WorkChannelSubscription::KINDS)
                 ->required()
                 ->native(false)
@@ -64,13 +64,13 @@ class ChannelSubscriptionsRelationManager extends RelationManager
                     : 'The bot must be in the channel. Slack posting needs SLACK_BOT_USER_OAUTH_TOKEN on the server; without it nothing is sent and nothing fails.'),
 
             CheckboxList::make('events')
-                ->label('Say when')
+                ->label(__('Say when'))
                 ->options(WorkChannelSubscription::EVENTS)
                 ->required()
                 ->columns(2)
                 ->default(['item.done', 'sprint.started', 'sprint.completed', 'release.released']),
 
-            Toggle::make('is_active')->label('Active')->default(true),
+            Toggle::make('is_active')->label(__('Active'))->default(true),
         ]);
     }
 
@@ -80,14 +80,14 @@ class ChannelSubscriptionsRelationManager extends RelationManager
             ->recordTitleAttribute('kind')
             ->columns([
                 TextColumn::make('kind')->badge()->formatStateUsing(fn (string $state): string => WorkChannelSubscription::KINDS[$state] ?? $state),
-                TextColumn::make('destination')->label('Where')->state(fn (WorkChannelSubscription $record): string => $record->destinationLabel()),
-                TextColumn::make('events')->label('Says when')->badge()->color('gray')
+                TextColumn::make('destination')->label(__('Where'))->state(fn (WorkChannelSubscription $record): string => $record->destinationLabel()),
+                TextColumn::make('events')->label(__('Says when'))->badge()->color('gray')
                     ->formatStateUsing(fn (string $state): string => WorkChannelSubscription::EVENTS[$state] ?? $state),
-                IconColumn::make('is_active')->label('Active')->boolean(),
-                TextColumn::make('last_posted_at')->label('Last post')->since()->placeholder('never'),
-                TextColumn::make('last_failure')->label('Last failure')->placeholder('—')->wrap()->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
+                TextColumn::make('last_posted_at')->label(__('Last post'))->since()->placeholder('never'),
+                TextColumn::make('last_failure')->label(__('Last failure'))->placeholder('—')->wrap()->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->headerActions([CreateAction::make()->label('Add channel')])
+            ->headerActions([CreateAction::make()->label(__('Add channel'))])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }
 }

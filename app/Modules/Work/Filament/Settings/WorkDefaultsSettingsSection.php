@@ -34,14 +34,14 @@ class WorkDefaultsSettingsSection implements SettingsSection
                 ->columns(2)
                 ->schema([
                     Select::make('work.estimation_unit')
-                        ->label('Estimate in')
+                        ->label(__('Estimate in'))
                         ->options(['hours' => 'Hours', 'points' => 'Story points'])
                         ->required()
                         ->native(false)
                         ->helperText('Both are recorded; this is which the forms lead with and the reports sum. Hours, unless the team has run sprints before.'),
 
                     Toggle::make('work.merge_moves_to_done')
-                        ->label('A merged pull request resolves the items it names')
+                        ->label(__('A merged pull request resolves the items it names'))
                         ->helperText('Off, a merge moves them to In review instead, if the workflow has one.'),
 
                     /*
@@ -50,7 +50,7 @@ class WorkDefaultsSettingsSection implements SettingsSection
                      * exactly once; this is which door it comes through.
                      */
                     Select::make('work.time_source')
-                        ->label('Time is logged')
+                        ->label(__('Time is logged'))
                         ->options(Timers::MODES)
                         ->required()
                         ->native(false)
@@ -58,12 +58,12 @@ class WorkDefaultsSettingsSection implements SettingsSection
                         ->helperText('A project may override this on its own form. In Clockify mode, Log time is absent on an item that has a Clockify task and present everywhere else, so no hour has two doors.'),
 
                     Toggle::make('work.digest_enabled')
-                        ->label('Send the morning digest')
+                        ->label(__('Send the morning digest'))
                         ->live()
                         ->helperText('Items due today, assigned since yesterday, and blocked on you — one message per person who has any. Anybody may turn the Work category off for themselves.'),
 
                     TimePicker::make('work.digest_time')
-                        ->label('At')
+                        ->label(__('At'))
                         ->seconds(false)
                         ->native(false)
                         ->visible(fn ($get): bool => (bool) $get('work.digest_enabled'))

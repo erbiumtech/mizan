@@ -193,19 +193,19 @@ class ProjectForm
                     ->visible(fn (): bool => modules()->enabled('work'))
                     ->schema([
                         Select::make('work_merge_moves_to_done')
-                            ->label('A merged pull request')
+                            ->label(__('A merged pull request'))
                             ->options([1 => 'Resolves the items it names', 0 => 'Is only recorded'])
                             ->placeholder('Company default')
                             ->native(false),
 
                         Select::make('work_time_source')
-                            ->label('Time is logged')
+                            ->label(__('Time is logged'))
                             ->options(['here' => 'Here', 'clockify' => 'In Clockify', 'either' => 'Either'])
                             ->placeholder('Company default')
                             ->native(false),
 
                         Select::make('work_task_on_progress')
-                            ->label('Clockify task is created')
+                            ->label(__('Clockify task is created'))
                             ->options([0 => 'On the first timer', 1 => 'When the item starts'])
                             ->placeholder('On the first timer')
                             ->native(false)
