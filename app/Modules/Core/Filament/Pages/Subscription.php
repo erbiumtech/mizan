@@ -178,20 +178,23 @@ class Subscription extends Page
              * Changing plan — plan §14.9.
              *
              * `Company::changePlan()` grants the new plan's modules and never revokes, so
-             * moving down leaves what was already licensed switched on. That is deliberate
-             * and it is also why the price is not touched here: the agreement's unit price
-             * is the customer's, agreed with a person, and the meter has never written it.
-             * Somebody has to edit the agreement, and the modal says so.
+             * moving down would leave what was already licensed switched on at the smaller
+             * price. Only plans that cover the current one are offered here, and the model
+             * refuses the rest: a downgrade is support's (§12.3). The price is not touched
+             * here either: the agreement's unit price is the customer's, agreed with a
+             * person, and the meter has never written it. Somebody has to edit the
+             * agreement, and the modal says so.
              */
             Action::make('changePlan')
                 ->label(__('Change plan'))
                 ->icon('heroicon-o-arrows-right-left')
                 ->color('gray')
-                ->visible(fn (): bool => Plans::names() !== [] && static::company()?->plan !== null)
+                ->visible(fn (): bool => static::company()?->plan !== null && count(Plans::upgradesFrom(static::company()?->plan)) > 1)
                 ->modalHeading('Change plan')
                 ->modalDescription('The new plan\'s modules are switched on straight away. Nothing is switched '
-                    .'off: a module you already have stays. The price on your agreement does not change by '
-                    .'itself — tell us and we will reissue it.')
+                    .'off: a module you already have stays. Only plans that include everything yours does are '
+                    .'offered here; to move to a smaller plan, ask support. The price on your agreement does not '
+                    .'change by itself — tell us and we will reissue it.')
                 ->modalSubmitActionLabel('Change it')
                 ->schema([
                     Select::make('plan')

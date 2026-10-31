@@ -42,10 +42,11 @@ return [
     // a minimum is for. Five is the lever if trials from very small firms stall.
     'minimum_seats' => 10,
 
-    // What a self-serve signup starts on, and for how long. Nothing here is read
-    // until the signup door exists (plan §5); the provisioner takes a plan and
-    // stores it, and that is all it knows.
-    'trial' => ['plan' => 'growth', 'days' => 14],
+    // What a self-serve signup starts on, and for how long. Business, decided
+    // 2026-10-30 (plan §12.1): the trial shows the ledger, which is the thing
+    // nobody else has. A customer who then picks Growth loses screens they saw,
+    // and that is a sales conversation rather than a product fault.
+    'trial' => ['plan' => 'business', 'days' => 14],
 
     // The signup door (plan §5): submissions per minute per address before the
     // form answers silently, and how long the confirmation link stays valid.

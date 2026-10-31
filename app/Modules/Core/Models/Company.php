@@ -209,9 +209,22 @@ class Company extends SpatieTenant
      * module away is a super admin's act on the platform panel, where the
      * consequences are listed before the click. docs/saas-launch-plan.md §3.
      */
-    public function changePlan(string $plan): void
+    public function changePlan(string $plan, bool $downgrade = false): void
     {
         Plans::assertExists($plan);
+
+        // Granting never revokes, so a move to a plan that does not cover this
+        // one would keep every module at the smaller price. A Business trial that
+        // picked Growth before subscribing would get the ledger for Growth money.
+        // Downgrades are support's (docs/saas-launch-plan.md §12.3): the platform
+        // panel passes $downgrade, the company's own Subscription page cannot.
+        if (! $downgrade && ! Plans::covers($this->plan, $plan)) {
+            throw new \InvalidArgumentException(sprintf(
+                '%s does not include everything %s does. Moving to a smaller plan is done by support, who also reissue the agreement.',
+                Plans::label($plan),
+                Plans::label($this->plan),
+            ));
+        }
 
         $this->forceFill(['plan' => $plan])->save();
 
