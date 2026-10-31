@@ -1245,11 +1245,15 @@ paths:
                           enum: [applied, replayed, rejected, conflict, failed, skipped]
                         http_status:
                           type: integer
+                          nullable: true
+                          description: Null for `skipped`, which no status was produced for.
                         captured_at:
                           type: string
                           nullable: true
                         received_at:
                           type: string
+                          nullable: true
+                          description: Null for `skipped`, which the server never reached.
                         result:
                           type: object
                           nullable: true

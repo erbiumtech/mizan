@@ -8,9 +8,14 @@ use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Core\Models\SyncCommand;
 use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
+use App\Support\Sync\SyncChanges;
+use App\Support\Sync\SyncInbox;
+use App\Support\Sync\SyncWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use LogicException;
+use RuntimeException;
 use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
@@ -336,5 +341,66 @@ class OfflineSyncTest extends TestCase
         // every company on one connection (tests/Concerns/UsesRealTenantDatabase.php says why).
         $this->assertInstanceOf(TenantModel::class, new SyncCommand);
         $this->assertFileExists(base_path('database/migrations/tenant/2026_11_08_090000_create_sync_commands_table.php'));
+    }
+
+    public function test_a_failure_of_ours_stops_the_batch_and_answers_in_the_one_shape(): void
+    {
+        // A workflow that breaks on its second command, the way a bug of ours would: not a refusal
+        // the device should stop on, but something to retry once it is fixed.
+        $workflow = new class implements SyncWorkflow
+        {
+            public int $calls = 0;
+
+            public function key(): string
+            {
+                return 'breaks';
+            }
+
+            public function module(): string
+            {
+                return 'attendance';
+            }
+
+            public function rules(): array
+            {
+                return [];
+            }
+
+            public function apply(SyncCommand $command, User $user): array
+            {
+                if (++$this->calls === 2) {
+                    throw new RuntimeException('a bug of ours');
+                }
+
+                return ['ok' => true];
+            }
+
+            public function changesSince(?string $cursor, User $user, int $limit): SyncChanges
+            {
+                throw new LogicException('not read here');
+            }
+        };
+
+        $commands = [$this->punch('2026-10-28T09:07:00Z'), $this->punch('2026-10-28T18:02:00Z'), $this->punch('2026-10-28T19:30:00Z')];
+
+        $batch = app(SyncInbox::class)->receive($workflow, $this->user, $commands);
+
+        $this->assertSame(['applied' => 1, 'replayed' => 0, 'rejected' => 0, 'conflict' => 0, 'failed' => 1, 'skipped' => 1], $batch['summary']);
+
+        // Every entry has the same six keys, whether a row answers for it or nothing does.
+        foreach ($batch['results'] as $entry) {
+            $this->assertSame(['id', 'status', 'http_status', 'captured_at', 'received_at', 'result'], array_keys($entry));
+        }
+
+        [$applied, $failed, $skipped] = $batch['results'];
+        $this->assertSame(['applied', 200], [$applied['status'], $applied['http_status']]);
+        $this->assertSame(['failed', 500], [$failed['status'], $failed['http_status']]);
+        $this->assertTrue(Carbon::parse($failed['captured_at'])->equalTo('2026-10-28 18:02:00'), 'The failed command keeps the moment the device captured it.');
+        $this->assertTrue(Carbon::parse($failed['received_at'])->equalTo(Carbon::now()), 'The failed command carries the moment we took it.');
+        $this->assertSame(['skipped', null, null, null], [$skipped['status'], $skipped['http_status'], $skipped['received_at'], $skipped['result']]);
+        $this->assertTrue(Carbon::parse($skipped['captured_at'])->equalTo('2026-10-28 19:30:00'));
+
+        // Only the applied command is on record: the failure is retried, the skipped one was never reached.
+        $this->assertSame([$commands[0]['id']], SyncCommand::pluck('client_id')->all());
     }
 }
