@@ -8,6 +8,7 @@ use App\Modules\Construction\Filament\Resources\Jobs\Pages\CreateJob;
 use App\Modules\Construction\Filament\Resources\Jobs\Pages\EditJob;
 use App\Modules\Construction\Filament\Resources\Jobs\Pages\ListJobs;
 use App\Modules\Construction\Filament\Resources\Jobs\Schemas\JobForm;
+use App\Modules\Construction\Filament\Resources\Jobs\Schemas\JobInfolist;
 use App\Modules\Construction\Filament\Resources\Jobs\Tables\JobsTable;
 use App\Modules\Construction\Models\Job;
 use BackedEnum;
@@ -63,6 +64,15 @@ class JobResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return JobForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return JobInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

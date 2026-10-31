@@ -8,6 +8,7 @@ use App\Modules\ConstructionCosting\Filament\Resources\Workers\Pages\CreateWorke
 use App\Modules\ConstructionCosting\Filament\Resources\Workers\Pages\EditWorker;
 use App\Modules\ConstructionCosting\Filament\Resources\Workers\Pages\ListWorkers;
 use App\Modules\ConstructionCosting\Filament\Resources\Workers\Schemas\WorkerForm;
+use App\Modules\ConstructionCosting\Filament\Resources\Workers\Schemas\WorkerInfolist;
 use App\Modules\ConstructionCosting\Filament\Resources\Workers\Tables\WorkersTable;
 use App\Modules\ConstructionCosting\Models\Worker;
 use BackedEnum;
@@ -60,6 +61,15 @@ class WorkerResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return WorkerForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return WorkerInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

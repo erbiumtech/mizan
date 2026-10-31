@@ -10,6 +10,7 @@ use App\Modules\Accounting\Filament\Resources\Beneficiaries\Pages\ListBeneficiar
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\RelationManagers\PaymentsRelationManager;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\RelationManagers\SubscriptionsRelationManager;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\Schemas\BeneficiaryForm;
+use App\Modules\Accounting\Filament\Resources\Beneficiaries\Schemas\BeneficiaryInfolist;
 use App\Modules\Accounting\Filament\Resources\Beneficiaries\Tables\BeneficiariesTable;
 use App\Modules\Accounting\Models\Beneficiary;
 use BackedEnum;
@@ -48,6 +49,15 @@ class BeneficiaryResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return BeneficiaryForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return BeneficiaryInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

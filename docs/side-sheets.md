@@ -37,8 +37,12 @@ every sheet has an **Open the full page** button in its header.
 - Closing an edit sheet with changes — Escape, the close button or Cancel — asks first ("Discard your
   unsaved changes?"). The sheet compares the form's live state with the state it had when it was first
   touched; saving closes it without asking.
-- A `SheetView` resource with no infolist shows its form, read-only — Filament's own fallback for a
-  view action — so a view sheet needs no second schema to keep in step.
+- A `SheetView` resource defines an `infolist()` (usually `Schemas/<Name>Infolist.php`), and its view
+  sheet reads that: values rather than inputs, option labels rather than keys, names rather than ids,
+  money in its currency, statuses as the list's own badges, empties as "—". Without one, Filament
+  falls back to the edit form disabled, which reads as greyed-out inputs, so `RecordSheetCoverageTest`
+  requires it, and that it holds entries, not form inputs. The infolist follows the form's sections
+  and its visibility rules: a field gated on a module or on another field's value is gated here too.
 - The open sheet is written into Filament's own `?tableAction=edit&tableActionRecord=5` parameters,
   which Filament reads on load, so a refresh or a copied link reopens it. They clear when it closes.
 

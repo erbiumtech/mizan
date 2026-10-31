@@ -8,6 +8,7 @@ use App\Filament\Support\RecordSheet;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\CreateCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\EditCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\ListCampaigns;
+use App\Modules\Campaigns\Filament\Resources\Campaigns\Schemas\CampaignInfolist;
 use App\Modules\Campaigns\Models\Campaign;
 use App\Modules\Campaigns\Models\CampaignSend;
 use App\Modules\Campaigns\Models\Segment;
@@ -100,6 +101,15 @@ class CampaignResource extends Resource
 
             DateTimePicker::make('scheduled_at')->native(false),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return CampaignInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

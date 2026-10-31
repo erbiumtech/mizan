@@ -9,6 +9,7 @@ use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\CreateIssuedAsset;
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\EditIssuedAsset;
 use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Pages\ListIssuedAssets;
+use App\Modules\Lifecycle\Filament\Resources\IssuedAssets\Schemas\IssuedAssetInfolist;
 use App\Modules\Lifecycle\Models\IssuedAsset;
 use App\Support\CompanyCurrency;
 use App\Support\EmployeeAccess;
@@ -119,6 +120,15 @@ class IssuedAssetResource extends Resource
 
             Textarea::make('condition_note')->rows(2)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return IssuedAssetInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

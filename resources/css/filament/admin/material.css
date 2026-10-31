@@ -1612,6 +1612,23 @@ summary.fi-nav-drawer-item::after {
         box-shadow: none;
     }
 
+    /*
+     * A view sheet reads an infolist (docs/side-sheets.md), set as the Record detail design sets its
+     * metadata: a 12px label in on-surface-variant above a 16px value in on-surface.
+     */
+    & .fi-in-entry-label {
+        font-size: 0.75rem;
+        font-weight: 400;
+        line-height: 1rem;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & .fi-in-text {
+        font-size: 1rem;
+        line-height: 1.5rem;
+        color: var(--md-sys-color-on-surface);
+    }
+
     & > .fi-modal-footer {
         position: sticky;
         inset-block-end: 0;

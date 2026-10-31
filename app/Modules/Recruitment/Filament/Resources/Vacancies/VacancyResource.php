@@ -9,6 +9,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Recruitment\Filament\Resources\Vacancies\Pages\CreateVacancy;
 use App\Modules\Recruitment\Filament\Resources\Vacancies\Pages\EditVacancy;
 use App\Modules\Recruitment\Filament\Resources\Vacancies\Pages\ListVacancies;
+use App\Modules\Recruitment\Filament\Resources\Vacancies\Schemas\VacancyInfolist;
 use App\Modules\Recruitment\Models\Vacancy;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
@@ -97,6 +98,15 @@ class VacancyResource extends Resource
 
             Textarea::make('description')->rows(4)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return VacancyInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

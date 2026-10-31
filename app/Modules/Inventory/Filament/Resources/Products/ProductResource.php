@@ -9,6 +9,7 @@ use App\Modules\Inventory\Filament\Resources\Products\Pages\EditProduct;
 use App\Modules\Inventory\Filament\Resources\Products\Pages\ListProducts;
 use App\Modules\Inventory\Filament\Resources\Products\RelationManagers\MovementsRelationManager;
 use App\Modules\Inventory\Filament\Resources\Products\Schemas\ProductForm;
+use App\Modules\Inventory\Filament\Resources\Products\Schemas\ProductInfolist;
 use App\Modules\Inventory\Filament\Resources\Products\Tables\ProductsTable;
 use App\Modules\Inventory\Models\Product;
 use BackedEnum;
@@ -59,6 +60,15 @@ class ProductResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return ProductForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return ProductInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

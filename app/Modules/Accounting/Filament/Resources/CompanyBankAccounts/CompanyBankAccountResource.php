@@ -8,6 +8,7 @@ use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Pages\CreateCo
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Pages\EditCompanyBankAccount;
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Pages\ListCompanyBankAccounts;
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Schemas\CompanyBankAccountForm;
+use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Schemas\CompanyBankAccountInfolist;
 use App\Modules\Accounting\Filament\Resources\CompanyBankAccounts\Tables\CompanyBankAccountsTable;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use BackedEnum;
@@ -40,6 +41,15 @@ class CompanyBankAccountResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return CompanyBankAccountForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return CompanyBankAccountInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

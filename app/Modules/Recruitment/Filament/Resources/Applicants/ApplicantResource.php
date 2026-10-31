@@ -7,6 +7,7 @@ use App\Filament\Support\RecordSheet;
 use App\Modules\Recruitment\Filament\Resources\Applicants\Pages\CreateApplicant;
 use App\Modules\Recruitment\Filament\Resources\Applicants\Pages\EditApplicant;
 use App\Modules\Recruitment\Filament\Resources\Applicants\Pages\ListApplicants;
+use App\Modules\Recruitment\Filament\Resources\Applicants\Schemas\ApplicantInfolist;
 use App\Modules\Recruitment\Models\Applicant;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
@@ -69,6 +70,15 @@ class ApplicantResource extends Resource
 
             Textarea::make('notes')->rows(3)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return ApplicantInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
