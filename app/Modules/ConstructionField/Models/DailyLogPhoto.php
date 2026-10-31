@@ -56,6 +56,15 @@ class DailyLogPhoto extends Model
 
     protected $table = 'construction_daily_log_photos';
 
+    /**
+     * Adding or removing a photograph moves the day's `updated_at`, so the offline sync's read — which pages over diary
+     * days (docs/desktop-mobile-plan.md O2) — hands the whole day back to a device after it changes. A day is the
+     * document a device holds; its entries are not read on their own.
+     *
+     * @var array<int, string>
+     */
+    protected $touches = ['dailyLog'];
+
     protected $fillable = [
         'daily_log_id', 'location_id', 'subject', 'caption', 'description',
         'taken_at', 'taken_by', 'file_path', 'file_name', 'file_size', 'file_mime', 'file_hash',
@@ -168,5 +177,20 @@ class DailyLogPhoto extends Model
     public function displayName(): string
     {
         return $this->caption;
+    }
+
+    /** @return array<string, mixed> */
+    public function toClient(): array
+    {
+        return [
+            'id' => (int) $this->getKey(),
+            'daily_log_id' => (int) $this->daily_log_id,
+            'event_id' => $this->event_id === null ? null : (int) $this->event_id,
+            'subject' => $this->subject,
+            'caption' => $this->caption,
+            'file_name' => $this->file_name,
+            'file_size' => $this->file_size === null ? null : (int) $this->file_size,
+            'taken_at' => $this->taken_at?->toIso8601String(),
+        ];
     }
 }

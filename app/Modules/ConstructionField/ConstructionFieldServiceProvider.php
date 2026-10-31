@@ -17,6 +17,9 @@ use App\Modules\ConstructionField\Policies\PunchItemPolicy;
 use App\Modules\ConstructionField\Policies\PunchListPolicy;
 use App\Modules\ConstructionField\Policies\RfiPolicy;
 use App\Modules\ConstructionField\Policies\SubmittalPolicy;
+use App\Modules\ConstructionField\Sync\PunchItemWorkflow;
+use App\Modules\ConstructionField\Sync\SiteDiaryWorkflow;
+use App\Support\Sync\SyncWorkflows;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -50,5 +53,13 @@ class ConstructionFieldServiceProvider extends ServiceProvider
         // command nobody can invoke by hand is a command nobody can test or re-run after a failed night.
         $this->commands([CheckDelayNotices::class]);
 
+        // Site work captured offline — docs/desktop-mobile-plan.md O2: the two workflows the sync inbox applies
+        // diary lines and snag changes through, and the routes that reach them on /v1 and from the panel.
+        $workflows = $this->app->make(SyncWorkflows::class);
+        $workflows->register(SiteDiaryWorkflow::KEY, SiteDiaryWorkflow::class);
+        $workflows->register(PunchItemWorkflow::KEY, PunchItemWorkflow::class);
+
+        $this->loadRoutesFrom(__DIR__.'/routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/routes/web.php');
     }
 }

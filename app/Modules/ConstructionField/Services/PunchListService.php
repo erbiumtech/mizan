@@ -217,6 +217,24 @@ class PunchListService
     }
 
     /**
+     * **File a change that arrived too late, for a human** — docs/desktop-mobile-plan.md §5a rule 4, O2.
+     *
+     * An offline change made against a version the item has since moved past is not applied: the server's value
+     * stands. It is not thrown away either, because "the foreman marked it ready at 14:10" may be exactly what the
+     * site manager needs to know. It goes on the item's notes, which the item's form shows, and the activity log
+     * records the note like any other change to the item.
+     *
+     * Written on a closed item too, unlike updateItem(): the note changes nothing about the item and says what
+     * somebody tried, which is as true of a closed snag as of an open one.
+     */
+    public function fileOfflineChange(PunchItem $item, string $note): PunchItem
+    {
+        $item->update(['notes' => trim(($item->notes ? $item->notes."\n\n" : '').$note)]);
+
+        return $item->refresh();
+    }
+
+    /**
      * Record the back charge raised for an item.
      *
      * One integer, because `construction_back_charges` belongs to `construction_costing` and this module requires only

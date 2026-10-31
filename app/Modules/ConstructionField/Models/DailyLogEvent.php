@@ -39,6 +39,15 @@ class DailyLogEvent extends Model
 
     protected $table = 'construction_daily_log_events';
 
+    /**
+     * Adding or removing a line moves the day's `updated_at`, so the offline sync's read — which pages over diary
+     * days (docs/desktop-mobile-plan.md O2) — hands the whole day back to a device after it changes. A day is the
+     * document a device holds; its entries are not read on their own.
+     *
+     * @var array<int, string>
+     */
+    protected $touches = ['dailyLog'];
+
     protected $fillable = [
         'daily_log_id', 'kind', 'started_at', 'ended_at', 'hours_lost',
         'responsibility', 'delay_event_id', 'description', 'raised_with',
@@ -80,5 +89,20 @@ class DailyLogEvent extends Model
     public function isNotified(): bool
     {
         return $this->delay_event_id !== null;
+    }
+
+    /** @return array<string, mixed> */
+    public function toClient(): array
+    {
+        return [
+            'id' => (int) $this->getKey(),
+            'kind' => $this->kind,
+            'started_at' => $this->started_at === null ? null : substr((string) $this->started_at, 0, 5),
+            'ended_at' => $this->ended_at === null ? null : substr((string) $this->ended_at, 0, 5),
+            'hours_lost' => (float) $this->hours_lost,
+            'responsibility' => $this->responsibility,
+            'description' => $this->description,
+            'raised_with' => $this->raised_with,
+        ];
     }
 }
