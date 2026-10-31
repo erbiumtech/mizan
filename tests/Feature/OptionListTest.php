@@ -120,6 +120,88 @@ class OptionListTest extends TestCase
         $this->assertArrayHasKey('Cook', options('employees.designation', 'Cook'));
     }
 
+    public function test_every_declared_list_offers_at_least_one_value(): void
+    {
+        // A list declared with no defaults is an empty dropdown on every tenant that has
+        // not yet written its own rows — the exact failure the declared defaults exist for.
+        foreach (OptionLists::all() as $key => $list) {
+            $this->assertNotEmpty($list['defaults'], "Option list [{$key}] is declared with no values.");
+        }
+    }
+
+    public function test_every_list_the_code_asks_for_is_declared(): void
+    {
+        // options('x.y') on an undeclared key answers [], silently: the form renders an empty
+        // dropdown and the seeder has nothing to seed. Every key used must be declared.
+        $declared = array_keys(OptionLists::all());
+        $used = [];
+
+        foreach (['app', 'resources'] as $directory) {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(base_path($directory), \FilesystemIterator::SKIP_DOTS));
+
+            foreach ($files as $file) {
+                if (! str_ends_with($file->getFilename(), '.php')) {
+                    continue;
+                }
+
+                preg_match_all("/\\boptions\\('([a-z_]+\\.[a-z_.]+)'/", (string) file_get_contents($file->getPathname()), $matches);
+
+                foreach ($matches[1] as $key) {
+                    $used[$key][] = str_replace(base_path().'/', '', $file->getPathname());
+                }
+            }
+        }
+
+        $this->assertNotEmpty($used, 'The scan found no options() calls at all, so it is not scanning what it should.');
+
+        foreach ($used as $key => $files) {
+            $this->assertContains($key, $declared, "options('{$key}') is called in ".implode(', ', array_unique($files)).' but no module declares that list.');
+        }
+    }
+
+    public function test_the_swept_dropdowns_offer_what_their_forms_hardcoded(): void
+    {
+        // docs/option-lists-audit.md: four dropdowns moved from a model constant to a list. The
+        // stored values must be the ones the constant held, or every existing row stops matching.
+        (new OptionListSeeder)->run();
+        OptionLists::flush();
+
+        $this->assertSame(
+            ['single' => 'Single', 'married' => 'Married', 'widowed' => 'Widowed', 'divorced' => 'Divorced'],
+            options('employees.marital_status'),
+        );
+        $this->assertSame(
+            ['contract', 'nda', 'licence', 'registration', 'tax-certificate', 'bank-letter', 'other'],
+            array_keys(options('invoicing.contact_document_kind')),
+        );
+        $this->assertSame(
+            ['permanent' => 'Permanent', 'contract' => 'Fixed term', 'probation' => 'Probationary', 'internship' => 'Internship', 'consultant' => 'Consultant'],
+            options('lifecycle.employment_contract_type'),
+        );
+        $this->assertSame(
+            ['phone', 'email', 'whatsapp', 'panel', 'in_person'],
+            array_keys(options('support.ticket_channel')),
+        );
+
+        // employment_contracts.type and employees.marital_status are 20 wide.
+        foreach (['lifecycle.employment_contract_type', 'employees.marital_status'] as $list) {
+            foreach (array_keys(options($list)) as $value) {
+                $this->assertLessThanOrEqual(20, strlen((string) $value), "[{$value}] in {$list} does not fit its column.");
+            }
+        }
+    }
+
+    public function test_a_ticket_keeps_a_channel_the_company_has_since_withdrawn(): void
+    {
+        (new OptionListSeeder)->run();
+
+        OptionValue::where('list', 'support.ticket_channel')->where('value', 'whatsapp')->update(['is_active' => false]);
+        OptionLists::flush();
+
+        $this->assertArrayNotHasKey('whatsapp', options('support.ticket_channel'), 'a withdrawn channel is still offered for new tickets');
+        $this->assertArrayHasKey('whatsapp', options('support.ticket_channel', 'whatsapp'), 'editing an old WhatsApp ticket would blank its channel');
+    }
+
     public function test_a_company_is_only_offered_the_lists_of_the_modules_it_has(): void
     {
         $this->actingAs(User::factory()->create());

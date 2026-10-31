@@ -316,4 +316,28 @@ class TenantBaselineCompletenessTest extends TestCase
         $this->assertGreaterThan(0, \App\Modules\Leave\Models\LeaveType::count(), 'a company that licensed Leave has no leave types');
         $this->assertGreaterThan(0, \App\Modules\Crm\Models\LeadSource::count(), 'a company that licensed CRM has no lead sources');
     }
+
+    public function test_a_list_declared_after_provisioning_reaches_an_existing_company(): void
+    {
+        // A company provisioned before a module declared a list has no rows for it. The
+        // dropdown still works (declared defaults), but the Settings screen shows nothing
+        // to edit until tenants:seed-baseline tops it up — which must add, and only add.
+        $company = $this->provision(Company::TYPE_BUSINESS);
+        \App\Modules\Core\Models\OptionValue::where('list', 'support.ticket_channel')->delete();
+        \App\Modules\Core\Models\OptionValue::where('list', 'employees.marital_status')->where('value', 'single')->update(['label' => 'Unmarried']);
+        Company::forgetCurrent();
+
+        $this->artisan('tenants:seed-baseline', ['--tenant' => $company->getKey()])->assertSuccessful();
+        $this->artisan('tenants:seed-baseline', ['--tenant' => $company->getKey()])->assertSuccessful();
+
+        $company->makeCurrent();
+        $rows = \App\Modules\Core\Models\OptionValue::where('list', 'support.ticket_channel')->pluck('value')->all();
+        sort($rows);
+        $this->assertSame(['email', 'in_person', 'panel', 'phone', 'whatsapp'], $rows, 'the top-up did not add the list, or added it twice');
+        $this->assertSame(
+            'Unmarried',
+            \App\Modules\Core\Models\OptionValue::where('list', 'employees.marital_status')->where('value', 'single')->value('label'),
+            'the top-up overwrote a label the company had edited',
+        );
+    }
 }

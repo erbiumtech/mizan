@@ -22,6 +22,13 @@ use Illuminate\Database\Seeder;
  *
  * firstOrCreate on (list, value), so re-running tops up what is missing and never
  * renames or re-enables what a company has edited.
+ *
+ * Existing companies. Provisioning runs this once; a list declared in a later release
+ * reaches a company that already exists through `php artisan tenants:seed-baseline`
+ * (every company profile's seeder list includes this class), and until then the
+ * dropdown answers with the declared defaults anyway — see OptionLists::get(). So a new
+ * list works the day it ships; the top-up only puts its rows on the Settings screen where
+ * the company can edit them.
  */
 class OptionListSeeder extends Seeder
 {

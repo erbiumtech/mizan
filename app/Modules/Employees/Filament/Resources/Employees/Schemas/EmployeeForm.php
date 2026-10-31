@@ -295,7 +295,10 @@ class EmployeeForm
 
                         TextInput::make('nationality')->maxLength(60)->default('Pakistani'),
 
-                        Select::make('marital_status')->options(Employee::MARITAL_STATUSES)->nullable(),
+                        Select::make('marital_status')
+                            ->label(__('Marital status'))
+                            ->options(fn (?Employee $record): array => options('employees.marital_status', $record?->marital_status))
+                            ->nullable(),
 
                         Select::make('gender')
                             ->label(__('Gender'))

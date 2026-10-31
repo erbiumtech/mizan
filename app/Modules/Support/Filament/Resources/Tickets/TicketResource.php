@@ -93,10 +93,8 @@ class TicketResource extends Resource
                 ->visible(fn (): bool => modules()->enabled('projects')),
 
             Select::make('channel')
-                ->options(array_combine(Ticket::CHANNELS, array_map(
-                    fn (string $c): string => ucfirst(str_replace('_', ' ', $c)),
-                    Ticket::CHANNELS,
-                )))
+                ->label(__('Channel'))
+                ->options(fn (?Ticket $record): array => options('support.ticket_channel', $record?->channel))
                 ->default('panel')
                 ->required()
                 ->helperText('How the customer actually asked. Inbound email is not parsed into tickets — that needs a mail subsystem this application does not have.'),

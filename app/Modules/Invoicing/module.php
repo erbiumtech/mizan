@@ -123,4 +123,26 @@ return [
         'Invoicing & Inventory' => 'finance',
         'Reports' => 'reports',
     ],
+
+    /**
+     * The papers a company keeps against a customer or supplier. A list because the set is the
+     * company's own — a contractor files performance bonds, a reseller files distribution
+     * agreements — and nothing in the application branches on the kind: it is a label on the
+     * document and a column in the list. Plain string column.
+     */
+    'option_lists' => [
+        'invoicing.contact_document_kind' => [
+            'label' => 'Contact document kinds',
+            'help' => 'What kinds of paper you keep against a customer or supplier: contracts, NDAs, licences, tax certificates. Shown on the document; nothing is calculated from it.',
+            'values' => [
+                'contract' => 'Contract',
+                'nda' => 'NDA',
+                'licence' => 'Licence',
+                'registration' => 'Registration',
+                'tax-certificate' => 'Tax certificate',
+                'bank-letter' => 'Bank letter',
+                'other' => 'Other',
+            ],
+        ],
+    ],
 ];

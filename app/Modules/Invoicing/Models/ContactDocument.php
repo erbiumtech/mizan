@@ -23,16 +23,8 @@ class ContactDocument extends Model
 
     protected array $plainDates = ['issued_on', 'expires_on'];
 
-    /** @var array<string, string> */
-    public const KINDS = [
-        'contract' => 'Contract',
-        'nda' => 'NDA',
-        'licence' => 'Licence',
-        'registration' => 'Registration',
-        'tax-certificate' => 'Tax certificate',
-        'bank-letter' => 'Bank letter',
-        'other' => 'Other',
-    ];
+    // The kinds are an admin-managed list: options('invoicing.contact_document_kind'), declared in
+    // the Invoicing module's module.php, so a company can file the papers its own trade keeps.
 
     protected $fillable = [
         'contact_id', 'kind', 'title', 'number', 'issued_on', 'expires_on',

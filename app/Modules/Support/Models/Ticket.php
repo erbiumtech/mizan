@@ -41,7 +41,8 @@ class Ticket extends Model
 
     public const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 
-    public const CHANNELS = ['phone', 'email', 'whatsapp', 'panel', 'in_person'];
+    // Channels are an admin-managed list now: options('support.ticket_channel'), declared in
+    // this module's module.php. A company can add its own; 'panel' is the default stamped below.
 
     protected $fillable = [
         'number', 'contact_id', 'contact_person_id', 'project_id', 'category_id',

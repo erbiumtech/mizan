@@ -23,7 +23,8 @@ class EmploymentContract extends Model
 
     public const STATUS_ENDED = 'ended';
 
-    public const TYPES = ['permanent' => 'Permanent', 'contract' => 'Fixed term', 'probation' => 'Probationary', 'internship' => 'Internship', 'consultant' => 'Consultant'];
+    // Contract types are an admin-managed list: options('lifecycle.employment_contract_type'),
+    // declared in the Lifecycle module's module.php. Nothing here computes from the type.
 
     protected $fillable = [
         'employee_id', 'number', 'type', 'starts_on', 'ends_on', 'gross', 'probation_months', 'status',

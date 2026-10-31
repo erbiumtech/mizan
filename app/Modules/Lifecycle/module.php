@@ -88,6 +88,21 @@ return [
                 'other' => 'Other',
             ],
         ],
+
+        // The kind of contract a person is on. Printed on the contract register and nowhere
+        // computed from: the end date, not the type, is what puts a contract on the expiring
+        // report, and the probation length is its own field. Plain string column (20 wide).
+        'lifecycle.employment_contract_type' => [
+            'label' => 'Employment contract types',
+            'help' => 'Shown on the contract register. Nothing is calculated from the type: the end date decides expiry and the probation months field decides probation. Keep values under 20 characters.',
+            'values' => [
+                'permanent' => 'Permanent',
+                'contract' => 'Fixed term',
+                'probation' => 'Probationary',
+                'internship' => 'Internship',
+                'consultant' => 'Consultant',
+            ],
+        ],
     ],
 
     'permission_groups' => [

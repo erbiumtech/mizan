@@ -33,7 +33,8 @@ class DocumentsRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('kind')
-                ->options(ContactDocument::KINDS)
+                ->label(__('Kind'))
+                ->options(fn (?ContactDocument $record): array => options('invoicing.contact_document_kind', $record?->kind))
                 ->default('contract')
                 ->required(),
 
@@ -79,7 +80,7 @@ class DocumentsRelationManager extends RelationManager
                 TextColumn::make('kind')
                     ->badge()
                     ->color('gray')
-                    ->formatStateUsing(fn (string $state): string => ContactDocument::KINDS[$state] ?? ucfirst($state)),
+                    ->formatStateUsing(fn (string $state): string => options('invoicing.contact_document_kind', $state)[$state] ?? ucfirst($state)),
 
                 TextColumn::make('title')
                     ->searchable()
