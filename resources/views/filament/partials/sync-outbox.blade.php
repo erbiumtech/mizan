@@ -9,14 +9,16 @@
     unlicensed module is said plainly and not retried.
 
     The job list is the one piece of company data this leaves on the device, and it is the least there is: a
-    code and a name per live job, so a diary line written offline can say which job it is for. Everything
-    else the offline page shows is what the person typed.
+    code and a name per live job, so a diary line written offline can say which job it is for. It is fetched
+    from its own endpoint after the page loads, at most every ten minutes, rather than rendered here — that
+    cost every panel page a query. The outbox script is linked, versioned and cached, not inlined, for the
+    same reason in bytes. Everything else the offline page shows is what the person typed.
 --}}
 @php
     $tenant = \Filament\Facades\Filament::getTenant();
     $user = auth()->user();
     $endpoints = [];
-    $diaryJobs = [];
+    $diaryJobsUrl = null;
 
     if ($tenant !== null && \Illuminate\Support\Facades\Route::has('attendance.sync') && modules()->availableTo($user, 'attendance')) {
         $endpoints['attendance'] = route('attendance.sync', ['company' => $tenant->slug]);
@@ -28,17 +30,11 @@
         if ($user?->can('create', \App\Modules\ConstructionField\Models\DailyLog::class)) {
             $endpoints['site-diary'] = route('construction_field.sync.site-diary', ['company' => $tenant->slug]);
             $endpoints['site-diary:blobs'] = route('construction_field.sync.site-diary.blobs', ['company' => $tenant->slug]);
-            $diaryJobs = \App\Modules\Construction\Models\Job::query()
-                ->live()
-                ->orderBy('code')
-                ->limit(200)
-                ->get(['id', 'code', 'name'])
-                ->map(fn ($job): array => ['id' => (int) $job->getKey(), 'label' => trim($job->code.' — '.$job->name)])
-                ->all();
+            $diaryJobsUrl = route('construction_field.sync.site-diary.jobs', ['company' => $tenant->slug]);
         }
     }
 @endphp
-@include('pwa.outbox-script')
+<script src="{{ \App\Http\Controllers\PwaController::outboxUrl() }}"></script>
 <script>
     (function () {
         const sync = window.MizanSync;
@@ -47,14 +43,37 @@
             return;
         }
 
+        // The job list is not rendered into the page (it cost every page a query); the copy the device
+        // already holds is kept while it is the same company's, and refreshed in the background below.
+        const previous = sync.context() || {};
+        const company = @js($tenant?->slug);
+        const sameCompany = previous.company === company;
+
         sync.setContext({
             user: @js($user?->getKey()),
-            company: @js($tenant?->slug),
+            company: company,
             employee: @js($tenant !== null && app(\App\Support\EmployeeAccess::class)->isEmployee($user)),
-            diaryJobs: @js($diaryJobs),
+            diaryJobs: sameCompany ? (previous.diaryJobs || []) : [],
+            diaryJobsAt: sameCompany ? (previous.diaryJobsAt || 0) : 0,
             endpoints: @js($endpoints),
             csrf: @js(csrf_token()),
         });
+
+        const diaryJobsUrl = @js($diaryJobsUrl);
+        const stale = Date.now() - ((sync.context() || {}).diaryJobsAt || 0) > 10 * 60 * 1000;
+
+        if (diaryJobsUrl && stale && navigator.onLine !== false) {
+            const refresh = () => fetch(diaryJobsUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+                .then((response) => (response.ok ? response.json() : null))
+                .then((body) => {
+                    if (body && Array.isArray(body.jobs)) {
+                        sync.setContext(Object.assign(sync.context() || {}, { diaryJobs: body.jobs, diaryJobsAt: Date.now() }));
+                    }
+                })
+                .catch(() => {});
+
+            (window.requestIdleCallback || ((fn) => window.setTimeout(fn, 1500)))(refresh);
+        }
 
         const words = {
             sent: @js(__('Offline punches sent')),

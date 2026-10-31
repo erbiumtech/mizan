@@ -445,6 +445,26 @@ class OfflineFieldSyncTest extends AccountingTestCase
         $this->assertSame(0, SyncCommand::count());
     }
 
+    /**
+     * The jobs a diary line may name come from their own endpoint, fetched by the outbox after a page has
+     * loaded, not rendered into every panel page (PanelPerformanceTest's query budget caught that).
+     */
+    public function test_the_job_list_is_its_own_endpoint_for_whoever_may_write_the_diary(): void
+    {
+        $this->actingAs($this->foreman, 'web');
+
+        $this->getJson('/'.$this->tenant->slug.'/sync/site-diary/jobs')
+            ->assertOk()
+            ->assertJsonPath('jobs.0.id', $this->job->getKey())
+            ->assertJsonPath('jobs.0.label', 'J-1 — Tower');
+
+        // The outbox script the panel links to is versioned by content and cached for good.
+        $this->get(\App\Http\Controllers\PwaController::outboxUrl())
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/javascript; charset=utf-8')
+            ->assertSee('MizanSync', false);
+    }
+
     public function test_the_panel_replays_through_the_session_routes(): void
     {
         // The panel's session, not a token: the offline page has nothing else.
