@@ -49,9 +49,12 @@ class OfflineFieldSyncTest extends AccountingTestCase
 
         Carbon::setTestNow('2026-10-28 20:00:00');
 
-        // Signed in before the tenant is taken: Filament::setTenant() announces TenantSet with the
-        // authenticated user and type-errors on null. actingAsApiUser() makes the company it joins.
+        // actingAsApiUser() makes the company the foreman joins, but signs in through Sanctum only.
+        // Filament::setTenant() announces TenantSet with the panel's web-guard user and type-errors on
+        // null, so the foreman is put on that guard too, without making it the default: the API calls
+        // below still authenticate through Sanctum, as a device's would.
         $this->foreman = $this->actingAsApiUser('Administrator', 'foreman@test.local');
+        $this->app['auth']->guard('web')->setUser($this->foreman);
         $this->setCurrentTenant($this->apiCompany);
         $this->license(true);
         $this->job = Job::create(['code' => 'J-1', 'name' => 'Tower']);
