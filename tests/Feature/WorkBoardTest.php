@@ -246,9 +246,16 @@ class WorkBoardTest extends AccountingTestCase
 
         $links = collect($page->instance()->viewSwitch())->keyBy('label');
         $this->assertTrue($links['Board']['current']);
-        $this->assertStringContainsString('project='.$this->project->getKey(), (string) $links['Board']['url'], 'The open segment is a link too, for the keyboard.');
-        $this->assertStringContainsString('project='.$this->project->getKey(), (string) $links['Timeline']['url']);
-        $this->assertStringContainsString('filters[project_id][value]='.$this->project->getKey(), urldecode((string) $links['List']['url']));
+        // Read as parsed query strings, so encoding and parameter order do not matter.
+        $query = function (?string $url): array {
+            parse_str((string) parse_url((string) $url, PHP_URL_QUERY), $values);
+
+            return $values;
+        };
+        $project = (string) $this->project->getKey();
+        $this->assertSame($project, $query($links['Board']['url'])['project'] ?? null, 'The open segment is a link too, for the keyboard.');
+        $this->assertSame($project, $query($links['Timeline']['url'])['project'] ?? null);
+        $this->assertSame($project, $query($links['List']['url'])['filters']['project_id']['value'] ?? null);
 
         // One card under a limit of three: counted, not full.
         $this->assertSame(1, $columns[0]['total']);
