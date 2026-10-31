@@ -86,7 +86,8 @@ class PayslipLetterheadTest extends AccountingTestCase
     {
         $html = $this->html();
 
-        $this->assertStringContainsString($this->tenant->name, $html);
+        // As Blade prints it: a factory name such as "Hartmann, O'Reilly and Williamson" arrives escaped.
+        $this->assertStringContainsString(e($this->tenant->name), $html);
         $this->assertStringNotContainsString('ErbiumTech', $html);
         $this->assertStringNotContainsString('Khayaban', $html);
     }
