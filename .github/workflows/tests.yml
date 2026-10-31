@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [ "master" ]
 
-# A new push to the same branch or pull request cancels the run it supersedes.
-# Seven master merges in ten minutes once queued seven full runs of the suite,
-# six of them for commits nobody would act on.
+# A new push to a pull request cancels the run it supersedes: nobody acts on a
+# result for a commit the branch has moved past.
+#
+# Master is different. Every merge is a push, so cancelling there meant a
+# morning of merges never finished a single run: each one killed the last,
+# shards forty minutes in. On master a running suite now always finishes.
+# GitHub keeps one run waiting behind it per group, and a newer merge replaces
+# that waiting one, so a burst of merges costs one finished run plus one run of
+# the newest commit, not one run per merge.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   style:
