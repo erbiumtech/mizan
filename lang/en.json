@@ -1730,6 +1730,8 @@
     "Status": "Status",
     "Status page URL": "Status page URL",
     "Statuses": "Statuses",
+    "Statuses come from the :workflow workflow. Add or rename them with Edit workflow.": "Statuses come from the :workflow workflow. Add or rename them with Edit workflow.",
+    "Statuses come from the :workflow workflow. To add one, ask someone who manages workflows.": "Statuses come from the :workflow workflow. To add one, ask someone who manages workflows.",
     "Still committed": "Still committed",
     "Still open": "Still open",
     "Still out": "Still out",

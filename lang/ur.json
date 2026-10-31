@@ -1730,6 +1730,8 @@
     "Status": "حیثیت",
     "Status page URL": "اسٹیٹس صفحے کا URL",
     "Statuses": "حیثیتیں",
+    "Statuses come from the :workflow workflow. Add or rename them with Edit workflow.": "حیثیتیں :workflow ورک فلو سے آتی ہیں۔ انہیں شامل کرنے یا نام بدلنے کے لیے \"ورک فلو میں ترمیم کریں\" استعمال کریں۔",
+    "Statuses come from the :workflow workflow. To add one, ask someone who manages workflows.": "حیثیتیں :workflow ورک فلو سے آتی ہیں۔ نئی حیثیت شامل کرنے کے لیے ورک فلو کا انتظام کرنے والے سے کہیں۔",
     "Still committed": "ابھی تک پابند",
     "Still open": "ابھی کھلا",
     "Still out": "ابھی باہر",
