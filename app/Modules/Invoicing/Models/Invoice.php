@@ -12,6 +12,8 @@ use App\Modules\Invoicing\Services\BillPaymentService;
 use App\Modules\Projects\Models\Project;
 use App\Support\Contracts\PayableDocument;
 use App\Support\ModuleMap;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
@@ -20,9 +22,9 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Support\Carbon;
 use Throwable;
 
-class Invoice extends Model implements PayableDocument
+class Invoice extends Model implements PayableDocument, Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     // ─── PayableDocument — a bill paid through the bank file, docs/bexio-gap-plan.md Phase 3 ───
 
@@ -528,5 +530,58 @@ class Invoice extends Model implements PayableDocument
     public function baseOutstanding(): float
     {
         return round($this->baseTotal() - $this->basePaid(), 2);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A sale or a bill copies to a new draft. A credit or debit note does not: it exists only
+     * against the document it corrects, and a second one would correct it twice.
+     */
+    public function canBeReplicated(): bool
+    {
+        return in_array($this->kind, [self::KIND_SALE, self::KIND_PURCHASE], true);
+    }
+
+    /** The file on the original belongs to the original — a copy that pointed at it would share it. */
+    public function replicationExcept(): array
+    {
+        return ['attachment_path'];
+    }
+
+    /**
+     * A new draft dated today, due as many days later as the original was, owing in full and
+     * reported nowhere. The number is left empty so the creating hook draws the next one.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'invoice_number' => null,
+            'status' => self::STATUS_DRAFT,
+            'invoice_date' => fn (): string => today()->toDateString(),
+            'due_date' => fn (self $original): ?string => $original->due_date && $original->invoice_date
+                ? today()->addDays((int) $original->invoice_date->diffInDays($original->due_date))->toDateString()
+                : null,
+            'fiscal_year_id' => fn (): ?int => FiscalYear::containing(today()->toDateString())?->getKey(),
+            'amount_paid' => 0,
+            'journal_entry_id' => null,
+            'recurring_invoice_id' => null,
+            'period' => null,
+            'credits_invoice_id' => null,
+            'credit_reason' => null,
+            'commissioner_approval_ref' => null,
+            'commissioner_approved_on' => null,
+            'fbr_status' => self::FBR_NOT_REQUIRED,
+            'fbr_irn' => null,
+            'fbr_usin' => null,
+            'fbr_reported_at' => null,
+            'fbr_qr_payload' => null,
+        ];
+    }
+
+    /** The lines, without the costing they were allocated to on the original. */
+    public function replicationRelations(): array
+    {
+        return ['lines' => ['cost_entry_id', 'commitment_line_id']];
     }
 }

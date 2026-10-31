@@ -3,13 +3,15 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
-class Account extends Model
+class Account extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /**
      * Counter-account for opening balances (see ChartOfAccountsSeeder).
@@ -223,5 +225,17 @@ class Account extends Model
         }
 
         return $balance;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['balance' => 0];
     }
 }

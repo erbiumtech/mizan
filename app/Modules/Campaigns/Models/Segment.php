@@ -3,6 +3,8 @@
 namespace App\Modules\Campaigns\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,9 +17,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * implementation and the wrong one: a campaign sent next month to last month's list is a
  * campaign that misses everybody who joined since.
  */
-class Segment extends Model
+class Segment extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'definition', 'is_active'];
 

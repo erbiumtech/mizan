@@ -4,6 +4,8 @@ namespace App\Modules\Construction\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Concerns\HasMaterialisedPath;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -19,9 +21,9 @@ use Illuminate\Database\Eloquent\Builder;
  * mapping columns means every report is a `group by`, the mapping is maintained once per code, and an unmapped
  * code is a countable row rather than a silently wrong total.
  */
-class CostCode extends Model
+class CostCode extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
     use HasMaterialisedPath;
 
     public const TYPE_LABOUR = 'labour';
@@ -167,5 +169,17 @@ class CostCode extends Model
         }
 
         return true;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['path' => null, 'is_leaf' => true];
     }
 }

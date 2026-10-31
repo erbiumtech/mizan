@@ -5,11 +5,13 @@ namespace App\Modules\Inventory\Models;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Models\Account;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 
-class Product extends Model
+class Product extends Model implements Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     public const METHOD_FIFO = 'fifo';
 
@@ -47,5 +49,12 @@ class Product extends Model
     public function revenueAccount()
     {
         return $this->belongsTo(Account::class, 'revenue_account_id');
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['sku' => self::suggestCopyOf('sku')];
     }
 }

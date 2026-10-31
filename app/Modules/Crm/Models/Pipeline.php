@@ -3,6 +3,8 @@
 namespace App\Modules\Crm\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,9 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * A sales process. Most companies have one; a company selling two different things has two.
  */
-class Pipeline extends Model
+class Pipeline extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'is_default', 'is_active'];
 
@@ -67,5 +69,17 @@ class Pipeline extends Model
     public function lostStage(): ?PipelineStage
     {
         return $this->stages()->where('is_lost', true)->first();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['is_default' => false];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['stages'];
     }
 }

@@ -4,6 +4,8 @@ namespace App\Modules\Performance\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Rules\Rule;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -13,9 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Something worth recognising — docs/saas-launch-plan.md §8.4. Awarded by
  * hand with a reason, or (plan §8.9) by a rule; every award is a merit credit.
  */
-class Badge extends Model
+class Badge extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'description', 'icon', 'points', 'rule', 'is_active'];
 
@@ -46,5 +48,12 @@ class Badge extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
     }
 }

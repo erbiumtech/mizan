@@ -3,11 +3,13 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 
-class TransactionType extends Model
+class TransactionType extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'code', 'account_id', 'description', 'is_active'];
 
@@ -52,5 +54,12 @@ class TransactionType extends Model
     public static function byCode(string $code): ?self
     {
         return static::where('code', $code)->first();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name'), 'code' => self::suggestCopyOf('code')];
     }
 }

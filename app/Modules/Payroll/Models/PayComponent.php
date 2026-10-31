@@ -4,6 +4,8 @@ namespace App\Modules\Payroll\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Models\Account;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,9 +25,9 @@ use InvalidArgumentException;
  * amount per employee, a total on the payslip, and a place in the ledger. That is
  * the point — a new allowance is a row, not a migration and twelve edits.
  */
-class PayComponent extends Model
+class PayComponent extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const KIND_EARNING = 'earning';
 
@@ -225,5 +227,12 @@ class PayComponent extends Model
         }
 
         return \App\Modules\Accounting\Support\PayrollAccounts::id($this->expense_account_key);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
     }
 }

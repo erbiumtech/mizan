@@ -3,6 +3,8 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,9 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * default is a common Pakistani cheque leaf and the test print is how it is
  * corrected against a real one.
  */
-class ChequeLayout extends Model
+class ChequeLayout extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const FIELDS = ['payee', 'amount_words', 'amount_figures', 'date', 'crossing'];
 
@@ -61,5 +63,12 @@ class ChequeLayout extends Model
     public function field(string $name): array
     {
         return array_merge(static::defaultFields()[$name] ?? ['x' => 0, 'y' => 0, 'w' => 50, 'font' => 10], (array) ($this->fields[$name] ?? []));
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['company_bank_account_id' => null];
     }
 }

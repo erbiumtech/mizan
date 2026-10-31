@@ -3,6 +3,8 @@
 namespace App\Modules\Crm\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,9 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * more than the forecast — and free text gives you "price", "Price" and "too expensive" as
  * three reasons with three rates, none of them right.
  */
-class LostReason extends Model
+class LostReason extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'is_active', 'sort'];
 
@@ -32,5 +34,12 @@ class LostReason extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
     }
 }

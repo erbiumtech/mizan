@@ -5,13 +5,15 @@ namespace App\Modules\Invoicing\Models;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\Bank;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Contact extends Model
+class Contact extends Model implements Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     public const KIND_CUSTOMER = 'customer';
 
@@ -180,5 +182,12 @@ class Contact extends Model
             ->orderBy('category')
             ->pluck('category')
             ->all();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationRelations(): array
+    {
+        return ['people'];
     }
 }

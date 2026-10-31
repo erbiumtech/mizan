@@ -3,13 +3,15 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A bank's file, as a template — docs/saas-launch-plan.md §14.1. */
-class BankFileFormat extends Model
+class BankFileFormat extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const KIND_IPAYMENTS = 'ipayments';
 
@@ -54,5 +56,12 @@ class BankFileFormat extends Model
         return $own
             ?? static::query()->where('is_active', true)->whereNull('company_bank_account_id')->orderByDesc('kind')->orderBy('id')->first()
             ?? new self(['name' => 'Standard Chartered iPayments', 'kind' => self::KIND_IPAYMENTS]);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['company_bank_account_id' => null, 'previewed_at' => null];
     }
 }

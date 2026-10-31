@@ -3,6 +3,8 @@
 namespace App\Modules\Performance\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -22,9 +24,9 @@ use Illuminate\Database\Eloquent\Builder;
  * who does a great deal badly — and a single number hides exactly the distinction a
  * manager is looking for.
  */
-class ScorecardProfile extends Model
+class ScorecardProfile extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /** What a merit source counts as. The ledger's own sources, in two buckets. */
     public const QUALITY_SOURCES = [MeritEntry::SOURCE_REPORT, MeritEntry::SOURCE_BADGE];
@@ -77,5 +79,12 @@ class ScorecardProfile extends Model
     public static function bucketOf(string $source): string
     {
         return in_array($source, self::QUALITY_SOURCES, true) ? 'quality' : 'volume';
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['designation' => self::suggestCopyOf('designation')];
     }
 }

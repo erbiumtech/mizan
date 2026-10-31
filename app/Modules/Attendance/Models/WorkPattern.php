@@ -3,6 +3,8 @@
 namespace App\Modules\Attendance\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,9 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `employees` because companies here run more than one — a factory floor on six days
  * and an office on five is the ordinary case.
  */
-class WorkPattern extends Model
+class WorkPattern extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'is_default', 'week_start', 'notes', 'break_minutes', 'grace_minutes'];
 
@@ -87,5 +89,17 @@ class WorkPattern extends Model
     public function workingDaysPerWeek(): int
     {
         return $this->days->where('is_working', true)->count();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['is_default' => false];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['days'];
     }
 }

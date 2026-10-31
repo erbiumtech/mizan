@@ -4,6 +4,8 @@ namespace App\Modules\ConstructionCosting\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Models\CostCode;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,9 +24,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * hour of steel fixing cost us" is a question asked across jobs, and it is unanswerable the moment each job invents
  * its own trades.
  */
-class Trade extends Model
+class Trade extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $table = 'construction_trades';
 
@@ -66,5 +68,12 @@ class Trade extends Model
     public function displayName(): string
     {
         return "{$this->code} — {$this->name}";
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
     }
 }

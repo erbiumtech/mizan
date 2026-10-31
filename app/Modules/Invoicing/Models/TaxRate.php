@@ -4,6 +4,8 @@ namespace App\Modules\Invoicing\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Models\Account;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,9 +19,9 @@ use InvalidArgumentException;
  * quoted and printed. Turning it into a fraction happens at the one place that
  * multiplies by it.
  */
-class TaxRate extends Model
+class TaxRate extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /** Where tax posts when a rate names no account of its own. */
     public const DEFAULT_ACCOUNT_CODE = '2150';
@@ -121,5 +123,12 @@ class TaxRate extends Model
     public function label(): string
     {
         return $this->name.' ('.rtrim(rtrim(number_format((float) $this->rate, 4, '.', ''), '0'), '.').'%)';
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['is_default' => false];
     }
 }

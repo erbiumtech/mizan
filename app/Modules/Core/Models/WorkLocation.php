@@ -3,6 +3,8 @@
 namespace App\Modules\Core\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -13,9 +15,9 @@ use Illuminate\Database\Eloquent\Builder;
  * judged against. The fence is a point and a radius in metres; a location
  * without them is a place, and nothing judges a punch against it.
  */
-class WorkLocation extends Model
+class WorkLocation extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /**
      * `locations`, as the plan names it. The class is WorkLocation because every
@@ -98,5 +100,17 @@ class WorkLocation extends Model
         }
 
         return $this->distanceTo($latitude, $longitude) <= (float) $this->geofence_radius_m;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['is_head_office' => false];
     }
 }
