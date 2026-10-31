@@ -34,6 +34,16 @@
                 @endforeach
             </select>
 
+            {{-- The project's boards, when it has more than one. In the address as `board`, so a link opens this one. --}}
+            @php($boards = $this->boards())
+            @if (count($boards) > 1)
+                <select wire:model.live="boardId" class="fi-board-project" aria-label="{{ __('Board') }}">
+                    @foreach ($boards as $id => $name)
+                        <option value="{{ $id }}">{{ $name }}</option>
+                    @endforeach
+                </select>
+            @endif
+
             <input
                 type="search"
                 wire:model.live.debounce.400ms="search"

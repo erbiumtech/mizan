@@ -709,6 +709,7 @@ paths:
         - { name: unassigned, in: query, schema: { type: boolean } }
         - { name: blocked, in: query, schema: { type: boolean } }
         - { name: search, in: query, schema: { type: string } }
+        - { name: board, in: query, schema: { type: integer }, description: "Another of the project's boards, by id. Omitted, the project's first board; an id that is not this project's is a 404." }
       responses:
         '200':
           description: Columns, each with lanes of cards.

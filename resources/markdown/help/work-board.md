@@ -39,6 +39,54 @@ when it is past, and the assignee's initials.
 
 Clicking the key opens the item.
 
+## Board settings <!-- requires: BoardManage -->
+
+**Board settings**, at the top of the page, changes how this board draws the project's work. It
+changes nothing about the work itself: no card moves, and the workflow's rules stay as they are.
+
+- **Name** and **Kind**. A *Kanban* board shows every open item; a *Scrum* board shows the active
+  sprint's.
+- **Lanes** split every column into rows by assignee, epic or priority, or not at all.
+- **Show subtasks as cards** gives each subtask a card of its own. Off, a subtask is a count on its
+  parent's card.
+- **Columns**, in order — drag a column by its handle to move it. Each has a name, the statuses it
+  holds, and an optional **card limit**. A column may hold more than one status: *In review* and
+  *In QA* side by side is a common pair. A card dropped on such a column lands in its first status.
+
+Three things refuse a save, each with the reason: a column with no status, a status in two columns,
+and a limit that is not a whole number of at least one. A status in **no** column is allowed — it
+is then named above the board, as described below, so its cards are never lost without saying so.
+
+A limit belongs to its column, so moving the column moves the limit with it.
+
+**Reset columns from workflow**, under **Boards**, puts back one column per status of the
+project's workflow, in order, with no limits. Use it when a board's columns no longer make sense
+— after a workflow gained statuses, for instance.
+
+## More than one board
+
+A project starts with one board. **Boards → New board** adds another — a Scrum board for the sprint
+beside the Kanban board for everything, or a board for the support team with only their columns.
+Each new board starts with one column per status and is changed through its own settings.
+
+When a project has more than one board, a second picker beside the project's chooses between them.
+The choice is in the web address too, so a link opens the board it was copied from. The project's
+first board is the one shown when nothing is chosen.
+
+**Boards → Delete this board** removes the board and nothing else: items, statuses and history
+stay, and show on the project's other boards. A project's last board cannot be deleted.
+
+## Which workflow a project uses
+
+A project's statuses — and so the columns a new board starts with — come from its **workflow**,
+chosen on the project's own form under **Workflow**. Empty means the company default.
+
+It can be changed only while none of the project's items is in a status the new workflow lacks.
+Since a status belongs to one workflow, that usually means before the project has items. Nothing
+is remapped automatically: to move a running project, move its items' statuses first. When the
+change goes through, every board of the project is redrawn with one column per new status, and its
+limits are cleared, because columns of the old statuses would hold nothing.
+
 ## Keeping up to date
 
 If your installation has a live connection configured, cards move as other people move them. If it
@@ -49,3 +97,6 @@ does not, the board refreshes itself every thirty seconds.
 Everybody who works the board may drag cards on it. **Moving** is a separate permission from
 **editing**, so a board can be shared with somebody who should read it and change nothing — a client
 contact, or a department watching progress.
+
+Changing a board's settings, adding a board and deleting one need **Board manage**, which managers
+have. Choosing a project's workflow needs permission to edit the project.

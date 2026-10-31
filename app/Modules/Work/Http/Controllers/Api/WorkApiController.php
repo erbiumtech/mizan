@@ -85,6 +85,15 @@ class WorkApiController extends Controller
 
         $board = WorkBoard::defaultFor($project, $workflow);
 
+        // `?board=` picks another of this project's boards; the first is the default, as on screen.
+        if ($request->filled('board')) {
+            $board = WorkBoard::query()->where('project_id', $project->getKey())->whereKey((int) $request->query('board'))->first();
+
+            if ($board === null) {
+                return ApiResponse::error('This project has no board with that id.', 404);
+            }
+        }
+
         return ApiResponse::success([
             'board' => ['id' => (int) $board->getKey(), 'name' => $board->name, 'kind' => $board->kind],
             'columns' => app(Boards::class)->columns($board, $this->quickFilters($request)),
