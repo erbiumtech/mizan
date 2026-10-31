@@ -52,6 +52,7 @@ class Boards
             );
 
             $limit = $board->limitFor($index);
+            $total = $inColumn->count();
 
             $columns[] = [
                 'index' => $index,
@@ -62,8 +63,11 @@ class Boards
                 'drop_status_id' => $statusIds[0] ?? null,
                 'category' => $categories[$statusIds[0] ?? 0] ?? null,
                 'limit' => $limit,
-                'over' => $limit !== null && $inColumn->count() > $limit,
-                'total' => $inColumn->count(),
+                'over' => $limit !== null && $total > $limit,
+                // At or past the limit: the count chip turns red here, a card before the column
+                // refuses one. Decided once, here, so the view never re-derives it.
+                'full' => $limit !== null && $total >= $limit,
+                'total' => $total,
                 'lanes' => $this->lanes($board, $inColumn, $blocked),
             ];
         }

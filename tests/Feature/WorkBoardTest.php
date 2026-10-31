@@ -246,7 +246,13 @@ class WorkBoardTest extends AccountingTestCase
 
         $links = collect($page->instance()->viewSwitch())->keyBy('label');
         $this->assertTrue($links['Board']['current']);
+        $this->assertStringContainsString('project='.$this->project->getKey(), (string) $links['Board']['url'], 'The open segment is a link too, for the keyboard.');
         $this->assertStringContainsString('project='.$this->project->getKey(), (string) $links['Timeline']['url']);
+        $this->assertStringContainsString('filters[project_id][value]='.$this->project->getKey(), urldecode((string) $links['List']['url']));
+
+        // One card under a limit of three: counted, not full.
+        $this->assertSame(1, $columns[0]['total']);
+        $this->assertFalse($columns[0]['full']);
         $this->assertContains($this->project->name, $page->instance()->getBreadcrumbs());
     }
 
