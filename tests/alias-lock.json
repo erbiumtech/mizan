@@ -233,6 +233,7 @@
         "App\\Models\\StockMovement": "App\\Modules\\Inventory\\Models\\StockMovement",
         "App\\Models\\Submittal": "App\\Modules\\ConstructionField\\Models\\Submittal",
         "App\\Models\\SubmittalReview": "App\\Modules\\ConstructionField\\Models\\SubmittalReview",
+        "App\\Models\\SyncCommand": "App\\Modules\\Core\\Models\\SyncCommand",
         "App\\Models\\TableView": "App\\Modules\\Core\\Models\\TableView",
         "App\\Models\\TaskOccurrence": "App\\Modules\\Performance\\Models\\TaskOccurrence",
         "App\\Models\\TaxRate": "App\\Modules\\Invoicing\\Models\\TaxRate",

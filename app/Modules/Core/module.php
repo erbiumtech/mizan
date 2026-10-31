@@ -44,6 +44,9 @@ return [
         // A person's push subscription — docs/desktop-mobile-plan.md A3. Core because it belongs to the
         // user, who belongs to no module.
         'App\\Models\\DeviceToken' => \App\Modules\Core\Models\DeviceToken::class,
+        // The sync inbox's record of every command a device sent — docs/desktop-mobile-plan.md §5a. Core
+        // because the engine is one for every workflow; the workflows belong to their modules.
+        'App\\Models\\SyncCommand' => \App\Modules\Core\Models\SyncCommand::class,
         'App\\Models\\Comment' => \App\Modules\Core\Models\Comment::class,
         'App\\Models\\FiscalYear' => \App\Modules\Core\Models\FiscalYear::class,
         'App\\Models\\Holiday' => \App\Modules\Core\Models\Holiday::class,

@@ -76,6 +76,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
+        // One registry for every module's offline workflow — docs/desktop-mobile-plan.md §5a.
+        $this->app->singleton(\App\Support\Sync\SyncWorkflows::class);
         $this->app->singleton(Modules::class);
 
         // Web Push — docs/desktop-mobile-plan.md A3. The transport is a contract so a test binds a recorder
