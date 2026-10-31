@@ -38,7 +38,7 @@ class CustomFieldResource extends Resource
     protected static ?string $model = CustomField::class;
 
     /** Where its records open from the list — docs/side-sheets.md. */
-    protected static RecordSheet $recordSheet = RecordSheet::Page;
+    protected static RecordSheet $recordSheet = RecordSheet::SheetView;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 

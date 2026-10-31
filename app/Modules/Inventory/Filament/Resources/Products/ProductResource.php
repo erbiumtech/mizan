@@ -27,7 +27,7 @@ class ProductResource extends Resource
     protected static ?string $model = Product::class;
 
     /** Where its records open from the list — docs/side-sheets.md. */
-    protected static RecordSheet $recordSheet = RecordSheet::Page;
+    protected static RecordSheet $recordSheet = RecordSheet::SheetView;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

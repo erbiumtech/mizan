@@ -30,7 +30,7 @@ class PermissionResource extends Resource
     protected static ?string $model = Permission::class;
 
     /** Where its records open from the list — docs/side-sheets.md. */
-    protected static RecordSheet $recordSheet = RecordSheet::Page;
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 

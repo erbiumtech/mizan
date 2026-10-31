@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Filament\Support\RecordSheetEditPage;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,17 +13,27 @@ use PHPUnit\Framework\TestCase;
  *  - every Filament resource says where its records open, so a new resource makes the choice;
  *  - the list page of a resource that opens a sheet carries the trait that acts on it, and no other
  *    list page does (it would do nothing, and suggest otherwise);
- *  - a `Sheet` resource meets the rules for one: its edit page adds nothing to Filament's save, it has
- *    no relation managers and its form no repeaters — because the edit sheet runs Filament's edit
- *    action, not that page, and anything the page did on save would silently stop happening;
+ *  - a `Sheet` resource meets the rules for one: its edit page does nothing around a save beyond the
+ *    hooks the sheet runs on it ({@see RecordSheetEditPage}), and those hooks need nothing of the page
+ *    but its record and data; it has no relation managers and its form no repeaters — because anything
+ *    else the page did on save would silently stop happening in the sheet;
  *  - the document lists every resource and the choice it made.
  */
 class RecordSheetCoverageTest extends TestCase
 {
     private const DECLARATION = '/protected static RecordSheet \$recordSheet = RecordSheet::(Sheet|SheetView|Page);/';
 
-    /** What an edit page may override and still be one the edit sheet can stand in for. */
-    private const HARMLESS_EDIT_PAGE_METHODS = ['getHeaderActions', 'getRedirectUrl'];
+    /**
+     * What an edit page may override and still be one the edit sheet can stand in for: what does not
+     * take part in a save, and the hooks the sheet runs on the page (RecordSheetEditPage::HOOKS).
+     */
+    private const HARMLESS_EDIT_PAGE_METHODS = ['getHeaderActions', 'getRedirectUrl', 'getSubheading'];
+
+    /** Edit-page lifecycle the sheet does not run: on a `Sheet`'s page, or a trait it uses, it would be skipped. */
+    private const UNBRIDGED_HOOKS = ['beforeFill', 'afterFill', 'beforeValidate', 'afterValidate', 'mount', 'form', 'save', 'getFormActions', 'getSaveFormAction', 'getCancelFormAction'];
+
+    /** What a hook run outside its page cannot do: the page is never mounted, so it has no form and no response. */
+    private const PAGE_ONLY = '/\$this->(form\b|redirect|dispatch\(|fillForm|refreshFormData|getMountedAction)/';
 
     public function test_every_resource_declares_where_its_records_open(): void
     {
@@ -87,14 +98,22 @@ class RecordSheetCoverageTest extends TestCase
             }
 
             preg_match_all('/function (\w+)\(/', $edit, $methods);
-            $extra = array_diff($methods[1], self::HARMLESS_EDIT_PAGE_METHODS);
+            $extra = array_diff($methods[1], self::HARMLESS_EDIT_PAGE_METHODS, RecordSheetEditPage::HOOKS);
 
             if ($extra !== []) {
                 $wrong[] = "{$name}: its edit page overrides ".implode(', ', $extra).'(), which the sheet would skip';
             }
 
-            if (str_contains($edit, 'InteractsWithCustomFields')) {
-                $wrong[] = "{$name}: its edit page saves custom fields, which the sheet would skip";
+            foreach ([$edit, ...$this->traitSources($edit)] as $code) {
+                if (preg_match(self::PAGE_ONLY, $code, $m)) {
+                    $wrong[] = "{$name}: its edit page's hooks use \$this->{$m[1]}, which a sheet's page does not have";
+                }
+
+                preg_match_all('/function (\w+)\(/', $code, $traitMethods);
+
+                if ($skipped = array_intersect($traitMethods[1], self::UNBRIDGED_HOOKS)) {
+                    $wrong[] = "{$name}: its edit page defines ".implode(', ', $skipped).'(), which the sheet does not run';
+                }
             }
 
             if (preg_match('/function getRelations\(\)[^{]*\{\s*return\s*\[\s*[^\]\s]/', $source)) {
@@ -179,6 +198,32 @@ class RecordSheetCoverageTest extends TestCase
         }
 
         return null;
+    }
+
+    /**
+     * The sources of the app's traits a page uses, found through its imports.
+     *
+     * @return list<string>
+     */
+    private function traitSources(string $page): array
+    {
+        if (! preg_match('/\{\s*use ([^;]+);/', $page, $m)) {
+            return [];
+        }
+
+        $sources = [];
+
+        foreach (array_map('trim', explode(',', $m[1])) as $short) {
+            if (preg_match('/^use (App\\\\[\w\\\\]*\\\\'.preg_quote($short, '/').');/m', $page, $import)) {
+                $path = $this->root().'/app/'.str_replace('\\', '/', substr($import[1], 4)).'.php';
+
+                if (is_file($path)) {
+                    $sources[] = (string) file_get_contents($path);
+                }
+            }
+        }
+
+        return $sources;
     }
 
     /** The form schema: the Schemas/*Form*.php files beside the resource, or the resource itself. */

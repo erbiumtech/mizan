@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\SitePersonnelResource;
 use Filament\Actions\CreateAction;
@@ -9,6 +10,8 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListSitePersonnel extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = SitePersonnelResource::class;
 
     protected function getHeaderActions(): array

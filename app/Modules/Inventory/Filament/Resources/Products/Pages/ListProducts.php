@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Filament\Resources\Products\Pages;
 
 use App\Filament\Concerns\HasSavedViews;
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Inventory\Filament\Resources\Products\ProductResource;
 use Filament\Actions\CreateAction;
@@ -11,6 +12,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListProducts extends ListRecords
 {
     use HasSavedViews;
+    use OpensRecordsInSheets;
 
     protected static string $resource = ProductResource::class;
 
